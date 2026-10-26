@@ -30,6 +30,10 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 
 ## Active Plans
 
+- [`Architecture_2026-10-26.md`](Architecture_2026-10-26.md): `arch-` steps
+  for the assembler's larger structure on Bend 2: the shell and
+  concurrency, values and large structures, the store and reclamation,
+  parallelism. Drafted for the maintainer's review.
 - [`DocsPort_2026-10-26.md`](DocsPort_2026-10-26.md): `docs-port-` steps
   adapting the imported design docs and samples: the maintainer's rulings,
   known errors, and removing what describes the Rust runtime.

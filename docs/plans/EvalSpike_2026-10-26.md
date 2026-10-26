@@ -21,8 +21,9 @@ learns becomes decision records.
 - Throughput and memory of glam's own node set (Bind, Copy N, Data, eraser)
   as a Bend step machine, against the hvm5 baseline.
 - How lazy fields inside data meet net sharing: a field as a net port shared
-  through `Copy` fans, or a memo cell (evaluated once, reference-counted)
-  that a `Data` payload points to.
+  through `Copy` fans, or a memo cell (evaluated once, reclaimed by marking;
+  see the [architecture sketch](Architecture_2026-10-26.md)) that a `Data`
+  payload points to.
 - What growing the store costs, and whether laws guard capacity, linearity
   and free-list conservation cheaply.
 - What parallelism Bend's parallel calls can find in net reduction.
