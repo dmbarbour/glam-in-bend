@@ -61,7 +61,8 @@ Proposed:
 - **Limits.** One event loop serves all IO, and the core is one logical
   thread (`pure-core-io-shell`): ample for the bootstrap and an IDE. If IO
   dispatch ever bottlenecks, foreign C effects can do their work on helper
-  threads, as native `Process.run` already does.
+  threads, as native `Process.run` already does, and a Linux target can
+  batch IO through `io_uring` behind such effects.
 
 ## Values and large structures
 
@@ -80,48 +81,45 @@ type Val is Data:
   Num{q: Rat}            # exact rational, small integers packed
   Seq{r: Rope}           # lists, texts, binaries
   Map{d: Dict}           # dicts, atoms, tagged data, objects, namespaces
-  Fun{code: Tpl, env: Env}   # a closed net template and its captures
-  Lazy{cell: U32}        # a memo cell in the store
+  Fun{net: U32, +arity: U32}   # a function's net in the store
+  Lazy{cell: U32}        # a lazy value in the store
   ...                    # opaque handles: volumes, resolvers, carriers
 ```
 
-A function is data: a closed template, shared freely, copied into the live
-net when applied (as `pure_hvm5_mini` instantiates definitions). Only
-laziness needs the store.
+A function is a net and its remaining arity (`functions-are-nets-with-arity`):
+applying it copies the net logically, and a pair reducing in the source
+reduces once there, for every copy, so partial applications share their
+work. Its net is therefore shared and mutable, like a lazy value, and lives
+in the store beside them. glam-in-bend interprets glam's nets itself: Bend 2
+has no net runtime, and glam's rules differ from HVM's.
 
 **Numbers.** Rationals over integers of `U32` limbs, normalized, with
 small integers packed into one word. Laws: limb arithmetic agrees with
 `Nat` where `Nat` reaches, and the ring laws hold.
 
-**Ropes** (lists, texts, binaries). Two candidates, both checked in Bend:
-
-- A join-based weight-balanced tree with cached sizes: cons, snoc, index,
-  split and concatenation in O(log n), worst case. Join-based algorithms
-  give bulk operations (map, fold, filter, union) as balanced fork-join,
-  Bend's model of parallelism. A parallel fold over a persistent tree ran
-  5.7× faster on 8 threads than on 1.
-- Finger trees: Bend accepts their nested type and polymorphic recursion,
-  given a depth-fuel argument first, for amortized O(1) at both ends.
-  Without type classes, measuring nested levels takes a uniform element
-  type, or dependent element types like Base's `Word(n)`. Eager
-  evaluation weakens amortized bounds under persistence.
-
-Proposed: start with the join-based tree, which is simpler, bounded in the
-worst case, parallel, and shares its code with dicts. Revisit finger trees
-if profiles show end operations matter. Leaves are chunks, never arrays:
-binaries pack four bytes per `U32` into fixed-width leaves, so a megabyte is
-about 16K leaves; texts pack code points alike.
+**Ropes** (lists, texts, binaries): 2-3 finger trees over uniform nodes,
+as glas encodes them (GlasObject.md, "Encoding Finger Tree Ropes"): leaf
+chunks, sized nodes and concatenations, with each level's depth a
+convention rather than a type. That is an ordinary regular Bend datatype,
+needing neither nested types nor type classes, though Bend accepts both
+(checked: a typed finger tree passes with a depth-fuel argument first).
+Cached sizes measure each level. Bulk operations (map, fold, serialize)
+recurse over the tree as balanced fork-join; a parallel fold over a
+persistent tree ran 5.7× faster on 8 threads than on 1. Leaves are chunks,
+never arrays: binaries pack four bytes per `U32` into fixed-width leaves, so
+a megabyte is about 16K leaves, and texts pack code points alike
+(`packed-texts-and-binaries`).
 
 **Dicts**, hierarchical:
 
 - A join-based balanced tree keyed in a canonical total order over
-  comparable keys. glam exposes no key order; reflection, which lists keys,
-  would list them in this order, deterministically.
+  comparable keys; reflection may list keys in that order
+  (`reflection-key-order-free`). Join-based algorithms make union,
+  intersection and map balanced fork-join.
 - A path is nested dicts; `{a.b:1, a.c:2}` builds `a`'s dict once. A
   `with` update copies one path, O(log n), and the old version stays valid.
-- Union, intersection and map run as join-based parallel algorithms.
-- Every node caches `ground`: true when no `Lazy` handle lies beneath it,
-  which lets reclamation skip it.
+- Every node caches `ground`: true when no `Lazy` or `Fun` handle lies
+  beneath it, which lets reclamation skip it.
 - Objects and namespaces are dicts of mostly lazy entries; object-based
   modules need no structure of their own.
 - Measured on a persistent bitwise trie of 1M hashed keys: insert 420 ns,
@@ -131,48 +129,108 @@ about 16K leaves; texts pack code points alike.
 
 **Hot values.** A node shared more than 2^24 times fail-stops. Values
 packed into one word (unit, small numbers) are never counted, so the
-commonest are safe; a value referenced from millions of places, as `env`
-might be, could be interned in the store and passed as a handle.
+commonest are safe; values referenced from millions of places, as `env`
+might be, are interned and passed as handles (`intern-hot-values`).
 
-## The store, laziness and reclamation
+## The store: shared lazy state
 
-- The store is flat `Array`s owned by the core state: live net nodes and
-  memo cells. A scattered read and write measured about 1.5 ns.
-- Live nets are linear: an interaction frees what it consumes, and erasers
-  free dropped subnets, so nets need no collector.
-- Memo cells are shared through `Lazy` handles inside `Val`s, which Bend
-  copies freely, so the store cannot count them. Reclaim them by
-  mark-and-sweep: mark from the core's roots (scheduler, stacks, data in
-  live net nodes, cells), skipping `ground` subtrees, then sweep unmarked
-  cells to the free list. It never moves cells, so handles stay valid, and
-  it is pure and deterministic. It runs between slices, before the store
-  would grow.
-- When a sweep leaves the free list empty, the store grows by copying into
+**This is the crux, and could sink the project if mishandled.** Lazy values
+and function nets are shared by many references, change once for all of
+them (a thunk is forced, a source pair reduces), and must be reclaimed once
+unreachable. What Bend offers, investigated 2026-10-26:
+
+- **Natively, nothing.** Bend 2 evaluates eagerly and has no thunks or
+  memoization. A closure may be called once, so it is at best a single-use
+  thunk. Shared data never changes: the runtime's lock-free reads, on CPU
+  and GPU, rely on "a shared node's fields never change" and on a
+  redirect's target never changing. Its only collector is the last owner's
+  drop; with immutable data no cycle can form, so nothing traces.
+- **Through IO,** channels are native, reference-counted, shared mutable
+  objects, so a write-once cell could be emulated, but only from the event
+  loop, at microseconds per operation.
+- **Under `@unsafe`,** `Array.fork` hands parallel calls two handles to one
+  array, and `Array.atomic.*` (CAS, exchange, add, …) act on `Array<U32>`
+  cells. Tested: 8 workers racing CAS over 1M cells won exactly 1M claims,
+  at about 6–10 ns per CAS. Every def depending on it falls outside the
+  proofs, and only word cells are atomic.
+- **No small tweak.** A native write-once cell breaks the runtime invariant
+  above: it needs a new term kind with CAS and acquire reads on the C,
+  Metal, CUDA and JS backends, plus checker support. And reference counting
+  alone would leak the cycles lazy fixpoints make, since an object's
+  entries capture `self`. Upstream has no issue on laziness, mutable
+  references or cycle collection.
+
+The careless design, one global array of lazies marked from Bend data,
+fails twice: one array serializes evaluation, and marking cannot mark Bend
+data, so a shared structure holding handles is walked once per path to it,
+for every version sharing it. Three options:
+
+1. **Split heap, in pure Bend.** Ground data (no lazy or function handle
+   beneath it) is plain Bend `Data`, shared, freed and processed in
+   parallel by Bend for free. Everything non-ground has identity in our
+   store: lazies, function nets, and the interior nodes of structures that
+   hold handles, beyond a small inline bound. Marking then visits each
+   non-ground node once, however many versions share it, and a collection
+   *grounds* structures whose lazies have all been forced, moving them out
+   of the traced heap. Generational: a nursery collected often, an old
+   region (namespaces) rarely, with a remembered set for old cells written
+   once with young values. Evaluation runs one thread per store
+   (`pure-core-io-shell`); sparks run on private nurseries over a snapshot
+   of their parent and merge back at the join. A thunk's value is fixed by
+   its code, so merges are order-independent, though siblings may
+   duplicate work. Laws remain available throughout.
+2. **Parallel word heap, HVM2-style.** All lazy structure as net nodes in
+   a forked `Array<U32>`, reduced in parallel with atomics; linear, so
+   nothing to mark. Real parallel evaluation, at the price of an `@unsafe`
+   kernel no law can cover, everything encoded in words, and glam's nets
+   differing from HVM's. Bend 2's own runtime is not a net machine (Bend 1
+   ran on HVM2).
+3. **Change Bend.** A write-once shared cell plus cycle collection in
+   BendRT: the cleanest semantics, but a fork of a young compiler that
+   ships several releases a week. At most a feature request, once a spike
+   shows what we would ask for.
+
+Proposed: option 1, measured in EvalSpike before anything depends on it.
+It is the same remedy the Rust side is heading for (each shared object
+marked once), without host concurrency. Its risk is speed: a sequential
+evaluator and our own collector, in a language whose array loops run near
+C speed.
+
+Mechanics, whichever option:
+
+- The store is flat `Array`s owned by the core state; a scattered read and
+  write measured about 1.5 ns. Handles never move.
+- Live nets are linear: an interaction frees what it consumes and erasers
+  free dropped subnets.
+- When a collection leaves no free cell, the store grows by copying into
   an array twice the size (depth 31 at most).
 - Laws: allocation stays in bounds (`pure_hvm5_mini` wraps silently); a
   sweep frees no marked cell; growth preserves contents; a rewrite keeps
-  every live port wired once. Marking completeness is harder to prove; try
-  it on small stores first.
-- `spike-lazy-data` (EvalSpike) weighs this against lazy fields as net
-  ports.
+  every live port wired once; a merge of nurseries keeps every memo
+  result.
 
 ## Parallelism
 
 Fork-join fits balanced work with no shared affine state:
 
 - Lexing and parsing a batch of modules once their bytes are in.
-- Bulk structure operations: map, fold and union on ropes and dicts,
-  serializing outputs, hashing for content addressing and caching.
-- Later, sparks whose inputs are ground could evaluate on a private store
-  and return ground results.
+- Bulk structure operations on ground data: map, fold and union on ropes
+  and dicts, serializing outputs, hashing for content addressing and
+  caching.
+- Sparks, later: each evaluates on a private nursery over a snapshot of
+  its parent's store, merged back at the join (option 1 of "The store").
 
 Not parallel: the evaluator's main loop over one store, and marking over
 one mark array.
 
 ## Front end
 
-- The lexer reads bytes in an `Array<U32>` its state owns, not Bend
-  `String`s, which are character lists; tokens carry offsets.
+- The lexer reads a source's bytes from an `Array<U32>` its state owns, one
+  byte per cell, as `File.read_bytes` yields them. That takes four times
+  the memory of packing, little at source sizes; packing four per cell
+  would cost a shift per read. Not Bend `String`s, which are character
+  lists. Tokens carry offsets. Imported binaries go straight to packed rope
+  leaves.
 - Bend allows no mutual recursion and no call to a def below. hvm5_mini
   writes its parser as a continuation monad over the parser state, with one
   recursive term parser and explicit phases for lookahead; a loop over an
@@ -196,7 +254,10 @@ one mark array.
 - One C file per program and no incremental builds: native builds of a
   large core may slow; the JS target keeps the dev loop fast.
 - Reference-count saturation for hot values.
-- Marking cost on large live heaps with many lazy handles.
+- The store (above): a sequential evaluator and our own collector must be
+  fast enough, and marking must never revisit shared structure.
+- `@unsafe` code, such as forked arrays, falls outside the proofs; keep it
+  out of the core, or confine it to a small kernel.
 
 ## Steps
 
@@ -215,8 +276,13 @@ The store and nets belong to [EvalSpike](EvalSpike_2026-10-26.md).
 
 ## Open questions
 
-- Is a canonical internal key order acceptable, given that reflection
-  lists keys in it?
-- Should texts and binaries be ropes with specialized leaves, as proposed,
-  or ordinary lists of numbers until measured?
-- Is interning hot values worth doing before measuring?
+- The store: option 1 as proposed, pending EvalSpike's measurements?
+- Is order-independent merging of spark nurseries, with possibly
+  duplicated work, acceptable for sparks?
+- How long-running sessions (an IDE) reclaim old regions: a periodic full
+  collection, or regions retired per edit?
+
+Answered 2026-10-26 by the maintainer: any key order is fine for reflection
+(`reflection-key-order-free`); texts and binaries are packed
+(`packed-texts-and-binaries`); hot values are interned
+(`intern-hot-values`).

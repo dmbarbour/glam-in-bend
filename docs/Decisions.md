@@ -63,7 +63,21 @@ Surface and semantic rules settled for this implementation.
   effects are described under handlers assumed, not required, to obey the
   monad laws.
 
+## Values and representation
+
+How glam values sit on Bend 2's immutable, reference-counted data. The
+store for shared lazy state remains open (architecture sketch).
+
+- [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
+  a function is a net and its remaining arity; copies share its reductions.
+- [`packed-texts-and-binaries`](decisions/packed-texts-and-binaries.md):
+  texts and binaries are lists, stored packed in rope leaves.
+- [`intern-hot-values`](decisions/intern-hot-values.md): widely shared
+  values are interned, keeping Bend's reference counts in bounds.
+
 ## Reflection
 
 - [`reflection-api-per-runtime`](decisions/reflection-api-per-runtime.md):
   beyond the standard effects, reflection APIs may differ per runtime.
+- [`reflection-key-order-free`](decisions/reflection-key-order-free.md):
+  reflection may list dict keys in any order.

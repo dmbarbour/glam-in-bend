@@ -15,18 +15,24 @@ learns becomes decision records.
 - Array indexes wrap silently: that demo answers wrongly, without error,
   once its live cells outgrow its fixed environment.
 - The checker takes about 0.5 s for 3K lines; a native build about 1 s.
+- Bend has no laziness and no shared mutable state outside `@unsafe` forked
+  arrays (CAS about 6–10 ns, tested correct under contention); see the
+  [architecture sketch](Architecture_2026-10-26.md), "The store".
 
 ## Questions
 
 - Throughput and memory of glam's own node set (Bind, Copy N, Data, eraser)
   as a Bend step machine, against the hvm5 baseline.
-- How lazy fields inside data meet net sharing: a field as a net port shared
-  through `Copy` fans, or a memo cell (evaluated once, reclaimed by marking;
-  see the [architecture sketch](Architecture_2026-10-26.md)) that a `Data`
-  payload points to.
+- Whether the split heap (the sketch's option 1) holds up: ground data as
+  Bend data; lazies, function nets and non-ground structure nodes in the
+  store; marking that visits each non-ground node once and grounds what
+  has been forced.
+- How lazy fields inside data meet net sharing: memo cells in the store, or
+  ports shared through `Copy` fans.
 - What growing the store costs, and whether laws guard capacity, linearity
   and free-list conservation cheaply.
-- What parallelism Bend's parallel calls can find in net reduction.
+- What spark nurseries, merged at their joins, recover in parallelism
+  against one evaluator thread.
 
 ## Steps
 
@@ -37,10 +43,14 @@ learns becomes decision records.
    fuel-driven loop over a stack of active pairs. Law: a rewrite keeps every
    live port wired exactly once.
 3. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
-   dicts, built as Bend values (no parser), lowered to nets.
-4. `spike-lazy-data` — lazy dict fields both ways, as ports and as memo
-   cells, on workloads that share a field many times and that copy a large,
-   mostly unread dict.
+   dicts, built as Bend values (no parser), lowered to nets. Functions are
+   nets with arity (`functions-are-nets-with-arity`): a partial
+   application's copies share the reductions of its source.
+4. `spike-lazy-data` — the split heap and its collector, against lazy fields
+   as ports, on workloads that share a field many times, copy a large
+   mostly unread dict, keep many persistent versions of a large lazy dict
+   (the case where careless marking revisits shared structure), and churn
+   a nursery beside a long-lived namespace.
 5. `spike-measure` — interactions/s, peak cells, check and build times, JS
    against native, at n, 2n and 4n; record the numbers here.
 6. `spike-verdict` — decide the representation, record it in
