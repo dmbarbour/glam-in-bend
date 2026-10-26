@@ -1,6 +1,6 @@
 # `::=` is disabled
 
-`prior-update-disabled` · maintainer · rev 42da1ff
+`prior-update-disabled` · maintainer · rev 9433be0
 
 **Context.** `name ::= \prior -> Expr` was the non-observing update: it
 passed the prior definition without asserting one existed. The Rust side
@@ -15,4 +15,5 @@ definition using it is a compile error saying it is disabled.
 - An update is `name := Expr` with `_name`, which asserts the prior exists.
 - A write that may introduce or replace, as at an expression path inside
   `with`, uses `dict.insert`.
-- Samples using `::=` are rewritten, and docs mark it disabled.
+- Samples that exist for `::=` are removed: `hello/hello_update.g`, and the
+  `::=` line of `syntax/definitions.g`. Docs mark it disabled.

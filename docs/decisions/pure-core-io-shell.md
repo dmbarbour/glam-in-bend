@@ -1,6 +1,6 @@
 # A pure core behind a thin IO shell
 
-`pure-core-io-shell` · maintainer · rev 42da1ff
+`pure-core-io-shell` · maintainer · rev 9433be0
 
 **Context.** glam promises reproducible assembly: the same sources give the
 same binary. Host concurrency was a main source of bugs in the Rust runtime.
@@ -12,6 +12,7 @@ resumes the core. Everything nondeterministic, interaction included, enters
 through the shell as ordered input.
 
 **Consequences.**
+- The core is one logical thread, which is adequate for a bootstrap.
 - An assembly result is a function of the inputs the core requested, which a
   law can state.
 - glam's own concurrency (tasks, ports, promises, cuts) is a deterministic

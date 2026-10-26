@@ -1,6 +1,6 @@
 # glam is implemented in Bend 2
 
-`host-bend2` · maintainer · rev 42da1ff
+`host-bend2` · maintainer · rev 9433be0
 
 **Context.** The Rust bootstrap (github.com/dmbarbour/glam, 2026-02 to
 2026-10) slowed under long compiles, concurrency bugs in its runtime and
@@ -22,5 +22,6 @@ glam 21912fc9 in 42da1ff and are edited here.
 - Bend has only `Nat`, `U32` and `F32`; glam's exact rationals are built on
   `U32` limbs. Strings are character lists, bytes `List<U32>`.
 - Foreign code serves IO effects only; any accelerator is pure Bend.
-- Bend is young: pin its version, and note each workaround for a compiler
-  bug beside the code it shapes.
+- Bend is young: pin its version, and be ready to report compiler issues
+  upstream (github.com/bendlang/bend/issues). Keep a minimal reproduction of
+  each issue we hit, and note any workaround beside the code it shapes.
