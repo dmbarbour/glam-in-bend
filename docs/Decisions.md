@@ -65,9 +65,11 @@ Surface and semantic rules settled for this implementation.
 
 ## Values and representation
 
-How glam values sit on Bend 2's immutable, reference-counted data. The
-store for shared lazy state remains open (architecture sketch).
+How glam values sit on Bend 2's immutable, reference-counted data, and
+where the shared lazy state that Bend cannot hold goes.
 
+- [`split-heap`](decisions/split-heap.md): ground data is Bend data;
+  everything holding lazy state lives in our store, split for parallelism.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
   a function is a net and its remaining arity; copies share its reductions.
 - [`packed-texts-and-binaries`](decisions/packed-texts-and-binaries.md):

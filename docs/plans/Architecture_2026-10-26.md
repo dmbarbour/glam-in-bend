@@ -23,7 +23,7 @@ Bend's runtime paper (`paper/BendRT.pdf` in bendlang/bend).
  │   front end  bytes -> tokens -> syntax -> core terms, nets   │
  │   evaluator  live nets and memo cells over the store         │
  │   values     Val: numbers, ropes, dicts, functions, handles  │
- │   store      flat Arrays: live net nodes, memo cells         │
+ │   store      pages: lazies, nets, structure holding handles  │
  └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -174,11 +174,9 @@ for every version sharing it. Three options:
    *grounds* structures whose lazies have all been forced, moving them out
    of the traced heap. Generational: a nursery collected often, an old
    region (namespaces) rarely, with a remembered set for old cells written
-   once with young values. Evaluation runs one thread per store
-   (`pure-core-io-shell`); sparks run on private nurseries over a snapshot
-   of their parent and merge back at the join. A thunk's value is fixed by
-   its code, so merges are order-independent, though siblings may
-   duplicate work. Laws remain available throughout.
+   once with young values. Parallel work splits the store into pages that
+   workers own in turn ("Pages and rounds", below). Laws remain available
+   throughout.
 2. **Parallel word heap, HVM2-style.** All lazy structure as net nodes in
    a forked `Array<U32>`, reduced in parallel with atomics; linear, so
    nothing to mark. Real parallel evaluation, at the price of an `@unsafe`
@@ -190,24 +188,98 @@ for every version sharing it. Three options:
    ships several releases a week. At most a feature request, once a spike
    shows what we would ask for.
 
-Proposed: option 1, measured in EvalSpike before anything depends on it.
-It is the same remedy the Rust side is heading for (each shared object
-marked once), without host concurrency. Its risk is speed: a sequential
-evaluator and our own collector, in a language whose array loops run near
-C speed.
+Chosen (maintainer, 2026-10-26): option 1, with independent work split
+across the store for parallelism (`split-heap`); EvalSpike measures it
+before anything depends on it. It is the same remedy the Rust side is
+heading for (each shared object marked once), without host concurrency.
+Its risk is speed: our own collector, and parallelism only as good as the
+partitioning.
 
 Mechanics, whichever option:
 
-- The store is flat `Array`s owned by the core state; a scattered read and
-  write measured about 1.5 ns. Handles never move.
+- The store is pages, flat `Array`s of cells; a scattered read and write
+  measured about 1.5 ns. Handles never move.
 - Live nets are linear: an interaction frees what it consumes and erasers
   free dropped subnets.
-- When a collection leaves no free cell, the store grows by copying into
-  an array twice the size (depth 31 at most).
+- When a collection leaves no free cell, the store grows by adding pages;
+  no page moves, so handles stay valid.
 - Laws: allocation stays in bounds (`pure_hvm5_mini` wraps silently); a
   sweep frees no marked cell; growth preserves contents; a rewrite keeps
   every live port wired once; a merge of nurseries keeps every memo
   result.
+
+## Pages and rounds
+
+Proposed, from the maintainer's suggestion: an evaluation quantum stops to
+ask for control of a heap page, and ownership is threaded linearly, so
+heuristics can then decide how pages are partitioned and allocated.
+Feasibility, checked 2026-10-26:
+
+**The model.**
+- The store is pages: fixed-size `Array`s of cells. A page is held by
+  exactly one owner at a time, a worker during a round or the coordinator
+  between rounds. An `Array` cannot be copied, so Bend's checker enforces
+  exclusive ownership: no locks, atomics or `@unsafe`. (Checked: a tree of
+  pages handed to parallel calls passes cleanly.)
+- A handle is a page and a slot in one `U32`, packed into a word and free to
+  share.
+- **Rounds**, bulk-synchronous: the coordinator assigns tasks and their
+  pages to W workers, runs the workers as balanced parallel calls with
+  equal fuel, and joins them. Between rounds it serves their requests:
+  grants pages, delivers reads, migrates pages, plans the next round. Equal
+  fuel per worker keeps the calls balanced, as Bend's fork-join scheduler
+  needs.
+- A task touching a page it does not hold stops with a request, which the
+  round boundary serves; its worker runs its other tasks meanwhile.
+- The coordinator is pure core code, not Bend's IO shell: IO computations
+  interleave on one event-loop thread and never run in parallel; only
+  parallel calls do. Results therefore never depend on thread timing, and
+  laws can state that a round loses or duplicates no page and no task.
+
+**Measured** on this machine (i7-6700, 4 cores with 2 hyperthreads each),
+equal total work of 2^27 scattered read-modify-writes:
+
+| Configuration | Time | Speedup |
+|---|---|---|
+| 1 worker | 101 ms (16 KB pages), 159 ms (256 KB) | 1× |
+| 8 workers, 16 KB pages | 38 ms | 2.7× |
+| 8 workers, 256 KB pages | 70 ms | 2.3× |
+| 8 workers, 4 MB pages (32 MB, past the 8 MB L3) | 581 ms | slower than 1 |
+
+- 4 workers ran no faster than 2, apparently placed on hyperthread
+  siblings; 8 fill all 4 cores.
+- Moving pages between workers each round costs nothing measurable: the
+  benchmark swapped subtrees of pages every round.
+- A round's dispatch costs about 8 µs with 2 workers and 18 µs with 8, in
+  waking threads; creating the tasks costs about 0.1 µs. Rounds need a few
+  hundred microseconds of work per worker to keep that under 5%, and a
+  request waits up to a round.
+
+**What follows.**
+- Coarse, independent work parallelizes: sparks, reflection tasks, module
+  compilation, independent active pairs. Fine-grained sharing across
+  workers does not.
+- Pages stay cache-sized (16–256 KB) and working sets small; big pages
+  turned parallel runs memory-bound.
+- Heuristics: allocate in a task's own nursery pages; serve a request for
+  an unforced thunk by moving its page to the requester when its owner is
+  idle, or by queueing the demand with the owner otherwise. A value
+  already forced needs no ownership: the coordinator shares it out between
+  rounds, in O(1) as Bend data.
+- Collection by pages: each worker marks the pages it holds; a reference
+  into another page becomes a mark delivered next round; remembered sets
+  per page let nursery pages be collected alone.
+- Ground data crosses workers as Bend data, but each share across lanes
+  costs an atomic count, so widely shared values are interned
+  (`intern-hot-values`).
+- The dispatch cost belongs to Bend's current scheduler, which its authors
+  describe as a first version ("flexible parallelism will be added later"),
+  so it may fall.
+
+**Verdict: feasible**, safe and lawful. Gains are bounded by how much
+coarse independent work an assembly offers, by cache-sized working sets,
+and by about 20 µs a round: on this 4-core machine, perhaps 2–3× where
+work splits well; larger machines are unmeasured.
 
 ## Parallelism
 
@@ -217,20 +289,20 @@ Fork-join fits balanced work with no shared affine state:
 - Bulk structure operations on ground data: map, fold and union on ropes
   and dicts, serializing outputs, hashing for content addressing and
   caching.
-- Sparks, later: each evaluates on a private nursery over a snapshot of
-  its parent's store, merged back at the join (option 1 of "The store").
+- Evaluation tasks (sparks, reflection tasks, independent active pairs) on
+  workers that own their pages, in rounds ("Pages and rounds").
 
-Not parallel: the evaluator's main loop over one store, and marking over
-one mark array.
+Not parallel: work within one task, and anything needing a page another
+worker holds until the next round.
 
 ## Front end
 
-- The lexer reads a source's bytes from an `Array<U32>` its state owns, one
-  byte per cell, as `File.read_bytes` yields them. That takes four times
-  the memory of packing, little at source sizes; packing four per cell
-  would cost a shift per read. Not Bend `String`s, which are character
-  lists. Tokens carry offsets. Imported binaries go straight to packed rope
-  leaves.
+- The lexer reads a source's bytes packed four per `U32` in an `Array` its
+  state owns (`packed-texts-and-binaries`), loading a word and taking its
+  four bytes with constant shifts: a 64 MB scan took 20 ms so, against
+  29 ms at one byte per cell and 54 ms unpacking each byte by index. Not
+  Bend `String`s, which are character lists. Tokens carry offsets.
+  Imported binaries go straight to packed rope leaves.
 - Bend allows no mutual recursion and no call to a def below. hvm5_mini
   writes its parser as a continuation monad over the parser state, with one
   recursive term parser and explicit phases for lookahead; a loop over an
@@ -254,8 +326,9 @@ one mark array.
 - One C file per program and no incremental builds: native builds of a
   large core may slow; the JS target keeps the dev loop fast.
 - Reference-count saturation for hot values.
-- The store (above): a sequential evaluator and our own collector must be
-  fast enough, and marking must never revisit shared structure.
+- The store (above): our own collector must be fast, marking must never
+  revisit shared structure, and parallel gains hang on partitioning work
+  into pages at about 20 µs a round.
 - `@unsafe` code, such as forked arrays, falls outside the proofs; keep it
   out of the core, or confine it to a small kernel.
 
@@ -276,13 +349,16 @@ The store and nets belong to [EvalSpike](EvalSpike_2026-10-26.md).
 
 ## Open questions
 
-- The store: option 1 as proposed, pending EvalSpike's measurements?
-- Is order-independent merging of spark nurseries, with possibly
-  duplicated work, acceptable for sparks?
-- How long-running sessions (an IDE) reclaim old regions: a periodic full
-  collection, or regions retired per edit?
+- Rounds: a fixed length (fuel), or adaptive to how many tasks are
+  runnable? With one runnable task, no round need fork at all.
+- A request for an unforced thunk in a page another worker holds: move
+  the page, queue the demand with its owner, or let the requester claim
+  the thunk alone and write it back later?
+- How long-running sessions (an IDE) reclaim old pages: a periodic full
+  collection, or pages retired per edit?
 
 Answered 2026-10-26 by the maintainer: any key order is fine for reflection
-(`reflection-key-order-free`); texts and binaries are packed
-(`packed-texts-and-binaries`); hot values are interned
-(`intern-hot-values`).
+(`reflection-key-order-free`); texts and binaries are packed, bytes four to
+a `U32` (`packed-texts-and-binaries`); hot values are interned
+(`intern-hot-values`); the store is a split heap, split for parallelism
+(`split-heap`).
