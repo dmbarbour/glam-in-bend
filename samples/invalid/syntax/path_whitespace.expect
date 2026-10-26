@@ -1,0 +1,2 @@
+error|3|adjacent to `.`|found `bar`
+error|4|dot-leading application arguments must be parenthesized|`f (.bar)`|`<|`
