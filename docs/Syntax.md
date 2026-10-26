@@ -407,7 +407,7 @@ Only comparables compare (`only-comparables-compare`): numbers, and lists or
 dicts of comparables, texts and binaries among the lists and atoms among the
 dicts. `==` and `<>` take any two comparables: two of different kinds are
 unequal, two dicts are equal where they define the same keys with equal
-values, and an atom equals the dict it stands for, `'tag` and `{tag:()}`.
+values, and an atom equals the dict it stands for: `'tag` equals `{["tag"]:()}`, not `{tag:()}`, which is `['tag]:()`.
 Ordering is for numbers, lists and tuples, never other dicts. Comparing
 anything else, a function, a net, an opaque value, a volume handle, a
 resolver or a sealed carrier, for equality or order, directly or within a
@@ -914,8 +914,8 @@ Fallback D` reads with a fallback, `dict.lookup Path D` reads, failing where
 undefined, `dict.insert Path Value D` writes, replacing what is there, and
 `dict.remove Path D` removes, pruning the dictionaries the removal empties, as
 insertion adds them. Dictionary equality is structural, the same keys and then
-equal values, and an atom equals the dictionary it stands for, `'tag` and
-`{tag:()}`.
+equal values, and an atom equals the dictionary it stands for: `'tag` equals
+`{["tag"]:()}`.
 
 Multi-line literal dictionaries accept a leading comma for convenient line-editing, consistent with lists:
 

@@ -111,7 +111,7 @@ d.missing           # ERROR: reading what is undefined is an error, never {}
 dict.defines ['a,'b] d    # .r () or .fail, never reading the value
 dict.default ['a] 0 d     # d.a, or 0 where undefined
 dict.remove ['a,'b] d     # removes, pruning the dicts it empties
-{a:1} == {a:1}      # equality is structural; 'tag == {tag:()}
+{a:1} == {a:1}      # equality is structural; 'tag == {["tag"]:()}
 {                   # multi-line: leading commas
 , name1:Expr1
 , name2:Expr2
