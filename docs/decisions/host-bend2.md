@@ -25,3 +25,4 @@ glam 21912fc9 in 42da1ff and are edited here.
 - Bend is young: pin its version, and be ready to report compiler issues
   upstream (github.com/bendlang/bend/issues). Keep a minimal reproduction of
   each issue we hit, and note any workaround beside the code it shapes.
+  `docs/BendIssues.md` tracks them, and `bench/` holds the reproductions.

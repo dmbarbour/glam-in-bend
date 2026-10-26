@@ -246,22 +246,27 @@ coarse work on workers in rounds. Feasibility, checked 2026-10-26:
   tasks on the pages it holds, under heuristic fuel, until the fuel runs
   out or its tasks all stop.
 - A task stops with its needs: pages it does not hold (perhaps several),
-  thunks it waits on, IO. The coordinator plans from those.
+  thunks it cannot proceed past, IO. Its worker records them for the
+  coordinator and goes on with its other tasks; the coordinator plans from
+  the records.
   - A task waiting on pages becomes runnable once one worker can hold all
     of them; while they are split between busy workers it sits out.
-  - A task waiting on a thunk joins that thunk's waiters, restored only
-    once the thunk is ready. An unclaimed thunk can become a task of its
-    own.
+  - A task waiting on a thunk is attached as one of the thunk's waiters,
+    returning to the run queue only once the thunk is ready. A thunk no
+    task is computing becomes a task of its own.
   - A value already forced needs no page: the coordinator shares it out
     between rounds, in O(1) as Bend data.
   - A write into a page held elsewhere, such as a thunk's result, is queued
     for that page's next holder.
-- Fairness comes across rounds: a task that sat out gains priority.
-- Fuel is heuristic: weighted by operation kind and calibrated from the
-  shell's timing of whole slices, since pure workers cannot read a clock.
-  Timing then shapes scheduling, never results, so assembly stays
-  reproducible. Errors found by parallel tasks stay inside their thunks and
-  surface in demand order.
+- The coordinator owes no task to any worker; assignments may change every
+  round. Fairness comes across rounds: a task that sat out gains priority.
+- Fuel starts as one unit per logical step, however large the step;
+  weights wait for profiles across several machines. Pure workers cannot
+  read a clock, so any later calibration would come from the shell's
+  timing of whole slices, shaping scheduling, never results.
+- Scheduling, heuristic but deterministic given the shell's input log,
+  decides the order diagnostics are observed in; results never depend on
+  it (`diagnostic-order-follows-schedule`).
 - The coordinator is pure, so results never depend on thread timing, and
   laws can state that a round loses or duplicates no page and no task.
 - Programs must expose concurrent tasks for rounds to pay off; with one
@@ -290,19 +295,10 @@ equal total work of 2^27 scattered read-modify-writes:
 - Rounds want a few hundred microseconds of work per worker to keep that
   under 5%; a request waits up to a round.
 
-**Upstream.**
-- There is no spin or pool option: the runtime's options are `--threads`
-  and `--gpu`. Pool threads already persist, and #1092 (closed) already
-  replaced a condition-variable wake per turn (over 100 µs) with yields
-  before sleeping.
-- `IO.eval` (#1575, open; PR #1578 closed unmerged) would run a pure
-  computation, pool and all, off the IO loop thread, so the shell could
-  serve IO during long slices. Worth supporting upstream with our use case
-  once the shell exists.
-- Files read as one list cell per byte. #1573 (open) asks for reads into
-  four little-endian bytes per `U32`, our layout. Until then, a foreign
-  effect could build arrays through runtime internals, fragile across
-  releases.
+**Upstream.** The runtime has no spin or pool option. The round cost,
+`IO.eval` for the shell, and packed file reads are tracked with their
+upstream issues in [`BendIssues.md`](../BendIssues.md), reproduced by the
+programs in `bench/bend/`.
 
 **What follows.**
 - Coarse, independent work parallelizes: sparks, reflection tasks, module
@@ -324,7 +320,8 @@ splits well.
 ## Collection
 
 The store needs a collector of its own: stop-the-world first, then
-concurrent under fuel. Both ride the rounds, so collection runs in
+concurrent under fuel with an SATB barrier (`store-collection`). Both ride
+the rounds, so collection runs in
 parallel by pages, deterministically, and never changes results.
 
 **Common ground.**
@@ -444,21 +441,22 @@ The store and nets belong to [EvalSpike](EvalSpike_2026-10-26.md).
 
 ## Open questions
 
-- Fuel: which operation kinds weigh what, and how often the shell's slice
-  timings recalibrate the weights?
-- An unclaimed thunk in a page another worker holds: make it a task beside
-  its page, or let the requester claim it and queue the write-back? Both
-  heuristics, per page or per thunk.
-- The concurrent collector's barrier: snapshot-at-the-beginning, as
-  proposed, or incremental update?
-- A many-core machine to measure rounds at scale, once EvalSpike reaches
-  `spike-page-rounds`.
+None open. A many-core machine comes in once EvalSpike reaches
+`spike-page-rounds` and has work to keep it busy; pay-as-you-go suits
+best, a time-based rental only with enough work queued.
 
-Answered 2026-10-26 by the maintainer: any key order is fine for reflection
-(`reflection-key-order-free`); texts and binaries are packed, bytes four to
-a `U32` (`packed-texts-and-binaries`); hot values are interned
-(`intern-hot-values`); the store is a split heap, split for parallelism
-(`split-heap`), in equal pages of cells that never move, handles a `U32`
-page and slot (`store-pages`); a coordinator runs coarse work in rounds,
-waiting on pages and on thunks differently (`rounds-of-coarse-work`); the
-store gets both a stop-the-world and a concurrent collector ("Collection").
+Answered 2026-10-26 by the maintainer:
+- any key order is fine for reflection (`reflection-key-order-free`);
+- texts and binaries are packed, bytes four to a `U32`
+  (`packed-texts-and-binaries`);
+- hot values are interned (`intern-hot-values`);
+- the store is a split heap, split for parallelism (`split-heap`), in
+  equal pages of cells that never move, handles a `U32` page and slot
+  (`store-pages`);
+- a coordinator runs coarse work in rounds, fuel one unit per logical step
+  for now, waiting on pages and on thunks differently
+  (`rounds-of-coarse-work`);
+- scheduling decides the order diagnostics are observed in
+  (`diagnostic-order-follows-schedule`);
+- the store gets a stop-the-world collector, then a concurrent one with an
+  SATB barrier, both shortcutting (`store-collection`).

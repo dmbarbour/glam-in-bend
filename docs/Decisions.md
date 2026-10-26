@@ -75,6 +75,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`rounds-of-coarse-work`](decisions/rounds-of-coarse-work.md): a
   coordinator runs coarse work on workers in rounds; fairness comes across
   rounds.
+- [`store-collection`](decisions/store-collection.md): the store's own
+  collector, stop-the-world first, then concurrent with an SATB barrier.
+- [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
+  deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
   a function is a net and its remaining arity; copies share its reductions.
 - [`packed-texts-and-binaries`](decisions/packed-texts-and-binaries.md):

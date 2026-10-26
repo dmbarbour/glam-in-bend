@@ -36,8 +36,8 @@ learns becomes decision records.
 - What growing the store costs, and whether laws guard capacity, linearity
   and free-list conservation cheaply.
 - What pages owned by workers in rounds recover in parallelism for real
-  evaluation, and which policies (round length, moving a page or queueing
-  a demand with its owner) serve it best.
+  evaluation, and which heuristics (round length, placing pages and tasks,
+  when a needed thunk becomes a task of its own) serve it best.
 
 ## Steps
 
@@ -61,8 +61,9 @@ learns becomes decision records.
 5. `spike-page-rounds` — a coordinator running independent tasks on
    workers that own their pages, in rounds (`rounds-of-coarse-work`):
    tasks report the pages and thunks they need, thunk waiters are restored
-   only when ready, and fuel is heuristic. Then marking as tasks in the
-   same rounds. Laws: a round loses or duplicates no page and no task.
+   only when ready, and fuel is one unit per logical step. Then marking as
+   tasks in the same rounds. Laws: a round loses or duplicates no page and
+   no task.
 6. `spike-measure` — interactions/s, peak cells, check and build times, JS
    against native, parallel speedup, at n, 2n and 4n; record the numbers
    here.

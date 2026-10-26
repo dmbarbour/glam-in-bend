@@ -26,6 +26,9 @@ Contingent:
   `docs/DesignPrinciples.md`, `docs/Design.md`
 - Macros, direct-style assembly, the command line: `docs/Macros.md`,
   `docs/DirectStyleAssembly.md`, `docs/CLI.md`
+- When Bend falls short: `docs/BendIssues.md` tracks shortfalls with their
+  upstream issues; `bench/` holds programs that measure and reproduce them.
+  Comment upstream only when the maintainer asks.
 
 The imported design docs still carry Rust-era passages until the docs port
 plan finishes; see `docs/plans/DocsPort_2026-10-26.md`.
