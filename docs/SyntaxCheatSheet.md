@@ -13,13 +13,13 @@ language g0 with utf8  # BaseVer with Extensions
 ```
 # Names: [a-zA-Z][a-zA-Z0-9]* parts, joined by single underscores.
 # Active g0 keywords are reserved as bare names and local binders:
-# abstract abstract_global_path and as assume at binary declare do else extend
-# extends if import in language let match module module_origin object or self
-# then try try_match unique using when where with
+# abstract abstract_global_path alias and as assume at binary declare do else
+# extend extends from if import in language let match module module_origin
+# object or self then try try_match unique using when where with
 # Explicit keys may use them: module.where, where:Value, or .['where] = Value.
 foo = 42                    # introduce (ERROR if foo already defined)
 foo := 43                   # override (ERROR if foo NOT already defined)
-foo ::= \ prior -> prior+1  # in-place update; NO defined/undefined check
+# ::= is reserved, disabled until redesigned (prior-update-disabled)
 bar = _foo + 1              # _foo references the PRIOR definition of foo
 
 # Function definition sugar (no pattern matching in args):
@@ -120,7 +120,7 @@ dict.remove ['a,'b] d     # removes, pruning the dicts it empties
   name2:Expr2,
   name3:Expr3}
 
-# 'with' updates (same =/:=/::= discipline as toplevel):
+# 'with' updates (same =/:= discipline as toplevel):
 d2 = d1 with
     x := 10                 # override existing
     y = 20                  # introduce new
@@ -654,7 +654,7 @@ foo = op1 >>= op2 with
     B := op4 >>= op5 with           # nested, with capture
         alias o
         C c = ... o.F ...
-    D ::= \ prior -> prior + 1
+    D := _D + 1
 
 using Dict in Expr          # treat any dict as temporary object scope;
                             #   outer locals too take ^: `let t = 1 in

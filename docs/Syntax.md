@@ -176,7 +176,7 @@ these ownership relationships visible by aligning siblings and resumption
 operators. It may choose a fixed indentation increment or add parentheses and
 braces, but it must preserve the parsed grouping.
 
-Each declaration starts with either a keyword (such as `import`, `object`, or `unique`) or is a basic definition of form `name = Expr` or one of its variants (args in lhs, `:=`, `::=`, etc.). We'll favor basic definitions where feasible, thus keywords are mostly for special forms.
+Each declaration starts with either a keyword (such as `import`, `object`, or `unique`) or is a basic definition of form `name = Expr` or one of its variants (args in lhs, `:=`, etc.). We'll favor basic definitions where feasible, thus keywords are mostly for special forms.
 
 In context of errors, the errors can be reported but we can also make a best effort to proceed with errors. This might depend on configuration options or command-line arguments.
 
@@ -199,7 +199,7 @@ The active `g0` table is:
 | expression operators | `and`, `or` |
 | special expression references | `module`, `module_origin`, `self` |
 | special object/`with` alias | `self` |
-| contextual modifiers | `abstract`, `as`, `at`, `binary`, `else`, `extends`, `in`, `then`, `when`, `with` |
+| contextual modifiers | `abstract`, `as`, `at`, `binary`, `else`, `extends`, `from`, `in`, `then`, `when`, `with` |
 
 A word may have more than one role, but the parser still has one
 version-owned source of truth for whether it is reserved.
@@ -266,7 +266,7 @@ When defining names, we'll distinguish introductions versus overrides. An introd
 
 Users refer to prior versions of names via `_name`, i.e. `_` prefix. This applies consistently across modules and objects. A local has no prior version, so `_name` is an error where a local `name` is in scope; one name has one meaning in a file, and `_name` cannot reach past the local to a definition.
 
-The compiler enforces explicit overrides by implicit assertions on the prior namespace: `name = Expr` asserts that it does not define `name`, and `name := Expr` that it does. They ask only whether the path is defined, as `dict.defines` does, never reading its value, and an empty dict `{}` is a definition like any other (`dict-empty-is-a-value`). As an escape hatch, I propose a non-observing `name ::= \ prior -> Expr`. This also serves as an in-place update, i.e. `name ::= Update`. Users have more freedom with `::=`. 
+The compiler enforces explicit overrides by implicit assertions on the prior namespace: `name = Expr` asserts that it does not define `name`, and `name := Expr` that it does. They ask only whether the path is defined, as `dict.defines` does, never reading its value, and an empty dict `{}` is a definition like any other (`dict-empty-is-a-value`). A non-observing update, `name ::= \ prior -> Expr`, once served as an escape hatch. It is disabled until redesigned (`prior-update-disabled`): with no undefined value, it has nothing to pass where `name` is undefined. The token stays reserved, and using it is a compile error saying so.
 
 ### File-Private Bindings
 
@@ -302,7 +302,7 @@ To localize errors, and to simplify analysis of name shadowing, names in use sha
 
 `declare` names what must be defined by the time a module's definitions are complete, e.g. by a later mixin; `=` may define it once and `:=` may override it. `assume` names what is already defined outside the module's journal, e.g. by a host or by a dict used as a module; `:=` may override it, and `=` conflicts.
 
-Both also appear in object bodies, recorded in the object's own journal; dict `with` bodies keep no journal and reject them. Compilers record both in the namespace's definition journal, `meta.journal`, beside each introduction (`=`), override (`:=`) and update (`::=`). A namespace's reflection boundary replays its journal when a definition in it is forced, and reports introducing a defined name, overriding an undefined one, and a declared name never defined. Hosts and compilers journal what they provide: the assembler introduces `asm.args` and `env` and declares `asm.result`, and `import ... as` introduces `env`.
+Both also appear in object bodies, recorded in the object's own journal; dict `with` bodies keep no journal and reject them. Compilers record both in the namespace's definition journal, `meta.journal`, beside each introduction (`=`) and override (`:=`). A namespace's reflection boundary replays its journal when a definition in it is forced, and reports introducing a defined name, overriding an undefined one, and a declared name never defined. Hosts and compilers journal what they provide: the assembler introduces `asm.args` and `env` and declares `asm.result`, and `import ... as` introduces `env`.
 
 ### Associated Names (Convention)
 
@@ -316,9 +316,9 @@ To this end, we might use a pattern such as defining `final_of.foo = _foo`. We c
 
 ### Forbidden Shadows
 
-Name shadowing, where a function argument or local variable accidentally masks another name defined or declared in lexical scope, is a common source of subtle bugs. Humans are a lot more flexible about referential context than our compiler, thus easily overlook the error when reading code. To resist this bug, we'll report an error for local name shadowing.
+Name shadowing, where a function argument or local variable accidentally masks another name defined or declared in lexical scope, is a common source of subtle bugs. Humans are a lot more flexible about referential context than our compiler, thus easily overlook the error when reading code. To resist this bug, we'll report an error for local name shadowing. Within a file or object, every bare name mentioned has exactly one disposition, a local or a global, never both (`shadowing-is-an-error`). This resists confusion over toplevel imports, and may strengthen if modules move toward eager toplevel imports.
 
-The bootstrap compiler rejects shadowing between local variables. This includes duplicate parameters, nested lambda or `let` bindings, and suppressed spellings
+The compiler rejects shadowing between local variables. This includes duplicate parameters, nested lambda or `let` bindings, and suppressed spellings
 such as `_name` shadowing `name`; both spellings have the same canonical local name. The inaccessible `_` binder may be repeated because it introduces no
 referable name. Reusing a name in disjoint lexical scopes is valid.
 
@@ -1128,7 +1128,7 @@ One way to maintain tables is to simply import from a database in a file:
 
         # alternatively, postprocess
         import "MyData.sqlite" binary as my_sql
-        my_sql ::= lazy_sqlite  # in place rewrite
+        my_sql := lazy_sqlite _my_sql  # rewrite in place
 
 Consequently, we don't need embedded tables for embedded data. 
 
@@ -1138,7 +1138,7 @@ We can update such tables manually.
 
         extend my_db with
           extend my_table with
-            data ::= \ prior -> prior ++ using ^^self in
+            data := _data ++ using ^^self in
               [ # (col1, col2, col3)
               ,   (  42,   53,   f1)
               ,   (  54,   72,   f2)
@@ -1169,7 +1169,6 @@ We'll also support Haskell-style `name args = ...` as a syntactic sugar.
         name = \ x y z -> Expr
         name x y z = Expr
         name x y z := Expr
-        name x y z ::= Update       # name := \ x y z -> (Update) _name
 
 Unlike Haskell, there is no support for pattern matching on lambda or definition arguments. 
 
@@ -2051,6 +2050,6 @@ Assuming the *Lightweight Extension* syntax for objects, we can support continua
                 alias op
                 B := ... op.F ... 
                 C c = ...
-            D ::= \ prior -> prior + 42
+            D := _D + 42
 
 I'm uncertain how useful this 'style' will be, but Koru language is essentially built around a restricted subset of this form of composition.

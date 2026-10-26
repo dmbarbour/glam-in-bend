@@ -56,7 +56,7 @@ object direct_standard_effects with
   updated_state path value state =
     match path as
       [] => value
-      _ => (state with { .(path) ::= \_prior -> value })
+      _ => dict.insert path value state
 
   trace_outcome event outcome =
     match (
