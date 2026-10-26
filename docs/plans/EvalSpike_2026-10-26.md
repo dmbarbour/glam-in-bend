@@ -117,7 +117,9 @@ Parallelism:
 9. `spike-deep-parallelism` — parallelism found inside a task: nested
    parallel calls for pure work over what its worker holds (its pages,
    split between the calls, and ground data), and new tasks for the
-   coordinator where work needs pages or thunks held elsewhere.
+   coordinator where work needs pages or thunks held elsewhere. Deep
+   parallelism may simplify the coordinator by making it recursive: a
+   worker coordinates subtasks over the pages it holds.
 
 Speed:
 
@@ -125,6 +127,9 @@ Speed:
     interaction loop (lambda-shaped, fans that labels pair correctly, data
     limited to its constructors), translate them, and run them on such a
     loop; measure the speedup and how much of real workloads qualifies.
+    `pure_hvm5_mini` is a demo, not a built-in: the loop would be ours,
+    perhaps a finally tagless interpreter specialized by Bend's `~`
+    templates at compile time.
 11. `spike-measure` — interactions/s, peak cells, check and build times, JS
     against native, parallel speedup, at n, 2n and 4n; record the numbers
     here.
