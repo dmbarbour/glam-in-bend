@@ -286,6 +286,3 @@ The handler records label markers in logical streams. After cursor layout is
 flattened, encoding scans those markers to resolve label references and
 published entry points. This is intentionally simple and favors inspectability
 over performance.
-
-The active tooling investigations exposed by this model are consolidated in
-[`docs/.tmp/AuthoringTools.md`](.tmp/AuthoringTools.md).
