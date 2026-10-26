@@ -4,11 +4,12 @@ This project is tentatively called 'glam' - general language assembly.
 
 ## Design Docs
 
+- [Distilled Design](./DistilledDesign.md) - a compressed view of the target design, the first thing to read
 - [Design Principles](./DesignPrinciples.md) - Guiding principles for the design. Summary:
   - absolute control - the guiding star for all design decisions is localizing control
-  - extensibility, stability, inverted access control - control in context of modularity
+  - extensibility and inverted access control - control in context of modularity
   - reproducibility, verifiability, scalability, comprehensibility - contribute to control
-  - flexibility, adaptivity, interactivity - further enhance the programming experience
+  - flexibility, adaptability, interactivity - further enhance the programming experience
 - [Design](./Design.md) - Summary:
   - pure, untyped lambda calculus for metaprogramming of assembly
     - built-in numbers, lists, and dicts for convenience
@@ -18,7 +19,7 @@ This project is tentatively called 'glam' - general language assembly.
     - but we do run reflection tasks and optional IDE
     - focus of reflection or IDE is entirely inwards
   - content-addressed, location-independent modules
-  - namespace as one big object; modules as mixins
+  - namespace as one big object; modules as mixins (pending the module redesign)
   - sources divided between assembly and configuration
     - config provides 'env' to assembly for adaptability
     - config also defines resources and the IDE process
@@ -30,8 +31,20 @@ This project is tentatively called 'glam' - general language assembly.
 - [Syntax Design](./Syntax.md) - design of initial syntax
   - borrows a lot from Haskell, but untyped by default
   - innovations on pattern matching, event continuations
+- [Syntax Cheat Sheet](./SyntaxCheatSheet.md) - a compressed view of the syntax, by example
 - [Source Macros](./Macros.md) - current `language g0` macro protocol,
   environment, staging constraints, and examples
+- [Direct-Style Assembly](./DirectStyleAssembly.md) - instructions and assembly bookkeeping as effects; the x86-64 sample handler
+- [Command Line](./CLI.md) - the assembler's command line, configuration and shell completion
+- [Lints](./Lints.md) - candidate lints for readability hazards the grammar accepts
+
+## Implementation
+
+This repository implements glam in Bend 2 (`host-bend2`).
+
+- [Decisions](./Decisions.md) - why things are as they are, indexing small records in `decisions/`
+- [Plans](./plans/README.md) and [reviews](./reviews/README.md) - how work proceeds
+- [Bend Issues](./BendIssues.md) - where Bend falls short, with the upstream issues
 
 ## Assembler Executable
 
