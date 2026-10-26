@@ -70,6 +70,11 @@ where the shared lazy state that Bend cannot hold goes.
 
 - [`split-heap`](decisions/split-heap.md): ground data is Bend data;
   everything holding lazy state lives in our store, split for parallelism.
+- [`store-pages`](decisions/store-pages.md): the store is equal pages of
+  cells that never move; a handle is one `U32`, page and slot.
+- [`rounds-of-coarse-work`](decisions/rounds-of-coarse-work.md): a
+  coordinator runs coarse work on workers in rounds; fairness comes across
+  rounds.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
   a function is a net and its remaining arity; copies share its reductions.
 - [`packed-texts-and-binaries`](decisions/packed-texts-and-binaries.md):

@@ -52,14 +52,17 @@ learns becomes decision records.
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`): a partial
    application's copies share the reductions of its source.
-4. `spike-lazy-data` — the split heap and its collector, against lazy fields
-   as ports, on workloads that share a field many times, copy a large
-   mostly unread dict, keep many persistent versions of a large lazy dict
-   (the case where careless marking revisits shared structure), and churn
-   a nursery beside a long-lived namespace.
-5. `spike-page-rounds` — independent tasks on workers that own their pages,
-   in rounds; requests for pages held elsewhere served between rounds.
-   Laws: a round loses or duplicates no page and no task.
+4. `spike-lazy-data` — the split heap with a stop-the-world collector
+   (the sketch's "Collection"), against lazy fields as ports, on workloads
+   that share a field many times, copy a large mostly unread dict, keep
+   many persistent versions of a large lazy dict (the case where careless
+   marking revisits shared structure), and churn a nursery beside a
+   long-lived namespace.
+5. `spike-page-rounds` — a coordinator running independent tasks on
+   workers that own their pages, in rounds (`rounds-of-coarse-work`):
+   tasks report the pages and thunks they need, thunk waiters are restored
+   only when ready, and fuel is heuristic. Then marking as tasks in the
+   same rounds. Laws: a round loses or duplicates no page and no task.
 6. `spike-measure` — interactions/s, peak cells, check and build times, JS
    against native, parallel speedup, at n, 2n and 4n; record the numbers
    here.

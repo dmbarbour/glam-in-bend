@@ -210,33 +210,64 @@ Mechanics, whichever option:
 
 ## Pages and rounds
 
-Proposed, from the maintainer's suggestion: an evaluation quantum stops to
-ask for control of a heap page, and ownership is threaded linearly, so
-heuristics can then decide how pages are partitioned and allocated.
-Feasibility, checked 2026-10-26:
+The maintainer's direction (`store-pages`, `rounds-of-coarse-work`): equal
+pages of cells that never move, owned linearly, and a coordinator running
+coarse work on workers in rounds. Feasibility, checked 2026-10-26:
 
-**The model.**
-- The store is pages: fixed-size `Array`s of cells. A page is held by
-  exactly one owner at a time, a worker during a round or the coordinator
-  between rounds. An `Array` cannot be copied, so Bend's checker enforces
-  exclusive ownership: no locks, atomics or `@unsafe`. (Checked: a tree of
-  pages handed to parallel calls passes cleanly.)
-- A handle is a page and a slot in one `U32`, packed into a word and free to
-  share.
-- **Rounds**, bulk-synchronous: the coordinator assigns tasks and their
-  pages to W workers, runs the workers as balanced parallel calls with
-  equal fuel, and joins them. Between rounds it serves their requests:
-  grants pages, delivers reads, migrates pages, plans the next round. Equal
-  fuel per worker keeps the calls balanced, as Bend's fork-join scheduler
-  needs.
-- A task touching a page it does not hold stops with a request, which the
-  round boundary serves; its worker runs its other tasks meanwhile.
-- The coordinator is pure core code, not Bend's IO shell: IO computations
-  interleave on one event-loop thread and never run in parallel; only
-  parallel calls do. Results therefore never depend on thread timing, and
+**Pages and handles.**
+- Pages are equal-size `Array`s of cells. A page has exactly one owner at a
+  time, a worker during a round or the coordinator between rounds. An
+  `Array` cannot be copied, so Bend's checker enforces exclusive ownership,
+  with no locks, atomics or `@unsafe` (checked: a tree of pages handed to
+  parallel calls passes cleanly).
+- A handle is a `U32`: a page number in its high bits, the slot in the low
+  bits (`store-pages`). Measured on lists of 4M elements:
+  - A constructor with one `U32` field packs into the term word, in a
+    single-constructor type or a tagged variant like `Val` alike: `Lazy{h}`
+    costs no allocation, is copied by value and is never counted (16.5 bytes
+    per list element, the cons cell alone).
+  - A `Nat` is packed only bare. Any constructor holding one, tagged or not,
+    and whatever its value, is a heap node counted when shared (24.5 bytes
+    per list element: one more word). A `Nat` past 2^48 − 1 is a fail-stop.
+  - Splitting costs the same either way: 0.73 ns with `Nat` div and mod,
+    0.59 ns with `U32` shift and mask.
+
+  So 2^32 cells, split between page bits and slot bits by the page size,
+  behind a small handle module that could widen if an assembly ever needs
+  more.
+
+**Rounds.**
+- The coordinator is pure core code: it keeps every task's state and
+  needs, assigns tasks and pages to workers heuristically, and runs several
+  rounds within one core slice. It is not Bend's IO shell, whose
+  computations interleave on one event-loop thread and never run in
+  parallel; only parallel calls do.
+- A round runs W workers as balanced parallel calls. Each worker runs its
+  tasks on the pages it holds, under heuristic fuel, until the fuel runs
+  out or its tasks all stop.
+- A task stops with its needs: pages it does not hold (perhaps several),
+  thunks it waits on, IO. The coordinator plans from those.
+  - A task waiting on pages becomes runnable once one worker can hold all
+    of them; while they are split between busy workers it sits out.
+  - A task waiting on a thunk joins that thunk's waiters, restored only
+    once the thunk is ready. An unclaimed thunk can become a task of its
+    own.
+  - A value already forced needs no page: the coordinator shares it out
+    between rounds, in O(1) as Bend data.
+  - A write into a page held elsewhere, such as a thunk's result, is queued
+    for that page's next holder.
+- Fairness comes across rounds: a task that sat out gains priority.
+- Fuel is heuristic: weighted by operation kind and calibrated from the
+  shell's timing of whole slices, since pure workers cannot read a clock.
+  Timing then shapes scheduling, never results, so assembly stays
+  reproducible. Errors found by parallel tasks stay inside their thunks and
+  surface in demand order.
+- The coordinator is pure, so results never depend on thread timing, and
   laws can state that a round loses or duplicates no page and no task.
+- Programs must expose concurrent tasks for rounds to pay off; with one
+  runnable task, a slice runs it without forking.
 
-**Measured** on this machine (i7-6700, 4 cores with 2 hyperthreads each),
+**Measured** on this machine (i7-6700: 4 cores, 2 hyperthreads each),
 equal total work of 2^27 scattered read-modify-writes:
 
 | Configuration | Time | Speedup |
@@ -246,14 +277,32 @@ equal total work of 2^27 scattered read-modify-writes:
 | 8 workers, 256 KB pages | 70 ms | 2.3× |
 | 8 workers, 4 MB pages (32 MB, past the 8 MB L3) | 581 ms | slower than 1 |
 
-- 4 workers ran no faster than 2, apparently placed on hyperthread
-  siblings; 8 fill all 4 cores.
-- Moving pages between workers each round costs nothing measurable: the
-  benchmark swapped subtrees of pages every round.
-- A round's dispatch costs about 8 µs with 2 workers and 18 µs with 8, in
-  waking threads; creating the tasks costs about 0.1 µs. Rounds need a few
-  hundred microseconds of work per worker to keep that under 5%, and a
-  request waits up to a round.
+- With 64 KB pages, 4 threads ran as fast as 8 (55 ms each, against 73 ms
+  on 2): hyperthreads added nothing to scattered memory work, while each
+  barrier cost more.
+- Moving pages between workers costs nothing measurable.
+- A round costs the barriers of one fork tree, a grow turn and a work turn:
+  about 7.6 µs on 2 threads, 11 µs on 4 and 19 µs on 8, almost all of it
+  synchronization; creating the tasks costs about 0.1 µs. Spinning longer
+  does not help: patching the runtime's wait (128 `sched_yield`s, then a
+  condition variable) to 65,536 yields, or to 2^24 `pause` instructions,
+  left round costs unchanged.
+- Rounds want a few hundred microseconds of work per worker to keep that
+  under 5%; a request waits up to a round.
+
+**Upstream.**
+- There is no spin or pool option: the runtime's options are `--threads`
+  and `--gpu`. Pool threads already persist, and #1092 (closed) already
+  replaced a condition-variable wake per turn (over 100 µs) with yields
+  before sleeping.
+- `IO.eval` (#1575, open; PR #1578 closed unmerged) would run a pure
+  computation, pool and all, off the IO loop thread, so the shell could
+  serve IO during long slices. Worth supporting upstream with our use case
+  once the shell exists.
+- Files read as one list cell per byte. #1573 (open) asks for reads into
+  four little-endian bytes per `U32`, our layout. Until then, a foreign
+  effect could build arrays through runtime internals, fragile across
+  releases.
 
 **What follows.**
 - Coarse, independent work parallelizes: sparks, reflection tasks, module
@@ -261,25 +310,71 @@ equal total work of 2^27 scattered read-modify-writes:
   workers does not.
 - Pages stay cache-sized (16–256 KB) and working sets small; big pages
   turned parallel runs memory-bound.
-- Heuristics: allocate in a task's own nursery pages; serve a request for
-  an unforced thunk by moving its page to the requester when its owner is
-  idle, or by queueing the demand with the owner otherwise. A value
-  already forced needs no ownership: the coordinator shares it out between
-  rounds, in O(1) as Bend data.
-- Collection by pages: each worker marks the pages it holds; a reference
-  into another page becomes a mark delivered next round; remembered sets
-  per page let nursery pages be collected alone.
+- A task allocates in its own nursery pages.
 - Ground data crosses workers as Bend data, but each share across lanes
   costs an atomic count, so widely shared values are interned
   (`intern-hot-values`).
-- The dispatch cost belongs to Bend's current scheduler, which its authors
-  describe as a first version ("flexible parallelism will be added later"),
-  so it may fall.
+- Scale needs measuring on a many-core machine: this one has 4 cores.
 
 **Verdict: feasible**, safe and lawful. Gains are bounded by how much
 coarse independent work an assembly offers, by cache-sized working sets,
-and by about 20 µs a round: on this 4-core machine, perhaps 2–3× where
-work splits well; larger machines are unmeasured.
+and by 10–20 µs a round: on this 4-core machine, perhaps 2–3× where work
+splits well.
+
+## Collection
+
+The store needs a collector of its own: stop-the-world first, then
+concurrent under fuel. Both ride the rounds, so collection runs in
+parallel by pages, deterministically, and never changes results.
+
+**Common ground.**
+- Roots: the coordinator's task states (stacks, registers, needs), thunk
+  waiters, pending IO requests, the intern table, the assembly's roots.
+- Mark bits per page, owned with the page. Ground data holds no handles, so
+  marking never enters it, and every non-ground node is a cell, visited
+  once however many versions share it.
+- Marking across pages is bulk-synchronous like evaluation: each worker
+  marks from the cells it holds, and a handle into a page held elsewhere
+  becomes a mark message, routed by the coordinator to that page's next
+  holder. Marking ends with a round that sends no message.
+- Shortcutting: a handle to a cell holding a ground value is replaced by
+  the value itself wherever the handle's page is held, so forced structure
+  leaves the traced heap and its cells come free.
+- Sweeping per page: unmarked cells join the page's free list, and an
+  empty page returns to the pool, or to the OS in long sessions.
+- Generations: nursery pages per task, old pages otherwise. A remembered
+  set per page records old cells written (a thunk forced) with handles into
+  young pages, so a minor collection marks young pages from the roots and
+  the remembered sets alone. Cells never move, so promotion relabels whole
+  pages.
+
+**Stop-the-world.** Evaluation pauses; rounds run only marking, then
+sweeping, then evaluation resumes. The simplest, and the first to build.
+
+**Concurrent, under fuel.**
+- Marking tasks run in the same rounds as evaluation tasks, their fuel
+  paced to allocation so a cycle ends before the store fills.
+- Snapshot at the beginning: cells allocated during a cycle are born
+  marked, and a write that overwrites a handle (a thunk forced, a live net
+  rewired) first logs the old handle, so all reachable at the cycle's start
+  stays marked. Floating garbage waits a cycle.
+- Write logs are per worker, handed over at each round's end and routed as
+  marks to the pages' holders.
+- No fine-grained race exists: within a round, one worker runs both the
+  evaluation and the marking of the pages it holds, in turn.
+- A cycle ends with a short pause to drain the logs and rescan task
+  stacks; sweeping then runs lazily, page by page, as allocation reaches
+  each page.
+
+**Laws.** A sweep frees no marked cell. After marking, every handle in a
+marked cell names a marked cell. Shortcutting preserves the value read
+through every handle. A collection loses or duplicates no page. During a
+concurrent cycle, every evaluation step keeps the snapshot invariant: no
+marked cell holds a handle to an unmarked cell unless the old handle was
+logged.
+
+**Long sessions** (an IDE) run concurrent major cycles periodically, and
+pages emptied by retired versions return to the OS.
 
 ## Parallelism
 
@@ -349,16 +444,21 @@ The store and nets belong to [EvalSpike](EvalSpike_2026-10-26.md).
 
 ## Open questions
 
-- Rounds: a fixed length (fuel), or adaptive to how many tasks are
-  runnable? With one runnable task, no round need fork at all.
-- A request for an unforced thunk in a page another worker holds: move
-  the page, queue the demand with its owner, or let the requester claim
-  the thunk alone and write it back later?
-- How long-running sessions (an IDE) reclaim old pages: a periodic full
-  collection, or pages retired per edit?
+- Fuel: which operation kinds weigh what, and how often the shell's slice
+  timings recalibrate the weights?
+- An unclaimed thunk in a page another worker holds: make it a task beside
+  its page, or let the requester claim it and queue the write-back? Both
+  heuristics, per page or per thunk.
+- The concurrent collector's barrier: snapshot-at-the-beginning, as
+  proposed, or incremental update?
+- A many-core machine to measure rounds at scale, once EvalSpike reaches
+  `spike-page-rounds`.
 
 Answered 2026-10-26 by the maintainer: any key order is fine for reflection
 (`reflection-key-order-free`); texts and binaries are packed, bytes four to
 a `U32` (`packed-texts-and-binaries`); hot values are interned
 (`intern-hot-values`); the store is a split heap, split for parallelism
-(`split-heap`).
+(`split-heap`), in equal pages of cells that never move, handles a `U32`
+page and slot (`store-pages`); a coordinator runs coarse work in rounds,
+waiting on pages and on thunks differently (`rounds-of-coarse-work`); the
+store gets both a stop-the-world and a concurrent collector ("Collection").
