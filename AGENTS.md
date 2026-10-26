@@ -44,17 +44,30 @@ plan finishes; see `docs/plans/DocsPort_2026-10-26.md`.
 ## Gate
 
 Run `scripts/check.sh` before every commit. It checks the docs (links,
-decision records, plan and review lists), then runs `bend PROOF.bend`, and
-names the tree it checked. Report its result as it is: a check skipped or
-too slow to finish is not a pass.
+decision records and their index, plan and review lists, step names), the
+law history, then runs `bend PROOF.bend`, and names the tree it checked.
+Report its result as it is: a check skipped or too slow to finish is not a
+pass.
+
+The commit-msg hook in `.githooks/` checks `Plan-Step:` and `Law:` trailers
+before a commit is recorded. Enable it once per clone with
+`git config core.hooksPath .githooks`.
 
 ## Laws
 
-`LAWS.bend` states what must always hold; `PROOF.bend` proves it.
+`LAWS.bend` states what must always hold; `PROOF.bend` proves it. Agents
+write both.
 
-- Add laws freely, and prove them in `PROOF.bend`.
-- Never weaken, change or delete an existing law without the maintainer's
-  explicit approval: a law edited to fit the code proves nothing.
+- Comment each law with what it claims and the records it serves, as
+  `# Record: <slug>`; a cited record must exist.
+- On main, a commit that adds, changes or removes a law names it in a
+  `Law: <name>` trailer. Comments and spacing are not law changes.
+- Develop law changes freely on side branches off main, to show a proposal
+  is viable; land them with a `--no-ff` merge or a squash commit that names
+  the laws.
+- Never weaken, change or delete an existing law on main without the
+  maintainer's explicit approval: a law edited to fit the code proves
+  nothing.
 - Prefer state shapes in which an invariant holds by computation; then its
   law costs a case split.
 

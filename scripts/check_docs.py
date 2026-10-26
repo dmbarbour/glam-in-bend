@@ -1,6 +1,9 @@
 """Docs checks for scripts/check.sh: links, decision records, plan lists.
 
-Run from the repository root: python3 -I scripts/check_docs.py
+Run from the repository root:
+  python3 -I scripts/check_docs.py                    check the docs
+  python3 -I scripts/check_docs.py --commit-msg FILE  check FILE's Plan-Step
+                                                      trailers (commit-msg hook)
 """
 
 import pathlib
@@ -12,6 +15,10 @@ ROOT = pathlib.Path(".")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"^```.*?^```", re.S | re.M)
 HEADER = re.compile(r"^`([a-z0-9-]+)` · (maintainer|agent) · rev ([0-9a-f]{7,40})$")
+INDEX_LINE = re.compile(r"^- \[`([a-z0-9-]+)`\]\(decisions/\1\.md\)")
+RECORD_BODY = re.compile(r"^\*\*(Context|Decision|Consequences)\.\*\*")
+STEP = re.compile(r"^\s*(?:\d+\.|[-*])\s+`([a-z][a-z0-9-]*)`\s+—", re.M)
+PLAN_STEP = re.compile(r"^Plan-Step:\s*(\S+)\s*$", re.M)
 
 errors = []
 
@@ -20,8 +27,12 @@ def fail(where, message):
     errors.append(f"{where}: {message}")
 
 
+def git(*args):
+    return subprocess.run(["git", *args], capture_output=True, text=True)
+
+
 def git_ok(*args):
-    return subprocess.run(["git", *args], capture_output=True).returncode == 0
+    return git(*args).returncode == 0
 
 
 def markdown_files():
@@ -68,6 +79,21 @@ def check_decisions():
             fail(record, "not listed in docs/Decisions.md")
 
 
+def check_index_stays_an_index():
+    """Outside "Records", the index holds paragraphs and one line per record."""
+    index = ROOT / "docs/Decisions.md"
+    section = None
+    for number, line in enumerate(index.read_text().splitlines(), 1):
+        if line.startswith("## "):
+            section = line[3:].strip()
+        if section in (None, "Records"):
+            continue
+        if RECORD_BODY.match(line):
+            fail(f"{index}:{number}", "a record's body belongs in docs/decisions/")
+        elif line.startswith("- ") and not INDEX_LINE.match(line):
+            fail(f"{index}:{number}", "index lines read - [`slug`](decisions/slug.md): summary")
+
+
 def check_listed(directory):
     readme = ROOT / directory / "README.md"
     listed = {(readme.parent / t).resolve() for t in links(readme)}
@@ -76,12 +102,59 @@ def check_listed(directory):
             fail(doc, f"not listed in {readme}")
 
 
-check_links()
-check_decisions()
-check_listed("docs/plans")
-check_listed("docs/reviews")
+def history_docs(tree):
+    """(path, text) of each plan and review, in the working tree or at HEAD."""
+    if tree == "work":
+        for directory in ("docs/plans", "docs/reviews"):
+            for doc in sorted((ROOT / directory).glob("*.md")):
+                if doc.name != "README.md":
+                    yield str(doc), doc.read_text()
+        return
+    listing = git("ls-tree", "-r", "--name-only", tree, "--", "docs/plans", "docs/reviews")
+    for path in listing.stdout.split():
+        if path.endswith(".md") and not path.endswith("README.md"):
+            yield path, git("show", f"{tree}:{path}").stdout
+
+
+def steps(tree):
+    found = {}
+    for path, text in history_docs(tree):
+        for name in STEP.findall(text):
+            found.setdefault(name, []).append(path)
+    return found
+
+
+def check_step_names():
+    for name, paths in sorted(steps("work").items()):
+        if len(paths) > 1:
+            fail(", ".join(paths), f"step `{name}` is named more than once")
+
+
+def check_commit_msg(message_file):
+    """Every Plan-Step trailer names a step of a plan or review, now or at HEAD."""
+    message = pathlib.Path(message_file).read_text()
+    message = "\n".join(line for line in message.splitlines() if not line.startswith("#"))
+    known = set(steps("work"))
+    if git_ok("rev-parse", "--verify", "-q", "HEAD"):
+        known |= set(steps("HEAD"))
+    for name in PLAN_STEP.findall(message):
+        if name not in known:
+            fail(message_file, f"Plan-Step `{name}` names no step in docs/plans or docs/reviews")
+
+
+if len(sys.argv) == 3 and sys.argv[1] == "--commit-msg":
+    check_commit_msg(sys.argv[2])
+    label = "plan steps"
+else:
+    check_links()
+    check_decisions()
+    check_index_stays_an_index()
+    check_listed("docs/plans")
+    check_listed("docs/reviews")
+    check_step_names()
+    label = "docs"
 
 for error in errors:
     print(error)
-print(f"docs: {len(errors)} problem(s)" if errors else "docs: ok")
+print(f"{label}: {len(errors)} problem(s)" if errors else f"{label}: ok")
 sys.exit(1 if errors else 0)

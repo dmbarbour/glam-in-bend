@@ -20,10 +20,10 @@ A record is `decisions/<slug>.md`. Its slug is its stable name: cite it as
     **Consequences.** …
     **Rule lives in:** <doc and section>   (omit if none)
 
-- **rev** names the commit a record's last substantive revision was made
-  on top of (`HEAD` while editing, since a commit cannot name itself).
-  `git log <hash>.. -- docs/decisions/<slug>.md` finds the revision. Typo
-  fixes leave it alone.
+- **rev** leads back in history: it names the commit a record's last
+  substantive revision was made on top of (`HEAD` while editing).
+  `git show <rev>:docs/decisions/<slug>.md` shows the version before, and
+  `git log <rev>` the context it was decided in. Typo fixes leave it alone.
 - **Revise in place.** A record states the current decision only; git keeps
   the old versions.
 - **Delete what no longer holds**, with its index line, once nothing cites
@@ -33,8 +33,9 @@ A record is `decisions/<slug>.md`. Its slug is its stable name: cite it as
 - Plans and reviews extract their durable decisions here, at the latest
   before they retire ([`plans/README.md`](plans/README.md)).
 
-`scripts/check.sh` checks every record's header and rev, and that this
-index lists it.
+This index stays an index: a short paragraph per larger decision, then one
+linked line per record. `scripts/check.sh` checks every record's header and
+rev, that this index lists it, and that no record's body moves in here.
 
 ## Host: Bend 2
 
@@ -52,8 +53,8 @@ IO shell.
 
 Surface and semantic rules settled for this implementation.
 
-- [`shadowing-is-an-error`](decisions/shadowing-is-an-error.md): reusing a
-  name a file defines or selects is an error, not a warning.
+- [`shadowing-is-an-error`](decisions/shadowing-is-an-error.md): within a
+  file or object, a bare name is a local or a global, never both.
 - [`keywords-reserved-freely`](decisions/keywords-reserved-freely.md):
   until glam has users, reserve any keyword a form needs.
 - [`prior-update-disabled`](decisions/prior-update-disabled.md): `::=` is

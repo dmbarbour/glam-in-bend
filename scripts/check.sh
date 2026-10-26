@@ -1,7 +1,8 @@
 #!/bin/sh
 # The gate: run before every commit, from anywhere in the repository.
-# Checks the docs, then the proofs (`bend PROOF.bend`). Exits nonzero on any
-# failure, and names the tree it checked so a stale pass can't pass for new.
+# Checks the docs, the law history, then the proofs (`bend PROOF.bend`).
+# Exits nonzero on any failure, and names the tree it checked so a stale
+# pass can't pass for new.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 
@@ -10,6 +11,9 @@ status=0
 
 echo "== docs"
 python3 -I scripts/check_docs.py || status=1
+
+echo "== laws"
+python3 -I scripts/check_laws.py || status=1
 
 echo "== proofs"
 if [ -f PROOF.bend ]; then

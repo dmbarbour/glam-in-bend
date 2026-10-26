@@ -1,0 +1,11 @@
+#!/bin/sh
+# Checks a commit message before git records it:
+# - every `Plan-Step:` trailer names a step in docs/plans or docs/reviews;
+# - on main, every law the commit changes is named in a `Law:` trailer.
+# Enable once per clone: git config core.hooksPath .githooks
+cd "$(git rev-parse --show-toplevel)" || exit 1
+status=0
+for check in check_docs check_laws; do
+  out=$(python3 -I "scripts/$check.py" --commit-msg "$1" 2>&1) || { echo "$out"; status=1; }
+done
+exit "$status"
