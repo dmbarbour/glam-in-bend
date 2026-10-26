@@ -38,8 +38,13 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   adapting the imported design docs and samples: the maintainer's rulings,
   known errors, and removing what describes the Rust runtime.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
-  measuring how Bend 2 hosts glam's interaction-net evaluation, ending in a
+  measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
+  sharing and fixpoints, parallelism, fast paths), ending in a
   representation decision. Drafted for the maintainer's review.
+- [`NetPairing_2026-10-26.md`](NetPairing_2026-10-26.md): `pairing-` steps
+  for how copy fans pair: duplication histories as the reference, labels
+  where they suffice, a GAL adaptation, and Lean proofs of it and of
+  polarity preservation. Drafted for the maintainer's review.
 
 ## Retired
 

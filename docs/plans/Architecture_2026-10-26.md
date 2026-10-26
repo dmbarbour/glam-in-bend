@@ -383,9 +383,13 @@ Fork-join fits balanced work with no shared affine state:
   caching.
 - Evaluation tasks (sparks, reflection tasks, independent active pairs) on
   workers that own their pages, in rounds ("Pages and rounds").
+- Within a task, nested parallel calls over what its worker holds (its
+  pages, split between the calls, and ground data). A fork reached late
+  inside a branch still runs in parallel: eight branches forking after
+  sequential work ran 3.7× faster on 8 threads.
 
-Not parallel: work within one task, and anything needing a page another
-worker holds until the next round.
+Not parallel: anything needing a page another worker holds, until a later
+round.
 
 ## Front end
 
