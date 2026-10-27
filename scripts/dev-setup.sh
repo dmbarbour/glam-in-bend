@@ -1,6 +1,7 @@
 #!/bin/sh
 # Sets up a dev container for glam-in-bend: Bend at a pinned release,
-# checked by hash, on PATH; `clang` for native builds; the commit-msg hook.
+# checked by hash, on PATH; `clang` for native builds; `perf` for
+# instruction counts (scripts/count.sh); the commit-msg hook.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu
@@ -29,6 +30,11 @@ if ! command -v clang >/dev/null 2>&1; then
   newest=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | sort -V | tail -n 1)
   [ -n "$newest" ] || { echo "dev-setup: no /usr/bin/clang-N to link" >&2; exit 1; }
   update-alternatives --install /usr/bin/clang clang "$newest" 100
+fi
+
+# perf: Debian packages it as linux-perf
+if ! command -v perf >/dev/null 2>&1; then
+  apt-get update && apt-get install -y linux-perf
 fi
 
 git config core.hooksPath .githooks

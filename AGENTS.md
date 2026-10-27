@@ -88,7 +88,9 @@ Lessons carried over from the Rust bootstrap:
   once exhausted the machine's memory and crashed the session. Prefer
   native builds (`bend x.bend -o x`) for spike runs.
 - Exact counters (interactions, cells) are signal; timings are trend data,
-  recorded with the Bend version, the commit and the CPU.
+  recorded with the Bend version, the commit and the CPU. Count
+  instructions too (`scripts/count.sh`, under `perf`): stable to a few
+  parts in a hundred million where times wander by tens of percent.
 - Baselines live in the plan or review that uses them; reusable workloads
   live in `bench/`.
 

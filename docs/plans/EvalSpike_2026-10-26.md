@@ -238,7 +238,24 @@ The core:
    1.27 s, the generated rewrites 0.35 s, the hand-written ones 0.21 s:
    those kept numbers inline and called `succ` directly, where the
    generated steps pass ten context parameters each and call builtins
-   in general. Tuning that is left for later.
+   in general. Tuning that is left for later. Counted with `perf`
+   (`scripts/count.sh`): 1,376 user instructions an interaction for the
+   generated rewrites, 5,190 for the interpreted table, exactly linear
+   at k 18, 19, 20 and the same to eight digits from run to run.
+   Next, the maintainer's directions (2026-10-27):
+   - Immediate data told apart by the header's kind, not a flag bit,
+     using as much of the node as common values need. A data node has
+     one port; if a reference to its principal carries port code 3, a
+     code no other port uses, then nothing writes a link into it and all
+     three words, beside the header's 24 bits, hold its value: numbers
+     of 64 bits or more, short texts, small tuples.
+   - The data table kept linear: each entry owned by one node, so it is
+     freed or handed on as soon as its owner is reduced. A rule using a
+     source's payload once hands the entry over; using it twice
+     duplicates it (the Bend value shared, as Bend does); not using it
+     frees it; computing frees both inputs.
+   - The payload test that compares levels stays written by hand: perhaps
+     the best there is, to be watched.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).
