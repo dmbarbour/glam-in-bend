@@ -30,8 +30,6 @@ Contingent:
   upstream issues; `bench/` holds programs that measure and reproduce them.
   Comment upstream only when the maintainer asks.
 
-The imported design docs still carry Rust-era passages until the docs port
-plan finishes; see `docs/plans/DocsPort_2026-10-26.md`.
 
 ## Dev Cycle
 
@@ -43,6 +41,46 @@ plan finishes; see `docs/plans/DocsPort_2026-10-26.md`.
   plan retires.
 - Keep slices narrow and testable. Check a claim relayed from another agent
   against its source before acting on it.
+
+## Working Rules
+
+Lessons carried over from the Rust bootstrap:
+
+- Prefer narrow, testable slices. Add a focused regression before a broad
+  fix.
+- Valid and invalid samples are executable syntax specifications.
+- Fenced `g` blocks in the standing docs are examples that must parse, once
+  a parser exists; put pseudocode and grammar notation in indented blocks.
+- A crash on user input is a bug, never semantics: a Bend fail-stop (a `Nat`
+  past 2^48, a saturated count, an array too deep) reached from user input
+  is one too. Report a failure instead, and never cache a crash as a lazy
+  result.
+- Evaluation is pure demand. Reflection may inspect evaluation; evaluation
+  never observably depends on reflection.
+- Retryable waits and unresolved promises are scheduler states, not errors.
+- A front end receives raw bytes and a narrow context, never filesystem
+  authority.
+- Keep implementation claims out of design docs: DistilledDesign is intent,
+  not implemented behavior. Give each invariant one authoritative owner and
+  link to it from elsewhere.
+- When removing a check, tell redundant work from a deliberate boundary.
+- An ordering question in the IO shell or Bend's runtime needs a forced
+  ordering; repeated passing runs prove nothing. Prefer laws as evidence.
+- Before declaring a transition done, audit it against every named
+  invariant and acceptance criterion: tests are evidence only for what they
+  exercise.
+- Run the full gate every time. A check once run only periodically let a
+  regression go unnoticed for weeks.
+
+## Measuring
+
+- Measure workloads as families at n, 2n and 4n and fit cost to a + b·n^k:
+  one size hides superlinear growth.
+- Take sizes from the command line; Bend folds constant inputs away.
+- Exact counters (interactions, cells) are signal; timings are trend data,
+  recorded with the Bend version, the commit and the CPU.
+- Baselines live in the plan or review that uses them; reusable workloads
+  live in `bench/`.
 
 ## Gate
 
