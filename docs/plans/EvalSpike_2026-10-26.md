@@ -122,7 +122,9 @@ The core:
    (`pairing-trace`). The reducer works every active pair, needed or
    not: `K 5 (#3 #3 #3 succ 0)` grinds on the argument K discards.
    Reduction driven by demand, as glam's evaluation is, remains to be
-   built; `spike-lazy-data` meets it at the latest.
+   built, perhaps eager for erasure (the maintainer); `spike-lazy-data`
+   meets it at the latest. One of 600 random terms still runs out of fuel
+   this way under fused levels.
    Also found: allocating in whatever page was focused opened a page per
    allocation once reduction focused full pages (2944 pages for 5000
    interactions, gigabytes, a crashed session); allocation now tries the

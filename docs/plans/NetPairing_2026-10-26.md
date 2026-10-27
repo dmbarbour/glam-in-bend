@@ -112,18 +112,40 @@ derivation made here first.
    where both are right (`two two`, 114 against 27). The hand-built nets
    in `spike/nets.bend` have no levels, so they still pair as static
    labels.
-7. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
+   Fused since, with the maintainer's leave: a control carries an index
+   and an offset, so a run of brackets ending in a croissant is one
+   control. Lowering emits at most one per edge of a variable's paths,
+   none for a shift of 0. After each rewrite, a control merges with one
+   facing the same way beside it when `V.compose` finds a single control
+   acting as both: when the first crossed moves up by k and the second's
+   index lies within k above the first's. Then levels, and the indices
+   of controls crossing them in that order, move as through the two
+   (checked exhaustively on small ranges: 176 of 560 pairs fuse, none
+   differs). On 600 random terms 599 reduce to their value, against 597
+   unfused and 506 under static labels. On the 506, levels cost 2.8
+   times the interactions of labels, against 19 times unfused; beta
+   rose from 7% to 11% of all interactions. The checks after each
+   rewrite cost about 13% of time on the throughput chain.
+7. `pairing-nets` — levels for nets not built from lambda terms: every
+   term lowers to a net, but not every net is a term's, and the
+   maintainer's earlier discussion generalized through polarity. Settle
+   which discipline glam's own net construction follows (levels assigned
+   as it builds, or boxes inferred from polarity), and test hand-built
+   nets against a reference whose correctness needs no levels: a copy
+   that duplicates the whole subnet behind its input, after the Rust
+   bootstrap's whole copies.
+8. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness: a net built from
    a term reduces to the term's normal form, read back. Attempt it, or
    find the restriction under which it holds.
-8. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
+9. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
-9. `pairing-docs` — revise the standing docs to the verdict. Design.md's
-   copy-copy rule says pairing follows complete dynamic duplication
-   identity and that duplication history distinguishes residual fans;
-   histories pair wrongly, so say what does, and check the other docs for
-   the same claim.
+10. `pairing-docs` — revise the standing docs to the verdict. Design.md's
+    copy-copy rule says pairing follows complete dynamic duplication
+    identity and that duplication history distinguishes residual fans;
+    histories pair wrongly, so say what does, and check the other docs
+    for the same claim.
 
 ## Derivation (`pairing-gal-derive`, 2026-10-27)
 

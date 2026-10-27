@@ -68,6 +68,17 @@ def dir_str(up: Bool) -> String:
     case False{}:
       "Cr"
 
+def ctl_str.by(+one: Bool, +up: Bool, +by: U32) -> String:
+  match one:
+    case True{}:
+      dir_str(up)
+    case False{}:
+      dir_str(up) ++ U32.show(by)
+
+# Br and Cr for single steps, Br2 and so on for fused ones
+def ctl_str(+up: Bool, +by: U32) -> String:
+  ctl_str.by(U32.is_eq(by, 1), up, by)
+
 def pay_str(p: V.Pay) -> String:
   match p:
     case V.PNone{}:
@@ -80,8 +91,8 @@ def pay_str(p: V.Pay) -> String:
           "[" ++ U32.show(site) ++ "." ++ U32.show(inst) ++ " @" ++ U32.show(lvl) ++ "]"
     case V.PLvl{+n}:
       "[@" ++ U32.show(n) ++ "]"
-    case V.PLift{+n, +up}:
-      "[" ++ dir_str(up) ++ " " ++ U32.show(n) ++ "]"
+    case V.PLift{+n, +up, +by}:
+      "[" ++ ctl_str(up, by) ++ " " ++ U32.show(n) ++ "]"
 
 # a node's name, from its header
 def hname(+h: U32) -> String:

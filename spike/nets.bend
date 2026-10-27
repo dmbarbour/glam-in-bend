@@ -32,10 +32,14 @@ def cpl(+site: U32, +n: U32) -> T.TNode:
   T.TF{R.KCopy{}, site, n}
 
 def br(+n: U32) -> T.TNode:
-  T.TN{R.KLift{}, V.PLift{n, True{}}}
+  T.TN{R.KLift{}, V.PLift{n, True{}, 1}}
 
 def cr(+n: U32) -> T.TNode:
-  T.TN{R.KLift{}, V.PLift{n, False{}}}
+  T.TN{R.KLift{}, V.PLift{n, False{}, 1}}
+
+# a fused control: levels above n move up by `by`, or down by it
+def ctl(+n: U32, +up: Bool, +by: U32) -> T.TNode:
+  T.TN{R.KLift{}, V.PLift{n, up, by}}
 
 def era() -> T.TNode:
   T.TN{R.KEraN{}, V.PNone{}}

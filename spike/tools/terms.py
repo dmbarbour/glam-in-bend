@@ -12,7 +12,8 @@ that tests every term, or traces one through tracelib.bend.
     terms.py [--labels] gen OUT COUNT [SEED]   COUNT random numeral expressions
 
 --labels lowers without levels or control nodes, fans told apart by
-their site alone.
+their site alone; --unfused emits a bracket per box boundary and a
+croissant per use, rather than one fused control per edge.
 
 Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
 ./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
@@ -227,8 +228,9 @@ def evaluate(t, fuel=200000, limit=10**6):
 # (--labels), every use hangs off one chain of fans at the binder.
 
 class Net:
-    def __init__(self, levels):
-        self.nodes, self.links, self.site, self.boxes, self.levels = [], [], 0, 0, levels
+    def __init__(self, levels, fused=True):
+        self.nodes, self.links, self.site, self.boxes = [], [], 0, 0
+        self.levels, self.fused = levels, fused
 
     def node(self, kind, *args):
         self.nodes.append((kind, args))
@@ -267,13 +269,13 @@ def lower(net, t, env, depth, path):
     if k == "succ":
         return (net.node("succ"), 0)
     if k == "app":
-        a = net.node("ap", depth)
+        a = net.node("ap", depth if net.levels else 0)
         plug(net, lower(net, t[1], env, depth, path), (a, 0))
         net.boxes += 1
         plug(net, lower(net, t[2], env, depth + 1, path + (net.boxes,)), (a, 1))
         return (a, 2)
     # a lambda: Fn [+ fn, - result, + arg]
-    f = net.node("fn", depth)
+    f = net.node("fn", depth if net.levels else 0)
     v = Var(depth, path)
     plug(net, lower(net, t[2], {**env, t[1]: v}, depth, path), (f, 1))
     if net.levels:
@@ -306,7 +308,51 @@ def fan_trie(net, src, var):
         for box in path[len(var.path):]:
             node = node["boxes"].setdefault(box, {"uses": [], "boxes": {}})
         node["uses"].append(consumer)
-    emit_trie(net, src, trie, var.depth)
+    if net.fused:
+        emit_edge(net, src, var.depth, compress(trie, var.depth))
+    else:
+        emit_trie(net, src, trie, var.depth)
+
+
+# Fused: each edge from a fan (or the binder) at depth k to the next fan,
+# at depth k', crosses Br k, ..., Br (k' - 1), one control raising levels
+# above k by k' - k; to a use at depth d it crosses Br k, ..., Br (d - 1)
+# and Cr d, one control moving them by d - k - 1, none when that is 0.
+
+def compress(trie, k):
+    """Skip boxes holding one item: the next fan or use, and its depth."""
+    items = len(trie["uses"]) + len(trie["boxes"])
+    if items == 1 and trie["uses"]:
+        return ("use", trie["uses"][0], k)
+    if items == 1:
+        return compress(next(iter(trie["boxes"].values())), k + 1)
+    return ("fan", trie, k)
+
+
+def emit_edge(net, src, k, target):
+    kind, item, depth = target
+    off = depth - k - 1 if kind == "use" else depth - k
+    if off != 0:
+        c = net.node("ctl", k, off)
+        net.link(src, (c, 0))
+        src = (c, 1)
+    if kind == "use":
+        net.link(src, item)
+    else:
+        emit_fan(net, src, item, depth)
+
+
+def emit_fan(net, src, trie, k):
+    items = [("use", u, k) for u in trie["uses"]] + [compress(b, k + 1) for b in trie["boxes"].values()]
+    for n, target in enumerate(items):
+        if n < len(items) - 1:
+            net.site += 1
+            c = net.node("cp", net.site, k)
+            net.link(src, (c, 0))
+            here, src = (c, 1), (c, 2)
+        else:
+            here = src
+        emit_edge(net, here, k, target)
 
 
 def emit_trie(net, src, trie, k):
@@ -329,8 +375,8 @@ def emit_trie(net, src, trie, k):
             emit_trie(net, (br, 1), item, k + 1)
 
 
-def to_tpl(t, levels=True):
-    net = Net(levels)
+def to_tpl(t, levels=True, fused=True):
+    net = Net(levels, fused)
     root = lower(net, t, {}, 0, ())
     if isinstance(root, Use):
         raise ValueError("a bare variable")
@@ -343,6 +389,9 @@ def bend_node(kind, args):
     if kind == "cp": return f"X.cpl({args[0]}, {args[1]})"
     if kind == "br": return f"X.br({args[0]})"
     if kind == "cr": return f"X.cr({args[0]})"
+    if kind == "ctl":
+        n, off = args
+        return f"X.ctl({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
     return {"era": "X.era()", "succ": "X.succ()"}[kind]
 
@@ -357,14 +406,14 @@ def bend_str(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def emit(out, terms, spike, levels=True):
+def emit(out, terms, spike, levels=True, fused=True):
     os.makedirs(out, exist_ok=True)
     rel = os.path.relpath(spike, out)
     rows = []
     for text in terms:
         t = parse(text)
         want = evaluate(t)
-        net, root = to_tpl(t, levels)
+        net, root = to_tpl(t, levels, fused)
         rows.append((text, want, net, root))
     lines = ["import Base"]
     for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("tracelib", "L")]:
@@ -510,13 +559,13 @@ def gen(count, seed, depth=3, maxval=64):
 def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    levels = "--labels" not in argv
-    argv = [a for a in argv if a != "--labels"]
+    levels, fused = "--labels" not in argv, "--unfused" not in argv
+    argv = [a for a in argv if a not in ("--labels", "--unfused")]
     if len(argv) >= 3 and argv[1] == "emit":
-        emit(argv[2], argv[3:], spike, levels)
+        emit(argv[2], argv[3:], spike, levels, fused)
     elif len(argv) >= 4 and argv[1] == "gen":
         seed = int(argv[4]) if len(argv) > 4 else 1
-        emit(argv[2], gen(int(argv[3]), seed), spike, levels)
+        emit(argv[2], gen(int(argv[3]), seed), spike, levels, fused)
     else:
         print(__doc__)
         return 2
