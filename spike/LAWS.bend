@@ -64,3 +64,24 @@ law vp2_agrees:
   for +b: U32
   for +x: V.Val
   {V.norm(V.apply_fn(V.VP2{op, need, a, b}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}, V.VNum{b}]}, x)) : V.Val}
+
+# LAW: V.norm leaves no placeholder (VP1, VP2) at the top of a value, only
+# a free slot, which the kernel reports as an error wherever it reads one
+# as a value.
+law norm_not_placeholder:
+  for +v: V.Val
+  {V.is_ph(V.norm(v)) == V.is_free(v) : Bool}
+
+# LAW: applying a value whose collected arguments hold no placeholder, to
+# anything but a free slot, yields one whose collected arguments hold
+# none: each argument is collected normalized.
+law apply_keeps_clean:
+  for +f: V.Val
+  for +x: V.Val
+  {Bool.or(Bool.or(Bool.not(V.clean(f)), V.is_free(x)), V.clean(V.apply_fn(f, x))) == True{} : Bool}
+
+# LAW: normalizing keeps a value's collected arguments free of
+# placeholders.
+law norm_keeps_clean:
+  for +v: V.Val
+  {Bool.or(Bool.not(V.clean(v)), V.clean(V.norm(v))) == True{} : Bool}

@@ -596,3 +596,289 @@ def vp2_by(t: Bool, -op: U32, -need: U32, -a: U32, -b: U32, x: V.Val) -> {V.norm
 
 def Laws.vp2_agrees(op, need, a, b, x):
   vp2_by(U32.is_eq(need, 1), op, need, a, b, x)
+
+# Placeholders
+# ------------
+
+# b || True, whatever b is
+def or_true(+b: Bool) -> {Bool.or(b, True{}) == True{} : Bool}:
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# not b || b
+def or_not(+b: Bool) -> {Bool.or(Bool.not(b), b) == True{} : Bool}:
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# a builtin's arithmetic yields a number or unit, no placeholder
+def num1_ok(+b: Bool, +t: Bool, +a: U32) -> {Bool.or(b, V.clean(V.num1.go(t, a))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      or_true(b)
+
+def num2_ok(+b: Bool, +t: Bool, +a: U32, +c: U32) -> {Bool.or(b, V.clean(V.num2.go(t, a, c))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      or_true(b)
+
+def num3_ok(+b: Bool, +t: Bool, +a: U32, +c: U32, +d: U32) -> {Bool.or(b, V.clean(V.num3.go(t, a, c, d))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      or_true(b)
+
+def x1_ok(+b: Bool, +op: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x1(op, x))) == True{} : Bool}:
+  match x:
+    case V.VUnit{}:
+      or_true(b)
+    case V.VNum{y}:
+      num1_ok(b, U32.is_eq(op, 1), y)
+    case V.VLazy{k}:
+      or_true(b)
+    case V.VFun{o, nd, l}:
+      or_true(b)
+    case V.VFree{f}:
+      or_true(b)
+    case V.VP1{o, nd, c}:
+      or_true(b)
+    case V.VP2{o, nd, c, d}:
+      or_true(b)
+
+def x2_ok(+b: Bool, +op: U32, +a: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x2(op, a, x))) == True{} : Bool}:
+  match x:
+    case V.VUnit{}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VNum{y}:
+      num2_ok(b, U32.is_eq(op, 2), a, y)
+    case V.VLazy{k}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VFun{o, nd, l}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VFree{f}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VP1{o, nd, c}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VP2{o, nd, c, d}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+
+def x3_ok(+b: Bool, +op: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x3(op, a, e, x))) == True{} : Bool}:
+  match x:
+    case V.VUnit{}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VNum{y}:
+      num3_ok(b, U32.is_eq(op, 3), a, e, y)
+    case V.VLazy{k}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VFun{o, nd, l}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VFree{f}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VP1{o, nd, c}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VP2{o, nd, c, d}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
+
+# builtin_last yields a number or unit
+def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.builtin_last(op, args, x))) == True{} : Bool}:
+  match args:
+    case Nil{}:
+      x1_ok(b, op, x)
+    case Con{h1, t1}:
+      match h1:
+        case V.VNum{a}:
+          match t1:
+            case Nil{}:
+              x2_ok(b, op, a, x)
+            case Con{h2, t2}:
+              match h2:
+                case V.VNum{e}:
+                  match t2:
+                    case Nil{}:
+                      x3_ok(b, op, a, e, x)
+                    case Con{h3, t3}:
+                      match h3:
+                        case V.VNum{g}:
+                          num3_ok(b, U32.is_eq(op, 3), a, e, g)
+                        case V.VUnit{}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VLazy{k}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VFun{o, nd, l}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VFree{f}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VP1{o, nd, c}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VP2{o, nd, c, d}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
+                case V.VUnit{}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VLazy{k}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VFun{o, nd, l}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VFree{f}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VP1{o, nd, c}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VP2{o, nd, c, d}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+        case V.VUnit{}:
+          or_true(b)
+        case V.VLazy{k}:
+          or_true(b)
+        case V.VFun{o, nd, l}:
+          or_true(b)
+        case V.VFree{f}:
+          or_true(b)
+        case V.VP1{o, nd, c}:
+          or_true(b)
+        case V.VP2{o, nd, c, d}:
+          or_true(b)
+
+# collecting a normalized argument, not a free slot, keeps a list clean
+def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(l)), V.is_free(x)), V.all_np(List.append(&2, V.Val, l, [V.norm(x)]))) == True{} : Bool}:
+  match l:
+    case Nil{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+    case Con{h, t}:
+      match h:
+        case V.VUnit{}:
+          app_ok(t, x)
+        case V.VNum{y}:
+          app_ok(t, x)
+        case V.VLazy{k}:
+          app_ok(t, x)
+        case V.VFun{o, nd, l}:
+          app_ok(t, x)
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+
+def fun_ok(+t: Bool, +op: U32, +need: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), V.clean(V.fun.go(t, op, need, args, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      last_ok(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), op, args, x)
+    case False{}:
+      app_ok(args, x)
+
+def vp1_ok(+t: Bool, +op: U32, +need: U32, +a: U32, +x: V.Val) -> {Bool.or(V.is_free(x), V.clean(V.vp1.go(t, op, need, a, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      x2_ok(V.is_free(x), op, a, x)
+    case False{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+
+def vp2_ok(+t: Bool, +op: U32, +need: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(V.is_free(x), V.clean(V.vp2.go(t, op, need, a, e, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      x3_ok(V.is_free(x), op, a, e, x)
+    case False{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+
+def Laws.norm_not_placeholder(v):
+  match v:
+    case V.VUnit{}:
+      {==}
+    case V.VNum{y}:
+      {==}
+    case V.VLazy{k}:
+      {==}
+    case V.VFun{o, nd, l}:
+      {==}
+    case V.VFree{f}:
+      {==}
+    case V.VP1{o, nd, c}:
+      {==}
+    case V.VP2{o, nd, c, d}:
+      {==}
+
+def Laws.apply_keeps_clean(f, x):
+  match f:
+    case V.VUnit{}:
+      or_true(V.is_free(x))
+    case V.VNum{y}:
+      or_true(V.is_free(x))
+    case V.VLazy{k}:
+      or_true(V.is_free(x))
+    case V.VFree{k}:
+      or_true(V.is_free(x))
+    case V.VFun{op, need, args}:
+      fun_ok(U32.is_eq(need, 1), op, need, args, x)
+    case V.VP1{op, need, a}:
+      vp1_ok(U32.is_eq(need, 1), op, need, a, x)
+    case V.VP2{op, need, a, e}:
+      vp2_ok(U32.is_eq(need, 1), op, need, a, e, x)
+
+def Laws.norm_keeps_clean(v):
+  match v:
+    case V.VUnit{}:
+      {==}
+    case V.VNum{y}:
+      {==}
+    case V.VLazy{k}:
+      {==}
+    case V.VFun{o, nd, l}:
+      or_not(V.all_np(l))
+    case V.VFree{f}:
+      {==}
+    case V.VP1{o, nd, c}:
+      {==}
+    case V.VP2{o, nd, c, d}:
+      {==}
