@@ -1,6 +1,6 @@
 # A net holds its own nodes, in an array that doubles
 
-`net-nodes-double` · maintainer · rev 079fe80
+`net-nodes-double` · maintainer · rev 46b9540
 
 **Context.** A net is a value within the larger heap, usually lazy, and at
 most one worker reduces it at a time; parallelism inside a net comes from
@@ -13,8 +13,9 @@ no start-up cost and kept the flat array's speed at median sizes.
 
 **Decision.** A net's nodes live in one flat array of its own, four `U32`
 words a node, doubled when full. A value a node cannot hold in a word goes
-in the net's own data table, indexed from a spare word; the table's entries
-hold no lazies, so its indices are not heap handles. A net does not spread
+in the net's own data table, indexed from a spare word. An entry may
+reference lazies, through heap handles, but is never the cell that owns
+one, so an index into the table is not a heap handle. A net does not spread
 across the heap's pages: the heap holds nets as values, each taken whole by
 the worker that reduces it.
 
@@ -27,6 +28,3 @@ the worker that reduces it.
   `store-pages`'.
 - Parallelism within a net is up to accelerated operations, using what
   arrays allow (`Array.fork`, a split array).
-- A heap that doubles as well, its coordinator taking each task's working
-  set out for a round and rebuilding the array after, is an alternative to
-  `store-pages` still to be measured (`spike-page-rounds`).

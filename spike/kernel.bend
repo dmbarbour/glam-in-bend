@@ -4,502 +4,347 @@ import ./rules.bend as R
 import ./net.bend as N
 import ./tpl.bend as T
 import ./nets.bend as X
-import ./kmem_grow.bend as KM
+import ./kprim.bend as P
+import ./krules.bend as KR
 
 # A reducer kernel with the node layout of spike-node-layout
-# (docs/plans/EvalSpike_2026-10-26.md), to measure what the layout buys.
-# One flat page of four-word nodes: the header holds the kind (8 bits)
-# and a 24-bit field (the level; for nets built without levels, a fan's
-# site, which pairs them the same way); the other words hold port links
-# (node * 4 + port) or, in nodes with spare words, data inline (Data: a
-# tag and a value; Call: its function's tag). The free list and the
-# active pairs are arrays. The rewrites are written by hand for the rules
-# bench_rules.bend's workload uses, in the rule table's order of new
-# nodes and links, so the reduction is the spike's, step for step.
+# (docs/plans/EvalSpike_2026-10-26.md), over kprim.bend's primitives. Its
+# rewrites are krules.bend's, generated from the rule table (R.rule); its
+# reference is the table itself, interpreted here as net.bend does on the
+# kernel's layout, which also takes every redex whose external peers
+# include its own ports (the identity function's body is its argument):
+# those are joined through the rule's links, as net.bend's link_pairs does.
+# Level checks and fusion are not here yet.
 #
-#   kernel <k>    reduce `k 2 succ 0` (2^k), report value, counts, time
+#   kernel <k> [ref]   reduce `k 2 succ 0` (2^k), report value, counts,
+#                      time; with ref, by the interpreted table alone
 
-# Capacity: 2^21 nodes, 2^21 active pairs; passing either is an error.
-# Words, free list and active pairs are each a KM.M: grown by doubling
-# (`net-nodes-double`); kmem_flat and kmem_paged are the measured
-# alternatives.
+# Payloads
+# ========
 
-def nil() -> U32:
-  4294967295
+type PW is Data:
+  PW{+f: U32, +w: U32}
 
-type H is Type:
-  H{w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32}
+def pw.apply(r: P.H & U32) -> P.H & PW:
+  (h, +i) = r
+  (h, PW{0, i})
 
-def h_new() -> H:
-  H{KM.m_new(23n), KM.m_new(21n), 0, 0, KM.m_new(22n), 0, 0, 0}
+# a new node's field and payload word, after the rule's source: A's and
+# B's headers and payload words
+def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & PW:
+  match s:
+    case R.SNone{}:
+      (h, PW{0, 0})
+    case R.SPayA{}:
+      (h, PW{P.fld(ha), pa})
+    case R.SPayB{}:
+      (h, PW{P.fld(hb), pb})
+    case R.SFanA{}:
+      (h, PW{P.fld(ha), 0})
+    case R.SFanB{}:
+      (h, PW{P.fld(hb), 0})
+    case R.SApply{}:
+      pw.apply(P.apply(h, pa, pb))
+    case R.SLiftA{}:
+      (h, PW{P.lift(P.fld(hb), pb, P.fld(ha)), pa})
+    case R.SLiftB{}:
+      (h, PW{P.lift(P.fld(ha), pa, P.fld(hb)), pb})
 
-def h_err(h: H) -> H:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      H{w, fs, nf, fresh, rs, nr, itrs, (errs + 1 : U32)}
+# Applying a rule
+# ===============
 
-def err_if(bad: Bool, h: H) -> H:
-  match bad:
-    case True{}:
-      h_err(h)
-    case False{}:
-      h
+type Mk is Type:
+  Mk{h: P.H, refs: List<&2, U32>}
 
-# Words
-# =====
-
-def rd.fin(r: KM.M & U32, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
-  (w, +v) = r
-  (H{w, fs, nf, fresh, rs, nr, itrs, errs}, v)
-
-def rd(h: H, +i: U32) -> H & U32:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      rd.fin(KM.m_get(w, i), fs, nf, fresh, rs, nr, itrs, errs)
-
-def wr(h: H, +i: U32, +v: U32) -> H:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      H{KM.m_set(w, i, v), fs, nf, fresh, rs, nr, itrs, errs}
-
-def push.go(ok: Bool, h: H, +x: U32, +y: U32) -> H:
-  match ok:
-    case False{}:
-      h_err(h)
-    case True{}:
-      match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          H{w, fs, nf, fresh, KM.m_set(KM.m_set(rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), itrs, errs}
-
-def push.ens(r: KM.M & Bool, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, +x: U32, +y: U32) -> H:
-  (rs, +ok) = r
-  push.go(ok, H{w, fs, nf, fresh, rs, nr, itrs, errs}, x, y)
-
-def push(h: H, +x: U32, +y: U32) -> H:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      push.ens(KM.m_ensure(rs, ((nr * 2 : U32) + 2 : U32)), w, fs, nf, fresh, nr, itrs, errs, x, y)
-
-def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
-  match both:
-    case True{}:
-      push(h, x, y)
-    case False{}:
-      h
-
-# port p of node n is the reference n * 4 + p, and its link is word
-# n * 4 + 1 + p: the reference plus one
-def link(h: H, +x: U32, +y: U32) -> H:
-  link.push(U32.is_eq((x .&. 3 : U32), 0) && U32.is_eq((y .&. 3 : U32), 0), wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
-
-# Nodes
-# =====
-
-def alloc.pop(r: KM.M & U32, w: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
-  (fs, +n) = r
-  (H{w, fs, (nf - 1 : U32), fresh, rs, nr, itrs, errs}, (n << 2n : U32))
-
-def alloc.fresh(ok: Bool, h: H) -> H & U32:
-  match ok:
-    case False{}:
-      (h_err(h), 0)
-    case True{}:
-      match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          (H{w, fs, nf, (fresh + 1 : U32), rs, nr, itrs, errs}, (fresh << 2n : U32))
-
-def alloc.ens.f(r: KM.M & Bool, w: KM.M, +okw: Bool, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
-  (fs, +okf) = r
-  alloc.fresh(okw && okf, H{w, fs, nf, fresh, rs, nr, itrs, errs})
-
-def alloc.ens.w(r: KM.M & Bool, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
-  (w, +okw) = r
-  alloc.ens.f(KM.m_ensure(fs, (fresh + 1 : U32)), w, okw, nf, fresh, rs, nr, itrs, errs)
-
-def alloc(h: H) -> H & U32:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      match nf:
-        case 0:
-          alloc.ens.w(KM.m_ensure(w, ((fresh + 1 : U32) * 4 : U32)), fs, nf, fresh, rs, nr, itrs, errs)
-        case _:
-          alloc.pop(KM.m_get(fs, (nf - 1 : U32)), w, nf, fresh, rs, nr, itrs, errs)
-
-def node.fin(r: H & U32, +hd: U32) -> H & U32:
+def mk.add(r: P.H & U32, refs: List<&2, U32>) -> Mk:
   (h, +n) = r
-  (wr(h, n, hd), n)
+  Mk{h, List.append(&2, U32, refs, [n])}
 
-# a node with header hd: its reference (port 0)
-def node(h: H, +hd: U32) -> H & U32:
-  node.fin(alloc(h), hd)
+def mk.pw(pw: PW, h: P.H, +k: R.NodeKind, refs: List<&2, U32>) -> Mk:
+  match pw:
+    case PW{+f, +w}:
+      mk.add(P.node(h, P.hd(N.kcode(k), f), w), refs)
 
-def node2.fin(r: H & U32, +i: U32, +v: U32) -> H & U32:
-  (h, +n) = r
-  (wr(h, (n + i : U32), v), n)
+def mk.node(r: P.H & PW, +k: R.NodeKind, refs: List<&2, U32>) -> Mk:
+  (h, pw) = r
+  mk.pw(pw, h, k, refs)
 
-# a node with word i set to v too (data inline)
-def node2(h: H, +hd: U32, +i: U32, +v: U32) -> H & U32:
-  node2.fin(node(h, hd), i, v)
+def mk.step(m: Mk, sp: R.Spec, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Mk:
+  match m:
+    case Mk{h, refs}:
+      match sp:
+        case R.Spec{+k, s}:
+          mk.node(pay(s, h, ha, hb, pa, pb), k, refs)
 
-def node3.fin(r: H & U32, +i: U32, +v: U32) -> H & U32:
-  (h, +n) = r
-  (wr(h, (n + i : U32), v), n)
+# allocate the rule's new nodes, in order
+def make(xs: List<&2, R.Spec>, +ha: U32, +hb: U32, +pa: U32, +pb: U32, m: Mk) -> Mk:
+  match xs:
+    case Nil{}:
+      m
+    case Con{sp, t}:
+      make(t, ha, hb, pa, pb, mk.step(m, sp, ha, hb, pa, pb))
 
-def node3(h: H, +hd: U32, +i: U32, +v: U32, +j: U32, +u: U32) -> H & U32:
-  node3.fin(node2(h, hd, i, v), j, u)
+def resolve(+x: N.Ext, +refs: List<&2, U32>, e: R.End) -> U32:
+  match e:
+    case R.Ext{i}:
+      N.ext_at(x, i)
+    case R.New{j, p}:
+      (N.nth(refs, j) + U32.from_nat(p) : U32)
 
-def free.fin(h: H, +r: U32) -> H:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      H{w, KM.m_set(fs, nf, (r >> 2n : U32)), (nf + 1 : U32), fresh, rs, nr, itrs, errs}
-
-def free(h: H, +r: U32) -> H:
-  free.fin(wr(h, r, 0), r)
-
-def hd(+k: U32, +f: U32) -> U32:
-  (k .|. (f << 8n : U32) : U32)
-
-def kind(+h: U32) -> U32:
-  (h .&. 255 : U32)
-
-def fld(+h: U32) -> U32:
-  (h >> 8n : U32)
-
-# kinds: 1 Fn, 2 Ap, 3 Copy, 4 Merge, 5 Data, 6 EraN, 7 EraP, 8 Root,
-# 9 Call (as net.bend's kcode). Data: word 2 a tag (1 a number, 2 succ),
-# word 3 the value. Call: word 3 its function's tag.
-def is_neg(+k: U32) -> Bool:
-  match k:
-    case 2:
-      True{}
-    case 3:
-      True{}
-    case 6:
-      True{}
-    case 8:
-      True{}
-    case 9:
-      True{}
-    case _:
+def internal(+x: N.Ext, +a: U32, +b: U32, e: R.End) -> Bool:
+  match e:
+    case R.Ext{i}:
+      Maybe.is_some(&2, Nat, N.partner(N.ext_at(x, i), a, b))
+    case R.New{j, p}:
       False{}
 
-def arity(+k: U32) -> U32:
-  match k:
-    case 1:
-      3
-    case 2:
-      3
-    case 3:
-      3
-    case 4:
-      3
-    case 9:
-      2
-    case _:
-      1
-
-# Rewrites, by hand
-# =================
-
-type M4 is Type:
-  M4{h: H, +r0: U32, +r1: U32, +r2: U32, +r3: U32}
-
-def m4.d(r: H & U32, +r0: U32, +r1: U32, +r2: U32) -> M4:
-  (h, +r3) = r
-  M4{h, r0, r1, r2, r3}
-
-def m4.c(r: H & U32, +r0: U32, +r1: U32, +h3: U32) -> M4:
-  (h, +r2) = r
-  m4.d(node(h, h3), r0, r1, r2)
-
-def m4.b(r: H & U32, +r0: U32, +h2: U32, +h3: U32) -> M4:
-  (h, +r1) = r
-  m4.c(node(h, h2), r0, r1, h3)
-
-def m4.a(r: H & U32, +h1: U32, +h2: U32, +h3: U32) -> M4:
-  (h, +r0) = r
-  m4.b(node(h, h1), r0, h2, h3)
-
-def mk4(h: H, +h0: U32, +h1: U32, +h2: U32, +h3: U32) -> M4:
-  m4.a(node(h, h0), h1, h2, h3)
-
-def fresh(h: H, +a: U32, +b: U32) -> H:
-  free(free(h, a), b)
-
-def k.two(h: H, +a: U32, +b: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  link(link(fresh(h, a, b), e0, e1), e2, e3)
-
-def k.cfn(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match m:
-    case M4{h, +r0, +r1, +r2, +r3}:
-      link(link(link(link(link(link(link(link(h, r0, e0), r1, e1), e2, r2),
-        (r2 + 1 : U32), (r0 + 1 : U32)), (r2 + 2 : U32), (r1 + 1 : U32)), e3, r3), (r3 + 1 : U32), (r0 + 2 : U32)), (r3 + 2 : U32), (r1 + 2 : U32))
-
-def k.comm(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match m:
-    case M4{h, +r0, +r1, +r2, +r3}:
-      link(link(link(link(link(link(link(link(h, r0, e0), r1, e1), r2, e2), r3, e3),
-        (r2 + 1 : U32), (r0 + 1 : U32)), (r2 + 2 : U32), (r1 + 1 : U32)), (r3 + 1 : U32), (r0 + 2 : U32)), (r3 + 2 : U32), (r1 + 2 : U32))
-
-def k.apsup(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match m:
-    case M4{h, +r0, +r1, +r2, +r3}:
-      link(link(link(link(link(link(link(link(h, r0, e2), r1, e3), r2, e0),
-        (r2 + 1 : U32), (r0 + 1 : U32)), (r2 + 2 : U32), (r1 + 1 : U32)), r3, e1), (r3 + 1 : U32), (r0 + 2 : U32)), (r3 + 2 : U32), (r1 + 2 : U32))
-
-def k.dist.c(r: H & U32, +r0: U32, +r1: U32, +e0: U32, +e2: U32, +e3: U32) -> H:
-  (h, +r2) = r
-  link(link(link(link(link(h, r0, e2), r1, e3), r2, e0), (r2 + 1 : U32), (r0 + 1 : U32)), (r2 + 2 : U32), (r1 + 1 : U32))
-
-def k.dist.b(r: H & U32, +r0: U32, +hm: U32, +e0: U32, +e2: U32, +e3: U32) -> H:
-  (h, +r1) = r
-  k.dist.c(node(h, hm), r0, r1, e0, e2, e3)
-
-def k.dist(r: H & U32, +f: U32, +hm: U32, +e0: U32, +e2: U32, +e3: U32) -> H:
-  (h, +r0) = r
-  k.dist.b(node2(h, 9, 3, f), r0, hm, e0, e2, e3)
-
-def k.cdata.b(r: H & U32, +r0: U32, +e0: U32, +e1: U32) -> H:
-  (h, +r1) = r
-  link(link(h, r0, e0), r1, e1)
-
-def k.cdata(r: H & U32, +tag: U32, +v: U32, +e0: U32, +e1: U32) -> H:
-  (h, +r0) = r
-  k.cdata.b(node3(h, 5, 2, tag, 3, v), r0, e0, e1)
-
-def k.call(r: H & U32, +e0: U32, +e1: U32) -> H:
-  (h, +r0) = r
-  link(link(h, r0, e0), (r0 + 1 : U32), e1)
-
-def k.compute(r: H & U32, +e0: U32) -> H:
-  (h, +r0) = r
-  link(h, r0, e0)
-
-# a data node's tag and value, a call's function
-type D is Data:
-  D{+tag: U32, +v: U32}
-
-def dat.v(r: H & U32, +tag: U32) -> H & D:
-  (h, +v) = r
-  (h, D{tag, v})
-
-def dat.t(r: H & U32, +b: U32) -> H & D:
-  (h, +tag) = r
-  dat.v(rd(h, (b + 3 : U32)), tag)
-
-def dat(h: H, +b: U32) -> H & D:
-  dat.t(rd(h, (b + 2 : U32)), b)
-
-def apply_tag.t(+f: U32, +tag: U32, +v: U32) -> D:
-  match f tag:
-    case 2 1:
-      D{1, (v + 1 : U32)}
-    case _ _:
-      D{0, 0}
-
-# succ of a number, else an error (the tag 0)
-def apply_tag(+f: U32, d: D) -> D:
-  match d:
-    case D{+tag, +v}:
-      apply_tag.t(f, tag, v)
-
-def r.cdata.d(d: D, h: H, +a: U32, +b: U32, +e0: U32, +e1: U32) -> H:
-  match d:
-    case D{+tag, +v}:
-      k.cdata(node3(fresh(h, a, b), 5, 2, tag, 3, v), tag, v, e0, e1)
-
-def r.cdata(r: H & D, +a: U32, +b: U32, +e0: U32, +e1: U32) -> H:
-  (h, d) = r
-  r.cdata.d(d, h, a, b, e0, e1)
-
-def r.call.d(d: D, h: H, +a: U32, +b: U32, +e0: U32, +e1: U32) -> H:
-  match d:
-    case D{+tag, +v}:
-      match tag:
-        case 2:
-          k.call(node2(fresh(h, a, b), 9, 3, tag), e0, e1)
-        case _:
-          h_err(h)
-
-def r.call(r: H & D, +a: U32, +b: U32, +e0: U32, +e1: U32) -> H:
-  (h, d) = r
-  r.call.d(d, h, a, b, e0, e1)
-
-def r.compute.e(d: D, h: H, +a: U32, +b: U32, +e0: U32) -> H:
-  match d:
-    case D{+tag, +v}:
-      err_if(U32.is_eq(tag, 0), k.compute(node3(fresh(h, a, b), 5, 2, tag, 3, v), e0))
-
-def r.compute.d(r: H & D, +f: U32, +a: U32, +b: U32, +e0: U32) -> H:
-  (h, d) = r
-  r.compute.e(apply_tag(f, d), h, a, b, e0)
-
-def r.compute(r: H & U32, +a: U32, +b: U32, +e0: U32) -> H:
-  (h, +f) = r
-  r.compute.d(dat(h, b), f, a, b, e0)
-
-def r.dist(r: H & U32, +a: U32, +b: U32, +hb: U32, +e0: U32, +e2: U32, +e3: U32) -> H:
-  (h, +f) = r
-  k.dist(node2(fresh(h, a, b), 9, 3, f), f, hd(4, fld(hb)), e0, e2, e3)
-
-def r.beta(eq: Bool, h: H, +a: U32, +b: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match eq:
+def link_if(b: Bool, h: P.H, +u: U32, +v: U32) -> P.H:
+  match b:
     case True{}:
-      k.two(h, a, b, e0, e3, e1, e2)
+      P.link(h, u, v)
     case False{}:
-      h_err(h)
-
-def r.fans(eq: Bool, h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match eq:
-    case True{}:
-      k.two(h, a, b, e0, e2, e1, e3)
-    case False{}:
-      k.comm(mk4(fresh(h, a, b), hd(4, fld(hb)), hd(4, fld(hb)), hd(3, fld(ha)), hd(3, fld(ha))), e0, e1, e2, e3)
-
-# the rewrite for A (negative principal) meeting B, by kind
-def rewrite(+ka: U32, +kb: U32, h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> H:
-  match ka kb:
-    case 2 1:
-      r.beta(U32.is_eq(fld(ha), fld(hb)), h, a, b, e0, e1, e2, e3)
-    case 3 4:
-      r.fans(U32.is_eq(fld(ha), fld(hb)), h, a, b, ha, hb, e0, e1, e2, e3)
-    case 3 1:
-      k.cfn(mk4(fresh(h, a, b), hd(1, fld(hb)), hd(1, fld(hb)), hd(3, fld(ha)), hd(4, fld(ha))), e0, e1, e2, e3)
-    case 3 5:
-      r.cdata(dat(h, b), a, b, e0, e1)
-    case 2 4:
-      k.apsup(mk4(fresh(h, a, b), hd(2, fld(ha)), hd(2, fld(ha)), hd(3, fld(hb)), hd(4, fld(hb))), e0, e1, e2, e3)
-    case 2 5:
-      r.call(dat(h, b), a, b, e0, e1)
-    case 9 5:
-      r.compute(rd(h, (a + 3 : U32)), a, b, e0)
-    case 9 4:
-      r.dist(rd(h, (a + 3 : U32)), a, b, hb, e0, e2, e3)
-    case 8 _:
       h
+
+# link every rule link whose ends are both outside the redex
+def link_plain(ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
+  match ls:
+    case Nil{}:
+      h
+    case Con{R.Link{+u, +v}, t}:
+      link_plain(t, x, refs, a, b,
+        link_if(Bool.not(internal(x, a, b, u) || internal(x, a, b, v)), h, resolve(x, refs, u), resolve(x, refs, v)))
+
+def pair_link(bad: Bool, +u: R.End, +v: R.End, +x: N.Ext, +refs: List<&2, U32>, h: P.H) -> P.H:
+  match bad:
+    case True{}:
+      P.h_err(h)
+    case False{}:
+      P.link(h, resolve(x, refs, u), resolve(x, refs, v))
+
+def pair_ends(oi: Maybe<&2, R.End>, oj: Maybe<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
+  match oi oj:
+    case Some{+u} Some{+v}:
+      pair_link(internal(x, a, b, u) || internal(x, a, b, v), u, v, x, refs, h)
     case _ _:
-      h_err(h)
+      P.h_err(h)
 
-# Interaction
-# ===========
-
-def mine(+e: U32, +a: U32, +b: U32) -> Bool:
-  U32.is_ne(e, nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
-
-def aux(+has: Bool, +l: U32) -> U32:
-  match has:
+def pair_go(lt: Bool, +i: Nat, +j: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
+  match lt:
     case True{}:
-      l
+      pair_ends(N.other(ls, i), N.other(ls, j), x, refs, a, b, h)
     case False{}:
-      nil()
+      h
 
-def go.ext2(+a: U32, +b: U32, +ha: U32, +hb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, h: H) -> H:
-  err_if(mine(e0, a, b) || mine(e1, a, b) || mine(e2, a, b) || mine(e3, a, b),
-    rewrite(kind(ha), kind(hb), h, a, b, ha, hb, e0, e1, e2, e3))
+def pair_at(pt: Maybe<&2, Nat>, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
+  match pt:
+    case None{}:
+      h
+    case Some{+j}:
+      pair_go(Nat.is_lt(i, j), i, j, ls, x, refs, a, b, h)
 
-def go.ext(+a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: H) -> H:
-  go.ext2(a, b, ha, hb, aux(U32.is_ge(arity(kind(ha)), 2), a1), aux(U32.is_ge(arity(kind(ha)), 3), a2),
-    aux(U32.is_ge(arity(kind(hb)), 2), b1), aux(U32.is_ge(arity(kind(hb)), 3), b2), h)
-
-def go.b2(r: H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> H:
-  (h, +b2) = r
-  go.ext(a, b, ha, hb, a1, a2, b1, b2, h)
-
-def go.b1(r: H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> H:
-  (h, +b1) = r
-  go.b2(rd(h, (b + 3 : U32)), a, b, ha, hb, a1, a2, b1)
-
-def go.a2(r: H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> H:
-  (h, +a2) = r
-  go.b1(rd(h, (b + 2 : U32)), a, b, ha, hb, a1, a2)
-
-def go.a1(r: H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> H:
-  (h, +a1) = r
-  go.a2(rd(h, (a + 3 : U32)), a, b, ha, hb, a1)
-
-# a's principal is negative
-def go(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32) -> H:
-  go.a1(rd(h, (a + 2 : U32)), a, b, ha, hb)
-
-def ori(neg: Bool, h: H, +x: U32, +y: U32, +hx: U32, +hy: U32) -> H:
-  match neg:
-    case True{}:
-      go(h, x, y, hx, hy)
-    case False{}:
-      go(h, y, x, hy, hx)
-
-def int.y(r: H & U32, +x: U32, +y: U32, +hx: U32) -> H:
-  (h, +hy) = r
-  ori(is_neg(kind(hx)), h, x, y, hx, hy)
-
-def int.x(r: H & U32, +x: U32, +y: U32) -> H:
-  (h, +hx) = r
-  int.y(rd(h, y), x, y, hx)
-
-def interact(h: H, +x: U32, +y: U32) -> H:
-  int.x(rd(h, x), x, y)
-
-def pop.y(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, +x: U32) -> H:
-  (rs, +y) = r
-  interact(H{w, fs, nf, fresh, rs, nr, itrs, errs}, x, y)
-
-def pop.x(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32) -> H:
-  (rs, +x) = r
-  pop.y(KM.m_get(rs, ((nr * 2 : U32) + 1 : U32)), w, fs, nf, fresh, nr, itrs, errs, x)
-
-# reduce active pairs, newest first, until none is left or fuel runs out
-def run(n: Nat, h: H) -> H:
+# an external peer that is a port of the redex stands for another
+# external: join what the rule links to the two (net.bend's link_pairs)
+def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
   match n:
     case 0n:
       h
     case 1n+p:
-      match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          match nr:
-            case 0:
-              H{w, fs, nf, fresh, rs, nr, itrs, errs}
-            case _:
-              run(p, pop.x(KM.m_get(rs, ((nr - 1 : U32) * 2 : U32)), w, fs, nf, fresh, (nr - 1 : U32), (itrs + 1 : U32), errs))
+      link_pairs(p, 1n+i, ls, x, refs, a, b, pair_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, a, b, h))
+
+def wire.made(m: Mk, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> P.H:
+  match m:
+    case Mk{h, +refs}:
+      link_pairs(4n, 0n, ls, x, refs, a, b, link_plain(ls, x, refs, a, b, h))
+
+# replace the redex a >< b by the rule's nodes and links
+def wire(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext) -> P.H:
+  wire.made(make(xs, ha, hb, pa, pb, Mk{P.fresh2(h, a, b), Nil{}}), ls, x, a, b)
+
+def apply_rule(r: R.Rule, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  match r:
+    case R.RWire{xs, ls}:
+      wire(h, a, b, ha, hb, pa, pb, xs, ls, x)
+    case R.RStuck{}:
+      P.err_if(U32.is_ne(P.kind(ha), 8), h)
+
+# Interaction
+# ===========
+
+def kof(+h: U32) -> R.NodeKind:
+  N.kof(P.kind(h))
+
+# ports, by kind code (generated from R.arity)
+def arity(+h: U32) -> U32:
+  KR.kind_arity(P.kind(h))
+
+def aux_or_nil(b: Bool, +l: U32) -> U32:
+  match b:
+    case True{}:
+      l
+    case False{}:
+      P.nil()
+
+def payw.go(three: Bool, +w3: U32) -> U32:
+  match three:
+    case True{}:
+      0
+    case False{}:
+      w3
+
+# a node's payload word: word 3, in a node with fewer than three ports
+def payw(+h: U32, +w3: U32) -> U32:
+  payw.go(U32.is_ge(arity(h), 3), w3)
+
+def ctl_eq(+ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Bool:
+  U32.is_eq(P.fld(ha), P.fld(hb)) && U32.is_eq(pa, pb)
+
+def test.k(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  match ka kb:
+    case 3 4:
+      (h, U32.is_eq(P.fld(ha), P.fld(hb)))
+    case 2 5:
+      P.data_is_fn(h, pb)
+    case 2 1:
+      (h, U32.is_eq(P.fld(ha), P.fld(hb)))
+    case 10 11:
+      (h, ctl_eq(ha, hb, pa, pb))
+    case _ _:
+      (h, False{})
+
+# the payload test the rule takes (net.bend's rule_test)
+def test(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  test.k(P.kind(ha), P.kind(hb), h, ha, hb, pa, pb)
+
+# is e a port of the redex itself? (net.bend's partner, without the index)
+def mine(+e: U32, +a: U32, +b: U32) -> Bool:
+  U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
+
+def any_partner(+x: N.Ext, +a: U32, +b: U32) -> Bool:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      mine(e0, a, b) || mine(e1, a, b) || mine(e2, a, b) || mine(e3, a, b)
+
+def go.gen(+t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      KR.rewrite(P.kind(ha), P.kind(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  match gen:
+    case True{}:
+      go.gen(t, h, a, b, ha, hb, pa, pb, x)
+    case False{}:
+      apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, x)
+
+# the generated rewrite, or the interpreted table: for a redex whose
+# external peers include its own ports, or when `fast` is off
+def go.rule(r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  (h, +t) = r
+  go.which(fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
+
+def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
+  go.rule(test(h, ha, hb, payw(ha, a2), payw(hb, b2)), fast, a, b, ha, hb, payw(ha, a2), payw(hb, b2),
+    N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
+      aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
+
+def go.b2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.H:
+  (h, +b2) = r
+  go.ext(fast, a, b, ha, hb, a1, a2, b1, b2, h)
+
+def go.b1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.H:
+  (h, +b1) = r
+  go.b2(P.rd(h, (b + 3 : U32)), fast, a, b, ha, hb, a1, a2, b1)
+
+def go.a2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.H:
+  (h, +a2) = r
+  go.b1(P.rd(h, (b + 2 : U32)), fast, a, b, ha, hb, a1, a2)
+
+def go.a1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
+  (h, +a1) = r
+  go.a2(P.rd(h, (a + 3 : U32)), fast, a, b, ha, hb, a1)
+
+# a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
+# word 3 the payload word.
+def go(h: P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
+  go.a1(P.rd(h, (a + 2 : U32)), fast, a, b, ha, hb)
+
+def ori(neg: Bool, h: P.H, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.H:
+  match neg:
+    case True{}:
+      go(h, fast, x, y, hx, hy)
+    case False{}:
+      go(h, fast, y, x, hy, hx)
+
+def int.y(r: P.H & U32, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.H:
+  (h, +hy) = r
+  ori(KR.kind_neg(P.kind(hx)), h, fast, x, y, hx, hy)
+
+def int.x(r: P.H & U32, +fast: Bool, +x: U32, +y: U32) -> P.H:
+  (h, +hx) = r
+  int.y(P.rd(h, y), fast, x, y, hx)
+
+def interact(h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
+  int.x(P.rd(h, x), fast, x, y)
+
+# reduce active pairs, newest first, until none is left or fuel runs out
+def run(n: Nat, +fast: Bool, pp: P.Pop) -> P.H:
+  match n:
+    case 0n:
+      P.unpop(pp)
+    case 1n+p:
+      match pp:
+        case P.Pop{h, +x, +y, +ok}:
+          match ok:
+            case True{}:
+              run(p, fast, P.pop(interact(h, fast, x, y)))
+            case False{}:
+              h
 
 # Loading a template
 # ==================
 
-def tag_of(v: V.Val) -> D:
-  match v:
-    case V.VNum{+n}:
-      D{1, n}
-    case V.VFun{+op, +need, args}:
-      D{(op + 1 : U32), 0}
-    case _:
-      D{0, 0}
+def lift_word(+up: Bool, +by: U32) -> U32:
+  match up:
+    case True{}:
+      (by .|. 2147483648 : U32)
+    case False{}:
+      by
 
-def load.data.d(d: D, h: H, +n: U32) -> H:
-  match d:
-    case D{+tag, +v}:
-      wr(wr(h, (n + 2 : U32), tag), (n + 3 : U32), v)
-
-def load.data(r: H & U32, d: D) -> H:
-  (h, +n) = r
-  load.data.d(d, h, n)
-
-def drop_ref(r: H & U32) -> H:
+def drop_ref(r: P.H & U32) -> P.H:
   (h, +n) = r
   h
 
-def load.node(h: H, t: T.TNode) -> H:
+def load.data(r: P.H & U32, +k: U32) -> P.H:
+  (h, +w) = r
+  drop_ref(P.node(h, P.hd(k, 0), w))
+
+def fan_field.go(none: Bool, +site: U32, +lvl: U32) -> U32:
+  match none:
+    case True{}:
+      site
+    case False{}:
+      lvl
+
+# a fan's field: its level, or for a net built without levels its site
+def fan_field(+site: U32, +lvl: U32) -> U32:
+  fan_field.go(U32.is_eq(lvl, V.nolvl()), site, lvl)
+
+def load.node(h: P.H, t: T.TNode) -> P.H:
   match t:
     case T.TF{k, +site, +lvl}:
-      drop_ref(node(h, hd(N.kcode(k), site)))
+      drop_ref(P.node(h, P.hd(N.kcode(k), fan_field(site, lvl)), 0))
     case T.TN{k, p}:
       match p:
         case V.PVal{v}:
-          load.data(node(h, hd(N.kcode(k), 0)), tag_of(v))
+          load.data(P.put(h, v), N.kcode(k))
         case V.PLvl{+l}:
-          drop_ref(node(h, hd(N.kcode(k), l)))
+          drop_ref(P.node(h, P.hd(N.kcode(k), l), 0))
+        case V.PLift{+n, +up, +by}:
+          drop_ref(P.node(h, P.hd(N.kcode(k), n), lift_word(up, by)))
         case _:
-          drop_ref(node(h, hd(N.kcode(k), 0)))
+          drop_ref(P.node(h, P.hd(N.kcode(k), 0), 0))
 
-def load.nodes(ns: List<&2, T.TNode>, h: H) -> H:
+def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
   match ns:
     case Nil{}:
       h
@@ -511,75 +356,137 @@ def tref(e: T.TEnd) -> U32:
     case T.TE{+n, +p}:
       ((n << 2n : U32) + p : U32)
 
-def load.links(ls: List<&2, T.TLink>, h: H) -> H:
+def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
   match ls:
     case Nil{}:
       h
     case Con{T.TL{x, y}, rest}:
-      load.links(rest, link(h, tref(x), tref(y)))
+      load.links(rest, P.link(h, tref(x), tref(y)))
 
-type L is Type:
-  L{h: H, +root: U32}
-
-def load.root(r: H & U32, +x: U32) -> L:
+def load.root(r: P.H & U32, +x: U32) -> P.H:
   (h, +root) = r
-  L{link(h, root, x), root}
+  P.link(h, root, x)
 
-def load(t: T.Tpl) -> L:
+# the template's net, its exposed port linked to a root
+def load(t: T.Tpl) -> P.H:
   match t:
     case T.Tpl{nodes, links, root, +size}:
-      load.root(node(load.links(links, load.nodes(nodes, h_new())), 8), tref(root))
+      load.root(P.node(load.links(links, load.nodes(nodes, P.h_new())), P.hd(8, 0), 0), tref(root))
 
-# Running
+# Results
 # =======
 
-def counts(+itrs: U32, +errs: U32) -> String:
-  U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors"
+# the value at the root, if a number: found by scanning for the root,
+# which a control facing it may have moved
+type Rs is Type:
+  Rs{h: P.H, +root: U32}
 
-def show.dd(d: D, +itrs: U32, +errs: U32) -> String:
-  match d:
-    case D{+tag, +v}:
-      match tag:
-        case 1:
-          U32.show(v) ++ ", " ++ counts(itrs, errs)
-        case _:
-          "no value, " ++ counts(itrs, errs)
+def pick(b: Bool, +x: U32, +y: U32) -> U32:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
 
-def show.d(r: H & D, +itrs: U32, +errs: U32) -> String:
-  (h, d) = r
-  show.dd(d, itrs, errs)
+def find.hit(r: P.H & U32, +n: U32, +at: U32) -> Rs:
+  (h, +hdr) = r
+  Rs{h, pick(U32.is_eq(at, P.nil()) && U32.is_eq(P.kind(hdr), 8), (n << 2n : U32), at)}
 
-def show.kk(+k: U32, h: H, +pn: U32, +itrs: U32, +errs: U32) -> String:
+def find(k: Nat, +n: U32, rs: Rs) -> Rs:
   match k:
-    case 5:
-      show.d(dat(h, pn), itrs, errs)
-    case _:
-      "no value, " ++ counts(itrs, errs)
+    case 0n:
+      rs
+    case 1n+p:
+      match rs:
+        case Rs{h, +at}:
+          find(p, (n + 1 : U32), find.hit(P.rd(h, (n << 2n : U32)), n, at))
 
-def show.k2(r: H & U32, +pn: U32, +itrs: U32, +errs: U32) -> String:
+def value.v(r: P.H & V.Val) -> P.H & Maybe<&2, V.Val>:
+  (h, v) = r
+  (h, Some{v})
+
+def value.p(r: P.H & U32) -> P.H & Maybe<&2, V.Val>:
+  (h, +w) = r
+  value.v(P.val_of(h, w))
+
+def value.is(data: Bool, h: P.H, +pn: U32) -> P.H & Maybe<&2, V.Val>:
+  match data:
+    case True{}:
+      value.p(P.rd(h, (pn + 3 : U32)))
+    case False{}:
+      (h, None{})
+
+def value.h(r: P.H & U32, +pn: U32) -> P.H & Maybe<&2, V.Val>:
   (h, +hp) = r
-  show.kk(kind(hp), h, pn, itrs, errs)
+  value.is(U32.is_eq(P.kind(hp), 5), h, pn)
 
-def show.p(r: H & U32, +itrs: U32, +errs: U32) -> String:
-  (h, +p) = r
-  show.k2(rd(h, (p .&. 4294967292 : U32)), (p .&. 4294967292 : U32), itrs, errs)
+def value.peer(r: P.H & U32) -> P.H & Maybe<&2, V.Val>:
+  (h, +peer) = r
+  value.h(P.rd(h, (peer .&. 4294967292 : U32)), (peer .&. 4294967292 : U32))
 
-def show(l: L) -> String:
-  match l:
-    case L{h, +root}:
-      match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          show.p(rd(H{w, fs, nf, fresh, rs, nr, itrs, errs}, (root + 1 : U32)), itrs, errs) ++ ", " ++ U32.show(fresh) ++ " nodes at most"
+def value.none(none: Bool, h: P.H, +root: U32) -> P.H & Maybe<&2, V.Val>:
+  match none:
+    case True{}:
+      (h, None{})
+    case False{}:
+      value.peer(P.rd(h, (root + 1 : U32)))
 
-def run_l(l: L, +fuel: Nat) -> L:
-  match l:
-    case L{h, +root}:
-      L{run(fuel, h), root}
+def value.at(rs: Rs) -> P.H & Maybe<&2, V.Val>:
+  match rs:
+    case Rs{h, +root}:
+      value.none(U32.is_eq(root, P.nil()), h, root)
 
-def main.k(+k: U32) -> IO(Unit):
+def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
+  match h:
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt}, P.nil()}))
+
+def counts(h: P.H) -> String:
+  match h:
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+      U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++ U32.show(fresh) ++ " nodes at most"
+
+def show_val(m: Maybe<&2, V.Val>) -> String:
+  match m:
+    case Some{v}:
+      match v:
+        case V.VNum{+n}:
+          U32.show(n)
+        case _:
+          "a non-number"
+    case None{}:
+      "no value"
+
+def report(r: P.H & Maybe<&2, V.Val>) -> String:
+  (h, v) = r
+  show_val(v) ++ ", " ++ counts(h)
+
+# the value at the root, interactions, errors
+type KRes is Data:
+  KRes{v: Maybe<&2, V.Val>, +itrs: U32, +errs: U32}
+
+def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
+  match h:
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+      KRes{v, itrs, errs}
+
+def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
+  (h, v) = r
+  kres.h(h, v)
+
+# reduce t as reduce does, the result as data
+def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
+  kres(result(run(fuel, fast, P.pop(load(t)))))
+
+# reduce t for at most fuel interactions, by the generated rewrites if
+# fast, else by the interpreted table: value and counts
+def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
+  report(result(run(fuel, fast, P.pop(load(t)))))
+
+def main.k(+k: U32, +fast: Bool) -> IO(Unit):
   do IO<Unit>:
     +t0 : Nat <- IO.now()
-    +res : String = show(run_l(load(X.t_pow(k, 2)), 268435456n))
+    +res : String = reduce(X.t_pow(k, 2), 268435456n, fast)
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
 
@@ -588,11 +495,15 @@ def main.args(xs: List<String>) -> IO(Unit):
     case Con{p, r}:
       match r:
         case Con{a, r2}:
-          main.k(Maybe.default(&2, U32, U32.read(a), 10))
+          match r2:
+            case Con{m, r3}:
+              main.k(Maybe.default(&2, U32, U32.read(a), 10), Bool.not(String.eq(m, "ref")))
+            case Nil{}:
+              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{})
         case Nil{}:
-          IO.print("usage: kernel <k>")
+          IO.print("usage: kernel <k> [ref]")
     case Nil{}:
-      IO.print("usage: kernel <k>")
+      IO.print("usage: kernel <k> [ref]")
 
 def main() -> IO(Unit):
   do IO<Unit>:

@@ -1,7 +1,8 @@
 #!/bin/sh
 # The gate: run before every commit, from anywhere in the repository.
-# Checks the docs, the law history, the proofs (each `PROOF.bend`), then
-# that every other Bend file still typechecks. Exits nonzero on any
+# Checks the docs, the law history, the proofs (each `PROOF.bend`), that
+# generated code matches its generator, then that every other Bend file
+# still typechecks. Exits nonzero on any
 # failure, and names the tree it checked so a stale pass can't pass for new.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -31,6 +32,18 @@ elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | 
   status=1
 else
   echo "no Bend sources yet"
+fi
+
+echo "== generated code"
+# code generated from a Bend source must match what its generator writes
+# now: spike/krules.bend, from the rule table (spike-node-layout)
+if [ -f spike/tools/gen_krules.bend ]; then
+  if (cd spike && "$BEND" tools/gen_krules.bend | cmp -s - krules.bend); then
+    echo "spike/krules.bend: matches its generator"
+  else
+    echo "spike/krules.bend differs from what spike/tools/gen_krules.bend writes: regenerate it"
+    status=1
+  fi
 fi
 
 echo "== bend files"

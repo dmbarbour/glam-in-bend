@@ -220,6 +220,25 @@ The core:
    doubling (`net-nodes-double`): a net is a value in the heap, usually
    lazy, reduced by one worker at a time, so its nodes need no pages of
    their own, and the median net is small. The kernel now doubles.
+   Rewrites generated from the table, 2026-10-27. The kernel's
+   primitives are in `spike/kprim.bend`, with a data table local to the
+   net, a value word holding a number below 2^31 inline or else an
+   index. `spike/kernel.bend` interprets `R.rule` on the layout, as the
+   reference and for redexes joined through their own ports, and
+   otherwise runs `spike/krules.bend`, which `spike/tools/gen_krules.bend`
+   writes from `R.rule`: the rewrites, and tables of ports and
+   polarity by kind code. `scripts/check.sh` fails if `krules.bend`
+   differs from what the generator writes, and `terms.py --kernel`
+   writes a differential test. On 1,200 random terms, 600 with levels
+   and 600 without, the generated rewrites match the interpreted table
+   exactly, in value, interactions and errors, and every value matches
+   the spike's; without levels the interaction counts match the spike's
+   too, with levels about three in four differ, the spike fusing
+   controls the kernel does not yet. At k 20 the interpreted table takes
+   1.27 s, the generated rewrites 0.35 s, the hand-written ones 0.21 s:
+   those kept numbers inline and called `succ` directly, where the
+   generated steps pass ten context parameters each and call builtins
+   in general. Tuning that is left for later.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).
