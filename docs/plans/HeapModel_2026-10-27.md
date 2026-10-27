@@ -31,32 +31,37 @@ kernel (`spike-node-layout` in
 handle never owns its cell; the collector reclaims cells unreachable from
 the roots (`store-collection`).
 
-**Two forms of a net.** A *live* net is the kernel's state (`H`: node
-array, free list, pair stack, data table): affine, one owner, being
-reduced. A *frozen* net is an immutable template, Bend `Data` (its node
-words packed in chunks, its table's values, its exposed port): shareable,
-read by any number of workers at once, never reduced in place. Arrays
-cannot be shared, so whatever many holders read must be frozen, and
-whatever is reduced must be live. The Rust bootstrap instead keeps one
-mutable net behind a lock and reduces a shared net in place; Bend rules
-that out, and with it the lock bugs below.
+**Two forms of a net** (the maintainer, 2026-10-27). A *live* net is the
+kernel's collection of arrays (`H`: node array, free list, pair stack, data
+table), hosted in a heap cell and reduced there, in place, by whichever one
+worker holds the cell. A *frozen* net is compact, plain data, ideally a
+compact string: immutable, shared cheaply, read by any number of workers
+at once, never reduced. Arrays cannot be shared, so whatever several
+workers read at once must be frozen; whatever is reduced is live. Copies
+are taken from the frozen form. The Rust bootstrap reduces one mutable net
+behind a lock and copies from it through cursors; holding the live net in
+a cell that one worker takes at a time rules out that lock and its bugs.
 
 **Cells**, provisionally:
 
     Cell = Free{next}
-         | Net{tpl: Frozen, arity}          -- a net value, frozen, shared
+         | Net{live: H, frozen: Maybe<Frozen>, root: Result}
+                                            -- a net value: its live net,
+                                            --   a snapshot to copy from,
+                                            --   its root's value once known
          | Thunk{state}                     -- a lazy value
     state = Fresh{recipe}                   -- not started: an owned live
-                                            --   net, a net to copy, or an
-                                            --   application (function, arg)
+                                            --   net, a net cell to wait on,
+                                            --   or an application
           | Suspended{net: H, need}         -- its progress, in the cell
           | Busy{task}                      -- being forced this round
-          | Forward{to: handle}             -- its value is another thunk's
+          | Forward{to: handle}             -- its value is another's
           | Forced{v: Val}                  -- memoized, written once
           | Failed{e}                       -- a permanent failure, cached
 
 - A *net value* (a raw net) is a handle to a `Net` cell; binding or sharing
-  it copies the handle, and nothing reduces the frozen template.
+  it copies the handle. Reducing the live net in place is safe for every
+  holder, since reduction preserves a net's meaning.
 - A *function* is `Fun{h, arity}` over a net cell. A function meeting an
   application, at the value level or inside a net, makes a *lazy
   application*: a thunk whose recipe is the function and the argument.
@@ -66,13 +71,17 @@ that out, and with it the lock bugs below.
   The Rust bootstrap does the same, and forbids opening a function's net
   where it meets an application, to keep partial application a value.
 - A *raw net* meeting an application inside a net (an interaction-net
-  call) is opened there: a copy of its frozen net is spliced into the
-  running net, its pairing levels offset to fit (NetPairing).
+  call) is logically copied into the caller: first as a whole copy from its
+  frozen snapshot, spliced into the running net with its pairing levels
+  offset to fit (NetPairing); cursors later. A snapshot taken before some
+  reduction is still the same net, only less reduced, so a stale snapshot
+  is still correct to copy.
 - A *thunk* memoizes. One the evaluator makes owns its live net outright
-  (its recipe holds the net, whose handle never escaped); one over a user's
-  net value (`net_arity 0`) instantiates a copy when forced, since others
-  may hold the same net. Bend cannot count handles, so uniqueness is known
-  only by construction.
+  (its recipe holds the net, whose handle never escaped). One over a user's
+  net value (`net_arity 0`) waits on that net cell: the net is reduced in
+  place toward its root's value, and the thunk shares the data result; the
+  net is never copied (the maintainer, 2026-10-27; the Rust bootstrap does
+  the same). Thunks over one net share its reduction.
 - *Progress lives in the cell*: a thunk stopped on a need keeps its live
   net there (`Suspended`), never in the task, so cycles through tasks
   cannot keep it alive (the Rust bootstrap learned this the hard way, and
@@ -149,6 +158,18 @@ The heap wants laws of the same kind: a forced thunk never changes; a busy
 thunk has exactly one task; a waiter resumes only after its thunk's result
 is written; a round loses or duplicates no task, page or cell.
 
+Preconditions are supported (checked 2026-10-27): a law takes a proof of
+its precondition as a binder (`for h: {ok(s) == True{} : Bool}`), and the
+proof uses it by rewriting or refutes an impossible case through a motive
+into `Empty`; a law may quantify over an array, which its statement may
+mention twice. So a pure round's postconditions under preconditions on its
+inputs are within reach, as `alloc_conserves` already is for a page. What
+makes such proofs hard is arithmetic on `U32`, whose case splits leave
+symbolic words that do not reduce: counts a law reasons about are best
+kept as `Nat` or as list lengths, predicates as `Bool` functions over
+data, and the coordinator's steps small and structural, with no tactics
+to lean on.
+
 ## Comparison with the Rust bootstrap
 
 Read at its commit 21912fc, in three parts (values and collection; nets
@@ -218,9 +239,9 @@ interior nodes (`spike-lazy-data`); rounds over pages (`spike-page-rounds`).
   lowering.
 - How pairing levels are offset when a raw net is spliced into a running
   net, and whether copies need fresh identities (NetPairing).
-- Whether a frozen net keeps the kernel's node words or a more compact
-  form, and how a template is chunked for sharing across workers.
-- Thunks over a user's net: whether some uses (a net bound once and forced
-  once) can skip the copy safely.
+- When a net cell is frozen: after its local reduction ends, on the first
+  copy, or on request; and what a frozen form holds (node words renumbered
+  densely, each wire stored once, small indices packed; the data table's
+  values beside it), traded between size and how fast a copy is made.
 - How far inline forcing goes before a need goes to the coordinator, and
   how divergence in one forced thunk is kept from holding a worker.
