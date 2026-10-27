@@ -46,7 +46,7 @@ Aside from behavioral semantics, we introduce a notion of *annotations* as an 'a
 
 This section describes our approach to assembly-time performance: speed and scalability of builds and tests. Performance of assembled machine code is left entirely to the user, as is the nature of an assembler.
 
-* *Laziness* - Default evaluation strategy is laziness, i.e. evaluate only what contributes. Users can express a huge namespace but we'll download and extrat only what is needed. Annotations may tune the strategy, e.g. to sequence or spark (parallelize) evaluation.
+* *Laziness* - Default evaluation strategy is laziness, i.e. evaluate only what contributes. Users can express a huge namespace but we'll download and extract only what is needed. Annotations may tune the strategy, e.g. to sequence or spark (parallelize) evaluation.
 
 * *Caching*: annotations ask assembler to memorize some expensive computations. When encountered again, substitute result instead of replaying full computations. Persistent caching provides our basis for incremental assembly. A remote proxy cache (with a little PKI) can potentially share work within a community.
 
@@ -61,7 +61,7 @@ This section describes our approach to assembly-time performance: speed and scal
 The built-in data types are numbers, lists, dicts, and functions. All data is immutable, i.e. you cannot update a list or dict, but you can construct a new list or dict in terms of updating an existing one.
 
 - Numbers are exact rationals. Any loss from rounding numbers is under explicit control of the user.  
-- Lists are a one-size-fits-all sequential data structure. Concretely represented by finger-tree ropes under the hood, supporting append at either, compact binaries, array-like flattening. 
+- Lists are a one-size-fits-all sequential data structure, represented as ropes under the hood: append at either end, log-time split, compact binaries, array-like flattening.
 - Dicts are finite key-value associative structures. Keys must be equatable, i.e. excluding functions. There is no iteration over keys. Tagged data is modeled as a singleton dict.
 - Functions are frequently expressed as lambdas, but are closed-term inets under-the-hood.
 
@@ -72,6 +72,8 @@ section defines their composition and explicit `net_arity` bridge.
 All basic data types are implicitly tagged, i.e. users can distinguish a function from a number in context of pattern matching. Users can further tag data to support a dynamic type feel.
 
 ## Objects
+
+*Pending the module redesign toward multiple inheritance and object-based modules: object-level rules may change with it.*
 
 Objects are most useful for extension in context of mutually recursive structures. For example, a grammar can be modeled as an object where each 'rule' is a parser combinator, enabling override of specific rules. We'll model objects at the module layer to support extension of the namespace.
 
@@ -88,7 +90,7 @@ It's best to design a syntax for constructing objects that avoids observing 'bas
 
 ### Singleton Instance
 
-Instead of a `Dict -> Dict -> Dict` structure, we can model objects as a `Dict` that defines `spec` and other fields. The `spec` would include the mixin and perhaps some metadata - a unique ID and inheritance list - to support multiple inheritance. Users can access the instantiated version of the object and still support extension and override via `spec`.
+Instead of a `Dict -> Dict -> Dict` structure, we model objects as a `Dict` that defines `spec:{name, defs, deps}` beside the instance's fields: `defs` is the mixin, `deps` lists the parent specs, and `name` identifies the specification for linearization. Users access the instantiated object and still extend and override it through `spec`. An `abstract object` keeps only its specification; `extend abstract` composes definitions and stays abstract; anonymous objects (`object _`) skip deduplication and apply before named parents. Plain dicts are not objects; `object_from_dict` converts one explicitly.
 
 With singleton instance, we might use annotations to 'freeze' the Dict to prevent accidental update, because updates should use the extension mechanism instead.
 
@@ -96,7 +98,7 @@ With singleton instance, we might use annotations to 'freeze' the Dict to preven
 
 We can model multiple inheritance, where an object inherits from several others that may share ancestors. We apply a linearization algorithm (such as C3) to ensure each shared ancestor is mixed-in only once and in a consistent order.
 
-Linearization requires an identifier to distinguish when two specifications are the same. In practice, we can use arbitrary values in this role, e.g. "A" and "B", but also assert (with reflection and referential equality) that no identifier is shared by two different specifications in scope of linearization.
+Linearization requires an identifier to distinguish when two specifications are the same: it deduplicates by `spec.name`, and rejects one name used for two distinct specifications. Toplevel declarations get globally unique names through `abstract_global_path`.
 
 The metadata required for multiple inheritance is easily included in object `spec` from singleton instance. 
 
@@ -104,7 +106,7 @@ The metadata required for multiple inheritance is easily included in object `spe
 
 ### Explicit Override
 
-To resist ambiguity conflicts, it is useful to distinguish introducing and overriding a name. We can report an error if we override a name that is undefined or if we introduce a name that is already defined. The implicit assumption is that a name is introduced with some meaning or purpose, while overrides presumably preserve meaning and purpose. Syntactically, this distinction may be lightweight, e.g. '=' vs. ':='.
+To resist ambiguity conflicts, it is useful to distinguish introducing and overriding a name. We can report an error if we override a name that is undefined or if we introduce a name that is already defined. The implicit assumption is that a name is introduced with some meaning or purpose, while overrides presumably preserve meaning and purpose. Syntactically, this distinction is lightweight: `=` introduces and `:=` overrides, and `_name` refers to the prior definition. (A non-observing `::=` update is disabled until redesigned, `prior-update-disabled`.)
 
 ### Structured Namespaces
 
@@ -112,7 +114,7 @@ A flat object namespace easily grows cluttered. It is not difficult to organize 
 
         apply_at idx mixin = λbase.λself. 
             base with { 
-                (idx) = mixin base.(idx) self.(idx) 
+                .(idx) := mixin base.(idx) self.(idx) 
             }
 
 More sophisticated translations are possible, e.g. translating individual names. However, it is awkward to extend translations like this to multiple inheritance. It is feasible to develop a few specialized variants, assuming adequate developer control over the 'spec' interface.
@@ -205,7 +207,7 @@ It feasible to compose some effects via stack of 'monad transformers'. We can im
         runStateT s (Yield (Lift rq) k) = Yield rq (runStateT s . k)
         runStateT s (Return r) = Return (r,s)
 
-Unfortunately, monad transformers do not compose nicely in context of higher-order effects. For example, 'runStateT' would not know that it should thread state into 'fn' or 'op' in case of '(Shift fn)' or '(Reset op)' effects for delimited continuations. The best solution I've found is to support *Extensible Monoliths* (see below).
+Unfortunately, monad transformers do not compose nicely in context of higher-order effects. For example, 'runStateT' would not know that it should thread state into 'fn' or 'op' in case of '(Shift fn)' or '(Reset op)' effects for delimited continuations. The best solution I've found is to support *Flexible Monoliths* (see below).
 
 ### Monadic Fixpoint
 
@@ -219,7 +221,7 @@ To evaluate a Fix request requires lazy handling of a future Return value, passi
 
         runPure (Yield (Fix f) k) = runPure (k (fix (runPure . f)))
 
-Fixpoint is not compatible with all effects. But it is feasible to restrict some effects ins scope of 'Fix'.
+Fixpoint is not compatible with all effects. But it is feasible to restrict some effects in scope of 'Fix'.
 
 ### Effectful Pattern Matching
 
@@ -265,15 +267,15 @@ An intriguing opportunity is to mix choice with other effects. For example, a pa
             x:_ -> x:(fixListFn (tail . f))
             [] -> []
 
-We could use 'runCut' as an evaluator for pure pattern matching. A front-end compiler could easily support this as a built-in. But when we don't know whether a pattern is effectful, we could use the 'Cut' effect for  
+We could use 'runCut' as an evaluator for pure pattern matching. A front-end compiler could easily support this as a built-in. But when we don't know whether a pattern is effectful, we can wrap it in the 'Cut' effect, delimiting its search within the ambient handler.
 
 *Aside:* It is feasible to further extend choice with search. By introducing effects to manage anticipated 'score' for a choice, a handler can heuristically reduce priority of a choice before fully computing it. 
 
 ### Flexible Monoliths
 
-We can express extarbitrary data flow via indexed state, and arbitrary control flow via indexed, delimited continuations. Between these we can model almost any effect. But we'll also need a few 'generic' effects, e.g. Fix, Cut, and Alt for generic desugaring of do notation and effectful pattern matching. A viable one-size-fits-most handler for pure computations:
+We can express arbitrary data flow via indexed state, and arbitrary control flow via indexed, delimited continuations. Between these we can model almost any effect. But we'll also need a few 'generic' effects, e.g. Fix, Cut, and Alt for generic desugaring of do notation and effectful pattern matching. A viable one-size-fits-most handler for pure computations:
 
-        unique CC, BT  
+        unique CC
 
         -- A monolith of four generic effects: 
         --   Continuations (Shift, Reset)
@@ -330,7 +332,7 @@ Instead of pattern-matching request constructors like 'Get' and 'Set', we might 
 
 For concision, a front-end compiler could desugar `.op` to `eff:(\api -> api.op)` and apply effects via `(eff:f) x = eff:(\api -> f api x)`. This supports concise, lightweight effects without tediously wrapping them in tags, functions, or intermediate definitions, e.g. `op >>= k = .seq op k`.
 
-*Notes:* Not every value in `api` needs to be an effect, i.e. we ca and there is no guarantee that `api` is stable from step to step. But users may assume monad laws are respected, e.g. `(return r >>= k) = (k r)`.
+*Notes:* Not every value in `api` needs to be an effect, and there is no guarantee that `api` is stable from step to step. But users may assume monad laws are respected, e.g. `(return r >>= k) = (k r)`.
 
 ### Standard Effects
 
@@ -339,10 +341,11 @@ It is very convenient to assume a standard effects API for generic extensions. P
 - `.r Result` - pass result to next step
 - `.seq op k` - equivalent to `op >>= k`
 - `.alt A B` - run `A`; on fail, backtrack then run `B`
-  - for machines and reflection tasks, `A` is atomic: `.alt A B` means
-    `.alt (.cut A) B`; a choice is scoped by the enclosing `.cut`, and
-    outside every cut it is final once `A` succeeds
-    (`alt-cuts-its-first-operand`)
+  - a handler may make `A` atomic, as reflection handlers do: `.alt A B`
+    then means `.alt (.cut A) B`, a choice scoped by the enclosing `.cut`
+    and final once `A` succeeds outside every cut. Such a handler makes
+    grouping observable; desugarings assume lawful handlers
+    (`handlers-assumed-lawful`)
   - ordered and deterministic: if `A` blocks on a lazy value, suspend rather
     than allowing readiness to select `B`
 - `.fail` - failure for `.alt`, does not continue
@@ -363,6 +366,9 @@ It is very convenient to assume a standard effects API for generic extensions. P
   - shall build upon local state to simplify modeling of coroutines
 - `.shift Key fn` - exits corresponding `.reset` with continuation 
   - continuation invalid outside current task in general usage
+- `.env.lookup Path` - like `.get`, but controlled from outside
+- `.env.overlay Mixin`, `.env.clear` - stack or drop overlays on what a task
+  and its children look up
 
 The `Path` type for `.get/.set` and the others is a list of keys, assuming state is a hierarchical dictionary. The empty list represents the toplevel dictionary. Some contexts may recognize other `Path` types, e.g. lenses or opaque keys.
 
@@ -370,13 +376,11 @@ Tentative, deferred:
 
 - `.with Mixin Op` - apply mixin to `api` in scope of `Op`
 - `.score Value` - for soft searches of `.alt` paths, preferences
-- `.env.lookup Path` - like `.get` but controlled externally
-- `.env.overlay Mixin`, `.env.clear` - stack or drop overlays on what a machine and its children look up
 - `.commit` - drop `.alt` paths except this one, scoped by `.cut`
   - it might be feasible to model via shift-reset and cut
 - *constraints* - for reasoning and search across problem domains
 
-Extensibility will greatly benefit from `.with`, while consistent support for constraints and soft search would greatly enhance adaptability. But I'm not sure of the best approach to `.score` (i.e. probably need multiple rubrics with client weighting them, probably must be contingent on final values of constraint vars). And constraint vars need a lot of attention. The argument for `.commit` and `.env` are weaker, but `.env` is easy. We should probably prioritize `.with` early because it will significantly impact early development and integration.
+Extensibility will greatly benefit from `.with`, while consistent support for constraints and soft search would greatly enhance adaptability. But I'm not sure of the best approach to `.score` (i.e. probably need multiple rubrics with client weighting them, probably must be contingent on final values of constraint vars). And constraint vars need a lot of attention. The argument for `.commit` is weaker. We should probably prioritize `.with` early because it will significantly impact early development and integration.
 
 ### Extensible Effects
 
@@ -386,7 +390,7 @@ For effects that accept arguments, we can generally leverage method objects to e
 
 ## Interaction Nets
 
-In contrast to lambda calculus, interaction nets are graph-structured instead of tree-structured, with undirected wiring between polarized ports. This simplfies fine-grained, flexible dataflow and supports backpropagation without fixpoint. In this project, interaction nets are scoped to expressions, exposing only one port.
+In contrast to lambda calculus, interaction nets are graph-structured instead of tree-structured, with undirected wiring between polarized ports. This simplifies fine-grained, flexible dataflow and supports backpropagation without fixpoint. In this project, interaction nets are scoped to expressions, exposing only one port.
 
     # identity function as inet
     interaction_net <| do
@@ -418,7 +422,7 @@ The `NetBuilder` Effects API:
     - lambda lowering may normalize these to erasers, direct wires, and trees of
       binary sharing fans
   - `.data Expr -> [d]` - functions, lists, dicts, numbers
-    - `Expr` is copied logically (refct or GC)
+    - `Expr` is copied logically: shared, never duplicated
 - Wires consume ports. Each port must be wired exactly once.
   - `.wire A B` - commutative (`.wire B A` is equivalent)
   - the return port wired implicitly
@@ -454,8 +458,8 @@ Rules:
     of Lamping's brackets and croissants, to nets not built from lambda
     calculus. That adaptation remains to be reviewed.
 - dup: 
-  - copy node to each auxilliary opposite
-  - wire auxilliaries to copies positionally
+  - copy node to each auxiliary opposite
+  - wire auxiliaries to copies positionally
 - call: 
   - for a function, apply one value argument and expose the result as data
   - for a raw net, logically copy the called inet into the caller inet
@@ -483,6 +487,8 @@ lambda-style interfaces.
 
 ## Modules
 
+*Pending the module redesign toward multiple inheritance and object-based modules: this section will change.*
+
 Each module is represented by a file that represents a mixin and extends an implicit, anonymous module object. The assembler provides a built-in front-end compiler for ".g" files, but *User-Defined Syntax* is supported, with users defining a monadic front-end compilers aligned to file extensions, and the assembler bootstrapping upon override.
 
 To simplify architecture, file dependencies are constrained: a file may reference only local files and subfolders or transitively immutable remote files. We enforce immutability by requiring a DVCS revision hash for remote references. Because parent-relative and absolute filepaths are forbidden, every folder serves as a stand-alone package, easily shared and edited. 
@@ -493,12 +499,14 @@ A module is integrated by 'including' its definitions as a mixin. Any prior defi
 - `import ... as m` - introduces `m` with defaults then applies `import ... at m` 
 - `import ... at m` - mixin applied to `m`, binds to host `Base.m`, and `Self.m`.
 - `import ... binary as b`, introduces a raw file binary, does not compile 
+- `import 'prelude` - a built-in module, named by an atom instead of a file
+- `import as q from { ref:…, rev:…, search:[…] }` - a remote module (see *Remotes*)
 
 Hierarchical imports are compatible with lazy loading.
 
 ### Configuration
 
-The assembler implicitly loads a configuration module based on the `GLAM_CONF` environment variable or an OS-specific default, i.e. `"~/.config/glam/conf.g"` in Linux or `"%AppData%\glam\conf.g"` in Windows. A small, local user configuration typically extends a large, remote community or company configuration.
+The assembler implicitly loads a configuration module based on the `GLAM_CONF` environment variable or an OS-specific default (listed in [CLI.md](CLI.md), "Configuration"). A small, local user configuration typically extends a large, remote community or company configuration.
 
 The initial configuration namespace consists of an empty `env` object. The configuration is expected to define options under `conf.*`, especially `conf.env` which is passed to the assembly. Other than `conf.env`, which impacts reproducibility, other options might be expressed effectfully with ad hoc assembler-provided effects. 
 
@@ -519,6 +527,7 @@ Command line options:
 - `(-f|--file) FileName` - list a file to include; files earlier in list override those later. 
 - `(-s|--script).FileExt Text` - as remote file with given extension and text. Scripts cannot import local files, hence are location-independent. 
 - `--manifest FileName` - record the secure content hash of every local file used by configuration or assembly.
+- `--check_manifest FileName [--quiet]` - standalone: verify the files a manifest records.
 - `--refl Arg` - append an argument visible to reflection tasks but not to assembly as `asm.args`.
 - `-- List Of Args` - the assembler defines `asm.args` as a list of strings prior to including files.
 
@@ -542,18 +551,17 @@ Remote files are a little awkward for syntax and maintenance. We'll need a good 
 
 ### Access Control
 
-There is no 'export' control on modules. Everything defined in a module is exported, accessible for override. This simplifies extension, but increases risk of accidental name conflicts. The latter is mitigated by explicit overrides and hierarchical import structures. We do control the Base argument to a hierarchical module, i.e. 'env.\*', which can be leveraged with some idioms and patterns. For example, a module that defines a library may emit 'api.\*' as the primary public interface. We may then restrict 'env.\*' to share the public interface. 
+There is no 'export' control on modules. Everything defined in a module is exported, accessible for override. This simplifies extension, but increases risk of accidental name conflicts. The latter is mitigated by explicit overrides and hierarchical import structures. We do control what a hierarchical module observes through `env.*`, which its `import ... as` introduces, and that can be leveraged with some idioms and patterns. For example, a module that defines a library may emit 'api.\*' as the primary public interface. We may then restrict 'env.\*' to share the public interface. 
 
         import "foo.g" as libfoo
         env.foo = libfoo.api
-        override libfoo.*
-        libfoo.settings.x = 42
+        libfoo.settings.x := 42    # a client may override any of libfoo's definitions
 
 In theory, we could use *Stateful Specification* or a secure hash to allocate anonymous namespaces, but doing so complicates things for users more than I'd prefer.
 
 ## Assembler
 
-Primary behavior and inputs are detailed in *Modularity*. Roughly:
+Primary behavior and inputs are detailed in *Modules*. Roughly:
 
 - load a configuration (`GLAM_CONF`) 
 - construct an assembly (`-f -s --`)
@@ -568,12 +576,12 @@ By default, we expect a binary result and extract to standard output. However, b
     - text keys as file and folder names
     - binary or recursive folder values 
     - associated keys for permissions
-  - `--auto` - decide result type heuristically
+  - `--auto` (proposed) - decide result type heuristically
 - *Extraction:* where to put result
   - `--stdout` (default) - write binary to standard output
     - incompatible with folders and interactive development
   - `(-o|--out) Destination` - output to named file or folder
-  - `--discard` - no output, result ignored
+  - `--discard` (proposed) - no output, result ignored
 
 Machine-code mnemonics are left to libraries. Effectively, we have a generic 'assembler' of binaries or filesystems.
 
@@ -581,11 +589,9 @@ Machine-code mnemonics are left to libraries. Effectively, we have a generic 'as
 
 Reflection is expressed effectfully, i.e. `eff:(\api -> ...)`. To keep implementation small and simple, the reflection API is version-specific beyond the *Standard Effects*, specialized to the assembler executable's representations and capabilities. Most bloat of portability and policy is pushed to user-defined adapters.
 
-Reflection may be triggered by compilers (`refl.*`), configurations (`conf.log` and `conf.ide`), or anonymous term annotations (`anno refl:(.log Msg) Term`). In the general case, reflection tasks run concurrently and interact through shared state. An annotation runs its reflection task to completion before exposing `Expr`, and may observe `Expr` (triggering evaluation) or further annotate `Expr`, but does not alter the observable value of `Expr`. 
+Reflection may be triggered by compilers (`refl.*`), configurations (`conf.log` and `conf.ide`), or anonymous term annotations (`anno refl:(.log 'info Msg) Term`). In the general case, reflection tasks run concurrently and interact through shared state. An annotation runs its reflection task to completion before exposing `Expr`, and may observe `Expr` (triggering evaluation) or further annotate `Expr`, but does not alter the observable value of `Expr`. 
 
-To control concurrency, the reflection API shall support software-transactional memory (STM), with one transaction per scoped `cut`. Every alternative in one cut attempt shares a monotone read set: reads made by an earlier failed alternative remain part of the serializability proof for a later winner. Speculative edits, local state, input claims, and buffered outputs remain branch-local and roll back with the alternative.
-
-A broad host change is only a wake signal. A suspended transaction is retried only when read-only validation of its configured exact, fingerprint, coarse, and specialization-owned observations proves a conflict. A non-conflicting wake retains the same divergence or exact dependency. A successful heap or volume read outside a transaction is instead an atomic committed snapshot; a later failure does not retroactively make that read retryable. The `cut` establishes choice and transaction scope, but is not itself an observation or a source of retryability.
+To control concurrency, reflection uses transactions, one per scoped `cut`, serializable. Reads made by an earlier failed alternative still count toward a later winner's serializability. Speculative edits, local state, input claims and buffered outputs stay branch-local and roll back with a failed alternative. A suspended transaction runs again only once something it observed has changed (`.retry`). How a runtime detects that is its own business (`reflection-api-per-runtime`).
 
 Reflection is not reproducible. Between resource and scheduling variability, caching, timestamps, user interactions, etc. it's infeasible to reproduce the exact same log messages. It's left to users to ensure a reflection-based typechecker is confluent and doesn't depend on timestamps. A critical constraint on the reflection API is that it shall not observably influence pure computations. Thus, assembly 'result' remains robustly reproducible.
 
@@ -656,7 +662,7 @@ any other Glam value; it need not be a chronological log.
 
 Transporting a carrier does not demand its metadata. `seq` deliberately
 demands the hidden metadata before continuing, while `spark` makes the same
-demand as a best-effort worker hint. Reflection inspection can retrieve the
+demand as a best-effort hint. Reflection inspection can retrieve the
 hidden value, and demand on that result starts any latent `meta_refl` task.
 Metadata failures and waits otherwise remain latent.
 
@@ -666,7 +672,7 @@ rolled back merely because semantic code later discards the resulting
 carrier. Users should therefore place effectful updates at demand boundaries
 where committing those effects is intended.
 
-Associated metadata is not an automatic profiler or scheduler trace. Worker
+Associated metadata is not an automatic profiler or scheduler trace. Scheduling
 order, discarded evaluation attempts, and timing require separate operational
 instrumentation. Its purpose is dependency control: evaluation carries sealed
 metadata, reflection may inspect or enrich it, and no reflection result can
@@ -739,17 +745,12 @@ attaching histories to ordinary values.
 
 Logging participates in reflection transactions. A `.log` inside `.cut` becomes
 visible only when the surrounding transaction commits; failed alternatives
-discard it. Queue reads observe committed host state only, never writes from
-their own transaction. Input claims roll back per alternative, while the
-observed FIFO prefix or empty tail remains cut-wide. An empty read fails the
-current attempt; a port read defines that absence as pushback, a
-retryable wait on the observed tail, rather than as permission to advance an
-unrelated alternative.
-Ordering between concurrently produced messages is host policy and must not
-influence pure assembly results.
+discard it. The order in which concurrently produced messages are observed is
+scheduling policy (`diagnostic-order-follows-schedule`) and never influences
+pure assembly results.
 
-The assembler library does not render diagnostics. In batch mode, the
-executable provides a small default terminal logger when no configured observer
+The assembler's core does not render diagnostics. In batch mode, the
+assembler provides a small default terminal logger when no configured observer
 handles a message. `conf.log` or `conf.ide` may instead enrich, filter, group,
 store, or render messages according to user policy.
 
@@ -761,7 +762,7 @@ Interactive mode is enabled by command-line switch:
 - `(-i|--interactive)` - configurable user interface, maintains result
   - `--discard` by default, but compatible with `-o`
 
-When interactive mode is enabled, the assembler will run `conf.ide`, and continues running until `conf.ide` terminates. Aside from the reflection API, the IDE takes over logging entirely, to support a TUI, with access to the fallback logger, and has user interaction via TTY (REPL, TUI) and network (listen on TCP or unix domain sockets). A lightweight GUI is feasible, e.g. Rust's egui or Dear ImGUI. Just enough filesystem access to update sources.
+When interactive mode is enabled, the assembler will run `conf.ide`, and continues running until `conf.ide` terminates. Aside from the reflection API, the IDE takes over logging entirely, to support a TUI, with access to the fallback logger, and has user interaction via TTY (REPL, TUI) and network (listen on TCP or unix domain sockets). A lightweight GUI is feasible. Just enough filesystem access to update sources.
 
 ### Integration
 
@@ -773,11 +774,11 @@ Aside from primary outputs, we might want the assembler to automatically set per
 
 ## User-Defined Syntax
 
-When loading a module, we'll first search the provided environment for a compiler: `_env.lang.[FileExt].compile`. If defined, we'll use this compiler, falling back to an assembler built-in or reporting an error. To bootstrap this process, the assembler provides a built-in compiler for FileExt ".g".
+When loading a module, we'll first search the provided environment for a compiler: `env.lang.[FileExt].compile`. If defined, we'll use this compiler, falling back to an assembler built-in or reporting an error. To bootstrap this process, the assembler provides a built-in compiler for FileExt ".g".
 
 User-defined compilers shall be expressed effectfully, e.g. `eff:(\api -> ...)`. Instead of inputs or return values, access to the source binary is expressed via 'read' effects and definitions are manipulated statefully. For reasons of reproducibility and location-independence, the API abstracts location in filesystem or namespace. A few more effects may support diagnostic contexts or debug outputs.
 
-*Note:* FileExt is minimally normalized: lower-case A-Z, strip initial ".". For example, file `"foo.Tar.Gz"` is processed by `_env.lang.["tar.gz"].compile`. 
+*Note:* FileExt is minimally normalized: lower-case A-Z, strip initial ".". For example, file `"foo.Tar.Gz"` is processed by `env.lang.["tar.gz"].compile`. 
 
 ### Compiler Bootstrapping
 
@@ -796,7 +797,7 @@ The main motive for bootstrapping is reproducibility: stabilize the compiler, ma
 
 ### Editable Projections
 
-It is possible to express editable views of source texts via auxilliary methods in the language object, e.g. `env.lang.[FileExt].view`. This is a good starting point, at least. But it's coarse grained and very limiting.
+It is possible to express editable views of source texts via auxiliary methods in the language object, e.g. `env.lang.[FileExt].view`. This is a good starting point, at least. But it's coarse grained and very limiting.
 
 To support fine-grained editable projections, it's useful to trace terms back to contributing sources. For example, a parsed integer may carry hidden metadata regarding the original source location, and even a codec. This metadata is visible via the reflection API. In theory, `conf.ide` can render a widget that ties back to original sources and supports editing thereof. 
 
@@ -804,7 +805,7 @@ But effective support for editable projections will benefit from careful design 
 
 ### Macros
 
-A front-end compiler may recognize macro calls. The primary use case for macros is metaprogramming in terms of rewriting text, tokens, ASTs, etc.. Although lazy evaluation and staging mitigate need for macros, they remain useful for embedding DSLs. 
+A front-end compiler may recognize macro calls. The primary use case for macros is metaprogramming by rewriting source, as text, tokens or richer structure. The `g0` protocol exposes normalized source structure but no ASTs (see [Macros.md](Macros.md)). Although lazy evaluation and staging mitigate need for macros, they remain useful for embedding DSLs. 
 
 Macros should be defined and distributed through the normal namespace. Macros must evaluate at point of use, thus overriding a macro definition influences only subsequent macro calls. For many reasons - composing macro definitions without calling them, lazy loading of modules, scoping, etc.. - it is useful to syntactically distinguish macro calls. For the ".g" syntax we use `@macro_name`.
 
@@ -822,7 +823,7 @@ What can we feasibly implement to support developers in reasoning about the asse
 
 * *Proofs*: Under Curry-Howard, types can be understood as theorems, and programs as proofs. But for sophisticated types, verifying types may involve expensive searches. Ideally, we can provide some hints to reduce the verification overheads, separate from the program itself but perhaps as part of a declaration.
 
-* *Visualization*: We can support developers in viewing and understanding the assembly process, auxilliary processes such as typechecking, testing, or theorem proving, and the outcomes of these various processes. We can draw user attention where it's needed. Ideally, we can support interactive visualization, with progressive disclosure and support the user in understanding problems. Bonus points if interactive visualization integrates smoothly with editable projection.
+* *Visualization*: We can support developers in viewing and understanding the assembly process, auxiliary processes such as typechecking, testing, or theorem proving, and the outcomes of these various processes. We can draw user attention where it's needed. Ideally, we can support interactive visualization, with progressive disclosure and support the user in understanding problems. Bonus points if interactive visualization integrates smoothly with editable projection.
 
 * *Tracing*: An assembler can maintain some metadata to trace outputs back to sources. However, there's a rather severe tradeoff between precision and performance. This can be mitigated by replay with greater precision or with an intersection of different mappings. Ideally, developers may also guide tracing via annotations.
 
@@ -874,7 +875,7 @@ A characteristic of 'direct-style' assembly, the heart of its vibe IMO, is that 
 - *abstract interpretation*: Maintain an abstract representation of machine state and user assumptions, so we can detect conflicts. Carry this metadata with each label, so we can ensure consistent contexts on branches or jumps. 
 - *program search*: When conflicts are detected between conditions and assumptions, have alternatives as backups. Potential extensions to weighted search, integrating preferences. 
 - *obligations*: Write down what you're planning to do, some constraints on order of events, and write when you're done. Likely per cursor. These may be opaque to assembler, but support human discipline.
-- *constraint models*: lightweight constraint system as a form of global agreements within an assembly. We do not reading solver values while writing the assembly, but we can arrange for them to influence the next stage of assembly.
+- *constraint models*: lightweight constraint system as a form of global agreements within an assembly. We do not read solver values while writing the assembly, but we can arrange for them to influence the next stage of assembly.
 
 There's a reasonable case to be made for some coordination effects, e.g. first-class queues for communication between subtasks shouldn't severely detract from the direct-style experience. Ultimately, direct-style is a stylistic choice, not a mandate, and users fully control effects.
 
@@ -895,7 +896,7 @@ Transaction loops, where we repeatedly run an atomic, isolated transaction - opt
 
 ### Multi-Level Languages (Policy)
 
-When expressing domain knowledge, we should aim to do so in an extensible and substrate-independent manner: objects for extensibility, DSLs for substrate-independence. For example, a system of equations should be expressed as an object with definitions in an calculus DSL. Users can tweak the equations and extract the knowledge. Combat choreography for video-game cinematics should be an object with an animations DSL, such that users can override parts of the animation and extract to a system of equations or other model.
+When expressing domain knowledge, we should aim to do so in an extensible and substrate-independent manner: objects for extensibility, DSLs for substrate-independence. For example, a system of equations should be expressed as an object with definitions in a calculus DSL. Users can tweak the equations and extract the knowledge. Combat choreography for video-game cinematics should be an object with an animations DSL, such that users can override parts of the animation and extract to a system of equations or other model.
 
 Effectful DSLs, i.e. DSL as effects API, are convenient. While extracting code, we can rely on generic effects for bookkeeping and backtracking. Constraint systems enable flexible program search across problem domains. We can easily introduce intermediate representations with *singletons* and *write cursors* to mitigate scatter-gather challenges.
 
@@ -903,7 +904,7 @@ Essentially, we can model each language as an assembly target instead of a synta
 
 ### Proof-Carrying Code
 
-It is possible to express theorems on assembly or machine code, e.g. in terms of preconditions, postconditions, invariants. Useful properties to examine included bounded-time, bounded-space, memory safety. It should be possible to build proofs of these theorems that are much easier to check than they were to discover, then bundle them with the code, perhaps as a separate file.
+It is possible to express theorems on assembly or machine code, e.g. in terms of preconditions, postconditions, invariants. Useful properties to examine include bounded-time, bounded-space, memory safety. It should be possible to build proofs of these theorems that are much easier to check than they were to discover, then bundle them with the code, perhaps as a separate file.
 
 Although we cannot rely on reflection to emit proofs, we can use reflection and the IDE to help discover and inject proofs (or proof tactics). Most relevantly, the reflection API may provide access to an SMT solver, and the IDE may support edit suggestions from the reflection API. Thus, assisted theorem proving is possible. As we accelerate constraint solvers, proof tactics may become more adaptive.
 
