@@ -5,16 +5,23 @@ import ./kmem_grow.bend as KM
 # The kernel's primitives (spike-node-layout in
 # docs/plans/EvalSpike_2026-10-26.md, `net-nodes-double`): a net as four-
 # word nodes in storage that doubles, its free list and active pairs, and a
-# data table of its own.
+# data table of its own, kept linear.
 #
 # A node n is words 4n .. 4n + 3. Word 0, the header: the kind code (8
-# bits, as net.bend's kcode) and a 24-bit field: a function's or an
-# application's level, a fan's level (its site, in nets built without
-# levels), a control's index. Words 1 .. 3: the links of ports 0 .. 2, a
-# reference being n * 4 + port. A node with fewer than three ports keeps a
-# payload word in word 3: a data node's or a call's value, a control's
-# offset (bit 31 set to raise, the amount below). A value word is a number
-# below 2^31 inline, or with bit 31 set an index into the data table.
+# bits: the rule kind, as net.bend's kcode, in the low 4, the value form in
+# the high 4) and a 24-bit field: a function's or an application's level,
+# a fan's level (its site, in nets built without levels), a control's
+# index, a builtin's op. Words 1 .. 3: the links of ports 0 .. 2, a
+# reference being n * 4 + port. A reference to a data node's principal
+# carries port 3 instead, and nothing links into a data node, so its words
+# 1 .. 3 hold its value. A call keeps its function in word 3, a control
+# its offset (bit 31 set to raise, the amount below).
+#
+# Value forms: 0, an entry in the data table (the word its index); 1, a
+# number (the word); 2, a builtin with no argument collected yet (the
+# field its op, the word how many it needs). The table is linear: an entry
+# has one owner, is handed on when its owner's value moves, duplicated
+# when it is copied, freed when it is dropped.
 
 def nil() -> U32:
   4294967295
@@ -27,20 +34,32 @@ def lvl_cap() -> U32:
 # The data table
 # ==============
 
+# entries, a stack of free indices beside them, the high-water mark
 type DT is Type:
-  DT{a: Array<V.Val>, +n: U32, +cap: U32, +d: Nat}
+  DT{a: Array<V.Val>, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat}
 
 def dt_new() -> DT:
-  DT{Array.new(V.Val, 4n, V.VUnit{}), 0, 16, 4n}
+  DT{Array.new(V.Val, 4n, V.VUnit{}), [0 : U32^4n], 0, 0, 16, 4n}
 
-def dt_get.fin(r: Array<V.Val> & V.Val, +n: U32, +cap: U32, +d: Nat) -> DT & V.Val:
+def dt_get.fin(r: Array<V.Val> & V.Val, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat) -> DT & V.Val:
   (a, v) = r
-  (DT{a, n, cap, d}, v)
+  (DT{a, fs, nf, n, cap, d}, v)
 
+# entry i's value, the entry kept
 def dt_get(t: DT, +i: U32) -> DT & V.Val:
   match t:
-    case DT{a, +n, +cap, +d}:
-      dt_get.fin(Array.get(V.Val, a, i), n, cap, d)
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      dt_get.fin(Array.get(V.Val, a, i), fs, nf, n, cap, d)
+
+def dt_take.fin(r: Array<V.Val> & V.Val, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat, +i: U32) -> DT & V.Val:
+  (a, v) = r
+  (DT{a, Array.set(U32, fs, nf, i), (nf + 1 : U32), n, cap, d}, v)
+
+# entry i's value, the entry freed
+def dt_take(t: DT, +i: U32) -> DT & V.Val:
+  match t:
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      dt_take.fin(Array.swap(V.Val, a, i, V.VUnit{}), fs, nf, n, cap, d, i)
 
 type DC is Type:
   DC{src: Array<V.Val>, dst: Array<V.Val>}
@@ -60,23 +79,55 @@ def dt_copy(k: Nat, +i: U32, c: DC) -> Array<V.Val>:
         case DC{src, dst}:
           dt_copy(p, (i + 1 : U32), dc.step(Array.get(V.Val, src, i), dst, i))
 
-def dt_add.go(full: Bool, t: DT, v: V.Val) -> DT & U32:
+type FC is Type:
+  FC{src: Array<U32>, dst: Array<U32>}
+
+def fc.step(r: Array<U32> & U32, dst: Array<U32>, +i: U32) -> FC:
+  (src, +v) = r
+  FC{src, Array.set(U32, dst, i, v)}
+
+def fs_copy(k: Nat, +i: U32, c: FC) -> Array<U32>:
+  match k:
+    case 0n:
+      match c:
+        case FC{src, dst}:
+          dst
+    case 1n+p:
+      match c:
+        case FC{src, dst}:
+          fs_copy(p, (i + 1 : U32), fc.step(Array.get(U32, src, i), dst, i))
+
+def dt_grow(t: DT) -> DT:
+  match t:
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      DT{dt_copy(U32.to_nat(cap), 0, DC{a, Array.new(V.Val, Nat.add(d, 1n), V.VUnit{})}),
+        fs_copy(U32.to_nat(cap), 0, FC{fs, [0 : U32^Nat.add(d, 1n)]}), nf, n, (cap * 2 : U32), Nat.add(d, 1n)}
+
+def dt_put.app(t: DT, v: V.Val) -> DT & U32:
+  match t:
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      (DT{Array.set(V.Val, a, n, v), fs, nf, (n + 1 : U32), cap, d}, n)
+
+def dt_put.new(full: Bool, t: DT, v: V.Val) -> DT & U32:
   match full:
     case True{}:
-      match t:
-        case DT{a, +n, +cap, +d}:
-          (DT{Array.set(V.Val, dt_copy(U32.to_nat(cap), 0, DC{a, Array.new(V.Val, Nat.add(d, 1n), V.VUnit{})}), n, v),
-            (n + 1 : U32), (cap * 2 : U32), Nat.add(d, 1n)}, n)
+      dt_put.app(dt_grow(t), v)
     case False{}:
-      match t:
-        case DT{a, +n, +cap, +d}:
-          (DT{Array.set(V.Val, a, n, v), (n + 1 : U32), cap, d}, n)
+      dt_put.app(t, v)
 
-# a new entry for v: its index
-def dt_add(t: DT, v: V.Val) -> DT & U32:
+def dt_put.reuse(r: Array<U32> & U32, a: Array<V.Val>, +nf: U32, +n: U32, +cap: U32, +d: Nat, v: V.Val) -> DT & U32:
+  (fs, +i) = r
+  (DT{Array.set(V.Val, a, i, v), fs, (nf - 1 : U32), n, cap, d}, i)
+
+# a new entry for v, reusing a freed one if any: its index
+def dt_put(t: DT, v: V.Val) -> DT & U32:
   match t:
-    case DT{a, +n, +cap, +d}:
-      dt_add.go(U32.is_ge(n, cap), DT{a, n, cap, d}, v)
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      match nf:
+        case 0:
+          dt_put.new(U32.is_ge(n, cap), DT{a, fs, nf, n, cap, d}, v)
+        case _:
+          dt_put.reuse(Array.get(U32, fs, (nf - 1 : U32)), a, nf, n, cap, d, v)
 
 # The state
 # =========
@@ -141,10 +192,26 @@ def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
     case False{}:
       h
 
-# link two ports (word n * 4 + 1 + p is port p's link: the reference plus
-# one), an active pair when both are principal
+def wr_if(b: Bool, h: H, +i: U32, +v: U32) -> H:
+  match b:
+    case True{}:
+      wr(h, i, v)
+    case False{}:
+      h
+
+def port(+r: U32) -> U32:
+  (r .&. 3 : U32)
+
+# port 0, or a data node's principal (port 3)
+def principal(+r: U32) -> Bool:
+  U32.is_eq(port(r), 0) || U32.is_eq(port(r), 3)
+
+# link two ports: port p's link is word n * 4 + 1 + p, the reference plus
+# one, but nothing is written into a data node (a reference with port 3);
+# an active pair when both are principal
 def link(h: H, +x: U32, +y: U32) -> H:
-  link.push(U32.is_eq((x .&. 3 : U32), 0) && U32.is_eq((y .&. 3 : U32), 0), wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
+  link.push(principal(x) && principal(y),
+    wr_if(U32.is_ne(port(y), 3), wr_if(U32.is_ne(port(x), 3), h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
 
 # Nodes
 # =====
@@ -179,34 +246,59 @@ def alloc(h: H) -> H & U32:
         case _:
           alloc.pop(KM.m_get(fs, (nf - 1 : U32)), w, nf, fresh, rs, nr, itrs, errs, dt)
 
+def node.word.k(+k: U32) -> U32:
+  match k:
+    case 5:
+      1
+    case _:
+      3
+
+def node.word(+hd: U32) -> U32:
+  node.word.k((hd .&. 15 : U32))
+
 def node.fin(r: H & U32, +hd: U32, +p: U32) -> H & U32:
   (h, +n) = r
-  (wr(wr(h, n, hd), (n + 3 : U32), p), n)
+  (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
 
-# a node with header hd and payload word p (overwritten by port 2's link
-# in a node with three ports): its reference, port 0
+# a node with header hd and payload word p, word 1 of a data node, word 3
+# of others (overwritten by port 2's link in a node with three ports): its
+# reference, port 0
 def node(h: H, +hd: U32, +p: U32) -> H & U32:
   node.fin(alloc(h), hd, p)
+
+def base(+r: U32) -> U32:
+  (r .&. 4294967292 : U32)
 
 def free.fin(h: H, +r: U32) -> H:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
       H{w, KM.m_set(fs, nf, (r >> 2n : U32)), (nf + 1 : U32), fresh, rs, nr, itrs, errs, dt}
 
+# free the node behind reference r, whatever its port
 def free(h: H, +r: U32) -> H:
-  free.fin(wr(h, r, 0), r)
+  free.fin(wr(h, base(r), 0), r)
 
 def fresh2(h: H, +a: U32, +b: U32) -> H:
   free(free(h, a), b)
 
-# Headers, levels, data
-# =====================
+# Headers, levels, values
+# =======================
 
 def hd(+k: U32, +f: U32) -> U32:
   (k .|. (f << 8n : U32) : U32)
 
+# a header from rule kind k, value form m and field f
+def hd2(+k: U32, +m: U32, +f: U32) -> U32:
+  ((k .|. (m << 4n : U32) : U32) .|. (f << 8n : U32) : U32)
+
 def kind(+h: U32) -> U32:
   (h .&. 255 : U32)
+
+def rk(+h: U32) -> U32:
+  (h .&. 15 : U32)
+
+def form(+h: U32) -> U32:
+  ((h >> 4n : U32) .&. 15 : U32)
 
 def fld(+h: U32) -> U32:
   (h >> 8n : U32)
@@ -238,65 +330,108 @@ def dt_op.fin(r: DT & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +
   (dt, +i) = r
   (H{w, fs, nf, fresh, rs, nr, itrs, errs, dt}, i)
 
-# a new data entry: its index
-def data_add(h: H, v: V.Val) -> H & U32:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
-      dt_op.fin(dt_add(dt, v), w, fs, nf, fresh, rs, nr, itrs, errs)
-
-def data_get.fin(r: DT & V.Val, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & V.Val:
+def dt_val.fin(r: DT & V.Val, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & V.Val:
   (dt, v) = r
   (H{w, fs, nf, fresh, rs, nr, itrs, errs, dt}, v)
 
-def data_get(h: H, +i: U32) -> H & V.Val:
+def tab_put(h: H, v: V.Val) -> H & U32:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
-      data_get.fin(dt_get(dt, i), w, fs, nf, fresh, rs, nr, itrs, errs)
+      dt_op.fin(dt_put(dt, v), w, fs, nf, fresh, rs, nr, itrs, errs)
 
-def is_tix(+w: U32) -> Bool:
-  U32.is_ne((w .&. 2147483648 : U32), 0)
+def tab_get(h: H, +i: U32) -> H & V.Val:
+  match h:
+    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+      dt_val.fin(dt_get(dt, i), w, fs, nf, fresh, rs, nr, itrs, errs)
 
-def data_get.go(tab: Bool, h: H, +w: U32) -> H & V.Val:
-  match tab:
-    case True{}:
-      data_get(h, (w .&. 2147483647 : U32))
-    case False{}:
-      (h, V.VNum{w})
+def tab_take(h: H, +i: U32) -> H & V.Val:
+  match h:
+    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+      dt_val.fin(dt_take(dt, i), w, fs, nf, fresh, rs, nr, itrs, errs)
 
-# the value a value word stands for
-def val_of(h: H, +w: U32) -> H & V.Val:
-  data_get.go(is_tix(w), h, w)
+# a value as a node holds it: its form, field and word
+type PW is Data:
+  PW{+m: U32, +f: U32, +w: U32}
 
-def tix(r: H & U32) -> H & U32:
+def pw.tab(r: H & U32) -> H & PW:
   (h, +i) = r
-  (h, (i .|. 2147483648 : U32))
+  (h, PW{0, 0, i})
 
-def put.n(small: Bool, h: H, +n: U32) -> H & U32:
-  match small:
-    case True{}:
-      (h, n)
-    case False{}:
-      tix(data_add(h, V.VNum{n}))
+def put.fun(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
+  match args:
+    case Nil{}:
+      (h, PW{2, op, need})
+    case _:
+      pw.tab(tab_put(h, v))
 
-# a value word for v: inline if a small number, else a new entry
-def put(h: H, v: V.Val) -> H & U32:
+# a value in the form a node holds it: a number or a bare builtin in the
+# node, anything else a new entry
+def put(h: H, v: V.Val) -> H & PW:
   match v:
     case V.VNum{+n}:
-      put.n(U32.is_lt(n, 2147483648), h, n)
+      (h, PW{1, 0, n})
+    case V.VFun{+op, +need, +args}:
+      put.fun(args, h, op, need, V.VFun{op, need, args})
     case _:
-      tix(data_add(h, v))
+      pw.tab(tab_put(h, v))
 
-def apply.b(r: H & V.Val, vf: V.Val) -> H & U32:
+# the value a node of form m, field f, word w holds: taking it, an entry
+# leaving the table
+def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
+  match m:
+    case 1:
+      (h, V.VNum{w})
+    case 2:
+      (h, V.VFun{f, w, Nil{}})
+    case _:
+      tab_take(h, w)
+
+# the same, the entry kept
+def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
+  match m:
+    case 1:
+      (h, V.VNum{w})
+    case 2:
+      (h, V.VFun{f, w, Nil{}})
+    case _:
+      tab_get(h, w)
+
+def dup.e(r: H & V.Val) -> H & U32:
+  (h, v) = r
+  tab_put(h, v)
+
+# the word for a copy of a value of form m: an entry duplicated (the Bend
+# value shared), any other word as it is
+def dup(h: H, +m: U32, +w: U32) -> H & U32:
+  match m:
+    case 0:
+      dup.e(tab_get(h, w))
+    case _:
+      (h, w)
+
+def drop.e(r: H & V.Val) -> H:
+  (h, v) = r
+  h
+
+# a value dropped: an entry freed
+def drop(h: H, +m: U32, +w: U32) -> H:
+  match m:
+    case 0:
+      drop.e(tab_take(h, w))
+    case _:
+      h
+
+def apply.b(r: H & V.Val, vf: V.Val) -> H & PW:
   (h, vx) = r
   put(h, V.apply_fn(vf, vx))
 
-def apply.a(r: H & V.Val, +wb: U32) -> H & U32:
+def apply.a(r: H & V.Val, +hb: U32, +pb: U32) -> H & PW:
   (h, vf) = r
-  apply.b(val_of(h, wb), vf)
+  apply.b(take(h, form(hb), fld(hb), pb), vf)
 
-# the value word for value word wa's function applied to wb's value
-def apply(h: H, +wa: U32, +wb: U32) -> H & U32:
-  apply.a(val_of(h, wa), wb)
+# A's function (header ha, word pa) applied to B's value: both taken
+def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+  apply.a(take(h, form(ha), fld(ha), pa), hb, pb)
 
 def is_fn(v: V.Val) -> Bool:
   match v:
@@ -305,20 +440,19 @@ def is_fn(v: V.Val) -> Bool:
     case _:
       False{}
 
-def data_is_fn.fin(r: H & V.Val) -> H & Bool:
+def is_fn.fin(r: H & V.Val) -> H & Bool:
   (h, v) = r
   (h, is_fn(v))
 
-def data_is_fn.go(tab: Bool, h: H, +w: U32) -> H & Bool:
-  match tab:
-    case True{}:
-      data_is_fn.fin(val_of(h, w))
-    case False{}:
+# is the value a function? A bare builtin is; a number is not.
+def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
+  match m:
+    case 1:
       (h, False{})
-
-# does value word w stand for a function? An inline word is a number.
-def data_is_fn(h: H, +w: U32) -> H & Bool:
-  data_is_fn.go(is_tix(w), h, w)
+    case 2:
+      (h, True{})
+    case _:
+      is_fn.fin(tab_get(h, w))
 
 # Active pairs
 # ============
@@ -358,3 +492,15 @@ def unpop(pp: Pop) -> H:
           push(uncount(h), x, y)
         case False{}:
           h
+
+# a node of rule kind k holding the value pw
+def node_pw(h: H, +k: U32, pw: PW) -> H & U32:
+  match pw:
+    case PW{+m, +f, +w}:
+      node(h, hd2(k, m, f), w)
+
+# entries in use: the high-water mark less those freed
+def dt_live(t: DT) -> U32:
+  match t:
+    case DT{a, fs, +nf, +n, +cap, +d}:
+      (n - nf : U32)

@@ -256,6 +256,23 @@ The core:
      frees it; computing frees both inputs.
    - The payload test that compares levels stays written by hand: perhaps
      the best there is, to be watched.
+   Built the first two the same day. The header's kind code holds the
+   rule kind in its low 4 bits and the value form in its high 4: 0 an
+   entry in the table, 1 a number, 2 a builtin with no argument yet, its
+   op in the field. A reference to a data node's principal carries port
+   3; `link` writes nothing into it, so words 1 to 3 hold its value (word
+   1 so far). The table has a free list, and the generator counts how a
+   rule uses a data node's or a call's payload: the first use takes the
+   entry over, a later one duplicates it, none drops it, computing takes
+   both; the interpreted table does the same as it goes. `terms.py`
+   gains a curried builtin, `plus`, and `--plus`, ending terms in
+   `(plus 1) 0` so that a partial application is an entry the copies
+   share, and the kernel checks at the end that the live entries match
+   the nodes holding them (a duplication broken on purpose is caught).
+   On 2,400 random terms, with and without levels, ending in either:
+   no difference between generated and interpreted, none in value from
+   the spike, no mismatch in the table. The generality costs 1,602
+   instructions an interaction against 1,376 before.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

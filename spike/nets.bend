@@ -50,6 +50,10 @@ def num(+n: U32) -> T.TNode:
 def succ() -> T.TNode:
   T.TN{R.KData{}, V.PVal{V.VFun{1, 1, Nil{}}}}
 
+# the builtin add, curried: two arguments
+def plus() -> T.TNode:
+  T.TN{R.KData{}, V.PVal{V.VFun{2, 2, Nil{}}}}
+
 def sel(b: Bool, +x: U32, +y: U32) -> U32:
   match b:
     case True{}:

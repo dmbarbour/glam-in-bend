@@ -17,13 +17,15 @@ croissant per use, rather than one fused control per edge. --kernel
 writes a differential test instead: each term through the spike, the
 kernel's interpreted rule table and its generated rewrites (kernel.bend),
 flagging any difference between the last two, or in value with the
-spike.
+spike. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
+so the partial application is data the copies share.
 
 Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
 ./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
 
 Syntax: \\x y. body, application by juxtaposition, parentheses; #n is the
-Church numeral n; succ and decimal numbers are builtin data; free names
+Church numeral n; succ, plus (curried addition) and decimal numbers are
+builtin data; free names
 from PRELUDE expand in place, fresh at each use. A term should reduce to a
 number, so tests usually end in `succ 0`.
 """
@@ -146,6 +148,8 @@ def expand(t, bound):
             return t
         if x == "succ":
             return ("succ",)
+        if x == "plus":
+            return ("plus",)
         if x in PRELUDE:
             return expand(Parser(PRELUDE[x]).whole(), set())
         raise NameError(f"free variable {x}")
@@ -161,6 +165,7 @@ def show(t):
     if k == "var": return t[1]
     if k == "int": return str(t[1])
     if k == "succ": return "succ"
+    if k == "plus": return "plus"
     if k == "lam": return f"(\\{t[1]}. {show(t[2])})"
     return f"({show(t[1])} {show(t[2])})"
 
@@ -183,6 +188,7 @@ class Thunk:
 
 
 SUCC = "succ"
+PLUS = "plus"
 
 
 def evaluate(t, fuel=200000, limit=10**6):
@@ -199,6 +205,7 @@ def evaluate(t, fuel=200000, limit=10**6):
         if k == "var": return env[t[1]].force()
         if k == "int": return t[1]
         if k == "succ": return SUCC
+        if k == "plus": return PLUS
         if k == "lam": return ("fn", t[1], t[2], env)
         f = ev(t[1], env)
         a = Thunk(lambda: ev(t[2], env))
@@ -211,6 +218,16 @@ def evaluate(t, fuel=200000, limit=10**6):
             if not isinstance(v, int) or v >= limit:
                 raise OutOfFuel()
             return v + 1
+        if f == PLUS:
+            v = a.force()
+            if not isinstance(v, int):
+                raise TypeError("plus of a non-number")
+            return ("plus1", v)
+        if isinstance(f, tuple) and f[0] == "plus1":
+            v = a.force()
+            if not isinstance(v, int) or f[1] + v >= limit:
+                raise OutOfFuel()
+            return f[1] + v
         if isinstance(f, tuple) and f[0] == "fn":
             _, x, body, env = f
             return ev(body, {**env, x: a})
@@ -272,6 +289,8 @@ def lower(net, t, env, depth, path):
         return (net.node("num", t[1]), 0)
     if k == "succ":
         return (net.node("succ"), 0)
+    if k == "plus":
+        return (net.node("plus"), 0)
     if k == "app":
         a = net.node("ap", depth if net.levels else 0)
         plug(net, lower(net, t[1], env, depth, path), (a, 0))
@@ -397,7 +416,7 @@ def bend_node(kind, args, levels=True):
         n, off = args
         return f"X.ctl({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
-    return {"era": "X.era()", "succ": "X.succ()"}[kind]
+    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()"}[kind]
 
 
 def bend_tpl(net, root):
@@ -531,33 +550,40 @@ def spike_res(r: N.Q & Maybe<&2, V.Val>) -> K.KRes:
   (q, v) = r
   match q:
     case N.Q{st, rq, +itrs, +errs, +ser}:
-      K.KRes{v, itrs, errs}
+      K.KRes{v, itrs, errs, True{}}
 
 def res_str(r: K.KRes) -> String:
   match r:
-    case K.KRes{v, +itrs, +errs}:
+    case K.KRes{v, +itrs, +errs, +ok}:
       show_m(v) ++ " (" ++ U32.show(itrs) ++ ", " ++ U32.show(errs) ++ ")"
 
 def res_val(r: K.KRes) -> String:
   match r:
-    case K.KRes{v, +itrs, +errs}:
+    case K.KRes{v, +itrs, +errs, +ok}:
       show_m(v)
 
-def verdict(+same: Bool, +agree: Bool, +counts: Bool) -> String:
-  match same agree counts:
-    case False{} _ _:
+def res_tab(r: K.KRes) -> Bool:
+  match r:
+    case K.KRes{v, +itrs, +errs, +ok}:
+      ok
+
+def verdict(+tab: Bool, +same: Bool, +agree: Bool, +counts: Bool) -> String:
+  match tab same agree counts:
+    case False{} _ _ _:
+      "TABLE MISMATCH"
+    case True{} False{} _ _:
       "DIFFER ref/fast"
-    case True{} False{} _:
+    case True{} True{} False{} _:
       "DIFFER value"
-    case True{} True{} True{}:
+    case True{} True{} True{} True{}:
       "same, counts equal"
-    case True{} True{} False{}:
+    case True{} True{} True{} False{}:
       "same, counts differ"
 
 def cmp.go(+k: U32, +sp: K.KRes, +rf: K.KRes, +fs: K.KRes) -> String:
   "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": spike " ++ res_str(sp) ++ " | ref " ++ res_str(rf) ++
     " | fast " ++ res_str(fs) ++ "  " ++
-    verdict(String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
+    verdict(res_tab(rf) && res_tab(fs), String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
     "  " ++ name_of(k)
 
 def cmp_one(+k: U32) -> String:
@@ -603,12 +629,12 @@ def gen_expr(rng, depth):
     return f"({rng.choice(NUMFUNS)} {a()})"
 
 
-def gen(count, seed, depth=3, maxval=64):
+def gen(count, seed, depth=3, maxval=64, tail="succ 0"):
     rng, seen, out = random.Random(seed), set(), []
     tries = 0
     while len(out) < count and tries < count * 200:
         tries += 1
-        text = f"{gen_expr(rng, depth)} succ 0"
+        text = f"{gen_expr(rng, depth)} {tail}"
         if text in seen:
             continue
         seen.add(text)
@@ -625,12 +651,13 @@ def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     levels, fused, kernel = "--labels" not in argv, "--unfused" not in argv, "--kernel" in argv
-    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel")]
+    tail = "(plus 1) 0" if "--plus" in argv else "succ 0"
+    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--plus")]
     if len(argv) >= 3 and argv[1] == "emit":
         emit(argv[2], argv[3:], spike, levels, fused, kernel)
     elif len(argv) >= 4 and argv[1] == "gen":
         seed = int(argv[4]) if len(argv) > 4 else 1
-        emit(argv[2], gen(int(argv[3]), seed), spike, levels, fused, kernel)
+        emit(argv[2], gen(int(argv[3]), seed, tail=tail), spike, levels, fused, kernel)
     else:
         print(__doc__)
         return 2
