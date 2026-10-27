@@ -573,6 +573,7 @@ def compose(+n1: U32, +o1: U32, +n2: U32, +o2: U32) -> FZ:
 def ctl_set(h: H, +r: U32, +k: U32, +n: U32, +o: U32) -> H:
   wr(wr(h, r, hd(k, n)), (r + 3 : U32), o)
 
+
 def fl.id.go(active: Bool, h: H, +p: U32, +l: U32, +i: U32, +o: U32) -> H:
   match active:
     case True{}:
@@ -662,81 +663,70 @@ def fc.ha(r: H & U32, +a: U32, +b: U32) -> H:
 def fuse_liftcs(h: H, +a: U32, +b: U32) -> H:
   fc.ha(rd(h, a), a, b)
 
-# r (a control of kind k) and x's node, the peer behind it if up
-def ts.fuse(+k: U32, +up: Bool, h: H, +r: U32, +x: U32) -> H:
-  match k up:
-    case 10 True{}:
-      fuse_lifts(h, x, r)
-    case 10 False{}:
-      fuse_lifts(h, r, x)
-    case _ True{}:
-      fuse_liftcs(h, x, r)
-    case _ False{}:
-      fuse_liftcs(h, r, x)
+# two controls of kind k meeting at ports px and py of nodes x and y:
+# fused when principal meets auxiliary in the order they fuse
+def fa.go(+k: U32, +px: U32, +py: U32, h: H, +x: U32, +y: U32) -> H:
+  match k px py:
+    case 10 1 0:
+      fuse_lifts(h, x, y)
+    case 10 0 1:
+      fuse_lifts(h, y, x)
+    case 11 0 1:
+      fuse_liftcs(h, x, y)
+    case 11 1 0:
+      fuse_liftcs(h, y, x)
+    case _ _ _:
+      h
 
-def ts.go(ok: Bool, +k: U32, +up: Bool, h: H, +r: U32, +x: U32) -> H:
+def fa.k(ok: Bool, +k: U32, h: H, +x: U32, +y: U32) -> H:
   match ok:
     case True{}:
-      ts.fuse(k, up, h, r, base(x))
+      fa.go(k, port(x), port(y), h, base(x), base(y))
     case False{}:
       h
 
-def ts.hx(rr: H & U32, +k: U32, +pt: U32, +up: Bool, +r: U32, +x: U32) -> H:
-  (h, +hx) = rr
-  ts.go(U32.is_eq(rk(hx), k) && U32.is_eq(port(x), pt) && U32.is_ne(base(x), r), k, up, h, r, x)
+def fa.hy(r: H & U32, +k: U32, +x: U32, +y: U32) -> H:
+  (h, +hy) = r
+  fa.k(U32.is_eq(rk(hy), k) && U32.is_ne(base(x), base(y)), k, h, x, y)
 
-def ts.x.go(none: Bool, h: H, +k: U32, +pt: U32, +up: Bool, +r: U32, +x: U32) -> H:
+def fa.y.go(none: Bool, h: H, +k: U32, +x: U32, +y: U32) -> H:
   match none:
     case True{}:
       h
     case False{}:
-      ts.hx(rd(h, base(x)), k, pt, up, r, x)
+      fa.hy(rd(h, base(y)), k, x, y)
 
-def ts.x(rr: H & U32, +k: U32, +pt: U32, +up: Bool, +r: U32) -> H:
-  (h, +x) = rr
-  ts.x.go(U32.is_eq(x, nil()), h, k, pt, up, r, x)
+def fa.y(r: H & U32, +k: U32, +x: U32) -> H:
+  (h, +y) = r
+  fa.y.go(U32.is_eq(y, nil()), h, k, x, y)
 
-def ts.h.go(live: Bool, h: H, +k: U32, +wk: U32, +pt: U32, +up: Bool, +r: U32) -> H:
-  match live:
+def fa.ctl(ctl: Bool, h: H, +k: U32, +x: U32) -> H:
+  match ctl:
     case True{}:
-      ts.x(rd(h, (r + wk : U32)), k, pt, up, r)
+      fa.y(rd(h, (x + 1 : U32)), k, x)
     case False{}:
       h
 
-def ts.h(rr: H & U32, +k: U32, +wk: U32, +pt: U32, +up: Bool, +r: U32) -> H:
-  (h, +hr) = rr
-  ts.h.go(U32.is_eq(rk(hr), k), h, k, wk, pt, up, r)
+def fa.hx(r: H & U32, +x: U32) -> H:
+  (h, +hx) = r
+  fa.ctl(U32.is_eq(rk(hx), 10) || U32.is_eq(rk(hx), 11), h, rk(hx), x)
 
-# when r is still a control of kind k, and the peer of its word wk is port
-# pt of another such control: fuse the two
-def try_side(h: H, +r: U32, +k: U32, +wk: U32, +pt: U32, +up: Bool) -> H:
-  ts.h(rd(h, r), k, wk, pt, up, r)
-
-def fuse.k(+k: U32, h: H, +r: U32) -> H:
-  match k:
-    case 10:
-      try_side(try_side(h, r, 10, 1, 1, True{}), r, 10, 2, 0, False{})
-    case 11:
-      try_side(try_side(h, r, 11, 2, 0, True{}), r, 11, 1, 1, False{})
-    case _:
-      h
-
-def fuse.h(rr: H & U32, +r: U32) -> H:
-  (h, +hr) = rr
-  fuse.k(rk(hr), h, r)
-
-def fuse.go(none: Bool, h: H, +r: U32) -> H:
+def fa.go0(none: Bool, h: H, +x: U32) -> H:
   match none:
     case True{}:
       h
     case False{}:
-      fuse.h(rd(h, base(r)), base(r))
+      fa.hx(rd(h, base(x)), x)
 
-# a control at r (any port of it) merged with one beside it facing the
-# same way, when compose finds one control acting as both; nil, or any
-# other node, left as it is
-def fuse(h: H, +r: U32) -> H:
-  fuse.go(U32.is_eq(r, nil()), h, r)
+# the link at port x: when it joins two controls of one kind, principal to
+# auxiliary in the order they fuse, and compose finds one control acting
+# as both, fuse them. A rewrite tries each link it made that may join two
+# controls (net.bend's fuse_ends). The link a fusion makes is not tried
+# again: on 600 random terms that found one more fusion, saving two
+# interactions, at more cost than it saved.
+def fuse(h: H, +x: U32) -> H:
+  fa.go0(U32.is_eq(x, nil()), h, x)
+
 
 # Active pairs
 # ============

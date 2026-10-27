@@ -18,13 +18,16 @@ writes a differential test instead: each term through the spike, the
 kernel's interpreted rule table and its generated rewrites (kernel.bend),
 flagging any difference between the last two, or in value with the
 spike. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
-so the partial application is data the copies share.
+so the partial application is data the copies share; --fma ends them in
+`(fma 1 1) 0`, whose partial application, holding two numbers, is a data
+table entry.
 
 Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
 ./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
 
 Syntax: \\x y. body, application by juxtaposition, parentheses; #n is the
-Church numeral n; succ, plus (curried addition) and decimal numbers are
+Church numeral n; succ, plus (curried addition), fma (curried a * b + c)
+and decimal numbers are
 builtin data; free names
 from PRELUDE expand in place, fresh at each use. A term should reduce to a
 number, so tests usually end in `succ 0`.
@@ -150,6 +153,8 @@ def expand(t, bound):
             return ("succ",)
         if x == "plus":
             return ("plus",)
+        if x == "fma":
+            return ("fma",)
         if x in PRELUDE:
             return expand(Parser(PRELUDE[x]).whole(), set())
         raise NameError(f"free variable {x}")
@@ -166,6 +171,7 @@ def show(t):
     if k == "int": return str(t[1])
     if k == "succ": return "succ"
     if k == "plus": return "plus"
+    if k == "fma": return "fma"
     if k == "lam": return f"(\\{t[1]}. {show(t[2])})"
     return f"({show(t[1])} {show(t[2])})"
 
@@ -189,6 +195,7 @@ class Thunk:
 
 SUCC = "succ"
 PLUS = "plus"
+FMA = "fma"
 
 
 def evaluate(t, fuel=200000, limit=10**6):
@@ -206,6 +213,7 @@ def evaluate(t, fuel=200000, limit=10**6):
         if k == "int": return t[1]
         if k == "succ": return SUCC
         if k == "plus": return PLUS
+        if k == "fma": return FMA
         if k == "lam": return ("fn", t[1], t[2], env)
         f = ev(t[1], env)
         a = Thunk(lambda: ev(t[2], env))
@@ -228,6 +236,17 @@ def evaluate(t, fuel=200000, limit=10**6):
             if not isinstance(v, int) or f[1] + v >= limit:
                 raise OutOfFuel()
             return f[1] + v
+        if f == FMA or (isinstance(f, tuple) and f[0] in ("fma1", "fma2")):
+            v = a.force()
+            if not isinstance(v, int):
+                raise TypeError("fma of a non-number")
+            if f == FMA:
+                return ("fma1", v)
+            if f[0] == "fma1":
+                return ("fma2", f[1], v)
+            if f[1] * f[2] + v >= limit:
+                raise OutOfFuel()
+            return f[1] * f[2] + v
         if isinstance(f, tuple) and f[0] == "fn":
             _, x, body, env = f
             return ev(body, {**env, x: a})
@@ -291,6 +310,8 @@ def lower(net, t, env, depth, path):
         return (net.node("succ"), 0)
     if k == "plus":
         return (net.node("plus"), 0)
+    if k == "fma":
+        return (net.node("fma"), 0)
     if k == "app":
         a = net.node("ap", depth if net.levels else 0)
         plug(net, lower(net, t[1], env, depth, path), (a, 0))
@@ -416,7 +437,7 @@ def bend_node(kind, args, levels=True):
         n, off = args
         return f"X.ctl({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
-    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()"}[kind]
+    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()"}[kind]
 
 
 def bend_tpl(net, root):
@@ -651,8 +672,8 @@ def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     levels, fused, kernel = "--labels" not in argv, "--unfused" not in argv, "--kernel" in argv
-    tail = "(plus 1) 0" if "--plus" in argv else "succ 0"
-    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--plus")]
+    tail = "(plus 1) 0" if "--plus" in argv else "(fma 1 1) 0" if "--fma" in argv else "succ 0"
+    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--plus", "--fma")]
     if len(argv) >= 3 and argv[1] == "emit":
         emit(argv[2], argv[3:], spike, levels, fused, kernel)
     elif len(argv) >= 4 and argv[1] == "gen":

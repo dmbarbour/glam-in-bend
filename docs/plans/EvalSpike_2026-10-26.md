@@ -356,6 +356,37 @@ The core:
    fewer than before them, the compiler's splitting moving again. The
    leveled workload costs 2.25 times the interactions of `succ` and 2.2
    times the instructions. Bend 2.0.39, i7-6700.
+   Then where to try fusion (the maintainer's observation): a new node's
+   principal faces outward and its auxiliaries face new nodes of another
+   kind, so a rewrite can newly join two controls only on a link it makes
+   with an external end, or between two new controls of one kind. Each
+   such link is now tried once, from its external end (`N.fuse_ends`,
+   computed from the rule table for the generator and the interpreter
+   alike), where both sides of every candidate node were tried before.
+   The other sides were old links, fusable only when another fusion in
+   the same rewrite had changed them, or when the template was loaded
+   so. On 600 random leveled terms that lost one fusion, two interactions
+   in one term; retrying at the link each fusion makes recovered it and
+   found nothing else, at 1.2% more instructions on the leveled workload
+   than before; a pass fusing the loaded template found nothing, terms.py
+   emitting fused controls. Kept: one try per link, no retry, no pass, in
+   the spike too, so counts still match. On the leveled workload
+   (k 18), 1,373M instructions to 1,324M, the same interactions; on the
+   unleveled ones half the tries on beta and fan joins, yet 0.5% more
+   instructions, within the compiler's variation between builds.
+   Skipping fusion and checks for a net without controls, as a second
+   rule set chosen when it loads, was measured by generating the rewrites
+   without them: 0.6% more instructions on all three unleveled
+   workloads. What tries cost is below what a build varies by; whatever
+   a net known to lack levels gains will come from larger transforms of
+   it, not from leaving these out.
+   The data table had dropped out of every workload once builtins on
+   immediates ran natively, so a third builtin, `fma` (a * b + c), puts
+   it back: `k 2 (fma 1 1) 0` (`kernel <k> fma`) holds a partial
+   application with two numbers, too many for a node, which every copy
+   duplicates and every call consumes; terms.py's `--fma` ends random
+   terms so. It costs 1,944 instructions an interaction against 1,188 on
+   `succ`, about 1,500 more a call.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

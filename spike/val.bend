@@ -10,9 +10,10 @@ type Val is Data:
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}
 
-# Builtins: op 1 succ (one argument), op 2 add (two). A builtin waits for
-# `need` more arguments, collected in order. The arithmetic on numbers is
-# num1's and num2's alone, which the kernel's native path calls too.
+# Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
+# (three). A builtin waits for `need` more arguments, collected in order.
+# The arithmetic on numbers is num1's, num2's and num3's alone, which the
+# kernel's native path calls too.
 
 # op on one number
 def num1(+op: U32, +a: U32) -> Val:
@@ -30,12 +31,24 @@ def num2(+op: U32, +a: U32, +b: U32) -> Val:
     case _:
       VUnit{}
 
+# op on three numbers
+def num3(+op: U32, +a: U32, +b: U32, +c: U32) -> Val:
+  match op:
+    case 3:
+      VNum{((a * b : U32) + c : U32)}
+    case _:
+      VUnit{}
+
 def builtin(+op: U32, args: List<&2, Val>) -> Val:
   match args:
     case Con{VNum{+a}, t}:
       match t:
         case Con{VNum{+b}, u}:
-          num2(op, a, b)
+          match u:
+            case Con{VNum{+c}, w}:
+              num3(op, a, b, c)
+            case _:
+              num2(op, a, b)
         case _:
           num1(op, a)
     case _:

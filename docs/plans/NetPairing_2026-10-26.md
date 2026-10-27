@@ -129,6 +129,8 @@ derivation made here first.
    peers a rule joins to each other (beta's crossed join, a fan join,
    cancelling controls); the same fusions happen as when every node was
    tried, at about 6% of time on the throughput chain rather than 13%.
+   Since narrowed to one try per link a rewrite makes that may join two
+   controls (EvalSpike's spike-node-layout).
    Since the comparison below: a copy meeting a function at a level not
    below its own, and two fans meeting at one level with different
    sites, count as errors (assertions; the rewrite proceeds), as does a

@@ -18,11 +18,12 @@ import ./krules.bend as KR
 # first new node using one takes it over, a later one gets a duplicate, a
 # rule using it nowhere drops it. Both paths make net.bend's level checks
 # (but the sites of two fans meeting at one level) and fuse controls after
-# each rewrite as it does, on the same nodes in the same order.
+# each rewrite as it does, on the same links in the same order.
 #
-#   kernel <k> [ref|plus|plusref|lvl|lvlref]
+#   kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]
 #       reduce `k 2 succ 0` (2^k) built without levels; with plus
-#       `k 2 (plus 1) 0`, adding by a partial application; with lvl
+#       `k 2 (plus 1) 0`, adding by a partial application in a node; with
+#       fma `k 2 (fma 1 1) 0`, by one in the data table; with lvl
 #       `k 2 succ 0` with levels, as terms.py lowers it (k >= 2). Report
 #       value, counts, time; with ref, by the interpreted table alone
 
@@ -196,17 +197,43 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2
     case 1n+p:
       link_pairs(p, 1n+i, ls, x, refs, xs, a, b, pair_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b, h))
 
-def fuse_all(rs: List<&2, U32>, h: P.H) -> P.H:
-  match rs:
+# fusion at each link the rule made that may join two controls, as the
+# generated rewrites try it
+def fuse_ends(es: List<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, h: P.H) -> P.H:
+  match es:
     case Nil{}:
       h
-    case Con{+r, t}:
-      fuse_all(t, P.fuse(h, r))
+    case Con{e, t}:
+      fuse_ends(t, x, refs, xs, P.fuse(h, resolve(x, refs, xs, e)))
+
+def fuse_ext.go(skip: Bool, +e: U32, h: P.H) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.fuse(h, e)
+
+def fuse_ext(+e: U32, +a: U32, +b: U32, h: P.H) -> P.H:
+  fuse_ext.go(U32.is_eq(e, P.nil()) || Maybe.is_some(&2, Nat, N.partner(e, a, b)), e, h)
+
+# fusion at each external peer outside the redex: where the redex's own
+# ports were joined through it, the links it made are not the rule's
+def fuse_exts(+x: N.Ext, +a: U32, +b: U32, h: P.H) -> P.H:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      fuse_ext(e3, a, b, fuse_ext(e2, a, b, fuse_ext(e1, a, b, fuse_ext(e0, a, b, h))))
+
+def fuse_made(partners: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +a: U32, +b: U32, h: P.H) -> P.H:
+  match partners:
+    case True{}:
+      fuse_exts(x, a, b, h)
+    case False{}:
+      fuse_ends(N.fuse_ends(xs, ls), x, refs, xs, h)
 
 def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> P.H:
   match m:
     case Mk{h, +refs, +ua, +ub}:
-      fuse_all(N.fuse_tried(xs, refs, ls, x, a, b),
+      fuse_made(N.any_partner(x, a, b), xs, ls, x, refs, a, b,
         link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h)))
 
 # replace the redex a >< b by the rule's nodes and links
@@ -612,13 +639,16 @@ def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   report(result(run(fuel, fast, P.pop(load(t)))))
 
-# 0, k 2 succ 0; 1, k 2 (plus 1) 0; 2, k 2 succ 0 with levels
+# 0, k 2 succ 0; 1, k 2 (plus 1) 0; 2, k 2 succ 0 with levels; 3,
+# k 2 (fma 1 1) 0
 def workload(+w: U32, +k: U32) -> T.Tpl:
   match w:
     case 1:
       X.t_pow_plus(k, 2)
     case 2:
       X.t_pow_lvl(k, 2)
+    case 3:
+      X.t_pow_fma(k, 2)
     case _:
       X.t_pow(k, 2)
 
@@ -629,17 +659,20 @@ def main.k(+k: U32, +fast: Bool, +w: U32) -> IO(Unit):
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
 
-def mode_w.p(p: Bool, +l: Bool) -> U32:
-  match p l:
-    case True{} _:
+def mode_w.p(p: Bool, +l: Bool, +f: Bool) -> U32:
+  match p l f:
+    case True{} _ _:
       1
-    case False{} True{}:
+    case False{} True{} _:
       2
-    case False{} False{}:
+    case False{} False{} True{}:
+      3
+    case False{} False{} False{}:
       0
 
 def mode_w(+m: String) -> U32:
-  mode_w.p(String.eq(m, "plus") || String.eq(m, "plusref"), String.eq(m, "lvl") || String.eq(m, "lvlref"))
+  mode_w.p(String.eq(m, "plus") || String.eq(m, "plusref"), String.eq(m, "lvl") || String.eq(m, "lvlref"),
+    String.eq(m, "fma") || String.eq(m, "fmaref"))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
@@ -649,13 +682,13 @@ def main.args(xs: List<String>) -> IO(Unit):
           match r2:
             case Con{+m, r3}:
               main.k(Maybe.default(&2, U32, U32.read(a), 10),
-                Bool.not(String.eq(m, "ref") || String.eq(m, "plusref") || String.eq(m, "lvlref")), mode_w(m))
+                Bool.not(String.eq(m, "ref") || String.eq(m, "plusref") || String.eq(m, "lvlref") || String.eq(m, "fmaref")), mode_w(m))
             case Nil{}:
               main.k(Maybe.default(&2, U32, U32.read(a), 10), True{}, 0)
         case Nil{}:
-          IO.print("usage: kernel <k> [ref|plus|plusref|lvl|lvlref]")
+          IO.print("usage: kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]")
     case Nil{}:
-      IO.print("usage: kernel <k> [ref|plus|plusref|lvl|lvlref]")
+      IO.print("usage: kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]")
 
 def main() -> IO(Unit):
   do IO<Unit>:

@@ -266,45 +266,20 @@ def pre_fn(+name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
 # Fusing controls
 # ---------------
 #
-# After its links, a rewrite tries to fuse what may now sit beside another
-# control (net.bend's fuse_tried): its new controls, in order, then the
-# external peers it joins to each other, in the table's order.
+# After its links, a rewrite tries fusion on each link it made that may
+# join two controls of one kind (net.bend's fuse_ends), in the table's
+# order.
 
-def keep_if(b: Bool, +c: String, rest: List<&2, String>) -> List<&2, String>:
-  match b:
-    case True{}:
-      c <> rest
-    case False{}:
-      rest
-
-def ctl_cands(xs: List<&2, R.Spec>, +j: Nat) -> List<&2, String>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{R.Spec{k, s}, t}:
-      keep_if(N.is_ctl(k), "n" ++ Nat.show(j), ctl_cands(t, 1n+j))
-
-def ext_cands(ls: List<&2, R.Link>) -> List<&2, String>:
-  match ls:
-    case Nil{}:
-      Nil{}
-    case Con{R.Link{u, v}, t}:
-      match u v:
-        case R.Ext{i} R.Ext{j}:
-          ("e" ++ Nat.show(i)) <> ("e" ++ Nat.show(j)) <> ext_cands(t)
-        case _ _:
-          ext_cands(t)
-
-def fuses(cs: List<&2, String>, +acc: String) -> String:
-  match cs:
+def fuses(+xs: List<&2, R.Spec>, es: List<&2, R.End>, +acc: String) -> String:
+  match es:
     case Nil{}:
       acc
-    case Con{c, t}:
-      fuses(t, "P.fuse(" ++ acc ++ ", " ++ c ++ ")")
+    case Con{e, t}:
+      fuses(xs, t, "P.fuse(" ++ acc ++ ", " ++ end(xs, e) ++ ")")
 
 # the links, then the fusion attempts
 def finish(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
-  fuses(List.append(&2, String, ctl_cands(xs, 0n), ext_cands(ls)), links(xs, ls, st))
+  fuses(xs, N.fuse_ends(xs, ls), links(xs, ls, st))
 
 def step_body(last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match last:

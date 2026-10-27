@@ -58,6 +58,10 @@ def succ() -> T.TNode:
 def plus() -> T.TNode:
   T.TN{R.KData{}, V.PVal{V.VFun{2, 2, Nil{}}}}
 
+# the builtin fma, a * b + c, curried: three arguments
+def fma() -> T.TNode:
+  T.TN{R.KData{}, V.PVal{V.VFun{3, 3, Nil{}}}}
+
 def sel(b: Bool, +x: U32, +y: U32) -> U32:
   match b:
     case True{}:
@@ -212,6 +216,21 @@ def t_pow_lvl(+m: U32, +n: U32) -> T.Tpl:
     List.append(&2, T.TLink, lnum_links(m, 3), List.append(&2, T.TLink, lnum_links(n, b),
       [l(3, 0, 2, 0), l(b, 0, 2, 1), l(2, 2, 1, 0), l(c, 0, 1, 1), l(1, 2, 0, 0), l((c + 1 : U32), 0, 0, 1)])),
     T.TE{0, 2}, (c + 2 : U32)}
+
+# m n (fma 1 1) 0: as t_pow, adding 1 as 1 * 1 + x by a partial
+# application that holds two numbers, too many for a node: a data table
+# entry, which every copy duplicates and every call consumes
+def t_pow_fma(+m: U32, +n: U32) -> T.Tpl:
+  +b = nsize(m)
+  +c = (b + nsize(n) : U32)
+  T.Tpl{List.append(&2, T.TNode, numeral_nodes(m, 1), List.append(&2, T.TNode, numeral_nodes(n, 100),
+      [ap(), ap(), ap(), ap(), num(0), fma(), num(1), ap(), num(1)])),
+    List.append(&2, T.TLink, numeral_links(m, 0), List.append(&2, T.TLink, numeral_links(n, b),
+      [l(c, 0, 0, 0), l(c, 1, b, 0), l(c, 2, (c + 1 : U32), 0), l((c + 1 : U32), 1, (c + 2 : U32), 2),
+       l((c + 2 : U32), 0, (c + 7 : U32), 2), l((c + 2 : U32), 1, (c + 6 : U32), 0),
+       l((c + 7 : U32), 0, (c + 5 : U32), 0), l((c + 7 : U32), 1, (c + 8 : U32), 0),
+       l((c + 1 : U32), 2, (c + 3 : U32), 0), l((c + 3 : U32), 1, (c + 4 : U32), 0)])),
+    T.TE{(c + 3 : U32), 2}, (c + 9 : U32)}
 
 # two (two two) succ 0
 def t_two_two_two() -> T.Tpl:

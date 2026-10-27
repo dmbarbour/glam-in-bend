@@ -349,12 +349,13 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: Ext, +refs: List<&2, 
 #
 # After a rewrite, a control that may now sit right behind another facing
 # the same way merges with it, when V.compose finds one control acting as
-# both. Only two things make controls adjacent: a rule making a control,
-# and a rule joining two of the redex's external peers (beta's crossed
-# join, a fan join, cancelling controls); so those are the nodes tried. The node freed is the
-# one whose principal faces the other's auxiliary, which cannot be in an
+# both. Only the links a rule makes can newly join two controls, so each
+# such link is tried once (fuse_ends, below). The node freed is the one
+# whose principal faces the other's auxiliary, which cannot be in an
 # active pair; a pair that cancels is left alone if the survivor's
-# principal is linked to a principal (an active pair may be queued).
+# principal is linked to a principal (an active pair may be queued). The
+# link a fusion makes is not tried again: on 600 random terms that found
+# one more fusion, saving two interactions.
 
 def q_set_pay(q: Q, +r: U32, p: V.Pay) -> Q:
   match q:
@@ -433,94 +434,65 @@ def fc.pa(r: Q & V.Pay, +a: U32, +b: U32) -> Q:
 def fuse_liftcs(q: Q, +a: U32, +b: U32) -> Q:
   fc.pa(q_pay(q, a), a, b)
 
-# r, a control of kind code `want`, against the peer of its word wk, when
-# that is port `port` of another control of the same kind; `up` says the
-# peer is the one behind
-def ts.fuse(+want: U32, +up: Bool, q: Q, +r: U32, +x: U32) -> Q:
-  match want up:
-    case 10 True{}:
-      fuse_lifts(q, node_of(x), r)
-    case 10 False{}:
-      fuse_lifts(q, r, node_of(x))
-    case _ True{}:
-      fuse_liftcs(q, node_of(x), r)
-    case _ False{}:
-      fuse_liftcs(q, r, node_of(x))
+# two controls of kind k meeting at ports px and py of nodes x and y:
+# fused when principal meets auxiliary in the order they fuse
+def fa.go(+k: U32, +px: U32, +py: U32, q: Q, +x: U32, +y: U32) -> Q:
+  match k px py:
+    case 10 1 0:
+      fuse_lifts(q, x, y)
+    case 10 0 1:
+      fuse_lifts(q, y, x)
+    case 11 0 1:
+      fuse_liftcs(q, x, y)
+    case 11 1 0:
+      fuse_liftcs(q, y, x)
+    case _ _ _:
+      q
 
-def ts.go(ok: Bool, +want: U32, +up: Bool, q: Q, +r: U32, +x: U32) -> Q:
+def fa.k(ok: Bool, +k: U32, q: Q, +x: U32, +y: U32) -> Q:
   match ok:
     case True{}:
-      ts.fuse(want, up, q, r, x)
+      fa.go(k, S.ref_port(x), S.ref_port(y), q, node_of(x), node_of(y))
     case False{}:
       q
 
-def ts.hx(rr: Q & U32, +want: U32, +port: U32, +up: Bool, +r: U32, +x: U32) -> Q:
-  (q, +hx) = rr
-  ts.go(U32.is_eq((hx .&. 15 : U32), want) && U32.is_eq(S.ref_port(x), port) && U32.is_ne(node_of(x), node_of(r)), want, up, q, r, x)
+def fa.hy(r: Q & U32, +k: U32, +x: U32, +y: U32) -> Q:
+  (q, +hy) = r
+  fa.k(U32.is_eq((hy .&. 15 : U32), k) && U32.is_ne(node_of(x), node_of(y)), k, q, x, y)
 
-def ts.x.go(nil: Bool, q: Q, +want: U32, +port: U32, +up: Bool, +r: U32, +x: U32) -> Q:
-  match nil:
+def fa.y.go(none: Bool, q: Q, +k: U32, +x: U32, +y: U32) -> Q:
+  match none:
     case True{}:
       q
     case False{}:
-      ts.hx(q_word(q, x, 0), want, port, up, r, x)
+      fa.hy(q_word(q, y, 0), k, x, y)
 
-def ts.x(rr: Q & U32, +want: U32, +port: U32, +up: Bool, +r: U32) -> Q:
-  (q, +x) = rr
-  ts.x.go(U32.is_eq(x, S.nil()), q, want, port, up, r, x)
+def fa.y(r: Q & U32, +k: U32, +x: U32) -> Q:
+  (q, +y) = r
+  fa.y.go(U32.is_eq(y, S.nil()), q, k, x, y)
 
-def ts.h.go(live: Bool, q: Q, +want: U32, +wk: U32, +port: U32, +up: Bool, +r: U32) -> Q:
-  match live:
+def fa.ctl(ctl: Bool, q: Q, +k: U32, +x: U32) -> Q:
+  match ctl:
     case True{}:
-      ts.x(q_word(q, r, wk), want, port, up, r)
+      fa.y(q_word(q, x, (S.ref_port(x) + 1 : U32)), k, x)
     case False{}:
       q
 
-def ts.h(rr: Q & U32, +want: U32, +wk: U32, +port: U32, +up: Bool, +r: U32) -> Q:
-  (q, +h) = rr
-  ts.h.go(U32.is_eq((h .&. 15 : U32), want), q, want, wk, port, up, r)
+def fa.hx(r: Q & U32, +x: U32) -> Q:
+  (q, +hx) = r
+  fa.ctl(U32.is_eq((hx .&. 15 : U32), 10) || U32.is_eq((hx .&. 15 : U32), 11), q, (hx .&. 15 : U32), x)
 
-def try_side(q: Q, +r: U32, +want: U32, +wk: U32, +port: U32, +up: Bool) -> Q:
-  ts.h(q_word(q, r, 0), want, wk, port, up, r)
-
-def fo.k(+k: U32, q: Q, +r: U32) -> Q:
-  match k:
-    case 10:
-      try_side(try_side(q, r, 10, 1, 1, True{}), r, 10, 2, 0, False{})
-    case 11:
-      try_side(try_side(q, r, 11, 2, 0, True{}), r, 11, 1, 1, False{})
-    case _:
-      q
-
-def fo.h(rr: Q & U32, +r: U32) -> Q:
-  (q, +h) = rr
-  fo.k((h .&. 15 : U32), q, r)
-
-def fuse_one(q: Q, +r: U32) -> Q:
-  fo.h(q_word(q, r, 0), r)
-
-def fuse_all(rs: List<&2, U32>, q: Q) -> Q:
-  match rs:
-    case Nil{}:
-      q
-    case Con{+r, t}:
-      fuse_all(t, fuse_one(q, r))
-
-def ext_node.go(skip: Bool, +e: U32, rest: List<&2, U32>) -> List<&2, U32>:
-  match skip:
+def fa.go0(none: Bool, q: Q, +x: U32) -> Q:
+  match none:
     case True{}:
-      rest
+      q
     case False{}:
-      node_of(e) <> rest
+      fa.hx(q_word(q, x, 0), x)
 
-def ext_node(+e: U32, +a: U32, +b: U32, rest: List<&2, U32>) -> List<&2, U32>:
-  ext_node.go(U32.is_eq(e, S.nil()) || Maybe.is_some(&2, Nat, partner(e, a, b)), e, rest)
-
-# the redex's external peers' nodes, those outside it
-def ext_nodes(+x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
-  match x:
-    case Ext4{+e0, +e1, +e2, +e3}:
-      ext_node(e0, a, b, ext_node(e1, a, b, ext_node(e2, a, b, ext_node(e3, a, b, Nil{}))))
+# the link at port x: when it joins two controls of one kind, principal to
+# auxiliary in the order they fuse, fuse them (as kprim.bend's fuse does)
+def fuse_at(q: Q, +x: U32) -> Q:
+  fa.go0(U32.is_eq(x, S.nil()), q, x)
 
 def is_ctl(k: R.NodeKind) -> Bool:
   match k:
@@ -531,60 +503,75 @@ def is_ctl(k: R.NodeKind) -> Bool:
     case _:
       False{}
 
-def keep_if(b: Bool, +r: U32, rest: List<&2, U32>) -> List<&2, U32>:
-  match b:
-    case True{}:
-      r <> rest
-    case False{}:
-      rest
-
-# the new nodes that are controls
-def ctl_refs(xs: List<&2, R.Spec>, rs: List<&2, U32>) -> List<&2, U32>:
-  match xs rs:
-    case Con{R.Spec{k, s}, xt} Con{+r, rt}:
-      keep_if(is_ctl(k), r, ctl_refs(xt, rt))
-    case _ _:
-      Nil{}
-
-def lx.go(both: Bool, +x: Ext, +a: U32, +b: U32, +u: R.End, +v: R.End, rest: List<&2, U32>) -> List<&2, U32>:
-  match both:
-    case True{}:
-      ext_node(ext_at(x, ext_index(u)), a, b, ext_node(ext_at(x, ext_index(v)), a, b, rest))
-    case False{}:
-      rest
-
-# the external peers a rule joins to each other
-def link_ext_nodes(ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
-  match ls:
-    case Nil{}:
-      Nil{}
-    case Con{R.Link{+u, +v}, t}:
-      lx.go(is_ext(u) && is_ext(v), x, a, b, u, v, link_ext_nodes(t, x, a, b))
-
 def any_partner(+x: Ext, +a: U32, +b: U32) -> Bool:
   match x:
     case Ext4{+e0, +e1, +e2, +e3}:
       Maybe.is_some(&2, Nat, partner(e0, a, b)) || Maybe.is_some(&2, Nat, partner(e1, a, b)) ||
         Maybe.is_some(&2, Nat, partner(e2, a, b)) || Maybe.is_some(&2, Nat, partner(e3, a, b))
 
-def all_if(b: Bool, +x: Ext, +a: U32, +b2: U32) -> List<&2, U32>:
+# Where a rewrite tries fusion, here and in the kernel (fuse_at): for each
+# link a rule makes whose ends may both be controls of one kind (an
+# external end, or a new control), one end, the external one if any. A
+# new node's principal faces outward and its auxiliaries face new nodes of
+# another kind, so no other place can newly hold two controls in a row.
+def fe.keep(b: Bool, e: R.End, rest: List<&2, R.End>) -> List<&2, R.End>:
   match b:
     case True{}:
-      ext_nodes(x, a, b2)
+      e <> rest
     case False{}:
-      Nil{}
+      rest
 
-# the nodes to try fusing after a rewrite: its new controls, the peers it
-# joins, and, when the redex's own ports were joined through it, every
-# external peer
-def fuse_tried(+xs: List<&2, R.Spec>, +refs: List<&2, U32>, +ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
-  List.append(&2, U32, ctl_refs(xs, refs),
-    List.append(&2, U32, link_ext_nodes(ls, x, a, b), all_if(any_partner(x, a, b), x, a, b)))
+def fe.link(+xs: List<&2, R.Spec>, u: R.End, v: R.End, rest: List<&2, R.End>) -> List<&2, R.End>:
+  match u v:
+    case R.Ext{i} R.Ext{j}:
+      R.Ext{i} <> rest
+    case R.Ext{i} R.New{+j, +p}:
+      fe.keep(is_ctl(R.spec_kind(xs, j)), R.Ext{i}, rest)
+    case R.New{+j, +p} R.Ext{i}:
+      fe.keep(is_ctl(R.spec_kind(xs, j)), R.Ext{i}, rest)
+    case R.New{+j, +p} R.New{+k, +q}:
+      fe.keep(is_ctl(R.spec_kind(xs, j)) && U32.is_eq(kcode(R.spec_kind(xs, j)), kcode(R.spec_kind(xs, k))), R.New{j, p}, rest)
+
+def fuse_ends(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>) -> List<&2, R.End>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{R.Link{u, v}, t}:
+      fe.link(xs, u, v, fuse_ends(xs, t))
+
+def fuse_ends.go(es: List<&2, R.End>, +x: Ext, +refs: List<&2, U32>, q: Q) -> Q:
+  match es:
+    case Nil{}:
+      q
+    case Con{e, t}:
+      fuse_ends.go(t, x, refs, fuse_at(q, resolve(x, refs, e)))
+
+def fuse_ext.go(skip: Bool, +e: U32, q: Q) -> Q:
+  match skip:
+    case True{}:
+      q
+    case False{}:
+      fuse_at(q, e)
+
+def fuse_ext(+e: U32, +a: U32, +b: U32, q: Q) -> Q:
+  fuse_ext.go(U32.is_eq(e, S.nil()) || Maybe.is_some(&2, Nat, partner(e, a, b)), e, q)
+
+# fusion after a rewrite: at each link the rule made that may join two
+# controls, or, where the redex's own ports were joined through it, at
+# each external peer outside it, in order
+def fuse_made(partners: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: Ext, +refs: List<&2, U32>, +a: U32, +b: U32, q: Q) -> Q:
+  match partners:
+    case True{}:
+      match x:
+        case Ext4{+e0, +e1, +e2, +e3}:
+          fuse_ext(e3, a, b, fuse_ext(e2, a, b, fuse_ext(e1, a, b, fuse_ext(e0, a, b, q))))
+    case False{}:
+      fuse_ends.go(fuse_ends(xs, ls), x, refs, q)
 
 def wire.made(m: Made, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> Q:
   match m:
     case Made{q, +refs}:
-      fuse_all(fuse_tried(xs, refs, ls, x, a, b),
+      fuse_made(any_partner(x, a, b), xs, ls, x, refs, a, b,
         link_pairs(4n, 0n, ls, x, refs, a, b, link_plain(ls, x, refs, a, b, q)))
 
 # replace the redex a >< b by the rule's nodes and links
