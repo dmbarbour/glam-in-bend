@@ -144,10 +144,11 @@ type C is Type:
 # nodes, the free list's head, active pairs, the cold record. Every node
 # not in use is on the free list: growing the store threads the new nodes
 # onto it, so making a node is a pop, and the capacity, needed only to
-# grow, stays cold. An active pair holds two live nodes and a node is in
-# one at most, so the pair stack, two words a pair, never needs more words
-# than there are nodes: it grows with the node store (at least 256 words,
-# as many as nodes fit), and a push checks nothing.
+# grow, stays cold. The pair stack holds one node of each active pair;
+# the other is the peer of its principal port. A pair holds two live
+# nodes and a node is in one at most, so the stack never holds more than
+# half as many words as nodes fit: it grows with the node store (at least
+# 256 words), and a push checks nothing.
 type H is Type:
   H{w: KM.M, +fh: U32, rs: KM.M, +nr: U32, c: C}
 
@@ -254,11 +255,12 @@ def wr(h: H, +i: U32, +v: U32) -> H:
     case H{w, +fh, rs, +nr, c}:
       H{KM.m_set(w, i, v), fh, rs, nr, c}
 
-# push an active pair: the stack has room for every pair the nodes allow
+# push an active pair, x >< y, as x: the stack has room for every pair
+# the nodes allow
 def push(h: H, +x: U32, +y: U32) -> H:
   match h:
     case H{w, +fh, rs, +nr, c}:
-      H{w, fh, KM.m_set(KM.m_set(rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), c}
+      H{w, fh, KM.m_set(rs, nr, x), (nr + 1 : U32), c}
 
 def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
   match both:
@@ -278,16 +280,16 @@ def link(h: H, +x: U32, +y: U32) -> H:
 # Nodes
 # =====
 
-def rs_words.go(small: Bool, +wcap: U32) -> U32:
+def rs_words.go(small: Bool, +half: U32) -> U32:
   match small:
     case True{}:
       256
     case False{}:
-      wcap
+      half
 
 # the pair stack's words for wcap nodes
 def rs_words(+wcap: U32) -> U32:
-  rs_words.go(U32.is_lt(wcap, 256), wcap)
+  rs_words.go(U32.is_lt((wcap >> 1n : U32), 256), (wcap >> 1n : U32))
 
 # the store doubled to wcap nodes: node wcap0 taken, the rest threaded onto
 # the free list; or, if either store could not grow, an error
@@ -822,13 +824,14 @@ def fuse(h: H, +x: U32) -> H:
 type Pop is Type:
   Pop{h: H, +x: U32, +y: U32, +ok: Bool}
 
-def pop.y(r: KM.M & U32, w: KM.M, +fh: U32, +nr: U32, c: C, +x: U32) -> Pop:
-  (rs, +y) = r
+def pop.y(r: KM.M & U32, rs: KM.M, +fh: U32, +nr: U32, c: C, +x: U32) -> Pop:
+  (w, +y) = r
   Pop{H{w, fh, rs, nr, c}, x, y, True{}}
 
+# x's partner: the peer of its principal port
 def pop.x(r: KM.M & U32, w: KM.M, +fh: U32, +nr: U32, c: C) -> Pop:
   (rs, +x) = r
-  pop.y(KM.m_get(rs, ((nr * 2 : U32) + 1 : U32)), w, fh, nr, c, x)
+  pop.y(KM.m_get(w, (x + 1 : U32)), rs, fh, nr, c, x)
 
 def pop(h: H) -> Pop:
   match h:
@@ -837,7 +840,7 @@ def pop(h: H) -> Pop:
         case 0:
           Pop{H{w, fh, rs, nr, c}, 0, 0, False{}}
         case _:
-          pop.x(KM.m_get(rs, ((nr - 1 : U32) * 2 : U32)), w, fh, (nr - 1 : U32), c)
+          pop.x(KM.m_get(rs, (nr - 1 : U32)), w, fh, (nr - 1 : U32), c)
 
 # a pair popped when fuel ran out goes back
 def unpop(pp: Pop) -> H:

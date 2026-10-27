@@ -33,7 +33,8 @@ Contingent:
 ## Setup
 
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
-links `clang` and enables the commit-msg hook; run it once per container.
+links `clang`, installs `perf`, the LLVM profile tools and Node, and
+enables the commit-msg hook; run it once per container.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
 kernel instead of polling; run it at each container start.
 
@@ -92,8 +93,9 @@ Lessons carried over from the Rust bootstrap:
   instructions too (`scripts/count.sh`, under `perf`): stable to a few
   parts in a hundred million where times wander by tens of percent.
   Bend leaves inlining to clang, which a small change can flip by 15%:
-  before crediting or blaming a change, compare a build with every Bend
-  function forced inline (`spike/tools/inline_build.sh`).
+  before crediting or blaming a change, compare builds with every Bend
+  function forced inline and profile-guided
+  (`spike/tools/inline_build.sh`).
 - Baselines live in the plan or review that uses them; reusable workloads
   live in `bench/`.
 

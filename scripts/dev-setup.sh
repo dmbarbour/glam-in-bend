@@ -1,7 +1,10 @@
 #!/bin/sh
 # Sets up a dev container for glam-in-bend: Bend at a pinned release,
-# checked by hash, on PATH; `clang` for native builds; `perf` for
-# instruction counts (scripts/count.sh); the commit-msg hook.
+# checked by hash, on PATH; `clang` for native builds, with the LLVM
+# profile tools of its version for profile-guided builds
+# (spike/tools/inline_build.sh); `perf` for instruction counts
+# (scripts/count.sh); Node, to run Bend's JavaScript output; the
+# commit-msg hook.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu
@@ -32,11 +35,24 @@ if ! command -v clang >/dev/null 2>&1; then
   update-alternatives --install /usr/bin/clang clang "$newest" 100
 fi
 
+# profile-guided builds: llvm-profdata and the profile runtime, of clang's
+# own version
+clang_major=$(clang --version | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -n 1)
+if ! dpkg -s "llvm-$clang_major" "libclang-rt-$clang_major-dev" >/dev/null 2>&1; then
+  apt-get update && apt-get install -y "llvm-$clang_major" "libclang-rt-$clang_major-dev"
+fi
+
 # perf: Debian packages it as linux-perf
 if ! command -v perf >/dev/null 2>&1; then
   apt-get update && apt-get install -y linux-perf
 fi
 
+# Node, for `bend x.bend -o x.js`
+if ! command -v node >/dev/null 2>&1; then
+  apt-get update && apt-get install -y nodejs
+fi
+
 git config core.hooksPath .githooks
 "$BEND_HOME/bin/bend" version
 clang --version | head -n 1
+node --version

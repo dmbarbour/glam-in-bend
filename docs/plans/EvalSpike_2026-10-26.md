@@ -429,6 +429,29 @@ The core:
    (about 630, `V.apply_fn`'s list building most of it). `perf annotate`
    printed nothing for these binaries; `spike/tools/hotins.py` joins
    `perf script`'s samples with `objdump` instead.
+   The pair stack then kept one node of each active pair, the other being
+   its principal port's peer (the maintainer's observation): half the
+   stack, a write less a push, a read more a pop, from the node store; at
+   k 18 on `succ` 447M as built, 355M forced inline (449M, 363M before).
+   The stores start at 256 words, 64 nodes and 256 pairs, and double up to
+   2^23 and 2^22 words; at k 18 the node store reaches 2^21. Doubling's
+   cost is the last doublings', so a larger start would save little;
+   growing faster was not tried. Profile-guided builds, clang inlining by
+   a training run's profile (`spike/tools/inline_build.sh` given training
+   runs, here k 14 on all four workloads), at k 18, millions of
+   instructions:
+
+                              succ    fma     levels
+       as bend builds it      447     809     963
+       forced inline          355     702     712
+       profile-guided         363     691     835
+       both                   348     670     711
+
+   Bend's JavaScript output, run by Node 20, took 2.0 s at k 18 against
+   40 to 70 ms natively, and did not follow the native changes: the
+   narrower state ran slightly slower there (1.8 s at the start), so it
+   checks portability, not native cost. gcc 14 cannot build Bend's C,
+   which needs `musttail`.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

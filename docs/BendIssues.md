@@ -83,8 +83,9 @@ of 2026-10-26, Bend 2.0.39.
   `docs/plans/EvalSpike_2026-10-26.md`, the default build moved by up
   to 15% for reasons of inlining alone.
 - **Workaround:** `spike/tools/inline_build.sh` builds the emitted C with
-  every compiled Bend function forced inline, to measure the work
-  itself; the kernel still ships as `bend` builds it.
+  every compiled Bend function forced inline, and given training runs,
+  profile-guided too (which alone recovers most of the loss), to measure
+  the work itself; the kernel still ships as `bend` builds it.
 - **Revisit:** at whole-system tuning.
 
 ### Array creation fills word by word
