@@ -347,9 +347,11 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: Ext, +refs: List<&2, 
 # Fusing controls
 # ---------------
 #
-# After a rewrite, a control among its new nodes or its external peers
-# that sits right behind another facing the same way merges with it,
-# when V.compose finds one control acting as both. The node freed is the
+# After a rewrite, a control that may now sit right behind another facing
+# the same way merges with it, when V.compose finds one control acting as
+# both. Only two things make controls adjacent: a rule making a control,
+# and a rule joining two of the redex's external peers (beta's crossed
+# join, a fan join, cancelling controls); so those are the nodes tried. The node freed is the
 # one whose principal faces the other's auxiliary, which cannot be in an
 # active pair; a pair that cancels is left alone if the survivor's
 # principal is linked to a principal (an active pair may be queued).
@@ -520,15 +522,74 @@ def ext_nodes(+x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
     case Ext4{+e0, +e1, +e2, +e3}:
       ext_node(e0, a, b, ext_node(e1, a, b, ext_node(e2, a, b, ext_node(e3, a, b, Nil{}))))
 
-def wire.made(m: Made, +ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> Q:
+def is_ctl(k: R.NodeKind) -> Bool:
+  match k:
+    case R.KLift{}:
+      True{}
+    case R.KLiftC{}:
+      True{}
+    case _:
+      False{}
+
+def keep_if(b: Bool, +r: U32, rest: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      r <> rest
+    case False{}:
+      rest
+
+# the new nodes that are controls
+def ctl_refs(xs: List<&2, R.Spec>, rs: List<&2, U32>) -> List<&2, U32>:
+  match xs rs:
+    case Con{R.Spec{k, s}, xt} Con{+r, rt}:
+      keep_if(is_ctl(k), r, ctl_refs(xt, rt))
+    case _ _:
+      Nil{}
+
+def lx.go(both: Bool, +x: Ext, +a: U32, +b: U32, +u: R.End, +v: R.End, rest: List<&2, U32>) -> List<&2, U32>:
+  match both:
+    case True{}:
+      ext_node(ext_at(x, ext_index(u)), a, b, ext_node(ext_at(x, ext_index(v)), a, b, rest))
+    case False{}:
+      rest
+
+# the external peers a rule joins to each other
+def link_ext_nodes(ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{R.Link{+u, +v}, t}:
+      lx.go(is_ext(u) && is_ext(v), x, a, b, u, v, link_ext_nodes(t, x, a, b))
+
+def any_partner(+x: Ext, +a: U32, +b: U32) -> Bool:
+  match x:
+    case Ext4{+e0, +e1, +e2, +e3}:
+      Maybe.is_some(&2, Nat, partner(e0, a, b)) || Maybe.is_some(&2, Nat, partner(e1, a, b)) ||
+        Maybe.is_some(&2, Nat, partner(e2, a, b)) || Maybe.is_some(&2, Nat, partner(e3, a, b))
+
+def all_if(b: Bool, +x: Ext, +a: U32, +b2: U32) -> List<&2, U32>:
+  match b:
+    case True{}:
+      ext_nodes(x, a, b2)
+    case False{}:
+      Nil{}
+
+# the nodes to try fusing after a rewrite: its new controls, the peers it
+# joins, and, when the redex's own ports were joined through it, every
+# external peer
+def fuse_tried(+xs: List<&2, R.Spec>, +refs: List<&2, U32>, +ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> List<&2, U32>:
+  List.append(&2, U32, ctl_refs(xs, refs),
+    List.append(&2, U32, link_ext_nodes(ls, x, a, b), all_if(any_partner(x, a, b), x, a, b)))
+
+def wire.made(m: Made, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: Ext, +a: U32, +b: U32) -> Q:
   match m:
     case Made{q, +refs}:
-      fuse_all(List.append(&2, U32, refs, ext_nodes(x, a, b)),
+      fuse_all(fuse_tried(xs, refs, ls, x, a, b),
         link_pairs(4n, 0n, ls, x, refs, a, b, link_plain(ls, x, refs, a, b, q)))
 
 # replace the redex a >< b by the rule's nodes and links
-def wire(q: Q, +a: U32, +b: U32, xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
-  wire.made(make(xs, pa, pb, Made{free(free(q, a), b), Nil{}}), ls, x, a, b)
+def wire(q: Q, +a: U32, +b: U32, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
+  wire.made(make(xs, pa, pb, Made{free(free(q, a), b), Nil{}}), xs, ls, x, a, b)
 
 # Interaction
 # ===========
@@ -595,6 +656,82 @@ def rule_test(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
     case _ _:
       False{}
 
+# Level checks: assertions counted as errors, the rewrite proceeding
+# (docs/plans/NetPairing_2026-10-26.md, "Compared with the earlier
+# discussion"). A copy only copies boxes, so it meets a function only at
+# a deeper level; two fans meeting at one level are residuals of one
+# duplication, so their sites and instantiations agree. Fans without a
+# level (V.nolvl) are not checked.
+
+def fan_lvl(f: V.FanId) -> U32:
+  match f:
+    case V.FanId{+site, +inst, +lvl}:
+      lvl
+
+def fan_si_eq(a: V.FanId, b: V.FanId) -> Bool:
+  match a b:
+    case V.FanId{+s1, +i1, +l1} V.FanId{+s2, +i2, +l2}:
+      U32.is_eq(s1, s2) && U32.is_eq(i1, i2)
+
+def lvl_known(+l: U32) -> Bool:
+  U32.is_ne(l, V.nolvl())
+
+def fn_lvl_known(p: V.Pay) -> Bool:
+  match p:
+    case V.PLvl{+n}:
+      True{}
+    case _:
+      False{}
+
+def pay_level(p: V.Pay) -> U32:
+  match p:
+    case V.PLvl{+n}:
+      n
+    case V.PFan{f}:
+      fan_lvl(f)
+    case V.PLift{+n, +up, +by}:
+      n
+    case _:
+      0
+
+def lift_wraps(c: V.Pay, +j: U32) -> Bool:
+  match c:
+    case V.PLift{+n, +up, +by}:
+      up && U32.is_gt(j, n) && U32.is_lt((j + by : U32), j)
+    case _:
+      False{}
+
+# a control raising a level, or another control's index, past the top of
+# U32 would wrap it: a fail-stop in waiting, so it counts as an error
+def wraps(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  match ka kb:
+    case R.KLift{} _:
+      lift_wraps(pa, pay_level(pb))
+    case _ R.KLiftC{}:
+      lift_wraps(pb, pay_level(pa)) || lift_wraps(pa, pay_level(pb))
+    case _ _:
+      False{}
+
+def violation.lv(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  match ka kb:
+    case R.KCopy{} R.KFn{}:
+      lvl_known(fan_lvl(fan_of(pa))) && fn_lvl_known(pb) && U32.is_ge(fan_lvl(fan_of(pa)), V.pay_lvl(pb))
+    case R.KCopy{} R.KMerge{}:
+      lvl_known(fan_lvl(fan_of(pa))) && U32.is_eq(fan_lvl(fan_of(pa)), fan_lvl(fan_of(pb))) &&
+        Bool.not(fan_si_eq(fan_of(pa), fan_of(pb)))
+    case _ _:
+      False{}
+
+def violation(+ka: R.NodeKind, +kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  wraps(ka, kb, pa, pb) || violation.lv(ka, kb, pa, pb)
+
+def err_if(bad: Bool, q: Q) -> Q:
+  match bad:
+    case True{}:
+      q_err(q)
+    case False{}:
+      q
+
 def is_root(k: R.NodeKind) -> Bool:
   match k:
     case R.KRoot{}:
@@ -618,7 +755,8 @@ def apply(r: R.Rule, q: Q, +a: U32, +b: U32, +ka: R.NodeKind, +x: Ext, +pa: V.Pa
 
 def interact.pays(r: Q & V.Pay, +pa: V.Pay, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q:
   (q, +pb) = r
-  apply(R.rule(n3_kind(na), n3_kind(nb), rule_test(n3_kind(na), n3_kind(nb), pa, pb)), q, a, b, n3_kind(na), ext_of(na, nb), pa, pb)
+  apply(R.rule(n3_kind(na), n3_kind(nb), rule_test(n3_kind(na), n3_kind(nb), pa, pb)),
+    err_if(violation(n3_kind(na), n3_kind(nb), pa, pb), q), a, b, n3_kind(na), ext_of(na, nb), pa, pb)
 
 def interact.paya(r: Q & V.Pay, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q:
   (q, +pa) = r

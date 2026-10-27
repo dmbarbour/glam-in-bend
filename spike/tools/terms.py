@@ -383,10 +383,10 @@ def to_tpl(t, levels=True, fused=True):
     return net, root
 
 
-def bend_node(kind, args):
-    if kind == "fn": return f"X.fnl({args[0]})"
-    if kind == "ap": return f"X.apl({args[0]})"
-    if kind == "cp": return f"X.cpl({args[0]}, {args[1]})"
+def bend_node(kind, args, levels=True):
+    if kind == "fn": return f"X.fnl({args[0]})" if levels else "X.fn()"
+    if kind == "ap": return f"X.apl({args[0]})" if levels else "X.ap()"
+    if kind == "cp": return f"X.cpl({args[0]}, {args[1]})" if levels else f"X.cp({args[0]})"
     if kind == "br": return f"X.br({args[0]})"
     if kind == "cr": return f"X.cr({args[0]})"
     if kind == "ctl":
@@ -397,7 +397,7 @@ def bend_node(kind, args):
 
 
 def bend_tpl(net, root):
-    nodes = ", ".join(bend_node(k, a) for k, a in net.nodes)
+    nodes = ", ".join(bend_node(k, a, net.levels) for k, a in net.nodes)
     links = ", ".join(f"X.l({a}, {pa}, {b}, {pb})" for (a, pa), (b, pb) in net.links)
     return (f"T.Tpl{{[{nodes}],\n    [{links}],\n    T.TE{{{root[0]}, {root[1]}}}, {len(net.nodes)}}}")
 
@@ -464,7 +464,7 @@ def got(r: N.Q & Maybe<&2, V.Val>, +want: U32) -> String:
   (q, v) = r
   match q:
     case N.Q{st, rq, +itrs, +errs, +ser}:
-      got.show(v, want) ++ " in " ++ U32.show(itrs) ++ " interactions"
+      got.show(v, want) ++ " in " ++ U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors"
 
 def test_one(+k: U32, +fuel: Nat) -> String:
   "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": " ++ got(T.result(T.run(tpl_of(k), fuel)), want_of(k)) ++ "  " ++ name_of(k)

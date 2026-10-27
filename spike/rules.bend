@@ -276,6 +276,16 @@ def rule.lift(b: NodeKind, t: Bool) -> Rule:
     case _:
       RStuck{}
 
+# the net's root meets a control facing it: it carries no level, so it
+# takes the control's place, as an eraser does; anything else is the
+# result, or stuck
+def rule.root(b: NodeKind) -> Rule:
+  match b:
+    case KLiftC{}:
+      RWire{[Spec{KRoot{}, SNone{}}], [lk(nw(0n, 0n), ex(2n))]}
+    case _:
+      RStuck{}
+
 def rule.era(b: NodeKind) -> Rule:
   match b:
     # erasing a function: its body's result is dropped, its argument's
@@ -310,6 +320,8 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.call(b)
     case KLift{}:
       rule.lift(b, t)
+    case KRoot{}:
+      rule.root(b)
     case _:
       RStuck{}
 

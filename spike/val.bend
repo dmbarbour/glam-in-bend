@@ -51,6 +51,11 @@ type FanId is Data:
 def fan_new(+site: U32, +inst: U32, +lvl: U32) -> FanId:
   FanId{site, inst, lvl}
 
+# the level of a fan in a net built without levels (hand-built nets,
+# terms lowered with --labels): the level checks skip it
+def nolvl() -> U32:
+  4294967295
+
 def fan_eq(a: FanId, b: FanId) -> Bool:
   match a b:
     case FanId{+s1, +i1, +l1} FanId{+s2, +i2, +l2}:

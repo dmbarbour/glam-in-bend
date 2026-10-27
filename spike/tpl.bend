@@ -29,6 +29,13 @@ type Tpl is Data:
 type Inst is Type:
   Inst{q: N.Q, map: Array<U32>, +inst: U32}
 
+def pick_u32(b: Bool, +x: U32, +y: U32) -> U32:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
 def pick_nat(b: Bool, +x: Nat, +y: Nat) -> Nat:
   match b:
     case True{}:
@@ -164,6 +171,49 @@ def result.peer(r: N.Q & U32) -> N.Q & Maybe<&2, V.Val>:
   (q, +peer) = r
   result.hdr(N.q_word(q, peer, 0), peer)
 
-def result(r: N.Q & U32) -> N.Q & Maybe<&2, V.Val>:
+# finding the root: the first live Root node in the store
+type Find is Type:
+  Find{q: N.Q, +at: U32}
+
+def find.hit(rr: N.Q & U32, +ref: U32, +at: U32) -> Find:
+  (q, +h) = rr
+  Find{q, pick_u32(U32.is_eq(at, S.nil()) && U32.is_eq((h .&. 15 : U32), 8), ref, at)}
+
+def find.slots(n: Nat, +page: U32, +slot: U32, f: Find) -> Find:
+  match n:
+    case 0n:
+      f
+    case 1n+p:
+      match f:
+        case Find{q, +at}:
+          find.slots(p, page, (slot + 1 : U32), find.hit(N.q_word(q, S.mk_ref(page, slot, 0), 0), S.mk_ref(page, slot, 0), at))
+
+def find.pages(n: Nat, +page: U32, f: Find) -> Find:
+  match n:
+    case 0n:
+      f
+    case 1n+p:
+      find.pages(p, (page + 1 : U32), find.slots(S.cap(), page, 0, f))
+
+def find.start(r: S.Store & U32, rq: List<&2, N.Redex>, +itrs: U32, +errs: U32, +ser: U32) -> Find:
+  (st, +np) = r
+  find.pages(U32.to_nat(np), 0, Find{N.Q{st, rq, itrs, errs, ser}, S.nil()})
+
+def find.done(f: Find) -> N.Q & U32:
+  match f:
+    case Find{q, +at}:
+      (q, at)
+
+def find_root(q: N.Q) -> N.Q & U32:
+  match q:
+    case N.Q{st, rq, +itrs, +errs, +ser}:
+      find.done(find.start(S.st_pages(st), rq, itrs, errs, ser))
+
+def result.go(r: N.Q & U32) -> N.Q & Maybe<&2, V.Val>:
   (q, +root) = r
   result.peer(N.q_word(q, root, 1))
+
+# what reached the root, which a control may have moved (R.rule.root)
+def result(r: N.Q & U32) -> N.Q & Maybe<&2, V.Val>:
+  (q, +root) = r
+  result.go(find_root(q))

@@ -30,6 +30,13 @@ own, [NetPairing](NetPairing_2026-10-26.md).
 - A parallel call reached deep inside a task still runs in parallel: eight
   branches, each forking only after sequential work, ran 3.7× faster on 8
   threads than on 1; a fork tree at the surface, about 5.5×.
+- An array cell of a small constructor costs 4 bytes for one `U32`
+  field, 8 for two, 16 for three (`Bool` counting as one); in a sum type
+  with a variant holding a list, as the store's payloads are, every cell
+  costs 32 bytes whatever its variant holds (2026-10-27, 1M to 4M cells,
+  linear). So shrinking one variant saves nothing there; a control, with
+  two ports, could instead keep its index and offset in its node's free
+  fourth word.
 - Bend generates no code at run time. In-process fast paths are therefore
   specialized loops (an HVM5-style interaction loop, operator steps); a
   heavy, stable kernel could also be compiled out of process and run

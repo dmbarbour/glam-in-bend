@@ -19,7 +19,7 @@ def ap() -> T.TNode:
   T.TN{R.KAp{}, V.PNone{}}
 
 def cp(+site: U32) -> T.TNode:
-  T.TF{R.KCopy{}, site, 0}
+  T.TF{R.KCopy{}, site, V.nolvl()}
 
 # with levels (spike/tools/terms.py lowers terms with them)
 def fnl(+n: U32) -> T.TNode:

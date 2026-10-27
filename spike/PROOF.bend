@@ -144,7 +144,31 @@ def Laws.rules_polarized(a, b, s):
     case R.KEraP{}:
       {==}
     case R.KRoot{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
     case R.KCall{}:
       match b:
         case R.KFree{}:
@@ -308,7 +332,31 @@ def Laws.rules_linear(a, b, s):
     case R.KEraP{}:
       {==}
     case R.KRoot{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
     case R.KCall{}:
       match b:
         case R.KFree{}:

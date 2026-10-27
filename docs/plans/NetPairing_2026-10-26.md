@@ -124,8 +124,27 @@ derivation made here first.
    differs). On 600 random terms 599 reduce to their value, against 597
    unfused and 506 under static labels. On the 506, levels cost 2.8
    times the interactions of labels, against 19 times unfused; beta
-   rose from 7% to 11% of all interactions. The checks after each
-   rewrite cost about 13% of time on the throughput chain.
+   rose from 7% to 11% of all interactions. Fusion is tried only where
+   controls can become adjacent: a rule's new controls, and the external
+   peers a rule joins to each other (beta's crossed join, a fan join,
+   cancelling controls); the same fusions happen as when every node was
+   tried, at about 6% of time on the throughput chain rather than 13%.
+   Since the comparison below: a copy meeting a function at a level not
+   below its own, and two fans meeting at one level with different
+   sites, count as errors (assertions; the rewrite proceeds), as does a
+   control raising a level past the top of `U32`. None fires on the 608
+   terms. The root takes the place of a control facing it, and the
+   result is read off the live root.
+   Down offsets fuse only as a croissant after a raise. The maintainer
+   expects more, with the right framing; a symmetric one: a control
+   (n, k) leaves levels up to n alone and moves those above to
+   max(n, j + k), so a raise opens a gap of k above n and a drop closes
+   one, n being the floor after (two croissants at n are (n, -2)). In a
+   model, every fusion, the current one included, changes how a facing
+   control equal to the first of the pair comes out: the pair cancels it,
+   the fused control crosses it. The results look equivalent, the shift
+   between values and consumers agreeing, but the criterion is semantic
+   (properness, below), not structural. Wider fusion waits on it.
 7. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
@@ -134,6 +153,14 @@ derivation made here first.
    nets against a reference whose correctness needs no levels: a copy
    that duplicates the whole subnet behind its input, after the Rust
    bootstrap's whole copies.
+   glam's nets, as the maintainer describes them: users build them
+   monadically with four effects. `copy N` makes balanced fans (a tunnel
+   for 1, an eraser for 0); `data` embeds data; `bind` makes a function
+   or an application, as polarity decides; `wire` joins two ports. copy,
+   data and bind return lists of ports, and the net returns one port,
+   positive by fiat, as its interface. Users assign neither levels nor
+   polarity, so both are inferred: polarity first (bind's role, by
+   parity over the wires, the root pinning it), then levels.
    Sketch (2026-10-27, before reading the earlier discussion's take).
    Polarity fixes which way values flow, so the subnet that produces a
    value is well defined: walk upstream from a negative port to the
@@ -156,8 +183,11 @@ derivation made here first.
    nets.
 8. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
-   as a warm-up, then state the adaptation's correctness: a net built from
-   a term reduces to the term's normal form, read back. Attempt it, or
+   as a warm-up, then state the adaptation's correctness as Guerrini's
+   properness: nets as built are proper, every rule preserves properness,
+   and a proper net's reduction is simulated on its unfolding. The
+   properties to prove first: a copy meets only deeper nodes, and fans
+   meeting at one level are residuals of one duplication. Attempt it, or
    find the restriction under which it holds.
 9. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
@@ -292,6 +322,45 @@ orientations:
                           adjusted by the lower one's map
 
 A control reaching the root is stuck; no test reaches it.
+
+## Compared with the earlier discussion (2026-10-27)
+
+A sub-agent read the maintainer's earlier discussion of this
+adaptation, saved from its share page, and compared it with the
+derivation and its correction; its quotes were checked against the
+saved text.
+
+- **Agreed:** levels are box depth; fans annihilate at equal levels and
+  keep theirs when commuting; brackets and croissants move levels above
+  their index by one; facing controls of one kind and index cancel,
+  others cross with the higher index adjusted; a template is
+  instantiated at the level where it is applied; `(\t -> t t) two`
+  traces the same way; the cost is controls, and the cure is fusing runs
+  into controls with offsets.
+- **Ours, not there:** the two orientations of controls, a function
+  taking the same control onto both wires (the discussion never settles
+  orientation); the rule table under laws; testing against a direct
+  evaluator; fusion at run time.
+- **There, not ours:** Guerrini's general theory as the target, with two
+  obligations (nets are built proper; each rule preserves properness),
+  which covers hand-built nets; the invariant that a copy meets only
+  deeper nodes, and labels kept as an assertion (both now checked);
+  polarity inference for a bind of either role, then level inference,
+  rejecting nets that have none (non-polarizable nets, inconsistent level
+  cycles, variables escaping their box); argument-position cycles
+  excluded; safe nodes and pre-normalized templates against bookkeeping.
+- **Different:** our fans sit where a variable's uses split, theirs at
+  the binder's level with the brackets after them; both should be
+  proper, and which costs less is to be measured. Levels live on `Fn`
+  and `Ap` here, on the function datum there; equivalent while a wire
+  joins nodes of one level.
+- **Doubtful there:** a croissant once at the binder is not equivalent
+  to one per use (a use deeper than its binder arrives at the wrong
+  level); what sits at a box's root changes three times; level inference
+  is called a function where it is a constraint problem in general.
+- **Unverified on both sides:** GAL's actual rule table. The `j > n`
+  boundary and same-kind cancellation are recollections; check them
+  against GAL's and Guerrini's papers.
 
 ## Feasibility (assessed 2026-10-26)
 

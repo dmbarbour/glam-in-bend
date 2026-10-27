@@ -11,7 +11,8 @@
 # no swap, and kills the whole group past it. Elsewhere this polls the
 # process group's resident memory every 0.1 s, which overshoots by whatever
 # the command allocates between polls. Exits 137 when it kills, else with
-# the command's status.
+# the command's status. With CAPPED_REPORT set, the cgroup form also
+# reports the run's peak memory and time on stderr.
 set -u
 [ $# -ge 3 ] || { echo "usage: $0 MEGABYTES SECONDS command [args...]" >&2; exit 2; }
 mb=$1; limit=$(( $2 * 10 )); shift 2
@@ -49,6 +50,7 @@ if grep -qw memory "$parent/cgroup.subtree_control" 2>/dev/null; then
   until rmdir "$cg" 2>/dev/null || [ "$n" -ge 50 ]; do sleep 0.1; n=$((n + 1)); done
   [ "$late" = 0 ] || killed "out of time at $peak MB"
   [ "${oom:-0}" = 0 ] || killed "out of memory"
+  [ -z "${CAPPED_REPORT:-}" ] || echo "capped.sh: peak $peak MB, $((ticks / 10)).$((ticks % 10)) s" >&2
   exit "$status"
 fi
 
