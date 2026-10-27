@@ -11,7 +11,7 @@ import ./net.bend as N
 
 type TNode is Data:
   TN{k: R.NodeKind, p: V.Pay}
-  TF{k: R.NodeKind, +site: U32}
+  TF{k: R.NodeKind, +site: U32, +lvl: U32}
 
 type TEnd is Data:
   TE{+n: U32, +port: U32}
@@ -48,14 +48,14 @@ def tnode_pay(t: TNode, +inst: U32) -> V.Pay:
   match t:
     case TN{k, p}:
       p
-    case TF{k, +site}:
-      V.PFan{V.fan_new(site, inst)}
+    case TF{k, +site, +lvl}:
+      V.PFan{V.fan_new(site, inst, lvl)}
 
 def tnode_kind(t: TNode) -> R.NodeKind:
   match t:
     case TN{k, p}:
       k
-    case TF{k, s}:
+    case TF{k, s, l}:
       k
 
 def inst.put(r: N.Q & U32, map: Array<U32>, +i: U32, +inst: U32) -> Inst:

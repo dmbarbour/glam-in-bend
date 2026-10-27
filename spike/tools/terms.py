@@ -2,13 +2,17 @@
 """Lambda terms as spike nets, with their values as a reference.
 
 Lowers each term the way optimal reduction does: a live Fn per lambda, an Ap
-per application, a chain of Copy fans for a variable used more than once (a
-site per fan), an eraser for an unused one. Evaluates each term directly,
+per application, Copy fans for a variable used more than once (a site per
+fan), an eraser for an unused one, and levels with brackets and croissants
+at box boundaries. Evaluates each term directly,
 call by need, for the value its net must reduce to. Writes a Bend program
 that tests every term, or traces one through tracelib.bend.
 
-    terms.py emit OUT TERM...          the given terms
-    terms.py gen OUT COUNT [SEED]      COUNT random numeral expressions
+    terms.py [--labels] emit OUT TERM...       the given terms
+    terms.py [--labels] gen OUT COUNT [SEED]   COUNT random numeral expressions
+
+--labels lowers without levels or control nodes, fans told apart by
+their site alone.
 
 Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
 ./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
@@ -213,13 +217,21 @@ def evaluate(t, fuel=200000, limit=10**6):
 
 # Lowering to a spike template
 # ============================
+#
+# With levels (docs/plans/NetPairing_2026-10-26.md, "Derivation"): a term
+# at level n lowers a lambda to an Fn at n, an application to an Ap at n
+# with its argument a box at n + 1. A variable's uses form a trie over the
+# boxes entered from its binder: entering a box at depth k crosses a
+# bracket Br k, a use at depth d sits behind a croissant Cr d, and where
+# paths split at depth k a copy fan at level k joins them. Without levels
+# (--labels), every use hangs off one chain of fans at the binder.
 
 class Net:
-    def __init__(self):
-        self.nodes, self.links, self.site = [], [], 0
+    def __init__(self, levels):
+        self.nodes, self.links, self.site, self.boxes, self.levels = [], [], 0, 0, levels
 
-    def node(self, kind, arg=None):
-        self.nodes.append((kind, arg))
+    def node(self, kind, *args):
+        self.nodes.append((kind, args))
         return len(self.nodes) - 1
 
     def link(self, a, b):
@@ -227,65 +239,112 @@ class Net:
 
 
 class Var:
-    """A bound variable's uses: the consumer port each use is plugged into."""
-    def __init__(self):
-        self.uses = []
+    """A bound variable: its binder's depth and boxes, and its uses."""
+    def __init__(self, depth, path):
+        self.depth, self.path, self.uses = depth, path, []
+
+
+class Use:
+    def __init__(self, var, depth, path):
+        self.var, self.depth, self.path = var, depth, path
 
 
 def plug(net, value, consumer):
-    """Wire a value (a port, or a variable use) to a consumer port."""
-    if isinstance(value, Var):
-        value.uses.append(consumer)
+    """Wire a value (a port, or a variable's use) to a consumer port."""
+    if isinstance(value, Use):
+        value.var.uses.append((consumer, value.depth, value.path))
     else:
         net.link(value, consumer)
 
 
-def lower(net, t, env):
-    """Lower t; return the port providing its value, or a Var for a use."""
+def lower(net, t, env, depth, path):
+    """Lower t; return the port providing its value, or a Use."""
     k = t[0]
     if k == "var":
-        return env[t[1]]
+        return Use(env[t[1]], depth, path)
     if k == "int":
         return (net.node("num", t[1]), 0)
     if k == "succ":
         return (net.node("succ"), 0)
     if k == "app":
-        a = net.node("ap")
-        plug(net, lower(net, t[1], env), (a, 0))
-        plug(net, lower(net, t[2], env), (a, 1))
+        a = net.node("ap", depth)
+        plug(net, lower(net, t[1], env, depth, path), (a, 0))
+        net.boxes += 1
+        plug(net, lower(net, t[2], env, depth + 1, path + (net.boxes,)), (a, 1))
         return (a, 2)
     # a lambda: Fn [+ fn, - result, + arg]
-    f = net.node("fn")
-    v = Var()
-    plug(net, lower(net, t[2], {**env, t[1]: v}), (f, 1))
-    fan_out(net, (f, 2), v.uses)
+    f = net.node("fn", depth)
+    v = Var(depth, path)
+    plug(net, lower(net, t[2], {**env, t[1]: v}, depth, path), (f, 1))
+    if net.levels:
+        fan_trie(net, (f, 2), v)
+    else:
+        fan_chain(net, (f, 2), [u for u, d, p in v.uses])
     return (f, 0)
 
 
-def fan_out(net, src, uses):
+def fan_chain(net, src, uses):
     if not uses:
         net.link(src, (net.node("era"), 0))
         return
     for u in uses[:-1]:
         net.site += 1
-        c = net.node("cp", net.site)
+        c = net.node("cp", net.site, 0)
         net.link(src, (c, 0))
         net.link((c, 1), u)
         src = (c, 2)
     net.link(src, uses[-1])
 
 
-def to_tpl(t):
-    net = Net()
-    root = lower(net, t, {})
-    if isinstance(root, Var):
+def fan_trie(net, src, var):
+    if not var.uses:
+        net.link(src, (net.node("era"), 0))
+        return
+    trie = {"uses": [], "boxes": {}}
+    for consumer, depth, path in var.uses:
+        node = trie
+        for box in path[len(var.path):]:
+            node = node["boxes"].setdefault(box, {"uses": [], "boxes": {}})
+        node["uses"].append(consumer)
+    emit_trie(net, src, trie, var.depth)
+
+
+def emit_trie(net, src, trie, k):
+    items = [("use", u) for u in trie["uses"]] + [("box", b) for b in trie["boxes"].values()]
+    for n, (kind, item) in enumerate(items):
+        if n < len(items) - 1:
+            net.site += 1
+            c = net.node("cp", net.site, k)
+            net.link(src, (c, 0))
+            here, src = (c, 1), (c, 2)
+        else:
+            here = src
+        if kind == "use":
+            cr = net.node("cr", k)
+            net.link(here, (cr, 0))
+            net.link((cr, 1), item)
+        else:
+            br = net.node("br", k)
+            net.link(here, (br, 0))
+            emit_trie(net, (br, 1), item, k + 1)
+
+
+def to_tpl(t, levels=True):
+    net = Net(levels)
+    root = lower(net, t, {}, 0, ())
+    if isinstance(root, Use):
         raise ValueError("a bare variable")
     return net, root
 
 
-def bend_node(kind, arg):
-    return {"fn": "X.fn()", "ap": "X.ap()", "era": "X.era()", "succ": "X.succ()",
-            "num": f"X.num({arg})", "cp": f"X.cp({arg})"}[kind]
+def bend_node(kind, args):
+    if kind == "fn": return f"X.fnl({args[0]})"
+    if kind == "ap": return f"X.apl({args[0]})"
+    if kind == "cp": return f"X.cpl({args[0]}, {args[1]})"
+    if kind == "br": return f"X.br({args[0]})"
+    if kind == "cr": return f"X.cr({args[0]})"
+    if kind == "num": return f"X.num({args[0]})"
+    return {"era": "X.era()", "succ": "X.succ()"}[kind]
 
 
 def bend_tpl(net, root):
@@ -298,14 +357,14 @@ def bend_str(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def emit(out, terms, spike):
+def emit(out, terms, spike, levels=True):
     os.makedirs(out, exist_ok=True)
     rel = os.path.relpath(spike, out)
     rows = []
     for text in terms:
         t = parse(text)
         want = evaluate(t)
-        net, root = to_tpl(t)
+        net, root = to_tpl(t, levels)
         rows.append((text, want, net, root))
     lines = ["import Base"]
     for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("tracelib", "L")]:
@@ -451,11 +510,13 @@ def gen(count, seed, depth=3, maxval=64):
 def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    levels = "--labels" not in argv
+    argv = [a for a in argv if a != "--labels"]
     if len(argv) >= 3 and argv[1] == "emit":
-        emit(argv[2], argv[3:], spike)
+        emit(argv[2], argv[3:], spike, levels)
     elif len(argv) >= 4 and argv[1] == "gen":
         seed = int(argv[4]) if len(argv) > 4 else 1
-        emit(argv[2], gen(int(argv[3]), seed), spike)
+        emit(argv[2], gen(int(argv[3]), seed), spike, levels)
     else:
         print(__doc__)
         return 2

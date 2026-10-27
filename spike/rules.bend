@@ -19,6 +19,10 @@ import Base
 #   EraP  eraser, providing [+]   (an error value, as void)
 #   Root  the net's consumer [-]
 #   Call  strict call       [- arg,   + result]  (a builtin awaiting data)
+#   Lift  level control     [- in,    + out]     facing the source
+#   LiftC level control     [+ out,   - in]      facing the consumer
+#         (a bracket or croissant: a node meeting its principal crosses
+#         to the other side with its level adjusted)
 type NodeKind is Data:
   KFree{}
   KFn{}
@@ -30,6 +34,8 @@ type NodeKind is Data:
   KEraP{}
   KRoot{}
   KCall{}
+  KLift{}
+  KLiftC{}
 
 type Pol is Data:
   Pos{}
@@ -63,6 +69,10 @@ def arity(k: NodeKind) -> Nat:
       3n
     case KCall{}:
       2n
+    case KLift{}:
+      2n
+    case KLiftC{}:
+      2n
     case KFree{}:
       0n
     case _:
@@ -90,6 +100,10 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
       Neg{}
     case KCall{} 0n:
       Neg{}
+    case KLift{} 0n:
+      Neg{}
+    case KLiftC{} 1n:
+      Neg{}
     case _ _:
       Pos{}
 
@@ -107,8 +121,9 @@ type Link is Data:
   Link{a: End, b: End}
 
 # where a new node's payload comes from: nothing; A's or B's payload
-# (data, or a call's function); A's function applied to B's data; A's or
-# B's fan identity
+# (data, a call's function, a control node); A's function applied to B's
+# data; A's or B's fan identity; A's or B's payload (a level, a fan's, a
+# control's index) passed through the other, a control node
 type Src is Data:
   SNone{}
   SPayA{}
@@ -116,6 +131,8 @@ type Src is Data:
   SApply{}
   SFanA{}
   SFanB{}
+  SLiftA{}
+  SLiftB{}
 
 type Spec is Data:
   Spec{k: NodeKind, src: Src}
@@ -145,15 +162,20 @@ def rule.fans(same: Bool) -> Rule:
          lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
 
 # A, negative principal, meets B, positive principal; t says whether B is
-# a builtin function
+# a builtin function, or for a function whether its level is A's
 def rule.ap(b: NodeKind, t: Bool) -> Rule:
   match b:
-    # beta: the bind's auxiliaries join crossed
+    # beta: the bind's auxiliaries join crossed. t says the levels agree;
+    # in a well-formed net they do, so a mismatch is stuck, an error
     case KFn{}:
-      RWire{[], [lk(ex(0n), ex(3n)), lk(ex(1n), ex(2n))]}
+      match t:
+        case True{}:
+          RWire{[], [lk(ex(0n), ex(3n)), lk(ex(1n), ex(2n))]}
+        case False{}:
+          RStuck{}
     # applying a superposition: the application is copied onto each side
     case KMerge{}:
-      RWire{[Spec{KAp{}, SNone{}}, Spec{KAp{}, SNone{}}, Spec{KCopy{}, SFanB{}}, Spec{KMerge{}, SFanB{}}],
+      RWire{[Spec{KAp{}, SPayA{}}, Spec{KAp{}, SPayA{}}, Spec{KCopy{}, SFanB{}}, Spec{KMerge{}, SFanB{}}],
         [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n)),
          lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)),
          lk(nw(3n, 0n), ex(1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
@@ -165,6 +187,12 @@ def rule.ap(b: NodeKind, t: Bool) -> Rule:
           RWire{[Spec{KCall{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
         case False{}:
           RStuck{}
+    # an application meeting a control facing it moves up past it, its
+    # level adjusted, the control copied onto its argument and result
+    case KLiftC{}:
+      RWire{[Spec{KAp{}, SLiftA{}}, Spec{KLift{}, SPayB{}}, Spec{KLiftC{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(0n)), lk(nw(1n, 1n), nw(0n, 1n)),
+         lk(nw(2n, 0n), ex(1n)), lk(nw(2n, 1n), nw(0n, 2n))]}
     # applying an error value: drop the argument, the result is an error
     case KEraP{}:
       RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
@@ -176,7 +204,7 @@ def rule.copy(b: NodeKind, same: Bool) -> Rule:
     # duplicating a function: two functions, a copy of the body's result,
     # a merge of the argument's uses
     case KFn{}:
-      RWire{[Spec{KFn{}, SNone{}}, Spec{KFn{}, SNone{}}, Spec{KCopy{}, SFanA{}}, Spec{KMerge{}, SFanA{}}],
+      RWire{[Spec{KFn{}, SPayB{}}, Spec{KFn{}, SPayB{}}, Spec{KCopy{}, SFanA{}}, Spec{KMerge{}, SFanA{}}],
         [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n)),
          lk(ex(2n), nw(2n, 0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)),
          lk(ex(3n), nw(3n, 0n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
@@ -187,6 +215,12 @@ def rule.copy(b: NodeKind, same: Bool) -> Rule:
       RWire{[Spec{KData{}, SPayB{}}, Spec{KData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
     case KEraP{}:
       RWire{[Spec{KEraP{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
+    # a copy meeting a control facing it moves up past it, its level
+    # adjusted, the control copied onto both outputs
+    case KLiftC{}:
+      RWire{[Spec{KCopy{}, SLiftA{}}, Spec{KLiftC{}, SPayB{}}, Spec{KLiftC{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(0n)), lk(nw(1n, 1n), nw(0n, 1n)),
+         lk(nw(2n, 0n), ex(1n)), lk(nw(2n, 1n), nw(0n, 2n))]}
     case _:
       RStuck{}
 
@@ -203,6 +237,42 @@ def rule.call(b: NodeKind) -> Rule:
          lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n))]}
     case KEraP{}:
       RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+    # a call carries no level: it moves past a control facing it, which
+    # goes on to its result
+    case KLiftC{}:
+      RWire{[Spec{KCall{}, SPayA{}}, Spec{KLiftC{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(0n)), lk(nw(1n, 1n), nw(0n, 1n))]}
+    case _:
+      RStuck{}
+
+# a control node facing the source meets what flows down its wire: data
+# pass unchanged; a merge or function passes with its level adjusted, the
+# control copied onto each wire behind it: facing the source on a wire it
+# takes in, facing the consumers on a function's argument wire, whose uses
+# lie behind it too; t, for a control facing it, says they cancel
+def rule.lift(b: NodeKind, t: Bool) -> Rule:
+  match b:
+    case KData{}:
+      RWire{[Spec{KData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case KEraP{}:
+      RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case KMerge{}:
+      RWire{[Spec{KMerge{}, SLiftB{}}, Spec{KLift{}, SPayA{}}, Spec{KLift{}, SPayA{}}],
+        [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(2n)), lk(nw(1n, 1n), nw(0n, 1n)),
+         lk(nw(2n, 0n), ex(3n)), lk(nw(2n, 1n), nw(0n, 2n))]}
+    case KFn{}:
+      RWire{[Spec{KFn{}, SLiftB{}}, Spec{KLift{}, SPayA{}}, Spec{KLiftC{}, SPayA{}}],
+        [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(2n)), lk(nw(1n, 1n), nw(0n, 1n)),
+         lk(nw(2n, 0n), ex(3n)), lk(nw(2n, 1n), nw(0n, 2n))]}
+    # two controls facing each other: one kind and index cancel; else
+    # each crosses the other, the higher index adjusted by the lower
+    case KLiftC{}:
+      match t:
+        case True{}:
+          RWire{[], [lk(ex(0n), ex(2n))]}
+        case False{}:
+          RWire{[Spec{KLift{}, SLiftA{}}, Spec{KLiftC{}, SLiftB{}}],
+            [lk(nw(0n, 0n), ex(2n)), lk(nw(0n, 1n), nw(1n, 1n)), lk(nw(1n, 0n), ex(0n))]}
     case _:
       RStuck{}
 
@@ -218,12 +288,16 @@ def rule.era(b: NodeKind) -> Rule:
       RWire{[], []}
     case KEraP{}:
       RWire{[], []}
+    # erasing past a control: the eraser takes its place
+    case KLiftC{}:
+      RWire{[Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(2n))]}
     case _:
       RStuck{}
 
 # the rule for A meeting B, A's principal negative. t tests the payloads:
 # for two fans, whether they are residuals of one duplication; for an
-# application meeting data, whether the data is a builtin function
+# application meeting data, whether the data is a builtin function; for
+# an application meeting a function, whether their levels agree
 def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
   match a:
     case KAp{}:
@@ -234,6 +308,8 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.era(b)
     case KCall{}:
       rule.call(b)
+    case KLift{}:
+      rule.lift(b, t)
     case _:
       RStuck{}
 

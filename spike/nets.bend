@@ -5,7 +5,9 @@ import ./tpl.bend as T
 
 # Test nets with known results, built as templates: Church numerals
 # applied to each other (where fan pairing decides the answer), a
-# numeral applied to itself, and a long chain for throughput.
+# numeral applied to itself, and a long chain for throughput. They are
+# built without levels, so their fans pair as static labels;
+# spike/tools/terms.py lowers terms with levels.
 
 def l(+a: U32, +pa: U32, +b: U32, +pb: U32) -> T.TLink:
   T.TL{T.TE{a, pa}, T.TE{b, pb}}
@@ -17,7 +19,23 @@ def ap() -> T.TNode:
   T.TN{R.KAp{}, V.PNone{}}
 
 def cp(+site: U32) -> T.TNode:
-  T.TF{R.KCopy{}, site}
+  T.TF{R.KCopy{}, site, 0}
+
+# with levels (spike/tools/terms.py lowers terms with them)
+def fnl(+n: U32) -> T.TNode:
+  T.TN{R.KFn{}, V.PLvl{n}}
+
+def apl(+n: U32) -> T.TNode:
+  T.TN{R.KAp{}, V.PLvl{n}}
+
+def cpl(+site: U32, +n: U32) -> T.TNode:
+  T.TF{R.KCopy{}, site, n}
+
+def br(+n: U32) -> T.TNode:
+  T.TN{R.KLift{}, V.PLift{n, True{}}}
+
+def cr(+n: U32) -> T.TNode:
+  T.TN{R.KLift{}, V.PLift{n, False{}}}
 
 def era() -> T.TNode:
   T.TN{R.KEraN{}, V.PNone{}}

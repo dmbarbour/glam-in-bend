@@ -98,6 +98,20 @@ derivation made here first.
 6. `pairing-gal` — build levels in the spike and test them amply: the
    numeral and self-application nets, then generated lambda terms checked
    against a direct evaluator of the same terms, traced where they differ.
+   Built 2026-10-27, after the derivation below and its correction:
+   fans, functions and applications carry levels; `Lift` and `LiftC`
+   control nodes, their rules in the table under the polarity and
+   linearity laws; a level mismatch at beta counts as an error;
+   `terms.py` lowers with boxes. All eight hand-picked terms reduce to
+   their values, self-applications included (`self #3`,
+   `twice (\n. n n) #2`), and 458 of 460 random ones (seeds 7, 11, 23);
+   the other two run out of fuel with no level mismatch, one computing a
+   number its result discards (the reducer is not demand-driven), one
+   piling up control nodes, 24,000 of them with indices up to 54. The
+   price is bookkeeping: 4 to 20 times the interactions of static labels
+   where both are right (`two two`, 114 against 27). The hand-built nets
+   in `spike/nets.bend` have no levels, so they still pair as static
+   labels.
 7. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness: a net built from
@@ -214,6 +228,28 @@ commute, where one label made them join.
   lowering and the rules guard against wrapping.
 - What GAL adds to this, its cheaper level tracking, is not
   reconstructed here.
+
+**Corrected in building it.** Two claims above are wrong. Control nodes
+do not all face their source, and a function passing one does not take
+the inverse onto its argument wire. A croissant maps level n + 1 onto
+n, so the inverse loses a level: in `two two` a merge at level 1 passed
+the croissant to 0 on the way into a body, came back out through the
+bracket on the body wire still at 0, and met its partner copy, at 1, as
+a stranger. As in Lamping, a function passing a control takes the same
+control onto both its wires, because both lead back into the same box;
+on the argument wire it faces the variable's uses. So there are two
+orientations:
+
+    Lift  [- in, + out]   faces the source: values pass it going down
+    LiftC [+ out, - in]   faces the consumers: copies, applications and
+                          calls pass it going up, their level adjusted,
+                          the control copied onto their other wires;
+                          an eraser takes its place
+    Lift >< LiftC         facing each other: one kind and index cancel;
+                          else each crosses the other, the higher index
+                          adjusted by the lower one's map
+
+A control reaching the root is stuck; no test reaches it.
 
 ## Feasibility (assessed 2026-10-26)
 

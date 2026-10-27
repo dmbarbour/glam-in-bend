@@ -33,6 +33,10 @@ def kcode(k: R.NodeKind) -> U32:
       8
     case R.KCall{}:
       9
+    case R.KLift{}:
+      10
+    case R.KLiftC{}:
+      11
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -54,6 +58,10 @@ def kof(c: U32) -> R.NodeKind:
       R.KRoot{}
     case 9:
       R.KCall{}
+    case 10:
+      R.KLift{}
+    case 11:
+      R.KLiftC{}
     case _:
       R.KFree{}
 
@@ -188,7 +196,7 @@ def fan_of(p: V.Pay) -> V.FanId:
     case V.PFan{f}:
       f
     case _:
-      V.fan_new(0, 0)
+      V.fan_new(0, 0, 0)
 
 def pay_val(p: V.Pay) -> V.Val:
   match p:
@@ -207,6 +215,10 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
       pb
     case R.SApply{}:
       V.PVal{V.apply_fn(pay_val(pa), pay_val(pb))}
+    case R.SLiftA{}:
+      V.lift_pay(pb, pa)
+    case R.SLiftB{}:
+      V.lift_pay(pa, pb)
     case R.SFanA{}:
       pa
     case R.SFanB{}:
@@ -399,6 +411,10 @@ def rule_test(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
       V.fan_eq(fan_of(pa), fan_of(pb))
     case R.KAp{} R.KData{}:
       is_builtin(pb)
+    case R.KAp{} R.KFn{}:
+      V.lvl_eq(pa, pb)
+    case R.KLift{} R.KLiftC{}:
+      V.ctl_eq(pa, pb)
     case _ _:
       False{}
 

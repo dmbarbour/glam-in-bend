@@ -36,6 +36,10 @@ def kname.k(+k: U32) -> String:
       "Root"
     case 9:
       "Call"
+    case 10:
+      "Lift"
+    case 11:
+      "LiftC"
     case _:
       "Free"
 
@@ -57,6 +61,13 @@ def val_str(v: V.Val) -> String:
     case _:
       "unit"
 
+def dir_str(up: Bool) -> String:
+  match up:
+    case True{}:
+      "Br"
+    case False{}:
+      "Cr"
+
 def pay_str(p: V.Pay) -> String:
   match p:
     case V.PNone{}:
@@ -65,8 +76,12 @@ def pay_str(p: V.Pay) -> String:
       "[" ++ val_str(v) ++ "]"
     case V.PFan{f}:
       match f:
-        case V.FanId{+site, +inst}:
-          "[" ++ U32.show(site) ++ "." ++ U32.show(inst) ++ "]"
+        case V.FanId{+site, +inst, +lvl}:
+          "[" ++ U32.show(site) ++ "." ++ U32.show(inst) ++ " @" ++ U32.show(lvl) ++ "]"
+    case V.PLvl{+n}:
+      "[@" ++ U32.show(n) ++ "]"
+    case V.PLift{+n, +up}:
+      "[" ++ dir_str(up) ++ " " ++ U32.show(n) ++ "]"
 
 # a node's name, from its header
 def hname(+h: U32) -> String:
@@ -90,6 +105,20 @@ def fans_name(t: Bool) -> String:
     case False{}:
       "commute"
 
+def beta_name(t: Bool) -> String:
+  match t:
+    case True{}:
+      "beta"
+    case False{}:
+      "LEVEL MISMATCH"
+
+def ctls_name(t: Bool) -> String:
+  match t:
+    case True{}:
+      "controls cancel"
+    case False{}:
+      "controls cross"
+
 def call_name(t: Bool) -> String:
   match t:
     case True{}:
@@ -101,7 +130,7 @@ def call_name(t: Bool) -> String:
 def rule_name(ka: R.NodeKind, kb: R.NodeKind, t: Bool) -> String:
   match ka kb:
     case R.KAp{} R.KFn{}:
-      "beta"
+      beta_name(t)
     case R.KAp{} R.KMerge{}:
       "apply superposition"
     case R.KAp{} R.KData{}:
@@ -126,6 +155,22 @@ def rule_name(ka: R.NodeKind, kb: R.NodeKind, t: Bool) -> String:
       "error"
     case R.KRoot{} _:
       "result"
+    case R.KLift{} R.KFn{}:
+      "lift function"
+    case R.KLift{} R.KMerge{}:
+      "lift merge"
+    case R.KLift{} R.KData{}:
+      "lift data"
+    case R.KLift{} R.KEraP{}:
+      "lift error"
+    case R.KLift{} R.KLiftC{}:
+      ctls_name(t)
+    case R.KCopy{} R.KLiftC{}:
+      "copy past control"
+    case R.KAp{} R.KLiftC{}:
+      "apply past control"
+    case R.KCall{} R.KLiftC{}:
+      "call past control"
     case _ _:
       "stuck"
 
@@ -282,7 +327,8 @@ def census.one(+ks: List<&2, U32>, +k: U32) -> String:
 
 def census(+ks: List<&2, U32>) -> String:
   "census:" ++ census.one(ks, 1) ++ census.one(ks, 2) ++ census.one(ks, 3) ++ census.one(ks, 4) ++
-    census.one(ks, 5) ++ census.one(ks, 6) ++ census.one(ks, 7) ++ census.one(ks, 8) ++ census.one(ks, 9)
+    census.one(ks, 5) ++ census.one(ks, 6) ++ census.one(ks, 7) ++ census.one(ks, 8) ++ census.one(ks, 9) ++
+    census.one(ks, 10) ++ census.one(ks, 11)
 
 # Running
 # =======
