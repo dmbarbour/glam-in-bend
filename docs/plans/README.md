@@ -34,9 +34,6 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   for the assembler's larger structure on Bend 2: the shell and
   concurrency, values and large structures, the store and reclamation,
   parallelism. Drafted for the maintainer's review.
-- [`DocsPort_2026-10-26.md`](DocsPort_2026-10-26.md): `docs-port-` steps
-  adapting the imported design docs and samples: the maintainer's rulings,
-  known errors, and removing what describes the Rust runtime.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
   sharing and fixpoints, parallelism, fast paths), ending in a
@@ -48,4 +45,5 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 
 ## Retired
 
-None yet.
+- `DocsPort_2026-10-26.md`: adapted the design docs and samples imported
+  from the Rust bootstrap; last commit 9d9594f.
