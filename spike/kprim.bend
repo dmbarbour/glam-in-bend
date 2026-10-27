@@ -97,7 +97,9 @@ def dt_put.new(full: Bool, t: DT, v: V.Val) -> DT & U32:
     case False{}:
       dt_put.app(t, v)
 
-# the link a freed entry holds; anything else ends the list
+# the link a freed entry holds, VNum{0} in the last. The list reads only
+# freed entries, so a live entry may be a VNum too. Anything else marks a
+# corrupt list: it ends here, and the audit's live count reports the leak.
 def dt_link(v: V.Val) -> U32:
   match v:
     case V.VNum{+k}:
