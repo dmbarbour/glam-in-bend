@@ -134,6 +134,26 @@ derivation made here first.
    nets against a reference whose correctness needs no levels: a copy
    that duplicates the whole subnet behind its input, after the Rust
    bootstrap's whole copies.
+   Sketch (2026-10-27, before reading the earlier discussion's take).
+   Polarity fixes which way values flow, so the subnet that produces a
+   value is well defined: walk upstream from a negative port to the
+   producing node, then from its negative ports on. A box is that
+   upstream region for every value that may be duplicated, the input of
+   a copy or the argument of an application, closed under two rules:
+   reaching a function through its argument port does not take it in (a
+   free variable, so a bracket on that edge) unless it is in by its
+   principal; and a copy is in only if both its outputs' consumers are
+   (else it is shared from outside, a bracket again). Depth is the
+   number of boxes around a node; fans take the depth of where they
+   sit, and every value leaving a box to be used, through a copy's
+   outputs or a variable's uses, crosses a croissant. Lambda-built nets
+   give boxes that nest, which is all Lamping's theorem needs. A net
+   whose boxes overlap without nesting has no levels of this kind: a
+   function whose argument is used outside its body's region (scope
+   extruded), for instance. Such nets would be refused, or paired some
+   other way. Open: whether glam's monadic construction can assign
+   levels as it builds, which would make inference needless for its own
+   nets.
 8. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness: a net built from
