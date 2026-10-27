@@ -1,0 +1,34 @@
+# Variant B: dispatch on the kind pair, each rule passed as a constant
+def apply_k(+ka: R.NodeKind, +kb: R.NodeKind, +t: Bool, q: Q, +a: U32, +b: U32, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
+  match ka kb:
+    case R.KAp{} R.KFn{}:
+      match t:
+        case True{}:
+          apply(R.rule(R.KAp{}, R.KFn{}, True{}), q, a, b, R.KAp{}, x, pa, pb)
+        case False{}:
+          apply(R.rule(R.KAp{}, R.KFn{}, False{}), q, a, b, R.KAp{}, x, pa, pb)
+    case R.KCopy{} R.KFn{}:
+      apply(R.rule(R.KCopy{}, R.KFn{}, False{}), q, a, b, R.KCopy{}, x, pa, pb)
+    case R.KCopy{} R.KMerge{}:
+      match t:
+        case True{}:
+          apply(R.rule(R.KCopy{}, R.KMerge{}, True{}), q, a, b, R.KCopy{}, x, pa, pb)
+        case False{}:
+          apply(R.rule(R.KCopy{}, R.KMerge{}, False{}), q, a, b, R.KCopy{}, x, pa, pb)
+    case R.KCopy{} R.KData{}:
+      apply(R.rule(R.KCopy{}, R.KData{}, False{}), q, a, b, R.KCopy{}, x, pa, pb)
+    case R.KAp{} R.KMerge{}:
+      apply(R.rule(R.KAp{}, R.KMerge{}, False{}), q, a, b, R.KAp{}, x, pa, pb)
+    case R.KAp{} R.KData{}:
+      match t:
+        case True{}:
+          apply(R.rule(R.KAp{}, R.KData{}, True{}), q, a, b, R.KAp{}, x, pa, pb)
+        case False{}:
+          apply(R.rule(R.KAp{}, R.KData{}, False{}), q, a, b, R.KAp{}, x, pa, pb)
+    case R.KCall{} R.KData{}:
+      apply(R.rule(R.KCall{}, R.KData{}, False{}), q, a, b, R.KCall{}, x, pa, pb)
+    case R.KCall{} R.KMerge{}:
+      apply(R.rule(R.KCall{}, R.KMerge{}, False{}), q, a, b, R.KCall{}, x, pa, pb)
+    case _ _:
+      apply(R.rule(ka, kb, t), q, a, b, ka, x, pa, pb)
+

@@ -1,0 +1,141 @@
+# Variant C: the workload's rules written by hand, in the table's node and
+# link order; anything else, or a redex with internal externals, falls
+# back to the table
+type M4 is Type:
+  M4{q: Q, +r0: U32, +r1: U32, +r2: U32, +r3: U32}
+
+def m4.d(r: Q & U32, +r0: U32, +r1: U32, +r2: U32) -> M4:
+  (q, +r3) = r
+  M4{q, r0, r1, r2, r3}
+
+def m4.c(r: Q & U32, +r0: U32, +r1: U32, k3: R.NodeKind, p3: V.Pay) -> M4:
+  (q, +r2) = r
+  m4.d(node(q, k3, p3), r0, r1, r2)
+
+def m4.b(r: Q & U32, +r0: U32, k2: R.NodeKind, p2: V.Pay, k3: R.NodeKind, p3: V.Pay) -> M4:
+  (q, +r1) = r
+  m4.c(node(q, k2, p2), r0, r1, k3, p3)
+
+def m4.a(r: Q & U32, k1: R.NodeKind, p1: V.Pay, k2: R.NodeKind, p2: V.Pay, k3: R.NodeKind, p3: V.Pay) -> M4:
+  (q, +r0) = r
+  m4.b(node(q, k1, p1), r0, k2, p2, k3, p3)
+
+def mk4(q: Q, k0: R.NodeKind, p0: V.Pay, k1: R.NodeKind, p1: V.Pay, k2: R.NodeKind, p2: V.Pay, k3: R.NodeKind, p3: V.Pay) -> M4:
+  m4.a(node(q, k0, p0), k1, p1, k2, p2, k3, p3)
+
+type M3 is Type:
+  M3{q: Q, +r0: U32, +r1: U32, +r2: U32}
+
+def m3.c(r: Q & U32, +r0: U32, +r1: U32) -> M3:
+  (q, +r2) = r
+  M3{q, r0, r1, r2}
+
+def m3.b(r: Q & U32, +r0: U32, k2: R.NodeKind, p2: V.Pay) -> M3:
+  (q, +r1) = r
+  m3.c(node(q, k2, p2), r0, r1)
+
+def m3.a(r: Q & U32, k1: R.NodeKind, p1: V.Pay, k2: R.NodeKind, p2: V.Pay) -> M3:
+  (q, +r0) = r
+  m3.b(node(q, k1, p1), r0, k2, p2)
+
+def mk3(q: Q, k0: R.NodeKind, p0: V.Pay, k1: R.NodeKind, p1: V.Pay, k2: R.NodeKind, p2: V.Pay) -> M3:
+  m3.a(node(q, k0, p0), k1, p1, k2, p2)
+
+def ra(+r: U32, +p: U32) -> U32:
+  S.ref_at(r, p)
+
+def fresh(q: Q, +a: U32, +b: U32) -> Q:
+  free(free(q, a), b)
+
+# beta and a join link two pairs of externals, then try fusing them
+def sp.two(q: Q, +a: U32, +b: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> Q:
+  fuse_all(ext_node(e0, a, b, ext_node(e1, a, b, ext_node(e2, a, b, ext_node(e3, a, b, Nil{})))),
+    link(link(fresh(q, a, b), e0, e1), e2, e3))
+
+def sp.cfn(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> Q:
+  match m:
+    case M4{q, +r0, +r1, +r2, +r3}:
+      link(link(link(link(link(link(link(link(q, ra(r0, 0), e0), ra(r1, 0), e1), e2, ra(r2, 0)),
+        ra(r2, 1), ra(r0, 1)), ra(r2, 2), ra(r1, 1)), e3, ra(r3, 0)), ra(r3, 1), ra(r0, 2)), ra(r3, 2), ra(r1, 2))
+
+def sp.comm(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> Q:
+  match m:
+    case M4{q, +r0, +r1, +r2, +r3}:
+      link(link(link(link(link(link(link(link(q, ra(r0, 0), e0), ra(r1, 0), e1), ra(r2, 0), e2), ra(r3, 0), e3),
+        ra(r2, 1), ra(r0, 1)), ra(r2, 2), ra(r1, 1)), ra(r3, 1), ra(r0, 2)), ra(r3, 2), ra(r1, 2))
+
+def sp.apsup(m: M4, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> Q:
+  match m:
+    case M4{q, +r0, +r1, +r2, +r3}:
+      link(link(link(link(link(link(link(link(q, ra(r0, 0), e2), ra(r1, 0), e3), ra(r2, 0), e0),
+        ra(r2, 1), ra(r0, 1)), ra(r2, 2), ra(r1, 1)), ra(r3, 0), e1), ra(r3, 1), ra(r0, 2)), ra(r3, 2), ra(r1, 2))
+
+def sp.dist(m: M3, +e0: U32, +e2: U32, +e3: U32) -> Q:
+  match m:
+    case M3{q, +r0, +r1, +r2}:
+      link(link(link(link(link(q, ra(r0, 0), e2), ra(r1, 0), e3), ra(r2, 0), e0), ra(r2, 1), ra(r0, 1)), ra(r2, 2), ra(r1, 1))
+
+def sp.cdata.b(r: Q & U32, +r0: U32, +e0: U32, +e1: U32) -> Q:
+  (q, +r1) = r
+  link(link(q, ra(r0, 0), e0), ra(r1, 0), e1)
+
+def sp.cdata(r: Q & U32, +pb: V.Pay, +e0: U32, +e1: U32) -> Q:
+  (q, +r0) = r
+  sp.cdata.b(node(q, R.KData{}, pb), r0, e0, e1)
+
+def sp.call(r: Q & U32, +e0: U32, +e1: U32) -> Q:
+  (q, +r0) = r
+  link(link(q, ra(r0, 0), e0), ra(r0, 1), e1)
+
+def sp.compute(r: Q & U32, +e0: U32) -> Q:
+  (q, +r0) = r
+  link(q, ra(r0, 0), e0)
+
+def apply_fast.k(+ka: R.NodeKind, +kb: R.NodeKind, +t: Bool, q: Q, +a: U32, +b: U32, +x: Ext, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +pa: V.Pay, +pb: V.Pay) -> Q:
+  match ka kb:
+    case R.KAp{} R.KFn{}:
+      match t:
+        case True{}:
+          sp.two(q, a, b, e0, e3, e1, e2)
+        case False{}:
+          apply(R.rule(ka, kb, t), q, a, b, ka, x, pa, pb)
+    case R.KCopy{} R.KMerge{}:
+      match t:
+        case True{}:
+          sp.two(q, a, b, e0, e2, e1, e3)
+        case False{}:
+          sp.comm(mk4(fresh(q, a, b), R.KMerge{}, pb, R.KMerge{}, pb, R.KCopy{}, pa, R.KCopy{}, pa), e0, e1, e2, e3)
+    case R.KCopy{} R.KFn{}:
+      sp.cfn(mk4(fresh(q, a, b), R.KFn{}, pb, R.KFn{}, pb, R.KCopy{}, pa, R.KMerge{}, pa), e0, e1, e2, e3)
+    case R.KCopy{} R.KData{}:
+      sp.cdata(node(fresh(q, a, b), R.KData{}, pb), pb, e0, e1)
+    case R.KAp{} R.KMerge{}:
+      sp.apsup(mk4(fresh(q, a, b), R.KAp{}, pa, R.KAp{}, pa, R.KCopy{}, pb, R.KMerge{}, pb), e0, e1, e2, e3)
+    case R.KAp{} R.KData{}:
+      match t:
+        case True{}:
+          sp.call(node(fresh(q, a, b), R.KCall{}, pb), e0, e1)
+        case False{}:
+          apply(R.rule(ka, kb, t), q, a, b, ka, x, pa, pb)
+    case R.KCall{} R.KData{}:
+      sp.compute(node(fresh(q, a, b), R.KData{}, V.PVal{V.apply_fn(pay_val(pa), pay_val(pb))}), e0)
+    case R.KCall{} R.KMerge{}:
+      sp.dist(mk3(fresh(q, a, b), R.KCall{}, pa, R.KCall{}, pa, R.KMerge{}, pb), e0, e2, e3)
+    case _ _:
+      apply(R.rule(ka, kb, t), q, a, b, ka, x, pa, pb)
+
+def apply_fast(+ka: R.NodeKind, +kb: R.NodeKind, +t: Bool, q: Q, +a: U32, +b: U32, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
+  match x:
+    case Ext4{+e0, +e1, +e2, +e3}:
+      apply_fast.k(ka, kb, t, q, a, b, x, e0, e1, e2, e3, pa, pb)
+
+def apply_sp.go(internal: Bool, +ka: R.NodeKind, +kb: R.NodeKind, +t: Bool, q: Q, +a: U32, +b: U32, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
+  match internal:
+    case True{}:
+      apply(R.rule(ka, kb, t), q, a, b, ka, x, pa, pb)
+    case False{}:
+      apply_fast(ka, kb, t, q, a, b, x, pa, pb)
+
+def apply_k(+ka: R.NodeKind, +kb: R.NodeKind, +t: Bool, q: Q, +a: U32, +b: U32, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
+  apply_sp.go(any_partner(x, a, b), ka, kb, t, q, a, b, x, pa, pb)
+

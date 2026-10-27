@@ -136,23 +136,58 @@ The core:
    allocation once reduction focused full pages (2944 pages for 5000
    interactions, gigabytes, a crashed session); allocation now tries the
    current page, then an allocation page, then a new page.
-3. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
+3. `spike-node-layout` — nodes as the maintainer pictures them, after
+   Victor Taelin's earlier nets: four `U32` words, the first holding the
+   kind and the level (24 bits), the other three references to ports
+   (two low bits for the port) or, in nodes with fewer ports, an index
+   into a data table or a word of metadata (a control's offset). Payloads
+   shrink to that data table, the only part reference counted; fan sites
+   become a debug side table, serials a tracing one. And a fast path that
+   keeps the laws: the rule table stays the specification, and the
+   rewrites that run are either Bend's specialization of the table's
+   interpreter or code generated from it, checked against it on the
+   test corpora. First, a benchmark on one workload and one rule set:
+   the table interpreter, dispatch on the kind pair with each rule a
+   constant, and rewrites written by hand, at n, 2n and 4n.
+   Benchmarked 2026-10-27 (`spike/bench_rules.bend`, the variants in
+   `spike/tools/rewrites/`; i7-6700, Bend 2.0.39, native, best of three).
+   The workload, `k 2 succ 0` built by hand, takes 131K, 262K and 525K
+   interactions at k 16, 17, 18, 84% of them calls computing or
+   distributing over merges. Per interaction:
+
+       k    table    constants    by hand    by hand, no checks
+       16   0.97 us  1.02 us      0.80 us    0.83 us
+       17   0.98 us  1.00 us      0.59 us    0.62 us
+       18   0.98 us  1.01 us      0.61 us    0.64 us
+
+   Values and interaction counts are identical in all four, and all
+   scale linearly. Bend does not specialize the interpreter when handed
+   a constant rule: dispatching on the kind pair gains nothing. Rewrites
+   written by hand are 1.6 times faster; done for real, they would be
+   generated from the table and checked against it, so the laws keep
+   covering what runs. The level assertions and fusion checks cost
+   nothing measurable. What remains, about 0.6 us an interaction against
+   `pure_hvm5_mini`'s 0.07, is the store and the interaction's own
+   reads: accessors that rebuild the store record each time, and boxed
+   payloads. That is the layout this step is for, measured next the
+   same way.
+4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).
 
 Sharing:
 
-4. `spike-materialize` — find nets, and parts of nets, with no evaluation
+5. `spike-materialize` — find nets, and parts of nets, with no evaluation
    left, and hold them compactly: ground data outside the traced heap,
    with no handle indirection, copied whole. Normalize under fuel when an
    annotation asks, and compile a net that only builds values to operator
    steps, after the Rust bootstrap's compiled nets.
-5. `spike-cursors` — logical copies after the Rust bootstrap's cursors: a
+6. `spike-cursors` — logical copies after the Rust bootstrap's cursors: a
    call copies its function's net lazily, frontier by frontier, and a
    source pair reduces once, in the source, for every copy, so partial
    applications share their work. Over pages, a copy may need its source's
    pages, or only the compact form of the parts it reads.
-6. `spike-fixpoints` — object-self knots over mixins (one cell per knot,
+7. `spike-fixpoints` — object-self knots over mixins (one cell per knot,
    entries capturing its handle; linearization computed once per spec),
    recursive binding groups, self-recursive functions (each call
    instantiating a compact template through a reference, never unfolding
@@ -161,7 +196,7 @@ Sharing:
    Workloads: deep mixin chains, repeated `with` and `extend`, recursive
    functions, recursive do over assembly labels. Law: unfolding a knot
    once changes no observation.
-7. `spike-lazy-data` — the split heap with a stop-the-world collector
+8. `spike-lazy-data` — the split heap with a stop-the-world collector
    (the sketch's "Collection"), against lazy fields as ports, on workloads
    that share a field many times, copy a large mostly unread dict, keep
    many persistent versions of a large lazy dict (the case where careless
@@ -170,32 +205,32 @@ Sharing:
 
 Parallelism:
 
-8. `spike-page-rounds` — a coordinator running independent tasks on
+9. `spike-page-rounds` — a coordinator running independent tasks on
    workers that own their pages, in rounds (`rounds-of-coarse-work`):
    tasks report the pages and thunks they need, thunk waiters are restored
    only when ready, and fuel is one unit per logical step. Then marking as
    tasks in the same rounds. Laws: a round loses or duplicates no page and
    no task.
-9. `spike-deep-parallelism` — parallelism found inside a task: nested
-   parallel calls for pure work over what its worker holds (its pages,
-   split between the calls, and ground data), and new tasks for the
-   coordinator where work needs pages or thunks held elsewhere. Deep
-   parallelism may simplify the coordinator by making it recursive: a
-   worker coordinates subtasks over the pages it holds.
+10. `spike-deep-parallelism` — parallelism found inside a task: nested
+    parallel calls for pure work over what its worker holds (its pages,
+    split between the calls, and ground data), and new tasks for the
+    coordinator where work needs pages or thunks held elsewhere. Deep
+    parallelism may simplify the coordinator by making it recursive: a
+    worker coordinates subtasks over the pages it holds.
 
 Speed:
 
-10. `spike-hvm5-jit` — find the nets, or parts, that fit an HVM5-style
+11. `spike-hvm5-jit` — find the nets, or parts, that fit an HVM5-style
     interaction loop (lambda-shaped, fans that labels pair correctly, data
     limited to its constructors), translate them, and run them on such a
     loop; measure the speedup and how much of real workloads qualifies.
     `pure_hvm5_mini` is a demo, not a built-in: the loop would be ours,
     perhaps a finally tagless interpreter specialized by Bend's `~`
     templates at compile time.
-11. `spike-measure` — interactions/s, peak cells, check and build times, JS
+12. `spike-measure` — interactions/s, peak cells, check and build times, JS
     against native, parallel speedup, at n, 2n and 4n; record the numbers
     here.
-12. `spike-verdict` — decide the representation, record it in
+13. `spike-verdict` — decide the representation, record it in
     `docs/decisions/`, and retire this plan.
 
 ## Open questions
