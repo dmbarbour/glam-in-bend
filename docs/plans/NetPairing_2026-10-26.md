@@ -72,12 +72,23 @@ derivation made here first.
    On `(\t -> t t) two` it shows the failure at interaction 12: the two
    copies of `two` carry one label, so one copy's fan joins the other's
    partner; a call then distributes around the ring of merges that join
-   made, without end.
+   made, without end. Since: nodes are named by serial number, never
+   reused, and each interaction lists the nodes it made; a window prints
+   only the interactions from a given one on; the net's listing counts
+   node kinds (`spike/tracelib.bend`). `spike/tools/terms.py` lowers
+   lambda terms to nets as optimal reduction does (a live function per
+   lambda, a copy per extra use of a variable), evaluates each term
+   directly for the value its net must reach, and writes a Bend program
+   that tests the terms or traces one; it also generates random numeral
+   expressions.
 4. `pairing-labels` — where labels suffice. The spike's scheme meanwhile:
    one label per lowering site and instantiation. Right on `m n succ 0`
    for distinct numerals; wrong on self-application, where two copies of
-   one duplication meet under one label. Characterize the nets that never
-   meet so, and whether lowering can guarantee it.
+   one duplication meet under one label. Of 60 random numeral
+   expressions (`terms.py gen`, seed 7), 49 reduce to their value and 11
+   do not, every one of them a self-application (`self`, `\x. pow x x`,
+   `\n. n n`): some diverge, some halt with no value. Characterize the
+   nets that never meet so, and whether lowering can guarantee it.
 5. `pairing-gal-derive` — derive a level discipline for polarized nets:
    what a level means without lambda terms' boxes, which nodes carry one,
    how levels change (brackets and croissants or GAL's simplification),
@@ -94,6 +105,11 @@ derivation made here first.
    find the restriction under which it holds.
 8. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
+9. `pairing-docs` — revise the standing docs to the verdict. Design.md's
+   copy-copy rule says pairing follows complete dynamic duplication
+   identity and that duplication history distinguishes residual fans;
+   histories pair wrongly, so say what does, and check the other docs for
+   the same claim.
 
 ## Feasibility (assessed 2026-10-26)
 

@@ -24,7 +24,7 @@ def show_val(m: Maybe<&2, V.Val>) -> String:
 
 def counts(q: N.Q) -> String:
   match q:
-    case N.Q{st, rq, +itrs, +errs}:
+    case N.Q{st, rq, +itrs, +errs, +ser}:
       U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors"
 
 def report(r: N.Q & Maybe<&2, V.Val>) -> String:
@@ -34,16 +34,25 @@ def report(r: N.Q & Maybe<&2, V.Val>) -> String:
 def check(+name: String, t: T.Tpl) -> String:
   name ++ ": " ++ report(T.result(T.run(t, 5000n)))
 
+def at_least_one(+n: U32) -> U32:
+  match n:
+    case 0:
+      1000
+    case _:
+      n
+
+# the chain's length: the first argument, 1000 if absent or zero (a
+# numeral needs at least one use)
 def arg(xs: List<String>) -> U32:
   match xs:
     case Con{_, r}:
       match r:
         case Con{s, _}:
-          Maybe.default(&2, U32, U32.read(s), 0)
+          at_least_one(Maybe.default(&2, U32, U32.read(s), 0))
         case Nil{}:
-          0
+          1000
     case Nil{}:
-      0
+      1000
 
 def main() -> IO(Unit):
   do IO<Unit>:

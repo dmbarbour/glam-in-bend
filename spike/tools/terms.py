@@ -1,0 +1,466 @@
+#!/usr/bin/env python3
+"""Lambda terms as spike nets, with their values as a reference.
+
+Lowers each term the way optimal reduction does: a live Fn per lambda, an Ap
+per application, a chain of Copy fans for a variable used more than once (a
+site per fan), an eraser for an unused one. Evaluates each term directly,
+call by need, for the value its net must reduce to. Writes a Bend program
+that tests every term, or traces one through tracelib.bend.
+
+    terms.py emit OUT TERM...          the given terms
+    terms.py gen OUT COUNT [SEED]      COUNT random numeral expressions
+
+Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
+./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
+
+Syntax: \\x y. body, application by juxtaposition, parentheses; #n is the
+Church numeral n; succ and decimal numbers are builtin data; free names
+from PRELUDE expand in place, fresh at each use. A term should reduce to a
+number, so tests usually end in `succ 0`.
+"""
+import os
+import random
+import re
+import sys
+
+PRELUDE = {
+    "I": r"\x. x",
+    "K": r"\x y. x",
+    "self": r"\t. t t",
+    "add": r"\m n f x. m f (n f x)",
+    "mul": r"\m n f. m (n f)",
+    "pow": r"\m n. n m",
+    "twice": r"\f x. f (f x)",
+    "compose": r"\f g x. f (g x)",
+    "flip": r"\f x y. f y x",
+    "pair": r"\a b k. k a b",
+    "fst": r"\p. p (\x y. x)",
+    "snd": r"\p. p (\x y. y)",
+}
+
+TOKEN = re.compile(r"\s*(?:(\\)|(\.)|(\()|(\))|#(\d+)|(\d+)|([A-Za-z_][A-Za-z0-9_']*))")
+
+
+def tokenize(s):
+    out, i = [], 0
+    s = s.rstrip()
+    while i < len(s):
+        m = TOKEN.match(s, i)
+        if not m or m.end() == i:
+            raise SyntaxError(f"bad input at {i}: {s[i:i + 10]!r}")
+        i = m.end()
+        lam, dot, lp, rp, church, num, name = m.groups()
+        if lam: out.append(("\\",))
+        elif dot: out.append((".",))
+        elif lp: out.append(("(",))
+        elif rp: out.append((")",))
+        elif church is not None: out.append(("church", int(church)))
+        elif num is not None: out.append(("int", int(num)))
+        else: out.append(("name", name))
+    return out
+
+
+class Parser:
+    def __init__(self, text):
+        self.t, self.i = tokenize(text), 0
+
+    def peek(self):
+        return self.t[self.i] if self.i < len(self.t) else ("eof",)
+
+    def take(self, kind):
+        tok = self.peek()
+        if tok[0] != kind:
+            raise SyntaxError(f"expected {kind}, got {tok}")
+        self.i += 1
+        return tok
+
+    def term(self):
+        if self.peek()[0] == "\\":
+            self.take("\\")
+            names = []
+            while self.peek()[0] == "name":
+                names.append(self.take("name")[1])
+            if not names:
+                raise SyntaxError("lambda without a variable")
+            self.take(".")
+            body = self.term()
+            for x in reversed(names):
+                body = ("lam", x, body)
+            return body
+        f = self.atom()
+        while self.peek()[0] in ("name", "church", "int", "(", "\\"):
+            if self.peek()[0] == "\\":
+                return ("app", f, self.term())
+            f = ("app", f, self.atom())
+        return f
+
+    def atom(self):
+        tok = self.peek()
+        if tok[0] == "(":
+            self.take("(")
+            t = self.term()
+            self.take(")")
+            return t
+        self.i += 1
+        if tok[0] == "name":
+            return ("var", tok[1])
+        if tok[0] == "church":
+            return church(tok[1])
+        if tok[0] == "int":
+            return ("int", tok[1])
+        raise SyntaxError(f"unexpected {tok}")
+
+    def whole(self):
+        t = self.term()
+        if self.peek()[0] != "eof":
+            raise SyntaxError(f"trailing input at token {self.i}")
+        return t
+
+
+def church(n):
+    body = ("var", "x")
+    for _ in range(n):
+        body = ("app", ("var", "f"), body)
+    return ("lam", "f", ("lam", "x", body))
+
+
+def parse(text):
+    return expand(Parser(text).whole(), set())
+
+
+def expand(t, bound):
+    """Replace free prelude names and succ, leaving bound names alone."""
+    k = t[0]
+    if k == "var":
+        x = t[1]
+        if x in bound:
+            return t
+        if x == "succ":
+            return ("succ",)
+        if x in PRELUDE:
+            return expand(Parser(PRELUDE[x]).whole(), set())
+        raise NameError(f"free variable {x}")
+    if k == "lam":
+        return ("lam", t[1], expand(t[2], bound | {t[1]}))
+    if k == "app":
+        return ("app", expand(t[1], bound), expand(t[2], bound))
+    return t
+
+
+def show(t):
+    k = t[0]
+    if k == "var": return t[1]
+    if k == "int": return str(t[1])
+    if k == "succ": return "succ"
+    if k == "lam": return f"(\\{t[1]}. {show(t[2])})"
+    return f"({show(t[1])} {show(t[2])})"
+
+
+# Reference evaluation, call by need
+# ==================================
+
+class OutOfFuel(Exception):
+    pass
+
+
+class Thunk:
+    def __init__(self, f):
+        self.f, self.done, self.v = f, False, None
+
+    def force(self):
+        if not self.done:
+            self.v, self.done, self.f = self.f(), True, None
+        return self.v
+
+
+SUCC = "succ"
+
+
+def evaluate(t, fuel=200000, limit=10**6):
+    budget = [fuel]
+
+    def tick():
+        budget[0] -= 1
+        if budget[0] < 0:
+            raise OutOfFuel()
+
+    def ev(t, env):
+        tick()
+        k = t[0]
+        if k == "var": return env[t[1]].force()
+        if k == "int": return t[1]
+        if k == "succ": return SUCC
+        if k == "lam": return ("fn", t[1], t[2], env)
+        f = ev(t[1], env)
+        a = Thunk(lambda: ev(t[2], env))
+        return apply(f, a)
+
+    def apply(f, a):
+        tick()
+        if f == SUCC:
+            v = a.force()
+            if not isinstance(v, int) or v >= limit:
+                raise OutOfFuel()
+            return v + 1
+        if isinstance(f, tuple) and f[0] == "fn":
+            _, x, body, env = f
+            return ev(body, {**env, x: a})
+        raise TypeError("applied a non-function")
+
+    v = ev(t, {})
+    return v if isinstance(v, int) else None
+
+
+# Lowering to a spike template
+# ============================
+
+class Net:
+    def __init__(self):
+        self.nodes, self.links, self.site = [], [], 0
+
+    def node(self, kind, arg=None):
+        self.nodes.append((kind, arg))
+        return len(self.nodes) - 1
+
+    def link(self, a, b):
+        self.links.append((a, b))
+
+
+class Var:
+    """A bound variable's uses: the consumer port each use is plugged into."""
+    def __init__(self):
+        self.uses = []
+
+
+def plug(net, value, consumer):
+    """Wire a value (a port, or a variable use) to a consumer port."""
+    if isinstance(value, Var):
+        value.uses.append(consumer)
+    else:
+        net.link(value, consumer)
+
+
+def lower(net, t, env):
+    """Lower t; return the port providing its value, or a Var for a use."""
+    k = t[0]
+    if k == "var":
+        return env[t[1]]
+    if k == "int":
+        return (net.node("num", t[1]), 0)
+    if k == "succ":
+        return (net.node("succ"), 0)
+    if k == "app":
+        a = net.node("ap")
+        plug(net, lower(net, t[1], env), (a, 0))
+        plug(net, lower(net, t[2], env), (a, 1))
+        return (a, 2)
+    # a lambda: Fn [+ fn, - result, + arg]
+    f = net.node("fn")
+    v = Var()
+    plug(net, lower(net, t[2], {**env, t[1]: v}), (f, 1))
+    fan_out(net, (f, 2), v.uses)
+    return (f, 0)
+
+
+def fan_out(net, src, uses):
+    if not uses:
+        net.link(src, (net.node("era"), 0))
+        return
+    for u in uses[:-1]:
+        net.site += 1
+        c = net.node("cp", net.site)
+        net.link(src, (c, 0))
+        net.link((c, 1), u)
+        src = (c, 2)
+    net.link(src, uses[-1])
+
+
+def to_tpl(t):
+    net = Net()
+    root = lower(net, t, {})
+    if isinstance(root, Var):
+        raise ValueError("a bare variable")
+    return net, root
+
+
+def bend_node(kind, arg):
+    return {"fn": "X.fn()", "ap": "X.ap()", "era": "X.era()", "succ": "X.succ()",
+            "num": f"X.num({arg})", "cp": f"X.cp({arg})"}[kind]
+
+
+def bend_tpl(net, root):
+    nodes = ", ".join(bend_node(k, a) for k, a in net.nodes)
+    links = ", ".join(f"X.l({a}, {pa}, {b}, {pb})" for (a, pa), (b, pb) in net.links)
+    return (f"T.Tpl{{[{nodes}],\n    [{links}],\n    T.TE{{{root[0]}, {root[1]}}}, {len(net.nodes)}}}")
+
+
+def bend_str(s):
+    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def emit(out, terms, spike):
+    os.makedirs(out, exist_ok=True)
+    rel = os.path.relpath(spike, out)
+    rows = []
+    for text in terms:
+        t = parse(text)
+        want = evaluate(t)
+        net, root = to_tpl(t)
+        rows.append((text, want, net, root))
+    lines = ["import Base"]
+    for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("tracelib", "L")]:
+        lines.append(f"import {rel}/{mod}.bend as {alias}")
+    lines.append("")
+    lines.append("# Generated by spike/tools/terms.py; do not edit.")
+    lines.append("")
+    for i, (text, want, net, root) in enumerate(rows):
+        lines.append(f"def t{i}() -> T.Tpl:\n  {bend_tpl(net, root)}\n")
+
+    def dispatch(name, rtype, f):
+        out = [f"def {name}(+k: U32) -> {rtype}:", "  match k:"]
+        for i, row in enumerate(rows):
+            out += [f"    case {i}:", f"      {f(i, row)}"]
+        out += ["    case _:", f"      {f(len(rows) - 1, rows[-1])}", ""]
+        return "\n".join(out)
+
+    lines.append(dispatch("tpl_of", "T.Tpl", lambda i, r: f"t{i}()"))
+    lines.append(dispatch("name_of", "String", lambda i, r: bend_str(r[0])))
+    lines.append(dispatch("want_of", "U32", lambda i, r: str(r[1] if r[1] is not None else 4294967295)))
+    lines.append(TEST_MAIN.replace("COUNT", f"{len(rows)}n"))
+    path = os.path.join(out, "terms.bend")
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"wrote {path}: {len(rows)} terms, {sum(len(r[2].nodes) for r in rows)} nodes")
+
+
+TEST_MAIN = r'''
+def verdict(+ok: Bool) -> String:
+  match ok:
+    case True{}:
+      "PASS"
+    case False{}:
+      "FAIL"
+
+def got.show(m: Maybe<&2, V.Val>, +want: U32) -> String:
+  match m:
+    case Some{v}:
+      match v:
+        case V.VNum{+n}:
+          verdict(U32.is_eq(n, want)) ++ " got " ++ U32.show(n)
+        case _:
+          "FAIL got a non-number"
+    case None{}:
+      "FAIL no value"
+
+def got(r: N.Q & Maybe<&2, V.Val>, +want: U32) -> String:
+  (q, v) = r
+  match q:
+    case N.Q{st, rq, +itrs, +errs, +ser}:
+      got.show(v, want) ++ " in " ++ U32.show(itrs) ++ " interactions"
+
+def test_one(+k: U32, +fuel: Nat) -> String:
+  "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": " ++ got(T.result(T.run(tpl_of(k), fuel)), want_of(k)) ++ "  " ++ name_of(k)
+
+def test_all(n: Nat, +k: U32, +fuel: Nat) -> String:
+  match n:
+    case 0n:
+      ""
+    case 1n+p:
+      test_one(k, fuel) ++ "\n" ++ test_all(p, (k + 1 : U32), fuel)
+
+def trace_k(+k: U32, +steps: Nat, +from: U32) -> String:
+  L.trace(tpl_of(k), name_of(k), steps, from)
+
+def go.args(xs: List<String>) -> String:
+  match xs:
+    case Con{p, r}:
+      match r:
+        case Con{cmd, r2}:
+          match r2:
+            case Con{k, r3}:
+              match r3:
+                case Con{s, r4}:
+                  match r4:
+                    case Con{f, r5}:
+                      trace_k(L.u32_of(k), L.nat_of(s), L.u32_of(f))
+                    case Nil{}:
+                      trace_k(L.u32_of(k), L.nat_of(s), 0)
+                case Nil{}:
+                  test_all(COUNT, 0, L.nat_of(k))
+            case Nil{}:
+              test_all(COUNT, 0, 5000n)
+        case Nil{}:
+          test_all(COUNT, 0, 5000n)
+    case Nil{}:
+      test_all(COUNT, 0, 5000n)
+
+# no arguments: test every term (fuel 64 rounds of 5000); `fuel F`: of F;
+# `trace K STEPS [FROM]`: trace term K
+def main() -> IO(Unit):
+  do IO<Unit>:
+    xs : List<String> <- IO.args()
+    IO.print(go.args(xs))
+'''
+
+
+# Random numeral expressions
+# ==========================
+
+NUMFUNS = [r"(\n. mul n #2)", r"(\n. pow n #2)", r"(add #1)", r"(\n. n n)",
+           r"(\n. add n n)", r"(mul #2)", r"(\n. n (add #1) #0)"]
+
+
+def gen_expr(rng, depth):
+    if depth <= 0 or rng.random() < 0.25:
+        return f"#{rng.randint(0, 3)}"
+    a = lambda: gen_expr(rng, depth - 1)
+    choice = rng.randrange(8)
+    if choice == 0: return f"(add {a()} {a()})"
+    if choice == 1: return f"(mul {a()} {a()})"
+    if choice == 2: return f"(pow {a()} {a()})"
+    if choice == 3: return f"(self {a()})"
+    if choice == 4:
+        op = rng.choice(["add", "mul", "pow"])
+        return f"((\\x. {op} x x) {a()})"
+    if choice == 5:
+        op = rng.choice(["add", "mul"])
+        return f"((\\f. {op} (f {a()}) (f {a()})) {rng.choice(NUMFUNS)})"
+    if choice == 6:
+        return f"(twice {rng.choice(NUMFUNS)} {a()})"
+    return f"({rng.choice(NUMFUNS)} {a()})"
+
+
+def gen(count, seed, depth=3, maxval=64):
+    rng, seen, out = random.Random(seed), set(), []
+    tries = 0
+    while len(out) < count and tries < count * 200:
+        tries += 1
+        text = f"{gen_expr(rng, depth)} succ 0"
+        if text in seen:
+            continue
+        seen.add(text)
+        try:
+            v = evaluate(parse(text), fuel=100000, limit=maxval + 1)
+        except (OutOfFuel, RecursionError):
+            continue
+        if v is not None and v <= maxval:
+            out.append(text)
+    return out
+
+
+def main(argv):
+    sys.setrecursionlimit(100000)
+    spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if len(argv) >= 3 and argv[1] == "emit":
+        emit(argv[2], argv[3:], spike)
+    elif len(argv) >= 4 and argv[1] == "gen":
+        seed = int(argv[4]) if len(argv) > 4 else 1
+        emit(argv[2], gen(int(argv[3]), seed), spike)
+    else:
+        print(__doc__)
+        return 2
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

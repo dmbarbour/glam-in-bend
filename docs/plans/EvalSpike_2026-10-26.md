@@ -119,7 +119,10 @@ The core:
    and each call instantiates a fresh net with a fresh fan namespace, so
    `spike-lowering` tests that. The spike has paired by static labels
    since, and `spike/trace.bend` traces its reductions
-   (`pairing-trace`).
+   (`pairing-trace`). The reducer works every active pair, needed or
+   not: `K 5 (#3 #3 #3 succ 0)` grinds on the argument K discards.
+   Reduction driven by demand, as glam's evaluation is, remains to be
+   built; `spike-lazy-data` meets it at the latest.
    Also found: allocating in whatever page was focused opened a page per
    allocation once reduction focused full pages (2944 pages for 5000
    interactions, gigabytes, a crashed session); allocation now tries the

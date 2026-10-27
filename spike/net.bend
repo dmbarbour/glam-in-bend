@@ -64,35 +64,36 @@ type Redex is Data:
   Redex{+a: U32, +b: U32}
 
 # the store, the active pairs, and counts: interactions, errors (rule
-# violations, loops it cannot resolve)
+# violations, loops it cannot resolve), and nodes made, whose count names
+# each node in its header's upper 28 bits for tracing
 type Q is Type:
-  Q{st: S.Store, rq: List<&2, Redex>, +itrs: U32, +errs: U32}
+  Q{st: S.Store, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +ser: U32}
 
 def q_new() -> Q:
-  Q{S.st_new(), Nil{}, 0, 0}
+  Q{S.st_new(), Nil{}, 0, 0, 0}
 
 def q_err(q: Q) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      Q{st, rq, itrs, (errs + 1 : U32)}
+    case Q{st, rq, +itrs, +errs, +ser}:
+      Q{st, rq, itrs, (errs + 1 : U32), ser}
 
-def q_word.fin(r: S.Store & U32, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & U32:
+def q_word.fin(r: S.Store & U32, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +ser: U32) -> Q & U32:
   (st, +x) = r
-  (Q{st, rq, itrs, errs}, x)
+  (Q{st, rq, itrs, errs, ser}, x)
 
 def q_word(q: Q, +r: U32, +k: U32) -> Q & U32:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      q_word.fin(S.st_get(st, r, k), rq, itrs, errs)
+    case Q{st, rq, +itrs, +errs, +ser}:
+      q_word.fin(S.st_get(st, r, k), rq, itrs, errs, ser)
 
-def q_pay.fin(r: S.Store & V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & V.Pay:
+def q_pay.fin(r: S.Store & V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +ser: U32) -> Q & V.Pay:
   (st, p) = r
-  (Q{st, rq, itrs, errs}, p)
+  (Q{st, rq, itrs, errs, ser}, p)
 
 def q_pay(q: Q, +r: U32) -> Q & V.Pay:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      q_pay.fin(S.st_pay(st, r), rq, itrs, errs)
+    case Q{st, rq, +itrs, +errs, +ser}:
+      q_pay.fin(S.st_pay(st, r), rq, itrs, errs, ser)
 
 def both0(+x: U32, +y: U32) -> Bool:
   U32.is_eq(S.ref_port(x), 0) && U32.is_eq(S.ref_port(y), 0)
@@ -107,25 +108,25 @@ def push_if(b: Bool, +x: U32, +y: U32, rq: List<&2, Redex>) -> List<&2, Redex>:
 # wire port x to port y; two principals make an active pair
 def link(q: Q, +x: U32, +y: U32) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs}:
+    case Q{st, rq, +itrs, +errs, +ser}:
       st1 = S.st_set(st, x, (S.ref_port(x) + 1 : U32), y)
       st2 = S.st_set(st1, y, (S.ref_port(y) + 1 : U32), x)
-      Q{st2, push_if(both0(x, y), x, y, rq), itrs, errs}
+      Q{st2, push_if(both0(x, y), x, y, rq), itrs, errs, ser}
 
-def node.fin(r: S.Store & U32, +k: U32, p: V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & U32:
+def node.fin(r: S.Store & U32, +k: U32, p: V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +ser: U32) -> Q & U32:
   (st, +ref) = r
-  (Q{S.st_set_pay(S.st_set(st, ref, 0, k), ref, p), rq, itrs, errs}, ref)
+  (Q{S.st_set_pay(S.st_set(st, ref, 0, (k .|. (ser << 4n : U32) : U32)), ref, p), rq, itrs, errs, (ser + 1 : U32)}, ref)
 
 # a new node of kind k with payload p: its port 0
 def node(q: Q, k: R.NodeKind, p: V.Pay) -> Q & U32:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      node.fin(S.st_alloc(st), kcode(k), p, rq, itrs, errs)
+    case Q{st, rq, +itrs, +errs, +ser}:
+      node.fin(S.st_alloc(st), kcode(k), p, rq, itrs, errs, ser)
 
 def free(q: Q, +r: U32) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      Q{S.st_free(st, r), rq, itrs, errs}
+    case Q{st, rq, +itrs, +errs, +ser}:
+      Q{S.st_free(st, r), rq, itrs, errs, ser}
 
 # Applying a rule
 # ===============
@@ -460,27 +461,71 @@ def reduce(n: Nat, q: Q) -> Q:
       q
     case 1n+p:
       match q:
-        case Q{st, rq, +itrs, +errs}:
+        case Q{st, rq, +itrs, +errs, +ser}:
           match rq:
             case Nil{}:
-              Q{st, Nil{}, itrs, errs}
+              Q{st, Nil{}, itrs, errs, ser}
             case Con{Redex{+a, +b}, t}:
-              reduce(p, interact(Q{st, t, (itrs + 1 : U32), errs}, a, b))
+              reduce(p, interact(Q{st, t, (itrs + 1 : U32), errs, ser}, a, b))
 
 # Tracing
 # =======
 
 # one interaction as the reducer met it, before the rewrite: its number,
 # the two nodes (negative principal first), their headers and payloads,
-# and the redex's external peers
+# the redex's external peers and their nodes' headers (0 for none), and
+# the serials of the nodes it made, s0 up to s1
 type Ev is Data:
-  Ev{+i: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, pa: V.Pay, pb: V.Pay, +x: Ext}
+  Ev{+i: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, pa: V.Pay, pb: V.Pay, +x: Ext, +xh: Ext, +s0: U32, +s1: U32}
+
+def q_ser(q: Q) -> Q & U32:
+  match q:
+    case Q{st, rq, +itrs, +errs, +ser}:
+      (Q{st, rq, itrs, errs, ser}, ser)
+
+def ph.go(nil: Bool, q: Q, +e: U32) -> Q & U32:
+  match nil:
+    case True{}:
+      (q, 0)
+    case False{}:
+      q_word(q, e, 0)
+
+# the header of the node behind reference e, or 0 for no peer
+def ph(q: Q, +e: U32) -> Q & U32:
+  ph.go(U32.is_eq(e, S.nil()), q, e)
+
+def phs.d(r: Q & U32, +h0: U32, +h1: U32, +h2: U32) -> Q & Ext:
+  (q, +h3) = r
+  (q, Ext4{h0, h1, h2, h3})
+
+def phs.c(r: Q & U32, +x: Ext, +h0: U32, +h1: U32) -> Q & Ext:
+  (q, +h2) = r
+  phs.d(ph(q, ext_at(x, 3n)), h0, h1, h2)
+
+def phs.b(r: Q & U32, +x: Ext, +h0: U32) -> Q & Ext:
+  (q, +h1) = r
+  phs.c(ph(q, ext_at(x, 2n)), x, h0, h1)
+
+def phs.a(r: Q & U32, +x: Ext) -> Q & Ext:
+  (q, +h0) = r
+  phs.b(ph(q, ext_at(x, 1n)), x, h0)
+
+def phs(q: Q, +x: Ext) -> Q & Ext:
+  phs.a(ph(q, ext_at(x, 0n)), x)
+
+def obs.f(r: Q & U32, +i: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, pa: V.Pay, pb: V.Pay, +x: Ext, +xh: Ext) -> Q & Ev:
+  (q, +s0) = r
+  (q, Ev{i, a, b, ha, hb, pa, pb, x, xh, s0, s0})
+
+def obs.e(r: Q & Ext, +i: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, pa: V.Pay, pb: V.Pay, +x: Ext) -> Q & Ev:
+  (q, +xh) = r
+  obs.f(q_ser(q), i, a, b, ha, hb, pa, pb, x, xh)
 
 def obs.d(r: Q & V.Pay, +i: U32, +a: U32, +b: U32, +na: Node3, +nb: Node3, pa: V.Pay) -> Q & Ev:
   (q, pb) = r
   match na nb:
     case N3{+ha, l1, l2} N3{+hb, m1, m2}:
-      (q, Ev{i, a, b, ha, hb, pa, pb, ext_of(na, nb)})
+      obs.e(phs(q, ext_of(na, nb)), i, a, b, ha, hb, pa, pb, ext_of(na, nb))
 
 def obs.c(r: Q & V.Pay, +i: U32, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q & Ev:
   (q, pa) = r
@@ -505,17 +550,27 @@ def obs.h(r: Q & U32, +i: U32, +a: U32, +b: U32) -> Q & Ev:
   (q, +h) = r
   obs.ori(R.pol_eq(R.port_pol(kof((h .&. 15 : U32)), 0n), R.Neg{}), q, i, a, b)
 
-# read the redex a >< b without changing it; the reads interact repeats
-# leave allocation, and so the rewrite, as untraced
+# read the redex a >< b without changing it. Reads only move the store's
+# focus, and interact makes its own reads after these, so allocation, and
+# with it the rewrite, stays as untraced.
 def obs(q: Q, +i: U32, +a: U32, +b: U32) -> Q & Ev:
   obs.h(q_word(q, a, 0), i, a, b)
 
 type Tr is Type:
   Tr{q: Q, log: List<&2, Ev>}
 
+def ev_done(ev: Ev, +s1: U32) -> Ev:
+  match ev:
+    case Ev{+i, +a, +b, +ha, +hb, pa, pb, +x, +xh, +s0, +z}:
+      Ev{i, a, b, ha, hb, pa, pb, x, xh, s0, s1}
+
+def log.fin(r: Q & U32, ev: Ev, log: List<&2, Ev>) -> Tr:
+  (q, +s1) = r
+  Tr{q, ev_done(ev, s1) <> log}
+
 def log.step(r: Q & Ev, +a: U32, +b: U32, log: List<&2, Ev>) -> Tr:
   (q, ev) = r
-  Tr{interact(q, a, b), ev <> log}
+  log.fin(q_ser(interact(q, a, b)), ev, log)
 
 # reduce as reduce does, logging each interaction (newest first)
 def reduce_log(n: Nat, tr: Tr) -> Tr:
@@ -526,12 +581,12 @@ def reduce_log(n: Nat, tr: Tr) -> Tr:
       match tr:
         case Tr{q, log}:
           match q:
-            case Q{st, rq, +itrs, +errs}:
+            case Q{st, rq, +itrs, +errs, +ser}:
               match rq:
                 case Nil{}:
-                  Tr{Q{st, Nil{}, itrs, errs}, log}
+                  Tr{Q{st, Nil{}, itrs, errs, ser}, log}
                 case Con{Redex{+a, +b}, t}:
-                  reduce_log(p, log.step(obs(Q{st, t, (itrs + 1 : U32), errs}, itrs, a, b), a, b, log))
+                  reduce_log(p, log.step(obs(Q{st, t, (itrs + 1 : U32), errs, ser}, itrs, a, b), a, b, log))
 
 # Rounds
 # ======
@@ -546,15 +601,15 @@ def pending(rq: List<&2, Redex>) -> List<&2, Redex> & Bool:
     case Con{x, t}:
       (Con{x, t}, True{})
 
-def settle.start(r: List<&2, Redex> & Bool, st: S.Store, +itrs: U32, +errs: U32) -> E:
+def settle.start(r: List<&2, Redex> & Bool, st: S.Store, +itrs: U32, +errs: U32, +ser: U32) -> E:
   (rq, +more) = r
-  E{Q{st, rq, itrs, errs}, more}
+  E{Q{st, rq, itrs, errs, ser}, more}
 
 # it moved if active pairs remain
 def settle(q: Q) -> E:
   match q:
-    case Q{st, rq, +itrs, +errs}:
-      settle.start(pending(rq), st, itrs, errs)
+    case Q{st, rq, +itrs, +errs, +ser}:
+      settle.start(pending(rq), st, itrs, errs, ser)
 
 # reduce until nothing moves: n rounds of at most f interactions each
 def eval(n: Nat, +f: Nat, e: E) -> E:
