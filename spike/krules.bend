@@ -65,8 +65,26 @@ def kind_neg(+k: U32) -> Bool:
     case _:
       False{}
 
+# the level checks the rewrites below make, for the kernel's interpreter
+def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:
+  match ka kb:
+    case 2 11:
+      P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h)
+    case 3 1:
+      P.err_if(P.copy_fn_bad(ha, hb), h)
+    case 3 11:
+      P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h)
+    case 10 1:
+      P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h)
+    case 10 4:
+      P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h)
+    case 10 11:
+      P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h)
+    case _ _:
+      h
+
 def rw.Ap.Fn.yes(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2)
+  P.fuse(P.fuse(P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2), e0), e3), e1), e2)
 
 def rw.Ap.Merge.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.H:
   (h, +n3) = r
@@ -74,11 +92,11 @@ def rw.Ap.Merge.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32,
 
 def rw.Ap.Merge.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  rw.Ap.Merge.k4(P.node(h, P.hd(4, P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+  rw.Ap.Merge.k4(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
 
 def rw.Ap.Merge.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  rw.Ap.Merge.k3(P.node(h, P.hd(3, P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+  rw.Ap.Merge.k3(P.node(h, P.hd2(3, P.form(hb), P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
 
 def rw.Ap.Merge.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
@@ -107,7 +125,7 @@ def rw.Ap.EraP(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32,
 
 def rw.Ap.LiftC.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32))
+  P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32)), n1), n2)
 
 def rw.Ap.LiftC.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -118,7 +136,7 @@ def rw.Ap.LiftC.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32,
   rw.Ap.LiftC.k2(P.node(h, P.hd2(10, P.form(hb), P.fld(hb)), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Ap.LiftC(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Ap.LiftC.k1(P.node(P.fresh2(h, a, b), P.hd(2, P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Ap.LiftC.k1(P.node(P.fresh2(h, a, b), P.hd2(2, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.Fn.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.H:
   (h, +n3) = r
@@ -126,11 +144,11 @@ def rw.Copy.Fn.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, 
 
 def rw.Copy.Fn.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  rw.Copy.Fn.k4(P.node(h, P.hd(4, P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+  rw.Copy.Fn.k4(P.node(h, P.hd2(4, P.form(ha), P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
 
 def rw.Copy.Fn.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  rw.Copy.Fn.k3(P.node(h, P.hd(3, P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+  rw.Copy.Fn.k3(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
 
 def rw.Copy.Fn.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
@@ -140,7 +158,7 @@ def rw.Copy.Fn(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32,
   rw.Copy.Fn.k1(P.node(P.fresh2(h, a, b), P.hd2(1, P.form(hb), P.fld(hb)), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.Merge.yes(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  P.link(P.link(P.fresh2(h, a, b), e0, e2), e1, e3)
+  P.fuse(P.fuse(P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e2), e1, e3), e0), e2), e1), e3)
 
 def rw.Copy.Merge.no.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.H:
   (h, +n3) = r
@@ -148,18 +166,18 @@ def rw.Copy.Merge.no.k4(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa:
 
 def rw.Copy.Merge.no.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  rw.Copy.Merge.no.k4(P.node(h, P.hd(3, P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+  rw.Copy.Merge.no.k4(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
 
 def rw.Copy.Merge.no.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  rw.Copy.Merge.no.k3(P.node(h, P.hd(3, P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+  rw.Copy.Merge.no.k3(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
 
 def rw.Copy.Merge.no.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
-  rw.Copy.Merge.no.k2(P.node(h, P.hd(4, P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+  rw.Copy.Merge.no.k2(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Copy.Merge.no(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Copy.Merge.no.k1(P.node(P.fresh2(h, a, b), P.hd(4, P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Copy.Merge.no.k1(P.node(P.fresh2(h, a, b), P.hd2(4, P.form(hb), P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.Data.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -189,7 +207,7 @@ def rw.Copy.EraP(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U3
 
 def rw.Copy.LiftC.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32))
+  P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32)), n1), n2)
 
 def rw.Copy.LiftC.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -200,7 +218,7 @@ def rw.Copy.LiftC.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U3
   rw.Copy.LiftC.k2(P.node(h, P.hd2(11, P.form(hb), P.fld(hb)), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Copy.LiftC(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Copy.LiftC.k1(P.node(P.fresh2(h, a, b), P.hd(3, P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Copy.LiftC.k1(P.node(P.fresh2(h, a, b), P.hd2(3, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.EraN.Fn.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -250,7 +268,7 @@ def rw.Call.Merge.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U3
 
 def rw.Call.Merge.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  rw.Call.Merge.k3(P.node(h, P.hd(4, P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+  rw.Call.Merge.k3(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
 
 def rw.Call.Merge.k2.pre(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +dw) = r
@@ -283,7 +301,7 @@ def rw.Call.EraP(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U3
 
 def rw.Call.LiftC.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32))
+  P.fuse(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n1)
 
 def rw.Call.LiftC.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
@@ -294,7 +312,7 @@ def rw.Call.LiftC(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U
 
 def rw.Lift.Fn.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32))
+  P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32)), n1), n2)
 
 def rw.Lift.Fn.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -305,11 +323,11 @@ def rw.Lift.Fn.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, 
   rw.Lift.Fn.k2(P.node(h, P.hd2(10, P.form(ha), P.fld(ha)), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Lift.Fn(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Lift.Fn.k1(P.node(P.fresh2(h, a, b), P.hd(1, P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Lift.Fn.k1(P.node(P.fresh2(h, a, b), P.hd2(1, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Lift.Merge.k3(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.H:
   (h, +n2) = r
-  P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32))
+  P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32)), n1), n2)
 
 def rw.Lift.Merge.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
@@ -320,7 +338,7 @@ def rw.Lift.Merge.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U3
   rw.Lift.Merge.k2(P.node(h, P.hd2(10, P.form(ha), P.fld(ha)), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Lift.Merge(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Lift.Merge.k1(P.node(P.fresh2(h, a, b), P.hd(4, P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Lift.Merge.k1(P.node(P.fresh2(h, a, b), P.hd2(4, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Lift.Data.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
@@ -337,18 +355,18 @@ def rw.Lift.EraP(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U3
   rw.Lift.EraP.k1(P.node(P.fresh2(h, a, b), P.hd(7, 0), 0), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Lift.LiftC.yes(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  P.link(P.fresh2(h, a, b), e0, e2)
+  P.fuse(P.fuse(P.link(P.fresh2(h, a, b), e0, e2), e0), e2)
 
 def rw.Lift.LiftC.no.k2(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.H:
   (h, +n1) = r
-  P.link(P.link(P.link(h, n0, e2), (n0 + 1 : U32), (n1 + 1 : U32)), n1, e0)
+  P.fuse(P.fuse(P.link(P.link(P.link(h, n0, e2), (n0 + 1 : U32), (n1 + 1 : U32)), n1, e0), n0), n1)
 
 def rw.Lift.LiftC.no.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   (h, +n0) = r
-  rw.Lift.LiftC.no.k2(P.node(h, P.hd(11, P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+  rw.Lift.LiftC.no.k2(P.node(h, P.hd2(11, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
 
 def rw.Lift.LiftC.no(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
-  rw.Lift.LiftC.no.k1(P.node(P.fresh2(h, a, b), P.hd(10, P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.Lift.LiftC.no.k1(P.node(P.fresh2(h, a, b), P.hd2(10, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 # the rewrite for A, negative principal, meeting B; t is the payload test
 def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
@@ -370,9 +388,9 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
     case 2 7:
       rw.Ap.EraP(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 2 11:
-      rw.Ap.LiftC(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Ap.LiftC(P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 3 1:
-      rw.Copy.Fn(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Copy.Fn(P.err_if(P.copy_fn_bad(ha, hb), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 3 4:
       match t:
         case True{}:
@@ -384,7 +402,7 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
     case 3 7:
       rw.Copy.EraP(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 3 11:
-      rw.Copy.LiftC(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Copy.LiftC(P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 6 1:
       rw.EraN.Fn(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 6 4:
@@ -406,9 +424,9 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
     case 9 11:
       rw.Call.LiftC(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 1:
-      rw.Lift.Fn(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Lift.Fn(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 4:
-      rw.Lift.Merge(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Lift.Merge(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 5:
       rw.Lift.Data(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 7:
@@ -416,9 +434,9 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
     case 10 11:
       match t:
         case True{}:
-          rw.Lift.LiftC.yes(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+          rw.Lift.LiftC.yes(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
         case False{}:
-          rw.Lift.LiftC.no(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+          rw.Lift.LiftC.no(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case _ _:
       P.err_if(U32.is_ne(ka, 8), h)
 

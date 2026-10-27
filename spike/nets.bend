@@ -5,9 +5,9 @@ import ./tpl.bend as T
 
 # Test nets with known results, built as templates: Church numerals
 # applied to each other (where fan pairing decides the answer), a
-# numeral applied to itself, and a long chain for throughput. They are
-# built without levels, so their fans pair as static labels;
-# spike/tools/terms.py lowers terms with levels.
+# numeral applied to itself, and a long chain for throughput. Most are
+# built without levels, so their fans pair as static labels; t_pow_lvl is
+# built with them, as spike/tools/terms.py lowers terms.
 
 def l(+a: U32, +pa: U32, +b: U32, +pb: U32) -> T.TLink:
   T.TL{T.TE{a, pa}, T.TE{b, pb}}
@@ -40,6 +40,10 @@ def cr(+n: U32) -> T.TNode:
 # a fused control: levels above n move up by `by`, or down by it
 def ctl(+n: U32, +up: Bool, +by: U32) -> T.TNode:
   T.TN{R.KLift{}, V.PLift{n, up, by}}
+
+# a control facing consumers
+def ctlc(+n: U32, +up: Bool, +by: U32) -> T.TNode:
+  T.TN{R.KLiftC{}, V.PLift{n, up, by}}
 
 def era() -> T.TNode:
   T.TN{R.KEraN{}, V.PNone{}}
@@ -129,6 +133,85 @@ def t_pow_plus(+m: U32, +n: U32) -> T.Tpl:
        l((c + 2 : U32), 0, (c + 5 : U32), 0), l((c + 2 : U32), 1, (c + 6 : U32), 0),
        l((c + 1 : U32), 2, (c + 3 : U32), 0), l((c + 3 : U32), 1, (c + 4 : U32), 0)])),
     T.TE{(c + 3 : U32), 2}, (c + 7 : U32)}
+
+# A Church numeral n >= 2 with levels, as spike/tools/terms.py lowers it
+# under lv boxes, at node offset b: F b, X b+1, applications b+2 ..
+# b+n+1 at levels lv .. lv+n-1, a control raising x by n-1 into the
+# innermost, then for each fan i < n-1 (level lv+i, site site+i) the fan,
+# a control lowering its first copy into application i and, but for the
+# last fan, one raising its second into the next fan, which the last
+# feeds to the innermost application directly. Exposed: F's principal.
+def lnum_aps(n: Nat, +lv: U32) -> List<&2, T.TNode>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      apl(lv) <> lnum_aps(p, (lv + 1 : U32))
+
+def lnum_up(b: Bool, +n: U32, rest: List<&2, T.TNode>) -> List<&2, T.TNode>:
+  match b:
+    case True{}:
+      ctl(n, True{}, 1) <> rest
+    case False{}:
+      rest
+
+def lnum_fans(n: Nat, +i: U32, +last: U32, +lv: U32, +site: U32) -> List<&2, T.TNode>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      cpl((site + i : U32), (lv + i : U32)) <> ctl((lv + i : U32), False{}, 1) <>
+        lnum_up(U32.is_lt(i, last), (lv + i : U32), lnum_fans(p, (i + 1 : U32), last, lv, site))
+
+def lnum_nodes(+n: U32, +lv: U32, +site: U32) -> List<&2, T.TNode>:
+  List.append(&2, T.TNode, [fnl(lv), fnl(lv)], List.append(&2, T.TNode, lnum_aps(U32.to_nat(n), lv),
+    ctl(lv, True{}, (n - 1 : U32)) <> lnum_fans(U32.to_nat((n - 1 : U32)), 0, (n - 2 : U32), lv, site)))
+
+def lnum_second(more: Bool, +f: U32, +last: U32, rest: List<&2, T.TLink>) -> List<&2, T.TLink>:
+  match more:
+    case True{}:
+      l(f, 2, (f + 2 : U32), 0) <> l((f + 2 : U32), 1, (f + 3 : U32), 0) <> rest
+    case False{}:
+      l(f, 2, last, 0) <> rest
+
+# fan i of numeral n at b sits at b + n + 3 + 3i
+def lnum_fan_links(k: Nat, +i: U32, +n: U32, +b: U32) -> List<&2, T.TLink>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      +f = (((b + n : U32) + 3 : U32) + (3 * i : U32) : U32)
+      l(f, 1, (f + 1 : U32), 0) <> l((f + 1 : U32), 1, ((b + 2 : U32) + i : U32), 0) <>
+        lnum_second(U32.is_lt(i, (n - 2 : U32)), f, ((b + n : U32) + 1 : U32), lnum_fan_links(p, (i + 1 : U32), n, b))
+
+def lnum_app_links(k: Nat, +i: U32, +b: U32) -> List<&2, T.TLink>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      l(((b + 3 : U32) + i : U32), 2, ((b + 2 : U32) + i : U32), 1) <> lnum_app_links(p, (i + 1 : U32), b)
+
+def lnum_links(+n: U32, +b: U32) -> List<&2, T.TLink>:
+  List.append(&2, T.TLink, lnum_app_links(U32.to_nat((n - 1 : U32)), 0, b),
+    List.append(&2, T.TLink,
+      [l((b + 2 : U32), 2, (b + 1 : U32), 1), l((b + 1 : U32), 2, ((b + n : U32) + 2 : U32), 0),
+       l(((b + n : U32) + 2 : U32), 1, ((b + n : U32) + 1 : U32), 1), l((b + 1 : U32), 0, b, 1),
+       l(b, 2, ((b + n : U32) + 3 : U32), 0)],
+      lnum_fan_links(U32.to_nat((n - 1 : U32)), 0, n, b)))
+
+def lnum_size(+n: U32) -> U32:
+  ((4 * n : U32) - 1 : U32)
+
+# m n succ 0 with levels (m, n >= 2), as terms.py lowers `#m #n succ 0`:
+# the applications at 0 .. 2, numeral m, numeral n a box deeper
+def t_pow_lvl(+m: U32, +n: U32) -> T.Tpl:
+  +b = (lnum_size(m) + 3 : U32)
+  +c = (b + lnum_size(n) : U32)
+  T.Tpl{List.append(&2, T.TNode, [apl(0), apl(0), apl(0)], List.append(&2, T.TNode, lnum_nodes(m, 0, 1),
+      List.append(&2, T.TNode, lnum_nodes(n, 1, m), [succ(), num(0)]))),
+    List.append(&2, T.TLink, lnum_links(m, 3), List.append(&2, T.TLink, lnum_links(n, b),
+      [l(3, 0, 2, 0), l(b, 0, 2, 1), l(2, 2, 1, 0), l(c, 0, 1, 1), l(1, 2, 0, 0), l((c + 1 : U32), 0, 0, 1)])),
+    T.TE{0, 2}, (c + 2 : U32)}
 
 # two (two two) succ 0
 def t_two_two_two() -> T.Tpl:

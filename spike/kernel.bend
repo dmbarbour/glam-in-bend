@@ -16,12 +16,15 @@ import ./krules.bend as KR
 # those are joined through the rule's links, as net.bend's link_pairs does.
 # Payloads of data nodes and calls are linear, as in the generator: the
 # first new node using one takes it over, a later one gets a duplicate, a
-# rule using it nowhere drops it. Level checks and fusion are not here yet.
+# rule using it nowhere drops it. Both paths make net.bend's level checks
+# (but the sites of two fans meeting at one level) and fuse controls after
+# each rewrite as it does, on the same nodes in the same order.
 #
-#   kernel <k> [ref|plus|plusref]
-#       reduce `k 2 succ 0` (2^k), or with plus `k 2 (plus 1) 0`, whose
-#       partial application lives in the data table; report value,
-#       counts, time; with ref (plusref), by the interpreted table alone
+#   kernel <k> [ref|plus|plusref|lvl|lvlref]
+#       reduce `k 2 succ 0` (2^k) built without levels; with plus
+#       `k 2 (plus 1) 0`, adding by a partial application; with lvl
+#       `k 2 succ 0` with levels, as terms.py lowers it (k >= 2). Report
+#       value, counts, time; with ref, by the interpreted table alone
 
 # Payloads
 # ========
@@ -193,10 +196,18 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2
     case 1n+p:
       link_pairs(p, 1n+i, ls, x, refs, xs, a, b, pair_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b, h))
 
+def fuse_all(rs: List<&2, U32>, h: P.H) -> P.H:
+  match rs:
+    case Nil{}:
+      h
+    case Con{+r, t}:
+      fuse_all(t, P.fuse(h, r))
+
 def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> P.H:
   match m:
     case Mk{h, +refs, +ua, +ub}:
-      link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h))
+      fuse_all(N.fuse_tried(xs, refs, ls, x, a, b),
+        link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h)))
 
 # replace the redex a >< b by the rule's nodes and links
 def wire(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext) -> P.H:
@@ -246,14 +257,19 @@ def payload(+h: U32, +w1: U32, +w3: U32) -> U32:
 def ctl_eq(+ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Bool:
   U32.is_eq(P.fld(ha), P.fld(hb)) && U32.is_eq(pa, pb)
 
+# fans pair, and an application meets its function, when level and
+# marker agree (a net without levels: equal sites)
+def same_lvl(+ha: U32, +hb: U32) -> Bool:
+  U32.is_eq((ha >> 4n : U32), (hb >> 4n : U32))
+
 def test.k(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
   match ka kb:
     case 3 4:
-      (h, U32.is_eq(P.fld(ha), P.fld(hb)))
+      (h, same_lvl(ha, hb))
     case 2 5:
       P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
     case 2 1:
-      (h, U32.is_eq(P.fld(ha), P.fld(hb)))
+      (h, same_lvl(ha, hb))
     case 10 11:
       (h, ctl_eq(ha, hb, pa, pb))
     case _ _:
@@ -282,7 +298,7 @@ def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, 
     case True{}:
       go.gen(t, h, a, b, ha, hb, pa, pb, x)
     case False{}:
-      apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, x)
+      apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)
 
 # the generated rewrite, or the interpreted table: for a redex whose
 # external peers include its own ports, or when `fast` is off
@@ -367,31 +383,58 @@ def load.data(r: P.H & P.PW, +k: U32) -> P.H:
   (h, pw) = r
   drop_ref(P.node_pw(h, k, pw))
 
-def fan_field.go(none: Bool, +site: U32, +lvl: U32) -> U32:
+def fan_hd.go(none: Bool, +k: U32, +site: U32, +lvl: U32) -> U32:
   match none:
     case True{}:
-      site
+      P.hd2(k, P.unlev(), site)
     case False{}:
-      lvl
+      P.hd(k, lvl)
 
-# a fan's field: its level, or for a net built without levels its site
-def fan_field(+site: U32, +lvl: U32) -> U32:
-  fan_field.go(U32.is_eq(lvl, V.nolvl()), site, lvl)
+# a fan's header: its level, or for a net built without levels its site,
+# marked so
+def fan_hd(+k: U32, +site: U32, +lvl: U32) -> U32:
+  fan_hd.go(U32.is_eq(lvl, V.nolvl()), k, site, lvl)
 
+# a node with no payload: a function or an application without a level
+# marked so
+def bare_hd(+k: U32) -> U32:
+  match k:
+    case 1:
+      P.hd2(k, P.unlev(), 0)
+    case 2:
+      P.hd2(k, P.unlev(), 0)
+    case _:
+      P.hd(k, 0)
+
+def too_big(+f: U32) -> Bool:
+  U32.is_ge(f, P.lvl_cap())
+
+# the field a fan keeps, its site without a level, else its level
+def fan_too_big(none: Bool, +site: U32, +lvl: U32) -> Bool:
+  match none:
+    case True{}:
+      too_big(site)
+    case False{}:
+      too_big(lvl)
+
+# a node from its template; a level, site or index past the field's 24
+# bits, or an offset past 31, would be cut short: an error
 def load.node(h: P.H, t: T.TNode) -> P.H:
   match t:
     case T.TF{k, +site, +lvl}:
-      drop_ref(P.node(h, P.hd(N.kcode(k), fan_field(site, lvl)), 0))
+      P.err_if(fan_too_big(U32.is_eq(lvl, V.nolvl()), site, lvl),
+        drop_ref(P.node(h, fan_hd(N.kcode(k), site, lvl), 0)))
     case T.TN{k, p}:
       match p:
         case V.PVal{v}:
           load.data(P.put(h, v), N.kcode(k))
         case V.PLvl{+l}:
-          drop_ref(P.node(h, P.hd(N.kcode(k), l), 0))
+          P.err_if(too_big(l), drop_ref(P.node(h, P.hd(N.kcode(k), l), 0)))
         case V.PLift{+n, +up, +by}:
-          drop_ref(P.node(h, P.hd(N.kcode(k), n), lift_word(up, by)))
+          P.err_if(too_big(n) || U32.is_ge(by, 2147483648),
+            drop_ref(P.node(h, P.hd(N.kcode(k), n), lift_word(up, by))))
         case _:
-          drop_ref(P.node(h, P.hd(N.kcode(k), 0), 0))
+          drop_ref(P.node(h, bare_hd(N.kcode(k)), 0))
 
 def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
   match ns:
@@ -569,19 +612,34 @@ def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   report(result(run(fuel, fast, P.pop(load(t)))))
 
-def workload(+plus: Bool, +k: U32) -> T.Tpl:
-  match plus:
-    case True{}:
+# 0, k 2 succ 0; 1, k 2 (plus 1) 0; 2, k 2 succ 0 with levels
+def workload(+w: U32, +k: U32) -> T.Tpl:
+  match w:
+    case 1:
       X.t_pow_plus(k, 2)
-    case False{}:
+    case 2:
+      X.t_pow_lvl(k, 2)
+    case _:
       X.t_pow(k, 2)
 
-def main.k(+k: U32, +fast: Bool, +plus: Bool) -> IO(Unit):
+def main.k(+k: U32, +fast: Bool, +w: U32) -> IO(Unit):
   do IO<Unit>:
     +t0 : Nat <- IO.now()
-    +res : String = reduce(workload(plus, k), 268435456n, fast)
+    +res : String = reduce(workload(w, k), 268435456n, fast)
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
+
+def mode_w.p(p: Bool, +l: Bool) -> U32:
+  match p l:
+    case True{} _:
+      1
+    case False{} True{}:
+      2
+    case False{} False{}:
+      0
+
+def mode_w(+m: String) -> U32:
+  mode_w.p(String.eq(m, "plus") || String.eq(m, "plusref"), String.eq(m, "lvl") || String.eq(m, "lvlref"))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
@@ -590,14 +648,14 @@ def main.args(xs: List<String>) -> IO(Unit):
         case Con{a, r2}:
           match r2:
             case Con{+m, r3}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10), Bool.not(String.eq(m, "ref") || String.eq(m, "plusref")),
-                String.eq(m, "plus") || String.eq(m, "plusref"))
+              main.k(Maybe.default(&2, U32, U32.read(a), 10),
+                Bool.not(String.eq(m, "ref") || String.eq(m, "plusref") || String.eq(m, "lvlref")), mode_w(m))
             case Nil{}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{}, False{})
+              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{}, 0)
         case Nil{}:
-          IO.print("usage: kernel <k> [ref|plus|plusref]")
+          IO.print("usage: kernel <k> [ref|plus|plusref|lvl|lvlref]")
     case Nil{}:
-      IO.print("usage: kernel <k> [ref|plus|plusref]")
+      IO.print("usage: kernel <k> [ref|plus|plusref|lvl|lvlref]")
 
 def main() -> IO(Unit):
   do IO<Unit>:

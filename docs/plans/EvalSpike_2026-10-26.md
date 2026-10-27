@@ -321,6 +321,41 @@ The core:
    from 1,676, its partial application no longer in the table. Against the
    Python evaluator's values too, the kernel agrees on every term with
    levels but one that runs out of fuel everywhere, as before.
+   Then levels, checks and fusion, so that the kernel reduces what the
+   spike reduces step for step. A fan, function or application built
+   without levels carries value form 1, which the rewrites keep, so that
+   the checks pass it by; fans pair, and an application meets its
+   function, when form and field agree. Both paths make the spike's level
+   checks but one: a copy meeting a function at a level not below its
+   own, and a control raising a level or an index past the field's 24
+   bits (the spike's own check of a lift meeting a liftc missed one side,
+   now fixed). The check that two fans meeting at one level share a site
+   needs the site, which a leveled fan here does not keep. The generator
+   writes each pair's check into its rewrite and the same table as a
+   `check` for the interpreter. After its links, each rewrite tries to
+   fuse its new controls and the external peers it joins, in the spike's
+   order (`P.fuse`, net.bend's fusion on this layout); the interpreter
+   tries the spike's own `fuse_tried`. Interaction counts now equal the
+   spike's on all 2,400 terms, leveled ones included (459 of the 600
+   leveled differed before), and on `kernel <k> lvl`, a new workload:
+   `k 2 succ 0` built with levels as terms.py lowers `#k #2 succ 0`
+   (`X.t_pow_lvl`). The loader counts an error for a level, site or
+   index past 24 bits or an offset past 31, which the header would cut
+   short, and a builtin whose op does not fit the field goes to the
+   table; `spike/test_levels.bend` exercises each check and guard.
+   What fusion buys, against the same build with `P.fuse` a no-op, at
+   k 18 on the leveled workload: interactions 1,573,450 to 1,180,272
+   (-25%), nodes at most 524,295 to 393,225 (-25%), instructions 1,617M
+   to 1,373M (-15%), time 180 to 151 ms; an interaction costs more,
+   1,163 instructions against 1,028, for the attempts. On the 506 random
+   terms all three modes get right, fusion cuts the kernel's interactions
+   from 195,330 to 122,574 (-37%): levels cost 2.76 times the
+   interactions of static labels, against 4.40 without fusion at run
+   time. The attempts cost nothing measurable where nothing fuses: 1,181
+   instructions an interaction on `succ` and 1,182 on `plus`, slightly
+   fewer than before them, the compiler's splitting moving again. The
+   leveled workload costs 2.25 times the interactions of `succ` and 2.2
+   times the instructions. Bend 2.0.39, i7-6700.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

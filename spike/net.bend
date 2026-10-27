@@ -705,6 +705,8 @@ def lift_wraps(c: V.Pay, +j: U32) -> Bool:
 # U32 would wrap it: a fail-stop in waiting, so it counts as an error
 def wraps(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
   match ka kb:
+    case R.KLift{} R.KLiftC{}:
+      lift_wraps(pa, pay_level(pb)) || lift_wraps(pb, pay_level(pa))
     case R.KLift{} _:
       lift_wraps(pa, pay_level(pb))
     case _ R.KLiftC{}:

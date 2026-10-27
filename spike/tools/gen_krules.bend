@@ -60,7 +60,8 @@ def is_data(k: R.NodeKind) -> Bool:
       False{}
 
 # a new node's header and payload word, by source; a payload carries its
-# value form with it (SApply's value is made by a step of its own)
+# value form with it (SApply's value is made by a step of its own), and a
+# fan's or a lifted level the form marking a net built without levels
 def hdr(+k: R.NodeKind, s: R.Src) -> String:
   match s:
     case R.SPayA{}:
@@ -68,13 +69,13 @@ def hdr(+k: R.NodeKind, s: R.Src) -> String:
     case R.SPayB{}:
       "P.hd2(" ++ code(k) ++ ", P.form(hb), P.fld(hb))"
     case R.SFanA{}:
-      "P.hd(" ++ code(k) ++ ", P.fld(ha))"
+      "P.hd2(" ++ code(k) ++ ", P.form(ha), P.fld(ha))"
     case R.SFanB{}:
-      "P.hd(" ++ code(k) ++ ", P.fld(hb))"
+      "P.hd2(" ++ code(k) ++ ", P.form(hb), P.fld(hb))"
     case R.SLiftA{}:
-      "P.hd(" ++ code(k) ++ ", P.lift(P.fld(hb), pb, P.fld(ha)))"
+      "P.hd2(" ++ code(k) ++ ", P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha)))"
     case R.SLiftB{}:
-      "P.hd(" ++ code(k) ++ ", P.lift(P.fld(ha), pa, P.fld(hb)))"
+      "P.hd2(" ++ code(k) ++ ", P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb)))"
     case _:
       "P.hd(" ++ code(k) ++ ", 0)"
 
@@ -262,10 +263,53 @@ def pre_fn(+name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
             "  (h, +dw) = r\n" ++
             "  " ++ stepname(name, 1n+j) ++ "(P.node(h, " ++ hdr(k, s) ++ ", dw), " ++ common_args() ++ made_args(j, 0n) ++ ")\n\n"
 
+# Fusing controls
+# ---------------
+#
+# After its links, a rewrite tries to fuse what may now sit beside another
+# control (net.bend's fuse_tried): its new controls, in order, then the
+# external peers it joins to each other, in the table's order.
+
+def keep_if(b: Bool, +c: String, rest: List<&2, String>) -> List<&2, String>:
+  match b:
+    case True{}:
+      c <> rest
+    case False{}:
+      rest
+
+def ctl_cands(xs: List<&2, R.Spec>, +j: Nat) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{R.Spec{k, s}, t}:
+      keep_if(N.is_ctl(k), "n" ++ Nat.show(j), ctl_cands(t, 1n+j))
+
+def ext_cands(ls: List<&2, R.Link>) -> List<&2, String>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{R.Link{u, v}, t}:
+      match u v:
+        case R.Ext{i} R.Ext{j}:
+          ("e" ++ Nat.show(i)) <> ("e" ++ Nat.show(j)) <> ext_cands(t)
+        case _ _:
+          ext_cands(t)
+
+def fuses(cs: List<&2, String>, +acc: String) -> String:
+  match cs:
+    case Nil{}:
+      acc
+    case Con{c, t}:
+      fuses(t, "P.fuse(" ++ acc ++ ", " ++ c ++ ")")
+
+# the links, then the fusion attempts
+def finish(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
+  fuses(List.append(&2, String, ctl_cands(xs, 0n), ext_cands(ls)), links(xs, ls, st))
+
 def step_body(last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match last:
     case True{}:
-      links(xs, ls, "h")
+      finish(xs, ls, "h")
     case False{}:
       make_call(name, "h", j, spec_at(xs, j), pre_of(spec_at(xs, j), xs, j, a, b))
 
@@ -309,7 +353,7 @@ def entry(+name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.Nod
   match xs:
     case Nil{}:
       "def " ++ name ++ "(h: P.H, " ++ common() ++ ") -> P.H:\n" ++
-        "  " ++ links(xs, ls, start(xs, a, b)) ++ "\n\n"
+        "  " ++ finish(xs, ls, start(xs, a, b)) ++ "\n\n"
     case Con{sp, t}:
       steps(List.length(&2, R.Spec, xs), name, List.length(&2, R.Spec, xs), xs, ls, a, b) ++
         pre_fn(name, 0n, sp, pre_of(sp, xs, 0n, a, b)) ++
@@ -331,15 +375,59 @@ def is_stuck(r: R.Rule) -> Bool:
     case _:
       False{}
 
-def call.s(st: Bool, +name: String) -> String:
+# Level checks
+# ------------
+#
+# Assertions counted as errors, the rewrite proceeding (net.bend's
+# violation): a copy meeting a function at a level not below its own, and
+# a control raising a level, or another control's index, past the field's
+# range. Kinds without a level (data, erasers, the root, calls) cannot be
+# raised past it. The spike's check of two fans' sites at one level needs
+# the site, which a leveled fan here does not keep.
+
+def lift_a() -> String:
+  "P.lift_wraps(P.fld(ha), pa, P.fld(hb))"
+
+def lift_b() -> String:
+  "P.lift_wraps(P.fld(hb), pb, P.fld(ha))"
+
+def check_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  match a b:
+    case R.KCopy{} R.KFn{}:
+      "P.copy_fn_bad(ha, hb)"
+    case R.KLift{} R.KFn{}:
+      lift_a()
+    case R.KLift{} R.KMerge{}:
+      lift_a()
+    case R.KLift{} R.KLiftC{}:
+      lift_a() ++ " || " ++ lift_b()
+    case R.KAp{} R.KLiftC{}:
+      lift_b()
+    case R.KCopy{} R.KLiftC{}:
+      lift_b()
+    case _ _:
+      ""
+
+# the state a pair's rewrite starts from: h, checked
+def checked.e(none: Bool, +e: String) -> String:
+  match none:
+    case True{}:
+      "h"
+    case False{}:
+      "P.err_if(" ++ e ++ ", h)"
+
+def checked(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  checked.e(String.eq(check_expr(a, b), ""), check_expr(a, b))
+
+def call.s(st: Bool, +name: String, +hs: String) -> String:
   match st:
     case True{}:
-      "P.err_if(U32.is_ne(ka, 8), h)"
+      "P.err_if(U32.is_ne(ka, 8), " ++ hs ++ ")"
     case False{}:
-      name ++ "(h, " ++ common_args() ++ ")"
+      name ++ "(" ++ hs ++ ", " ++ common_args() ++ ")"
 
-def call(r: R.Rule, +name: String) -> String:
-  call.s(is_stuck(r), name)
+def call(r: R.Rule, +name: String, +hs: String) -> String:
+  call.s(is_stuck(r), name, hs)
 
 # Pairs
 # =====
@@ -370,12 +458,12 @@ def pair_case.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
       "      match t:\n" ++
       "        case True{}:\n" ++
-      "          " ++ call(R.rule(a, b, True{}), pname(a, b) ++ ".yes") ++ "\n" ++
+      "          " ++ call(R.rule(a, b, True{}), pname(a, b) ++ ".yes", checked(a, b)) ++ "\n" ++
       "        case False{}:\n" ++
-      "          " ++ call(R.rule(a, b, False{}), pname(a, b) ++ ".no") ++ "\n"
+      "          " ++ call(R.rule(a, b, False{}), pname(a, b) ++ ".no", checked(a, b)) ++ "\n"
     case False{}:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
-      "      " ++ call(R.rule(a, b, False{}), pname(a, b)) ++ "\n"
+      "      " ++ call(R.rule(a, b, False{}), pname(a, b), checked(a, b)) ++ "\n"
 
 def pair_case.s(s: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match s:
@@ -400,6 +488,30 @@ def over_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind, +fns: Bool) -> String:
       ""
     case Con{+b, t}:
       pick(fns, pair_fns(a, b), pair_case(a, b)) ++ over_b(t, a, fns)
+
+def check_case.e(none: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match none:
+    case True{}:
+      ""
+    case False{}:
+      "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n      " ++ checked(a, b) ++ "\n"
+
+def check_case(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  check_case.e(String.eq(check_expr(a, b), ""), a, b)
+
+def checks_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      check_case(a, b) ++ checks_b(t, a)
+
+def checks_a(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      checks_b(kinds(), a) ++ checks_a(t)
 
 def over_a(as: List<&2, R.NodeKind>, +fns: Bool) -> String:
   match as:
@@ -439,6 +551,9 @@ def file() -> String:
   "# by spike/tools/gen_krules.bend; do not edit. scripts/check.sh fails if\n" ++
   "# this file differs from what the generator writes.\n\n" ++
   tables() ++
+  "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
+  "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
+  "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++
   over_a(kinds(), True{}) ++
   "# the rewrite for A, negative principal, meeting B; t is the payload test\n" ++
   "def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common() ++ ") -> P.H:\n" ++

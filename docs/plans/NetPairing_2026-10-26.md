@@ -134,7 +134,9 @@ derivation made here first.
    sites, count as errors (assertions; the rewrite proceeds), as does a
    control raising a level past the top of `U32`. None fires on the 611
    terms (600 random, 11 picked). The root takes the place of a control facing it, and the
-   result is read off the live root.
+   result is read off the live root. A raise checked only the lift's
+   side when a lift met a liftc, though each raises the other's index;
+   both are checked since (`spike/test_levels.bend`).
    Down offsets fuse only as a croissant after a raise. The maintainer
    expects more, with the right framing; a symmetric one: a control
    (n, k) leaves levels up to n alone and moves those above to

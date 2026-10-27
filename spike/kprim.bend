@@ -373,7 +373,7 @@ def put.one(+need: U32, h: H, +op: U32, +n: U32, v: V.Val) -> H & PW:
     case _:
       pw.tab(tab_put(h, v))
 
-def put.fun(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
+def put.fun.go(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
   match args:
     case Nil{}:
       (h, PW{2, op, need})
@@ -386,6 +386,14 @@ def put.fun(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & 
     case _:
       pw.tab(tab_put(h, v))
 
+# a builtin in the node when its op fits the field, else an entry
+def put.fun(fits: Bool, args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
+  match fits:
+    case True{}:
+      put.fun.go(args, h, op, need, v)
+    case False{}:
+      pw.tab(tab_put(h, v))
+
 # a value in the form a node holds it: a number, a bare builtin or one
 # needing a last argument after a number in the node, anything else a new
 # entry
@@ -394,7 +402,7 @@ def put(h: H, v: V.Val) -> H & PW:
     case V.VNum{+n}:
       (h, PW{1, 0, n})
     case V.VFun{+op, +need, +args}:
-      put.fun(args, h, op, need, V.VFun{op, need, args})
+      put.fun(U32.is_lt(op, lvl_cap()), args, h, op, need, V.VFun{op, need, args})
     case _:
       pw.tab(tab_put(h, v))
 
@@ -506,6 +514,229 @@ def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
       (h, True{})
     case _:
       is_fn.fin(tab_get(h, w))
+
+# Level checks
+# ============
+
+# A fan's, a function's or an application's field is its level, unless its
+# value form is unlev: then its net was built without levels, a fan's
+# field is its site, and the level checks pass it by.
+def unlev() -> U32:
+  1
+
+# a copy meeting a function at a level not below its own, both leveled
+# (net.bend's level checks)
+def copy_fn_bad(+ha: U32, +hb: U32) -> Bool:
+  U32.is_eq(form(ha), 0) && U32.is_eq(form(hb), 0) && U32.is_ge(fld(ha), fld(hb))
+
+# Fusing controls
+# ===============
+#
+# net.bend's "Fusing controls" on this layout: a control's field is its
+# index, its word 3 its offset. Ports: a Lift's 0 is in, 1 out; a LiftC's
+# 0 out, 1 in. The node freed is the one whose principal faces the other's
+# auxiliary, so it is in no active pair; controls that cancel are left
+# alone when the survivor's principal faces a principal.
+
+type FZ is Data:
+  FzNo{}
+  FzId{}
+  FzTo{+n: U32, +o: U32}
+
+def fz.down(gt: Bool, eq: Bool, +n: U32, +b1: U32, +b2: U32) -> FZ:
+  match gt eq:
+    case True{} _:
+      FzTo{n, ((b1 - b2 : U32) .|. 2147483648 : U32)}
+    case False{} True{}:
+      FzId{}
+    case False{} False{}:
+      FzTo{n, (b2 - b1 : U32)}
+
+def fz.ok(ok: Bool, up2: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
+  match ok:
+    case False{}:
+      FzNo{}
+    case True{}:
+      match up2:
+        case True{}:
+          FzTo{n1, ((b1 + b2 : U32) .|. 2147483648 : U32)}
+        case False{}:
+          fz.down(U32.is_gt(b1, b2), U32.is_eq(b1, b2), n1, b1, b2)
+
+# the one control acting as the first (index n1, offset o1) then the
+# second, if any (V.compose); a raise past the field's range is refused
+def compose(+n1: U32, +o1: U32, +n2: U32, +o2: U32) -> FZ:
+  fz.ok(off_up(o1) && U32.is_le(n1, n2) && U32.is_le(n2, (n1 + off_by(o1) : U32)) &&
+      (Bool.not(off_up(o2)) || U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap())),
+    off_up(o2), n1, off_by(o1), off_by(o2))
+
+def ctl_set(h: H, +r: U32, +k: U32, +n: U32, +o: U32) -> H:
+  wr(wr(h, r, hd(k, n)), (r + 3 : U32), o)
+
+def fl.id.go(active: Bool, h: H, +p: U32, +l: U32, +i: U32, +o: U32) -> H:
+  match active:
+    case True{}:
+      h
+    case False{}:
+      free(free(link(h, i, o), p), l)
+
+def fl.id(r: H & U32, +p: U32, +l: U32, +o: U32) -> H:
+  (h, +i) = r
+  fl.id.go(U32.is_eq(port(i), 0), h, p, l, i, o)
+
+def fl.fuse(f: FZ, h: H, +p: U32, +l: U32, +o: U32) -> H:
+  match f:
+    case FzNo{}:
+      h
+    case FzId{}:
+      fl.id(rd(h, (p + 1 : U32)), p, l, o)
+    case FzTo{+n, +off}:
+      free(link(ctl_set(h, p, 10, n, off), (p + 1 : U32), o), l)
+
+def fl.o(r: H & U32, +p: U32, +l: U32, f: FZ) -> H:
+  (h, +o) = r
+  fl.fuse(f, h, p, l, o)
+
+def fl.ol(r: H & U32, +p: U32, +l: U32, +hp: U32, +op: U32, +hl: U32) -> H:
+  (h, +ol) = r
+  fl.o(rd(h, (l + 2 : U32)), p, l, compose(fld(hp), op, fld(hl), ol))
+
+def fl.hl(r: H & U32, +p: U32, +l: U32, +hp: U32, +op: U32) -> H:
+  (h, +hl) = r
+  fl.ol(rd(h, (l + 3 : U32)), p, l, hp, op, hl)
+
+def fl.op(r: H & U32, +p: U32, +l: U32, +hp: U32) -> H:
+  (h, +op) = r
+  fl.hl(rd(h, l), p, l, hp, op)
+
+def fl.hp(r: H & U32, +p: U32, +l: U32) -> H:
+  (h, +hp) = r
+  fl.op(rd(h, (p + 3 : U32)), p, l, hp)
+
+# Lifts p and l, p's out feeding l's in (values cross p first): p stays
+def fuse_lifts(h: H, +p: U32, +l: U32) -> H:
+  fl.hp(rd(h, p), p, l)
+
+def fc.id.go(active: Bool, h: H, +a: U32, +b: U32, +i: U32, +o: U32) -> H:
+  match active:
+    case True{}:
+      h
+    case False{}:
+      free(free(link(h, i, o), a), b)
+
+def fc.id(r: H & U32, +a: U32, +b: U32, +i: U32) -> H:
+  (h, +o) = r
+  fc.id.go(U32.is_eq(port(o), 0), h, a, b, i, o)
+
+def fc.fuse(f: FZ, h: H, +a: U32, +b: U32, +i: U32) -> H:
+  match f:
+    case FzNo{}:
+      h
+    case FzId{}:
+      fc.id(rd(h, (b + 1 : U32)), a, b, i)
+    case FzTo{+n, +off}:
+      free(link(ctl_set(h, b, 11, n, off), i, (b + 1 : U32)), a)
+
+def fc.i(r: H & U32, +a: U32, +b: U32, f: FZ) -> H:
+  (h, +i) = r
+  fc.fuse(f, h, a, b, i)
+
+def fc.ob(r: H & U32, +a: U32, +b: U32, +ha: U32, +oa: U32, +hb: U32) -> H:
+  (h, +ob) = r
+  fc.i(rd(h, (a + 2 : U32)), a, b, compose(fld(hb), ob, fld(ha), oa))
+
+def fc.hb(r: H & U32, +a: U32, +b: U32, +ha: U32, +oa: U32) -> H:
+  (h, +hb) = r
+  fc.ob(rd(h, (b + 3 : U32)), a, b, ha, oa, hb)
+
+def fc.oa(r: H & U32, +a: U32, +b: U32, +ha: U32) -> H:
+  (h, +oa) = r
+  fc.hb(rd(h, b), a, b, ha, oa)
+
+def fc.ha(r: H & U32, +a: U32, +b: U32) -> H:
+  (h, +ha) = r
+  fc.oa(rd(h, (a + 3 : U32)), a, b, ha)
+
+# LiftCs a and b, a's out feeding b's in (consumers cross b first): b
+# stays
+def fuse_liftcs(h: H, +a: U32, +b: U32) -> H:
+  fc.ha(rd(h, a), a, b)
+
+# r (a control of kind k) and x's node, the peer behind it if up
+def ts.fuse(+k: U32, +up: Bool, h: H, +r: U32, +x: U32) -> H:
+  match k up:
+    case 10 True{}:
+      fuse_lifts(h, x, r)
+    case 10 False{}:
+      fuse_lifts(h, r, x)
+    case _ True{}:
+      fuse_liftcs(h, x, r)
+    case _ False{}:
+      fuse_liftcs(h, r, x)
+
+def ts.go(ok: Bool, +k: U32, +up: Bool, h: H, +r: U32, +x: U32) -> H:
+  match ok:
+    case True{}:
+      ts.fuse(k, up, h, r, base(x))
+    case False{}:
+      h
+
+def ts.hx(rr: H & U32, +k: U32, +pt: U32, +up: Bool, +r: U32, +x: U32) -> H:
+  (h, +hx) = rr
+  ts.go(U32.is_eq(rk(hx), k) && U32.is_eq(port(x), pt) && U32.is_ne(base(x), r), k, up, h, r, x)
+
+def ts.x.go(none: Bool, h: H, +k: U32, +pt: U32, +up: Bool, +r: U32, +x: U32) -> H:
+  match none:
+    case True{}:
+      h
+    case False{}:
+      ts.hx(rd(h, base(x)), k, pt, up, r, x)
+
+def ts.x(rr: H & U32, +k: U32, +pt: U32, +up: Bool, +r: U32) -> H:
+  (h, +x) = rr
+  ts.x.go(U32.is_eq(x, nil()), h, k, pt, up, r, x)
+
+def ts.h.go(live: Bool, h: H, +k: U32, +wk: U32, +pt: U32, +up: Bool, +r: U32) -> H:
+  match live:
+    case True{}:
+      ts.x(rd(h, (r + wk : U32)), k, pt, up, r)
+    case False{}:
+      h
+
+def ts.h(rr: H & U32, +k: U32, +wk: U32, +pt: U32, +up: Bool, +r: U32) -> H:
+  (h, +hr) = rr
+  ts.h.go(U32.is_eq(rk(hr), k), h, k, wk, pt, up, r)
+
+# when r is still a control of kind k, and the peer of its word wk is port
+# pt of another such control: fuse the two
+def try_side(h: H, +r: U32, +k: U32, +wk: U32, +pt: U32, +up: Bool) -> H:
+  ts.h(rd(h, r), k, wk, pt, up, r)
+
+def fuse.k(+k: U32, h: H, +r: U32) -> H:
+  match k:
+    case 10:
+      try_side(try_side(h, r, 10, 1, 1, True{}), r, 10, 2, 0, False{})
+    case 11:
+      try_side(try_side(h, r, 11, 2, 0, True{}), r, 11, 1, 1, False{})
+    case _:
+      h
+
+def fuse.h(rr: H & U32, +r: U32) -> H:
+  (h, +hr) = rr
+  fuse.k(rk(hr), h, r)
+
+def fuse.go(none: Bool, h: H, +r: U32) -> H:
+  match none:
+    case True{}:
+      h
+    case False{}:
+      fuse.h(rd(h, base(r)), base(r))
+
+# a control at r (any port of it) merged with one beside it facing the
+# same way, when compose finds one control acting as both; nil, or any
+# other node, left as it is
+def fuse(h: H, +r: U32) -> H:
+  fuse.go(U32.is_eq(r, nil()), h, r)
 
 # Active pairs
 # ============
