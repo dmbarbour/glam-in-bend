@@ -300,6 +300,15 @@ The core:
    nodes': a free node's word 1 links the next, the state keeps only the
    head, the separate stack and its capacity gone: 1,328 instructions an
    interaction on `succ`, from 1,488, and 1,703 on `plus`, from 1,869.
+   Then the data table's: a freed entry holds `VNum{next}`, the one swap
+   that takes a value out leaving the link in its place, and the one swap
+   that puts a value in returning the link: 1,674 on `plus`, 1,313 on
+   `succ`. `succ` never touches the table; its 15 come from the compiler
+   splitting functions differently (the profile's shares of `run`,
+   `interact` and `kprim_apply` moved by several points each), so the
+   table's own gain is about 14 an interaction on `plus`. The wrapper
+   costs nothing measurable: a constructor with one `U32` field packs.
+   The audit's live count now walks the free list.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

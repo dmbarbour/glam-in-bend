@@ -33,32 +33,33 @@ def lvl_cap() -> U32:
 # The data table
 # ==============
 
-# entries, a stack of free indices beside them, the high-water mark
+# entries, the high-water mark; a freed entry holds VNum{next free index
+# plus one}, the head kept here the same way, 0 for none
 type DT is Type:
-  DT{a: Array<V.Val>, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat}
+  DT{a: Array<V.Val>, +fh: U32, +n: U32, +cap: U32, +d: Nat}
 
 def dt_new() -> DT:
-  DT{Array.new(V.Val, 4n, V.VUnit{}), [0 : U32^4n], 0, 0, 16, 4n}
+  DT{Array.new(V.Val, 4n, V.VUnit{}), 0, 0, 16, 4n}
 
-def dt_get.fin(r: Array<V.Val> & V.Val, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat) -> DT & V.Val:
+def dt_get.fin(r: Array<V.Val> & V.Val, +fh: U32, +n: U32, +cap: U32, +d: Nat) -> DT & V.Val:
   (a, v) = r
-  (DT{a, fs, nf, n, cap, d}, v)
+  (DT{a, fh, n, cap, d}, v)
 
 # entry i's value, the entry kept
 def dt_get(t: DT, +i: U32) -> DT & V.Val:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
-      dt_get.fin(Array.get(V.Val, a, i), fs, nf, n, cap, d)
+    case DT{a, +fh, +n, +cap, +d}:
+      dt_get.fin(Array.get(V.Val, a, i), fh, n, cap, d)
 
-def dt_take.fin(r: Array<V.Val> & V.Val, fs: Array<U32>, +nf: U32, +n: U32, +cap: U32, +d: Nat, +i: U32) -> DT & V.Val:
+def dt_take.fin(r: Array<V.Val> & V.Val, +n: U32, +cap: U32, +d: Nat, +i: U32) -> DT & V.Val:
   (a, v) = r
-  (DT{a, Array.set(U32, fs, nf, i), (nf + 1 : U32), n, cap, d}, v)
+  (DT{a, (i + 1 : U32), n, cap, d}, v)
 
 # entry i's value, the entry freed
 def dt_take(t: DT, +i: U32) -> DT & V.Val:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
-      dt_take.fin(Array.swap(V.Val, a, i, V.VUnit{}), fs, nf, n, cap, d, i)
+    case DT{a, +fh, +n, +cap, +d}:
+      dt_take.fin(Array.swap(V.Val, a, i, V.VNum{fh}), n, cap, d, i)
 
 type DC is Type:
   DC{src: Array<V.Val>, dst: Array<V.Val>}
@@ -78,34 +79,16 @@ def dt_copy(k: Nat, +i: U32, c: DC) -> Array<V.Val>:
         case DC{src, dst}:
           dt_copy(p, (i + 1 : U32), dc.step(Array.get(V.Val, src, i), dst, i))
 
-type FC is Type:
-  FC{src: Array<U32>, dst: Array<U32>}
-
-def fc.step(r: Array<U32> & U32, dst: Array<U32>, +i: U32) -> FC:
-  (src, +v) = r
-  FC{src, Array.set(U32, dst, i, v)}
-
-def fs_copy(k: Nat, +i: U32, c: FC) -> Array<U32>:
-  match k:
-    case 0n:
-      match c:
-        case FC{src, dst}:
-          dst
-    case 1n+p:
-      match c:
-        case FC{src, dst}:
-          fs_copy(p, (i + 1 : U32), fc.step(Array.get(U32, src, i), dst, i))
-
 def dt_grow(t: DT) -> DT:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
+    case DT{a, +fh, +n, +cap, +d}:
       DT{dt_copy(U32.to_nat(cap), 0, DC{a, Array.new(V.Val, Nat.add(d, 1n), V.VUnit{})}),
-        fs_copy(U32.to_nat(cap), 0, FC{fs, [0 : U32^Nat.add(d, 1n)]}), nf, n, (cap * 2 : U32), Nat.add(d, 1n)}
+        fh, n, (cap * 2 : U32), Nat.add(d, 1n)}
 
 def dt_put.app(t: DT, v: V.Val) -> DT & U32:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
-      (DT{Array.set(V.Val, a, n, v), fs, nf, (n + 1 : U32), cap, d}, n)
+    case DT{a, +fh, +n, +cap, +d}:
+      (DT{Array.set(V.Val, a, n, v), fh, (n + 1 : U32), cap, d}, n)
 
 def dt_put.new(full: Bool, t: DT, v: V.Val) -> DT & U32:
   match full:
@@ -114,19 +97,27 @@ def dt_put.new(full: Bool, t: DT, v: V.Val) -> DT & U32:
     case False{}:
       dt_put.app(t, v)
 
-def dt_put.reuse(r: Array<U32> & U32, a: Array<V.Val>, +nf: U32, +n: U32, +cap: U32, +d: Nat, v: V.Val) -> DT & U32:
-  (fs, +i) = r
-  (DT{Array.set(V.Val, a, i, v), fs, (nf - 1 : U32), n, cap, d}, i)
+# the link a freed entry holds; anything else ends the list
+def dt_link(v: V.Val) -> U32:
+  match v:
+    case V.VNum{+k}:
+      k
+    case _:
+      0
+
+def dt_put.reuse(r: Array<V.Val> & V.Val, +n: U32, +cap: U32, +d: Nat, +i: U32) -> DT & U32:
+  (a, old) = r
+  (DT{a, dt_link(old), n, cap, d}, i)
 
 # a new entry for v, reusing a freed one if any: its index
 def dt_put(t: DT, v: V.Val) -> DT & U32:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
-      match nf:
+    case DT{a, +fh, +n, +cap, +d}:
+      match fh:
         case 0:
-          dt_put.new(U32.is_ge(n, cap), DT{a, fs, nf, n, cap, d}, v)
+          dt_put.new(U32.is_ge(n, cap), DT{a, fh, n, cap, d}, v)
         case _:
-          dt_put.reuse(Array.get(U32, fs, (nf - 1 : U32)), a, nf, n, cap, d, v)
+          dt_put.reuse(Array.swap(V.Val, a, (fh - 1 : U32), v), n, cap, d, (fh - 1 : U32))
 
 # The state
 # =========
@@ -513,8 +504,31 @@ def node_pw(h: H, +k: U32, pw: PW) -> H & U32:
     case PW{+m, +f, +w}:
       node(h, hd2(k, m, f), w)
 
+type FW is Type:
+  FW{a: Array<V.Val>, +fh: U32, +c: U32}
+
+def fw.step(r: Array<V.Val> & V.Val, +c: U32) -> FW:
+  (a, v) = r
+  FW{a, dt_link(v), (c + 1 : U32)}
+
+# entries on the free list, following at most k links
+def dt_free(k: Nat, w: FW) -> U32:
+  match k:
+    case 0n:
+      match w:
+        case FW{a, +fh, +c}:
+          c
+    case 1n+p:
+      match w:
+        case FW{a, +fh, +c}:
+          match fh:
+            case 0:
+              c
+            case _:
+              dt_free(p, fw.step(Array.get(V.Val, a, (fh - 1 : U32)), c))
+
 # entries in use: the high-water mark less those freed
 def dt_live(t: DT) -> U32:
   match t:
-    case DT{a, fs, +nf, +n, +cap, +d}:
-      (n - nf : U32)
+    case DT{a, +fh, +n, +cap, +d}:
+      (n - dt_free(U32.to_nat(n), FW{a, fh, 0}) : U32)
