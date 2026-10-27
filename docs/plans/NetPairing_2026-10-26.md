@@ -132,8 +132,8 @@ derivation made here first.
    Since the comparison below: a copy meeting a function at a level not
    below its own, and two fans meeting at one level with different
    sites, count as errors (assertions; the rewrite proceeds), as does a
-   control raising a level past the top of `U32`. None fires on the 608
-   terms. The root takes the place of a control facing it, and the
+   control raising a level past the top of `U32`. None fires on the 611
+   terms (600 random, 11 picked). The root takes the place of a control facing it, and the
    result is read off the live root.
    Down offsets fuse only as a croissant after a raise. The maintainer
    expects more, with the right framing; a symmetric one: a control
