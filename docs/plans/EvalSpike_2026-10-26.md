@@ -71,6 +71,16 @@ The core:
    a free list per page, handles of page and slot in one `U32`, growth by
    adding pages. Laws: allocation stays in bounds; allocating and freeing
    conserve cells.
+   Built 2026-10-27 (`spike/store.bend`, `spike/bench_store.bend`). Laws
+   `alloc_conserves` and `free_conserves` hold of the allocator's own
+   metadata, a free list and `Nat` counts. "In bounds" got runtime guards
+   instead: Bend cannot prove even `h & 4095 < 4096`, its `U32` facts
+   being bit-level, so numeric laws must be stated over `Nat` models.
+   Measured (1M nodes, native): allocate and write a node's four words
+   76 ns, read 9 ns, free 14 ns; linear to 4M. Accessors cost 10–15 ns
+   against 1.5 ns raw, rebuilding the store record each time: batching
+   work on the current page is the obvious fix. Freed slots in old pages
+   are not reused yet, since allocation draws only from the current page.
 2. `spike-net-rules` — Bind, Copy, Data and eraser interactions as one
    fuel-driven loop over a stack of active pairs, fans paired by complete
    duplication histories (`pairing-histories`). Laws: a rewrite keeps
