@@ -294,6 +294,12 @@ The core:
    threads the kernel runs the same instructions, within 20, and the
    same cycles within 1%, since it does not fork; the cost of more
    workers is the barrier per round where work forks (`Known`, above).
+   Free lists made intrusive, one at a time, against a second workload,
+   `k 2 (plus 1) 0` (`kernel <k> plus`), whose partial application is a
+   table entry every copy duplicates and every call consumes. First the
+   nodes': a free node's word 1 links the next, the state keeps only the
+   head, the separate stack and its capacity gone: 1,328 instructions an
+   interaction on `succ`, from 1,488, and 1,703 on `plus`, from 1,869.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

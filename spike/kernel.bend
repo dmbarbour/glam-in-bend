@@ -18,8 +18,10 @@ import ./krules.bend as KR
 # first new node using one takes it over, a later one gets a duplicate, a
 # rule using it nowhere drops it. Level checks and fusion are not here yet.
 #
-#   kernel <k> [ref]   reduce `k 2 succ 0` (2^k), report value, counts,
-#                      time; with ref, by the interpreted table alone
+#   kernel <k> [ref|plus|plusref]
+#       reduce `k 2 succ 0` (2^k), or with plus `k 2 (plus 1) 0`, whose
+#       partial application lives in the data table; report value,
+#       counts, time; with ref (plusref), by the interpreted table alone
 
 # Payloads
 # ========
@@ -485,12 +487,12 @@ def value.at(rs: Rs) -> P.H & Maybe<&2, V.Val>:
 
 def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, P.nil()}))
+    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, P.nil()}))
 
 def counts(h: P.H) -> String:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
       U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++ U32.show(fresh) ++ " nodes at most, " ++
         U32.show(P.dt_live(dt)) ++ " data entries live"
 
@@ -546,13 +548,13 @@ def kres.au(au: Au, v: Maybe<&2, V.Val>) -> KRes:
   match au:
     case Au{h, +n}:
       match h:
-        case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+        case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
           KRes{v, itrs, errs, U32.is_eq(P.dt_live(dt), n)}
 
 def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      kres.au(audit(U32.to_nat(fresh), 0, Au{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0}), v)
+    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      kres.au(audit(U32.to_nat(fresh), 0, Au{P.H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0}), v)
 
 def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
   (h, v) = r
@@ -567,10 +569,17 @@ def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   report(result(run(fuel, fast, P.pop(load(t)))))
 
-def main.k(+k: U32, +fast: Bool) -> IO(Unit):
+def workload(+plus: Bool, +k: U32) -> T.Tpl:
+  match plus:
+    case True{}:
+      X.t_pow_plus(k, 2)
+    case False{}:
+      X.t_pow(k, 2)
+
+def main.k(+k: U32, +fast: Bool, +plus: Bool) -> IO(Unit):
   do IO<Unit>:
     +t0 : Nat <- IO.now()
-    +res : String = reduce(X.t_pow(k, 2), 268435456n, fast)
+    +res : String = reduce(workload(plus, k), 268435456n, fast)
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
 
@@ -580,14 +589,15 @@ def main.args(xs: List<String>) -> IO(Unit):
       match r:
         case Con{a, r2}:
           match r2:
-            case Con{m, r3}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10), Bool.not(String.eq(m, "ref")))
+            case Con{+m, r3}:
+              main.k(Maybe.default(&2, U32, U32.read(a), 10), Bool.not(String.eq(m, "ref") || String.eq(m, "plusref")),
+                String.eq(m, "plus") || String.eq(m, "plusref"))
             case Nil{}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{})
+              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{}, False{})
         case Nil{}:
-          IO.print("usage: kernel <k> [ref]")
+          IO.print("usage: kernel <k> [ref|plus|plusref]")
     case Nil{}:
-      IO.print("usage: kernel <k> [ref]")
+      IO.print("usage: kernel <k> [ref|plus|plusref]")
 
 def main() -> IO(Unit):
   do IO<Unit>:

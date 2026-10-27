@@ -135,15 +135,15 @@ def dt_put(t: DT, v: V.Val) -> DT & U32:
 # many nodes and active pairs fit now, so that the common case checks a
 # counter and only growing calls the storage
 type H is Type:
-  H{w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32}
+  H{w: KM.M, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32}
 
 def h_new() -> H:
-  H{KM.m_new(23n), KM.m_new(21n), 0, 0, KM.m_new(22n), 0, 0, 0, dt_new(), 0, 0}
+  H{KM.m_new(23n), 0, 0, KM.m_new(22n), 0, 0, 0, dt_new(), 0, 0}
 
 def h_err(h: H) -> H:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      H{w, fs, nf, fresh, rs, nr, itrs, (errs + 1 : U32), dt, wcap, rcap}
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      H{w, fh, fresh, rs, nr, itrs, (errs + 1 : U32), dt, wcap, rcap}
 
 def err_if(bad: Bool, h: H) -> H:
   match bad:
@@ -155,19 +155,19 @@ def err_if(bad: Bool, h: H) -> H:
 # Words
 # =====
 
-def rd.fin(r: KM.M & U32, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> H & U32:
+def rd.fin(r: KM.M & U32, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> H & U32:
   (w, +v) = r
-  (H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, v)
+  (H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, v)
 
 def rd(h: H, +i: U32) -> H & U32:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      rd.fin(KM.m_get(w, i), fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap)
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      rd.fin(KM.m_get(w, i), fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap)
 
 def wr(h: H, +i: U32, +v: U32) -> H:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      H{KM.m_set(w, i, v), fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      H{KM.m_set(w, i, v), fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}
 
 def push.go(ok: Bool, h: H, +x: U32, +y: U32) -> H:
   match ok:
@@ -175,16 +175,16 @@ def push.go(ok: Bool, h: H, +x: U32, +y: U32) -> H:
       h_err(h)
     case True{}:
       match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          H{w, fs, nf, fresh, KM.m_set(KM.m_set(rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), itrs, errs, dt, wcap, rcap}
+        case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+          H{w, fh, fresh, KM.m_set(KM.m_set(rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), itrs, errs, dt, wcap, rcap}
 
-def push.cap(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +ok: Bool, +x: U32, +y: U32) -> H:
+def push.cap(r: KM.M & U32, w: KM.M, +fh: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +ok: Bool, +x: U32, +y: U32) -> H:
   (rs, +c) = r
-  push.go(ok, H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, (c >> 1n : U32)}, x, y)
+  push.go(ok, H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, (c >> 1n : U32)}, x, y)
 
-def push.ens(r: KM.M & Bool, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +x: U32, +y: U32) -> H:
+def push.ens(r: KM.M & Bool, w: KM.M, +fh: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +x: U32, +y: U32) -> H:
   (rs, +ok) = r
-  push.cap(KM.m_cap(rs), w, fs, nf, fresh, nr, itrs, errs, dt, wcap, ok, x, y)
+  push.cap(KM.m_cap(rs), w, fh, fresh, nr, itrs, errs, dt, wcap, ok, x, y)
 
 def push.room(room: Bool, h: H, +x: U32, +y: U32) -> H:
   match room:
@@ -192,14 +192,14 @@ def push.room(room: Bool, h: H, +x: U32, +y: U32) -> H:
       push.go(True{}, h, x, y)
     case False{}:
       match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          push.ens(KM.m_ensure(rs, ((nr * 2 : U32) + 2 : U32)), w, fs, nf, fresh, nr, itrs, errs, dt, wcap, x, y)
+        case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+          push.ens(KM.m_ensure(rs, ((nr * 2 : U32) + 2 : U32)), w, fh, fresh, nr, itrs, errs, dt, wcap, x, y)
 
 # push an active pair; only growing the stack calls the storage
 def push(h: H, +x: U32, +y: U32) -> H:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      push.room(U32.is_lt(nr, rcap), H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, x, y)
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      push.room(U32.is_lt(nr, rcap), H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, x, y)
 
 def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
   match both:
@@ -219,31 +219,22 @@ def link(h: H, +x: U32, +y: U32) -> H:
 # Nodes
 # =====
 
-def alloc.pop(r: KM.M & U32, w: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> H & U32:
-  (fs, +n) = r
-  (H{w, fs, (nf - 1 : U32), fresh, rs, nr, itrs, errs, dt, wcap, rcap}, (n << 2n : U32))
-
 def alloc.fresh(ok: Bool, h: H) -> H & U32:
   match ok:
     case False{}:
       (h_err(h), 0)
     case True{}:
       match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          (H{w, fs, nf, (fresh + 1 : U32), rs, nr, itrs, errs, dt, wcap, rcap}, (fresh << 2n : U32))
+        case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+          (H{w, fh, (fresh + 1 : U32), rs, nr, itrs, errs, dt, wcap, rcap}, (fresh << 2n : U32))
 
-def alloc.ens.f(r: KM.M & Bool, w: KM.M, +okw: Bool, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> H & U32:
-  (fs, +okf) = r
-  alloc.fresh(okw && okf, H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap})
-
-# the node store grown: the free list made as long as it holds nodes
-def alloc.cap(r: KM.M & U32, fs: KM.M, +okw: Bool, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +rcap: U32) -> H & U32:
+def alloc.cap(r: KM.M & U32, +okw: Bool, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +rcap: U32) -> H & U32:
   (w, +c) = r
-  alloc.ens.f(KM.m_ensure(fs, (c >> 2n : U32)), w, okw, nf, fresh, rs, nr, itrs, errs, dt, (c >> 2n : U32), rcap)
+  alloc.fresh(okw, H{w, fh, fresh, rs, nr, itrs, errs, dt, (c >> 2n : U32), rcap})
 
-def alloc.ens.w(r: KM.M & Bool, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +rcap: U32) -> H & U32:
+def alloc.ens.w(r: KM.M & Bool, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +rcap: U32) -> H & U32:
   (w, +okw) = r
-  alloc.cap(KM.m_cap(w), fs, okw, nf, fresh, rs, nr, itrs, errs, dt, rcap)
+  alloc.cap(KM.m_cap(w), okw, fh, fresh, rs, nr, itrs, errs, dt, rcap)
 
 def alloc.room(room: Bool, h: H) -> H & U32:
   match room:
@@ -251,18 +242,25 @@ def alloc.room(room: Bool, h: H) -> H & U32:
       alloc.fresh(True{}, h)
     case False{}:
       match h:
-        case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          alloc.ens.w(KM.m_ensure(w, ((fresh + 1 : U32) * 4 : U32)), fs, nf, fresh, rs, nr, itrs, errs, dt, rcap)
+        case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+          alloc.ens.w(KM.m_ensure(w, ((fresh + 1 : U32) * 4 : U32)), fh, fresh, rs, nr, itrs, errs, dt, rcap)
 
-# a node: off the free list, or fresh; only growing calls the storage
+def alloc.pop(r: KM.M & U32, +n: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> H & U32:
+  (w, +next) = r
+  (H{w, next, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, n)
+
+# a node: the head of the free list, or fresh; only growing calls the
+# storage. Free nodes form an intrusive list: the head is a node's index
+# plus one (0, none), and each free node's word 1 holds the next in the
+# same form.
 def alloc(h: H) -> H & U32:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      match nf:
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      match fh:
         case 0:
-          alloc.room(U32.is_lt(fresh, wcap), H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap})
+          alloc.room(U32.is_lt(fresh, wcap), H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap})
         case _:
-          alloc.pop(KM.m_get(fs, (nf - 1 : U32)), w, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap)
+          alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), fresh, rs, nr, itrs, errs, dt, wcap, rcap)
 
 def node.word.k(+k: U32) -> U32:
   match k:
@@ -287,14 +285,12 @@ def node(h: H, +hd: U32, +p: U32) -> H & U32:
 def base(+r: U32) -> U32:
   (r .&. 4294967292 : U32)
 
-def free.fin(h: H, +r: U32) -> H:
-  match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      H{w, KM.m_set(fs, nf, (r >> 2n : U32)), (nf + 1 : U32), fresh, rs, nr, itrs, errs, dt, wcap, rcap}
-
-# free the node behind reference r, whatever its port
+# free the node behind reference r, whatever its port: its header zeroed,
+# its word 1 linking the old head of the free list
 def free(h: H, +r: U32) -> H:
-  free.fin(wr(h, base(r), 0), r)
+  match h:
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      H{KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), ((r >> 2n : U32) + 1 : U32), fresh, rs, nr, itrs, errs, dt, wcap, rcap}
 
 def fresh2(h: H, +a: U32, +b: U32) -> H:
   free(free(h, a), b)
@@ -344,28 +340,28 @@ def lift(+n: U32, +o: U32, +j: U32) -> U32:
 def lift_wraps(+n: U32, +o: U32, +j: U32) -> Bool:
   off_up(o) && U32.is_gt(j, n) && U32.is_ge((j + off_by(o) : U32), lvl_cap())
 
-def dt_op.fin(r: DT & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, +wcap: U32, +rcap: U32) -> H & U32:
+def dt_op.fin(r: DT & U32, w: KM.M, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, +wcap: U32, +rcap: U32) -> H & U32:
   (dt, +i) = r
-  (H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, i)
+  (H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, i)
 
-def dt_val.fin(r: DT & V.Val, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, +wcap: U32, +rcap: U32) -> H & V.Val:
+def dt_val.fin(r: DT & V.Val, w: KM.M, +fh: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32, +wcap: U32, +rcap: U32) -> H & V.Val:
   (dt, v) = r
-  (H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, v)
+  (H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, v)
 
 def tab_put(h: H, v: V.Val) -> H & U32:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      dt_op.fin(dt_put(dt, v), w, fs, nf, fresh, rs, nr, itrs, errs, wcap, rcap)
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      dt_op.fin(dt_put(dt, v), w, fh, fresh, rs, nr, itrs, errs, wcap, rcap)
 
 def tab_get(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      dt_val.fin(dt_get(dt, i), w, fs, nf, fresh, rs, nr, itrs, errs, wcap, rcap)
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      dt_val.fin(dt_get(dt, i), w, fh, fresh, rs, nr, itrs, errs, wcap, rcap)
 
 def tab_take(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      dt_val.fin(dt_take(dt, i), w, fs, nf, fresh, rs, nr, itrs, errs, wcap, rcap)
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      dt_val.fin(dt_take(dt, i), w, fh, fresh, rs, nr, itrs, errs, wcap, rcap)
 
 # a value as a node holds it: its form, field and word
 type PW is Data:
@@ -479,27 +475,27 @@ def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
 type Pop is Type:
   Pop{h: H, +x: U32, +y: U32, +ok: Bool}
 
-def pop.y(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32, +x: U32) -> Pop:
+def pop.y(r: KM.M & U32, w: KM.M, +fh: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32, +x: U32) -> Pop:
   (rs, +y) = r
-  Pop{H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, x, y, True{}}
+  Pop{H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, x, y, True{}}
 
-def pop.x(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> Pop:
+def pop.x(r: KM.M & U32, w: KM.M, +fh: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, dt: DT, +wcap: U32, +rcap: U32) -> Pop:
   (rs, +x) = r
-  pop.y(KM.m_get(rs, ((nr * 2 : U32) + 1 : U32)), w, fs, nf, fresh, nr, itrs, errs, dt, wcap, rcap, x)
+  pop.y(KM.m_get(rs, ((nr * 2 : U32) + 1 : U32)), w, fh, fresh, nr, itrs, errs, dt, wcap, rcap, x)
 
 def pop(h: H) -> Pop:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
       match nr:
         case 0:
-          Pop{H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0, 0, False{}}
+          Pop{H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0, 0, False{}}
         case _:
-          pop.x(KM.m_get(rs, ((nr - 1 : U32) * 2 : U32)), w, fs, nf, fresh, (nr - 1 : U32), (itrs + 1 : U32), errs, dt, wcap, rcap)
+          pop.x(KM.m_get(rs, ((nr - 1 : U32) * 2 : U32)), w, fh, fresh, (nr - 1 : U32), (itrs + 1 : U32), errs, dt, wcap, rcap)
 
 def uncount(h: H) -> H:
   match h:
-    case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      H{w, fs, nf, fresh, rs, nr, (itrs - 1 : U32), errs, dt, wcap, rcap}
+    case H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      H{w, fh, fresh, rs, nr, (itrs - 1 : U32), errs, dt, wcap, rcap}
 
 # a pair popped when fuel ran out goes back, uncounted
 def unpop(pp: Pop) -> H:

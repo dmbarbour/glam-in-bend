@@ -117,6 +117,19 @@ def t_pow(+m: U32, +n: U32) -> T.Tpl:
        l((c + 1 : U32), 2, (c + 3 : U32), 0), l((c + 3 : U32), 1, (c + 4 : U32), 0)])),
     T.TE{(c + 3 : U32), 2}, (c + 5 : U32)}
 
+# m n (plus 1) 0: as t_pow, but adding 1 by a partial application of
+# the builtin add, which every copy duplicates and every call consumes
+def t_pow_plus(+m: U32, +n: U32) -> T.Tpl:
+  +b = nsize(m)
+  +c = (b + nsize(n) : U32)
+  T.Tpl{List.append(&2, T.TNode, numeral_nodes(m, 1), List.append(&2, T.TNode, numeral_nodes(n, 100),
+      [ap(), ap(), ap(), ap(), num(0), plus(), num(1)])),
+    List.append(&2, T.TLink, numeral_links(m, 0), List.append(&2, T.TLink, numeral_links(n, b),
+      [l(c, 0, 0, 0), l(c, 1, b, 0), l(c, 2, (c + 1 : U32), 0), l((c + 1 : U32), 1, (c + 2 : U32), 2),
+       l((c + 2 : U32), 0, (c + 5 : U32), 0), l((c + 2 : U32), 1, (c + 6 : U32), 0),
+       l((c + 1 : U32), 2, (c + 3 : U32), 0), l((c + 3 : U32), 1, (c + 4 : U32), 0)])),
+    T.TE{(c + 3 : U32), 2}, (c + 7 : U32)}
+
 # two (two two) succ 0
 def t_two_two_two() -> T.Tpl:
   +b = nsize(2)
