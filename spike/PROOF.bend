@@ -60,12 +60,18 @@ def Laws.rules_polarized(a, b, s):
         case R.KMerge{}:
           {==}
         case R.KData{}:
-          {==}
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
         case R.KEraN{}:
           {==}
         case R.KEraP{}:
           {==}
         case R.KRoot{}:
+          {==}
+        case R.KCall{}:
           {==}
     case R.KCopy{}:
       match b:
@@ -91,6 +97,8 @@ def Laws.rules_polarized(a, b, s):
           {==}
         case R.KRoot{}:
           {==}
+        case R.KCall{}:
+          {==}
     case R.KMerge{}:
       {==}
     case R.KData{}:
@@ -115,10 +123,34 @@ def Laws.rules_polarized(a, b, s):
           {==}
         case R.KRoot{}:
           {==}
+        case R.KCall{}:
+          {==}
     case R.KEraP{}:
       {==}
     case R.KRoot{}:
       {==}
+    case R.KCall{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
 
 # by cases: every rule is a constant the checker computes
 def Laws.rules_linear(a, b, s):
@@ -140,12 +172,18 @@ def Laws.rules_linear(a, b, s):
         case R.KMerge{}:
           {==}
         case R.KData{}:
-          {==}
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
         case R.KEraN{}:
           {==}
         case R.KEraP{}:
           {==}
         case R.KRoot{}:
+          {==}
+        case R.KCall{}:
           {==}
     case R.KCopy{}:
       match b:
@@ -171,6 +209,8 @@ def Laws.rules_linear(a, b, s):
           {==}
         case R.KRoot{}:
           {==}
+        case R.KCall{}:
+          {==}
     case R.KMerge{}:
       {==}
     case R.KData{}:
@@ -195,7 +235,31 @@ def Laws.rules_linear(a, b, s):
           {==}
         case R.KRoot{}:
           {==}
+        case R.KCall{}:
+          {==}
     case R.KEraP{}:
       {==}
     case R.KRoot{}:
       {==}
+    case R.KCall{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}

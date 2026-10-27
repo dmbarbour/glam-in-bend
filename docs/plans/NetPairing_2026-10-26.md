@@ -43,14 +43,23 @@ could prove it, and prove that every reduction preserves polarity.
    histories, as in the Rust bootstrap. Laws: commutation extends a
    history; annihilation happens only on identical histories. The spike
    runs on this.
-   Tried 2026-10-27 in the spike: extending both fans' histories on
-   commutation diverges on `two two succ 0`, where a fan duplicates a
-   live function holding a fan: the outer fan's two halves stop matching.
-   Correct pairing extends only the inner fan's history, and which fan is
-   inner is not locally visible. Static labels halt wrongly there;
-   extending only copies, or only merges, fails or diverges. So as a
-   local rule the history reference is not correct for such nets; glam's
-   lowered code avoids them (functions are data, instantiated per call),
+   Tried 2026-10-27 in the spike (`spike-net-rules` has the numbers),
+   once strict calls distribute over superposed arguments: extending both
+   fans' histories on commutation, the Rust bootstrap's scheme, diverges
+   on every Church exponentiation, `two two succ 0` included. That is
+   wrong pairing, not growth. When an outer fan commutes through an inner
+   one, the outer fan's residuals record a step their partner never
+   takes, so where they meet they commute instead of annihilating, and
+   the copies multiply. Extending only the inner fan is right wherever a
+   test-specific oracle could name it: every `m n succ 0`, and
+   `(\t -> t t) two`. Static labels are right on `m n` and diverge on
+   self-application. The Rust bootstrap's tests cover single
+   commutations, never a fan duplicating a function that holds fans.
+   So histories are a correct reference only with a bit two meeting fans
+   do not carry, which of them is inner: GAL's levels record it. Where
+   live functions holding fans are duplicated, levels are needed for
+   correctness, not only for constant-time pairing. glam's lowered code
+   may avoid such nets (functions are data, instantiated per call),
    leaving user-built nets.
 3. `pairing-labels` — where labels suffice: run workloads under both
    histories and labels, and report every fan pair they decide

@@ -140,7 +140,7 @@ def show_val(m: Maybe<&2, V.Val>) -> String:
 
 def counts(q: N.Q) -> String:
   match q:
-    case N.Q{st, rq, +itrs, +errs, calls}:
+    case N.Q{st, rq, +itrs, +errs}:
       U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors"
 
 def report(r: N.Q & Maybe<&2, V.Val>) -> String:

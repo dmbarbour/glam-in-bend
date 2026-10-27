@@ -31,6 +31,8 @@ def kcode(k: R.NodeKind) -> U32:
       7
     case R.KRoot{}:
       8
+    case R.KCall{}:
+      9
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -50,6 +52,8 @@ def kof(c: U32) -> R.NodeKind:
       R.KEraP{}
     case 8:
       R.KRoot{}
+    case 9:
+      R.KCall{}
     case _:
       R.KFree{}
 
@@ -60,35 +64,35 @@ type Redex is Data:
   Redex{+a: U32, +b: U32}
 
 # the store, the active pairs, and counts: interactions, errors (rule
-# violations, loops it cannot resolve), calls left for the evaluator
+# violations, loops it cannot resolve)
 type Q is Type:
-  Q{st: S.Store, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +calls: List<&2, Redex>}
+  Q{st: S.Store, rq: List<&2, Redex>, +itrs: U32, +errs: U32}
 
 def q_new() -> Q:
-  Q{S.st_new(), Nil{}, 0, 0, Nil{}}
+  Q{S.st_new(), Nil{}, 0, 0}
 
 def q_err(q: Q) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      Q{st, rq, itrs, (errs + 1 : U32), calls}
+    case Q{st, rq, +itrs, +errs}:
+      Q{st, rq, itrs, (errs + 1 : U32)}
 
-def q_word.fin(r: S.Store & U32, rq: List<&2, Redex>, +itrs: U32, +errs: U32, calls: List<&2, Redex>) -> Q & U32:
+def q_word.fin(r: S.Store & U32, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & U32:
   (st, +x) = r
-  (Q{st, rq, itrs, errs, calls}, x)
+  (Q{st, rq, itrs, errs}, x)
 
 def q_word(q: Q, +r: U32, +k: U32) -> Q & U32:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      q_word.fin(S.st_get(st, r, k), rq, itrs, errs, calls)
+    case Q{st, rq, +itrs, +errs}:
+      q_word.fin(S.st_get(st, r, k), rq, itrs, errs)
 
-def q_pay.fin(r: S.Store & V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32, calls: List<&2, Redex>) -> Q & V.Pay:
+def q_pay.fin(r: S.Store & V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & V.Pay:
   (st, p) = r
-  (Q{st, rq, itrs, errs, calls}, p)
+  (Q{st, rq, itrs, errs}, p)
 
 def q_pay(q: Q, +r: U32) -> Q & V.Pay:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      q_pay.fin(S.st_pay(st, r), rq, itrs, errs, calls)
+    case Q{st, rq, +itrs, +errs}:
+      q_pay.fin(S.st_pay(st, r), rq, itrs, errs)
 
 def both0(+x: U32, +y: U32) -> Bool:
   U32.is_eq(S.ref_port(x), 0) && U32.is_eq(S.ref_port(y), 0)
@@ -103,25 +107,25 @@ def push_if(b: Bool, +x: U32, +y: U32, rq: List<&2, Redex>) -> List<&2, Redex>:
 # wire port x to port y; two principals make an active pair
 def link(q: Q, +x: U32, +y: U32) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
+    case Q{st, rq, +itrs, +errs}:
       st1 = S.st_set(st, x, (S.ref_port(x) + 1 : U32), y)
       st2 = S.st_set(st1, y, (S.ref_port(y) + 1 : U32), x)
-      Q{st2, push_if(both0(x, y), x, y, rq), itrs, errs, calls}
+      Q{st2, push_if(both0(x, y), x, y, rq), itrs, errs}
 
-def node.fin(r: S.Store & U32, +k: U32, p: V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32, calls: List<&2, Redex>) -> Q & U32:
+def node.fin(r: S.Store & U32, +k: U32, p: V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32) -> Q & U32:
   (st, +ref) = r
-  (Q{S.st_set_pay(S.st_set(st, ref, 0, k), ref, p), rq, itrs, errs, calls}, ref)
+  (Q{S.st_set_pay(S.st_set(st, ref, 0, k), ref, p), rq, itrs, errs}, ref)
 
 # a new node of kind k with payload p: its port 0
 def node(q: Q, k: R.NodeKind, p: V.Pay) -> Q & U32:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      node.fin(S.st_alloc(st), kcode(k), p, rq, itrs, errs, calls)
+    case Q{st, rq, +itrs, +errs}:
+      node.fin(S.st_alloc(st), kcode(k), p, rq, itrs, errs)
 
 def free(q: Q, +r: U32) -> Q:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      Q{S.st_free(st, r), rq, itrs, errs, calls}
+    case Q{st, rq, +itrs, +errs}:
+      Q{S.st_free(st, r), rq, itrs, errs}
 
 # Applying a rule
 # ===============
@@ -185,12 +189,23 @@ def fan_of(p: V.Pay) -> V.FanId:
     case _:
       V.fan_new(0, 0)
 
+def pay_val(p: V.Pay) -> V.Val:
+  match p:
+    case V.PVal{v}:
+      v
+    case _:
+      V.VUnit{}
+
 def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
   match s:
     case R.SNone{}:
       V.PNone{}
+    case R.SPayA{}:
+      pa
     case R.SPayB{}:
       pb
+    case R.SApply{}:
+      V.PVal{V.apply_fn(pay_val(pa), pay_val(pb))}
     case R.SFanA{}:
       pa
     case R.SFanB{}:
@@ -356,19 +371,6 @@ def n3_kind(n: Node3) -> R.NodeKind:
     case N3{+h, l1, l2}:
       kof((h .&. 15 : U32))
 
-def has_aux(k: R.NodeKind) -> Bool:
-  match k:
-    case R.KFn{}:
-      True{}
-    case R.KAp{}:
-      True{}
-    case R.KCopy{}:
-      True{}
-    case R.KMerge{}:
-      True{}
-    case _:
-      False{}
-
 def aux_or_nil(b: Bool, +l: U32) -> U32:
   match b:
     case True{}:
@@ -379,13 +381,27 @@ def aux_or_nil(b: Bool, +l: U32) -> U32:
 def ext_of(+na: Node3, +nb: Node3) -> Ext:
   match na nb:
     case N3{h1, +a1, +a2} N3{h2, +b1, +b2}:
-      Ext4{aux_or_nil(has_aux(n3_kind(na)), a1), aux_or_nil(has_aux(n3_kind(na)), a2),
-        aux_or_nil(has_aux(n3_kind(nb)), b1), aux_or_nil(has_aux(n3_kind(nb)), b2)}
+      Ext4{aux_or_nil(Nat.is_lt(1n, R.arity(n3_kind(na))), a1), aux_or_nil(Nat.is_lt(2n, R.arity(n3_kind(na))), a2),
+        aux_or_nil(Nat.is_lt(1n, R.arity(n3_kind(nb))), b1), aux_or_nil(Nat.is_lt(2n, R.arity(n3_kind(nb))), b2)}
 
-def same_fans(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
+def is_builtin(p: V.Pay) -> Bool:
+  match p:
+    case V.PVal{v}:
+      match v:
+        case V.VFun{+op, +need, args}:
+          True{}
+        case _:
+          False{}
+    case _:
+      False{}
+
+# the payload test a rule takes (R.rule)
+def rule_test(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
   match ka kb:
     case R.KCopy{} R.KMerge{}:
       V.fan_eq(fan_of(pa), fan_of(pb))
+    case R.KAp{} R.KData{}:
+      is_builtin(pb)
     case _ _:
       False{}
 
@@ -403,23 +419,16 @@ def stuck(root: Bool, q: Q) -> Q:
     case False{}:
       q_err(q)
 
-def calls_add(q: Q, +a: U32, +b: U32) -> Q:
-  match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      Q{st, rq, itrs, errs, Redex{a, b} <> calls}
-
 def apply(r: R.Rule, q: Q, +a: U32, +b: U32, +ka: R.NodeKind, +x: Ext, +pa: V.Pay, +pb: V.Pay) -> Q:
   match r:
     case R.RWire{xs, ls}:
       wire(q, a, b, xs, ls, x, pa, pb)
-    case R.RCall{}:
-      calls_add(q, a, b)
     case R.RStuck{}:
       stuck(is_root(ka), q)
 
 def interact.pays(r: Q & V.Pay, +pa: V.Pay, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q:
   (q, +pb) = r
-  apply(R.rule(n3_kind(na), n3_kind(nb), same_fans(n3_kind(na), n3_kind(nb), pa, pb)), q, a, b, n3_kind(na), ext_of(na, nb), pa, pb)
+  apply(R.rule(n3_kind(na), n3_kind(nb), rule_test(n3_kind(na), n3_kind(nb), pa, pb)), q, a, b, n3_kind(na), ext_of(na, nb), pa, pb)
 
 def interact.paya(r: Q & V.Pay, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q:
   (q, +pa) = r
@@ -455,74 +464,18 @@ def reduce(n: Nat, q: Q) -> Q:
       q
     case 1n+p:
       match q:
-        case Q{st, rq, +itrs, +errs, calls}:
+        case Q{st, rq, +itrs, +errs}:
           match rq:
             case Nil{}:
-              Q{st, Nil{}, itrs, errs, calls}
+              Q{st, Nil{}, itrs, errs}
             case Con{Redex{+a, +b}, t}:
-              reduce(p, interact(Q{st, t, (itrs + 1 : U32), errs, calls}, a, b))
+              reduce(p, interact(Q{st, t, (itrs + 1 : U32), errs}, a, b))
 
-# Calls
-# =====
-
-# An application meeting data calls it. The call waits until its argument
-# is data too: reduction elsewhere may still be producing it.
-
-def pay_val(p: V.Pay) -> V.Val:
-  match p:
-    case V.PVal{v}:
-      v
-    case _:
-      V.VUnit{}
-
-def call.link(r: Q & U32, +resp: U32) -> Q & Bool:
-  (q, +d) = r
-  (link(q, d, resp), True{})
-
-def call.arg(r: Q & V.Pay, +fv: V.Val, +a: U32, +b: U32, +argn: U32, +resp: U32) -> Q & Bool:
-  (q, +ap) = r
-  call.link(node(free(free(free(q, a), b), argn), R.KData{}, V.PVal{V.apply_fn(fv, pay_val(ap))}), resp)
-
-def call.fun(r: Q & V.Pay, +a: U32, +b: U32, +argn: U32, +resp: U32) -> Q & Bool:
-  (q, +fp) = r
-  call.arg(q_pay(q, argn), pay_val(fp), a, b, argn, resp)
-
-def call.ready(ok: Bool, q: Q, +a: U32, +b: U32, +argn: U32, +resp: U32) -> Q & Bool:
-  match ok:
-    case True{}:
-      call.fun(q_pay(q, b), a, b, argn, resp)
-    case False{}:
-      (calls_add(q, a, b), False{})
-
-def call.hdr(r: Q & U32, +a: U32, +b: U32, +argn: U32, +resp: U32) -> Q & Bool:
-  (q, +h) = r
-  call.ready(U32.is_eq((h .&. 15 : U32), 5) && U32.is_eq(S.ref_port(argn), 0), q, a, b, argn, resp)
-
-def call.peers(r: Q & Node3, +a: U32, +b: U32) -> Q & Bool:
-  (q, +n) = r
-  match n:
-    case N3{h, +argn, +resp}:
-      call.hdr(q_word(q, argn, 0), a, b, argn, resp)
-
-# a = the application, b = the data it meets; true if the call happened
-def try_call(q: Q, +a: U32, +b: U32) -> Q & Bool:
-  call.peers(rd3(q, a), a, b)
+# Rounds
+# ======
 
 type E is Type:
   E{q: Q, +moved: Bool}
-
-def settle.one(r: Q & Bool, +moved: Bool) -> E:
-  (q, +did) = r
-  E{q, moved || did}
-
-def settle.go(cs: List<&2, Redex>, e: E) -> E:
-  match cs:
-    case Nil{}:
-      e
-    case Con{Redex{+a, +b}, t}:
-      match e:
-        case E{q, +moved}:
-          settle.go(t, settle.one(try_call(q, a, b), moved))
 
 def pending(rq: List<&2, Redex>) -> List<&2, Redex> & Bool:
   match rq:
@@ -531,19 +484,17 @@ def pending(rq: List<&2, Redex>) -> List<&2, Redex> & Bool:
     case Con{x, t}:
       (Con{x, t}, True{})
 
-def settle.start(r: List<&2, Redex> & Bool, st: S.Store, +itrs: U32, +errs: U32, calls: List<&2, Redex>) -> E:
+def settle.start(r: List<&2, Redex> & Bool, st: S.Store, +itrs: U32, +errs: U32) -> E:
   (rq, +more) = r
-  settle.go(calls, E{Q{st, rq, itrs, errs, Nil{}}, more})
+  E{Q{st, rq, itrs, errs}, more}
 
-# perform every call whose argument is ready; the rest wait again. It
-# moved if a call happened or active pairs remain.
+# it moved if active pairs remain
 def settle(q: Q) -> E:
   match q:
-    case Q{st, rq, +itrs, +errs, calls}:
-      settle.start(pending(rq), st, itrs, errs, calls)
+    case Q{st, rq, +itrs, +errs}:
+      settle.start(pending(rq), st, itrs, errs)
 
-# reduce, then perform the ready calls, until nothing moves: n rounds of
-# at most f interactions each
+# reduce until nothing moves: n rounds of at most f interactions each
 def eval(n: Nat, +f: Nat, e: E) -> E:
   match n:
     case 0n:

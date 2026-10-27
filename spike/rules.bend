@@ -18,6 +18,7 @@ import Base
 #   EraN  eraser, consuming [-]
 #   EraP  eraser, providing [+]   (an error value, as void)
 #   Root  the net's consumer [-]
+#   Call  strict call       [- arg,   + result]  (a builtin awaiting data)
 type NodeKind is Data:
   KFree{}
   KFn{}
@@ -28,6 +29,7 @@ type NodeKind is Data:
   KEraN{}
   KEraP{}
   KRoot{}
+  KCall{}
 
 type Pol is Data:
   Pos{}
@@ -59,6 +61,8 @@ def arity(k: NodeKind) -> Nat:
       3n
     case KMerge{}:
       3n
+    case KCall{}:
+      2n
     case KFree{}:
       0n
     case _:
@@ -84,6 +88,8 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
       Neg{}
     case KRoot{} 0n:
       Neg{}
+    case KCall{} 0n:
+      Neg{}
     case _ _:
       Pos{}
 
@@ -100,12 +106,15 @@ type End is Data:
 type Link is Data:
   Link{a: End, b: End}
 
-# where a new node's payload comes from: nothing; B's payload (data);
-# A's or B's fan identity, as is or extended with the other fan's
-# identity and a branch (a fan commuting through a fan)
+# where a new node's payload comes from: nothing; A's or B's payload
+# (data, or a call's function); A's function applied to B's data; A's or
+# B's fan identity, as is or extended with the other fan's identity and a
+# branch (a fan commuting through a fan)
 type Src is Data:
   SNone{}
+  SPayA{}
   SPayB{}
+  SApply{}
   SFanA{}
   SFanB{}
   SFanAx{branch: Nat}
@@ -116,7 +125,6 @@ type Spec is Data:
 
 type Rule is Data:
   RWire{nodes: List<&2, Spec>, links: List<&2, Link>}
-  RCall{}
   RStuck{}
 
 def lk(a: End, b: End) -> Link:
@@ -139,8 +147,9 @@ def rule.fans(same: Bool) -> Rule:
         [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n)), lk(nw(2n, 0n), ex(2n)), lk(nw(3n, 0n), ex(3n)),
          lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
 
-# A, negative principal, meets B, positive principal
-def rule.ap(b: NodeKind) -> Rule:
+# A, negative principal, meets B, positive principal; t says whether B is
+# a builtin function
+def rule.ap(b: NodeKind, t: Bool) -> Rule:
   match b:
     # beta: the bind's auxiliaries join crossed
     case KFn{}:
@@ -151,8 +160,14 @@ def rule.ap(b: NodeKind) -> Rule:
         [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n)),
          lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)),
          lk(nw(3n, 0n), ex(1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
+    # applying a builtin: a strict call, its principal on the argument,
+    # waits for the argument to become data; applying other data is stuck
     case KData{}:
-      RCall{}
+      match t:
+        case True{}:
+          RWire{[Spec{KCall{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+        case False{}:
+          RStuck{}
     # applying an error value: drop the argument, the result is an error
     case KEraP{}:
       RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
@@ -178,6 +193,22 @@ def rule.copy(b: NodeKind, same: Bool) -> Rule:
     case _:
       RStuck{}
 
+# a strict call meets its argument
+def rule.call(b: NodeKind) -> Rule:
+  match b:
+    case KData{}:
+      RWire{[Spec{KData{}, SApply{}}], [lk(nw(0n, 0n), ex(0n))]}
+    # a superposed argument: the call is copied onto each side, and the
+    # results superposed under the argument's fan identity
+    case KMerge{}:
+      RWire{[Spec{KCall{}, SPayA{}}, Spec{KCall{}, SPayA{}}, Spec{KMerge{}, SFanB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n)),
+         lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n))]}
+    case KEraP{}:
+      RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case _:
+      RStuck{}
+
 def rule.era(b: NodeKind) -> Rule:
   match b:
     # erasing a function: its body's result is dropped, its argument's
@@ -193,16 +224,19 @@ def rule.era(b: NodeKind) -> Rule:
     case _:
       RStuck{}
 
-# the rule for A meeting B, A's principal negative; same says whether two
-# fans are residuals of one duplication
-def rule(a: NodeKind, b: NodeKind, same: Bool) -> Rule:
+# the rule for A meeting B, A's principal negative. t tests the payloads:
+# for two fans, whether they are residuals of one duplication; for an
+# application meeting data, whether the data is a builtin function
+def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
   match a:
     case KAp{}:
-      rule.ap(b)
+      rule.ap(b, t)
     case KCopy{}:
-      rule.copy(b, same)
+      rule.copy(b, t)
     case KEraN{}:
       rule.era(b)
+    case KCall{}:
+      rule.call(b)
     case _:
       RStuck{}
 

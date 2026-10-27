@@ -93,18 +93,30 @@ The core:
    and linearity are proven of the rules that run. Fans meet as copy
    against merge, the only polarity-compatible pair. Externals that are
    ports of the redex itself (the identity function's result wired to its
-   own argument) are joined through the rule's links. Calls on builtin
-   data (`succ`, `add`) wait for their argument to be data.
-   Found: identity, K, a function used twice and an n-fold chain all
-   reduce correctly, but a fan duplicating a live function that holds
-   fans (`two two succ 0`, `(\t -> t t) two`) goes wrong under every
-   local pairing scheme tried: duplication histories extended on both
-   fans diverge; static labels halt with no value; extending only the
-   copy's, or only the merge's, fails or diverges. Which fan is inner
-   cannot be read locally, which is GAL's problem
-   ([NetPairing](NetPairing_2026-10-26.md)). glam's own lowering avoids
-   it: a function is data, copies share it, and each call instantiates a
-   fresh net with a fresh fan namespace, so `spike-lowering` tests that.
+   own argument) are joined through the rule's links. An application
+   meeting a builtin (`succ`, `add`) becomes a strict call node, its
+   principal on the argument: it computes once the argument is data,
+   distributes over a superposed argument (two calls, their results
+   merged under the argument's fan identity) and passes an error value
+   on, by rules in the table under its laws. It was first a list of calls
+   polled until their arguments were data, which had no answer for a
+   superposed argument: every pairing scheme then seemed to halt with no
+   value.
+   Found: identity, K, a function used twice and an n-fold chain reduce
+   correctly. Where a fan duplicates a live function that holds fans,
+   pairing decides the answer (native, 2026-10-27): extending both fans'
+   histories on commutation, as the Rust bootstrap does, diverges on every
+   Church exponentiation, `two two succ 0` included; static labels, one
+   per lowering site and instantiation, are right on `m n succ 0` for
+   distinct numerals (27 interactions for `two two`, 99 for `three
+   three`) and diverge on self-application `(\t -> t t) n`; extending
+   only the inner fan's history is right on all of those and on
+   `(\t -> t t) two`, wherever a test-specific oracle could name the
+   inner fan. Two meeting fans do not show which is inner; GAL's levels
+   record it ([NetPairing](NetPairing_2026-10-26.md)). glam's own
+   lowering may avoid the question: a function is data, copies share it,
+   and each call instantiates a fresh net with a fresh fan namespace, so
+   `spike-lowering` tests that.
    Also found: allocating in whatever page was focused opened a page per
    allocation once reduction focused full pages (2944 pages for 5000
    interactions, gigabytes, a crashed session); allocation now tries the
