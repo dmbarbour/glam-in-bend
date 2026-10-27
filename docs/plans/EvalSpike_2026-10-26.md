@@ -387,6 +387,48 @@ The core:
    duplicates and every call consumes; terms.py's `--fma` ends random
    terms so. It costs 1,944 instructions an interaction against 1,188 on
    `succ`, about 1,500 more a call.
+   Where the cost goes. Bend passes a record's fields one by one through
+   every function that takes it, and the kernel's state flattened to 20
+   words, the two store records (4 words each) and the data table's (5)
+   among them: each word cost about 30 instructions an interaction. The
+   stores became bare arrays (the state already kept their capacities),
+   and the rest left the flat state step by step: the table and the error
+   count into one cold record, which a recursive variant (never built)
+   keeps Bend from flattening, so it travels as one word and is opened
+   only to use the table, count an error or grow; the interaction count
+   too, now taken from the run's fuel; the pair stack's capacity, since
+   an active pair holds two live nodes and a node is in one at most, so
+   the stack grows with the node store and a push checks nothing; and
+   the fresh-node mark and node capacity, since growing now threads the
+   new nodes onto the free list, so making a node is a pop. Five words
+   remain: the two stores, the free list's head, the pair count, the cold
+   record. Reading a pair's six words in one pass of the store
+   (`m_get6`), to cut layers, cost 1.6% more and was dropped.
+   Bend leaves inlining to clang, whose heuristics flip with small
+   changes: each word removed after the ninth made the default build
+   slower (by up to 17%, `link` and `node` left out of line), while a
+   build of the emitted C with every compiled Bend function forced
+   inline (`spike/tools/inline_build.sh`) got faster each time. At k 18,
+   instructions as `bend` builds / forced inline:
+
+                       k 2 succ 0      k 2 (fma 1 1) 0   with levels
+       start (ac8869c) 623M / 535M     1,020M / 918M     1,324M / 1,100M
+       9 words         428M / 400M     813M / 753M       916M / 823M
+       5 words, kept   449M / 363M     810M / 710M       964M / 721M
+
+   Growing the stores is 14 to 18% of that (62 to 67M at k 18), most of
+   it zeroing new arrays, which Bend fills word by word at 8
+   instructions a word (`bench/bend/zero_fill.bend`); without it an
+   interaction costs 716 instructions, 541 forced inline. A primitive at
+   a time (`spike/bench_kprim.bend`, forced inline, against 85 for a bare
+   word read): an immediate number's put and take cost nothing more, a
+   native apply about 100, a table read 130, a put and take 230, a
+   duplicate and drop 300, whether an entry is a function 215, and
+   `V.apply_fn` alone 500. An `fma` call's extra 1,300 or so is a
+   duplicate (300), the function check (215) and the general apply
+   (about 630, `V.apply_fn`'s list building most of it). `perf annotate`
+   printed nothing for these binaries; `spike/tools/hotins.py` joins
+   `perf script`'s samples with `objdump` instead.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

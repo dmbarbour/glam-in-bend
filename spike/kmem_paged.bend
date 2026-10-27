@@ -16,7 +16,7 @@ def table(+d: Nat) -> Array<Array<U32>>:
     case 1n+p:
       ANode{table(p), table(p)}
 
-def m_new(+maxd: Nat) -> M:
+def m_new.m(+maxd: Nat) -> M:
   MP{table(Nat.sub(maxd, 14n)), [0 : U32^14n], 0, 1, U32.from_nat(Nat.pow(2n, Nat.sub(maxd, 14n)))}
 
 def focus.take(r: Array<Array<U32>> & Array<U32>, +p: U32, +np: U32, +maxp: U32) -> M:
@@ -110,12 +110,22 @@ def pens(f: Nat, s: PStep, +n: U32) -> M & Bool:
         case PMore{m}:
           pens(p, pdecide(addpage(m), n), n)
 
-# room for words 0 .. n - 1, or false
-def m_ensure(m: M, +n: U32) -> M & Bool:
-  pens(64n, pdecide(m, n), n)
-
 # how many words fit now
 def m_cap(m: M) -> M & U32:
   match m:
     case MP{pt, cur, +curp, +np, +maxp}:
       (MP{pt, cur, curp, np, maxp}, (np << 14n : U32))
+
+# a new store and how many words it holds
+def m_new(+maxd: Nat) -> M & U32:
+  m_cap(m_new.m(maxd))
+
+def m_ensure.fin(r: M & Bool) -> M & U32:
+  (m, +ok) = r
+  m_cap(m)
+
+# room for words 0 .. n - 1: the store and its capacity after, less than n
+# if it could not grow (the store keeps its own count of pages)
+def m_ensure(m: M, +n: U32, +cap: U32, +maxd: Nat) -> M & U32:
+  m_ensure.fin(pens(64n, pdecide(m, n), n))
+

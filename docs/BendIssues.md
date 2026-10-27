@@ -70,6 +70,35 @@ of 2026-10-26, Bend 2.0.39.
   shell (`spike-hvm5-jit`).
 - **Revisit:** at whole-system tuning.
 
+### Inlining left to the C compiler
+
+- **Need:** the kernel's small steps (`link`, `node`, the reads) inlined
+  into its rewrites, whatever else changes.
+- **Upstream:** none known; a suggestion to raise later, with a build
+  option or an inlining hint.
+- **Evidence:** removing a word from the kernel's state made the native
+  build up to 17% slower when clang stopped inlining `link` or `node`,
+  while the same code with every compiled function forced inline got 4%
+  faster; across the steps of `spike-node-layout` in
+  `docs/plans/EvalSpike_2026-10-26.md`, the default build moved by up
+  to 15% for reasons of inlining alone.
+- **Workaround:** `spike/tools/inline_build.sh` builds the emitted C with
+  every compiled Bend function forced inline, to measure the work
+  itself; the kernel still ships as `bend` builds it.
+- **Revisit:** at whole-system tuning.
+
+### Array creation fills word by word
+
+- **Need:** the node store doubles as a net grows; each doubling makes a
+  new array.
+- **Upstream:** none known; a suggestion (`calloc`, or `memset` for a
+  constant fill).
+- **Evidence:** `bench/bend/zero_fill.bend`: 8 instructions (3 cycles) a
+  word; growing the kernel's stores is 14 to 18% of a run at k 18,
+  most of it this fill (EvalSpike, `spike-node-layout`).
+- **Workaround:** none yet; larger first sizes would trade memory for it.
+- **Revisit:** at whole-system tuning.
+
 ## Watch
 
 ### A barrier pair per parallel round
@@ -121,6 +150,12 @@ Bend's choices, not defects; listed so nobody waits for them.
   elements, so such an array is built from `ALeaf` and `ANode` directly;
   an element comes out only by `Array.swap`, a placeholder holding its
   slot until it goes back (`spike/kmem_paged.bend`).
+- **Records flatten into every call.** A product type's fields travel one
+  by one through each function that takes it, so a wide state record
+  costs every step (about 30 instructions an interaction a word in the
+  kernel). A type with a recursive variant cannot be flattened and
+  travels as one word, opened at the cost of an allocation: the kernel's
+  cold record (`spike/kprim.bend`).
 - **Fail-stop limits:** a reference count at 2^24 (`intern-hot-values`), a
   `Nat` at 2^48, an array past depth 31. A constructor holding a `Nat` is
   a heap node, so handles are `U32` (`store-pages`).

@@ -379,10 +379,14 @@ def interact(h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
   int.x(P.rd(h, x), fast, x, y)
 
 # reduce active pairs, newest first, until none is left or fuel runs out
-def run(n: Nat, +fast: Bool, pp: P.Pop) -> P.H:
+# the state after a run, and the fuel it left
+type Ran is Type:
+  Ran{h: P.H, +left: Nat}
+
+def run(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
   match n:
     case 0n:
-      P.unpop(pp)
+      Ran{P.unpop(pp), 0n}
     case 1n+p:
       match pp:
         case P.Pop{h, +x, +y, +ok}:
@@ -390,7 +394,16 @@ def run(n: Nat, +fast: Bool, pp: P.Pop) -> P.H:
             case True{}:
               run(p, fast, P.pop(interact(h, fast, x, y)))
             case False{}:
-              h
+              Ran{h, 1n+p}
+
+def ran(r: Ran, +fuel: Nat) -> P.H:
+  match r:
+    case Ran{h, +left}:
+      P.count(h, U32.from_nat(Nat.sub(fuel, left)))
+
+# a run of at most fuel interactions, which counts them by the fuel it used
+def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
+  ran(run(fuel, fast, P.pop(h)), fuel)
 
 # Loading a template
 # ==================
@@ -555,16 +568,24 @@ def value.at(rs: Rs) -> P.H & Maybe<&2, V.Val>:
     case Rs{h, +root}:
       value.none(U32.is_eq(root, P.nil()), h, root)
 
+def result.st(r: P.H & P.HS) -> P.H & Maybe<&2, V.Val>:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      value.at(find(U32.to_nat(cap), 0, Rs{h, P.nil()}))
+
 def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
-  match h:
-    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, P.nil()}))
+  result.st(P.stats(h))
+
+def counts.st(r: P.H & P.HS) -> String:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++ U32.show(cap) ++ " nodes capacity, " ++
+        U32.show(P.h_live(h)) ++ " data entries live"
 
 def counts(h: P.H) -> String:
-  match h:
-    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++ U32.show(fresh) ++ " nodes at most, " ++
-        U32.show(P.dt_live(dt)) ++ " data entries live"
+  counts.st(P.stats(h))
 
 def show_val(m: Maybe<&2, V.Val>) -> String:
   match m:
@@ -614,17 +635,25 @@ def audit(k: Nat, +i: U32, au: Au) -> Au:
 type KRes is Data:
   KRes{v: Maybe<&2, V.Val>, +itrs: U32, +errs: U32, +tab_ok: Bool}
 
+def kres.st(r: P.H & P.HS, +n: U32, v: Maybe<&2, V.Val>) -> KRes:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      KRes{v, itrs, errs, P.h_ok(h, n)}
+
 def kres.au(au: Au, v: Maybe<&2, V.Val>) -> KRes:
   match au:
     case Au{h, +n}:
-      match h:
-        case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          KRes{v, itrs, errs, P.dt_ok(dt, n)}
+      kres.st(P.stats(h), n, v)
+
+def kres.h.st(r: P.H & P.HS, v: Maybe<&2, V.Val>) -> KRes:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      kres.au(audit(U32.to_nat(cap), 0, Au{h, 0}), v)
 
 def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
-  match h:
-    case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-      kres.au(audit(U32.to_nat(fresh), 0, Au{P.H{w, fh, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0}), v)
+  kres.h.st(P.stats(h), v)
 
 def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
   (h, v) = r
@@ -632,12 +661,12 @@ def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
 
 # reduce t as reduce does, the result as data
 def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
-  kres(result(run(fuel, fast, P.pop(load(t)))))
+  kres(result(reduce_h(fuel, fast, load(t))))
 
 # reduce t for at most fuel interactions, by the generated rewrites if
 # fast, else by the interpreted table: value and counts
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
-  report(result(run(fuel, fast, P.pop(load(t)))))
+  report(result(reduce_h(fuel, fast, load(t))))
 
 # 0, k 2 succ 0; 1, k 2 (plus 1) 0; 2, k 2 succ 0 with levels; 3,
 # k 2 (fma 1 1) 0
