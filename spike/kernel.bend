@@ -4,7 +4,7 @@ import ./rules.bend as R
 import ./net.bend as N
 import ./tpl.bend as T
 import ./nets.bend as X
-import ./kmem_flat.bend as KM
+import ./kmem_grow.bend as KM
 
 # A reducer kernel with the node layout of spike-node-layout
 # (docs/plans/EvalSpike_2026-10-26.md), to measure what the layout buys.
@@ -20,8 +20,9 @@ import ./kmem_flat.bend as KM
 #   kernel <k>    reduce `k 2 succ 0` (2^k), report value, counts, time
 
 # Capacity: 2^21 nodes, 2^21 active pairs; passing either is an error.
-# Words, free list and active pairs are each a KM.M (kmem_*.bend: flat,
-# grown by doubling, or paged).
+# Words, free list and active pairs are each a KM.M: grown by doubling
+# (`net-nodes-double`); kmem_flat and kmem_paged are the measured
+# alternatives.
 
 def nil() -> U32:
   4294967295

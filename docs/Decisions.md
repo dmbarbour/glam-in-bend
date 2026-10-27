@@ -98,6 +98,9 @@ where the shared lazy state that Bend cannot hold goes.
   rounds.
 - [`store-collection`](decisions/store-collection.md): the store's own
   collector, stop-the-world first, then concurrent with an SATB barrier.
+- [`net-nodes-double`](decisions/net-nodes-double.md): a net holds its
+  nodes in one flat array of its own, doubled when full; the heap holds nets
+  as values, each reduced by one worker at a time.
 - [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):

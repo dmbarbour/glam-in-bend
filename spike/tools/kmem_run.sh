@@ -13,7 +13,7 @@ SPIKE=$(cd "$T/.." && pwd)
 for v in flat grow paged; do
   mkdir -p "$OUT/$v"
   cp "$SPIKE"/*.bend "$OUT/$v/"
-  sed -i "s|^import ./kmem_flat.bend as KM$|import ./kmem_$v.bend as KM|" "$OUT/$v/kernel.bend"
+  sed -i "s|^import ./kmem_[a-z]*.bend as KM$|import ./kmem_$v.bend as KM|" "$OUT/$v/kernel.bend"
   grep -q "^import ./kmem_$v.bend as KM$" "$OUT/$v/kernel.bend"
   (cd "$OUT/$v" && bend kernel.bend -o kernel >/dev/null)
 done

@@ -189,8 +189,9 @@ The core:
    store's focus switching and the boxed payloads are left. Still to
    come in this step: the rewrites generated from the rule table rather
    than written by hand, so the laws keep covering them; levels,
-   controls and fusion in the kernel; pages, for rounds; a data table for
-   values that do not fit a word.
+   controls and fusion in the kernel; a net as a value in the heap,
+   taken whole by the worker reducing it; a data table, local to the
+   net, for values that do not fit a word.
    Allocating incrementally (the maintainer's suggestion): the kernel's
    words, free list and active pairs now sit behind one storage interface
    with three implementations, preallocated (`spike/kmem_flat.bend`),
@@ -215,7 +216,10 @@ The core:
    access itself; a five-field storage record alone, padded flat, costs
    45 of the 280 ms. So the page check belongs outside the per-word
    path: a rewrite checking once that its nodes lie in the focused page,
-   then working on that page's array directly.
+   then working on that page's array directly. The maintainer chose
+   doubling (`net-nodes-double`): a net is a value in the heap, usually
+   lazy, reduced by one worker at a time, so its nodes need no pages of
+   their own, and the median net is small. The kernel now doubles.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).
@@ -251,7 +255,10 @@ Sharing:
 Parallelism:
 
 9. `spike-page-rounds` — a coordinator running independent tasks on
-   workers that own their pages, in rounds (`rounds-of-coarse-work`):
+   workers that own their pages, in rounds (`rounds-of-coarse-work`),
+   against a heap that doubles instead, the coordinator taking each
+   task's working set out for a round and rebuilding the array after
+   (the maintainer, 2026-10-27):
    tasks report the pages and thunks they need, thunk waiters are restored
    only when ready, and fuel is one unit per logical step. Then marking as
    tasks in the same rounds. Laws: a round loses or duplicates no page and
