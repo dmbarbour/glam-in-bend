@@ -37,10 +37,21 @@ could prove it, and prove that every reduction preserves polarity.
    own rewrite rules: each rule maps a polarized redex to a polarized
    result. It is a finite case analysis over the rule table, checked on the
    implementation itself rather than a model. Needed by `spike-net-rules`.
+   Built 2026-10-27 as `rules_polarized` in `spike/LAWS.bend`, over the
+   rule table the spike's reducer interprets.
 2. `pairing-histories` — the reference: fans carry complete duplication
    histories, as in the Rust bootstrap. Laws: commutation extends a
    history; annihilation happens only on identical histories. The spike
    runs on this.
+   Tried 2026-10-27 in the spike: extending both fans' histories on
+   commutation diverges on `two two succ 0`, where a fan duplicates a
+   live function holding a fan: the outer fan's two halves stop matching.
+   Correct pairing extends only the inner fan's history, and which fan is
+   inner is not locally visible. Static labels halt wrongly there;
+   extending only copies, or only merges, fails or diverges. So as a
+   local rule the history reference is not correct for such nets; glam's
+   lowered code avoids them (functions are data, instantiated per call),
+   leaving user-built nets.
 3. `pairing-labels` — where labels suffice: run workloads under both
    histories and labels, and report every fan pair they decide
    differently; characterize the functions that never differ.

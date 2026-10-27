@@ -86,6 +86,29 @@ The core:
    duplication histories (`pairing-histories`). Laws: a rewrite keeps
    every live port wired exactly once, and keeps the net polarized
    (`pairing-polarity-law`).
+   Built 2026-10-27 (`spike/rules.bend`, `spike/net.bend`,
+   `spike/tpl.bend`, `spike/test_net.bend`). Rules are data, a recipe of
+   new nodes and links per kind pair, which the reducer interprets; laws
+   `rules_polarized` and `rules_linear` hold of that table, so polarity
+   and linearity are proven of the rules that run. Fans meet as copy
+   against merge, the only polarity-compatible pair. Externals that are
+   ports of the redex itself (the identity function's result wired to its
+   own argument) are joined through the rule's links. Calls on builtin
+   data (`succ`, `add`) wait for their argument to be data.
+   Found: identity, K, a function used twice and an n-fold chain all
+   reduce correctly, but a fan duplicating a live function that holds
+   fans (`two two succ 0`, `(\t -> t t) two`) goes wrong under every
+   local pairing scheme tried: duplication histories extended on both
+   fans diverge; static labels halt with no value; extending only the
+   copy's, or only the merge's, fails or diverges. Which fan is inner
+   cannot be read locally, which is GAL's problem
+   ([NetPairing](NetPairing_2026-10-26.md)). glam's own lowering avoids
+   it: a function is data, copies share it, and each call instantiates a
+   fresh net with a fresh fan namespace, so `spike-lowering` tests that.
+   Also found: allocating in whatever page was focused opened a page per
+   allocation once reduction focused full pages (2944 pages for 5000
+   interactions, gigabytes, a crashed session); allocation now tries the
+   current page, then an allocation page, then a new page.
 3. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

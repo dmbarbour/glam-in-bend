@@ -77,6 +77,10 @@ Lessons carried over from the Rust bootstrap:
 - Measure workloads as families at n, 2n and 4n and fit cost to a + b·n^k:
   one size hides superlinear growth.
 - Take sizes from the command line; Bend folds constant inputs away.
+- Run anything that may run away, such as reducing a net that may not
+  normalize, under `scripts/capped.sh MB SECONDS command`: an uncapped run
+  once exhausted the machine's memory and crashed the session. Prefer
+  native builds (`bend x.bend -o x`) for spike runs.
 - Exact counters (interactions, cells) are signal; timings are trend data,
   recorded with the Bend version, the commit and the CPU.
 - Baselines live in the plan or review that uses them; reusable workloads

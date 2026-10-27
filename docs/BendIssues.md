@@ -77,6 +77,12 @@ Bend's choices, not defects; listed so nobody waits for them.
   runtime invariant that lock-free reads rely on. Answered by our own
   store (`split-heap`, `store-pages`).
 - **Silent wraparound of array indexes.** Guarded by laws on allocation.
+- **No qualified import of Base.** `import Base as B` is refused (only
+  `.bend` files take an alias), and a file's own constructors share its
+  namespace with Base's, so `Unit{}` or `Pair` clash; constructors are
+  prefixed (`VUnit`, `Redex`), as upstream's own fix #1565 does. Sugar
+  resolves Base names in the file's namespace (#1331, #1577), which is
+  likely why.
 - **Fail-stop limits:** a reference count at 2^24 (`intern-hot-values`), a
   `Nat` at 2^48, an array past depth 31. A constructor holding a `Nat` is
   a heap node, so handles are `U32` (`store-pages`).

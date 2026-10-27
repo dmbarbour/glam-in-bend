@@ -121,9 +121,10 @@ def pg_live(pg: Page) -> Page & Nat:
 # =========
 
 # tbl holds every page but the current one, cur, whose slot holds None;
-# np pages exist, 2^td fit; errs counts references to missing pages
+# np pages exist, 2^td fit; errs counts references to missing pages; ap is
+# the page allocation falls back to when the current one is full
 type Store is Type:
-  St{tbl: Array<Maybe<&1, Page>>, cur: Page, +curp: U32, +np: U32, +td: Nat, +errs: U32}
+  St{tbl: Array<Maybe<&1, Page>>, cur: Page, +curp: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32}
 
 def tbl_new(+d: Nat) -> Array<Maybe<&1, Page>>:
   match d:
@@ -133,28 +134,28 @@ def tbl_new(+d: Nat) -> Array<Maybe<&1, Page>>:
       ANode{tbl_new(p), tbl_new(p)}
 
 def st_new() -> Store:
-  St{tbl_new(4n), pg_new(), 0, 1, 4n, 0}
+  St{tbl_new(4n), pg_new(), 0, 1, 4n, 0, 0}
 
 def st_errs(st: Store) -> Store & U32:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      (St{tbl, cur, curp, np, td, errs}, errs)
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      (St{tbl, cur, curp, np, td, errs, ap}, errs)
 
 def st_pages(st: Store) -> Store & U32:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      (St{tbl, cur, curp, np, td, errs}, np)
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      (St{tbl, cur, curp, np, td, errs, ap}, np)
 
 # Focus: make page p the current one
 # ----------------------------------
 
-def st_focus.take(r: Array<Maybe<&1, Page>> & Maybe<&1, Page>, +p: U32, +np: U32, +td: Nat, +errs: U32) -> Store:
+def st_focus.take(r: Array<Maybe<&1, Page>> & Maybe<&1, Page>, +p: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32) -> Store:
   (tbl, mp) = r
   match mp:
     case Some{pg}:
-      St{tbl, pg, p, np, td, errs}
+      St{tbl, pg, p, np, td, errs, ap}
     case None{}:
-      St{tbl, pg_new(), p, np, td, (errs + 1 : U32)}
+      St{tbl, pg_new(), p, np, td, (errs + 1 : U32), ap}
 
 def st_focus.go(same: Bool, st: Store, +p: U32) -> Store:
   match same:
@@ -162,13 +163,13 @@ def st_focus.go(same: Bool, st: Store, +p: U32) -> Store:
       st
     case False{}:
       match st:
-        case St{tbl, cur, +curp, +np, +td, +errs}:
-          st_focus.take(Array.swap(Maybe<&1, Page>, Array.set(Maybe<&1, Page>, tbl, curp, Some{cur}), p, None{}), p, np, td, errs)
+        case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+          st_focus.take(Array.swap(Maybe<&1, Page>, Array.set(Maybe<&1, Page>, tbl, curp, Some{cur}), p, None{}), p, np, td, errs, ap)
 
 def st_focus(st: Store, +p: U32) -> Store:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      st_focus.go(U32.is_eq(curp, p), St{tbl, cur, curp, np, td, errs}, p)
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      st_focus.go(U32.is_eq(curp, p), St{tbl, cur, curp, np, td, errs, ap}, p)
 
 # Words and payloads of the current page
 # --------------------------------------
@@ -201,43 +202,43 @@ def pg_set_pay(pg: Page, +i: U32, x: V.Pay) -> Page:
     case Pg{w, v, m}:
       Pg{w, Array.set(V.Pay, v, i, x), m}
 
-def st_with_cur(r: Page & U32, tbl: Array<Maybe<&1, Page>>, +curp: U32, +np: U32, +td: Nat, +errs: U32) -> Store & U32:
+def st_with_cur(r: Page & U32, tbl: Array<Maybe<&1, Page>>, +curp: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32) -> Store & U32:
   (pg, +x) = r
-  (St{tbl, pg, curp, np, td, errs}, x)
+  (St{tbl, pg, curp, np, td, errs, ap}, x)
 
-def st_with_pay(r: Page & V.Pay, tbl: Array<Maybe<&1, Page>>, +curp: U32, +np: U32, +td: Nat, +errs: U32) -> Store & V.Pay:
+def st_with_pay(r: Page & V.Pay, tbl: Array<Maybe<&1, Page>>, +curp: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32) -> Store & V.Pay:
   (pg, x) = r
-  (St{tbl, pg, curp, np, td, errs}, x)
+  (St{tbl, pg, curp, np, td, errs, ap}, x)
 
 # word k of r's node
 def st_get.at(st: Store, +r: U32, +k: U32) -> Store & U32:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      st_with_cur(pg_get(cur, ref_word(r, k)), tbl, curp, np, td, errs)
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      st_with_cur(pg_get(cur, ref_word(r, k)), tbl, curp, np, td, errs, ap)
 
 def st_get(st: Store, +r: U32, +k: U32) -> Store & U32:
   st_get.at(st_focus(st, ref_page(r)), r, k)
 
 def st_set.at(st: Store, +r: U32, +k: U32, +x: U32) -> Store:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      St{tbl, pg_set(cur, ref_word(r, k), x), curp, np, td, errs}
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      St{tbl, pg_set(cur, ref_word(r, k), x), curp, np, td, errs, ap}
 
 def st_set(st: Store, +r: U32, +k: U32, +x: U32) -> Store:
   st_set.at(st_focus(st, ref_page(r)), r, k, x)
 
 def st_pay.at(st: Store, +r: U32) -> Store & V.Pay:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      st_with_pay(pg_pay(cur, ref_slot(r)), tbl, curp, np, td, errs)
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      st_with_pay(pg_pay(cur, ref_slot(r)), tbl, curp, np, td, errs, ap)
 
 def st_pay(st: Store, +r: U32) -> Store & V.Pay:
   st_pay.at(st_focus(st, ref_page(r)), r)
 
 def st_set_pay.at(st: Store, +r: U32, x: V.Pay) -> Store:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
-      St{tbl, pg_set_pay(cur, ref_slot(r), x), curp, np, td, errs}
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      St{tbl, pg_set_pay(cur, ref_slot(r), x), curp, np, td, errs, ap}
 
 def st_set_pay(st: Store, +r: U32, x: V.Pay) -> Store:
   st_set_pay.at(st_focus(st, ref_page(r)), r, x)
@@ -281,7 +282,7 @@ def tbl_room(full: Bool, tbl: Array<Maybe<&1, Page>>, +np: U32, +td: Nat) -> Arr
 def st_open.alloc(g: Got, tbl: Array<Maybe<&1, Page>>, +np: U32, +td: Nat, +errs: U32) -> Store & U32:
   match g:
     case Got{m, slot}:
-      (St{tbl, Pg{[0 : U32^14n], Array.new(V.Pay, 12n, V.PNone{}), m}, np, (np + 1 : U32), td, errs}, mk_ref(np, Maybe.default(&2, U32, slot, 0), 0))
+      (St{tbl, Pg{[0 : U32^14n], Array.new(V.Pay, 12n, V.PNone{}), m}, np, (np + 1 : U32), td, errs, np}, mk_ref(np, Maybe.default(&2, U32, slot, 0), 0))
 
 # the current page is full: put it back and start a fresh page, np
 def st_open.fin(r: Array<Maybe<&1, Page>> & Nat, +np: U32, +errs: U32) -> Store & U32:
@@ -290,29 +291,49 @@ def st_open.fin(r: Array<Maybe<&1, Page>> & Nat, +np: U32, +errs: U32) -> Store 
 
 def st_open(st: Store) -> Store & U32:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
       st_open.fin(tbl_room(U32.is_eq(np, U32.from_nat(Nat.pow(2n, td))), Array.set(Maybe<&1, Page>, tbl, curp, Some{cur}), np, td), np, errs)
 
-def st_alloc.got(g: Got, tbl: Array<Maybe<&1, Page>>, w: Array<U32>, v: Array<V.Pay>, +curp: U32, +np: U32, +td: Nat, +errs: U32) -> Store & U32:
+def st_alloc.ap(g: Got, tbl: Array<Maybe<&1, Page>>, w: Array<U32>, v: Array<V.Pay>, +curp: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32) -> Store & U32:
   match g:
     case Got{m, slot}:
       match slot:
         case Some{+s}:
-          (St{tbl, Pg{w, v, m}, curp, np, td, errs}, mk_ref(curp, s, 0))
+          (St{tbl, Pg{w, v, m}, curp, np, td, errs, ap}, mk_ref(curp, s, 0))
         case None{}:
-          st_open(St{tbl, Pg{w, v, m}, curp, np, td, errs})
+          st_open(St{tbl, Pg{w, v, m}, curp, np, td, errs, ap})
 
-# a fresh node: port 0's reference; its words are zero and its payload none
-def st_alloc(st: Store) -> Store & U32:
+# the allocation page, once the current one is full
+def st_alloc.fallback(st: Store) -> Store & U32:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
       match cur:
         case Pg{w, v, m}:
-          st_alloc.got(meta_alloc(m), tbl, w, v, curp, np, td, errs)
+          st_alloc.ap(meta_alloc(m), tbl, w, v, curp, np, td, errs, ap)
+
+def st_alloc.got(g: Got, tbl: Array<Maybe<&1, Page>>, w: Array<U32>, v: Array<V.Pay>, +curp: U32, +np: U32, +td: Nat, +errs: U32, +ap: U32) -> Store & U32:
+  match g:
+    case Got{m, slot}:
+      match slot:
+        case Some{+s}:
+          (St{tbl, Pg{w, v, m}, curp, np, td, errs, ap}, mk_ref(curp, s, 0))
+        case None{}:
+          st_alloc.fallback(st_focus(St{tbl, Pg{w, v, m}, curp, np, td, errs, ap}, ap))
+
+# a fresh node: port 0's reference; its words are zero and its payload
+# none. It goes in the current page if there is room, which keeps a
+# rewrite's nodes beside the redex and reuses freed slots, else in the
+# allocation page, else in a new page.
+def st_alloc(st: Store) -> Store & U32:
+  match st:
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
+      match cur:
+        case Pg{w, v, m}:
+          st_alloc.got(meta_alloc(m), tbl, w, v, curp, np, td, errs, ap)
 
 def st_free.at(st: Store, +r: U32) -> Store:
   match st:
-    case St{tbl, cur, +curp, +np, +td, +errs}:
+    case St{tbl, cur, +curp, +np, +td, +errs, +ap}:
       match cur:
         case Pg{w, v, m}:
           +i = ref_word(r, 0)
@@ -320,7 +341,7 @@ def st_free.at(st: Store, +r: U32) -> Store:
           w2 = Array.set(U32, w1, (i + 1 : U32), 0)
           w3 = Array.set(U32, w2, (i + 2 : U32), 0)
           w4 = Array.set(U32, w3, (i + 3 : U32), 0)
-          St{tbl, Pg{w4, Array.set(V.Pay, v, ref_slot(r), V.PNone{}), meta_free(m, ref_slot(r))}, curp, np, td, errs}
+          St{tbl, Pg{w4, Array.set(V.Pay, v, ref_slot(r), V.PNone{}), meta_free(m, ref_slot(r))}, curp, np, td, errs, ap}
 
 # free r's node: its words zeroed, its payload dropped, its slot recycled
 def st_free(st: Store, +r: U32) -> Store:
