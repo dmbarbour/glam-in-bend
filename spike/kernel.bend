@@ -122,15 +122,7 @@ def drop_unused(m: Mk, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Mk:
       Mk{drop_if(is_data(P.rk(hb)) && Bool.not(ub), drop_if(is_data(P.rk(ha)) && Bool.not(ua), h, ha, pa), hb, pb), refs, ua, ub}
 
 def new_ref(+n: U32, +p: Nat, +k: R.NodeKind) -> U32:
-  match p:
-    case 0n:
-      match k:
-        case R.KData{}:
-          (n + 3 : U32)
-        case _:
-          n
-    case _:
-      (n + U32.from_nat(p) : U32)
+  (n + U32.from_nat(p) : U32)
 
 def resolve(+x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, e: R.End) -> U32:
   match e:
@@ -245,7 +237,7 @@ def payload.k(+k: U32, +w1: U32, +w3: U32) -> U32:
     case _:
       0
 
-# a node's payload word: a data node's word 1, a call's or a control's 3
+# a node's payload word: a data node's word 2, a call's or a control's 3
 def payload(+h: U32, +w1: U32, +w3: U32) -> U32:
   payload.k(P.rk(h), w1, w3)
 
@@ -296,33 +288,29 @@ def go.rule(r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +p
   (h, +t) = r
   go.which(fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
 
-def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +bw: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
-  go.rule(test(h, ha, hb, payload(ha, 0, a2), payload(hb, bw, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, bw, b2),
+def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
+  go.rule(test(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
-def go.b2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +bw: U32, +b1: U32) -> P.H:
+def go.b2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.H:
   (h, +b2) = r
-  go.ext(fast, a, b, ha, hb, a1, a2, bw, b1, b2, h)
+  go.ext(fast, a, b, ha, hb, a1, a2, b1, b2, h)
 
-def go.b1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +bw: U32) -> P.H:
+def go.b1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.H:
   (h, +b1) = r
-  go.b2(P.rd(h, (b + 3 : U32)), fast, a, b, ha, hb, a1, a2, bw, b1)
-
-def go.bw(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.H:
-  (h, +bw) = r
-  go.b1(P.rd(h, (b + 2 : U32)), fast, a, b, ha, hb, a1, a2, bw)
+  go.b2(P.rd(h, (b + 3 : U32)), fast, a, b, ha, hb, a1, a2, b1)
 
 def go.a2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.H:
   (h, +a2) = r
-  go.bw(P.rd(h, (b + 1 : U32)), fast, a, b, ha, hb, a1, a2)
+  go.b1(P.rd(h, (b + 2 : U32)), fast, a, b, ha, hb, a1, a2)
 
 def go.a1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
   (h, +a1) = r
   go.a2(P.rd(h, (a + 3 : U32)), fast, a, b, ha, hb, a1)
 
 # a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
-# word 3 a call's or a control's payload; a data node's is word 1.
+# a node's payload: a data node's word 2, a call's or a control's word 3.
 def go(h: P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
   go.a1(P.rd(h, (a + 2 : U32)), fast, a, b, ha, hb)
 
@@ -341,10 +329,9 @@ def int.x(r: P.H & U32, +fast: Bool, +x: U32, +y: U32) -> P.H:
   (h, +hx) = r
   int.y(P.rd(h, y), fast, x, y, hx)
 
-# rewrite the active pair x >< y, by the nodes' bases (a data node's
-# principal is port 3)
+# rewrite the active pair x >< y
 def interact(h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
-  int.x(P.rd(h, P.base(x)), fast, P.base(x), P.base(y))
+  int.x(P.rd(h, x), fast, x, y)
 
 # reduce active pairs, newest first, until none is left or fuel runs out
 def run(n: Nat, +fast: Bool, pp: P.Pop) -> P.H:
@@ -416,44 +403,16 @@ def tref(e: T.TEnd) -> U32:
     case T.TE{+n, +p}:
       ((n << 2n : U32) + p : U32)
 
-def fix.go(data: Bool, +r: U32) -> U32:
-  match data:
-    case True{}:
-      (r .|. 3 : U32)
-    case False{}:
-      r
-
-def fix.h(r: P.H & U32, +ref: U32) -> P.H & U32:
-  (h, +hdr) = r
-  (h, fix.go(U32.is_eq(P.rk(hdr), 5) && U32.is_eq(P.port(ref), 0), ref))
-
-# a template's reference as the kernel holds it: a data node's principal
-# is port 3
-def fix(h: P.H, +ref: U32) -> P.H & U32:
-  fix.h(P.rd(h, P.base(ref)), ref)
-
-def load.link.y(r: P.H & U32, +x: U32) -> P.H:
-  (h, +y) = r
-  P.link(h, x, y)
-
-def load.link.x(r: P.H & U32, +y: U32) -> P.H:
-  (h, +x) = r
-  load.link.y(fix(h, y), x)
-
 def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
   match ls:
     case Nil{}:
       h
     case Con{T.TL{x, y}, rest}:
-      load.links(rest, load.link.x(fix(h, tref(x)), tref(y)))
-
-def load.root.b(r: P.H & U32, +root: U32) -> P.H:
-  (h, +x) = r
-  P.link(h, root, x)
+      load.links(rest, P.link(h, tref(x), tref(y)))
 
 def load.root(r: P.H & U32, +x: U32) -> P.H:
   (h, +root) = r
-  load.root.b(fix(h, x), root)
+  P.link(h, root, x)
 
 # the template's net, its exposed port linked to a root
 def load(t: T.Tpl) -> P.H:
@@ -500,7 +459,7 @@ def value.w(r: P.H & U32, +hp: U32) -> P.H & Maybe<&2, V.Val>:
 def value.is(data: Bool, h: P.H, +hp: U32, +pn: U32) -> P.H & Maybe<&2, V.Val>:
   match data:
     case True{}:
-      value.w(P.rd(h, (pn + 1 : U32)), hp)
+      value.w(P.rd(h, (pn + 2 : U32)), hp)
     case False{}:
       (h, None{})
 

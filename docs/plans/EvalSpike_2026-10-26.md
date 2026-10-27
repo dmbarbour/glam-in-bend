@@ -244,11 +244,8 @@ The core:
    at k 18, 19, 20 and the same to eight digits from run to run.
    Next, the maintainer's directions (2026-10-27):
    - Immediate data told apart by the header's kind, not a flag bit,
-     using as much of the node as common values need. A data node has
-     one port; if a reference to its principal carries port code 3, a
-     code no other port uses, then nothing writes a link into it and all
-     three words, beside the header's 24 bits, hold its value: numbers
-     of 64 bits or more, short texts, small tuples.
+     using as much of the node as common values need: a data node's
+     words 2 and 3, 64 bits or two values, beside the header's 24.
    - The data table kept linear: each entry owned by one node, so it is
      freed or handed on as soon as its owner is reduced. A rule using a
      source's payload once hands the entry over; using it twice
@@ -259,9 +256,8 @@ The core:
    Built the first two the same day. The header's kind code holds the
    rule kind in its low 4 bits and the value form in its high 4: 0 an
    entry in the table, 1 a number, 2 a builtin with no argument yet, its
-   op in the field. A reference to a data node's principal carries port
-   3; `link` writes nothing into it, so words 1 to 3 hold its value (word
-   1 so far). The table has a free list, and the generator counts how a
+   op in the field. A data node keeps its value in words 2 and 3 (word
+   2 so far). The table has a free list, and the generator counts how a
    rule uses a data node's or a call's payload: the first use takes the
    entry over, a later one duplicates it, none drops it, computing takes
    both; the interpreted table does the same as it goes. `terms.py`
@@ -271,8 +267,20 @@ The core:
    the nodes holding them (a duplication broken on purpose is caught).
    On 2,400 random terms, with and without levels, ending in either:
    no difference between generated and interpreted, none in value from
-   the spike, no mismatch in the table. The generality costs 1,602
+   the spike, no mismatch in the table. The generality costs 1,547
    instructions an interaction against 1,376 before.
+   Tried and dropped: a reference to a data node's principal carrying
+   port 3, so that nothing links into a data node and all three words
+   hold its value. It cost 55 instructions an interaction (1,602 against
+   1,547) for room glam does not need yet; the maintainer chose 64 bits
+   without it. Of the rest, the linear table's duplicating step costs
+   84 (on the 42% of interactions that distribute a call over a merge,
+   immediate values included) and value forms the other 87. Folding
+   the duplication and the computing into one primitive each cost 110
+   more, not less: Bend charges for function layers, which pass the
+   state record and return pairs, at around a hundred instructions each,
+   while a comparison or an arithmetic step is native and costs about
+   one. Fewer, larger functions on the hot path are the tuning to do.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

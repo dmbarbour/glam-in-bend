@@ -12,10 +12,9 @@ import ./kmem_grow.bend as KM
 # the high 4) and a 24-bit field: a function's or an application's level,
 # a fan's level (its site, in nets built without levels), a control's
 # index, a builtin's op. Words 1 .. 3: the links of ports 0 .. 2, a
-# reference being n * 4 + port. A reference to a data node's principal
-# carries port 3 instead, and nothing links into a data node, so its words
-# 1 .. 3 hold its value. A call keeps its function in word 3, a control
-# its offset (bit 31 set to raise, the amount below).
+# reference being n * 4 + port. A data node, with one port, holds its value
+# in words 2 and 3; a call keeps its function in word 3, a control its
+# offset (bit 31 set to raise, the amount below).
 #
 # Value forms: 0, an entry in the data table (the word its index); 1, a
 # number (the word); 2, a builtin with no argument collected yet (the
@@ -192,26 +191,13 @@ def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
     case False{}:
       h
 
-def wr_if(b: Bool, h: H, +i: U32, +v: U32) -> H:
-  match b:
-    case True{}:
-      wr(h, i, v)
-    case False{}:
-      h
-
 def port(+r: U32) -> U32:
   (r .&. 3 : U32)
 
-# port 0, or a data node's principal (port 3)
-def principal(+r: U32) -> Bool:
-  U32.is_eq(port(r), 0) || U32.is_eq(port(r), 3)
-
-# link two ports: port p's link is word n * 4 + 1 + p, the reference plus
-# one, but nothing is written into a data node (a reference with port 3);
-# an active pair when both are principal
+# link two ports (word n * 4 + 1 + p is port p's link: the reference plus
+# one), an active pair when both are principal
 def link(h: H, +x: U32, +y: U32) -> H:
-  link.push(principal(x) && principal(y),
-    wr_if(U32.is_ne(port(y), 3), wr_if(U32.is_ne(port(x), 3), h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
+  link.push(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
 
 # Nodes
 # =====
@@ -249,7 +235,7 @@ def alloc(h: H) -> H & U32:
 def node.word.k(+k: U32) -> U32:
   match k:
     case 5:
-      1
+      2
     case _:
       3
 
@@ -260,7 +246,7 @@ def node.fin(r: H & U32, +hd: U32, +p: U32) -> H & U32:
   (h, +n) = r
   (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
 
-# a node with header hd and payload word p, word 1 of a data node, word 3
+# a node with header hd and payload word p, word 2 of a data node, word 3
 # of others (overwritten by port 2's link in a node with three ports): its
 # reference, port 0
 def node(h: H, +hd: U32, +p: U32) -> H & U32:

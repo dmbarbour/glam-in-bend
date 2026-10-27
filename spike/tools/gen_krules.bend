@@ -112,29 +112,20 @@ def spec_at(xs: List<&2, R.Spec>, j: Nat) -> R.Spec:
     case Nil{} _:
       R.Spec{R.KFree{}, R.SNone{}}
 
-# a reference to port p of new node j: a data node's principal is port 3
-def new_end.d(d: Bool, +j: Nat, +p: Nat) -> String:
-  match d p:
-    case True{} 0n:
-      "(n" ++ Nat.show(j) ++ " + 3 : U32)"
-    case _ 0n:
+# a reference to port p of new node j
+def new_end(+j: Nat, +p: Nat) -> String:
+  match p:
+    case 0n:
       "n" ++ Nat.show(j)
-    case _ _:
-      "(n" ++ Nat.show(j) ++ " + " ++ Nat.show(p) ++ " : U32)"
-
-def is_data_node(k: R.NodeKind) -> Bool:
-  match k:
-    case R.KData{}:
-      True{}
     case _:
-      False{}
+      "(n" ++ Nat.show(j) ++ " + " ++ Nat.show(p) ++ " : U32)"
 
 def end(+xs: List<&2, R.Spec>, e: R.End) -> String:
   match e:
     case R.Ext{i}:
       "e" ++ Nat.show(i)
     case R.New{+j, +p}:
-      new_end.d(is_data_node(spec_kind(spec_at(xs, j))), j, p)
+      new_end(j, p)
 
 def links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
   match ls:
