@@ -108,8 +108,7 @@ type Link is Data:
 
 # where a new node's payload comes from: nothing; A's or B's payload
 # (data, or a call's function); A's function applied to B's data; A's or
-# B's fan identity, as is or extended with the other fan's identity and a
-# branch (a fan commuting through a fan)
+# B's fan identity
 type Src is Data:
   SNone{}
   SPayA{}
@@ -117,8 +116,6 @@ type Src is Data:
   SApply{}
   SFanA{}
   SFanB{}
-  SFanAx{branch: Nat}
-  SFanBx{branch: Nat}
 
 type Spec is Data:
   Spec{k: NodeKind, src: Src}
@@ -137,13 +134,13 @@ def ex(i: Nat) -> End:
   Ext{i}
 
 # a copy meets a merge: residuals of one duplication annihilate; others
-# commute, each fan copied onto the other's auxiliary side
+# commute, each fan copied onto the other's auxiliary side with its label
 def rule.fans(same: Bool) -> Rule:
   match same:
     case True{}:
       RWire{[], [lk(ex(0n), ex(2n)), lk(ex(1n), ex(3n))]}
     case False{}:
-      RWire{[Spec{KMerge{}, SFanBx{0n}}, Spec{KMerge{}, SFanBx{1n}}, Spec{KCopy{}, SFanAx{0n}}, Spec{KCopy{}, SFanAx{1n}}],
+      RWire{[Spec{KMerge{}, SFanB{}}, Spec{KMerge{}, SFanB{}}, Spec{KCopy{}, SFanA{}}, Spec{KCopy{}, SFanA{}}],
         [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n)), lk(nw(2n, 0n), ex(2n)), lk(nw(3n, 0n), ex(3n)),
          lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
 

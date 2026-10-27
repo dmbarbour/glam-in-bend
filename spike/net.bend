@@ -210,10 +210,6 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
       pa
     case R.SFanB{}:
       pb
-    case R.SFanAx{k}:
-      V.PFan{V.fan_extend(fan_of(pa), V.fan_hash(fan_of(pb)), U32.from_nat(k))}
-    case R.SFanBx{k}:
-      V.PFan{V.fan_extend(fan_of(pb), V.fan_hash(fan_of(pa)), U32.from_nat(k))}
 
 type Made is Type:
   Made{q: Q, refs: List<&2, U32>}
@@ -470,6 +466,72 @@ def reduce(n: Nat, q: Q) -> Q:
               Q{st, Nil{}, itrs, errs}
             case Con{Redex{+a, +b}, t}:
               reduce(p, interact(Q{st, t, (itrs + 1 : U32), errs}, a, b))
+
+# Tracing
+# =======
+
+# one interaction as the reducer met it, before the rewrite: its number,
+# the two nodes (negative principal first), their headers and payloads,
+# and the redex's external peers
+type Ev is Data:
+  Ev{+i: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, pa: V.Pay, pb: V.Pay, +x: Ext}
+
+def obs.d(r: Q & V.Pay, +i: U32, +a: U32, +b: U32, +na: Node3, +nb: Node3, pa: V.Pay) -> Q & Ev:
+  (q, pb) = r
+  match na nb:
+    case N3{+ha, l1, l2} N3{+hb, m1, m2}:
+      (q, Ev{i, a, b, ha, hb, pa, pb, ext_of(na, nb)})
+
+def obs.c(r: Q & V.Pay, +i: U32, +a: U32, +b: U32, +na: Node3, +nb: Node3) -> Q & Ev:
+  (q, pa) = r
+  obs.d(q_pay(q, b), i, a, b, na, nb, pa)
+
+def obs.b(r: Q & Node3, +i: U32, +a: U32, +b: U32, +na: Node3) -> Q & Ev:
+  (q, +nb) = r
+  obs.c(q_pay(q, a), i, a, b, na, nb)
+
+def obs.a(r: Q & Node3, +i: U32, +a: U32, +b: U32) -> Q & Ev:
+  (q, +na) = r
+  obs.b(rd3(q, b), i, a, b, na)
+
+def obs.ori(neg: Bool, q: Q, +i: U32, +a: U32, +b: U32) -> Q & Ev:
+  match neg:
+    case True{}:
+      obs.a(rd3(q, a), i, a, b)
+    case False{}:
+      obs.a(rd3(q, b), i, b, a)
+
+def obs.h(r: Q & U32, +i: U32, +a: U32, +b: U32) -> Q & Ev:
+  (q, +h) = r
+  obs.ori(R.pol_eq(R.port_pol(kof((h .&. 15 : U32)), 0n), R.Neg{}), q, i, a, b)
+
+# read the redex a >< b without changing it; the reads interact repeats
+# leave allocation, and so the rewrite, as untraced
+def obs(q: Q, +i: U32, +a: U32, +b: U32) -> Q & Ev:
+  obs.h(q_word(q, a, 0), i, a, b)
+
+type Tr is Type:
+  Tr{q: Q, log: List<&2, Ev>}
+
+def log.step(r: Q & Ev, +a: U32, +b: U32, log: List<&2, Ev>) -> Tr:
+  (q, ev) = r
+  Tr{interact(q, a, b), ev <> log}
+
+# reduce as reduce does, logging each interaction (newest first)
+def reduce_log(n: Nat, tr: Tr) -> Tr:
+  match n:
+    case 0n:
+      tr
+    case 1n+p:
+      match tr:
+        case Tr{q, log}:
+          match q:
+            case Q{st, rq, +itrs, +errs}:
+              match rq:
+                case Nil{}:
+                  Tr{Q{st, Nil{}, itrs, errs}, log}
+                case Con{Redex{+a, +b}, t}:
+                  reduce_log(p, log.step(obs(Q{st, t, (itrs + 1 : U32), errs}, itrs, a, b), a, b, log))
 
 # Rounds
 # ======

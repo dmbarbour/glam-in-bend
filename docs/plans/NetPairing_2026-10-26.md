@@ -1,10 +1,13 @@
 # Net Pairing — 2026-10-26
 
 How copy fans pair, cheaply and provably: when two fans meet, annihilate
-if they are residuals of one duplication, commute otherwise. **Drafted for
-the maintainer's review before building.** The maintainer wants the GAL
-adaptation early but is not yet confident in it, and asks whether Lean
-could prove it, and prove that every reduction preserves polarity.
+if they are residuals of one duplication, commute otherwise. Approved by
+the maintainer 2026-10-27 and put ahead of EvalSpike's remaining steps:
+pairing by duplication histories, the Rust bootstrap's scheme, turned out
+wrong (`pairing-histories`), so this is a bug there too. The maintainer
+wants the GAL adaptation tested amply, then proved, in Lean if it can be;
+they hold an earlier design discussion of it, to compare with a
+derivation made here first.
 
 ## Background
 
@@ -60,19 +63,37 @@ could prove it, and prove that every reduction preserves polarity.
    live functions holding fans are duplicated, levels are needed for
    correctness, not only for constant-time pairing. glam's lowered code
    may avoid such nets (functions are data, instantiated per call),
-   leaving user-built nets.
-3. `pairing-labels` — where labels suffice: run workloads under both
-   histories and labels, and report every fan pair they decide
-   differently; characterize the functions that never differ.
-4. `pairing-gal` — adapt GAL's levels to polarized nets, then test it
-   against histories on generated nets, differentially.
-5. `pairing-lean` — a time-boxed study in Lean 4. Formalize polarized nets
-   and their rules, prove polarity preservation as a warm-up, then state
-   the adaptation's correctness as levels pairing fans exactly when
-   histories do, on every net reachable from a well-formed construction.
-   Attempt it, or find the restriction under which it holds.
-6. `pairing-verdict` — choose how each kind of net pairs (labels, levels,
-   histories), and record it.
+   leaving user-built nets. Retired as the reference: the spike pairs by
+   static labels since 2026-10-27, its history code removed.
+3. `pairing-trace` — reduction made inspectable: a run logs each
+   interaction as the reducer met it, and lists the live net at any step.
+   Built 2026-10-27 (`spike/trace.bend`, over `reduce_log` in
+   `spike/net.bend`, which shares the reducer's interaction function).
+   On `(\t -> t t) two` it shows the failure at interaction 12: the two
+   copies of `two` carry one label, so one copy's fan joins the other's
+   partner; a call then distributes around the ring of merges that join
+   made, without end.
+4. `pairing-labels` — where labels suffice. The spike's scheme meanwhile:
+   one label per lowering site and instantiation. Right on `m n succ 0`
+   for distinct numerals; wrong on self-application, where two copies of
+   one duplication meet under one label. Characterize the nets that never
+   meet so, and whether lowering can guarantee it.
+5. `pairing-gal-derive` — derive a level discipline for polarized nets:
+   what a level means without lambda terms' boxes, which nodes carry one,
+   how levels change (brackets and croissants or GAL's simplification),
+   and the rules. Derived here independently, then compared with the
+   maintainer's earlier discussion (summarized in the Rust bootstrap's
+   NetPolarityChecker plan, "Background: polarity, GAL, and Lafont").
+6. `pairing-gal` — build levels in the spike and test them amply: the
+   numeral and self-application nets, then generated lambda terms checked
+   against a direct evaluator of the same terms, traced where they differ.
+7. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
+   Formalize polarized nets and their rules, prove polarity preservation
+   as a warm-up, then state the adaptation's correctness: a net built from
+   a term reduces to the term's normal form, read back. Attempt it, or
+   find the restriction under which it holds.
+8. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
+   and record it.
 
 ## Feasibility (assessed 2026-10-26)
 
@@ -80,14 +101,12 @@ could prove it, and prove that every reduction preserves polarity.
   rewiring lemma is short. Days at most in Lean, and doable as a Bend law
   on the real rules, which is the stronger guarantee.
 - **The GAL adaptation's correctness** is research. Proving it from context
-  semantics would mean mechanizing what took the literature a book. Stated
-  instead as a simulation of the history reference ("equal levels exactly
-  when equal histories", an invariant over reachable nets), it reduces to
-  rule-by-rule preservation of that invariant: still likely weeks, and the
-  invariant may hold only for a class of nets. Learning that class is
-  itself useful, since histories remain the fallback beyond it.
-- Differential testing comes first: cheap evidence before a proof
-  investment.
+  semantics would mean mechanizing what took the literature a book. With
+  no correct local reference to simulate (histories pair wrongly), the
+  statement is against the lambda calculus itself, which makes it harder:
+  likely weeks, and it may hold only for a class of nets. Learning that
+  class is itself useful.
+- Testing comes first: cheap evidence before a proof investment.
 
 ## Open questions
 

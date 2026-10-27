@@ -6,9 +6,10 @@ interaction nets (Design.md, "Interaction Nets"), on the split heap
 (`split-heap`, `store-pages`) run in rounds (`rounds-of-coarse-work`).
 Approved by the maintainer 2026-10-27, after a revision following their
 first reading; skip a step (and its dependents) and say so here if it
-sprawls. The code lives in `spike/`, with its own `LAWS.bend` and
-`PROOF.bend`. The code is throwaway;
-what it learns becomes decision records. How fans pair has a plan of its
+sprawls. Paused the same day after `spike-net-rules`, for
+[NetPairing](NetPairing_2026-10-26.md). The code lives in `spike/`, with
+its own `LAWS.bend` and `PROOF.bend`. The code is throwaway; what it
+learns becomes decision records. How fans pair has a plan of its
 own, [NetPairing](NetPairing_2026-10-26.md).
 
 ## Known (2026-10-26, Bend 2.0.39, native unless noted)
@@ -116,7 +117,9 @@ The core:
    record it ([NetPairing](NetPairing_2026-10-26.md)). glam's own
    lowering may avoid the question: a function is data, copies share it,
    and each call instantiates a fresh net with a fresh fan namespace, so
-   `spike-lowering` tests that.
+   `spike-lowering` tests that. The spike has paired by static labels
+   since, and `spike/trace.bend` traces its reductions
+   (`pairing-trace`).
    Also found: allocating in whatever page was focused opened a page per
    allocation once reduction focused full pages (2944 pages for 5000
    interactions, gigabytes, a crashed session); allocation now tries the

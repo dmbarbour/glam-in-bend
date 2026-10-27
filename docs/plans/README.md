@@ -37,11 +37,13 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
   sharing and fixpoints, parallelism, fast paths), ending in a
-  representation decision. Approved; under way.
+  representation decision. Approved; paused after `spike-net-rules` for
+  NetPairing.
 - [`NetPairing_2026-10-26.md`](NetPairing_2026-10-26.md): `pairing-` steps
-  for how copy fans pair: duplication histories as the reference, labels
-  where they suffice, a GAL adaptation, and Lean proofs of it and of
-  polarity preservation. Drafted for the maintainer's review.
+  for how copy fans pair: traced reduction, labels where they suffice, a
+  GAL adaptation tested then proved in Lean, and polarity preservation.
+  Approved; first, since the Rust bootstrap's history pairing is wrong
+  too.
 
 ## Retired
 
