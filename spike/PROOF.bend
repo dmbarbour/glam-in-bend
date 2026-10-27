@@ -4,6 +4,7 @@ import Base
 import ./LAWS.bend as Laws
 import ./store.bend as S
 import ./rules.bend as R
+import ./val.bend as V
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -415,3 +416,81 @@ def Laws.rules_linear(a, b, s):
               {==}
     case R.KLiftC{}:
       {==}
+
+# by cases on the collected arguments, as deep as builtin looks, and on
+# the last argument where it is the first, second or third: each side then
+# computes the same numN, or VUnit
+def Laws.builtin_last_agrees(op, args, x):
+  match args:
+    case Nil{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{n}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+    case Con{h1, t1}:
+      match h1:
+        case V.VUnit{}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VNum{a}:
+          match t1:
+            case Nil{}:
+              match x:
+                case V.VUnit{}:
+                  {==}
+                case V.VNum{n}:
+                  {==}
+                case V.VLazy{k}:
+                  {==}
+                case V.VFun{o, nd, l}:
+                  {==}
+                case V.VFree{f}:
+                  {==}
+            case Con{h2, t2}:
+              match h2:
+                case V.VUnit{}:
+                  {==}
+                case V.VLazy{k}:
+                  {==}
+                case V.VFun{o, nd, l}:
+                  {==}
+                case V.VFree{f}:
+                  {==}
+                case V.VNum{b}:
+                  match t2:
+                    case Nil{}:
+                      match x:
+                        case V.VUnit{}:
+                          {==}
+                        case V.VNum{n}:
+                          {==}
+                        case V.VLazy{k}:
+                          {==}
+                        case V.VFun{o, nd, l}:
+                          {==}
+                        case V.VFree{f}:
+                          {==}
+                    case Con{h3, t3}:
+                      match h3:
+                        case V.VUnit{}:
+                          {==}
+                        case V.VNum{n}:
+                          {==}
+                        case V.VLazy{k}:
+                          {==}
+                        case V.VFun{o, nd, l}:
+                          {==}
+                        case V.VFree{f}:
+                          {==}

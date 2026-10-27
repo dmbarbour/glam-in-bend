@@ -455,7 +455,8 @@ The core:
    The table path then, judged across the four builds. A builtin given
    its last argument no longer appends it to the collected list for
    `V.builtin` to match again: `V.builtin_last` matches the collected
-   arguments where they lie: `V.apply_fn`
+   arguments where they lie (a law, `builtin_last_agrees`, proves it
+   computes what `V.builtin` does on the appended list): `V.apply_fn`
    from about 500 instructions to 150, `fma` at k 18 from 809M to 722M
    as built and 702M to 619M forced inline. Duplicating an entry opens
    the cold record once rather than twice (`tab_dup`): 712M and 599M.
