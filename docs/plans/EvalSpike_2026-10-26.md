@@ -281,6 +281,19 @@ The core:
    state record and return pairs, at around a hundred instructions each,
    while a comparison or an arithmetic step is native and costs about
    one. Fewer, larger functions on the hot path are the tuning to do.
+   Tuning so far: the state keeps how many nodes and active pairs fit,
+   so allocating and pushing check a counter and call the storage only
+   to grow it: 1,488 instructions an interaction, from 1,547. Profiling
+   showed the general compute path (rebuilding a builtin's value from
+   its form, `V.apply_fn`, a `PW` record, one more layer) costing about
+   475 instructions a compute; `succ` on an inline number done directly
+   brought the whole kernel to 1,348. Builtins on immediates are to run
+   natively, a few operators specialized by header, their arity implied
+   by the op so that a call's spare word can hold a collected argument
+   (the maintainer). And workers cost nothing here: on 1, 2, 4 or 8
+   threads the kernel runs the same instructions, within 20, and the
+   same cycles within 1%, since it does not fork; the cost of more
+   workers is the barrier per round where work forks (`Known`, above).
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

@@ -28,3 +28,9 @@ def m_ensure(m: M, +n: U32) -> M & Bool:
   match m:
     case MF{a, +cap}:
       (MF{a, cap}, U32.is_le(n, cap))
+
+# how many words fit now
+def m_cap(m: M) -> M & U32:
+  match m:
+    case MF{a, +cap}:
+      (MF{a, cap}, cap)

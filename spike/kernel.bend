@@ -485,12 +485,12 @@ def value.at(rs: Rs) -> P.H & Maybe<&2, V.Val>:
 
 def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
-      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt}, P.nil()}))
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      value.at(find(U32.to_nat(fresh), 0, Rs{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, P.nil()}))
 
 def counts(h: P.H) -> String:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
       U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++ U32.show(fresh) ++ " nodes at most, " ++
         U32.show(P.dt_live(dt)) ++ " data entries live"
 
@@ -546,13 +546,13 @@ def kres.au(au: Au, v: Maybe<&2, V.Val>) -> KRes:
   match au:
     case Au{h, +n}:
       match h:
-        case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
+        case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
           KRes{v, itrs, errs, U32.is_eq(P.dt_live(dt), n)}
 
 def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
   match h:
-    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt}:
-      kres.au(audit(U32.to_nat(fresh), 0, Au{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt}, 0}), v)
+    case P.H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
+      kres.au(audit(U32.to_nat(fresh), 0, Au{P.H{w, fs, nf, fresh, rs, nr, itrs, errs, dt, wcap, rcap}, 0}), v)
 
 def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
   (h, v) = r

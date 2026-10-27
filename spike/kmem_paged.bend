@@ -113,3 +113,9 @@ def pens(f: Nat, s: PStep, +n: U32) -> M & Bool:
 # room for words 0 .. n - 1, or false
 def m_ensure(m: M, +n: U32) -> M & Bool:
   pens(64n, pdecide(m, n), n)
+
+# how many words fit now
+def m_cap(m: M) -> M & U32:
+  match m:
+    case MP{pt, cur, +curp, +np, +maxp}:
+      (MP{pt, cur, curp, np, maxp}, (np << 14n : U32))

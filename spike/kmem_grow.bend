@@ -80,6 +80,21 @@ def ens(f: Nat, s: Step, +n: U32) -> M & Bool:
         case GMore{m}:
           ens(p, decide(grow(m), n), n)
 
-# room for words 0 .. n - 1, or false
+def m_ensure.go(fits: Bool, m: M, +n: U32) -> M & Bool:
+  match fits:
+    case True{}:
+      (m, True{})
+    case False{}:
+      ens(32n, decide(m, n), n)
+
+# room for words 0 .. n - 1, or false: when it already fits, at once
 def m_ensure(m: M, +n: U32) -> M & Bool:
-  ens(32n, decide(m, n), n)
+  match m:
+    case MG{a, +d, +cap, +maxd}:
+      m_ensure.go(U32.is_le(n, cap), MG{a, d, cap, maxd}, n)
+
+# how many words fit now
+def m_cap(m: M) -> M & U32:
+  match m:
+    case MG{a, +d, +cap, +maxd}:
+      (MG{a, d, cap, maxd}, cap)
