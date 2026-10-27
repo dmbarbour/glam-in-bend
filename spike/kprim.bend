@@ -18,7 +18,10 @@ import ./kmem_grow.bend as KM
 #
 # Value forms: 0, an entry in the data table (the word its index); 1, a
 # number (the word); 2, a builtin with no argument collected yet (the
-# field its op, the word how many it needs). The table is linear: an entry
+# field its op, the word how many it needs); 3, a builtin needing one more
+# argument, one number collected (the field its op, the word the number).
+# A builtin of forms 2 and 3 meeting a number runs natively, by V.num1 and
+# V.num2, without building the Bend value. The table is linear: an entry
 # has one owner, is handed on when its owner's value moves, duplicated
 # when it is copied, freed when it is dropped.
 
@@ -363,15 +366,29 @@ def pw.tab(r: H & U32) -> H & PW:
   (h, +i) = r
   (h, PW{0, 0, i})
 
+def put.one(+need: U32, h: H, +op: U32, +n: U32, v: V.Val) -> H & PW:
+  match need:
+    case 1:
+      (h, PW{3, op, n})
+    case _:
+      pw.tab(tab_put(h, v))
+
 def put.fun(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
   match args:
     case Nil{}:
       (h, PW{2, op, need})
+    case Con{V.VNum{+n}, t}:
+      match t:
+        case Nil{}:
+          put.one(need, h, op, n, v)
+        case _:
+          pw.tab(tab_put(h, v))
     case _:
       pw.tab(tab_put(h, v))
 
-# a value in the form a node holds it: a number or a bare builtin in the
-# node, anything else a new entry
+# a value in the form a node holds it: a number, a bare builtin or one
+# needing a last argument after a number in the node, anything else a new
+# entry
 def put(h: H, v: V.Val) -> H & PW:
   match v:
     case V.VNum{+n}:
@@ -389,6 +406,8 @@ def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
       (h, V.VNum{w})
     case 2:
       (h, V.VFun{f, w, Nil{}})
+    case 3:
+      (h, V.VFun{f, 1, [V.VNum{w}]})
     case _:
       tab_take(h, w)
 
@@ -399,6 +418,8 @@ def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
       (h, V.VNum{w})
     case 2:
       (h, V.VFun{f, w, Nil{}})
+    case 3:
+      (h, V.VFun{f, 1, [V.VNum{w}]})
     case _:
       tab_get(h, w)
 
@@ -435,9 +456,33 @@ def apply.a(r: H & V.Val, +hb: U32, +pb: U32) -> H & PW:
   (h, vf) = r
   apply.b(take(h, form(hb), fld(hb), pb), vf)
 
-# A's function (header ha, word pa) applied to B's value: both taken
-def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+# the general path: both values taken, V.apply_fn applying them
+def apply.gen(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
   apply.a(take(h, form(ha), fld(ha), pa), hb, pb)
+
+# a bare builtin needing `need` meets a number
+def apply.bare(+need: U32, h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+  match need:
+    case 1:
+      put(h, V.num1(fld(ha), pb))
+    case 2:
+      (h, PW{3, fld(ha), pb})
+    case _:
+      apply.gen(h, ha, pa, hb, pb)
+
+def apply.n(+ma: U32, +mb: U32, h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+  match ma mb:
+    case 2 1:
+      apply.bare(pa, h, ha, pa, hb, pb)
+    case 3 1:
+      put(h, V.num2(fld(ha), pa, pb))
+    case _ _:
+      apply.gen(h, ha, pa, hb, pb)
+
+# A's function (header ha, word pa) applied to B's value, both taken: a
+# builtin on a number natively, anything else through V.apply_fn
+def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+  apply.n(form(ha), form(hb), h, ha, pa, hb, pb)
 
 def is_fn(v: V.Val) -> Bool:
   match v:
@@ -450,12 +495,14 @@ def is_fn.fin(r: H & V.Val) -> H & Bool:
   (h, v) = r
   (h, is_fn(v))
 
-# is the value a function? A bare builtin is; a number is not.
+# is the value a function? A builtin is; a number is not.
 def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
   match m:
     case 1:
       (h, False{})
     case 2:
+      (h, True{})
+    case 3:
       (h, True{})
     case _:
       is_fn.fin(tab_get(h, w))

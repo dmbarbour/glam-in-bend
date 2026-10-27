@@ -313,6 +313,14 @@ The core:
    tell a free entry from a live number: the audit also checks that the
    free list holds every `VFree` entry, none leaked off it nor freed twice.
    About 1.5 instructions an interaction on `plus`, none on `succ`.
+   Builtins on immediates then ran natively: a value form 3, a builtin
+   needing one more argument after one number (the field its op, the word
+   the number), and a builtin of form 2 or 3 meeting a number computed by
+   `V.num1` or `V.num2`, the arithmetic `V.builtin` itself now calls, with
+   no Bend value built: 1,192 on `succ`, from 1,313, and 1,193 on `plus`,
+   from 1,676, its partial application no longer in the table. Against the
+   Python evaluator's values too, the kernel agrees on every term with
+   levels but one that runs out of fuel everywhere, as before.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

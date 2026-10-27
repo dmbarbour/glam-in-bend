@@ -11,25 +11,33 @@ type Val is Data:
   VFree{+next: U32}
 
 # Builtins: op 1 succ (one argument), op 2 add (two). A builtin waits for
-# `need` more arguments, collected in order.
-def builtin(+op: U32, args: List<&2, Val>) -> Val:
+# `need` more arguments, collected in order. The arithmetic on numbers is
+# num1's and num2's alone, which the kernel's native path calls too.
+
+# op on one number
+def num1(+op: U32, +a: U32) -> Val:
   match op:
     case 1:
-      match args:
-        case Con{VNum{+n}, t}:
-          VNum{(n + 1 : U32)}
-        case _:
-          VUnit{}
+      VNum{(a + 1 : U32)}
+    case _:
+      VUnit{}
+
+# op on two numbers
+def num2(+op: U32, +a: U32, +b: U32) -> Val:
+  match op:
     case 2:
-      match args:
-        case Con{VNum{+a}, t}:
-          match t:
-            case Con{VNum{+b}, u}:
-              VNum{(a + b : U32)}
-            case _:
-              VUnit{}
+      VNum{(a + b : U32)}
+    case _:
+      VUnit{}
+
+def builtin(+op: U32, args: List<&2, Val>) -> Val:
+  match args:
+    case Con{VNum{+a}, t}:
+      match t:
+        case Con{VNum{+b}, u}:
+          num2(op, a, b)
         case _:
-          VUnit{}
+          num1(op, a)
     case _:
       VUnit{}
 
