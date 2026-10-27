@@ -512,6 +512,18 @@ The core:
    (`V.free_chk`, passing the value through untouched). The builtins'
    arithmetic tests its op by a Bool, which proofs can split. About 1%
    on `fma` in three builds of four.
+   Toward a net as a value in the heap, the maintainer decided how far a
+   forced net reduces (`net-demand-whnf`), how a function's net is copied
+   (`copy-reduced-function-nets`) and how small a net starts: 128 nodes,
+   2 KB (`net-nodes-double`), with a 64-word pair stack; the stores now
+   start so. Open before the store holds nets: nets are first-class glam
+   values, bound directly unless wrapped as functions (`net_arity N`) or
+   thunks (`net_arity 0`), and shared, so a net may be a cell of its own
+   rather than owned by a thunk or a function; the cell model needs a
+   careful review first. For collection, values holding handles to cells
+   are told apart from ground ones, so marking visits each cell once
+   (`split-heap`, step 8); marking a net would scan only its data table,
+   skipping ground entries.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

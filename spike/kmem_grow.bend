@@ -1,16 +1,16 @@
 import Base
 
 # The kernel's word storage (kernel.bend), grown by doubling: a flat array
-# of 2^8 words at first, copied into one twice its size whenever more is
+# of 2^d0 words at first, copied into one twice its size whenever more is
 # needed, up to 2^maxd. The array alone travels with the kernel's state;
 # the kernel keeps its capacity, from which the depth follows.
 
 type M is Type:
   MG{a: Array<U32>}
 
-# a new store and how many words it holds
-def m_new(+maxd: Nat) -> M & U32:
-  (MG{[0 : U32^8n]}, 256)
+# a new store of 2^d0 words, and how many words it holds
+def m_new(+d0: Nat, +maxd: Nat) -> M & U32:
+  (MG{[0 : U32^d0]}, (1 << d0 : U32))
 
 def m_get.fin(r: Array<U32> & U32) -> M & U32:
   (a, +v) = r

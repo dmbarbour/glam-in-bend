@@ -7,7 +7,7 @@ type M is Type:
   MF{a: Array<U32>}
 
 # a new store and how many words it holds
-def m_new(+d: Nat) -> M & U32:
+def m_new(+d0: Nat, +d: Nat) -> M & U32:
   (MF{[0 : U32^d]}, U32.from_nat(Nat.pow(2n, d)))
 
 def m_get.fin(r: Array<U32> & U32) -> M & U32:

@@ -117,7 +117,7 @@ def m_cap(m: M) -> M & U32:
       (MP{pt, cur, curp, np, maxp}, (np << 14n : U32))
 
 # a new store and how many words it holds
-def m_new(+maxd: Nat) -> M & U32:
+def m_new(+d0: Nat, +maxd: Nat) -> M & U32:
   m_cap(m_new.m(maxd))
 
 def m_ensure.fin(r: M & Bool) -> M & U32:

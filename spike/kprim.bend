@@ -159,10 +159,11 @@ type C is Type:
 # the other is the peer of its principal port. A pair holds two live
 # nodes and a node is in one at most, so the stack never holds more than
 # half as many words as nodes fit: it grows with the node store (at least
-# 256 words), and a push checks nothing.
+# 64 words), and a push checks nothing.
 type H is Type:
   H{w: KM.M, +fh: U32, rs: KM.M, +nr: U32, c: C}
 
+# A net starts at 128 nodes, 2 KB, and 64 pair words (net-nodes-double);
 # node words up to 2^23 (2^21 nodes), active pair words up to 2^22
 def w_maxd() -> Nat:
   23n
@@ -191,10 +192,10 @@ def h_new.rs(r: KM.M & U32, w: KM.M, +wcap: U32) -> H:
 
 def h_new.w(r: KM.M & U32) -> H:
   (w, +cw) = r
-  h_new.rs(KM.m_new(rs_maxd()), w, (cw >> 2n : U32))
+  h_new.rs(KM.m_new(6n, rs_maxd()), w, (cw >> 2n : U32))
 
 def h_new() -> H:
-  h_new.w(KM.m_new(w_maxd()))
+  h_new.w(KM.m_new(9n, w_maxd()))
 
 def c_err(c: C) -> C:
   match c:
@@ -294,13 +295,13 @@ def link(h: H, +x: U32, +y: U32) -> H:
 def rs_words.go(small: Bool, +half: U32) -> U32:
   match small:
     case True{}:
-      256
+      64
     case False{}:
       half
 
 # the pair stack's words for wcap nodes
 def rs_words(+wcap: U32) -> U32:
-  rs_words.go(U32.is_lt((wcap >> 1n : U32), 256), (wcap >> 1n : U32))
+  rs_words.go(U32.is_lt((wcap >> 1n : U32), 64), (wcap >> 1n : U32))
 
 # the store doubled to wcap nodes: node wcap0 taken, the rest threaded onto
 # the free list; or, if either store could not grow, an error
