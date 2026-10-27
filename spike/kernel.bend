@@ -533,9 +533,10 @@ def find(k: Nat, +n: U32, rs: Rs) -> Rs:
         case Rs{h, +at}:
           find(p, (n + 1 : U32), find.hit(P.rd(h, (n << 2n : U32)), n, at))
 
+# the value read off the root, as glam sees it (V.norm)
 def value.v(r: P.H & V.Val) -> P.H & Maybe<&2, V.Val>:
   (h, v) = r
-  (h, Some{v})
+  (h, Some{V.norm(v)})
 
 def value.w(r: P.H & U32, +hp: U32) -> P.H & Maybe<&2, V.Val>:
   (h, +w) = r

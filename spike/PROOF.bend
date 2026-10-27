@@ -434,6 +434,10 @@ def Laws.builtin_last_agrees(op, args, x):
           {==}
         case V.VFree{f}:
           {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
     case Con{h1, t1}:
       match h1:
         case V.VUnit{}:
@@ -443,6 +447,10 @@ def Laws.builtin_last_agrees(op, args, x):
         case V.VFun{o, nd, l}:
           {==}
         case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
           {==}
         case V.VNum{a}:
           match t1:
@@ -458,6 +466,10 @@ def Laws.builtin_last_agrees(op, args, x):
                   {==}
                 case V.VFree{f}:
                   {==}
+                case V.VP1{o, nd, c}:
+                  {==}
+                case V.VP2{o, nd, c, d}:
+                  {==}
             case Con{h2, t2}:
               match h2:
                 case V.VUnit{}:
@@ -467,6 +479,10 @@ def Laws.builtin_last_agrees(op, args, x):
                 case V.VFun{o, nd, l}:
                   {==}
                 case V.VFree{f}:
+                  {==}
+                case V.VP1{o, nd, c}:
+                  {==}
+                case V.VP2{o, nd, c, d}:
                   {==}
                 case V.VNum{b}:
                   match t2:
@@ -482,6 +498,10 @@ def Laws.builtin_last_agrees(op, args, x):
                           {==}
                         case V.VFree{f}:
                           {==}
+                        case V.VP1{o, nd, c}:
+                          {==}
+                        case V.VP2{o, nd, c, d}:
+                          {==}
                     case Con{h3, t3}:
                       match h3:
                         case V.VUnit{}:
@@ -494,3 +514,85 @@ def Laws.builtin_last_agrees(op, args, x):
                           {==}
                         case V.VFree{f}:
                           {==}
+                        case V.VP1{o, nd, c}:
+                          {==}
+                        case V.VP2{o, nd, c, d}:
+                          {==}
+
+# whether the builtin is given its last argument (need = 1) or not, each
+# side computes the same number, flat form or VFun
+def vp1_by(t: Bool, -op: U32, -need: U32, -a: U32, x: V.Val) -> {V.norm(V.vp1.go(t, op, need, a, x)) == V.norm(V.fun.go(t, op, need, [V.VNum{a}], x)) : V.Val}:
+  match t:
+    case True{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+    case False{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+
+def Laws.vp1_agrees(op, need, a, x):
+  vp1_by(U32.is_eq(need, 1), op, need, a, x)
+
+def vp2_by(t: Bool, -op: U32, -need: U32, -a: U32, -b: U32, x: V.Val) -> {V.norm(V.vp2.go(t, op, need, a, b, x)) == V.norm(V.fun.go(t, op, need, [V.VNum{a}, V.VNum{b}], x)) : V.Val}:
+  match t:
+    case True{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+    case False{}:
+      match x:
+        case V.VUnit{}:
+          {==}
+        case V.VNum{y}:
+          {==}
+        case V.VLazy{k}:
+          {==}
+        case V.VFun{o, nd, l}:
+          {==}
+        case V.VFree{f}:
+          {==}
+        case V.VP1{o, nd, c}:
+          {==}
+        case V.VP2{o, nd, c, d}:
+          {==}
+
+def Laws.vp2_agrees(op, need, a, b, x):
+  vp2_by(U32.is_eq(need, 1), op, need, a, b, x)

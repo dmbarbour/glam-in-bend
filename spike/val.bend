@@ -9,6 +9,12 @@ type Val is Data:
   # never a glam value: a freed entry of a net's data table, linking the
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}
+  # never glam values: the kernel's flat forms of a builtin given one or
+  # two numbers, VFun{op, need, [VNum{a}]} and VFun{op, need, [VNum{a},
+  # VNum{b}]}, which a match shared among copies takes without touching a
+  # list (kprim.bend); V.norm turns them back
+  VP1{+op: U32, +need: U32, +a: U32}
+  VP2{+op: U32, +need: U32, +a: U32, +b: U32}
 
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
 # (three). A builtin waits for `need` more arguments, collected in order.
@@ -99,14 +105,52 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
     case _:
       VUnit{}
 
+# a value as glam sees it: a flat form as the VFun it stands for
+def norm(v: Val) -> Val:
+  match v:
+    case VP1{+op, +need, +a}:
+      VFun{op, need, [VNum{a}]}
+    case VP2{+op, +need, +a, +b}:
+      VFun{op, need, [VNum{a}, VNum{b}]}
+    case _:
+      v
+
+def fun.go(+last: Bool, +op: U32, +need: U32, args: List<&2, Val>, x: Val) -> Val:
+  match last:
+    case True{}:
+      builtin_last(op, args, x)
+    case False{}:
+      VFun{op, (need - 1 : U32), List.append(&2, Val, args, [x])}
+
+def vp1.more(+op: U32, +need: U32, +a: U32, x: Val) -> Val:
+  match x:
+    case VNum{+b}:
+      VP2{op, need, a, b}
+    case _:
+      VFun{op, need, [VNum{a}, x]}
+
+def vp1.go(+last: Bool, +op: U32, +need: U32, +a: U32, x: Val) -> Val:
+  match last:
+    case True{}:
+      last.x2(op, a, x)
+    case False{}:
+      vp1.more(op, (need - 1 : U32), a, x)
+
+def vp2.go(+last: Bool, +op: U32, +need: U32, +a: U32, +b: U32, x: Val) -> Val:
+  match last:
+    case True{}:
+      last.x3(op, a, b, x)
+    case False{}:
+      VFun{op, (need - 1 : U32), [VNum{a}, VNum{b}, x]}
+
 def apply_fn(f: Val, x: Val) -> Val:
   match f:
     case VFun{+op, +need, args}:
-      match need:
-        case 1:
-          builtin_last(op, args, x)
-        case _:
-          VFun{op, (need - 1 : U32), List.append(&2, Val, args, [x])}
+      fun.go(U32.is_eq(need, 1), op, need, args, x)
+    case VP1{+op, +need, +a}:
+      vp1.go(U32.is_eq(need, 1), op, need, a, x)
+    case VP2{+op, +need, +a, +b}:
+      vp2.go(U32.is_eq(need, 1), op, need, a, b, x)
     case _:
       VUnit{}
 

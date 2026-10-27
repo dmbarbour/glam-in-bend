@@ -479,6 +479,25 @@ The core:
    cannot instrument around `musttail` out of line). Bend's C is written
    for clang: without `preserve_none` its out-of-line steps take the
    usual calling convention. It serves as a second opinion.
+   What the table's remaining cost was. Holding the cold state in the
+   table's own first slots, as packed values, so that no table operation
+   opens a box, ran slower in all four builds (`fma` 604M against 571M in
+   the best), so the box stays. A profile of `fma` (forced inline) found a
+   quarter of all instructions in Bend's handling of shared values:
+   `term_drop` 11%, `span_fade` 8.6%, `blk_keep` 5.1%, against under 0.2%
+   on `succ`. Every copy of `fma 1 1` shares one boxed `VFun`, a table
+   read keeps it (a count up), and matching a shared node copies its
+   fields, bumping each boxed one, then drops it: the `VFun`, then each
+   cell of its argument list. So a builtin given one or two numbers now
+   goes into the table flat, as `VP1{op, need, a}` or `VP2{op, need, a,
+   b}`, constructors of plain fields that `V.apply_fn` applies directly;
+   they are never glam values, and `V.norm` turns them back into the
+   `VFun` they stand for, which the kernel does to every value it hands
+   out. Two laws, `vp1_agrees` and `vp2_agrees`, prove that applying a
+   flat form computes what applying its `VFun` does, through `V.norm`. At
+   k 18, `fma` takes 639M instructions as built, 520M forced inline, 509M
+   profile-guided, 493M both (from 712M, 599M, 582M, 571M); a call costs
+   about 584 instructions more than a `succ` call, from 870.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).
