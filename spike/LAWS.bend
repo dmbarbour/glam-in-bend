@@ -4,6 +4,7 @@
 import Base
 import ./store.bend as S
 import ./rules.bend as R
+import ./val.bend as V
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
 # still sum to the page's capacity.
@@ -34,3 +35,13 @@ law rules_linear:
   for +b: R.NodeKind
   for +s: Bool
   {R.linear(a, b, R.rule(a, b, s)) == True{} : Bool}
+
+# LAW: a builtin applied to its last argument by V.builtin_last, which
+# matches the collected arguments where they lie, computes what V.builtin
+# computes on them with that argument appended: the kernel's shortcut
+# adds no semantics of its own.
+law builtin_last_agrees:
+  for +op: U32
+  for +args: List<&2, V.Val>
+  for +x: V.Val
+  {V.builtin_last(op, args, x) == V.builtin(op, List.append(&2, V.Val, args, [x])) : V.Val}
