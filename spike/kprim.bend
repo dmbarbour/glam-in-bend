@@ -476,13 +476,26 @@ def pw.tab(r: H & U32) -> H & PW:
   (h, +i) = r
   (h, PW{0, 0, i})
 
-def put.one(+need: U32, h: H, +op: U32, +n: U32, v: V.Val) -> H & PW:
+def put.one(+need: U32, h: H, +op: U32, +n: U32) -> H & PW:
   match need:
     case 1:
       (h, PW{3, op, n})
     case _:
+      pw.tab(tab_put(h, V.VP1{op, need, n}))
+
+def put.two(t: List<&2, V.Val>, h: H, +op: U32, +need: U32, +a: U32, v: V.Val) -> H & PW:
+  match t:
+    case Con{V.VNum{+b}, u}:
+      match u:
+        case Nil{}:
+          pw.tab(tab_put(h, V.VP2{op, need, a, b}))
+        case _:
+          pw.tab(tab_put(h, v))
+    case _:
       pw.tab(tab_put(h, v))
 
+# a builtin with no number collected in the node, one or two in a flat
+# form in the table, more as they are
 def put.fun.go(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
   match args:
     case Nil{}:
@@ -490,9 +503,9 @@ def put.fun.go(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H
     case Con{V.VNum{+n}, t}:
       match t:
         case Nil{}:
-          put.one(need, h, op, n, v)
+          put.one(need, h, op, n)
         case _:
-          pw.tab(tab_put(h, v))
+          put.two(t, h, op, need, n, v)
     case _:
       pw.tab(tab_put(h, v))
 
@@ -601,6 +614,10 @@ def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
 def is_fn(v: V.Val) -> Bool:
   match v:
     case V.VFun{+op, +need, args}:
+      True{}
+    case V.VP1{+op, +need, +a}:
+      True{}
+    case V.VP2{+op, +need, +a, +b}:
       True{}
     case _:
       False{}
