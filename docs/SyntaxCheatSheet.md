@@ -97,7 +97,7 @@ foo.bar:Data        # path-tagged data: sugar for { foo.bar:Data }
 {}                  # the empty dict, a value like any other
 {foo:1, bar.baz:2}  # literal: members introduced in order; a path defined twice is an error
 {foo: f x}          # a spaced tag runs to its item's comma: foo:(f x)
-{foo:f x}           # joint, then more: reported while code migrates
+{foo:f x}           # joint binds tighter: (foo:f) x, rarely meant
 {foo: 1, bar:       # a space or line break may follow a tag's `:` ...
     f x}            # ... but never precede it: {foo :x} applies foo to x:x
 {:foo, :bar}        # puns: {foo:foo, bar:bar}
@@ -154,7 +154,7 @@ Dict with                   # object-style scope: _x prior, ^a escapes to host
 [make                # ordinary expression continuation within one member
     long_argument,
   next_member]
-xs ++ ys            # append (no cons operator; lists are finger-tree ropes)
+xs ++ ys            # append (no cons operator; lists are ropes)
 [x] ++ xs           # "cons" via append; also valid in patterns
 list.at n xs         # zero-based lookup, errors out of bounds
 
@@ -188,7 +188,7 @@ import "data.bin" binary as blob    # raw bytes, not compiled
 import 'prelude             # built-in module ('std; also 'math, 'list, 'dict)
 import 'math as m
 
-# Target syntax, not yet in the bootstrap:
+# Remote, content-addressed:
 import as q from {          # remote: content-addressed
     , ref:"Qux.q"
     , rev:"abc123..."
@@ -305,23 +305,10 @@ sum = partial 23
                                     # Standard Effects available for
                                     # bookkeeping and backtracking
 
-# Interaction occurs when principal ports connect:
-#   bind-bind: join crossed (b1-c2, b2-c1)
-#   bind-copy: dup     bind-data: call (else stuck)
-#   bind-data(Function): one ordinary value application; another Bind is
-#                        required for another argument
-#   bind-data(Net): load a logical copy through the raw net's exposed port
-#   copy-data: dup     copy-copy: join if same instance, else dup
-#   data-data: impossible: both provide, so construction rejects the wire
-
-# Lambda calculus is a design pattern within inets:
-#   lambda      = .bind -> [fn, result, arg], wiring arg INTO result
-#   application = .bind -> [ap, arg, result], providing arg, extracting result
-# A raw net embedded behind Bind is called by lazy cursor-based loading; an
-# ordinary Function is never opened as though it were that raw net.
-# Data flows BOTH directions (no inherent arg/result distinction),
-# but ".g" syntax favors lambdas — use inets to accelerate difficult
-# dataflows inside lambda bodies while preserving the lambda interface.
+# Interaction rules, and lambda calculus as a pattern within nets: see
+# Design.md, "Interaction Nets". A raw net behind Bind loads lazily; an
+# ordinary function is never opened as though it were a raw net. ".g"
+# syntax favors lambdas: use nets for difficult dataflows behind them.
 ```
 
 
@@ -379,29 +366,21 @@ foo <| .bar         # equivalent alternative without parentheses
 
 ```
 .op                 # sugar for eff:(\api -> api.op)
-.heap.get Path       # dotted effect path: eff:(\api -> api.heap.get Path)
-                     # an ERROR at the read where Path is undefined
-.heap.set Path Value # blind replacement of shared heap state
-.heap.rewrite Path F # commit-ordered lazy rewrite of shared heap state
-.heap.try_get Path  # the value where defined; .fail where not (also .try_get, .vol.try_get)
-.heap.del Path      # removes, pruning what it empties (also .del, .vol.del)
-.heap.vol >>= (\h -> .vol.get h Path)  # volume handles: .vol.new/get/set/rewrite
-.promise.new >>= (\p -> .promise.fulfill p.resolver 7)  # {promise, resolver}
-.promise.status R   # 'pending, 'fulfilled or 'broken, from resolver R
-.promise.accept R {msg:{text:"owed"}}  # this machine owes R's promise; .promise.abandon R
-.promise.accepted R # unit where any machine accepted it; .fail otherwise
-.port.read 'in 2     # the next 2 values as a list; too few is pushback
-.port.unread 'in [x] # putback: x stands at the input's head, read next
-.port.write 'out [1, 2]  # along every wire from the output; unwired is an ERROR
-.port.ask 'q Req     # writes {request, reply}; returns the reply's promise
-.port.available 'in  # a count, observed; .port.pending: {port: count}
-.wire.add (out:'o) (child:{key:'k, port:'in})  # also .wire.del, .wire.list,
-                     #   .wire.defaults 'on/'off; ends in:P, out:P, child:{key, port}
-.env.lookup '.style  # the machine's environment: overlays over the host's
-.env.overlay {style := "wide"}  # stacks on this machine's share (:= overrides);
-                     #   children look it up too; .env.clear drops the share
+.env.lookup '.style  # dotted effect path: eff:(\api -> api.env.lookup '.style);
+                     #   the environment, overlays over the host's
+.env.overlay {style := "wide"}  # stacks an overlay (:= overrides); children
+                     #   look it up too; .env.clear drops it
+# Standard effects (Design.md, "Standard Effects"):
+.r X                # return X;  .seq op k is op >>= k
+.get Path           # local state: an ERROR at the read where Path is undefined
+.try_get Path       # the value where defined; .fail where not
+.set Path Value     # overwrite local state;  .del Path removes, pruning
+.alt A B            # ordered choice;  .fail;  .cut op commits to the first success
 .retry              # pushback by intent: the outermost cut waits on what it read;
                      #   an ERROR outside every cut or with nothing observed
+.fix fn             # monadic fixpoint: fn receives the result as input
+.reset Key op       # delimited continuations;  .shift Key fn
+# Reflection tasks have more: see ReflectionAPI.md.
 .movl 'eax 42       # applied effect: eff:(\api -> api.movl 'eax 42)
 
 my_proc = do
@@ -419,7 +398,7 @@ braced = do { x <- .r 1; .r x }
 empty = do {}               # exactly .r ()
 nested = f [do { .r 1 }, do {; .r 2; }]
 
-# Current bootstrap rules:
+# Rules:
 # - Layout `do` introduces a non-empty newline-delimited block; braces use `;`.
 # - An inline first statement establishes a hanging sibling anchor. A
 #   next-line first statement freely chooses an anchor above the outer floor.
@@ -442,7 +421,7 @@ nested = f [do { .r 1 }, do {; .r 2; }]
 # - In `op -> P`, the `->` is a separator keyword: it ends op's open tails
 #   (`else` branch, `let`/`using` body, postfix `if` fallback, lambda body):
 #   `if c then .a else .b -> x`.
-# - Do bindings currently support irrefutable names, `_`, grouping, irrefutable
+# - Do bindings support irrefutable names, `_`, grouping, irrefutable
 #   `P as Q`, scalar literals, fixed quoted paths, list patterns with at most
 #   one potentially refutable variable-length segment, computed-path dictionary
 #   and quoted-path patterns, static and computed tags, tuples, and the
@@ -478,7 +457,7 @@ do
 ## Conditionals & Patterns
 
 ```
-# Current bootstrap: prefix `if`/`try`, subject `match`/`try_match`,
+# Forms: prefix `if`/`try`, subject `match`/`try_match`,
 # guard-only `match when`/`try_match when`, hierarchical choices, and
 # tentative `then?`/`=>?` results, plus postfix `if`.
 if C then A else B
@@ -692,7 +671,7 @@ anno 'scope_unique Atom     # unique atom (ephemeron pattern)
 anno 'compile F             # reduce F's net under fuel, compile it; F unchanged
 anno 'jit F                 # as 'compile, at F's first application
 anno 'normalize F           # reduce F's net without fuel; F unchanged
-anno refl:(.log Msg) Term   # reflection effect before returning Term
+anno refl:(.log 'info Msg) Term  # reflection effect before returning Term
 
 # g0 definition initialization adds a shallow source frame:
 # {g:{origin:OpaqueOrigin, line:LineNumber, definition:Name}}
@@ -708,11 +687,10 @@ refl.check_invariants = ... # refl.* run automatically as reflection tasks
 meta.refl := .r ()          # the namespace's reflection operation, run once
                             # in a task when a definition is first used;
                             # the language declaration installs one that
-                            # launches refl.* (here: disabled); state under
-                            # [name, 'meta, 'refl]:() on the reflection heap
+                            # launches refl.* (here: disabled)
 meta.journal                # compiler metadata lives under meta.*, e.g. the
                             # journal of names introduced or overridden
-env                         # implicitly declared; provided on import by host 
+env                         # introduced by the host, or by `import ... as`
 module                      # alias for module toplevel namespace
 module_origin               # opaque provenance for this source compilation
 self                        # current object namespace (= module at toplevel)

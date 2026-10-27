@@ -36,6 +36,7 @@ This project is tentatively called 'glam' - general language assembly.
   environment, staging constraints, and examples
 - [Direct-Style Assembly](./DirectStyleAssembly.md) - instructions and assembly bookkeeping as effects; the x86-64 sample handler
 - [Command Line](./CLI.md) - the assembler's command line, configuration and shell completion
+- [Reflection API](./ReflectionAPI.md) - the effects reflection tasks may use, as the API stands
 - [Lints](./Lints.md) - candidate lints for readability hazards the grammar accepts
 
 ## Implementation
