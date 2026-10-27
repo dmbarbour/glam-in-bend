@@ -549,7 +549,7 @@ def kres.au(au: Au, v: Maybe<&2, V.Val>) -> KRes:
     case Au{h, +n}:
       match h:
         case P.H{w, +fh, +fresh, rs, +nr, +itrs, +errs, dt, +wcap, +rcap}:
-          KRes{v, itrs, errs, U32.is_eq(P.dt_live(dt), n)}
+          KRes{v, itrs, errs, P.dt_ok(dt, n)}
 
 def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
   match h:

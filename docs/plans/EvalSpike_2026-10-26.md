@@ -308,7 +308,11 @@ The core:
    `interact` and `kprim_apply` moved by several points each), so the
    table's own gain is about 14 an interaction on `plus`. The wrapper
    costs nothing measurable: a constructor with one `U32` field packs.
-   The audit's live count now walks the free list.
+   The audit's live count now walks the free list. The link then got its
+   own constructor, `VFree{next}`, never a glam value, so that a scan can
+   tell a free entry from a live number: the audit also checks that the
+   free list holds every `VFree` entry, none leaked off it nor freed twice.
+   About 1.5 instructions an interaction on `plus`, none on `succ`.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

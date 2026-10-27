@@ -33,8 +33,8 @@ def lvl_cap() -> U32:
 # The data table
 # ==============
 
-# entries, the high-water mark; a freed entry holds VNum{next free index
-# plus one}, the head kept here the same way, 0 for none
+# entries, the high-water mark; a freed entry is a VFree linking the next
+# (its index plus one, 0 for none), the head kept here the same way
 type DT is Type:
   DT{a: Array<V.Val>, +fh: U32, +n: U32, +cap: U32, +d: Nat}
 
@@ -59,7 +59,7 @@ def dt_take.fin(r: Array<V.Val> & V.Val, +n: U32, +cap: U32, +d: Nat, +i: U32) -
 def dt_take(t: DT, +i: U32) -> DT & V.Val:
   match t:
     case DT{a, +fh, +n, +cap, +d}:
-      dt_take.fin(Array.swap(V.Val, a, i, V.VNum{fh}), n, cap, d, i)
+      dt_take.fin(Array.swap(V.Val, a, i, V.VFree{fh}), n, cap, d, i)
 
 type DC is Type:
   DC{src: Array<V.Val>, dst: Array<V.Val>}
@@ -97,12 +97,11 @@ def dt_put.new(full: Bool, t: DT, v: V.Val) -> DT & U32:
     case False{}:
       dt_put.app(t, v)
 
-# the link a freed entry holds, VNum{0} in the last. The list reads only
-# freed entries, so a live entry may be a VNum too. Anything else marks a
-# corrupt list: it ends here, and the audit's live count reports the leak.
+# the link a freed entry holds, VFree{0} in the last. Anything else marks
+# a corrupt list: it ends here, and the audit reports the leak.
 def dt_link(v: V.Val) -> U32:
   match v:
-    case V.VNum{+k}:
+    case V.VFree{+k}:
       k
     case _:
       0
@@ -513,8 +512,33 @@ def fw.step(r: Array<V.Val> & V.Val, +c: U32) -> FW:
   (a, v) = r
   FW{a, dt_link(v), (c + 1 : U32)}
 
-# entries on the free list, following at most k links
-def dt_free(k: Nat, w: FW) -> U32:
+# entries on the free list, following at most k links: c counts them
+def dt_free(k: Nat, w: FW) -> FW:
+  match k:
+    case 0n:
+      w
+    case 1n+p:
+      match w:
+        case FW{a, +fh, +c}:
+          match fh:
+            case 0:
+              FW{a, fh, c}
+            case _:
+              dt_free(p, fw.step(Array.get(V.Val, a, (fh - 1 : U32)), c))
+
+def is_free(v: V.Val) -> U32:
+  match v:
+    case V.VFree{+k}:
+      1
+    case _:
+      0
+
+def fs.step(r: Array<V.Val> & V.Val, +c: U32) -> FW:
+  (a, v) = r
+  FW{a, 0, (c + is_free(v) : U32)}
+
+# entries from i that are VFree, k of them scanned: c counts them
+def dt_scan(k: Nat, +i: U32, w: FW) -> U32:
   match k:
     case 0n:
       match w:
@@ -523,14 +547,27 @@ def dt_free(k: Nat, w: FW) -> U32:
     case 1n+p:
       match w:
         case FW{a, +fh, +c}:
-          match fh:
-            case 0:
-              c
-            case _:
-              dt_free(p, fw.step(Array.get(V.Val, a, (fh - 1 : U32)), c))
+          dt_scan(p, (i + 1 : U32), fs.step(Array.get(V.Val, a, i), c))
 
-# entries in use: the high-water mark less those freed
+def dt_live.fin(w: FW, +n: U32) -> U32:
+  match w:
+    case FW{a, +fh, +c}:
+      (n - c : U32)
+
+# entries in use: the high-water mark less those on the free list
 def dt_live(t: DT) -> U32:
   match t:
     case DT{a, +fh, +n, +cap, +d}:
-      (n - dt_free(U32.to_nat(n), FW{a, fh, 0}) : U32)
+      dt_live.fin(dt_free(U32.to_nat(n), FW{a, fh, 0}), n)
+
+def dt_ok.fin(w: FW, +n: U32, +held: U32) -> Bool:
+  match w:
+    case FW{a, +fh, +c}:
+      U32.is_eq((n - c : U32), held) && U32.is_eq(dt_scan(U32.to_nat(n), 0, FW{a, 0, 0}), c)
+
+# the audit: the entries in use are the held ones, and the free list holds
+# every VFree entry, so no entry leaked off it and none is free twice
+def dt_ok(t: DT, +held: U32) -> Bool:
+  match t:
+    case DT{a, +fh, +n, +cap, +d}:
+      dt_ok.fin(dt_free(U32.to_nat(n), FW{a, fh, 0}), n, held)

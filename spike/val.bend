@@ -6,6 +6,9 @@ type Val is Data:
   VNum{+n: U32}
   VLazy{+h: U32}
   VFun{+op: U32, +need: U32, args: List<&2, Val>}
+  # never a glam value: a freed entry of a net's data table, linking the
+  # next free entry (its index plus one, 0 for none; kprim.bend)
+  VFree{+next: U32}
 
 # Builtins: op 1 succ (one argument), op 2 add (two). A builtin waits for
 # `need` more arguments, collected in order.
