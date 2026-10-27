@@ -30,6 +30,12 @@ Contingent:
   upstream issues; `bench/` holds programs that measure and reproduce them.
   Comment upstream only when the maintainer asks.
 
+## Setup
+
+`scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
+links `clang` and enables the commit-msg hook; run it once per container.
+`scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
+kernel instead of polling; run it at each container start.
 
 ## Dev Cycle
 
