@@ -111,6 +111,110 @@ derivation made here first.
    histories pair wrongly, so say what does, and check the other docs for
    the same claim.
 
+## Derivation (`pairing-gal-derive`, 2026-10-27)
+
+Derived before reading the maintainer's earlier discussion; compared with
+it below.
+
+**What must be known.** A duplication process is the set of fans bearing
+one identity. Its copies take values from the region being duplicated and
+hand a copy to each side; its merges take a value from each side and hand
+a superposition into the region. Its fans move into the region and
+annihilate where they meet. When a fan of process D meets a fan of
+another process E, they commute, and one is being copied by the other: E
+is inner if it lies in the region D duplicates. Then D must pass
+unchanged, since its partners are still ahead, while E's two residuals
+become two processes, one in each copy. At the meeting each fan sits in
+the other's region, so nothing local says which region holds which.
+Labels record neither; histories record both, which breaks D.
+
+**Levels.** Lamping's answer: every node has a level, the number of
+boxes (duplicable arguments) around it. A fan duplicates boxes deeper
+than itself, so of two meeting fans the deeper is inner. Fans annihilate
+exactly when their levels are equal: residuals of one process share a
+level, and in nets built from terms two processes never meet at one
+level (Lamping's theorem). Copies of an inner process share a level too,
+yet never meet wrongly: whichever later enters the other's box has its
+levels raised on the way in. Levels make the history needless.
+
+**Levels move.** A box's contents sit a level deeper than the context
+that uses them, so a value's levels shift as it crosses a box boundary.
+Lamping shifts them lazily, with control nodes on the wires values
+cross. In a polarized net a control node is unary, `[- in, + out]`, its
+principal toward the value's source, so it meets only what flows down
+the wire: functions, merges, data and error values. Two kinds, after
+Lamping's brackets and croissants:
+
+    Br n: a level j > n becomes j + 1
+    Cr n: a level j > n becomes j - 1
+    (Cr n undoes Br n: Cr n after Br n is the identity)
+
+The rules with levels (L is Br n or Cr n; L' is the other kind, index n):
+
+    L >< Data, L >< EraP   the value passes unchanged: data hold no fans
+    L >< Merge m           a Merge at L(m); an L on each of its inputs
+    L >< Fn f              an Fn at L(f); an L on its body wire; an L' on
+                           its argument wire, since arguments flow from
+                           the outer frame back into the body
+    Copy c >< Fn f         two Fn f; a Copy c on the body, a Merge c on
+                           the argument (as now)
+    Copy c >< Merge m      annihilate when c = m and site and
+                           instantiation agree; else commute, both
+                           keeping their levels
+    Ap a >< Fn f           beta; a = f in a well-formed net, so anything
+                           else counts as an error (a check)
+    Ap a >< Merge m        as now: the Aps at a, the Copy and Merge at m
+    Call, Data, erasers    no levels
+
+**Lowering assigns them.** A term lowered at level n:
+
+    \x. M        an Fn at n; M at n
+    M N          an Ap at n; M at n; N at n + 1 (a box)
+    x            bound at level b, used at depth d >= b: its path from
+                 the Fn's argument port crosses Br b, ..., Br (d - 1),
+                 one per box entered, then Cr d at the use, so a value
+                 made at level b + 1 arrives at level d
+    several uses paths share their common prefix; where they split, at
+                 depth k, a copy fan at level k (a chain for more than
+                 two)
+    no use       an eraser on the argument port
+    data         no level
+
+glam's own nets: a template (a function as data) carries levels from 0;
+a call at an Ap of level a instantiates it at its levels plus a, in a
+fresh fan namespace. Data, function values included, carry no levels, so
+copying them needs none.
+
+**On the failing case** `(\t -> t t) two`: t's fan sits at level 0, one
+use behind Cr 0, the other inside the argument box behind Br 0 and Cr 1.
+`two` arrives as an argument, level 1, with its own fan G at level 1.
+The copy used as the function drops to level 0 as it passes Cr 0; the
+copy used as the argument goes up through Br 0 and back down through
+Cr 1. When the function copy's fan duplicates the argument copy, the
+argument's nodes have crossed the Br 0 on its argument wire and stand a
+level above it, so the two residuals of G meet at different levels and
+commute, where one label made them join.
+
+**Costs and risks.**
+
+- Every control crossing is an interaction: Lamping's bookkeeping, which
+  can outweigh the beta steps themselves (Asperti and Mairson). Data pay
+  one interaction per crossing.
+- Control nodes all face their source, so they never meet each other:
+  the face-to-face annihilations of unpolarized presentations do not
+  happen, and chains build up on wires until a value passes; unused
+  paths keep theirs until collection. Fusing a chain into one node that
+  maps levels by offsets (as BOHM's indexed brackets and Guerrini's
+  multiplexers do) is the obvious optimization.
+- Correctness rests on Lamping's theorem, for nets built from terms.
+  glam's monadic nets, strict calls and data need an argument of their
+  own: data hold no fans, and calls distribute merges without touching
+  levels.
+- Levels are `U32`; depth grows with nesting and with unfolding, so the
+  lowering and the rules guard against wrapping.
+- What GAL adds to this, its cheaper level tracking, is not
+  reconstructed here.
+
 ## Feasibility (assessed 2026-10-26)
 
 - **Polarity preservation** is local: each rule is checked alone, and the
