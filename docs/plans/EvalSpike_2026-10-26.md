@@ -258,7 +258,11 @@ Parallelism:
    workers that own their pages, in rounds (`rounds-of-coarse-work`),
    against a heap that doubles instead, the coordinator taking each
    task's working set out for a round and rebuilding the array after
-   (the maintainer, 2026-10-27):
+   (the maintainer, 2026-10-27). Rebuilding need not be literal: with
+   virtual memory, the coordinator keeps a mapping from addresses to
+   where their cells are, in its array or in a working set, and working
+   sets may survive rounds; fast random access to the heap is traded for
+   simpler, focused workers:
    tasks report the pages and thunks they need, thunk waiters are restored
    only when ready, and fuel is one unit per logical step. Then marking as
    tasks in the same rounds. Laws: a round loses or duplicates no page and

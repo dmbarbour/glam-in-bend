@@ -37,6 +37,23 @@ of 2026-10-26, Bend 2.0.39.
   the runtime's internals, at the price of breaking across releases.
 - **Revisit:** when large binary imports matter, or at whole-system tuning.
 
+### Compile-time specialization
+
+- **Need:** the spike's rewrites must stay answerable to the rule table its
+  laws are proved over. Specializing the table's interpreter on each
+  constant rule would make the interpreter itself the fast path, with
+  parity by construction.
+- **Upstream:** none known; a suggestion to raise later.
+- **Evidence:** dispatching the interpreter on the kind pair, each rule a
+  constant, ran no faster than interpreting the table (`spike-node-layout`
+  in `docs/plans/EvalSpike_2026-10-26.md`; variant B of
+  `spike/tools/rewrites/`); rewrites written by hand ran 1.6 times faster.
+- **Workaround:** a generator, itself a Bend program reading the table,
+  writes the rewrites out; the gate regenerates them and fails on any
+  difference, and the test corpora run through both the table and the
+  generated code (planned in `spike-node-layout`).
+- **Revisit:** at whole-system tuning.
+
 ### Run-time code generation
 
 - **Need:** glam compiles its inputs, so nearly all nets reach the
