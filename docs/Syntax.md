@@ -256,9 +256,8 @@ The operand is static syntax, not an evaluated expression. An unqualified root
 is accepted only where ordinary resolution would bind that name through the
 module namespace. A lexical local, object member, object alias, or `using`
 namespace therefore cannot accidentally determine a global identity; use the
-explicit `module.` form when escaping such a scope. The current representation
-restricts the path to name components. A later representation may admit static
-non-name keys such as `abstract_global_path module.[42]`.
+explicit `module.` form when escaping such a scope. The path is restricted to
+name components; a later language version may admit static non-name keys such as `abstract_global_path module.[42]`.
 
 ### Introductions and Overrides
 
@@ -293,7 +292,7 @@ use of a global, nor another local, in the file may share them. Within a
 localized body, such as an object's, a file's `let` is `^name`, as the
 module's own names are. A macro invocation sees the `let`s before it.
 
-### Declarations (Tentative)
+### Declarations
 
 To localize errors, and to simplify analysis of name shadowing, names in use shall be defined or declared. A lightweight declaration names what a module expects to be defined, e.g. by a mixin, much as an abstract object declares methods:
 
@@ -399,9 +398,9 @@ such as `>>` and `<<`. Other deliberately useful relationships remain, such
 as arithmetic within a comparison and comparisons within a homogeneous
 boolean chain.
 
-We may support a few special non-binary forms, e.g. `(x < y =< z)` as shorthand for `((x < y) and (y =< z))`. We'd also support `(< =<)` operator sections. Risk of confusion is mitigated because we cannot compare booleans for less-than or greater-than.
+Comparisons chain: `(x < y =< z)` is shorthand for `((x < y) and (y =< z))`. We may also support `(< =<)` operator sections. Risk of confusion is mitigated because we cannot compare booleans for less-than or greater-than.
 
-Operators may support limited ad-hoc polymorphism. For example, `>` will only compare two numbers, two lists, or two tuples. For lists and tuples, we use a lexicographic comparison of elements. Comparing a number to a list, or even a list to a tuple, would simply diverge with an error. As a rule, ad-hoc polymorphism must preserve laws or intuitions, e.g. don't use `+` to append lists because it does not preserve commutativity of `+` on numbers.
+Operators may support limited ad-hoc polymorphism. For example, `>` will only compare two numbers, two lists, or two tuples. For lists and tuples, we use a lexicographic comparison of elements. Ordering a number against a list, or even a list against a tuple, is an error that reports them incomparable. As a rule, ad-hoc polymorphism must preserve laws or intuitions, e.g. don't use `+` to append lists because it does not preserve commutativity of `+` on numbers.
 
 Only comparables compare (`only-comparables-compare`): numbers, and lists or
 dicts of comparables, texts and binaries among the lists and atoms among the
@@ -497,9 +496,7 @@ a lambda, as they do for an argument in a pipeline:
 
 What parses may still read poorly, such as deeply nested inline `if`s or a
 lambda before a binding's `->` (`f <| \a -> e -> p`); a linter, rather
-than the grammar, is to flag those (see [Lints](Lints.md)). The current
-Rust bootstrap enforces the rule for conditionals, `do` blocks, matches and
-lambdas; `let`, `using` and `object` follow.
+than the grammar, is to flag those (see [Lints](Lints.md)).
 
 ## Effects
 
@@ -509,8 +506,8 @@ vertical columns of assembly mnemonics. `Pattern = Expr` is the pure guard form
 and does not use `let`. General pattern matching either captures locals or
 evaluates to `.fail`.
 
-The current Rust bootstrap implements pattern-bearing statements in both
-layout and braced forms. Patterns currently include names, `_`, general
+Pattern-bearing statements come in both layout and braced forms. Patterns
+include names, `_`, general
 `P as Q`, unit, numbers, atoms, text, fixed quoted paths, list patterns with at
 most one potentially refutable variable-length segment, computed-path
 dictionaries and quoted paths, static and computed tags, tuples, views,
@@ -586,8 +583,7 @@ synthesize a result, so a block still cannot end with a binding. The special
 separator-free `do {}` means `.r ()`, while `do {;}` is invalid. Semicolons are
 owned by the nearest enclosing grammar: `do { x = do A; B }` has the two outer
 statements `x = do A` and `B`; the inner singleton do does not consume the
-semicolon. Computed-path/tag, view, predicate, and guarded do patterns remain
-target syntax.
+semicolon.
 
 Lightweight effects are supported: we desugar `.name` to `eff:(\api -> api.name)`, and we support application `(eff:f) x = eff:(\api -> f api x)`. This enables us to work with APIs concisely without redefining things:
 
@@ -609,8 +605,7 @@ Use of fixpoint within do notation is not implicit. It's problematic for it to b
 
 The compiler will leverage `.fix` to capture the name.
 
-The current Rust bootstrap implements this explicitly declared, name-only
-form. `declare Name, ...` is valid only as a non-final do statement and makes
+Recursive do is explicitly declared and name-only. `declare Name, ...` is valid only as a non-final do statement and makes
 those names visible to following statements. The first later direct bind or
 pure name binding with the same canonical name fulfills each declaration.
 References before fulfillment use the `.fix` future; references afterward use
@@ -1077,7 +1072,7 @@ separator and a leading separator can introduce the content anchor:
           ,3,4
           ,5,6]
 
-We'll use `++` to compose lists by appending them. In contrast to Haskell's `x:xs`, there is no dedicated 'cons' operator, though we can define `cons x xs = [x]++xs`. One motive for this is symmetry: lists are typically implemented as finger-tree ropes, so we can work efficiently at either end (and split or append in log-time). We may generally use `++` in pattern matching, limited to one variable-length list, e.g. `[x]++xs` or `xs++[x]` or `[x0,x1]++xs++[xn]`. 
+We'll use `++` to compose lists by appending them. In contrast to Haskell's `x:xs`, there is no dedicated 'cons' operator, though we can define `cons x xs = [x]++xs`. One motive for this is symmetry: lists are implemented as ropes, so we can work efficiently at either end (and split or append in log-time). We may generally use `++` in pattern matching, limited to one variable-length list, e.g. `[x]++xs` or `xs++[x]` or `[x0,x1]++xs++[xn]`. 
 
 We can introduce a few term annotations to manage representations, e.g. flattening a list into an array. We'll rely on accelerated functions on lists, too.
 
@@ -1178,15 +1173,14 @@ Interaction nets are expressed effectfully and constructed via builtin
 `interaction_net`. The result is an opaque net value, already in weak-head
 normal form, rather than an ordinary function. Ordinary application of a raw
 net is an error. Inside another interaction net, a raw net embedded as data is
-called when it meets a `Bind`; the runtime loads it lazily through its exposed
-port.
+called when it meets a `Bind`, and loaded lazily through its exposed port.
 
 An ordinary source function embedded with `.data` follows ordinary value
 application instead. When it meets a `Bind`, that bind supplies exactly one
 argument. If the function remains partial, the result is another ordinary
 function in `Data`; supplying its next argument requires another explicit
-`Bind`. The runtime fuses the intermediate bind-bind application bridge, but
-does not expose or load the function's internal staged net. Thus calling a
+`Bind`. An implementation may fuse the intermediate bind-bind application
+bridge, but never exposes or loads the function's internal staged net. Thus calling a
 function and loading a raw net remain observably distinct even though both
 begin with `Bind` meeting `Data`.
 
@@ -1203,9 +1197,8 @@ or `net_arity` does not itself demand the net.
 `import 'std`. The construction program receives `.bind`, `.copy`, `.data`,
 and `.wire` plus the standard task-local effects. Construction requires exactly
 one successful branch; use `.cut` when search could otherwise return several.
-The current bootstrap can express construction programs either explicitly with
-`>>=` and `=>>` or with the implemented name-only layout `do` form described
-above. Eventually, we may also want a macro DSL or user-defined syntax for
+Construction programs may be written explicitly with `>>=` and `=>>`, or in
+`do` notation. Eventually, we may also want a macro DSL or user-defined syntax for
 direct expression of nets.
 
 ## Errors
@@ -1255,7 +1248,7 @@ render one does not suppress the primary diagnostic.
 Automatic evaluator context uses the tagged form
 `eval:{op:Operation, args?:Arguments}`, where `Operation` is an atom and
 defined `Arguments` is a dictionary of named fields. Argument-free frames omit
-`args`. Current operations identify annotation, reflection-annotation,
+`args`. The operations include annotation, reflection-annotation,
 log-message, log-severity, list-index/count, net-arity, and interaction-net
 construction. Most frames decorate a nested failure that the operation
 forced; the operation's own validation errors remain self-describing. The
@@ -1333,6 +1326,8 @@ We'll generally forbid mixing right-pipes and left-pipes without explicit parent
 
 ## Modules
 
+*Pending the module redesign toward multiple inheritance and object-based modules: this section will change.*
+
 Modules are loaded through toplevel-only declarations:
 
         import LocalRef ((as|at) Name)?
@@ -1398,9 +1393,11 @@ There is no notion of export control. That concept conflicts with my extensibili
         env.foo = libfoo.api
         libfoo.internal_method := ...
 
-Controlling what subprograms observe is useful for local reasoning. It starts with hiding a few definitions, but 
+Controlling what subprograms observe is useful for local reasoning: a client can give an imported module a narrower `env`, so the module observes only what the client grants it.
 
 ## Objects
+
+*Pending the module redesign toward multiple inheritance and object-based modules: object-level rules may change with it.*
 
 An object is modeled as a dictionary that contains a specification, `spec`. A specification is itself a dict of three items:
 
@@ -1473,7 +1470,7 @@ comma must put that comma inside a delimiter group. The declared object's
 target remains a static path so its namespace and `abstract_global_path` are
 known during compilation.
 
-To instantiate the object, the compiler applies a linearization algorithm (C3?) to deduplicate and merge components. The compiler uses `spec.name` to distinguish specifications, and asserts (via reflective term annotation) that `spec.name` is not used for two different specs in linearization scope. After specifications are ordered, we apply `spec.defs` to an empty base `{}` then finally introduce `spec` as an implicit final mixin. 
+To instantiate the object, the compiler applies a linearization algorithm (C3) to deduplicate and merge components. The compiler uses `spec.name` to distinguish specifications, and rejects one `spec.name` used for two different specifications in linearization scope. After specifications are ordered, we apply `spec.defs` to an empty base `{}` then finally introduce `spec` as an implicit final mixin. 
 
 For consistency and convenience, the compiler may expose the linearization and instantiation functions as builtins, e.g. `object_instance`. It should be something users can define.
 
@@ -1680,9 +1677,9 @@ whose failure should permit reconsidering an alternative:
 This differs from `(.cut (X or Y)) =>> LaterGuard`, which commits to `X` or
 `Y` before learning whether `LaterGuard` succeeds. A raw top-level `or`
 means what its handler makes of it: a branching handler such as `list.pure`
-continues once per success, while machines and reflection tasks make its
-first operand atomic and the choice final once that operand succeeds
-(`alt-cuts-its-first-operand`).
+continues once per success, while a handler may make its first operand
+atomic, as reflection handlers do, so the choice is final once that operand
+succeeds (`handlers-assumed-lawful`).
 
 Conditional forms such as `if` and `match` supply the correctly placed outer
 cut around their entire generated choice tree. They therefore return at most
@@ -1708,9 +1705,6 @@ I support `if/then/else` for reasons of familiarity and convenience. We'll desug
         match when
             C => A
             _ => B
-
-The Rust bootstrap implements both forms and the explicit `match` syntax
-below.
 
 Note that conditions are not expressions. Instead, they're guard clauses, i.e. a sequence of `Guard (and Guard)*`. Relevantly, this admits pattern guards, which are often convenient, and effects guards, which can express branching conditions.
 
