@@ -99,6 +99,11 @@ Bend's choices, not defects; listed so nobody waits for them.
   prefixed (`VUnit`, `Redex`), as upstream's own fix #1565 does. Sugar
   resolves Base names in the file's namespace (#1331, #1577), which is
   likely why.
+- **Arrays of linear values.** An array of pages is an `Array` of
+  `Array<U32>`, and `Array.new` and array literals take only `Data`
+  elements, so such an array is built from `ALeaf` and `ANode` directly;
+  an element comes out only by `Array.swap`, a placeholder holding its
+  slot until it goes back (`spike/kmem_paged.bend`).
 - **Fail-stop limits:** a reference count at 2^24 (`intern-hot-values`), a
   `Nat` at 2^48, an array past depth 31. A constructor holding a `Nat` is
   a heap node, so handles are `U32` (`store-pages`).

@@ -191,6 +191,31 @@ The core:
    than written by hand, so the laws keep covering them; levels,
    controls and fusion in the kernel; pages, for rounds; a data table for
    values that do not fit a word.
+   Allocating incrementally (the maintainer's suggestion): the kernel's
+   words, free list and active pairs now sit behind one storage interface
+   with three implementations, preallocated (`spike/kmem_flat.bend`),
+   doubled when full (`kmem_grow.bend`) and paged, 4,096 nodes a page in
+   a page table, pages made as needed, one held out as the focus
+   (`kmem_paged.bend`); `spike/tools/kmem_run.sh` times them. The heap
+   here peaks at about 2^k nodes (pending calls in a chain), so it does
+   grow. Best of three, results identical throughout:
+
+       k    flat           doubling       paged
+       4    40 ms, 56 MB   0 ms, 0 MB     0 ms, 0 MB
+       18   89 ms, 56 MB   52 ms, 16 MB   119 ms, 5 MB
+       19   106 ms         118 ms, 32 MB  205 ms, 10 MB
+       20   143 ms         208 ms, 64 MB  424 ms, 20 MB
+
+   Both incremental forms drop the start-up; paging needs the least
+   memory, close to the 16 MB a million nodes take, but costs about four
+   times as much an interaction. Not for page switches: pages of 4K to
+   1M nodes, even one page holding the whole heap, take the same time.
+   The cost is on every access: the page check and the extra layer of
+   calls, several nanoseconds each in Bend against 1.5 for the array
+   access itself; a five-field storage record alone, padded flat, costs
+   45 of the 280 ms. So the page check belongs outside the per-word
+   path: a rewrite checking once that its nodes lie in the focused page,
+   then working on that page's array directly.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

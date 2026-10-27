@@ -4,6 +4,7 @@ import ./rules.bend as R
 import ./net.bend as N
 import ./tpl.bend as T
 import ./nets.bend as X
+import ./kmem_flat.bend as KM
 
 # A reducer kernel with the node layout of spike-node-layout
 # (docs/plans/EvalSpike_2026-10-26.md), to measure what the layout buys.
@@ -19,17 +20,17 @@ import ./nets.bend as X
 #   kernel <k>    reduce `k 2 succ 0` (2^k), report value, counts, time
 
 # Capacity: 2^21 nodes, 2^21 active pairs; passing either is an error.
-def node_cap() -> U32:
-  2097152
+# Words, free list and active pairs are each a KM.M (kmem_*.bend: flat,
+# grown by doubling, or paged).
 
 def nil() -> U32:
   4294967295
 
 type H is Type:
-  H{w: Array<U32>, fs: Array<U32>, +nf: U32, +fresh: U32, rs: Array<U32>, +nr: U32, +itrs: U32, +errs: U32}
+  H{w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32}
 
 def h_new() -> H:
-  H{[0 : U32^23n], [0 : U32^21n], 0, 0, [0 : U32^22n], 0, 0, 0}
+  H{KM.m_new(23n), KM.m_new(21n), 0, 0, KM.m_new(22n), 0, 0, 0}
 
 def h_err(h: H) -> H:
   match h:
@@ -46,33 +47,37 @@ def err_if(bad: Bool, h: H) -> H:
 # Words
 # =====
 
-def rd.fin(r: Array<U32> & U32, fs: Array<U32>, +nf: U32, +fresh: U32, rs: Array<U32>, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
+def rd.fin(r: KM.M & U32, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
   (w, +v) = r
   (H{w, fs, nf, fresh, rs, nr, itrs, errs}, v)
 
 def rd(h: H, +i: U32) -> H & U32:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      rd.fin(Array.get(U32, w, i), fs, nf, fresh, rs, nr, itrs, errs)
+      rd.fin(KM.m_get(w, i), fs, nf, fresh, rs, nr, itrs, errs)
 
 def wr(h: H, +i: U32, +v: U32) -> H:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      H{Array.set(U32, w, i, v), fs, nf, fresh, rs, nr, itrs, errs}
+      H{KM.m_set(w, i, v), fs, nf, fresh, rs, nr, itrs, errs}
 
-def push.go(full: Bool, h: H, +x: U32, +y: U32) -> H:
-  match full:
-    case True{}:
-      h_err(h)
+def push.go(ok: Bool, h: H, +x: U32, +y: U32) -> H:
+  match ok:
     case False{}:
+      h_err(h)
+    case True{}:
       match h:
         case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          H{w, fs, nf, fresh, Array.set(U32, Array.set(U32, rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), itrs, errs}
+          H{w, fs, nf, fresh, KM.m_set(KM.m_set(rs, (nr * 2 : U32), x), ((nr * 2 : U32) + 1 : U32), y), (nr + 1 : U32), itrs, errs}
+
+def push.ens(r: KM.M & Bool, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, +x: U32, +y: U32) -> H:
+  (rs, +ok) = r
+  push.go(ok, H{w, fs, nf, fresh, rs, nr, itrs, errs}, x, y)
 
 def push(h: H, +x: U32, +y: U32) -> H:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      push.go(U32.is_ge(nr, node_cap()), H{w, fs, nf, fresh, rs, nr, itrs, errs}, x, y)
+      push.ens(KM.m_ensure(rs, ((nr * 2 : U32) + 2 : U32)), w, fs, nf, fresh, nr, itrs, errs, x, y)
 
 def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
   match both:
@@ -89,27 +94,35 @@ def link(h: H, +x: U32, +y: U32) -> H:
 # Nodes
 # =====
 
-def alloc.pop(r: Array<U32> & U32, w: Array<U32>, +nf: U32, +fresh: U32, rs: Array<U32>, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
+def alloc.pop(r: KM.M & U32, w: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
   (fs, +n) = r
   (H{w, fs, (nf - 1 : U32), fresh, rs, nr, itrs, errs}, (n << 2n : U32))
 
-def alloc.fresh(full: Bool, h: H) -> H & U32:
-  match full:
-    case True{}:
-      (h_err(h), 0)
+def alloc.fresh(ok: Bool, h: H) -> H & U32:
+  match ok:
     case False{}:
+      (h_err(h), 0)
+    case True{}:
       match h:
         case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
           (H{w, fs, nf, (fresh + 1 : U32), rs, nr, itrs, errs}, (fresh << 2n : U32))
+
+def alloc.ens.f(r: KM.M & Bool, w: KM.M, +okw: Bool, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
+  (fs, +okf) = r
+  alloc.fresh(okw && okf, H{w, fs, nf, fresh, rs, nr, itrs, errs})
+
+def alloc.ens.w(r: KM.M & Bool, fs: KM.M, +nf: U32, +fresh: U32, rs: KM.M, +nr: U32, +itrs: U32, +errs: U32) -> H & U32:
+  (w, +okw) = r
+  alloc.ens.f(KM.m_ensure(fs, (fresh + 1 : U32)), w, okw, nf, fresh, rs, nr, itrs, errs)
 
 def alloc(h: H) -> H & U32:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
       match nf:
         case 0:
-          alloc.fresh(U32.is_ge(fresh, node_cap()), H{w, fs, nf, fresh, rs, nr, itrs, errs})
+          alloc.ens.w(KM.m_ensure(w, ((fresh + 1 : U32) * 4 : U32)), fs, nf, fresh, rs, nr, itrs, errs)
         case _:
-          alloc.pop(Array.get(U32, fs, (nf - 1 : U32)), w, nf, fresh, rs, nr, itrs, errs)
+          alloc.pop(KM.m_get(fs, (nf - 1 : U32)), w, nf, fresh, rs, nr, itrs, errs)
 
 def node.fin(r: H & U32, +hd: U32) -> H & U32:
   (h, +n) = r
@@ -137,7 +150,7 @@ def node3(h: H, +hd: U32, +i: U32, +v: U32, +j: U32, +u: U32) -> H & U32:
 def free.fin(h: H, +r: U32) -> H:
   match h:
     case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-      H{w, Array.set(U32, fs, nf, (r >> 2n : U32)), (nf + 1 : U32), fresh, rs, nr, itrs, errs}
+      H{w, KM.m_set(fs, nf, (r >> 2n : U32)), (nf + 1 : U32), fresh, rs, nr, itrs, errs}
 
 def free(h: H, +r: U32) -> H:
   free.fin(wr(h, r, 0), r)
@@ -425,13 +438,13 @@ def int.x(r: H & U32, +x: U32, +y: U32) -> H:
 def interact(h: H, +x: U32, +y: U32) -> H:
   int.x(rd(h, x), x, y)
 
-def pop.y(r: Array<U32> & U32, w: Array<U32>, fs: Array<U32>, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, +x: U32) -> H:
+def pop.y(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32, +x: U32) -> H:
   (rs, +y) = r
   interact(H{w, fs, nf, fresh, rs, nr, itrs, errs}, x, y)
 
-def pop.x(r: Array<U32> & U32, w: Array<U32>, fs: Array<U32>, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32) -> H:
+def pop.x(r: KM.M & U32, w: KM.M, fs: KM.M, +nf: U32, +fresh: U32, +nr: U32, +itrs: U32, +errs: U32) -> H:
   (rs, +x) = r
-  pop.y(Array.get(U32, rs, ((nr * 2 : U32) + 1 : U32)), w, fs, nf, fresh, nr, itrs, errs, x)
+  pop.y(KM.m_get(rs, ((nr * 2 : U32) + 1 : U32)), w, fs, nf, fresh, nr, itrs, errs, x)
 
 # reduce active pairs, newest first, until none is left or fuel runs out
 def run(n: Nat, h: H) -> H:
@@ -445,7 +458,7 @@ def run(n: Nat, h: H) -> H:
             case 0:
               H{w, fs, nf, fresh, rs, nr, itrs, errs}
             case _:
-              run(p, pop.x(Array.get(U32, rs, ((nr - 1 : U32) * 2 : U32)), w, fs, nf, fresh, (nr - 1 : U32), (itrs + 1 : U32), errs))
+              run(p, pop.x(KM.m_get(rs, ((nr - 1 : U32) * 2 : U32)), w, fs, nf, fresh, (nr - 1 : U32), (itrs + 1 : U32), errs))
 
 # Loading a template
 # ==================
@@ -555,7 +568,7 @@ def show(l: L) -> String:
     case L{h, +root}:
       match h:
         case H{w, fs, +nf, +fresh, rs, +nr, +itrs, +errs}:
-          show.p(rd(H{w, fs, nf, fresh, rs, nr, itrs, errs}, (root + 1 : U32)), itrs, errs)
+          show.p(rd(H{w, fs, nf, fresh, rs, nr, itrs, errs}, (root + 1 : U32)), itrs, errs) ++ ", " ++ U32.show(fresh) ++ " nodes at most"
 
 def run_l(l: L, +fuel: Nat) -> L:
   match l:
