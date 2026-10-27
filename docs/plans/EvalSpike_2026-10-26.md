@@ -4,8 +4,10 @@ Find out how well Bend 2 hosts glam's evaluation before committing to a
 representation: lazy, shared evaluation through monadically constructed
 interaction nets (Design.md, "Interaction Nets"), on the split heap
 (`split-heap`, `store-pages`) run in rounds (`rounds-of-coarse-work`).
-**Drafted for the maintainer's review before building;** revised
-2026-10-26 after the maintainer's first reading. The code is throwaway;
+Approved by the maintainer 2026-10-27, after a revision following their
+first reading; skip a step (and its dependents) and say so here if it
+sprawls. The code lives in `spike/`, with its own `LAWS.bend` and
+`PROOF.bend`. The code is throwaway;
 what it learns becomes decision records. How fans pair has a plan of its
 own, [NetPairing](NetPairing_2026-10-26.md).
 

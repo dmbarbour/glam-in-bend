@@ -16,10 +16,18 @@ echo "== laws"
 python3 -I scripts/check_laws.py || status=1
 
 echo "== proofs"
-if [ -f PROOF.bend ]; then
-  "$BEND" PROOF.bend || status=1
+# every PROOF.bend outside bench/, and one beside every LAWS.bend
+proofs=$(git ls-files --cached --others --exclude-standard -- '*PROOF.bend' ':!bench/')
+for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' ':!bench/'); do
+  [ -f "$(dirname "$laws")/PROOF.bend" ] || { echo "$laws has no PROOF.bend beside it"; status=1; }
+done
+if [ -n "$proofs" ]; then
+  for f in $proofs; do
+    echo "-- $f"
+    "$BEND" "$f" || status=1
+  done
 elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | grep -q .; then
-  echo "Bend sources exist but PROOF.bend does not"
+  echo "Bend sources exist but no PROOF.bend does"
   status=1
 else
   echo "no Bend sources yet"
