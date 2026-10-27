@@ -498,6 +498,20 @@ The core:
    k 18, `fma` takes 639M instructions as built, 520M forced inline, 509M
    profile-guided, 493M both (from 712M, 599M, 582M, 571M); a call costs
    about 584 instructions more than a `succ` call, from 870.
+   Placeholders (`VFree`, `VP1`, `VP2`, never glam values) were then held
+   out of glam values by laws, at the maintainer's asking. A flat form
+   could escape nested: `fma (fma 1 2)` collected the flat `fma 1 2` into
+   an argument list that `V.norm`, looking only at the top, left alone.
+   Now `V.apply_fn` collects each argument normalized, and three laws
+   state the rest: `V.norm` leaves no placeholder at the top but a free
+   slot (`norm_not_placeholder`); applying a value whose collected
+   arguments hold no placeholder, to anything but a free slot, yields one
+   whose arguments hold none (`apply_keeps_clean`); normalizing keeps
+   that (`norm_keeps_clean`). A free slot read as a value is a kernel
+   fault, which `take` and `peek` count as an error rather than hand on
+   (`V.free_chk`, passing the value through untouched). The builtins'
+   arithmetic tests its op by a Bool, which proofs can split. About 1%
+   on `fma` in three builds of four.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

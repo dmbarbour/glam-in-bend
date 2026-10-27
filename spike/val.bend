@@ -21,29 +21,38 @@ type Val is Data:
 # The arithmetic on numbers is num1's, num2's and num3's alone, which the
 # kernel's native path calls too.
 
-# op on one number
-def num1(+op: U32, +a: U32) -> Val:
-  match op:
-    case 1:
+def num1.go(+t: Bool, +a: U32) -> Val:
+  match t:
+    case True{}:
       VNum{(a + 1 : U32)}
-    case _:
+    case False{}:
       VUnit{}
+
+def num2.go(+t: Bool, +a: U32, +b: U32) -> Val:
+  match t:
+    case True{}:
+      VNum{(a + b : U32)}
+    case False{}:
+      VUnit{}
+
+def num3.go(+t: Bool, +a: U32, +b: U32, +c: U32) -> Val:
+  match t:
+    case True{}:
+      VNum{((a * b : U32) + c : U32)}
+    case False{}:
+      VUnit{}
+
+# op on one number (each tests its op by a Bool, which a proof can split)
+def num1(+op: U32, +a: U32) -> Val:
+  num1.go(U32.is_eq(op, 1), a)
 
 # op on two numbers
 def num2(+op: U32, +a: U32, +b: U32) -> Val:
-  match op:
-    case 2:
-      VNum{(a + b : U32)}
-    case _:
-      VUnit{}
+  num2.go(U32.is_eq(op, 2), a, b)
 
 # op on three numbers
 def num3(+op: U32, +a: U32, +b: U32, +c: U32) -> Val:
-  match op:
-    case 3:
-      VNum{((a * b : U32) + c : U32)}
-    case _:
-      VUnit{}
+  num3.go(U32.is_eq(op, 3), a, b, c)
 
 def builtin(+op: U32, args: List<&2, Val>) -> Val:
   match args:
@@ -105,6 +114,56 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
     case _:
       VUnit{}
 
+# Placeholders: VFree, VP1 and VP2 are never glam values. A flat form may
+# stand at the top of a value the kernel holds, never among a function's
+# collected arguments: apply_fn collects each normalized, and the kernel
+# normalizes every value it hands out (laws norm_not_placeholder,
+# apply_keeps_clean, norm_keeps_clean). A free slot read as a value is a
+# kernel fault, which the kernel reports as an error, never a value.
+
+def is_ph(v: Val) -> Bool:
+  match v:
+    case VFree{+k}:
+      True{}
+    case VP1{+op, +need, +a}:
+      True{}
+    case VP2{+op, +need, +a, +b}:
+      True{}
+    case _:
+      False{}
+
+def is_free(v: Val) -> Bool:
+  match v:
+    case VFree{+k}:
+      True{}
+    case _:
+      False{}
+
+# v, and whether it is a free slot, without sharing it: a value matched
+# whole passes through
+def free_chk(v: Val) -> Val & Bool:
+  match v:
+    case VFree{+k}:
+      (VFree{k}, True{})
+    case _:
+      (v, False{})
+
+# no placeholder among these values
+def all_np(l: List<&2, Val>) -> Bool:
+  match l:
+    case Nil{}:
+      True{}
+    case Con{h, t}:
+      Bool.and(Bool.not(is_ph(h)), all_np(t))
+
+# no placeholder among a function's collected arguments
+def clean(v: Val) -> Bool:
+  match v:
+    case VFun{+op, +need, args}:
+      all_np(args)
+    case _:
+      True{}
+
 # a value as glam sees it: a flat form as the VFun it stands for
 def norm(v: Val) -> Val:
   match v:
@@ -120,14 +179,14 @@ def fun.go(+last: Bool, +op: U32, +need: U32, args: List<&2, Val>, x: Val) -> Va
     case True{}:
       builtin_last(op, args, x)
     case False{}:
-      VFun{op, (need - 1 : U32), List.append(&2, Val, args, [x])}
+      VFun{op, (need - 1 : U32), List.append(&2, Val, args, [norm(x)])}
 
 def vp1.more(+op: U32, +need: U32, +a: U32, x: Val) -> Val:
   match x:
     case VNum{+b}:
       VP2{op, need, a, b}
     case _:
-      VFun{op, need, [VNum{a}, x]}
+      VFun{op, need, [VNum{a}, norm(x)]}
 
 def vp1.go(+last: Bool, +op: U32, +need: U32, +a: U32, x: Val) -> Val:
   match last:
@@ -141,7 +200,7 @@ def vp2.go(+last: Bool, +op: U32, +need: U32, +a: U32, +b: U32, x: Val) -> Val:
     case True{}:
       last.x3(op, a, b, x)
     case False{}:
-      VFun{op, (need - 1 : U32), [VNum{a}, VNum{b}, x]}
+      VFun{op, (need - 1 : U32), [VNum{a}, VNum{b}, norm(x)]}
 
 def apply_fn(f: Val, x: Val) -> Val:
   match f:

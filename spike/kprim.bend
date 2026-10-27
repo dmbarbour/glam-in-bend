@@ -529,6 +529,16 @@ def put(h: H, v: V.Val) -> H & PW:
     case _:
       pw.tab(tab_put(h, v))
 
+def chk.fin(r: V.Val & Bool, h: H) -> H & V.Val:
+  (v, +bad) = r
+  (err_if(bad, h), v)
+
+# a table entry read as a value: a free slot there is a kernel fault,
+# counted as an error
+def chk(r: H & V.Val) -> H & V.Val:
+  (h, v) = r
+  chk.fin(V.free_chk(v), h)
+
 # the value a node of form m, field f, word w holds: taking it, an entry
 # leaving the table
 def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
@@ -540,7 +550,7 @@ def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case 3:
       (h, V.VFun{f, 1, [V.VNum{w}]})
     case _:
-      tab_take(h, w)
+      chk(tab_take(h, w))
 
 # the same, the entry kept
 def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
@@ -552,7 +562,7 @@ def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case 3:
       (h, V.VFun{f, 1, [V.VNum{w}]})
     case _:
-      tab_get(h, w)
+      chk(tab_get(h, w))
 
 # the word for a copy of a value of form m: an entry duplicated (the Bend
 # value shared), any other word as it is
