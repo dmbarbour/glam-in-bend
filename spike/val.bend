@@ -54,12 +54,57 @@ def builtin(+op: U32, args: List<&2, Val>) -> Val:
     case _:
       VUnit{}
 
+def last.x1(+op: U32, x: Val) -> Val:
+  match x:
+    case VNum{+a}:
+      num1(op, a)
+    case _:
+      VUnit{}
+
+def last.x2(+op: U32, +a: U32, x: Val) -> Val:
+  match x:
+    case VNum{+b}:
+      num2(op, a, b)
+    case _:
+      num1(op, a)
+
+def last.x3(+op: U32, +a: U32, +b: U32, x: Val) -> Val:
+  match x:
+    case VNum{+c}:
+      num3(op, a, b, c)
+    case _:
+      num2(op, a, b)
+
+# builtin(op, args ++ [x]) without building the list: the collected
+# arguments matched where they lie, x where it would follow them. Past
+# three numbers, x cannot matter.
+def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match args:
+    case Nil{}:
+      last.x1(op, x)
+    case Con{VNum{+a}, t}:
+      match t:
+        case Nil{}:
+          last.x2(op, a, x)
+        case Con{VNum{+b}, u}:
+          match u:
+            case Nil{}:
+              last.x3(op, a, b, x)
+            case Con{VNum{+c}, w}:
+              num3(op, a, b, c)
+            case _:
+              num2(op, a, b)
+        case _:
+          num1(op, a)
+    case _:
+      VUnit{}
+
 def apply_fn(f: Val, x: Val) -> Val:
   match f:
     case VFun{+op, +need, args}:
       match need:
         case 1:
-          builtin(op, List.append(&2, Val, args, [x]))
+          builtin_last(op, args, x)
         case _:
           VFun{op, (need - 1 : U32), List.append(&2, Val, args, [x])}
     case _:

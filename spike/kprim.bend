@@ -123,6 +123,17 @@ def dt_put(t: DT, v: V.Val) -> DT & U32:
         case _:
           dt_put.reuse(Array.swap(V.Val, a, (fh - 1 : U32), v), n, cap, d, (fh - 1 : U32))
 
+def dt_dup.fin(r: Array<V.Val> & V.Val, +fh: U32, +n: U32, +cap: U32, +d: Nat) -> DT & U32:
+  (a, v) = r
+  dt_put(DT{a, fh, n, cap, d}, v)
+
+# a new entry for a copy of entry i's value (the Bend value shared): its
+# index
+def dt_dup(t: DT, +i: U32) -> DT & U32:
+  match t:
+    case DT{a, +fh, +n, +cap, +d}:
+      dt_dup.fin(Array.get(V.Val, a, i), fh, n, cap, d)
+
 # The state
 # =========
 #
@@ -429,6 +440,16 @@ def tab_put(h: H, v: V.Val) -> H & U32:
         case CBox{d}:
           (H{w, fh, rs, nr, CBox{d}}, 0)
 
+# entry i duplicated, in one opening of the cold record
+def tab_dup(h: H, +i: U32) -> H & U32:
+  match h:
+    case H{w, +fh, rs, +nr, c}:
+      match c:
+        case C{+errs, +itrs, +wcap, dt}:
+          dt_op.fin(dt_dup(dt, i), w, fh, rs, nr, errs, itrs, wcap)
+        case CBox{d}:
+          (H{w, fh, rs, nr, CBox{d}}, 0)
+
 def tab_get(h: H, +i: U32) -> H & V.Val:
   match h:
     case H{w, +fh, rs, +nr, c}:
@@ -520,16 +541,12 @@ def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case _:
       tab_get(h, w)
 
-def dup.e(r: H & V.Val) -> H & U32:
-  (h, v) = r
-  tab_put(h, v)
-
 # the word for a copy of a value of form m: an entry duplicated (the Bend
 # value shared), any other word as it is
 def dup(h: H, +m: U32, +w: U32) -> H & U32:
   match m:
     case 0:
-      dup.e(tab_get(h, w))
+      tab_dup(h, w)
     case _:
       (h, w)
 

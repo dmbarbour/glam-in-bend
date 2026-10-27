@@ -452,6 +452,32 @@ The core:
    narrower state ran slightly slower there (1.8 s at the start), so it
    checks portability, not native cost. gcc 14 cannot build Bend's C,
    which needs `musttail`.
+   The table path then, judged across the four builds. A builtin given
+   its last argument no longer appends it to the collected list for
+   `V.builtin` to match again: `V.builtin_last` matches the collected
+   arguments where they lie: `V.apply_fn`
+   from about 500 instructions to 150, `fma` at k 18 from 809M to 722M
+   as built and 702M to 619M forced inline. Duplicating an entry opens
+   the cold record once rather than twice (`tab_dup`): 712M and 599M.
+   A form marking entries that hold functions, so that applying one
+   needs no table read, lost again (worse in three builds of four), and
+   was dropped. An `fma` call now costs about 870 instructions more than
+   a `succ` call in the best build, from 1,300: the table's operations
+   themselves and the check that the entry is a function. At k 18,
+   millions of instructions:
+
+                              succ    fma
+       as bend builds it      458     712
+       forced inline          355     599
+       profile-guided         355     582
+       both                   343     571
+
+   GCC 16.2 (built from source, `scripts/gcc-setup.sh`; it has
+   `musttail`) builds the same C 25 to 35% slower: `succ` 517M -O3, 460M
+   forced inline, 453M forced inline and profile-guided (GCC's profiling
+   cannot instrument around `musttail` out of line). Bend's C is written
+   for clang: without `preserve_none` its out-of-line steps take the
+   usual calling convention. It serves as a second opinion.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

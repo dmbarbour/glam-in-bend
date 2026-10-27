@@ -33,7 +33,8 @@ Contingent:
 ## Setup
 
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
-links `clang`, installs `perf`, the LLVM profile tools and Node, and
+links `clang`, installs `perf`, the LLVM profile tools and Node, builds
+GCC 16 from source (the first time, a quarter of an hour or more), and
 enables the commit-msg hook; run it once per container.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
 kernel instead of polling; run it at each container start.

@@ -3,8 +3,8 @@
 # checked by hash, on PATH; `clang` for native builds, with the LLVM
 # profile tools of its version for profile-guided builds
 # (spike/tools/inline_build.sh); `perf` for instruction counts
-# (scripts/count.sh); Node, to run Bend's JavaScript output; the
-# commit-msg hook.
+# (scripts/count.sh); Node, to run Bend's JavaScript output; GCC 16, built
+# from source (scripts/gcc-setup.sh); the commit-msg hook.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu
@@ -51,6 +51,9 @@ fi
 if ! command -v node >/dev/null 2>&1; then
   apt-get update && apt-get install -y nodejs
 fi
+
+# GCC 16 from source, a second compiler for reference (slow the first time)
+sh scripts/gcc-setup.sh
 
 git config core.hooksPath .githooks
 "$BEND_HOME/bin/bend" version

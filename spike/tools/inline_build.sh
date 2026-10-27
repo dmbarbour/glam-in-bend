@@ -3,9 +3,12 @@
 # emitted C with every compiled Bend function forced inline (OUT_ai).
 # Given training runs, each one argument string, also profile-guided
 # builds of both (OUT_pgo, OUT_ai_pgo), clang choosing what to inline
-# from the profile. Bend leaves inlining to clang's heuristics, which a
-# small change elsewhere can flip (docs/BendIssues.md, "Inlining left to
-# the C compiler"); the other builds measure the work itself.
+# from the profile. Where GCC 16 is installed (scripts/gcc-setup.sh, or
+# $GCC), also both C files by GCC (OUT_gcc, OUT_ai_gcc), a second
+# compiler for reference; Bend's C is written for clang, so GCC's code is
+# slower. Bend leaves inlining to clang's heuristics, which a small change
+# elsewhere can flip (docs/BendIssues.md, "Inlining left to the C
+# compiler"); the other builds measure the work itself.
 #
 #   spike/tools/inline_build.sh PROGRAM.bend OUT ["TRAIN ARGS" ...]
 #   e.g. spike/tools/inline_build.sh spike/kernel.bend /tmp/k/kernel "14" "14 fma" "14 lvl"
@@ -24,6 +27,11 @@ open(sys.argv[2], "w").write(re.sub(r"^INLINE Term (spin_\d+)\(", r"static inlin
 ' "$OUT.c" "${OUT}_ai.c"
 CC="clang -std=c11 -O3"
 $CC "${OUT}_ai.c" -o "${OUT}_ai" -lpthread -lm 2>/dev/null
+GCC=${GCC:-/opt/gcc-16.2.0/bin/gcc}
+if [ -x "$GCC" ]; then
+  "$GCC" -std=c11 -O3 "$OUT.c" -o "${OUT}_gcc" -lpthread -lm 2>/dev/null
+  "$GCC" -std=c11 -O3 "${OUT}_ai.c" -o "${OUT}_ai_gcc" -lpthread -lm 2>/dev/null
+fi
 [ $# -gt 0 ] || exit 0
 V=$(clang --version | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -n 1)
 $CC -fprofile-instr-generate "$OUT.c" -o "${OUT}_gen" -lpthread -lm 2>/dev/null
