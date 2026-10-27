@@ -92,12 +92,16 @@ of 2026-10-26, Bend 2.0.39.
 
 - **Need:** the node store doubles as a net grows; each doubling makes a
   new array.
-- **Upstream:** none known; a suggestion (`calloc`, or `memset` for a
-  constant fill).
+- **Upstream:** #1890. The maintainer's preference over a faster fill:
+  no initialization at all, with a proof that each slot is written before
+  it is read.
 - **Evidence:** `bench/bend/zero_fill.bend`: 8 instructions (3 cycles) a
   word; growing the kernel's stores is 14 to 18% of a run at k 18,
   most of it this fill (EvalSpike, `spike-node-layout`).
 - **Workaround:** none yet; larger first sizes would trade memory for it.
+  Under the proof the issue asks for, the kernel's scans that read
+  never-used nodes (the root's search, the table audit) would stop at a
+  high-water mark instead of the capacity.
 - **Revisit:** at whole-system tuning.
 
 ## Watch
