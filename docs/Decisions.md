@@ -63,6 +63,27 @@ Surface and semantic rules settled for this implementation.
   effects are described under handlers assumed, not required, to obey the
   monad laws.
 
+## Language, from the Rust bootstrap
+
+Language decisions made during the Rust bootstrap, carried over where our
+docs cite them. The rest remain in the Rust decision log
+(github.com/dmbarbour/glam, `docs/Decisions.md` at 21912fc9) until needed.
+
+- [`dict-empty-is-a-value`](decisions/dict-empty-is-a-value.md): `{}` is a
+  value; reading what is undefined is an error; definedness is asked.
+- [`only-comparables-compare`](decisions/only-comparables-compare.md):
+  comparing anything but numbers, lists and dicts of them is an error.
+- [`dict-literals-introduce-in-order`](decisions/dict-literals-introduce-in-order.md):
+  a dict literal introduces members in written order; union is shallow.
+- [`tail-forms-end-at-separators`](decisions/tail-forms-end-at-separators.md):
+  a tail form runs to the end of its region, which separator keywords end.
+- [`nested-arrows-share-an-arms-line`](decisions/nested-arrows-share-an-arms-line.md):
+  a nested match's arrows may share its arm's line.
+- [`aliases-and-locals-are-body-declarations`](decisions/aliases-and-locals-are-body-declarations.md):
+  `alias` and `let` are declarations inside bodies, not header clauses.
+- [`lone-do-statements-run-as-effects`](decisions/lone-do-statements-run-as-effects.md):
+  a lone `do` statement lowers as `.r () >>= \_ -> X`.
+
 ## Values and representation
 
 How glam values sit on Bend 2's immutable, reference-counted data, and
