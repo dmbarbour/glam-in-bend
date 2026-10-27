@@ -10,6 +10,11 @@ comments.
 
 ## Invocation and lookup
 
+*Lookup and staging below refer to the module and its fixpoint (`_module`,
+the prior-module snapshot, `meta.macro.env` as a module entry); they will
+change with the module redesign toward multiple inheritance and
+object-based modules.*
+
 A macro head is `@` followed by a joint static name path:
 
 ```g
@@ -86,8 +91,9 @@ _module.meta.macro.env with
 ```
 
 An undefined `meta.macro.env` defaults to `{}`. `DeclaredLanguage` reflects the
-file's required declaration, including extension order. For example,
-`language g0 with utf8, demo` supplies a value equivalent to:
+file's required declaration, including extension order. For example, were
+there a `demo` extension, `language g0 with utf8, demo` would supply a value
+equivalent to:
 
 ```g
 {base:'g0, extensions:['utf8, 'demo]}
@@ -186,12 +192,10 @@ at the furthest input position. Direct `.log` messages are published only
 after the selected branch and its generated syntax are accepted.
 
 The macro effect API does not expose the shared reflection heap, task
-operations, files, clocks, process state, or source paths. A demanded
-`anno refl:Task Target` inside a helper may still start ordinary reflection
-reasoning in the compilation macro demand session. Such committed reflection
-work uses the surrounding evaluation runtime's shared reflection heap and is
-not rolled back when the surrounding macro alternative is abandoned. The
-macro demand session still owns its task lifecycle and diagnostic bus.
+operations, files, clocks, process state, or source paths. Macro expansion
+is pure evaluation, so a demanded `anno refl:Task Target` inside a helper
+starts reflection as it would anywhere else; what that reflection commits is
+not rolled back when the macro alternative that demanded it is abandoned.
 
 ## Text patterns
 
@@ -309,9 +313,9 @@ distinct naming conventions or rely on `using` to scope locals.
 
 ## Inspection and examples
 
-`inspect_g_source` and `glam --parse` never evaluate macros. They retain
-lexical and structural diagnostics, summarize ordinary declarations, and
-report macro-bearing declarations as deferred. Full generated-syntax
+`glam --parse` never evaluates macros. It retains lexical and structural
+diagnostics, summarizes ordinary declarations, and reports macro-bearing
+declarations as deferred. Full generated-syntax
 diagnostics require compilation.
 
 Executable examples are under

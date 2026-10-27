@@ -26,7 +26,7 @@ The current API is supplied by `samples/config/direct_assembly.g`. A program
 constructs ordinary freer-effect values using the operations below, then
 `env.linux_x86_64.executable Program` interprets the program and returns the
 ELF bytes. `env.x86_64` exposes the same public effect API for explicit
-composition; handler implementation details are not exported.
+composition; the handler's state stays hidden within the handler.
 
 The signatures in this section are descriptive Glam pseudotypes. `Cursor` and
 `Label` are opaque values.
@@ -135,11 +135,6 @@ returns the metadata unchanged. The runner demands the resulting carrier with
 the final boundary; intermediate pure `meta_pure` updates do not report merely
 because their carriers were constructed.
 
-The effectful updater also demands the selected metadata to WHNF before
-publishing it in a diagnostic and returning it. This does not inspect metadata
-from semantic code; it prevents the diagnostic consumer and final carrier
-projection from concurrently reducing the same active computation.
-
 The bundled `full` policy receives one ordered event list and emits an
 informational diagnostic. The `summary` policy retains only counters for
 roots, splits, labels, publications, and instructions, then emits those
@@ -147,7 +142,7 @@ counters. Both diagnostics contain compact `msg.text` for the default logger
 and retain the metadata under `direct_assembly.trace` for a configured logger
 or IDE.
 
-The policy is an ordinary object with two operations:
+The policy is an ordinary dict with two operations:
 
 ```g
 {
