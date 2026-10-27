@@ -1,17 +1,13 @@
 # Command-Line Interface
 
-This guide describes the command-line interface implemented by the current
-Rust bootstrap. The configured interface is intentionally extensible, so a
-project or shared configuration can present much friendlier commands than the
-fixed bootstrap options.
+This guide describes the assembler's command-line interface. The configured
+interface is intentionally extensible, so a project or shared configuration
+can present much friendlier commands than the fixed built-in options.
 
-This configuration model belongs to the `glam` executable, not to the Rust
-library API. Embedders receive the generic assembler, runtime, diagnostic,
-value, source, and effect-host mechanisms needed to build their own product
-policy; they do not inherit `GLAM_CONF`, `conf.env`, `conf.cli`, `conf.log`,
-shell completion, terminal rendering, or process exit behavior automatically.
-The package still contains both the library and the primary executable—this is
-a crate boundary inside one package, not a package split.
+This configuration model belongs to the `glam` command, not to the assembler's
+core: an embedding of the core does not inherit `GLAM_CONF`, `conf.env`,
+`conf.cli`, `conf.log`, shell completion, terminal rendering, or process exit
+behavior.
 
 For Glam source syntax, see [SyntaxCheatSheet.md](SyntaxCheatSheet.md).
 
@@ -44,22 +40,23 @@ glam --script.g 'asm.result = "hello"' >hello.bin
 ```
 
 Files and imported sources select their compiler by path extension in the same
-way. The bootstrap compiles only `.g`; any other extension, or none, fails the
-assembly with exit status 1. Binary imports are not compiled and take any
+way. The built-in compiler covers `.g`; other extensions need a configured
+compiler (`env.lang.[FileExt].compile`), and an extension with no compiler,
+or none at all, fails the assembly with exit status 1. Binary imports are not compiled and take any
 extension.
 
-Every assembly needs at least one file or script input. `asm.result` must be a
-binary value. Diagnostics go to standard error; the result goes to standard
-output. Glam exits unsuccessfully if the result fails or any error diagnostic
+Every assembly needs at least one file or script input. By default
+`asm.result` is a binary written to standard output (see *Output and modes*);
+diagnostics go to standard error. Glam exits unsuccessfully if the result fails or any error diagnostic
 is emitted. A valid result may therefore already have been written before
 later reasoning reports an error.
 
-## Bootstrap commands
+## Built-in commands
 
-The bootstrap interface is selected whenever the first argument begins with
+The built-in interface is selected whenever the first argument begins with
 `-`. With no arguments, Glam prints help. `glam --help` (`-h`) prints the
-compact synopsis and `glam --version` (`-V`) prints the bootstrap
-implementation version.
+compact synopsis and `glam --version` (`-V`) prints the implementation
+version.
 
 ### Assembly options
 
@@ -69,16 +66,22 @@ implementation version.
 | `-s.EXT TEXT`, `--script.EXT TEXT` | Add an inline UTF-8 source using compiler extension `EXT`. |
 | `--manifest PATH` | Write a manifest of local files and the exact bytes consumed. May appear once. |
 | `--refl ARG` | Add a reflection-only argument. May be repeated. |
-| `--workers N` | Use `N` shared background workers; zero disables sparks. May appear once. |
 | `--` | End option parsing; all remaining arguments become `asm.args`. |
-
-`--workers` takes priority over `GLAM_WORKERS`; if neither is present, the
-worker count is zero. Configuration parsing, CLI inspection, and completion
-always run with zero workers even if the resulting assembly requests workers.
 
 `--refl` arguments are available to reflection as `process.refl_args`, but are
 not included in `asm.args`. Arguments after `--` are available to the assembly
 as a list of binaries at `asm.args`.
+
+### Output and modes
+
+| Option | Meaning |
+| --- | --- |
+| `--binary` | Extract `asm.result` as a binary (the default). |
+| `--folder` | Extract `asm.result` as a folder: a dict of text names to binaries or folders, with permissions from `asm.file_meta`. |
+| `-o PATH`, `--out PATH` | Write the result to `PATH`, replacing it atomically. |
+| `--stdout` | Write a binary result to standard output (the default; not for folders). |
+| `--batch` | Evaluate, extract, and exit (the default). |
+| `-i`, `--interactive` | Run `conf.ide` until it ends. |
 
 ### Source inspection
 
@@ -123,10 +126,10 @@ original digest and reports a warning during the final consistency check.
 | --- | --- |
 | 0 | Success. |
 | 1 | The command ran and failed: an error diagnostic, a failed result, a manifest mismatch, an I/O failure, or a configured command that `conf.cli` rejected. |
-| 2 | The bootstrap command line itself is invalid: an unknown or repeated option, a missing operand, an invalid `--workers` or `GLAM_WORKERS` value, or an invalid completion-script name. |
+| 2 | The built-in command line itself is invalid: an unknown or repeated option, a missing operand, or an invalid completion-script name. |
 
 A configured bare command is expanded by Glam code, so its usage errors are
-ordinary error diagnostics and exit 1; only the fixed bootstrap parser exits 2.
+ordinary error diagnostics and exit 1; only the built-in option parser exits 2.
 
 ## Configuration
 
@@ -159,18 +162,16 @@ The conventional exported values are:
 | `conf.log` | The configured diagnostic logger. |
 | `conf.completion_script.NAME` | An optional completion adapter generator named `NAME`. |
 
-`conf.log` is an effect, which runs on the `logger` machine as its turn's.
-A logger reads the diagnostics the batch reports, the analysis of what the
-runtime left unresolved among them, from its `diagnostics` input, each an
-enriched message (`msg.text`, `msg.severity` and so on), and may write
+`conf.log` is an effect, run as a reflection task: the logger. It reads the
+diagnostics the batch reports, including what the batch left unresolved,
+from its `diagnostics` input, each an enriched message (`msg.text`, `msg.severity` and so on), and may write
 binaries to its `stderr` output. Its own `.log` goes to `default_logger`,
 which renders what reaches it, so a logger may enrich what it reads and log
 it, or render it itself; both write to the same standard error. A
-user-defined logger manages its own environment, as any machine does: it
-reads `process` and what the configuration binds with `.env.lookup`.
+user-defined logger manages its own environment, as any task does: it reads
+`process` and what the configuration binds with `.env.lookup`.
 
-When the runtime is quiescent and an analysis finds nothing new, the batch
-ends, and a logger waiting on its input ends with it, cleanly. A logger that
+When every task waits and nothing new arrives, the batch ends, and a logger waiting on its input ends with it, cleanly. A logger that
 leaves diagnostics unread at quiescence has stopped reading: the batch halts
 it, saying so, and the default logger renders what it left. A conventional
 logger loops on a read in a cut:
@@ -203,7 +204,7 @@ The remaining sections focus on `conf.cli`.
 ## Configured bare commands
 
 When the first argument does not begin with `-`, Glam runs `conf.cli` over the
-entire argument list. There is no fallback to the bootstrap parser and no
+entire argument list. There is no fallback to the built-in parser and no
 recursive rewriting. For example, a configuration may translate
 `glam build program.g` into the equivalent of `glam --file program.g`.
 
@@ -237,9 +238,9 @@ The selected `conf.cli` branch must:
 - consume every user argument;
 - return unit `()`;
 - produce at least one file or script input; and
-- produce a valid command plan, with at most one manifest and worker count.
+- produce a valid command plan, with at most one manifest.
 
-Processing by `conf.cli` is single threaded.
+`conf.cli` runs as one sequential task.
 
 ### Why `conf.cli` is an effect
 
@@ -314,11 +315,10 @@ cannot be used from inside a token parser.
 | `.write.manifest Path` | Select one manifest output path. |
 | `.write.refl_arg Text` | Add one reflection-only argument. |
 | `.write.assembly_arg Text` | Add one argument to `asm.args`. |
-| `.write.worker_count Number` | Select a supported nonnegative worker count. |
 
 Order is retained within repeated inputs and argument writers. Text argument
-writers cannot represent non-UTF-8 arguments; the fixed bootstrap interface
-can preserve those platform bytes.
+writers cannot represent non-UTF-8 arguments; the built-in options can
+preserve those platform bytes.
 
 ### Explanations and diagnostics
 
@@ -334,7 +334,7 @@ with it without changing the branch's parse semantics:
 `Explain` may be plain text or any value. The default failure renderer
 recognizes textual `usage`, `summary`, and `details` fields. The original values
 remain available as `cli.cases` in the structured diagnostic and are also
-attached to library-level completion information. Explanations stay lazy on a
+attached to completion information. Explanations stay lazy on a
 successful command construction.
 
 `.case` does not automatically generate a `--help` command. Configurations
@@ -371,7 +371,7 @@ Inspect a bare command without running its assembly:
 glam --parse_cli build program.g
 ```
 
-The output is the canonical bootstrap-style command with each argument labeled
+The output is the canonical built-in command with each argument labeled
 `[N]:`. Embedded newlines continue on lines indented by two spaces:
 
 ```text
@@ -388,8 +388,8 @@ glam --parse_cli.0 build program.g
 ```
 
 Both forms load the configuration and run the same `conf.cli` search used by a
-real bare command. They do not execute the resulting command, start workers,
-or activate the configured logger. The first inspected argument must be bare.
+real bare command. They neither execute the resulting command nor activate
+the configured logger. The first inspected argument must be bare.
 
 ## Completion integration
 
@@ -437,6 +437,6 @@ to standard error and failures return a nonzero exit status.
 
 The request does not infer completion mode from shell environment variables.
 Adapters are responsible for translating their editor's cursor model into an
-explicit prefix and suffix. Completion never executes a command plan or starts
-workers. Option-leading commands use bootstrap completion; bare commands use
+explicit prefix and suffix. Completion never executes a command plan.
+Option-leading commands complete the built-in options; bare commands use
 `conf.cli`. A missing `conf.cli` therefore has no configured candidates.
