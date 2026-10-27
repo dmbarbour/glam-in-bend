@@ -171,6 +171,26 @@ The core:
    reads: accessors that rebuild the store record each time, and boxed
    payloads. That is the layout this step is for, measured next the
    same way.
+   Then the layout, as `spike/kernel.bend`: one flat page of four-word
+   nodes, the header holding the kind and a 24-bit field (a level; for
+   this workload's hand-built nets, a fan's site, which pairs them the
+   same way), data and a call's function inline in spare words, free list
+   and active pairs as arrays, the nine rules written by hand in the
+   table's order. It reduces the workload step for step as the spike
+   does (identical values and interaction counts at every k), at about
+   40 to 60 ns an interaction after some 40 ms spent allocating its
+   arrays (56 MB): k 19, 1.05M interactions, in 99 ms; k 20, 2.1M, in
+   121 to 145 ms, against 2.1 s for the table interpreter and 1.3 s for
+   hand-written rewrites on the paged store. That is
+   `pure_hvm5_mini`'s speed, 15 to 20 times the interpreter's. Past its
+   capacity (2^21 nodes or active pairs, at k 21) it reports errors and
+   no value, as it should. It too rebuilds its eight-field state record
+   at every access, so that is not what made the store slow; the paged
+   store's focus switching and the boxed payloads are left. Still to
+   come in this step: the rewrites generated from the rule table rather
+   than written by hand, so the laws keep covering them; levels,
+   controls and fusion in the kernel; pages, for rounds; a data table for
+   values that do not fit a word.
 4. `spike-lowering` — a tiny untyped lambda calculus with numbers, lists and
    dicts, built as Bend values (no parser), lowered to nets. Functions are
    nets with arity (`functions-are-nets-with-arity`).

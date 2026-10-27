@@ -37,6 +37,22 @@ of 2026-10-26, Bend 2.0.39.
   the runtime's internals, at the price of breaking across releases.
 - **Revisit:** when large binary imports matter, or at whole-system tuning.
 
+### Run-time code generation
+
+- **Need:** glam compiles its inputs, so nearly all nets reach the
+  evaluator at run time; Bend's compile-time specialization never sees
+  them. Generating native code for hot nets or rule sets while running
+  would be a large win.
+- **Upstream:** none known; a suggestion to raise later, at
+  whole-system tuning.
+- **Evidence:** dispatching the spike's rule table on constant rules
+  gains nothing, while rewrites written by hand run 1.6 times faster
+  (`spike-node-layout` in `docs/plans/EvalSpike_2026-10-26.md`).
+- **Workaround:** rewrites generated ahead of time from the rule table;
+  for hot, stable kernels, compilation out of process run through the
+  shell (`spike-hvm5-jit`).
+- **Revisit:** at whole-system tuning.
+
 ## Watch
 
 ### A barrier pair per parallel round
