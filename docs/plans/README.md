@@ -39,6 +39,10 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   sharing and fixpoints, parallelism, fast paths), ending in a
   representation decision. Approved; paused after `spike-net-rules` for
   NetPairing.
+- [`HeapModel_2026-10-27.md`](HeapModel_2026-10-27.md): `heap-` steps for
+  where glam's shared lazy state lives: nets live and frozen, thunk and net
+  cells, forcing by demand, application by splicing copies. Drafted for
+  the maintainer's review.
 - [`NetPairing_2026-10-26.md`](NetPairing_2026-10-26.md): `pairing-` steps
   for how copy fans pair: traced reduction, labels where they suffice, a
   GAL adaptation tested then proved in Lean, and polarity preservation.
