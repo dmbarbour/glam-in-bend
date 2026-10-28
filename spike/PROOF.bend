@@ -5,6 +5,7 @@ import ./LAWS.bend as Laws
 import ./store.bend as S
 import ./rules.bend as R
 import ./val.bend as V
+import ./ctl.bend as CT
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -1053,3 +1054,123 @@ def Laws.rules_tested_small(a, b):
           {==}
     case R.KLiftC{}:
       {==}
+
+# Control runs (ctl.bend)
+# =======================
+
+def add_zero(a: Nat) -> {Nat.add(a, 0n) == a : Nat}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_zero(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+      {==}
+
+def succ_add(a: Nat, -b: Nat) -> {Nat.add(a, 1n+b) == 1n+Nat.add(a, b) : Nat}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %succ_add(p, b) : {1n+Nat.add(p, 1n+b) == 1n+_ : Nat}
+      {==}
+
+def add_assoc(a: Nat, -b: Nat, -c: Nat) -> {Nat.add(a, Nat.add(b, c)) == Nat.add(Nat.add(a, b), c) : Nat}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_assoc(p, b, c) : {1n+Nat.add(p, Nat.add(b, c)) == 1n+_ : Nat}
+      {==}
+
+def above_succ(a: Nat) -> {True{} == CT.above(Nat.add(a, 1n), 0n) : Bool}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      {==}
+
+def raise_zero.go(t: Bool, j: Nat) -> {CT.raise.go(t, j, 0n) == j : Nat}:
+  match t:
+    case True{}:
+      add_zero(j)
+    case False{}:
+      {==}
+
+def raise_shift.go(t: Bool, -a: Nat, -b: Nat) -> {1n+CT.raise.go(t, a, b) == CT.raise.go(t, 1n+a, b) : Nat}:
+  match t:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# one index and one level higher: one level higher
+def raise_shift(+m: Nat, -b: Nat, +a: Nat) -> {1n+CT.raise(m, b, a) == CT.raise(1n+m, b, 1n+a) : Nat}:
+  raise_shift.go(CT.above(a, m), a, b)
+
+# the first unit, then the rest of the run from the next index
+def one_then_rest(+n: Nat, +j: Nat, -p: Nat) -> {CT.raise(1n+n, p, CT.raise(n, 1n, j)) == CT.raise(n, 1n+p, j) : Nat}:
+  match n j:
+    case _ 0n:
+      {==}
+    case 0n 1n+a:
+      %above_succ(a) : {CT.raise.go(_, Nat.add(1n+a, 1n), p) == CT.raise(0n, 1n+p, 1n+a) : Nat}
+      %add_assoc(a, 1n, p) : {1n+_ == 1n+Nat.add(a, 1n+p) : Nat}
+      {==}
+    case 1n+m 1n+a:
+      %raise_shift(m, 1n, a) : {CT.raise(2n+m, p, _) == CT.raise(1n+m, 1n+p, 1n+a) : Nat}
+      %raise_shift(1n+m, p, CT.raise(m, 1n, a)) : {_ == CT.raise(1n+m, 1n+p, 1n+a) : Nat}
+      %raise_shift(m, 1n+p, a) : {1n+CT.raise(1n+m, p, CT.raise(m, 1n, a)) == _ : Nat}
+      %one_then_rest(m, a, p) : {1n+CT.raise(1n+m, p, CT.raise(m, 1n, a)) == 1n+_ : Nat}
+      {==}
+
+def Laws.units_are_run(b, n, j):
+  match b:
+    case 0n:
+      %raise_zero.go(CT.above(j, n), j) : {_ == CT.raise.go(CT.above(j, n), j, 0n) : Nat}
+      {==}
+    case 1n+p:
+      %one_then_rest(n, j, p) : {CT.units(p, 1n+n, CT.raise(n, 1n, j)) == _ : Nat}
+      Laws.units_are_run(p, 1n+n, CT.raise(n, 1n, j))
+
+# k units then r more, from the index where the k end
+def units_split(+k: Nat, -r: Nat, +n: Nat, +j: Nat) -> {CT.units(Nat.add(k, r), n, j) == CT.units(r, Nat.add(k, n), CT.units(k, n, j)) : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+q:
+      %succ_add(q, n) : {CT.units(Nat.add(q, r), 1n+n, CT.raise(n, 1n, j)) == CT.units(r, _, CT.units(q, 1n+n, CT.raise(n, 1n, j))) : Nat}
+      units_split(q, r, 1n+n, CT.raise(n, 1n, j))
+
+def Laws.run_splits(k, r, n, j):
+  %Laws.units_are_run(k, n, j) : {CT.raise(Nat.add(k, n), r, _) == CT.raise(n, Nat.add(k, r), j) : Nat}
+  %Laws.units_are_run(r, Nat.add(k, n), CT.units(k, n, j)) : {_ == CT.raise(n, Nat.add(k, r), j) : Nat}
+  %Laws.units_are_run(Nat.add(k, r), n, j) : {CT.units(r, Nat.add(k, n), CT.units(k, n, j)) == _ : Nat}
+  %units_split(k, r, n, j) : {_ == CT.units(Nat.add(k, r), n, j) : Nat}
+  {==}
+
+def peel_shift(lt: Bool, eq: Bool, +n: Nat, +p: Nat, +q: Nat) -> {CT.peel.go(lt, eq, 1n+n, p, q) == CT.peel.go(lt, eq, n, 1n+p, 1n+q) : CT.Left}:
+  match lt eq:
+    case True{} True{}:
+      %add_succ(p, n) : {CT.Left{0, _, 0n} == CT.Left{0, 1n+Nat.add(p, n), 0n} : CT.Left}
+      {==}
+    case False{} True{}:
+      %add_succ(p, n) : {CT.Left{0, _, 0n} == CT.Left{0, 1n+Nat.add(p, n), 0n} : CT.Left}
+      {==}
+    case True{} False{}:
+      %add_succ(p, n) : {CT.Left{1, _, Nat.sub(q, p)} == CT.Left{1, 1n+Nat.add(p, n), Nat.sub(q, p)} : CT.Left}
+      {==}
+    case False{} False{}:
+      %add_succ(q, n) : {CT.Left{2, _, Nat.sub(p, q)} == CT.Left{2, 1n+Nat.add(q, n), Nat.sub(p, q)} : CT.Left}
+      {==}
+
+def Laws.peel_pairs_units(c, l, n):
+  match c l:
+    case 0n 0n:
+      {==}
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      %peel_shift(Nat.is_lt(p, q), Nat.is_eq(p, q), n, p, q) : {CT.pair_off(p, q, 1n+n) == _ : CT.Left}
+      Laws.peel_pairs_units(p, q, 1n+n)

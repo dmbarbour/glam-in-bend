@@ -425,6 +425,15 @@ def rw.Lift.LiftC.no.k1(r: P.H & U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa:
 def rw.Lift.LiftC.no(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   rw.Lift.LiftC.no.k1(P.node(P.fresh2(h, a, b), P.hd2(10, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
+def rw.Lift.LiftC.peeled(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
+  match r:
+    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
+      match t:
+        case True{}:
+          rw.Lift.LiftC.yes(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+        case False{}:
+          rw.Lift.LiftC.no(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
 # the rewrite for A, negative principal, meeting B; t is the payload test
 def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   match ka kb:
@@ -489,11 +498,7 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
     case 10 7:
       rw.Lift.EraP(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 11:
-      match t:
-        case True{}:
-          rw.Lift.LiftC.yes(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-        case False{}:
-          rw.Lift.LiftC.no(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.Lift.LiftC.peeled(P.peel_ctl(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
     case _ _:
       P.err_if(U32.is_ne(ka, 8), h)
 

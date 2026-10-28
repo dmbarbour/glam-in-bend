@@ -323,12 +323,28 @@ def go.gen(+t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb
     case N.Ext4{+e0, +e1, +e2, +e3}:
       KR.rewrite(P.rk(ha), P.rk(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
+def go.interp.pl(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
+  match r:
+    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
+      apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3})
+
+# the interpreted table; a Lift facing a LiftC is peeled first, as the
+# generated rewrite for the pair does (kprim.bend's peel_ctl)
+def go.interp(ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  match ctl:
+    case True{}:
+      match x:
+        case N.Ext4{+e0, +e1, +e2, +e3}:
+          go.interp.pl(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
+    case False{}:
+      apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)
+
 def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match gen:
     case True{}:
       go.gen(t, h, a, b, ha, hb, pa, pb, x)
     case False{}:
-      apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)
+      go.interp(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, a, b, ha, hb, pa, pb, x)
 
 # the generated rewrite, or the interpreted table: for a redex whose
 # external peers include its own ports, or when `fast` is off

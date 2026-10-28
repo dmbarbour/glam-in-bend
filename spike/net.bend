@@ -349,13 +349,13 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: Ext, +refs: List<&2, 
 #
 # After a rewrite, a control that may now sit right behind another facing
 # the same way merges with it, when V.compose finds one control acting as
-# both. Only the links a rule makes can newly join two controls, so each
-# such link is tried once (fuse_ends, below). The node freed is the one
-# whose principal faces the other's auxiliary, which cannot be in an
-# active pair; a pair that cancels is left alone if the survivor's
-# principal is linked to a principal (an active pair may be queued). The
-# link a fusion makes is not tried again: on 600 random terms that found
-# one more fusion, saving two interactions.
+# both: a run of unit brackets, which peeling (below) takes apart again
+# where a control facing it needs its first units. Only the links a rule
+# makes can newly join two controls, so each such link is tried once
+# (fuse_ends, below). The node freed is the one whose principal faces the
+# other's auxiliary, which cannot be in an active pair. The link a fusion
+# makes is not tried again: on 600 random terms that found one more
+# fusion, saving two interactions.
 
 def q_set_pay(q: Q, +r: U32, p: V.Pay) -> Q:
   match q:
@@ -363,23 +363,10 @@ def q_set_pay(q: Q, +r: U32, p: V.Pay) -> Q:
       Q{S.st_set_pay(st, r, p), rq, itrs, errs, ser}
 
 # Lifts: p's out feeds l's in; values cross p first. p stays, l goes.
-def fl.id.go(active: Bool, q: Q, +p: U32, +l: U32, +i: U32, +o: U32) -> Q:
-  match active:
-    case True{}:
-      q
-    case False{}:
-      free(free(link(q, i, o), p), l)
-
-def fl.id(r: Q & U32, +p: U32, +l: U32, +o: U32) -> Q:
-  (q, +i) = r
-  fl.id.go(U32.is_eq(S.ref_port(i), 0), q, p, l, i, o)
-
 def fl.fuse(f: V.Fuse, q: Q, +p: U32, +l: U32, +o: U32) -> Q:
   match f:
     case V.FNo{}:
       q
-    case V.FId{}:
-      fl.id(q_word(q, p, 1), p, l, o)
     case V.FTo{pay}:
       free(link(q_set_pay(q, p, pay), S.ref_at(p, 1), o), l)
 
@@ -399,23 +386,10 @@ def fuse_lifts(q: Q, +p: U32, +l: U32) -> Q:
   fl.pp(q_pay(q, p), p, l)
 
 # LiftCs: a's out feeds b's in; consumers cross b first. b stays, a goes.
-def fc.id.go(active: Bool, q: Q, +a: U32, +b: U32, +i: U32, +o: U32) -> Q:
-  match active:
-    case True{}:
-      q
-    case False{}:
-      free(free(link(q, i, o), a), b)
-
-def fc.id(r: Q & U32, +a: U32, +b: U32, +i: U32) -> Q:
-  (q, +o) = r
-  fc.id.go(U32.is_eq(S.ref_port(o), 0), q, a, b, i, o)
-
 def fc.fuse(f: V.Fuse, q: Q, +a: U32, +b: U32, +i: U32) -> Q:
   match f:
     case V.FNo{}:
       q
-    case V.FId{}:
-      fc.id(q_word(q, b, 1), a, b, i)
     case V.FTo{pay}:
       free(link(q_set_pay(q, b, pay), i, S.ref_at(b, 1)), a)
 
@@ -770,9 +744,96 @@ def interact.a(r: Q & Node3, +a: U32, +b: U32) -> Q:
   (q, +na) = r
   interact.b(rd3(q, b), na, a, b)
 
-# rewrite the active pair a >< b
+# Peeling
+# -------
+#
+# A fused control stands for a run of unit brackets (V.compose). Where a
+# Lift and a LiftC meet at one index as different controls, the units
+# would meet one at a time: so the one that raises further gives up its
+# first units as a control of its own before the rule applies, as many
+# as the other raises, and the two then cancel; facing a drop, a raise of
+# more than one gives up one unit, which crosses it. The rest stays
+# behind, a control from the index where those units end. Nets lowering
+# makes never meet so without fusion at run time (heap-demand).
+
+def sel_lt(c: Bool, +x: U32, +y: U32) -> U32:
+  match c:
+    case True{}:
+      x
+    case False{}:
+      y
+
+# how much of a run to keep facing, the rest peeled behind: 0 for none
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32) -> U32:
+  match ua ub:
+    case True{} True{}:
+      sel_lt(U32.is_lt(bb, ba), bb, 0)
+    case True{} False{}:
+      sel_lt(U32.is_lt(1, ba), 1, 0)
+    case _ _:
+      0
+
+# x keeps the first k units of its run of `by` at index n; a control of
+# kind k2 takes the rest behind it, on x's port 1, whose peer is e
+def peel.at(r: Q & U32, +x: U32, +e: U32) -> Q:
+  (q, +rest) = r
+  link(link(q, S.ref_at(x, 1), rest), S.ref_at(rest, 1), e)
+
+def peel.do(r: Q & U32, +x: U32, k2: R.NodeKind, +n: U32, +k: U32, +by: U32) -> Q:
+  (q, +e) = r
+  peel.at(node(err_if(U32.is_lt((n + k : U32), n), q_set_pay(q, x, V.PLift{n, True{}, k})), k2, V.PLift{(n + k : U32), True{}, (by - k : U32)}), x, e)
+
+def peel.if(+k: U32, q: Q, +x: U32, k2: R.NodeKind, +n: U32, +by: U32) -> Q:
+  match k:
+    case 0:
+      q
+    case _:
+      peel.do(q_word(q, x, 2), x, k2, n, k, by)
+
+def peel.same(same: Bool, q: Q, +l: U32, +c: U32, +n: U32, +ul: Bool, +bl: U32, +uc: Bool, +bc: U32) -> Q:
+  match same:
+    case True{}:
+      peel.if(peel.amt(uc, bc, ul, bl), peel.if(peel.amt(ul, bl, uc, bc), q, l, R.KLift{}, n, bl), c, R.KLiftC{}, n, bc)
+    case False{}:
+      q
+
+# l a Lift, c a LiftC, facing: peel l's run against c, or c's against l
+def peel.pays(+pl: V.Pay, +pc: V.Pay, q: Q, +l: U32, +c: U32) -> Q:
+  match pl pc:
+    case V.PLift{+n, +ul, +bl} V.PLift{+m, +uc, +bc}:
+      peel.same(U32.is_eq(n, m), q, l, c, n, ul, bl, uc, bc)
+    case _ _:
+      q
+
+def peel.pc(r: Q & V.Pay, +pl: V.Pay, +l: U32, +c: U32) -> Q:
+  (q, +pc) = r
+  peel.pays(pl, pc, q, l, c)
+
+def peel.pl(r: Q & V.Pay, +l: U32, +c: U32) -> Q:
+  (q, +pl) = r
+  peel.pc(q_pay(q, c), pl, l, c)
+
+def peel.k(+ka: U32, +kb: U32, q: Q, +a: U32, +b: U32) -> Q:
+  match ka kb:
+    case 10 11:
+      peel.pl(q_pay(q, a), a, b)
+    case 11 10:
+      peel.pl(q_pay(q, b), b, a)
+    case _ _:
+      q
+
+def peel.hb(r: Q & U32, +ka: U32, +a: U32, +b: U32) -> Q:
+  (q, +hb) = r
+  peel.k(ka, (hb .&. 15 : U32), q, a, b)
+
+def peel.ha(r: Q & U32, +a: U32, +b: U32) -> Q:
+  (q, +ha) = r
+  peel.hb(q_word(q, b, 0), (ha .&. 15 : U32), a, b)
+
+# rewrite the active pair a >< b, a fused control facing a partner peeled
+# first
 def interact(q: Q, +a: U32, +b: U32) -> Q:
-  interact.a(rd3(q, a), a, b)
+  interact.a(rd3(peel.ha(q_word(q, a, 0), a, b), a), a, b)
 
 # reduce active pairs until none is left or fuel runs out
 def reduce(n: Nat, q: Q) -> Q:

@@ -351,7 +351,10 @@ The core:
    terms all three modes get right, fusion cuts the kernel's interactions
    from 195,330 to 122,574 (-37%): levels cost 2.76 times the
    interactions of static labels, against 4.40 without fusion at run
-   time. The attempts cost nothing measurable where nothing fuses: 1,181
+   time (2026-10-28: the random terms' cut rested partly on fusion that
+   is wrong in other orders; the leveled workload's fusions all remain,
+   NetPairing's `pairing-fusion`). The attempts cost nothing measurable
+   where nothing fuses: 1,181
    instructions an interaction on `succ` and 1,182 on `plus`, slightly
    fewer than before them, the compiler's splitting moving again. The
    leveled workload costs 2.25 times the interactions of `succ` and 2.2
