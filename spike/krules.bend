@@ -3,7 +3,9 @@ import ./kprim.bend as P
 
 # The kernel's rewrites, generated from the rule table (spike/rules.bend)
 # by spike/tools/gen_krules.bend; do not edit. scripts/check.sh fails if
-# this file differs from what the generator writes.
+# this file differs from what the generator writes. Two families: the
+# plain one on the net alone, and the eager one (`.e`), which notes on a
+# strategy's stack each link it makes between two principal ports.
 
 # ports by kind code (R.arity)
 def kind_arity(+k: U32) -> U32:
@@ -434,6 +436,300 @@ def rw.Lift.LiftC.peeled(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32
         case False{}:
           rw.Lift.LiftC.no(h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
+def rw.Ap.Fn.yes.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  P.E{P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2), e0), e1), P.note(P.note(st, e0, e3), e1, e2)}
+
+def rw.Ap.Merge.e.k4(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.E:
+  (h, +n3) = r
+  P.E{P.link(P.link(P.link(P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e3), n2, e0), (n2 + 1 : U32), (n0 + 1 : U32)), (n2 + 2 : U32), (n1 + 1 : U32)), n3, e1), (n3 + 1 : U32), (n0 + 2 : U32)), (n3 + 2 : U32), (n1 + 2 : U32)), P.note(P.note(P.note(P.note(st, n0, e2), n1, e3), n2, e0), n3, e1)}
+
+def rw.Ap.Merge.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  rw.Ap.Merge.e.k4(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+
+def rw.Ap.Merge.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Ap.Merge.e.k3(P.node(h, P.hd2(3, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Ap.Merge.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Ap.Merge.e.k2(P.node(h, P.hd2(2, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Ap.Merge.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Ap.Merge.e.k1(P.node(P.fresh2(h, a, b), P.hd2(2, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Ap.Data.yes.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(P.link(h, n0, e0), (n0 + 1 : U32), e1), P.note(st, n0, e0)}
+
+def rw.Ap.Data.yes.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Ap.Data.yes.e.k1(P.node(P.fresh2(h, a, b), P.hd2(9, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Ap.EraP.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.link(P.link(h, n0, e0), n1, e1), P.note(P.note(st, n0, e0), n1, e1)}
+
+def rw.Ap.EraP.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Ap.EraP.e.k2(P.node(h, P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Ap.EraP.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Ap.EraP.e.k1(P.node(P.fresh2(h, a, b), P.hd(6, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Ap.LiftC.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  P.E{P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32)), e0), e1), P.note(P.note(P.note(st, n0, e2), n1, e0), n2, e1)}
+
+def rw.Ap.LiftC.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Ap.LiftC.e.k3(P.node(h, P.hd2(11, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Ap.LiftC.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Ap.LiftC.e.k2(P.node(h, P.hd2(10, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Ap.LiftC.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Ap.LiftC.e.k1(P.node(P.fresh2(h, a, b), P.hd2(2, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Copy.Fn.e.k4(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.E:
+  (h, +n3) = r
+  P.E{P.link(P.link(P.link(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e1), e2, n2), (n2 + 1 : U32), (n0 + 1 : U32)), (n2 + 2 : U32), (n1 + 1 : U32)), e3, n3), (n3 + 1 : U32), (n0 + 2 : U32)), (n3 + 2 : U32), (n1 + 2 : U32)), P.note(P.note(P.note(P.note(st, n0, e0), n1, e1), e2, n2), e3, n3)}
+
+def rw.Copy.Fn.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  rw.Copy.Fn.e.k4(P.node(h, P.hd2(4, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+
+def rw.Copy.Fn.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Copy.Fn.e.k3(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Copy.Fn.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Copy.Fn.e.k2(P.node(h, P.hd2(1, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.Fn.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Copy.Fn.e.k1(P.node(P.fresh2(h, a, b), P.hd2(1, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Copy.Merge.yes.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  P.E{P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e2), e1, e3), e0), e1), P.note(P.note(st, e0, e2), e1, e3)}
+
+def rw.Copy.Merge.no.e.k4(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> P.E:
+  (h, +n3) = r
+  P.E{P.link(P.link(P.link(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e1), n2, e2), n3, e3), (n2 + 1 : U32), (n0 + 1 : U32)), (n2 + 2 : U32), (n1 + 1 : U32)), (n3 + 1 : U32), (n0 + 2 : U32)), (n3 + 2 : U32), (n1 + 2 : U32)), P.note(P.note(P.note(P.note(st, n0, e0), n1, e1), n2, e2), n3, e3)}
+
+def rw.Copy.Merge.no.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  rw.Copy.Merge.no.e.k4(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1, n2)
+
+def rw.Copy.Merge.no.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Copy.Merge.no.e.k3(P.node(h, P.hd2(3, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Copy.Merge.no.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Copy.Merge.no.e.k2(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.Merge.no.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Copy.Merge.no.e.k1(P.node(P.fresh2(h, a, b), P.hd2(4, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Copy.Data.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.link(P.link(h, n0, e0), n1, e1), P.note(P.note(st, n0, e0), n1, e1)}
+
+def rw.Copy.Data.e.k2.pre(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +dw) = r
+  rw.Copy.Data.e.k2(P.node(h, P.hd2(5, P.form(hb), P.fld(hb)), dw), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.Data.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Copy.Data.e.k2.pre(P.dup(h, P.form(hb), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.Data.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Copy.Data.e.k1(P.node(P.fresh2(h, a, b), P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Copy.EraP.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.link(P.link(h, n0, e0), n1, e1), P.note(P.note(st, n0, e0), n1, e1)}
+
+def rw.Copy.EraP.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Copy.EraP.e.k2(P.node(h, P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.EraP.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Copy.EraP.e.k1(P.node(P.fresh2(h, a, b), P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Copy.LiftC.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  P.E{P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e1), (n2 + 1 : U32), (n0 + 2 : U32)), e0), e1), P.note(P.note(P.note(st, n0, e2), n1, e0), n2, e1)}
+
+def rw.Copy.LiftC.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Copy.LiftC.e.k3(P.node(h, P.hd2(11, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Copy.LiftC.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Copy.LiftC.e.k2(P.node(h, P.hd2(11, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Copy.LiftC.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Copy.LiftC.e.k1(P.node(P.fresh2(h, a, b), P.hd2(3, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.EraN.Fn.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.link(P.link(h, n0, e2), n1, e3), P.note(P.note(st, n0, e2), n1, e3)}
+
+def rw.EraN.Fn.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.EraN.Fn.e.k2(P.node(h, P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.EraN.Fn.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.EraN.Fn.e.k1(P.node(P.fresh2(h, a, b), P.hd(6, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.EraN.Merge.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.link(P.link(h, n0, e2), n1, e3), P.note(P.note(st, n0, e2), n1, e3)}
+
+def rw.EraN.Merge.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.EraN.Merge.e.k2(P.node(h, P.hd(6, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.EraN.Merge.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.EraN.Merge.e.k1(P.node(P.fresh2(h, a, b), P.hd(6, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.EraN.Data.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  P.E{P.drop(P.fresh2(h, a, b), P.form(hb), pb), st}
+
+def rw.EraN.EraP.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  P.E{P.fresh2(h, a, b), st}
+
+def rw.EraN.LiftC.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e2), P.note(st, n0, e2)}
+
+def rw.EraN.LiftC.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.EraN.LiftC.e.k1(P.node(P.fresh2(h, a, b), P.hd(6, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Root.LiftC.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e2), P.note(st, n0, e2)}
+
+def rw.Root.LiftC.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Root.LiftC.e.k1(P.node(P.fresh2(h, a, b), P.hd(8, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Call.Merge.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  P.E{P.link(P.link(P.link(P.link(P.link(h, n0, e2), n1, e3), n2, e0), (n2 + 1 : U32), (n0 + 1 : U32)), (n2 + 2 : U32), (n1 + 1 : U32)), P.note(P.note(P.note(st, n0, e2), n1, e3), n2, e0)}
+
+def rw.Call.Merge.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Call.Merge.e.k3(P.node(h, P.hd2(4, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Call.Merge.e.k2.pre(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +dw) = r
+  rw.Call.Merge.e.k2(P.node(h, P.hd2(9, P.form(ha), P.fld(ha)), dw), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Call.Merge.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Call.Merge.e.k2.pre(P.dup(h, P.form(ha), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Call.Merge.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Call.Merge.e.k1(P.node(P.fresh2(h, a, b), P.hd2(9, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Call.Data.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e0), P.note(st, n0, e0)}
+
+def rw.Call.Data.e.k1.pre(r: P.H & P.PW, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, pw) = r
+  rw.Call.Data.e.k1(P.node_pw(h, 5, pw), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Call.Data.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Call.Data.e.k1.pre(P.apply(P.fresh2(h, a, b), ha, pa, hb, pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Call.EraP.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e0), P.note(st, n0, e0)}
+
+def rw.Call.EraP.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Call.EraP.e.k1(P.node(P.drop(P.fresh2(h, a, b), P.form(ha), pa), P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Call.LiftC.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.fuse(P.link(P.link(P.link(h, n0, e2), n1, e0), (n1 + 1 : U32), (n0 + 1 : U32)), e0), P.note(P.note(st, n0, e2), n1, e0)}
+
+def rw.Call.LiftC.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Call.LiftC.e.k2(P.node(h, P.hd2(11, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Call.LiftC.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Call.LiftC.e.k1(P.node(P.fresh2(h, a, b), P.hd2(9, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.Fn.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  P.E{P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32)), e2), e3), P.note(P.note(P.note(st, n0, e0), n1, e2), n2, e3)}
+
+def rw.Lift.Fn.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Lift.Fn.e.k3(P.node(h, P.hd2(11, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Lift.Fn.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Lift.Fn.e.k2(P.node(h, P.hd2(10, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Lift.Fn.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Lift.Fn.e.k1(P.node(P.fresh2(h, a, b), P.hd2(1, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.Merge.e.k3(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> P.E:
+  (h, +n2) = r
+  P.E{P.fuse(P.fuse(P.link(P.link(P.link(P.link(P.link(h, n0, e0), n1, e2), (n1 + 1 : U32), (n0 + 1 : U32)), n2, e3), (n2 + 1 : U32), (n0 + 2 : U32)), e2), e3), P.note(P.note(P.note(st, n0, e0), n1, e2), n2, e3)}
+
+def rw.Lift.Merge.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  rw.Lift.Merge.e.k3(P.node(h, P.hd2(10, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0, n1)
+
+def rw.Lift.Merge.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Lift.Merge.e.k2(P.node(h, P.hd2(10, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Lift.Merge.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Lift.Merge.e.k1(P.node(P.fresh2(h, a, b), P.hd2(4, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.Data.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e0), P.note(st, n0, e0)}
+
+def rw.Lift.Data.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Lift.Data.e.k1(P.node(P.fresh2(h, a, b), P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.EraP.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  P.E{P.link(h, n0, e0), P.note(st, n0, e0)}
+
+def rw.Lift.EraP.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Lift.EraP.e.k1(P.node(P.fresh2(h, a, b), P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.LiftC.yes.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  P.E{P.fuse(P.link(P.fresh2(h, a, b), e0, e2), e0), P.note(st, e0, e2)}
+
+def rw.Lift.LiftC.no.e.k2(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> P.E:
+  (h, +n1) = r
+  P.E{P.fuse(P.fuse(P.link(P.link(P.link(h, n0, e2), (n0 + 1 : U32), (n1 + 1 : U32)), n1, e0), e2), e0), P.note(P.note(st, n0, e2), n1, e0)}
+
+def rw.Lift.LiftC.no.e.k1(r: P.H & U32, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  (h, +n0) = r
+  rw.Lift.LiftC.no.e.k2(P.node(h, P.hd2(11, P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb))), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.Lift.LiftC.no.e(h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  rw.Lift.LiftC.no.e.k1(P.node(P.fresh2(h, a, b), P.hd2(10, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.Lift.LiftC.peeled.e(r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
+  match r:
+    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
+      match t:
+        case True{}:
+          rw.Lift.LiftC.yes.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+        case False{}:
+          rw.Lift.LiftC.no.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
 # the rewrite for A, negative principal, meeting B; t is the payload test
 def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   match ka kb:
@@ -501,4 +797,72 @@ def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +h
       rw.Lift.LiftC.peeled(P.peel_ctl(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
     case _ _:
       P.err_if(U32.is_ne(ka, 8), h)
+
+# the same, noting the pairs it makes on the strategy's stack
+def rewrite.e(+ka: U32, +kb: U32, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.E:
+  match ka kb:
+    case 2 1:
+      match t:
+        case True{}:
+          rw.Ap.Fn.yes.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+        case False{}:
+          P.E{P.err_if(U32.is_ne(ka, 8), h), st}
+    case 2 4:
+      rw.Ap.Merge.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 2 5:
+      match t:
+        case True{}:
+          rw.Ap.Data.yes.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+        case False{}:
+          P.E{P.err_if(U32.is_ne(ka, 8), h), st}
+    case 2 7:
+      rw.Ap.EraP.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 2 11:
+      rw.Ap.LiftC.e(P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 3 1:
+      rw.Copy.Fn.e(P.err_if(P.copy_fn_bad(ha, hb), h), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 3 4:
+      match t:
+        case True{}:
+          rw.Copy.Merge.yes.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+        case False{}:
+          rw.Copy.Merge.no.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 3 5:
+      rw.Copy.Data.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 3 7:
+      rw.Copy.EraP.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 3 11:
+      rw.Copy.LiftC.e(P.err_if(P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 6 1:
+      rw.EraN.Fn.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 6 4:
+      rw.EraN.Merge.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 6 5:
+      rw.EraN.Data.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 6 7:
+      rw.EraN.EraP.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 6 11:
+      rw.EraN.LiftC.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 8 11:
+      rw.Root.LiftC.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 4:
+      rw.Call.Merge.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 5:
+      rw.Call.Data.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 7:
+      rw.Call.EraP.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 11:
+      rw.Call.LiftC.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 10 1:
+      rw.Lift.Fn.e(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 10 4:
+      rw.Lift.Merge.e(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)), h), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 10 5:
+      rw.Lift.Data.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 10 7:
+      rw.Lift.EraP.e(h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 10 11:
+      rw.Lift.LiftC.peeled.e(P.peel_ctl(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+    case _ _:
+      P.E{P.err_if(U32.is_ne(ka, 8), h), st}
 

@@ -152,22 +152,16 @@ type C is Type:
   C{+errs: U32, +itrs: U32, +wcap: U32, dt: DT}
   CBox{c: C}
 
-# nodes, the free list's head, the bag of pairs, the cold record. Every
-# node not in use is on the free list: growing the store threads the new
-# nodes onto it, so making a node is a pop, and the capacity, needed only
-# to grow, stays cold. The bag holds one node of each active pair a link
-# made since a strategy last took or cleared it (kstrat.bend); the other
-# is the peer of its principal port. While each pair in it is live, as
-# when a strategy takes every pair it reduces from the bag, a pair holds
-# two nodes and a node is in one at most, so the bag never holds more
-# than half as many words as nodes fit: it grows with the node store (at
-# least 64 words), and adding to it checks nothing. A strategy reducing
-# pairs it did not take from the bag clears the bag every step.
+# the net: its nodes, the free list's head, the cold record. Every node
+# not in use is on the free list: growing the store threads the new nodes
+# onto it, so making a node is a pop, and the capacity, needed only to
+# grow, stays cold. Which pairs are active the net does not record; a
+# strategy that wants them keeps them (Stk, below).
 type H is Type:
-  H{w: KM.M, +fh: U32, rs: KM.M, +nr: U32, c: C}
+  H{w: KM.M, +fh: U32, c: C}
 
-# A net starts at 128 nodes, 2 KB, and 64 pair words (net-nodes-double);
-# node words up to 2^23 (2^21 nodes), active pair words up to 2^22
+# A net starts at 128 nodes, 2 KB (net-nodes-double); node words up to
+# 2^23 (2^21 nodes); a strategy's stack of pairs up to 2^22 words
 def w_maxd() -> Nat:
   23n
 
@@ -189,13 +183,9 @@ def thread(k: Nat, m: KM.M, +i: U32, +to: U32) -> KM.M:
     case 1n+p:
       thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
 
-def h_new.rs(r: KM.M & U32, w: KM.M, +wcap: U32) -> H:
-  (rs, +cr) = r
-  H{thread(U32.to_nat(wcap), w, 0, wcap), 1, rs, 0, C{0, 0, wcap, dt_new()}}
-
 def h_new.w(r: KM.M & U32) -> H:
   (w, +cw) = r
-  h_new.rs(KM.m_new(6n, rs_maxd()), w, (cw >> 2n : U32))
+  H{thread(U32.to_nat((cw >> 2n : U32)), w, 0, (cw >> 2n : U32)), 1, C{0, 0, (cw >> 2n : U32), dt_new()}}
 
 def h_new() -> H:
   h_new.w(KM.m_new(9n, w_maxd()))
@@ -209,8 +199,8 @@ def c_err(c: C) -> C:
 
 def h_err(h: H) -> H:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{w, fh, rs, nr, c_err(c)}
+    case H{w, +fh, c}:
+      H{w, fh, c_err(c)}
 
 def err_if(bad: Bool, h: H) -> H:
   match bad:
@@ -230,15 +220,15 @@ def c_stats(c: C) -> C & HS:
     case CBox{d}:
       (CBox{d}, HS{0, 0, 0})
 
-def stats.fin(r: C & HS, w: KM.M, +fh: U32, rs: KM.M, +nr: U32) -> H & HS:
+def stats.fin(r: C & HS, w: KM.M, +fh: U32) -> H & HS:
   (c, st) = r
-  (H{w, fh, rs, nr, c}, st)
+  (H{w, fh, c}, st)
 
 # interactions, errors and node capacity, the state kept
 def stats(h: H) -> H & HS:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      stats.fin(c_stats(c), w, fh, rs, nr)
+    case H{w, +fh, c}:
+      stats.fin(c_stats(c), w, fh)
 
 def c_count(c: C, +n: U32) -> C:
   match c:
@@ -250,47 +240,34 @@ def c_count(c: C, +n: U32) -> C:
 # the interactions a run made, recorded when it ends
 def count(h: H, +n: U32) -> H:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{w, fh, rs, nr, c_count(c, n)}
+    case H{w, +fh, c}:
+      H{w, fh, c_count(c, n)}
 
 # Words
 # =====
 
-def rd.fin(r: KM.M & U32, +fh: U32, rs: KM.M, +nr: U32, c: C) -> H & U32:
+def rd.fin(r: KM.M & U32, +fh: U32, c: C) -> H & U32:
   (w, +v) = r
-  (H{w, fh, rs, nr, c}, v)
+  (H{w, fh, c}, v)
 
 def rd(h: H, +i: U32) -> H & U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      rd.fin(KM.m_get(w, i), fh, rs, nr, c)
+    case H{w, +fh, c}:
+      rd.fin(KM.m_get(w, i), fh, c)
 
 def wr(h: H, +i: U32, +v: U32) -> H:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{KM.m_set(w, i, v), fh, rs, nr, c}
-
-# add an active pair, x >< y, to the bag as x: it has room for every pair
-# the nodes allow
-def push(h: H, +x: U32, +y: U32) -> H:
-  match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{w, fh, KM.m_set(rs, nr, x), (nr + 1 : U32), c}
-
-def link.push(both: Bool, h: H, +x: U32, +y: U32) -> H:
-  match both:
-    case True{}:
-      push(h, x, y)
-    case False{}:
-      h
+    case H{w, +fh, c}:
+      H{KM.m_set(w, i, v), fh, c}
 
 def port(+r: U32) -> U32:
   (r .&. 3 : U32)
 
 # link two ports (word n * 4 + 1 + p is port p's link: the reference plus
-# one), an active pair when both are principal
+# one); an active pair when both are principal, which the net does not
+# record: a strategy that wants its pairs notes them (note, below)
 def link(h: H, +x: U32, +y: U32) -> H:
-  link.push(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x), x, y)
+  wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x)
 
 # Nodes
 # =====
@@ -308,46 +285,42 @@ def rs_words(+wcap: U32) -> U32:
 
 # the store doubled to wcap nodes: node wcap0 taken, the rest threaded onto
 # the free list; or, if either store could not grow, an error
-def grow.done(ok: Bool, w: KM.M, rs: KM.M, +nr: U32, +errs: U32, +itrs: U32, +wcap0: U32, +wcap: U32, dt: DT) -> H & U32:
+def grow.done(ok: Bool, w: KM.M, +errs: U32, +itrs: U32, +wcap0: U32, +wcap: U32, dt: DT) -> H & U32:
   match ok:
     case True{}:
-      (H{thread(U32.to_nat((wcap - (wcap0 + 1 : U32) : U32)), w, (wcap0 + 1 : U32), wcap), (wcap0 + 2 : U32), rs, nr, C{errs, itrs, wcap, dt}}, (wcap0 << 2n : U32))
+      (H{thread(U32.to_nat((wcap - (wcap0 + 1 : U32) : U32)), w, (wcap0 + 1 : U32), wcap), (wcap0 + 2 : U32), C{errs, itrs, wcap, dt}}, (wcap0 << 2n : U32))
     case False{}:
-      (H{w, 0, rs, nr, C{(errs + 1 : U32), itrs, wcap0, dt}}, 0)
+      (H{w, 0, C{(errs + 1 : U32), itrs, wcap0, dt}}, 0)
 
-def grow.rs(r: KM.M & U32, w: KM.M, +nr: U32, +errs: U32, +itrs: U32, +wcap0: U32, +wcap: U32, dt: DT) -> H & U32:
-  (rs, +cr) = r
-  grow.done(U32.is_gt(wcap, (wcap0 + 1 : U32)) && U32.is_le(rs_words(wcap), cr), w, rs, nr, errs, itrs, wcap0, wcap, dt)
-
-def grow.w(r: KM.M & U32, rs: KM.M, +nr: U32, +errs: U32, +itrs: U32, +wcap0: U32, dt: DT) -> H & U32:
+def grow.w(r: KM.M & U32, +errs: U32, +itrs: U32, +wcap0: U32, dt: DT) -> H & U32:
   (w, +cap) = r
-  grow.rs(KM.m_ensure(rs, rs_words((cap >> 2n : U32)), rs_words(wcap0), rs_maxd()), w, nr, errs, itrs, wcap0, (cap >> 2n : U32), dt)
+  grow.done(U32.is_gt((cap >> 2n : U32), (wcap0 + 1 : U32)), w, errs, itrs, wcap0, (cap >> 2n : U32), dt)
 
 # the free list empty: every node is in use, so the store doubles
 def alloc.grow(h: H) -> H & U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match c:
         case C{+errs, +itrs, +wcap, dt}:
-          grow.w(KM.m_ensure(w, ((wcap * 2 : U32) * 4 : U32), (wcap * 4 : U32), w_maxd()), rs, nr, errs, itrs, wcap, dt)
+          grow.w(KM.m_ensure(w, ((wcap * 2 : U32) * 4 : U32), (wcap * 4 : U32), w_maxd()), errs, itrs, wcap, dt)
         case CBox{d}:
-          (H{w, fh, rs, nr, CBox{d}}, 0)
+          (H{w, fh, CBox{d}}, 0)
 
-def alloc.pop(r: KM.M & U32, +n: U32, rs: KM.M, +nr: U32, c: C) -> H & U32:
+def alloc.pop(r: KM.M & U32, +n: U32, c: C) -> H & U32:
   (w, +next) = r
-  (H{w, next, rs, nr, c}, n)
+  (H{w, next, c}, n)
 
 # a node: the head of the free list, which an intrusive list holds (the
 # head a node's index plus one, 0 for none; each free node's word 1 the
 # next in the same form)
 def alloc(h: H) -> H & U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match fh:
         case 0:
-          alloc.grow(H{w, fh, rs, nr, c})
+          alloc.grow(H{w, fh, c})
         case _:
-          alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), rs, nr, c)
+          alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), c)
 
 def node.word.k(+k: U32) -> U32:
   match k:
@@ -376,8 +349,8 @@ def base(+r: U32) -> U32:
 # its word 1 linking the old head of the free list
 def free(h: H, +r: U32) -> H:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), ((r >> 2n : U32) + 1 : U32), rs, nr, c}
+    case H{w, +fh, c}:
+      H{KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), ((r >> 2n : U32) + 1 : U32), c}
 
 # free a redex's two nodes, b first, so that a's slot heads the free list
 # and the rule's first new node takes it: the interface, node 0, keeps its
@@ -430,50 +403,50 @@ def lift(+n: U32, +o: U32, +j: U32) -> U32:
 def lift_wraps(+n: U32, +o: U32, +j: U32) -> Bool:
   off_up(o) && U32.is_gt(j, n) && U32.is_ge((j + off_by(o) : U32), lvl_cap())
 
-def dt_op.fin(r: DT & U32, w: KM.M, +fh: U32, rs: KM.M, +nr: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & U32:
+def dt_op.fin(r: DT & U32, w: KM.M, +fh: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & U32:
   (dt, +i) = r
-  (H{w, fh, rs, nr, C{errs, itrs, wcap, dt}}, i)
+  (H{w, fh, C{errs, itrs, wcap, dt}}, i)
 
-def dt_val.fin(r: DT & V.Val, w: KM.M, +fh: U32, rs: KM.M, +nr: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & V.Val:
+def dt_val.fin(r: DT & V.Val, w: KM.M, +fh: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & V.Val:
   (dt, v) = r
-  (H{w, fh, rs, nr, C{errs, itrs, wcap, dt}}, v)
+  (H{w, fh, C{errs, itrs, wcap, dt}}, v)
 
 def tab_put(h: H, v: V.Val) -> H & U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match c:
         case C{+errs, +itrs, +wcap, dt}:
-          dt_op.fin(dt_put(dt, v), w, fh, rs, nr, errs, itrs, wcap)
+          dt_op.fin(dt_put(dt, v), w, fh, errs, itrs, wcap)
         case CBox{d}:
-          (H{w, fh, rs, nr, CBox{d}}, 0)
+          (H{w, fh, CBox{d}}, 0)
 
 # entry i duplicated, in one opening of the cold record
 def tab_dup(h: H, +i: U32) -> H & U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match c:
         case C{+errs, +itrs, +wcap, dt}:
-          dt_op.fin(dt_dup(dt, i), w, fh, rs, nr, errs, itrs, wcap)
+          dt_op.fin(dt_dup(dt, i), w, fh, errs, itrs, wcap)
         case CBox{d}:
-          (H{w, fh, rs, nr, CBox{d}}, 0)
+          (H{w, fh, CBox{d}}, 0)
 
 def tab_get(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match c:
         case C{+errs, +itrs, +wcap, dt}:
-          dt_val.fin(dt_get(dt, i), w, fh, rs, nr, errs, itrs, wcap)
+          dt_val.fin(dt_get(dt, i), w, fh, errs, itrs, wcap)
         case CBox{d}:
-          (H{w, fh, rs, nr, CBox{d}}, V.VUnit{})
+          (H{w, fh, CBox{d}}, V.VUnit{})
 
 def tab_take(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       match c:
         case C{+errs, +itrs, +wcap, dt}:
-          dt_val.fin(dt_take(dt, i), w, fh, rs, nr, errs, itrs, wcap)
+          dt_val.fin(dt_take(dt, i), w, fh, errs, itrs, wcap)
         case CBox{d}:
-          (H{w, fh, rs, nr, CBox{d}}, V.VUnit{})
+          (H{w, fh, CBox{d}}, V.VUnit{})
 
 # a value as a node holds it: its form, field and word
 type PW is Data:
@@ -929,46 +902,104 @@ def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0
   peel_ctl.go(U32.is_eq(fld(ha), fld(hb)), h, a, b, fld(ha), pa, pb, e0, e2)
 
 
-# Active pairs
-# ============
+# A strategy's stack
+# ==================
+#
+# The net records none of its active pairs (heap-strategies.stack). A
+# strategy taking them last in first out keeps a stack of its own: one
+# node of each pair, the other the peer of its principal port. It fills
+# the stack by walking the net when it starts (kstrat.bend), then from
+# the links its rewrites make between two principal ports, which the
+# eager variant of the rewrites notes (gen_krules.bend), in the order
+# they make them. A pair holds two nodes and a node is in one at most, so
+# the stack never holds more pairs than half the nodes; it grows before
+# a pop when a rewrite could fill it, by more than the links any rule
+# makes, and noting checks nothing.
 
-# empty the bag, for a strategy that finds its pairs some other way
-def bag_clear(h: H) -> H:
-  match h:
-    case H{w, +fh, rs, +nr, c}:
-      H{w, fh, rs, 0, c}
+type Stk is Type:
+  Stk{s: KM.M, +n: U32}
 
-# the newest pair in the bag, if any: the eager strategy's way to take one
+# the net and a strategy's stack, as the eager rewrites take and return them
+type E is Type:
+  E{h: H, st: Stk}
+
+def stk.fin(r: KM.M & U32) -> Stk & U32:
+  (s, +cap) = r
+  (Stk{s, 0}, cap)
+
+def stk.ensure(r: KM.M & U32, +words: U32) -> Stk & U32:
+  (s, +cap) = r
+  stk.fin(KM.m_ensure(s, words, cap, rs_maxd()))
+
+# an empty stack with room for `words` pairs at least, and its room
+def stk_new(+words: U32) -> Stk & U32:
+  stk.ensure(KM.m_new(6n, rs_maxd()), words)
+
+def note.go(both: Bool, st: Stk, +x: U32) -> Stk:
+  match both:
+    case True{}:
+      match st:
+        case Stk{s, +n}:
+          Stk{KM.m_set(s, n, x), (n + 1 : U32)}
+    case False{}:
+      st
+
+# x onto the stack, a pair already known active
+def push(st: Stk, +x: U32) -> Stk:
+  note.go(True{}, st, x)
+
+# a link x - y a rewrite made: if both ports are principal, the pair
+# goes on the stack as x
+def note(st: Stk, +x: U32, +y: U32) -> Stk:
+  note.go(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), st, x)
+
+# the newest pair on the stack, if any; the stack's room carried along
 type Pop is Type:
-  Pop{h: H, +x: U32, +y: U32, +ok: Bool}
+  Pop{h: H, st: Stk, +cap: U32, +x: U32, +y: U32, +ok: Bool}
 
-def pop.y(r: KM.M & U32, rs: KM.M, +fh: U32, +nr: U32, c: C, +x: U32) -> Pop:
+def pop.y(r: KM.M & U32, s: KM.M, +fh: U32, c: C, +n: U32, +cap: U32, +x: U32) -> Pop:
   (w, +y) = r
-  Pop{H{w, fh, rs, nr, c}, x, y, True{}}
+  Pop{H{w, fh, c}, Stk{s, n}, cap, x, y, True{}}
 
 # x's partner: the peer of its principal port
-def pop.x(r: KM.M & U32, w: KM.M, +fh: U32, +nr: U32, c: C) -> Pop:
-  (rs, +x) = r
-  pop.y(KM.m_get(w, (x + 1 : U32)), rs, fh, nr, c, x)
+def pop.x(r: KM.M & U32, w: KM.M, +fh: U32, c: C, +n: U32, +cap: U32) -> Pop:
+  (s, +x) = r
+  pop.y(KM.m_get(w, (x + 1 : U32)), s, fh, c, n, cap, x)
 
-def pop(h: H) -> Pop:
+def pop.go(h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
   match h:
-    case H{w, +fh, rs, +nr, c}:
-      match nr:
+    case H{w, +fh, c}:
+      match n:
         case 0:
-          Pop{H{w, fh, rs, nr, c}, 0, 0, False{}}
+          Pop{H{w, fh, c}, Stk{s, 0}, cap, 0, 0, False{}}
         case _:
-          pop.x(KM.m_get(rs, (nr - 1 : U32)), w, fh, (nr - 1 : U32), c)
+          pop.x(KM.m_get(s, (n - 1 : U32)), w, fh, c, (n - 1 : U32), cap)
 
-# a pair popped when fuel ran out goes back
+def pop.room(r: KM.M & U32, h: H, +n: U32) -> Pop:
+  (s, +cap) = r
+  pop.go(h, s, n, cap)
+
+def pop.grow(full: Bool, h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
+  match full:
+    case True{}:
+      pop.room(KM.m_ensure(s, (cap * 2 : U32), cap, rs_maxd()), h, n)
+    case False{}:
+      pop.go(h, s, n, cap)
+
+# the newest pair on the stack of e, which has room for cap, grown first
+# when the next rewrite could fill it
+def pop(e: E, +cap: U32) -> Pop:
+  match e:
+    case E{h, st}:
+      match st:
+        case Stk{s, +n}:
+          pop.grow(U32.is_lt(cap, (n + 16 : U32)), h, s, n, cap)
+
+# a run's end: the net, the stack let go
 def unpop(pp: Pop) -> H:
   match pp:
-    case Pop{h, +x, +y, +ok}:
-      match ok:
-        case True{}:
-          push(h, x, y)
-        case False{}:
-          h
+    case Pop{h, st, +cap, +x, +y, +ok}:
+      h
 
 # a node of rule kind k holding the value pw
 def node_pw(h: H, +k: U32, pw: PW) -> H & U32:
@@ -1060,11 +1091,11 @@ def c_ok(c: C, +held: U32) -> Bool:
 # data entries in use
 def h_live(h: H) -> U32:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       c_live(c)
 
 # the table's audit (dt_ok) against held entries
 def h_ok(h: H, +held: U32) -> Bool:
   match h:
-    case H{w, +fh, rs, +nr, c}:
+    case H{w, +fh, c}:
       c_ok(c, held)

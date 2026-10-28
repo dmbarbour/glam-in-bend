@@ -135,11 +135,69 @@ def links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
     case Con{R.Link{u, v}, t}:
       links(xs, t, "P.link(" ++ acc ++ ", " ++ end(xs, u) ++ ", " ++ end(xs, v) ++ ")")
 
-def common() -> String:
-  "+a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32"
+# may this end be a principal port? An external peer may; a new node's
+# port is one when it is port 0
+def may_pri(e: R.End) -> Bool:
+  match e:
+    case R.Ext{i}:
+      True{}
+    case R.New{j, +p}:
+      Nat.is_eq(p, 0n)
 
-def common_args() -> String:
-  "a, b, ha, hb, pa, pb, e0, e1, e2, e3"
+def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
+  match c:
+    case True{}:
+      "P.note(" ++ acc ++ ", " ++ u ++ ", " ++ v ++ ")"
+    case False{}:
+      acc
+
+# the eager family's notes: each link that may join two principal ports,
+# in the order links makes them
+def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
+  match ls:
+    case Nil{}:
+      acc
+    case Con{R.Link{+u, +v}, t}:
+      notes(xs, t, note_if(may_pri(u) && may_pri(v), acc, end(xs, u), end(xs, v)))
+
+# Two families of rewrites (heap-strategies.stack): the plain one, on the
+# net alone, and the eager one (e), which takes a strategy's stack beside
+# the net, notes on it each link it makes between two principal ports, in
+# the table's order, and returns both (P.E). Its functions end in `.e`.
+
+def stk_param(+e: Bool) -> String:
+  match e:
+    case True{}:
+      "st: P.Stk, "
+    case False{}:
+      ""
+
+def stk_arg(+e: Bool) -> String:
+  match e:
+    case True{}:
+      "st, "
+    case False{}:
+      ""
+
+def ret(+e: Bool) -> String:
+  match e:
+    case True{}:
+      "P.E"
+    case False{}:
+      "P.H"
+
+def sfx(+e: Bool) -> String:
+  match e:
+    case True{}:
+      ".e"
+    case False{}:
+      ""
+
+def common(+e: Bool) -> String:
+  stk_param(e) ++ "+a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32"
+
+def common_args(+e: Bool) -> String:
+  stk_arg(e) ++ "a, b, ha, hb, pa, pb, e0, e1, e2, e3"
 
 # parameters, and arguments, n0 .. n(j - 1)
 def made_params(j: Nat, +i: Nat) -> String:
@@ -236,32 +294,32 @@ def side(+isa: Bool) -> String:
       "b"
 
 # making node j (spec sp, step kind pre) on state `st`, then step j + 1
-def make_call(+name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
+def make_call(+e: Bool, +name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
   match sp:
     case R.Spec{+k, +s}:
       match pre:
         case PNo{}:
-          stepname(name, 1n+j) ++ "(P.node(" ++ st ++ ", " ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
+          stepname(name, 1n+j) ++ "(P.node(" ++ st ++ ", " ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
         case PAp{}:
-          stepname(name, 1n+j) ++ ".pre(P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args() ++ made_args(j, 0n) ++ ")"
+          stepname(name, 1n+j) ++ ".pre(P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
         case PDup{+isa}:
-          stepname(name, 1n+j) ++ ".pre(P.dup(" ++ st ++ ", P.form(h" ++ side(isa) ++ "), p" ++ side(isa) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
+          stepname(name, 1n+j) ++ ".pre(P.dup(" ++ st ++ ", P.form(h" ++ side(isa) ++ "), p" ++ side(isa) ++ "), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
 
 # the step taking a computed value or a duplicate, making node j
-def pre_fn(+name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
+def pre_fn(+e: Bool, +name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
   match sp:
     case R.Spec{+k, +s}:
       match pre:
         case PNo{}:
           ""
         case PAp{}:
-          "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & P.PW, " ++ common() ++ made_params(j, 0n) ++ ") -> P.H:\n" ++
+          "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & P.PW, " ++ common(e) ++ made_params(j, 0n) ++ ") -> " ++ ret(e) ++ ":\n" ++
             "  (h, pw) = r\n" ++
-            "  " ++ stepname(name, 1n+j) ++ "(P.node_pw(h, " ++ code(k) ++ ", pw), " ++ common_args() ++ made_args(j, 0n) ++ ")\n\n"
+            "  " ++ stepname(name, 1n+j) ++ "(P.node_pw(h, " ++ code(k) ++ ", pw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
         case PDup{+isa}:
-          "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & U32, " ++ common() ++ made_params(j, 0n) ++ ") -> P.H:\n" ++
+          "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & U32, " ++ common(e) ++ made_params(j, 0n) ++ ") -> " ++ ret(e) ++ ":\n" ++
             "  (h, +dw) = r\n" ++
-            "  " ++ stepname(name, 1n+j) ++ "(P.node(h, " ++ hdr(k, s) ++ ", dw), " ++ common_args() ++ made_args(j, 0n) ++ ")\n\n"
+            "  " ++ stepname(name, 1n+j) ++ "(P.node(h, " ++ hdr(k, s) ++ ", dw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
 
 # Fusing controls
 # ---------------
@@ -278,37 +336,44 @@ def fuses(+xs: List<&2, R.Spec>, es: List<&2, R.End>, +acc: String) -> String:
       fuses(xs, t, "P.fuse(" ++ acc ++ ", " ++ end(xs, e) ++ ")")
 
 # the links, then the fusion attempts
-def finish(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
-  fuses(xs, N.fuse_ends(xs, ls), links(xs, ls, st))
+def finish.e(+e: Bool, +hs: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>) -> String:
+  match e:
+    case True{}:
+      "P.E{" ++ hs ++ ", " ++ notes(xs, ls, "st") ++ "}"
+    case False{}:
+      hs
 
-def step_body(last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def finish(+e: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
+  finish.e(e, fuses(xs, N.fuse_ends(xs, ls), links(xs, ls, st)), xs, ls)
+
+def step_body(+e: Bool, last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match last:
     case True{}:
-      finish(xs, ls, "h")
+      finish(e, xs, ls, "h")
     case False{}:
-      make_call(name, "h", j, spec_at(xs, j), pre_of(spec_at(xs, j), xs, j, a, b))
+      make_call(e, name, "h", j, spec_at(xs, j), pre_of(spec_at(xs, j), xs, j, a, b))
 
-def step_pre(last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def step_pre(+e: Bool, last: Bool, +name: String, +j: Nat, +xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match last:
     case True{}:
       ""
     case False{}:
-      pre_fn(name, j, spec_at(xs, j), pre_of(spec_at(xs, j), xs, j, a, b))
+      pre_fn(e, name, j, spec_at(xs, j), pre_of(spec_at(xs, j), xs, j, a, b))
 
 # step j (1 .. n), taking node j - 1
-def step_fn(+name: String, +j: Nat, +n: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
-  step_pre(Nat.is_ge(j, n), name, j, xs, a, b) ++
-  "def " ++ stepname(name, j) ++ "(r: P.H & U32, " ++ common() ++ made_params(Nat.sub(j, 1n), 0n) ++ ") -> P.H:\n" ++
+def step_fn(+e: Bool, +name: String, +j: Nat, +n: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  step_pre(e, Nat.is_ge(j, n), name, j, xs, a, b) ++
+  "def " ++ stepname(name, j) ++ "(r: P.H & U32, " ++ common(e) ++ made_params(Nat.sub(j, 1n), 0n) ++ ") -> " ++ ret(e) ++ ":\n" ++
     "  (h, +n" ++ Nat.show(Nat.sub(j, 1n)) ++ ") = r\n" ++
-    "  " ++ step_body(Nat.is_ge(j, n), name, j, xs, ls, a, b) ++ "\n\n"
+    "  " ++ step_body(e, Nat.is_ge(j, n), name, j, xs, ls, a, b) ++ "\n\n"
 
 # steps m down to 1
-def steps(+m: Nat, +name: String, +n: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def steps(+e: Bool, +m: Nat, +name: String, +n: Nat, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match m:
     case 0n:
       ""
     case 1n+p:
-      step_fn(name, m, n, xs, ls, a, b) ++ steps(p, name, n, xs, ls, a, b)
+      step_fn(e, name, m, n, xs, ls, a, b) ++ steps(e, p, name, n, xs, ls, a, b)
 
 def drop_if(d: Bool, +st: String, +isa: Bool) -> String:
   match d:
@@ -324,24 +389,24 @@ def start(+xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
     drop_if(is_data(a) && Nat.is_eq(uses(xs, True{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
       "P.fresh2(h, a, b)", True{}), False{})
 
-def entry(+name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def entry(+e: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match xs:
     case Nil{}:
-      "def " ++ name ++ "(h: P.H, " ++ common() ++ ") -> P.H:\n" ++
-        "  " ++ finish(xs, ls, start(xs, a, b)) ++ "\n\n"
+      "def " ++ name ++ "(h: P.H, " ++ common(e) ++ ") -> " ++ ret(e) ++ ":\n" ++
+        "  " ++ finish(e, xs, ls, start(xs, a, b)) ++ "\n\n"
     case Con{sp, t}:
-      steps(List.length(&2, R.Spec, xs), name, List.length(&2, R.Spec, xs), xs, ls, a, b) ++
-        pre_fn(name, 0n, sp, pre_of(sp, xs, 0n, a, b)) ++
-        "def " ++ name ++ "(h: P.H, " ++ common() ++ ") -> P.H:\n" ++
-        "  " ++ make_call(name, start(xs, a, b), 0n, sp, pre_of(sp, xs, 0n, a, b)) ++ "\n\n"
+      steps(e, List.length(&2, R.Spec, xs), name, List.length(&2, R.Spec, xs), xs, ls, a, b) ++
+        pre_fn(e, name, 0n, sp, pre_of(sp, xs, 0n, a, b)) ++
+        "def " ++ name ++ "(h: P.H, " ++ common(e) ++ ") -> " ++ ret(e) ++ ":\n" ++
+        "  " ++ make_call(e, name, start(xs, a, b), 0n, sp, pre_of(sp, xs, 0n, a, b)) ++ "\n\n"
 
 # a rule's functions, the first named `name`
-def rule_fns(r: R.Rule, +name: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def rule_fns(+e: Bool, r: R.Rule, +name: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match r:
     case R.RStuck{}:
       ""
     case R.RWire{+xs, +ls}:
-      entry(name, xs, ls, a, b)
+      entry(e, name, xs, ls, a, b)
 
 def is_stuck(r: R.Rule) -> Bool:
   match r:
@@ -394,15 +459,23 @@ def checked.e(none: Bool, +e: String) -> String:
 def checked(+a: R.NodeKind, +b: R.NodeKind) -> String:
   checked.e(String.eq(check_expr(a, b), ""), check_expr(a, b))
 
-def call.s(st: Bool, +name: String, +hs: String) -> String:
+# a stuck pair's state: the net, and in the eager family the stack too
+def stuck_e(+e: Bool, +hs: String) -> String:
+  match e:
+    case True{}:
+      "P.E{" ++ hs ++ ", st}"
+    case False{}:
+      hs
+
+def call.s(+e: Bool, st: Bool, +name: String, +hs: String) -> String:
   match st:
     case True{}:
-      "P.err_if(U32.is_ne(ka, 8), " ++ hs ++ ")"
+      stuck_e(e, "P.err_if(U32.is_ne(ka, 8), " ++ hs ++ ")")
     case False{}:
-      name ++ "(" ++ hs ++ ", " ++ common_args() ++ ")"
+      name ++ "(" ++ hs ++ ", " ++ common_args(e) ++ ")"
 
-def call(r: R.Rule, +name: String, +hs: String) -> String:
-  call.s(is_stuck(r), name, hs)
+def call(+e: Bool, r: R.Rule, +name: String, +hs: String) -> String:
+  call.s(e, is_stuck(r), name, hs)
 
 # Pairs
 # =====
@@ -412,7 +485,7 @@ def pname(+a: R.NodeKind, +b: R.NodeKind) -> String:
 
 # do the rule's two variants, for t true and false, differ?
 def differs(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
-  Bool.not(String.eq(rule_fns(R.rule(a, b, True{}), "x", a, b), rule_fns(R.rule(a, b, False{}), "x", a, b)))
+  Bool.not(String.eq(rule_fns(False{}, R.rule(a, b, True{}), "x", a, b), rule_fns(False{}, R.rule(a, b, False{}), "x", a, b)))
 
 def both_stuck(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
   is_stuck(R.rule(a, b, True{})) && is_stuck(R.rule(a, b, False{}))
@@ -428,64 +501,64 @@ def is_ctl_pair(a: R.NodeKind, b: R.NodeKind) -> Bool:
     case _ _:
       False{}
 
-def peeled_fn(+a: R.NodeKind, +b: R.NodeKind) -> String:
-  "def " ++ pname(a, b) ++ ".peeled(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:\n" ++
+def peeled_fn(+e: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  "def " ++ pname(a, b) ++ ".peeled" ++ sfx(e) ++ "(r: P.Pl, " ++ stk_param(e) ++ "+a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> " ++ ret(e) ++ ":\n" ++
   "  match r:\n" ++
   "    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:\n" ++
   "      match t:\n" ++
   "        case True{}:\n" ++
-  "          " ++ pname(a, b) ++ ".yes(h, " ++ common_args() ++ ")\n" ++
+  "          " ++ pname(a, b) ++ ".yes" ++ sfx(e) ++ "(h, " ++ common_args(e) ++ ")\n" ++
   "        case False{}:\n" ++
-  "          " ++ pname(a, b) ++ ".no(h, " ++ common_args() ++ ")\n\n"
+  "          " ++ pname(a, b) ++ ".no" ++ sfx(e) ++ "(h, " ++ common_args(e) ++ ")\n\n"
 
-def peeled_fns(c: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def peeled_fns(+e: Bool, c: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match c:
     case True{}:
-      peeled_fn(a, b)
+      peeled_fn(e, a, b)
     case False{}:
       ""
 
-def pair_fns.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def pair_fns.d(+e: Bool, d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match d:
     case True{}:
-      rule_fns(R.rule(a, b, True{}), pname(a, b) ++ ".yes", a, b) ++ rule_fns(R.rule(a, b, False{}), pname(a, b) ++ ".no", a, b) ++
-        peeled_fns(is_ctl_pair(a, b), a, b)
+      rule_fns(e, R.rule(a, b, True{}), pname(a, b) ++ ".yes" ++ sfx(e), a, b) ++ rule_fns(e, R.rule(a, b, False{}), pname(a, b) ++ ".no" ++ sfx(e), a, b) ++
+        peeled_fns(e, is_ctl_pair(a, b), a, b)
     case False{}:
-      rule_fns(R.rule(a, b, False{}), pname(a, b), a, b)
+      rule_fns(e, R.rule(a, b, False{}), pname(a, b) ++ sfx(e), a, b)
 
-def pair_fns(+a: R.NodeKind, +b: R.NodeKind) -> String:
-  pair_fns.d(differs(a, b), a, b)
+def pair_fns(+e: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  pair_fns.d(e, differs(a, b), a, b)
 
-def pair_case.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def pair_case.d(+e: Bool, d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match d:
     case True{}:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
       "      match t:\n" ++
       "        case True{}:\n" ++
-      "          " ++ call(R.rule(a, b, True{}), pname(a, b) ++ ".yes", checked(a, b)) ++ "\n" ++
+      "          " ++ call(e, R.rule(a, b, True{}), pname(a, b) ++ ".yes" ++ sfx(e), checked(a, b)) ++ "\n" ++
       "        case False{}:\n" ++
-      "          " ++ call(R.rule(a, b, False{}), pname(a, b) ++ ".no", checked(a, b)) ++ "\n"
+      "          " ++ call(e, R.rule(a, b, False{}), pname(a, b) ++ ".no" ++ sfx(e), checked(a, b)) ++ "\n"
     case False{}:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
-      "      " ++ call(R.rule(a, b, False{}), pname(a, b), checked(a, b)) ++ "\n"
+      "      " ++ call(e, R.rule(a, b, False{}), pname(a, b) ++ sfx(e), checked(a, b)) ++ "\n"
 
-def pair_case.p(c: Bool, +d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def pair_case.p(+e: Bool, c: Bool, +d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match c:
     case True{}:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
-      "      " ++ pname(a, b) ++ ".peeled(P.peel_ctl(" ++ checked(a, b) ++ ", a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)\n"
+      "      " ++ pname(a, b) ++ ".peeled" ++ sfx(e) ++ "(P.peel_ctl(" ++ checked(a, b) ++ ", a, b, ha, hb, pa, pb, e0, e2), " ++ stk_arg(e) ++ "a, b, ha, hb, e1, e3)\n"
     case False{}:
-      pair_case.d(d, a, b)
+      pair_case.d(e, d, a, b)
 
-def pair_case.s(s: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def pair_case.s(+e: Bool, s: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match s:
     case True{}:
       ""
     case False{}:
-      pair_case.p(is_ctl_pair(a, b), differs(a, b), a, b)
+      pair_case.p(e, is_ctl_pair(a, b), differs(a, b), a, b)
 
-def pair_case(+a: R.NodeKind, +b: R.NodeKind) -> String:
-  pair_case.s(both_stuck(a, b), a, b)
+def pair_case(+e: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  pair_case.s(e, both_stuck(a, b), a, b)
 
 def pick(b: Bool, +x: String, +y: String) -> String:
   match b:
@@ -494,12 +567,12 @@ def pick(b: Bool, +x: String, +y: String) -> String:
     case False{}:
       y
 
-def over_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind, +fns: Bool) -> String:
+def over_b(+e: Bool, bs: List<&2, R.NodeKind>, +a: R.NodeKind, +fns: Bool) -> String:
   match bs:
     case Nil{}:
       ""
     case Con{+b, t}:
-      pick(fns, pair_fns(a, b), pair_case(a, b)) ++ over_b(t, a, fns)
+      pick(fns, pair_fns(e, a, b), pair_case(e, a, b)) ++ over_b(e, t, a, fns)
 
 def check_case.e(none: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match none:
@@ -525,12 +598,12 @@ def checks_a(as: List<&2, R.NodeKind>) -> String:
     case Con{+a, t}:
       checks_b(kinds(), a) ++ checks_a(t)
 
-def over_a(as: List<&2, R.NodeKind>, +fns: Bool) -> String:
+def over_a(+e: Bool, as: List<&2, R.NodeKind>, +fns: Bool) -> String:
   match as:
     case Nil{}:
       ""
     case Con{+a, t}:
-      over_b(kinds(), a, fns) ++ over_a(t, fns)
+      over_b(e, kinds(), a, fns) ++ over_a(e, t, fns)
 
 def neg_str.b(b: Bool) -> String:
   match b:
@@ -594,7 +667,9 @@ def file() -> String:
   "import ./kprim.bend as P\n\n" ++
   "# The kernel's rewrites, generated from the rule table (spike/rules.bend)\n" ++
   "# by spike/tools/gen_krules.bend; do not edit. scripts/check.sh fails if\n" ++
-  "# this file differs from what the generator writes.\n\n" ++
+  "# this file differs from what the generator writes. Two families: the\n" ++
+  "# plain one on the net alone, and the eager one (`.e`), which notes on a\n" ++
+  "# strategy's stack each link it makes between two principal ports.\n\n" ++
   tables() ++
   "# when the rule leaves A, negative principal, meeting B as it is (R.rule):\n" ++
   "# 0 never, 1 always, 2 when the payload test fails, 3 when it passes\n" ++
@@ -602,13 +677,20 @@ def file() -> String:
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++
-  over_a(kinds(), True{}) ++
+  over_a(False{}, kinds(), True{}) ++
+  over_a(True{}, kinds(), True{}) ++
   "# the rewrite for A, negative principal, meeting B; t is the payload test\n" ++
-  "def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common() ++ ") -> P.H:\n" ++
+  "def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common(False{}) ++ ") -> P.H:\n" ++
   "  match ka kb:\n" ++
-  over_a(kinds(), False{}) ++
+  over_a(False{}, kinds(), False{}) ++
   "    case _ _:\n" ++
-  "      P.err_if(U32.is_ne(ka, 8), h)\n"
+  "      P.err_if(U32.is_ne(ka, 8), h)\n\n" ++
+  "# the same, noting the pairs it makes on the strategy's stack\n" ++
+  "def rewrite.e(+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common(True{}) ++ ") -> P.E:\n" ++
+  "  match ka kb:\n" ++
+  over_a(True{}, kinds(), False{}) ++
+  "    case _ _:\n" ++
+  "      P.E{P.err_if(U32.is_ne(ka, 8), h), st}\n"
 
 def main() -> IO(Unit):
   IO.print(file())

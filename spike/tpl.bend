@@ -130,7 +130,69 @@ def instantiate(q: N.Q, t: Tpl, +inst: U32) -> N.Q & U32:
 # Running a net
 # =============
 
-# link a root to the net's exposed port, then reduce
+# The queue a run starts from: the active pairs found by walking the
+# store in node order, each from its lower node, the last found first
+# out, as the kernel's eager strategy builds its stack (kstrat.bend); the
+# pairs the loader's links queued are dropped
+type Seed is Type:
+  Seed{q: N.Q, rq: List<&2, N.Redex>}
+
+def seed.push(c: Bool, rq: List<&2, N.Redex>, +a: U32, +b: U32) -> List<&2, N.Redex>:
+  match c:
+    case True{}:
+      N.Redex{a, b} <> rq
+    case False{}:
+      rq
+
+def seed.peer(rr: N.Q & U32, rq: List<&2, N.Redex>, +ref: U32) -> Seed:
+  (q, +p) = rr
+  Seed{q, seed.push(U32.is_eq(S.ref_port(p), 0) && U32.is_gt(p, ref), rq, ref, p)}
+
+def seed.live(live: Bool, q: N.Q, rq: List<&2, N.Redex>, +ref: U32) -> Seed:
+  match live:
+    case True{}:
+      seed.peer(N.q_word(q, ref, 1), rq, ref)
+    case False{}:
+      Seed{q, rq}
+
+def seed.hit(rr: N.Q & U32, rq: List<&2, N.Redex>, +ref: U32) -> Seed:
+  (q, +h) = rr
+  seed.live(U32.is_ne((h .&. 15 : U32), 0), q, rq, ref)
+
+def seed.slots(n: Nat, +page: U32, +slot: U32, s: Seed) -> Seed:
+  match n:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Seed{q, rq}:
+          seed.slots(p, page, (slot + 1 : U32), seed.hit(N.q_word(q, S.mk_ref(page, slot, 0), 0), rq, S.mk_ref(page, slot, 0)))
+
+def seed.pages(n: Nat, +page: U32, s: Seed) -> Seed:
+  match n:
+    case 0n:
+      s
+    case 1n+p:
+      seed.pages(p, (page + 1 : U32), seed.slots(S.cap(), page, 0, s))
+
+def seed.done(s: Seed, +itrs: U32, +errs: U32, +ser: U32) -> N.Q:
+  match s:
+    case Seed{q, rq}:
+      match q:
+        case N.Q{st, old, +i, +e, +r}:
+          N.Q{st, rq, i, e, r}
+
+def seed.start(r: S.Store & U32, +itrs: U32, +errs: U32, +ser: U32) -> N.Q:
+  (st, +np) = r
+  seed.done(seed.pages(U32.to_nat(np), 0, Seed{N.Q{st, Nil{}, itrs, errs, ser}, Nil{}}), itrs, errs, ser)
+
+def seed(q: N.Q) -> N.Q:
+  match q:
+    case N.Q{st, rq, +itrs, +errs, +ser}:
+      seed.start(S.st_pages(st), itrs, errs, ser)
+
+# link a root to the net's exposed port, then reduce from the pairs a
+# walk finds
 def e_q(e: N.E) -> N.Q:
   match e:
     case N.E{q, m}:
@@ -138,7 +200,7 @@ def e_q(e: N.E) -> N.Q:
 
 def run.root(r: N.Q & U32, +x: U32, +fuel: Nat) -> N.Q & U32:
   (q, +root) = r
-  (e_q(N.eval(64n, fuel, N.E{N.link(q, root, x), True{}})), root)
+  (e_q(N.eval(64n, fuel, N.E{seed(N.link(q, root, x)), True{}})), root)
 
 def run.go(r: N.Q & U32, +fuel: Nat) -> N.Q & U32:
   (q, +x) = r

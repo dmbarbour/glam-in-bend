@@ -6,13 +6,49 @@ import ./knet.bend as KN
 
 # Strategies over a net (heap-strategies in docs/plans/HeapModel_2026-10-27.md):
 # each wraps a net (knet.bend) with state of its own, decides which pair is
-# next, and hands the net back when done. The net's rewrites add the pairs
-# they make to its bag, which a strategy uses or clears.
+# next, and hands the net back when done. The net records none of its
+# active pairs: a strategy finds them itself (heap-strategies.stack).
 
 # Eager
 # =====
 
-# reduce active pairs, newest first, until none is left or fuel runs out
+# Pairs last in first out, from a stack of the strategy's own (kprim.bend's
+# Stk): built by walking the net for the lower node of each active pair,
+# then fed by the eager rewrites, which note the pairs they make.
+
+def scan.push(c: Bool, st: P.Stk, +i: U32) -> P.Stk:
+  match c:
+    case True{}:
+      P.push(st, i)
+    case False{}:
+      st
+
+# node i's principal faces q: a pair, recorded once, from its lower node
+def scan.peer(r: P.H & U32, st: P.Stk, +i: U32) -> P.E:
+  (h, +q) = r
+  P.E{h, scan.push(U32.is_eq(P.port(q), 0) && U32.is_gt(q, i), st, i)}
+
+def scan.go(live: Bool, h: P.H, st: P.Stk, +i: U32) -> P.E:
+  match live:
+    case True{}:
+      scan.peer(P.rd(h, (i + 1 : U32)), st, i)
+    case False{}:
+      P.E{h, st}
+
+def scan.hdr(r: P.H & U32, st: P.Stk, +i: U32) -> P.E:
+  (h, +hd) = r
+  scan.go(U32.is_ne(hd, 0), h, st, i)
+
+# the active pairs among k nodes from word i, onto the stack in node order
+def scan(k: Nat, +i: U32, e: P.E) -> P.E:
+  match k:
+    case 0n:
+      e
+    case 1n+p:
+      match e:
+        case P.E{h, st}:
+          scan(p, (i + 4 : U32), scan.hdr(P.rd(h, i), st, i))
+
 # the state after a run, and the fuel it left
 type Ran is Type:
   Ran{h: P.H, +left: Nat}
@@ -23,10 +59,10 @@ def run(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
       Ran{P.unpop(pp), 0n}
     case 1n+p:
       match pp:
-        case P.Pop{h, +x, +y, +ok}:
+        case P.Pop{h, st, +cap, +x, +y, +ok}:
           match ok:
             case True{}:
-              run(p, fast, P.pop(KN.interact(h, fast, x, y)))
+              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), cap))
             case False{}:
               Ran{h, 1n+p}
 
@@ -35,9 +71,20 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
     case Ran{h, +left}:
       P.count(h, U32.from_nat(Nat.sub(fuel, left)))
 
-# a run of at most fuel interactions, which counts them by the fuel it used
+def reduce.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
+  (st, +room) = r
+  ran(run(fuel, fast, P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room)), fuel)
+
+def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      reduce.go(P.stk_new(P.rs_words(cap)), h, cap, fuel, fast)
+
+# a run of at most fuel interactions, which counts them by the fuel it
+# used; the stack, with room for half the nodes, is let go at the end
 def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
-  ran(run(fuel, fast, P.pop(h)), fuel)
+  reduce.st(P.stats(h), fuel, fast)
 
 # Demand
 # ======
@@ -48,9 +95,9 @@ def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 # it, keeping a path; where it faces a principal port, that pair is next.
 # Only the path's last node can be in a pair, the others facing auxiliary
 # ports, so a rewrite there leaves the rest of the path as it was: the
-# walk resumes from the node below. The walk finds its pairs itself, so it
-# clears the net's bag every step; pairs off its path stay in the net,
-# found where they come to lie on the path, garbage where they never do.
+# walk resumes from the node below. The walk finds its pairs itself, its
+# rewrites noting none; pairs off its path stay in the net, found where
+# they come to lie on the path, garbage where they never do.
 # Erasures off the path are not reduced either (the maintainer, 2026-10-28:
 # unneeded work is better found by analysing nets ahead of time than by
 # erasing eagerly), so dropped values stay in the net. Done when node 0 faces a
@@ -233,7 +280,7 @@ def demand(k: Nat, d: D) -> D:
         case D{h, path, +top, +depth, +n, +st, +lz, +at}:
           match st:
             case 0:
-              demand(p, wk.q(P.rd(P.bag_clear(h), (top + 1 : U32)), path, top, depth, n))
+              demand(p, wk.q(P.rd(h, (top + 1 : U32)), path, top, depth, n))
             case _:
               D{h, path, top, depth, n, st, lz, at}
 

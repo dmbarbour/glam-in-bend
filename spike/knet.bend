@@ -12,8 +12,9 @@ import ./krules.bend as KR
 # pair is rewritten, how a template is loaded and a result read off the
 # interface, and the table's audit. Which pair to rewrite next is a
 # strategy's business (kstrat.bend, heap-strategies in
-# docs/plans/HeapModel_2026-10-27.md); a rewrite only adds the pairs it
-# makes to the net's bag (kprim.bend).
+# docs/plans/HeapModel_2026-10-27.md): the net records no pairs, and a
+# rewrite comes in two families, the plain one and the eager one, which
+# notes the pairs it makes on a strategy's stack (heap-strategies.stack).
 #
 # Its rewrites are krules.bend's, generated from the rule table (R.rule);
 # its reference is the table itself, interpreted here as net.bend does on
@@ -229,22 +230,101 @@ def fuse_made(partners: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: 
     case False{}:
       fuse_ends(N.fuse_ends(xs, ls), x, refs, xs, h)
 
-def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> P.H:
+# The links the interpreter makes between two principal ports, in the
+# order link_plain and link_pairs make them: an eager strategy notes
+# them, as the generated eager rewrites do (heap-strategies.stack)
+
+def note_of.go(both: Bool, +u: U32) -> List<&2, U32>:
+  match both:
+    case True{}:
+      [u]
+    case False{}:
+      []
+
+def note_of(+u: U32, +v: U32) -> List<&2, U32>:
+  note_of.go(U32.is_eq(P.port(u), 0) && U32.is_eq(P.port(v), 0), u)
+
+def notes_if(c: Bool, +u: U32, +v: U32) -> List<&2, U32>:
+  match c:
+    case True{}:
+      note_of(u, v)
+    case False{}:
+      []
+
+def notes_plain(ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> List<&2, U32>:
+  match ls:
+    case Nil{}:
+      []
+    case Con{R.Link{+u, +v}, t}:
+      List.append(&2, U32, notes_if(Bool.not(internal(x, a, b, u) || internal(x, a, b, v)), resolve(x, refs, xs, u), resolve(x, refs, xs, v)),
+        notes_plain(t, x, refs, xs, a, b))
+
+def notes_ends(oi: Maybe<&2, R.End>, oj: Maybe<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> List<&2, U32>:
+  match oi oj:
+    case Some{+u} Some{+v}:
+      notes_if(Bool.not(internal(x, a, b, u) || internal(x, a, b, v)), resolve(x, refs, xs, u), resolve(x, refs, xs, v))
+    case _ _:
+      []
+
+def notes_go(lt: Bool, +i: Nat, +j: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> List<&2, U32>:
+  match lt:
+    case True{}:
+      notes_ends(N.other(ls, i), N.other(ls, j), x, refs, xs, a, b)
+    case False{}:
+      []
+
+def notes_at(pt: Maybe<&2, Nat>, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> List<&2, U32>:
+  match pt:
+    case None{}:
+      []
+    case Some{+j}:
+      notes_go(Nat.is_lt(i, j), i, j, ls, x, refs, xs, a, b)
+
+def notes_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> List<&2, U32>:
+  match n:
+    case 0n:
+      []
+    case 1n+p:
+      List.append(&2, U32, notes_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b), notes_pairs(p, 1n+i, ls, x, refs, xs, a, b))
+
+# a rewrite by the table: the net, and the pairs its links made
+type Wd is Type:
+  Wd{h: P.H, ns: List<&2, U32>}
+
+def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> Wd:
   match m:
     case Mk{h, +refs, +ua, +ub}:
-      fuse_made(N.any_partner(x, a, b), xs, ls, x, refs, a, b,
-        link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h)))
+      Wd{fuse_made(N.any_partner(x, a, b), xs, ls, x, refs, a, b,
+          link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h))),
+        List.append(&2, U32, notes_plain(ls, x, refs, xs, a, b), notes_pairs(4n, 0n, ls, x, refs, xs, a, b))}
 
 # replace the redex a >< b by the rule's nodes and links
-def wire(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext) -> P.H:
+def wire(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext) -> Wd:
   wire.made(drop_unused(make(xs, ha, hb, pa, pb, Mk{P.fresh2(h, a, b), Nil{}, False{}, False{}}), ha, hb, pa, pb), xs, ls, x, a, b)
 
-def apply_rule(r: R.Rule, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+def apply_rule(r: R.Rule, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Wd:
   match r:
     case R.RWire{xs, ls}:
       wire(h, a, b, ha, hb, pa, pb, xs, ls, x)
     case R.RStuck{}:
-      P.err_if(U32.is_ne(P.rk(ha), 8), h)
+      Wd{P.err_if(U32.is_ne(P.rk(ha), 8), h), []}
+
+def wd.h(w: Wd) -> P.H:
+  match w:
+    case Wd{h, ns}:
+      h
+
+def push_all(ns: List<&2, U32>, st: P.Stk) -> P.Stk:
+  match ns:
+    case Nil{}:
+      st
+    case Con{+x, t}:
+      push_all(t, P.push(st, x))
+
+def wd.e(w: Wd, st: P.Stk) -> P.E:
+  match w:
+    case Wd{h, ns}:
+      P.E{h, push_all(ns, st)}
 
 # Interaction
 # ===========
@@ -305,6 +385,26 @@ def test.k(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -
 def test(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
   test.k(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
 
+# The same test for the eager chain, a copy kept identical to test.k: one
+# shared by both chains has two callers, and the compiler then folds it
+# into neither, which cost the eager reduction 5% to 12%
+# (heap-strategies.stack). The differential test compares the paths.
+def test.k.e(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  match ka kb:
+    case 3 4:
+      (h, same_lvl(ha, hb))
+    case 2 5:
+      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
+    case 2 1:
+      (h, same_lvl(ha, hb))
+    case 10 11:
+      (h, ctl_eq(ha, hb, pa, pb))
+    case _ _:
+      (h, False{})
+
+def test.e(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  test.k.e(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
+
 # is e a port of the redex itself? (net.bend's partner, without the index)
 def mine(+e: U32, +a: U32, +b: U32) -> Bool:
   U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
@@ -322,7 +422,7 @@ def go.gen(+t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb
 def go.interp.pl(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3})
+      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}))
 
 # the interpreted table; a Lift facing a LiftC is peeled first, as the
 # generated rewrite for the pair does (kprim.bend's peel_ctl)
@@ -333,7 +433,7 @@ def go.interp(ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32,
         case N.Ext4{+e0, +e1, +e2, +e3}:
           go.interp.pl(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
     case False{}:
-      apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)
+      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x))
 
 def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match gen:
@@ -392,6 +492,84 @@ def int.x(r: P.H & U32, +fast: Bool, +x: U32, +y: U32) -> P.H:
 # rewrite the active pair x >< y
 def interact(h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
   int.x(P.rd(h, x), fast, x, y)
+
+# The eager chain: the same steps with a strategy's stack beside the net,
+# on which each rewrite notes the pairs it makes, in the order it makes
+# them (heap-strategies.stack): the generated eager rewrites, or the
+# interpreter's notes (Wd)
+
+def go.gen.e(+t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      KR.rewrite.e(P.rk(ha), P.rk(hb), t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def go.interp.pl.e(r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
+  match r:
+    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
+      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
+
+def go.interp.e(ctl: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+  match ctl:
+    case True{}:
+      match x:
+        case N.Ext4{+e0, +e1, +e2, +e3}:
+          go.interp.pl.e(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+    case False{}:
+      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
+
+def go.which.e(gen: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+  match gen:
+    case True{}:
+      go.gen.e(t, h, st, a, b, ha, hb, pa, pb, x)
+    case False{}:
+      go.interp.e(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+
+def go.rule.e(r: P.H & Bool, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+  (h, +t) = r
+  go.which.e(fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x)
+
+def go.ext.e(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: P.Stk) -> P.E:
+  go.rule.e(test.e(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+    N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
+      aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
+
+def go.b2.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.E:
+  (h, +b2) = r
+  go.ext.e(fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+
+def go.b1.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.E:
+  (h, +b1) = r
+  go.b2.e(P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
+
+def go.a2.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.E:
+  (h, +a2) = r
+  go.b1.e(P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
+
+def go.a1.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
+  (h, +a1) = r
+  go.a2.e(P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
+
+def go.e(h: P.H, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
+  go.a1.e(P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
+
+def ori.e(neg: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.E:
+  match neg:
+    case True{}:
+      go.e(h, st, fast, x, y, hx, hy)
+    case False{}:
+      go.e(h, st, fast, y, x, hy, hx)
+
+def int.y.e(r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.E:
+  (h, +hy) = r
+  ori.e(KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
+
+def int.x.e(r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
+  (h, +hx) = r
+  int.y.e(P.rd(h, y), st, fast, x, y, hx)
+
+# rewrite the active pair x >< y, noting on st the pairs the rewrite makes
+def interact.e(h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
+  int.x.e(P.rd(h, x), st, fast, x, y)
 
 # Loading a template
 # ==================

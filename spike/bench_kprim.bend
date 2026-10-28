@@ -18,48 +18,48 @@ import ./kprim.bend as P
 # number (immediate) and take it.
 
 type B is Type:
-  B{h: P.H, +acc: U32}
+  B{h: P.H, st: P.Stk, +acc: U32}
 
 def fma11() -> V.Val:
   V.VFun{3, 1, [V.VNum{1}, V.VNum{1}]}
 
-def b.acc(r: P.H & U32, +acc: U32) -> B:
+def b.acc(r: P.H & U32, st: P.Stk, +acc: U32) -> B:
   (h, +x) = r
-  B{h, (acc + x : U32)}
+  B{h, st, (acc + x : U32)}
 
-def b.h(h: P.H, +acc: U32) -> B:
-  B{h, acc}
+def b.h(h: P.H, st: P.Stk, +acc: U32) -> B:
+  B{h, st, acc}
 
-def b.free(r: P.H & U32, +acc: U32) -> B:
+def b.free(r: P.H & U32, st: P.Stk, +acc: U32) -> B:
   (h, +n) = r
-  B{P.free(h, n), acc}
+  B{P.free(h, n), st, acc}
 
 def b.pop(pp: P.Pop, +acc: U32) -> B:
   match pp:
-    case P.Pop{h, +x, +y, +ok}:
-      B{h, (acc + x : U32)}
+    case P.Pop{h, st, +cap, +x, +y, +ok}:
+      B{h, st, (acc + x : U32)}
 
-def b.val(r: P.H & V.Val, +acc: U32) -> B:
+def b.val(r: P.H & V.Val, st: P.Stk, +acc: U32) -> B:
   (h, v) = r
-  B{h, acc}
+  B{h, st, acc}
 
-def b.dup(r: P.H & U32, +acc: U32) -> B:
+def b.dup(r: P.H & U32, st: P.Stk, +acc: U32) -> B:
   (h, +w) = r
-  B{P.drop(h, 0, w), acc}
+  B{P.drop(h, 0, w), st, acc}
 
-def b.take(r: P.H & U32, +acc: U32) -> B:
+def b.take(r: P.H & U32, st: P.Stk, +acc: U32) -> B:
   (h, +w) = r
-  b.val(P.tab_take(h, w), acc)
+  b.val(P.tab_take(h, w), st, acc)
 
-def b.pw(r: P.H & P.PW, +acc: U32) -> B:
+def b.pw(r: P.H & P.PW, st: P.Stk, +acc: U32) -> B:
   (h, pw) = r
   match pw:
     case P.PW{+m, +f, +w}:
-      B{h, (acc + w : U32)}
+      B{h, st, (acc + w : U32)}
 
-def b.apply(r: P.H & U32, +acc: U32, +i: U32) -> B:
+def b.apply(r: P.H & U32, st: P.Stk, +acc: U32, +i: U32) -> B:
   (h, +w) = r
-  b.pw(P.apply(h, P.hd2(9, 0, 0), w, P.hd2(5, 1, 0), i), acc)
+  b.pw(P.apply(h, P.hd2(9, 0, 0), w, P.hd2(5, 1, 0), i), st, acc)
 
 def b.fn(v: V.Val, +acc: U32) -> U32:
   match v:
@@ -68,53 +68,53 @@ def b.fn(v: V.Val, +acc: U32) -> U32:
     case _:
       acc
 
-def b.isfn(r: P.H & Bool, +acc: U32) -> B:
+def b.isfn(r: P.H & Bool, st: P.Stk, +acc: U32) -> B:
   (h, +t) = r
   match t:
     case True{}:
-      B{h, (acc + 1 : U32)}
+      B{h, st, (acc + 1 : U32)}
     case False{}:
-      B{h, acc}
+      B{h, st, acc}
 
-def b.imm(r: P.H & P.PW, +acc: U32) -> B:
+def b.imm(r: P.H & P.PW, st: P.Stk, +acc: U32) -> B:
   (h, pw) = r
   match pw:
     case P.PW{+m, +f, +w}:
-      b.val(P.take(h, m, f, w), (acc + w : U32))
+      b.val(P.take(h, m, f, w), st, (acc + w : U32))
 
 # node 0 and node 1 are allocated, entry 0 holds fma 1 1
 def step(b: B, +op: U32, +i: U32) -> B:
   match b:
-    case B{h, +acc}:
+    case B{h, st, +acc}:
       match op:
         case 1:
-          b.acc(P.rd(h, (i .&. 7 : U32)), acc)
+          b.acc(P.rd(h, (i .&. 7 : U32)), st, acc)
         case 2:
-          b.h(P.wr(h, 3, i), acc)
+          b.h(P.wr(h, 3, i), st, acc)
         case 3:
-          b.free(P.node(h, P.hd(7, 0), 0), acc)
+          b.free(P.node(h, P.hd(7, 0), 0), st, acc)
         case 4:
-          b.h(P.link(h, 1, 5), acc)
+          b.h(P.link(h, 1, 5), st, acc)
         case 5:
-          b.pop(P.pop(P.push(h, 1, 5)), acc)
+          b.pop(P.pop(P.E{h, P.push(st, 1)}, 64), acc)
         case 6:
-          b.val(P.tab_get(h, 0), acc)
+          b.val(P.tab_get(h, 0), st, acc)
         case 7:
-          b.dup(P.dup(h, 0, 0), acc)
+          b.dup(P.dup(h, 0, 0), st, acc)
         case 8:
-          b.take(P.tab_put(h, fma11()), acc)
+          b.take(P.tab_put(h, fma11()), st, acc)
         case 9:
-          b.apply(P.tab_put(h, fma11()), acc, i)
+          b.apply(P.tab_put(h, fma11()), st, acc, i)
         case 10:
-          b.pw(P.apply(h, P.hd2(9, 3, 2), 1, P.hd2(5, 1, 0), i), acc)
+          b.pw(P.apply(h, P.hd2(9, 3, 2), 1, P.hd2(5, 1, 0), i), st, acc)
         case 11:
-          B{h, b.fn(V.apply_fn(fma11(), V.VNum{i}), acc)}
+          B{h, st, b.fn(V.apply_fn(fma11(), V.VNum{i}), acc)}
         case 12:
-          b.isfn(P.val_is_fn(h, 0, 0, 0), acc)
+          b.isfn(P.val_is_fn(h, 0, 0, 0), st, acc)
         case 13:
-          b.imm(P.put(h, V.VNum{i}), acc)
+          b.imm(P.put(h, V.VNum{i}), st, acc)
         case _:
-          B{h, acc}
+          B{h, st, acc}
 
 def loop(n: Nat, +op: U32, b: B, +i: U32) -> B:
   match n:
@@ -135,9 +135,14 @@ def setup.n(r: P.H & U32) -> P.H:
 def setup() -> P.H:
   setup.e(P.tab_put(setup.n(P.node(setup.n(P.node(P.h_new(), P.hd(10, 0), 0)), P.hd(10, 0), 0)), fma11()))
 
+# the net, an empty stack, nothing accumulated
+def start(r: P.Stk & U32) -> B:
+  (st, +cap) = r
+  B{setup(), st, 0}
+
 def report(b: B) -> String:
   match b:
-    case B{h, +acc}:
+    case B{h, st, +acc}:
       "acc " ++ U32.show(acc)
 
 def main.args(xs: List<String>) -> IO(Unit):
@@ -147,7 +152,7 @@ def main.args(xs: List<String>) -> IO(Unit):
         case Con{a, r2}:
           match r2:
             case Con{c, r3}:
-              IO.print(report(loop(U32.to_nat(Maybe.default(&2, U32, U32.read(c), 1000)), Maybe.default(&2, U32, U32.read(a), 0), B{setup(), 0}, 0)))
+              IO.print(report(loop(U32.to_nat(Maybe.default(&2, U32, U32.read(c), 1000)), Maybe.default(&2, U32, U32.read(a), 0), start(P.stk_new(64)), 0)))
             case Nil{}:
               IO.print("usage: bench_kprim <op> <n>")
         case Nil{}:

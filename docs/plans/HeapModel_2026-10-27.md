@@ -312,7 +312,7 @@ takes from it:
      The full differential test (store run 32): the full reduction the
      same on all 3,600 terms; demand the same values, fewer interactions
      on 1,866 terms and more nodes left on 1,605, what eager erasure freed.
-   - `heap-strategies.stack` — active — no
+   - `heap-strategies.stack` — built 2026-10-28 — no
      pairs kept in the net (the maintainer, 2026-10-28): every active pair
      is in such a set once, every strategy but one would clear it, and
      switching strategies rebuilds it anyway. A stack strategy builds its
@@ -320,10 +320,28 @@ takes from it:
      pair, and learns of the pairs its rewrites make from a variant of
      the generated rewrites that notes each link joining two principals,
      its stack beside the net; demand's variant notes nothing, its state
-     narrower; the interpreter returns the links it made.
+     narrower; the interpreter returns the links it made. The spike's
+     reducer starts from the same walk. Against 54a7481, four builds at
+     k 18 (store run 35): demand 7.0% to 13.2% cheaper, the full
+     reduction -4.6% to +3.8%, once the eager chain had its own payload
+     test (shared, it cost 5% to 12%). The full differential test (run
+     33) clean, kernel and spike step for step. With the kernel's fusion
+     off, the new starting order gives every count and value of the old
+     (run 34 against run 3, all 3,600 terms): a complete reduction's
+     interactions do not depend on order, and the stack loses or repeats
+     no pair. With fusion on, 378 of the 1,800 leveled terms change
+     count with the order, 126 fewer and 252 more, -0.09% in all
+     (run 33 against run 32): fusion's savings depend on order.
    - `heap-strategies.profile` — contingent on `heap-strategies.net` —
      interactions counted per pair of kinds, fusions by shape, peels and
-     the controls alive, per term, into the analysis store.
+     the controls alive, per term, into the analysis store. Also counted
+     as the unit system would (the maintainer, 2026-10-28): a run of k
+     crossing a node or cancelling its equal counts k, two runs crossing
+     c times b, a peeled pair what peeling leaves; that count is the
+     unfused interactions, the same in every order of a complete
+     evaluation, and fusion's savings are it less the interactions made,
+     which may differ by order. Equal counts across orders test fusion's
+     soundness on whole nets, beyond `ctlwire.py`'s one wire.
    - `heap-strategies.trace` — contingent on `heap-strategies.net` — the
      net as rows at boundaries the caller sets (every n interactions, a
      demand step, a count of live controls), into a store of traces,
