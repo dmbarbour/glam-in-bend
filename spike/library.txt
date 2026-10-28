@@ -1,0 +1,141 @@
+# The library of nets (pairing-library in docs/plans/NetPairing_2026-10-26.md),
+# run by spike/tools/library.py, whose docstring gives the format. Keep an
+# entry for what it exercises, and say so in `why`.
+
+# Controls facing at one index (kprim.bend's peel_ctl): the run raising
+# further keeps as many units facing as the other raises, or one facing a
+# drop, and the rest goes behind it. No random term has peeled.
+
+name: peel-raises-2-1
+why: a Lift raising 2 cancels a LiftC raising 1, its rest passes the 5
+nodes: ctl(0,+2) ctlc(0,+1) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 3 peels 1
+
+name: peel-raises-1-2
+why: a LiftC raising 2 cancels a Lift raising 1
+nodes: ctl(0,+1) ctlc(0,+2) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 3 peels 1
+
+name: peel-drop-raise-2
+why: a drop facing a Lift raising 2 crosses its first unit, then the rest
+nodes: ctl(0,+2) ctlc(0,-1) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 6 peels 1
+
+name: peel-raise-2-drop
+why: a LiftC raising 2 facing a drop
+nodes: ctl(0,-1) ctlc(0,+2) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 6 peels 1
+
+name: cross-runs-2-1
+why: runs at different indices cross whole, weighing each unit of one
+  crossing each of the other (2 by 1), then each crossing what follows
+nodes: ctl(0,+2) ctlc(1,+1) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 6 peels 0
+
+name: cancel-runs-3
+why: equal runs of 3 cancel in one interaction, weighing 3
+nodes: ctl(0,+3) ctlc(0,+3) num(5)
+links: 0.0-1.0 1.1-2.0
+root: 0.1
+net: 5 weighted 4 peels 0
+
+# Terms that found faults (NetPairing's pairing-fusion)
+
+name: self-add
+why: the smallest term the old fusion read as none on demand
+term: self (add #2 #1) succ 0
+levels: 27 weighted 341 peels 0
+unfused: 27 weighted 1275 peels 0
+
+name: fused-crossing-22
+why: under the old fusion, a fused control crossing a facing control its
+  first part would have cancelled: the full reduction ran out of fuel
+term: ((\f. add (f #3) (f (mul (pow #2 #3) (pow #1 #2)))) (\n. mul n #2)) succ 0
+levels: 22 weighted 423 peels 0
+unfused: 22 weighted 1663 peels 0
+
+# The costliest leveled terms of the random corpus (pairing-overhead.profile;
+# store run 44): bookkeeping, controls crossing controls and fans
+
+name: costly-124
+why: labels need 326 interactions; with levels, 97% of the work is controls
+  crossing controls, fans and numbers, and erased one at a time
+term: (mul (pow ((\f. add (f #1) (f #2)) (\n. n (add #1) #0)) (mul #3 #2)) (pow (mul #0 #3) (mul #3 #3))) succ 0
+levels: 0 weighted 23370 peels 0
+labels: 0 weighted 326 peels 0
+unfused: 0 weighted 128934 peels 0
+
+name: costly-107
+why: labels need 193 interactions, levels 77 times as many
+term: ((\f. mul (f ((\f. mul (f ((\x. mul x x) #3)) (f #2)) (\n. pow n #2))) (f (twice (\n. add n n) #0))) (\n. mul n #2)) succ 0
+levels: 0 weighted 19568 peels 0
+labels: 0 weighted 193 peels 0
+unfused: 0 weighted 53548 peels 0
+
+name: costly-133
+why: the costliest that finishes, a self-application labels cannot finish;
+  with unit brackets it needs more than the fuel
+term: (pow ((\n. n (add #1) #0) (self #1)) (self (twice (mul #2) #1))) succ 0
+levels: 1 weighted 230763 peels 0
+
+name: costly-6
+why: a self-application labels get wrong; the kernel's fusion saves half
+  its weighted count. With labels the full reduction stops with no value,
+  and demand walks until its fuel runs out: a cycle of principal ports
+  facing auxiliary ones
+term: (pow (self (twice (\n. pow n #2) #0)) ((\f. mul (f (twice (\n. mul n #2) #1)) (f (twice (\n. n n) #2))) (\n. n (add #1) #0))) succ 0
+levels: 1 weighted 150320 peels 0
+labels: wrong
+unfused: 1 weighted 1634554 peels 0
+
+# Families at n, 2n and 4n, for fitting cost to a + b n^k
+
+name: pow-2-3
+why: 2^3 with levels, a family with pow-2-6 and pow-2-12
+term: pow #2 #3 succ 0
+levels: 8 weighted 128 peels 0
+labels: 8 weighted 50 peels 0
+unfused: 8 weighted 286 peels 0
+
+name: pow-2-6
+why: 2^6
+term: pow #2 #6 succ 0
+levels: 64 weighted 590 peels 0
+labels: 64 weighted 201 peels 0
+unfused: 64 weighted 1550 peels 0
+
+name: pow-2-12
+why: 2^12
+term: pow #2 #12 succ 0
+levels: 4096 weighted 25034 peels 0
+labels: 4096 weighted 8343 peels 0
+unfused: 4096 weighted 82478 peels 0
+
+name: self-2
+why: n^n by self-application, a family with self-3 and self-4; labels run
+  past any fuel on each
+term: self #2 succ 0
+levels: 4 weighted 71 peels 0
+unfused: 4 weighted 171 peels 0
+
+name: self-3
+why: 3^3
+term: self #3 succ 0
+levels: 27 weighted 319 peels 0
+unfused: 27 weighted 579 peels 0
+
+name: self-4
+why: 4^4
+term: self #4 succ 0
+levels: 256 weighted 2135 peels 0
+unfused: 256 weighted 3335 peels 0

@@ -437,9 +437,9 @@ def bend_node(kind, args, levels=True):
     if kind == "cp": return f"X.cpl({args[0]}, {args[1]})" if levels else f"X.cp({args[0]})"
     if kind == "br": return f"X.br({args[0]})"
     if kind == "cr": return f"X.cr({args[0]})"
-    if kind == "ctl":
+    if kind in ("ctl", "ctlc"):
         n, off = args
-        return f"X.ctl({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
+        return f"X.{kind}({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
     return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()"}[kind]
 

@@ -10,12 +10,16 @@ note. Results hang off runs:
   profiles the profiling strategy (spike/tools/profile.sh), one row per
            term: value, interactions, errors, the weighted count, peels
   pair_counts  its interactions by pair of kinds, A's principal negative
+  library  the library of nets (spike/tools/library.py --store), one row
+           per entry and mode: whether its checks passed, its value, and
+           the interactions of the spike, the full reduction and demand
   counts   instructions and interactions per build and workload
   metrics  any named number
 
     results.py run TOOL PARAMS_JSON [NOTE]       start a run, print its id
     results.py terms RUN ENDING MODE SEED FILE   import a differential output
     results.py profiles RUN ENDING MODE SEED FILE  import a profile output
+    results.py library RUN FILE                  import library.py's rows
     results.py count RUN BUILD WORKLOAD K LAZY ITRS INSTRUCTIONS [CYCLES]
     results.py metric RUN NAME VALUE
     results.py sql QUERY                         print rows, tab-separated
@@ -65,6 +69,10 @@ create table if not exists pair_counts (
   run_id integer not null references runs(id), ending text not null, mode text not null,
   seed integer not null, term integer not null, a text not null, b text not null, n integer not null,
   primary key (run_id, ending, mode, seed, term, a, b));
+create table if not exists library (
+  run_id integer not null references runs(id), name text not null, mode text not null, ok integer,
+  value text, spike_i integer, fast_i integer, lazy_i integer, weighted integer, peels integer,
+  primary key (run_id, name, mode));
 """
 
 # one line of terms.py --kernel's output
@@ -159,6 +167,16 @@ def cmd_profiles(run, ending, mode, seed, path):
     print(len(rows), "terms,", len(pairs), "pair counts from", path)
 
 
+def cmd_library(run, path):
+    rows = []
+    for line in open(path):
+        f = line.rstrip("\n").split("\t")
+        rows.append((int(run), f[0], f[1], int(f[2]), f[3]) + tuple(None if x == "" else int(x) for x in f[4:9]))
+    with db() as c:
+        c.executemany("insert or replace into library values (" + ",".join("?" * 10) + ")", rows)
+    print(len(rows), "library cases from", path)
+
+
 def cmd_count(run, build, workload, k, lazy, itrs, ins, cycles=None):
     with db() as c:
         c.execute("insert into counts values (?,?,?,?,?,?,?,?)",
@@ -206,7 +224,7 @@ group by a.mode order by a.mode
 
 
 def main(argv):
-    cmds = {"run": cmd_run, "terms": cmd_terms, "profiles": cmd_profiles, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
+    cmds = {"run": cmd_run, "terms": cmd_terms, "profiles": cmd_profiles, "library": cmd_library, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
             "summary": lambda run: cmd_sql(SUMMARY.format(run=int(run))),
             "fusion": lambda on, off: cmd_sql(FUSION.format(on=int(on), off=int(off)))}
     if not argv or argv[0] not in cmds:

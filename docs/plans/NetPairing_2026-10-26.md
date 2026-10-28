@@ -271,17 +271,27 @@ derivation made here first.
    reductions agree, and demand does no more. Interactions go to the
    analysis store as measurements, not expectations. Random search stays
    to find entries: what it finds is shrunk and added.
-   - `pairing-library.format` — active — `spike/library.txt` and
-     `spike/tools/library.py`, which writes the program running the
-     entries, checks what it prints, rewrites the weighted counts on
-     `--update`, and records interactions in the store.
-   - `pairing-library.seed` — contingent on `pairing-library.format` —
-     the nets known to matter: the peel nets of `test_levels.bend`, the
-     costliest terms (`pairing-overhead.profile`), the terms that found
-     the fusion faults, self-applications labels get wrong, and families
-     at n, 2n and 4n.
-   - `pairing-library.gate` — contingent on `pairing-library.seed` —
-     `scripts/check.sh` runs the library, if it stays fast.
+   - `pairing-library.format` — built 2026-10-28 — `spike/library.txt`
+     and `spike/tools/library.py`, which writes one program running
+     every case through the spike, the interpreted table, the generated
+     rewrites, demand and the profile, checks what it prints (values,
+     no errors, the data table in step, the eager counts equal, demand
+     done in no more, weighted count and peels, the evaluator's value,
+     polarity), rewrites the weighted counts and peels on `--update`,
+     never a value, and records every case in the store on `--store`
+     (table `library`). A case changed by one weighted interaction, or
+     a net linking two positive ports, fails.
+   - `pairing-library.seed` — built 2026-10-28 — 18 entries, 35 cases:
+     the six controls-facing nets (four peeling), the two terms that
+     found the fusion faults, the four costliest finished terms of the
+     random corpus, and families `pow #2 #n` (n 3, 6, 12) and `self #n`
+     (n 2, 3, 4), each in the lowerings that finish: labels never finish
+     a self-application, and `costly-6` keeps labels as `wrong`. Left
+     out: #33 of seed 11, which no full reduction finishes in the fuel
+     though demand finds its value in 340 interactions. Store run 46.
+   - `pairing-library.gate` — built 2026-10-28 — `scripts/check.sh`
+     runs the library, writing to `results/library`: 22 s of the
+     gate's 40.
    - `pairing-library.grow` — tentative — entries from what the one-wire
      model, random search or traces find, shrunk first; nets not built
      from terms (`pairing-nets`).

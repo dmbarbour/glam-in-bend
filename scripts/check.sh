@@ -1,8 +1,9 @@
 #!/bin/sh
 # The gate: run before every commit, from anywhere in the repository.
 # Checks the docs, the law history, the proofs (each `PROOF.bend`), that
-# generated code matches its generator, then that every other Bend file
-# still typechecks. Exits nonzero on any
+# generated code matches its generator, the library of nets
+# (spike/library.txt), then that every other Bend file still typechecks.
+# Exits nonzero on any
 # failure, and names the tree it checked so a stale pass can't pass for new.
 set -u
 cd "$(dirname "$0")/.." || exit 1
@@ -44,6 +45,15 @@ if [ -f spike/tools/gen_krules.bend ]; then
     echo "spike/krules.bend differs from what spike/tools/gen_krules.bend writes: regenerate it"
     status=1
   fi
+fi
+
+echo "== library"
+# every net of spike/library.txt through every strategy, its checks
+# (pairing-library); the program and its output go to results/library
+if [ -f spike/library.txt ]; then
+  BEND=$BEND python3 -I spike/tools/library.py results/library > results/library.log 2>&1 || {
+    grep -v '^ok ' results/library.log; status=1; }
+  tail -n 1 results/library.log
 fi
 
 echo "== bend files"

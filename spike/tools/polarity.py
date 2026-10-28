@@ -7,6 +7,7 @@ principal). Port polarities are rules.bend's (R.port_pol):
     Fn [+ fn, - result, + arg]    Ap [- ap, - arg, + result]
     Copy [- in, + left, + right]  Lift [- in, + out]
     data [+]                      EraN [-]
+    LiftC [+ out, - in] (no lowering makes one; spike/library.txt may)
 
     polarity.py [COUNT]   the differential test's terms (spike/tools/
                           differential.sh): three seeds of COUNT, each
@@ -18,7 +19,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import terms  # noqa: E402
 
-POL = {"fn": "+-+", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+",
+POL = {"fn": "+-+", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+", "ctlc": "+-",
        "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-"}
 
 

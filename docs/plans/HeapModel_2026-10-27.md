@@ -406,7 +406,12 @@ takes from it:
      written from Bend once its SQLite package is vetted, else imported.
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
-     (its profile is store run 26).
+     (its profile is store run 26). And a deadlock reported, not walked:
+     on a cycle of principal ports each facing an auxiliary one, the
+     walk goes round until its fuel runs out (the library's `costly-6`
+     with labels: 84 interactions, then 2.56M steps). A path longer than
+     the net has nodes is such a cycle. Lowered terms make none with
+     levels, but nets users wire may (`pairing-nets`).
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

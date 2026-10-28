@@ -110,9 +110,13 @@ Lessons carried over from the Rust bootstrap:
 
 Run `scripts/check.sh` before every commit. It checks the docs (links,
 decision records and their index, plan and review lists, step names), the
-law history, then runs `bend PROOF.bend`, and names the tree it checked.
-Report its result as it is: a check skipped or too slow to finish is not a
-pass.
+law history, then runs `bend PROOF.bend` and the library of nets
+(`spike/library.txt`), and names the tree it checked. Report its result as
+it is: a check skipped or too slow to finish is not a pass.
+
+The library holds small nets kept for what they exercise, each with what
+must hold. Add an entry for each fault or costly case found, shrunk first;
+random corpora are for finding them, not the main test.
 
 The commit-msg hook in `.githooks/` checks `Plan-Step:` and `Law:` trailers
 before a commit is recorded. Enable it once per clone with
