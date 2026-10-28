@@ -219,9 +219,20 @@ derivation made here first.
      with levels, without, unfused) link positive ports to negative ones
      only, each port once, the exposed port positive (`spike/tools/
      polarity.py`, store run 29); enforcing it is `pairing-nets.check`.
-   - `pairing-overhead.profile` — contingent on `heap-strategies.profile`
-     — the four costliest terms profiled: which pairs of kinds, fusions
-     and controls make their cost.
+   - `pairing-overhead.profile` — built 2026-10-28 — the costliest
+     leveled terms profiled (store run 44, `succ 0`; HeapModel's
+     `heap-strategies.profile`). #33 of seed 11 runs out of fuel with
+     levels and labels alike, 72% of the leveled interactions only as
+     far as the fuel lets it: its calls meet controls and fans
+     (Call·LiftC 37%, Call·Merge 29%), then controls meet controls (19%)
+     and fans (15%). In #124 and #133 of seed 7 and #6 and #107 of seed
+     23, controls crossing controls (Lift·LiftC) make 45% to 57% of the
+     interactions, controls crossing fans (Lift·Merge) 3% to 27%,
+     controls erased one at a time (Lift·EraP) 12% and 21% in #124 and
+     #133, controls meeting numbers (Lift·Data) 12% and 26% in #124 and
+     #107: bookkeeping is 97% of what #124 and #107 do. The kernel's
+     fusion saves 54% of #6's weighted count (68,512 interactions for
+     150,320) and 10% to 25% of the others'. No term peels.
    - `pairing-overhead.trace` — contingent on `heap-strategies.trace` —
      #133 and #124 traced where their controls pile up.
    - `pairing-overhead.stratify` — tentative — box constraints for the
