@@ -99,6 +99,12 @@ Lessons carried over from the Rust bootstrap:
   (`spike/tools/inline_build.sh`).
 - Baselines live in the plan or review that uses them; reusable workloads
   live in `bench/`.
+- Bulk results go in the analysis store with the parameters that produced
+  them: `scripts/results.py` (SQLite, `results/analysis.sqlite`, out of
+  git) records a run's tool, parameters, commit and changed paths, Bend's
+  version and the CPU, with its rows. `spike/tools/differential.sh`
+  records every term; record other bulk runs there too, and cite run ids
+  where a plan reports what they found.
 
 ## Gate
 

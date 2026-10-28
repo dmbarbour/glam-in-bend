@@ -107,6 +107,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`copy-reduced-function-nets`](decisions/copy-reduced-function-nets.md):
   a function's net reduces locally, then each application copies it
   whole; cursors wait for measurements.
+- [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
+  only into runs of raises, peeled where a facing control meets them at
+  their index; other fusion waits on a safety criterion.
 - [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):

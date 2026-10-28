@@ -417,10 +417,39 @@ def differs(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
 def both_stuck(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
   is_stuck(R.rule(a, b, True{})) && is_stuck(R.rule(a, b, False{}))
 
+# Peeling: a Lift and a LiftC meeting at one index as different runs of
+# units are peeled first (kprim.bend's peel_ctl, fuse-control-runs),
+# which gives the payload test on what is left and the new peers of their
+# ports 1; only this pair pays for it
+def is_ctl_pair(a: R.NodeKind, b: R.NodeKind) -> Bool:
+  match a b:
+    case R.KLift{} R.KLiftC{}:
+      True{}
+    case _ _:
+      False{}
+
+def peeled_fn(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  "def " ++ pname(a, b) ++ ".peeled(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:\n" ++
+  "  match r:\n" ++
+  "    case P.Pl{h, +t, +pa, +pb, +e0, +e2}:\n" ++
+  "      match t:\n" ++
+  "        case True{}:\n" ++
+  "          " ++ pname(a, b) ++ ".yes(h, " ++ common_args() ++ ")\n" ++
+  "        case False{}:\n" ++
+  "          " ++ pname(a, b) ++ ".no(h, " ++ common_args() ++ ")\n\n"
+
+def peeled_fns(c: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match c:
+    case True{}:
+      peeled_fn(a, b)
+    case False{}:
+      ""
+
 def pair_fns.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match d:
     case True{}:
-      rule_fns(R.rule(a, b, True{}), pname(a, b) ++ ".yes", a, b) ++ rule_fns(R.rule(a, b, False{}), pname(a, b) ++ ".no", a, b)
+      rule_fns(R.rule(a, b, True{}), pname(a, b) ++ ".yes", a, b) ++ rule_fns(R.rule(a, b, False{}), pname(a, b) ++ ".no", a, b) ++
+        peeled_fns(is_ctl_pair(a, b), a, b)
     case False{}:
       rule_fns(R.rule(a, b, False{}), pname(a, b), a, b)
 
@@ -440,12 +469,20 @@ def pair_case.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
       "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
       "      " ++ call(R.rule(a, b, False{}), pname(a, b), checked(a, b)) ++ "\n"
 
+def pair_case.p(c: Bool, +d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match c:
+    case True{}:
+      "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n" ++
+      "      " ++ pname(a, b) ++ ".peeled(P.peel_ctl(" ++ checked(a, b) ++ ", a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)\n"
+    case False{}:
+      pair_case.d(d, a, b)
+
 def pair_case.s(s: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match s:
     case True{}:
       ""
     case False{}:
-      pair_case.d(differs(a, b), a, b)
+      pair_case.p(is_ctl_pair(a, b), differs(a, b), a, b)
 
 def pair_case(+a: R.NodeKind, +b: R.NodeKind) -> String:
   pair_case.s(both_stuck(a, b), a, b)

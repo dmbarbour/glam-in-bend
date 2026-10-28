@@ -695,63 +695,36 @@ def copy_fn_bad(+ha: U32, +hb: U32) -> Bool:
 #
 # net.bend's "Fusing controls" on this layout: a control's field is its
 # index, its word 3 its offset. Ports: a Lift's 0 is in, 1 out; a LiftC's
-# 0 out, 1 in. The node freed is the one whose principal faces the other's
-# auxiliary, so it is in no active pair; controls that cancel are left
-# alone when the survivor's principal faces a principal.
+# 0 out, 1 in. Only raises fuse, into a run of unit brackets (V.compose);
+# the node freed is the one whose principal faces the other's auxiliary,
+# so it is in no active pair.
 
 type FZ is Data:
   FzNo{}
-  FzId{}
   FzTo{+n: U32, +o: U32}
 
-def fz.down(gt: Bool, eq: Bool, +n: U32, +b1: U32, +b2: U32) -> FZ:
-  match gt eq:
-    case True{} _:
-      FzTo{n, ((b1 - b2 : U32) .|. 2147483648 : U32)}
-    case False{} True{}:
-      FzId{}
-    case False{} False{}:
-      FzTo{n, (b2 - b1 : U32)}
-
-def fz.ok(ok: Bool, up2: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
+def fz.ok(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
   match ok:
+    case True{}:
+      FzTo{n1, ((b1 + b2 : U32) .|. 2147483648 : U32)}
     case False{}:
       FzNo{}
-    case True{}:
-      match up2:
-        case True{}:
-          FzTo{n1, ((b1 + b2 : U32) .|. 2147483648 : U32)}
-        case False{}:
-          fz.down(U32.is_gt(b1, b2), U32.is_eq(b1, b2), n1, b1, b2)
 
 # the one control acting as the first (index n1, offset o1) then the
-# second, if any (V.compose); a raise past the field's range is refused
+# second, if any (V.compose): both raise, the second's index where the
+# first's raise ends; a raise past the field's range is refused
 def compose(+n1: U32, +o1: U32, +n2: U32, +o2: U32) -> FZ:
-  fz.ok(off_up(o1) && U32.is_le(n1, n2) && U32.is_le(n2, (n1 + off_by(o1) : U32)) &&
-      (Bool.not(off_up(o2)) || U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap())),
-    off_up(o2), n1, off_by(o1), off_by(o2))
+  fz.ok(off_up(o1) && off_up(o2) && U32.is_eq(n2, (n1 + off_by(o1) : U32)) &&
+      U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap()),
+    n1, off_by(o1), off_by(o2))
 
 def ctl_set(h: H, +r: U32, +k: U32, +n: U32, +o: U32) -> H:
   wr(wr(h, r, hd(k, n)), (r + 3 : U32), o)
-
-
-def fl.id.go(active: Bool, h: H, +p: U32, +l: U32, +i: U32, +o: U32) -> H:
-  match active:
-    case True{}:
-      h
-    case False{}:
-      free(free(link(h, i, o), p), l)
-
-def fl.id(r: H & U32, +p: U32, +l: U32, +o: U32) -> H:
-  (h, +i) = r
-  fl.id.go(U32.is_eq(port(i), 0), h, p, l, i, o)
 
 def fl.fuse(f: FZ, h: H, +p: U32, +l: U32, +o: U32) -> H:
   match f:
     case FzNo{}:
       h
-    case FzId{}:
-      fl.id(rd(h, (p + 1 : U32)), p, l, o)
     case FzTo{+n, +off}:
       free(link(ctl_set(h, p, 10, n, off), (p + 1 : U32), o), l)
 
@@ -779,23 +752,10 @@ def fl.hp(r: H & U32, +p: U32, +l: U32) -> H:
 def fuse_lifts(h: H, +p: U32, +l: U32) -> H:
   fl.hp(rd(h, p), p, l)
 
-def fc.id.go(active: Bool, h: H, +a: U32, +b: U32, +i: U32, +o: U32) -> H:
-  match active:
-    case True{}:
-      h
-    case False{}:
-      free(free(link(h, i, o), a), b)
-
-def fc.id(r: H & U32, +a: U32, +b: U32, +i: U32) -> H:
-  (h, +o) = r
-  fc.id.go(U32.is_eq(port(o), 0), h, a, b, i, o)
-
 def fc.fuse(f: FZ, h: H, +a: U32, +b: U32, +i: U32) -> H:
   match f:
     case FzNo{}:
       h
-    case FzId{}:
-      fc.id(rd(h, (b + 1 : U32)), a, b, i)
     case FzTo{+n, +off}:
       free(link(ctl_set(h, b, 11, n, off), i, (b + 1 : U32)), a)
 
@@ -887,6 +847,83 @@ def fa.go0(none: Bool, h: H, +x: U32) -> H:
 # interactions, at more cost than it saved.
 def fuse(h: H, +x: U32) -> H:
   fa.go0(U32.is_eq(x, nil()), h, x)
+
+
+# Peeling
+# =======
+#
+# net.bend's "Peeling" on this layout: a Lift l and a LiftC c facing at
+# one index as different controls; the run raising further keeps as many
+# units facing as the other raises, or one facing a drop, and a new
+# control of its kind takes the rest behind it (a Lift's port 1, out; a
+# LiftC's port 1, in), from the index where the kept units end.
+
+def sel_u(c: Bool, +x: U32, +y: U32) -> U32:
+  match c:
+    case True{}:
+      x
+    case False{}:
+      y
+
+# how much of a run (ua, ba) to keep facing (ub, bb), 0 to peel none
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32) -> U32:
+  match ua ub:
+    case True{} True{}:
+      sel_u(U32.is_lt(bb, ba), bb, 0)
+    case True{} False{}:
+      sel_u(U32.is_lt(1, ba), 1, 0)
+    case _ _:
+      0
+
+# what peeling one control leaves: the state, its offset word, the peer
+# of its port 1
+type Pe is Type:
+  Pe{h: H, +o: U32, +e: U32}
+
+def pe.at(r: H & U32, +x: U32, +e: U32, +o: U32) -> Pe:
+  (h, +rest) = r
+  Pe{link(link(h, (x + 1 : U32), rest), (rest + 1 : U32), e), o, rest}
+
+# control x, of kind k2 at index n with offset o and port 1's peer e,
+# keeps k units of its run; a new control of its kind takes the rest
+# behind it, between its port 1 and e
+def pe.do(+k: U32, h: H, +x: U32, +k2: U32, +n: U32, +o: U32, +e: U32) -> Pe:
+  match k:
+    case 0:
+      Pe{h, o, e}
+    case _:
+      pe.at(node(err_if(U32.is_ge((n + k : U32), lvl_cap()), wr(h, (x + 3 : U32), (k .|. 2147483648 : U32))),
+          hd(k2, (n + k : U32)), ((off_by(o) - k : U32) .|. 2147483648 : U32)), x, e, (k .|. 2147483648 : U32))
+
+# the rule's payload test (ctl_eq) on what peeling leaves, the offsets,
+# and the peers of the two ports 1
+type Pl is Type:
+  Pl{h: H, +t: Bool, +pa: U32, +pb: U32, +e0: U32, +e2: U32}
+
+def pl.fin(r: Pe, +pa: U32, +e0: U32) -> Pl:
+  match r:
+    case Pe{h, +pb, +e2}:
+      Pl{h, U32.is_eq(pa, pb), pa, pb, e0, e2}
+
+def pl.c(r: Pe, +b: U32, +n: U32, +kc: U32, +pb: U32, +e2: U32) -> Pl:
+  match r:
+    case Pe{h, +pa, +e0}:
+      pl.fin(pe.do(kc, h, b, 11, n, pb, e2), pa, e0)
+
+def peel_ctl.go(same: Bool, h: H, +a: U32, +b: U32, +n: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
+  match same:
+    case True{}:
+      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb)), h, a, 10, n, pa, e0), b, n,
+        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa)), pb, e2)
+    case False{}:
+      Pl{h, False{}, pa, pb, e0, e2}
+
+# Lift a (header ha, offset pa, port 1's peer e0) facing LiftC b (hb, pb,
+# e2): peeled where they meet at one index as different runs. The
+# generated rewrite for this pair alone calls it (gen_krules.bend), so no
+# other pair pays for the test.
+def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
+  peel_ctl.go(U32.is_eq(fld(ha), fld(hb)), h, a, b, fld(ha), pa, pb, e0, e2)
 
 
 # Active pairs

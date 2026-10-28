@@ -290,7 +290,10 @@ takes from it:
    (\n. mul n #2)) succ 0`, 22, runs out of fuel). The smallest term
    found: `self (add #2 #1) succ 0`, 27, read as none on demand. Likely
    cause: NetPairing's caveat, a fused control crossing a facing control
-   that its first part would have cancelled (an open question below).
+   that its first part would have cancelled. Fixed since in NetPairing's
+   `pairing-fusion` (`fuse-control-runs`): with fusion limited to runs of
+   raises and runs peeled where a partner meets them, demand gets all 600
+   right and never makes more interactions than the full reduction.
 3. `heap-freeze` — frozen nets: freeze a live net once its reduction is
    done, instantiate a frozen net into a live one or splice it into a
    running net, at n, 2n and 4n nodes; local reduction of build-only pairs
@@ -312,12 +315,6 @@ interior nodes (`spike-lazy-data`); rounds over pages (`spike-page-rounds`).
 
 ## Open questions
 
-- Control fusion (NetPairing), for the maintainer: it gives wrong values
-  in orders other than the full reduction's (`heap-demand`), as
-  NetPairing feared, a fused control crossing a facing control its first
-  part would have cancelled. Off at run time until a fusion that keeps
-  nets proper; fused only where lowering emits; or kept for the full
-  reduction alone, whose order rounds and demand will not keep.
 - `net-demand-whnf` says pairs that only feed erasers reduce as found.
   Read literally that would start `K 0 Ω`'s Ω. Built instead: an eraser
   meeting a value reduces as found; a computation only an eraser takes is

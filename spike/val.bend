@@ -298,43 +298,30 @@ def ctl_eq(a: Pay, b: Pay) -> Bool:
       False{}
 
 # Fusing controls: two controls one after the other on a wire, `first`
-# crossed first, act as one when first moves up by k1 and second's index
-# lies in [n1, n1 + k1]: then every level, and every control index that
-# crosses them in that order, moves as through the one control (n1,
-# k1 + k2). Offsets down stay at most 1.
+# crossed first, act as one when both raise and second's index is where
+# first's raise ends, n2 = n1 + k1: a run of unit brackets n1, n1 + 1,
+# ..., which (n1, k1 + k2) stands for exactly, so that a control facing
+# it can be matched against its first units (peeling, net.bend and
+# kprim.bend). No other pair fuses: a raise and a drop that compose to
+# less, or to nothing, or raises split some other way, would hide a
+# control a facing one cancels, and the fused control would cross it
+# instead (heap-demand and pairing-fusion in the plans).
 type Fuse is Data:
   FNo{}
-  FId{}
   FTo{p: Pay}
 
-def compose.down.go(gt: Bool, eq: Bool, +n: U32, +b1: U32, +b2: U32) -> Fuse:
-  match gt eq:
-    case True{} _:
-      FTo{PLift{n, True{}, (b1 - b2 : U32)}}
-    case False{} True{}:
-      FId{}
-    case False{} False{}:
-      FTo{PLift{n, False{}, (b2 - b1 : U32)}}
-
-def compose.down(+n: U32, +b1: U32, +b2: U32) -> Fuse:
-  compose.down.go(U32.is_gt(b1, b2), U32.is_eq(b1, b2), n, b1, b2)
-
-def compose.ok(ok: Bool, +n1: U32, +b1: U32, +u2: Bool, +b2: U32) -> Fuse:
+def compose.ok(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> Fuse:
   match ok:
+    case True{}:
+      FTo{PLift{n1, True{}, (b1 + b2 : U32)}}
     case False{}:
       FNo{}
-    case True{}:
-      match u2:
-        case True{}:
-          FTo{PLift{n1, True{}, (b1 + b2 : U32)}}
-        case False{}:
-          compose.down(n1, b1, b2)
 
 # the one control acting as `first` then `second`, when there is one
 def compose(first: Pay, second: Pay) -> Fuse:
   match first second:
     case PLift{+n1, +u1, +b1} PLift{+n2, +u2, +b2}:
-      compose.ok(u1 && U32.is_le(n1, n2) && U32.is_le(n2, (n1 + b1 : U32)), n1, b1, u2, b2)
+      compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
     case _ _:
       FNo{}
 

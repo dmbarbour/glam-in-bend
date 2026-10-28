@@ -5,6 +5,7 @@ import Base
 import ./store.bend as S
 import ./rules.bend as R
 import ./val.bend as V
+import ./ctl.bend as CT
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
 # still sum to the page's capacity.
@@ -94,3 +95,33 @@ law rules_tested_small:
   for +a: R.NodeKind
   for +b: R.NodeKind
   {R.tested_small(a, b) == True{} : Bool}
+
+# LAW: unit brackets at n, n + 1, ..., n + b - 1, crossed in turn, move a
+# level as one control raising levels above n by b: a run, as fusion makes
+# it, does to every level what its units do.
+# Record: fuse-control-runs
+law units_are_run:
+  for +b: Nat
+  for +n: Nat
+  for +j: Nat
+  {CT.units(b, n, j) == CT.raise(n, b, j) : Nat}
+
+# LAW: a run of k + r units at n is k at n then r at n + k: fusing two
+# runs where the second begins at the first's end, or peeling one apart
+# there, changes nothing a level crossing them sees.
+# Record: fuse-control-runs
+law run_splits:
+  for +k: Nat
+  for +r: Nat
+  for +n: Nat
+  for +j: Nat
+  {CT.raise(Nat.add(k, n), r, CT.raise(n, k, j)) == CT.raise(n, Nat.add(k, r), j) : Nat}
+
+# LAW: facing runs at one index, peeled, leave what their units would,
+# the inner pairs cancelling one by one.
+# Record: fuse-control-runs
+law peel_pairs_units:
+  for +c: Nat
+  for +l: Nat
+  for +n: Nat
+  {CT.pair_off(c, l, n) == CT.peel(n, c, l) : CT.Left}

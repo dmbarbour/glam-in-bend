@@ -149,12 +149,64 @@ derivation made here first.
    the fused control crosses it. The results look equivalent, the shift
    between values and consumers agreeing, but the criterion is semantic
    (properness, below), not structural. Wider fusion waits on it.
-   2026-10-28: the current fusion is not equivalent in every order. In
-   the order demand reduces, it reads wrong values on 8 of 600 random
-   leveled terms that unfused levels get right, and with one kind of
-   control fused the full reduction goes wrong too; evidence and terms in
-   `heap-demand` ([`HeapModel_2026-10-27.md`](HeapModel_2026-10-27.md)).
-7. `pairing-nets` — levels for nets not built from lambda terms: every
+   2026-10-28: that fusion was not equivalent in every order; fixed in
+   `pairing-fusion`.
+7. `pairing-fusion` — fusion sound in every order. Built 2026-10-28
+   (`fuse-control-runs`). In the order demand reduces, the fusion above
+   read wrong values on 8 of 600 random leveled terms that unfused levels
+   get right (`heap-demand`, [`HeapModel_2026-10-27.md`](HeapModel_2026-10-27.md)),
+   and with one kind of control fused the full reduction went wrong too.
+   A one-wire model (controls in a word from source to consumer, a value
+   above, a consumer below, every reduction order enumerated) found
+   unfused reduction order-free from every polarized start, fused not;
+   failures shrunk to minimal form fell into three kinds: a raise fused
+   with a drop into nothing hides the unit a facing control cancels; a
+   composite meeting the partner of its first unit swaps past it; two
+   composites equal as maps but split differently cancel whole. Fusion
+   shapes tried one at a time, in the model and on the 600 terms: the
+   raise-then-drop identity did nearly all the harm, but every shape fails
+   in longer words. Fixed by fusing only raises whose second index is
+   where the first's raise ends, a run of unit brackets, and peeling a
+   run where a control meets it at its index as a different control:
+   order-free in the model (exhaustive to four controls, 4,001,400 starts;
+   sampled at lengths 6 to 10) and on the full differential test, 3,600
+   terms (store run 27): spike, interpreter and generated rewrites agree
+   on every value and count, demand gets every leveled term right and
+   never makes more interactions than the full reduction. Peeling never fires on nets
+   lowering makes. Laws `units_are_run`, `run_splits`, `peel_pairs_units`
+   over `spike/ctl.bend` hold the arithmetic of runs to their units;
+   confluence of the units and simulation by runs rest on the model and
+   the tests. Peeling runs in the generated rewrite for a Lift meeting a
+   LiftC alone (`gen_krules.bend`), and in the interpreter's branch for
+   the pair: tested in `go`, on every pair, it cost the full reduction 2%
+   to 12% however written (go.a1 called from two branches is no longer
+   folded into go; a state passed through costs too); in the pair's
+   rewrite, -0.9% to +0.4% in the default and profile-guided builds,
+   +1.2% to +2.4% forced inline (k 18, Bend 2.0.39, i7-6700). Cost in
+   interactions: random leveled terms make 2.6 times those of the unsound
+   fusion (507,493 against 193,366 on the 600; 649,132 unfused);
+   `m 2 succ 0` is unchanged.
+   Where the loss sits (the analysis store, `scripts/results.py`, runs 2,
+   4 and 6): on the 506 of 600 terms static labels get right, sound fusion
+   costs 1.39 times the unsound; on the 93 they get wrong, the
+   self-applications, 4.55 times; one term,
+   `(pow ((\n. n (add #1) #0) (self #1)) (self (twice (mul #2) #1))) succ 0`,
+   costs 207,315 against 8,036, 41% of all: controls accumulating, as
+   Asperti and Chroboczek describe, which the unsound fusion contained.
+   Fable's review (2026-10-28) proposes stratification: terms typable in
+   elementary affine logic need no controls at all, fans by level alone
+   being correct and complete on them (Baillot, Coppola and Dal Lago), and
+   Coppola and Martini infer the boxes as linear constraints. On this
+   corpus that is bounded by the terms labels get right: choosing labels
+   for every one of them would cut levels' interactions by 25% (382,109
+   against 507,493), labels costing 3.8 times less on those terms, while
+   the costly terms are the ones no stratification covers. So two
+   strategies, for different terms: stratify where the inference
+   succeeds; contain accumulation where it fails, by safe operators
+   (AAECC 8, 1997), merging a raise with a drop where no partner can
+   reach it. The lowering's own fused croissant at a use is such a merge,
+   sound on the terms so far.
+8. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
    which discipline glam's own net construction follows (levels assigned
@@ -190,7 +242,7 @@ derivation made here first.
    other way. Open: whether glam's monadic construction can assign
    levels as it builds, which would make inference needless for its own
    nets.
-8. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
+9. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness as Guerrini's
    properness: nets as built are proper, every rule preserves properness,
@@ -198,9 +250,9 @@ derivation made here first.
    properties to prove first: a copy meets only deeper nodes, and fans
    meeting at one level are residuals of one duplication. Attempt it, or
    find the restriction under which it holds.
-9. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
+10. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
-10. `pairing-docs` — revise the standing docs to the verdict. Design.md's
+11. `pairing-docs` — revise the standing docs to the verdict. Design.md's
     copy-copy rule says pairing follows complete dynamic duplication
     identity and that duplication history distinguishes residual fans;
     histories pair wrongly, so say what does, and check the other docs
