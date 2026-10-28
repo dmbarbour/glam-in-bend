@@ -20,12 +20,15 @@ import ./krules.bend as KR
 # (but the sites of two fans meeting at one level) and fuse controls after
 # each rewrite as it does, on the same links in the same order.
 #
-#   kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]
+#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy]
 #       reduce `k 2 succ 0` (2^k) built without levels; with plus
 #       `k 2 (plus 1) 0`, adding by a partial application in a node; with
 #       fma `k 2 (fma 1 1) 0`, by one in the data table; with lvl
-#       `k 2 succ 0` with levels, as terms.py lowers it (k >= 2). Report
-#       value, counts, time; with ref, by the interpreted table alone
+#       `k 2 succ 0` with levels, as terms.py lowers it (k >= 2); kpow
+#       `K 0 (k 2 succ 0)`; knum `K 0 #k`; komega `K 0 ((\z. z z) (\z. z
+#       z))`; whnf `#k succ`, a function. Report value, counts, time; with
+#       ref, by the interpreted table alone; with lazy, on demand (see
+#       Demand), the state it ends in and the nodes left
 
 # Payloads
 # ========
@@ -405,6 +408,286 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
 def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
   ran(run(fuel, fast, P.pop(h)), fuel)
 
+# Demand
+# ======
+
+# Reducing toward the interface (net-demand-whnf; HeapModel's "Forcing"):
+# from node 0, follow principal ports. Where one faces another node's
+# auxiliary port, that node must reduce first, and the walk goes on from
+# it, keeping a path; where it faces a principal port, that pair is next.
+# Only the path's last node can be in a pair, the others facing auxiliary
+# ports, so a rewrite there leaves the rest of the path as it was: the
+# walk resumes from the node below. A rewrite's new pairs go on the pair
+# stack. Erasers' pairs are reduced from it at once, and end: each removes
+# a node that is no eraser and makes at most two erasers, or removes two
+# erasers. Other pairs stay in the net, for the walk to find where they
+# lie on its path, garbage where they do not. Done when node 0 faces a
+# principal port but a control's: the value there (an error value or a
+# superposition reads as none). A pair on the path stuck by its rule stops
+# the walk; so does one needing another cell, an application or a strict
+# call meeting a table entry that is a handle, the need recorded.
+
+# the path below its last node, top, and its length; interactions; the
+# state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of fuel;
+# for a need, the handle and the data node holding it
+type D is Type:
+  D{h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +st: U32, +lz: U32, +at: U32}
+
+def d.go(h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+  D{h, path, top, depth, n, 0, 0, 0}
+
+def d.stop(h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+  D{h, path, top, depth, n, st, 0, 0}
+
+def is_era(+k: U32) -> Bool:
+  U32.is_eq(k, 6) || U32.is_eq(k, 7)
+
+# Draining the stack: the net and the interactions so far
+type Dn is Type:
+  Dn{h: P.H, +n: U32}
+
+type Dq is Type:
+  Dq{pp: P.Pop, +n: U32}
+
+# a pair from the stack, off the path: an eraser's reduced, others left
+def dr.go(e: Bool, h: P.H, +n: U32, +x: U32, +y: U32) -> Dq:
+  match e:
+    case True{}:
+      Dq{P.pop(interact(h, True{}, x, y)), (n + 1 : U32)}
+    case False{}:
+      Dq{P.pop(h), n}
+
+def dr.hy(r: P.H & U32, +n: U32, +x: U32, +y: U32, +hx: U32) -> Dq:
+  (h, +hy) = r
+  dr.go(is_era(P.rk(hx)) || is_era(P.rk(hy)), h, n, x, y)
+
+def dr.hx(r: P.H & U32, +n: U32, +x: U32, +y: U32) -> Dq:
+  (h, +hx) = r
+  dr.hy(P.rd(h, y), n, x, y, hx)
+
+# the path's last node's pair is the walk's to take
+def dr.pair(mine: Bool, h: P.H, +n: U32, +x: U32, +y: U32) -> Dq:
+  match mine:
+    case True{}:
+      Dq{P.pop(h), n}
+    case False{}:
+      dr.hx(P.rd(h, x), n, x, y)
+
+# the pairs the last rewrite made, and the erasures they lead to; what
+# k leaves is drained before the walk's next step
+def drain(k: Nat, +top: U32, q: Dq) -> Dn:
+  match k:
+    case 0n:
+      match q:
+        case Dq{pp, +n}:
+          Dn{P.unpop(pp), n}
+    case 1n+p:
+      match q:
+        case Dq{pp, +n}:
+          match pp:
+            case P.Pop{h, +x, +y, +ok}:
+              match ok:
+                case True{}:
+                  drain(p, top, dr.pair(U32.is_eq(x, top) || U32.is_eq(y, top), h, n, x, y))
+                case False{}:
+                  Dn{h, n}
+
+def wk.pop(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
+  match path:
+    case Con{+p, rest}:
+      d.go(h, rest, p, (depth - 1 : U32), n)
+    case Nil{}:
+      d.go(h, Nil{}, 0, 0, n)
+
+def wk.past(gone: Bool, h: P.H, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D:
+  match gone:
+    case True{}:
+      wk.pop(h, path, depth, n)
+    case False{}:
+      d.go(h, path, p, depth, n)
+
+def wk.hp(r: P.H & U32, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D:
+  (h, +hp) = r
+  wk.past(U32.is_eq(hp, 0), h, path, p, depth, n)
+
+# the path's last node rewritten: the walk goes back to the one below, or
+# past it where fusing controls freed it. Fusion tries only the links a
+# rule made, the node below's is one, and a fusion there may free that
+# node (a lift facing the source keeps the one behind it, a control facing
+# consumers the one ahead); at its auxiliary ports a fusion keeps it, and
+# the node below it is not touched, its link made by no rule.
+def wk.back(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
+  match path:
+    case Con{+p, rest}:
+      wk.hp(P.rd(h, p), rest, p, (depth - 1 : U32), n)
+    case Nil{}:
+      d.go(h, Nil{}, 0, 0, n)
+
+def wk.hb.go(gone: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+  match gone:
+    case True{}:
+      wk.back(h, path, depth, (n + 1 : U32))
+    case False{}:
+      d.stop(h, path, top, depth, n, 3)
+
+def wk.hb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+  (h, +hb) = r
+  wk.hb.go(U32.is_eq(hb, 0), h, path, top, depth, n)
+
+# rewrite a >< b, unless its rule leaves it as it is (KR.stuck_by). Where
+# the payload test decides that, the rule makes at most one node when it
+# rewrites (law rules_tested_small) and fresh2 frees b first, so the first
+# new node takes a's slot: b's slot is free after a rewrite, as it was if
+# stuck. The test itself is left to the rewrite, its only caller.
+def wk.rw(+sb: U32, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+  match sb:
+    case 0:
+      wk.back(go(h, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
+    case 1:
+      d.stop(h, path, top, depth, n, 3)
+    case _:
+      wk.hb(P.rd(go(h, True{}, a, b, ha, hb), b), path, top, depth, n)
+
+def nd.lz(z: P.Lz, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+  match z:
+    case P.Lz{h, +lazy, +k}:
+      match lazy:
+        case True{}:
+          D{h, path, top, depth, n, 2, k, b}
+        case False{}:
+          wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
+
+def nd.pb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+  (h, +pb) = r
+  nd.lz(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
+
+def nd.go(chk: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+  match chk:
+    case True{}:
+      nd.pb(P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
+    case False{}:
+      wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
+
+# an application or a strict call meeting data in the table
+def may_need(+ha: U32, +hb: U32) -> Bool:
+  (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
+
+def wk.ori(neg: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
+  match neg:
+    case True{}:
+      nd.go(may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
+    case False{}:
+      nd.go(may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
+
+def wk.hy(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
+  (h, +hy) = r
+  wk.ori(KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
+
+def wk.hx(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+  (h, +hx) = r
+  wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
+
+# node 0 facing a principal port: a control's moves past it (the root's
+# rule keeps node 0), anything else is the value
+def wk.root.go(c: Bool, h: P.H, path: List<&2, U32>, +depth: U32, +n: U32, +y: U32) -> D:
+  match c:
+    case True{}:
+      d.go(interact(h, True{}, 0, y), path, 0, depth, (n + 1 : U32))
+    case False{}:
+      d.stop(h, path, 0, depth, n, 1)
+
+def wk.root(r: P.H & U32, path: List<&2, U32>, +depth: U32, +n: U32, +y: U32) -> D:
+  (h, +hy) = r
+  wk.root.go(U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
+
+def wk.pair(root: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+  match root:
+    case True{}:
+      wk.root(P.rd(h, y), path, depth, n, y)
+    case False{}:
+      wk.hx(P.rd(h, top), path, top, depth, n, y)
+
+# a path longer than any net's nodes has gone round a cycle
+def deep_cap() -> U32:
+  4194304
+
+def wk.deeper(over: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match over:
+    case True{}:
+      d.stop(h, path, top, depth, n, 3)
+    case False{}:
+      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
+
+def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match nil pr:
+    case True{} _:
+      d.stop(h, path, top, depth, n, 3)
+    case False{} True{}:
+      wk.pair(U32.is_eq(top, 0), h, path, top, depth, n, q)
+    case False{} False{}:
+      wk.deeper(U32.is_ge(depth, deep_cap()), h, path, top, depth, n, q)
+
+# what the path's last node's principal port faces
+def wk.q(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+  (h, +q) = r
+  wk.q.go(U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
+
+# one step of the walk, the stack drained
+def d.walk(dn: Dn, path: List<&2, U32>, +top: U32, +depth: U32) -> D:
+  match dn:
+    case Dn{h, +n}:
+      wk.q(P.rd(h, (top + 1 : U32)), path, top, depth, n)
+
+def d.out(+st: U32) -> U32:
+  match st:
+    case 0:
+      4
+    case _:
+      st
+
+def d.end(d: D) -> D:
+  match d:
+    case D{h, path, +top, +depth, +n, +st, +lz, +at}:
+      D{h, path, top, depth, n, d.out(st), lz, at}
+
+# reduce toward the interface for at most k steps
+def demand(k: Nat, d: D) -> D:
+  match k:
+    case 0n:
+      d.end(d)
+    case 1n+p:
+      match d:
+        case D{h, path, +top, +depth, +n, +st, +lz, +at}:
+          match st:
+            case 0:
+              demand(p, d.walk(drain(16777216n, top, Dq{P.pop(h), n}), path, top, depth))
+            case _:
+              D{h, path, top, depth, n, st, lz, at}
+
+def d.start(h: P.H) -> D:
+  d.go(h, Nil{}, 0, 0, 0)
+
+def resume.put(r: P.H & P.PW, +at: U32) -> P.H:
+  (h, pw) = r
+  match pw:
+    case P.PW{+m, +f, +w}:
+      P.wr(P.wr(h, at, P.hd2(5, m, f)), (at + 2 : U32), w)
+
+def resume.pb(r: P.H & U32, +at: U32, +hb: U32, v: V.Val) -> P.H:
+  (h, +pb) = r
+  resume.put(P.put(P.drop(h, P.form(hb), pb), v), at)
+
+def resume.hb(r: P.H & U32, +at: U32, v: V.Val) -> P.H:
+  (h, +hb) = r
+  resume.pb(P.rd(h, (at + 2 : U32)), at, hb, v)
+
+# a need met: the data node holding the handle holds v instead, and the
+# walk goes on where it stopped
+def resume(d: D, v: V.Val) -> D:
+  match d:
+    case D{h, path, +top, +depth, +n, +st, +lz, +at}:
+      d.go(resume.hb(P.rd(h, at), at, v), path, top, depth, n)
+
 # Loading a template
 # ==================
 
@@ -483,10 +766,11 @@ def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
     case Con{t, rest}:
       load.nodes(rest, load.node(h, t))
 
+# a template's node n is the net's node n + 1, after the interface
 def tref(e: T.TEnd) -> U32:
   match e:
     case T.TE{+n, +p}:
-      ((n << 2n : U32) + p : U32)
+      (((n + 1 : U32) << 2n : U32) + p : U32)
 
 def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
   match ls:
@@ -495,43 +779,19 @@ def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
     case Con{T.TL{x, y}, rest}:
       load.links(rest, P.link(h, tref(x), tref(y)))
 
-def load.root(r: P.H & U32, +x: U32) -> P.H:
+def load.root(r: P.H & U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, +x: U32) -> P.H:
   (h, +root) = r
-  P.link(h, root, x)
+  P.link(load.links(links, load.nodes(nodes, h)), root, x)
 
-# the template's net, its exposed port linked to a root
+# the template's net, its exposed port linked to the interface: node 0,
+# made first, which keeps its slot for good (HeapModel's "Nets")
 def load(t: T.Tpl) -> P.H:
   match t:
     case T.Tpl{nodes, links, root, +size}:
-      load.root(P.node(load.links(links, load.nodes(nodes, P.h_new())), P.hd(8, 0), 0), tref(root))
+      load.root(P.node(P.h_new(), P.hd(8, 0), 0), nodes, links, tref(root))
 
 # Results
 # =======
-
-# the value at the root, if any: found by scanning for the root, which a
-# control facing it may have moved
-type Rs is Type:
-  Rs{h: P.H, +root: U32}
-
-def pick(b: Bool, +x: U32, +y: U32) -> U32:
-  match b:
-    case True{}:
-      x
-    case False{}:
-      y
-
-def find.hit(r: P.H & U32, +n: U32, +at: U32) -> Rs:
-  (h, +hdr) = r
-  Rs{h, pick(U32.is_eq(at, P.nil()) && U32.is_eq(P.kind(hdr), 8), (n << 2n : U32), at)}
-
-def find(k: Nat, +n: U32, rs: Rs) -> Rs:
-  match k:
-    case 0n:
-      rs
-    case 1n+p:
-      match rs:
-        case Rs{h, +at}:
-          find(p, (n + 1 : U32), find.hit(P.rd(h, (n << 2n : U32)), n, at))
 
 # the value read off the root, as glam sees it (V.norm)
 def value.v(r: P.H & V.Val) -> P.H & Maybe<&2, V.Val>:
@@ -564,19 +824,13 @@ def value.none(none: Bool, h: P.H, +root: U32) -> P.H & Maybe<&2, V.Val>:
     case False{}:
       value.peer(P.rd(h, (root + 1 : U32)))
 
-def value.at(rs: Rs) -> P.H & Maybe<&2, V.Val>:
-  match rs:
-    case Rs{h, +root}:
-      value.none(U32.is_eq(root, P.nil()), h, root)
+def value.root(r: P.H & U32) -> P.H & Maybe<&2, V.Val>:
+  (h, +hdr) = r
+  value.none(U32.is_ne(P.kind(hdr), 8), h, 0)
 
-def result.st(r: P.H & P.HS) -> P.H & Maybe<&2, V.Val>:
-  (h, st) = r
-  match st:
-    case P.HS{+itrs, +errs, +cap}:
-      value.at(find(U32.to_nat(cap), 0, Rs{h, P.nil()}))
-
+# the value at the interface, node 0: its peer's, when that is data
 def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
-  result.st(P.stats(h))
+  value.root(P.rd(h, 0))
 
 def counts.st(r: P.H & P.HS) -> String:
   (h, st) = r
@@ -598,6 +852,20 @@ def show_val(m: Maybe<&2, V.Val>) -> String:
           "a non-number"
     case None{}:
       "no value"
+
+def table_str(+ok: Bool) -> String:
+  match ok:
+    case True{}:
+      ""
+    case False{}:
+      ", TABLE MISMATCH"
+
+def need_str(+need: Bool, +lz: U32) -> String:
+  match need:
+    case True{}:
+      " cell " ++ U32.show(lz)
+    case False{}:
+      ""
 
 def report(r: P.H & Maybe<&2, V.Val>) -> String:
   (h, v) = r
@@ -669,8 +937,109 @@ def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   report(result(reduce_h(fuel, fast, load(t))))
 
+# Results of demand
+# =================
+
+def live.hit(r: P.H & U32, +n: U32) -> Au:
+  (h, +hdr) = r
+  Au{h, audit.one(U32.is_ne(hdr, 0), n)}
+
+def live(k: Nat, +i: U32, au: Au) -> Au:
+  match k:
+    case 0n:
+      au
+    case 1n+p:
+      match au:
+        case Au{h, +n}:
+          live(p, (i + 1 : U32), live.hit(P.rd(h, (i << 2n : U32)), n))
+
+# the nodes still live, the interface's among them
+def live_nodes.st(r: P.H & P.HS) -> Au:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      live(U32.to_nat(cap), 0, Au{h, 0})
+
+# the value a cell k holds, for a test meeting needs: vals's entry k, a
+# unit past its end
+def val_at(vs: List<&2, V.Val>, +k: U32) -> V.Val:
+  match vs:
+    case Nil{}:
+      V.VUnit{}
+    case Con{v, t}:
+      match k:
+        case 0:
+          v
+        case _:
+          val_at(t, (k - 1 : U32))
+
+# demand, each need met from vals, at most k times
+def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: D) -> D:
+  match k:
+    case 0n:
+      d
+    case 1n+p:
+      match d:
+        case D{h, path, +top, +depth, +n, +st, +lz, +at}:
+          match st:
+            case 2:
+              force(p, fuel, vals, demand(fuel, resume(D{h, path, top, depth, n, st, lz, at}, val_at(vals, lz))))
+            case _:
+              D{h, path, top, depth, n, st, lz, at}
+
+# a demand's end: the result as reduce_h's, its state, the handle needed,
+# the nodes left
+type DRes is Data:
+  DRes{r: KRes, +st: U32, +lz: U32, +live: U32}
+
+def dres.au(au: Au, +st: U32, +lz: U32) -> DRes:
+  match au:
+    case Au{h, +n}:
+      DRes{kres(result(h)), st, lz, n}
+
+def dres.h(h: P.H, +st: U32, +lz: U32) -> DRes:
+  dres.au(live_nodes.st(P.stats(h)), st, lz)
+
+def dres(d: D) -> DRes:
+  match d:
+    case D{h, path, +top, +depth, +n, +st, +lz, +at}:
+      dres.h(P.count(h, n), st, lz)
+
+# reduce t toward weak head normal form for at most fuel steps, its needs
+# met from vals, at most 64
+def run_d(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
+  dres(force(64n, fuel, vals, demand(fuel, d.start(load(t)))))
+
+def st_name(+st: U32) -> String:
+  match st:
+    case 1:
+      "done"
+    case 2:
+      "needs"
+    case 3:
+      "stuck"
+    case 4:
+      "out of fuel"
+    case _:
+      "going"
+
+def kres_str(r: KRes) -> String:
+  match r:
+    case KRes{v, +itrs, +errs, +ok}:
+      show_val(v) ++ ", " ++ U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors" ++ table_str(ok)
+
+def dres_str(r: DRes) -> String:
+  match r:
+    case DRes{k, +st, +lz, +live}:
+      st_name(st) ++ need_str(U32.is_eq(st, 2), lz) ++ ": " ++ kres_str(k) ++ ", " ++ U32.show(live) ++ " nodes live"
+
+# Workloads
+# =========
+
 # 0, k 2 succ 0; 1, k 2 (plus 1) 0; 2, k 2 succ 0 with levels; 3,
-# k 2 (fma 1 1) 0
+# k 2 (fma 1 1) 0; 4, K 0 (k 2 succ 0); 5, K 0 applied to the numeral k;
+# 6, K 0 applied to a term with no normal form; 7, the numeral k applied
+# to succ, a function
 def workload(+w: U32, +k: U32) -> T.Tpl:
   match w:
     case 1:
@@ -679,46 +1048,86 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
       X.t_pow_lvl(k, 2)
     case 3:
       X.t_pow_fma(k, 2)
+    case 4:
+      X.t_k_pow(k)
+    case 5:
+      X.t_k_num(k)
+    case 6:
+      X.t_k_omega()
+    case 7:
+      X.t_whnf(k)
     case _:
       X.t_pow(k, 2)
 
-def main.k(+k: U32, +fast: Bool, +w: U32) -> IO(Unit):
+# reduce the workload fully, or on demand
+def main.run(+lazy: Bool, t: T.Tpl, +fast: Bool) -> String:
+  match lazy:
+    case True{}:
+      dres_str(run_d(t, 268435456n, Nil{}))
+    case False{}:
+      reduce(t, 268435456n, fast)
+
+def main.k(+k: U32, +fast: Bool, +w: U32, +lazy: Bool) -> IO(Unit):
   do IO<Unit>:
     +t0 : Nat <- IO.now()
-    +res : String = reduce(workload(w, k), 268435456n, fast)
+    +res : String = main.run(lazy, workload(w, k), fast)
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
 
-def mode_w.p(p: Bool, +l: Bool, +f: Bool) -> U32:
-  match p l f:
-    case True{} _ _:
-      1
-    case False{} True{} _:
-      2
-    case False{} False{} True{}:
-      3
-    case False{} False{} False{}:
-      0
+# a mode: its name, workload, and whether by the generated rewrites
+type Md is Data:
+  Md{name: String, +w: U32, +fast: Bool}
 
-def mode_w(+m: String) -> U32:
-  mode_w.p(String.eq(m, "plus") || String.eq(m, "plusref"), String.eq(m, "lvl") || String.eq(m, "lvlref"),
-    String.eq(m, "fma") || String.eq(m, "fmaref"))
+def modes() -> List<&2, Md>:
+  [Md{"succ", 0, True{}}, Md{"ref", 0, False{}}, Md{"plus", 1, True{}}, Md{"plusref", 1, False{}},
+   Md{"lvl", 2, True{}}, Md{"lvlref", 2, False{}}, Md{"fma", 3, True{}}, Md{"fmaref", 3, False{}},
+   Md{"kpow", 4, True{}}, Md{"knum", 5, True{}}, Md{"komega", 6, True{}}, Md{"whnf", 7, True{}}]
+
+def mode_of.hit(hit: Bool, md: Md, r: Maybe<&2, Md>) -> Maybe<&2, Md>:
+  match hit:
+    case True{}:
+      Some{md}
+    case False{}:
+      r
+
+def mode_of(ms: List<&2, Md>, +m: String) -> Maybe<&2, Md>:
+  match ms:
+    case Nil{}:
+      None{}
+    case Con{Md{+name, +w, +fast}, t}:
+      mode_of.hit(String.eq(name, m), Md{name, w, fast}, mode_of(t, m))
+
+def usage() -> String:
+  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy]"
+
+def main.mode(md: Maybe<&2, Md>, +k: U32, +lazy: Bool) -> IO(Unit):
+  match md:
+    case Some{Md{name, +w, +fast}}:
+      main.k(k, fast, w, lazy)
+    case None{}:
+      IO.print(usage())
+
+def main.rest(+k: U32, xs: List<String>) -> IO(Unit):
+  match xs:
+    case Nil{}:
+      main.k(k, True{}, 0, False{})
+    case Con{+m, r}:
+      match r:
+        case Nil{}:
+          main.mode(mode_of(modes(), m), k, False{})
+        case Con{+l, r2}:
+          main.mode(mode_of(modes(), m), k, String.eq(l, "lazy"))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
     case Con{p, r}:
       match r:
         case Con{a, r2}:
-          match r2:
-            case Con{+m, r3}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10),
-                Bool.not(String.eq(m, "ref") || String.eq(m, "plusref") || String.eq(m, "lvlref") || String.eq(m, "fmaref")), mode_w(m))
-            case Nil{}:
-              main.k(Maybe.default(&2, U32, U32.read(a), 10), True{}, 0)
+          main.rest(Maybe.default(&2, U32, U32.read(a), 10), r2)
         case Nil{}:
-          IO.print("usage: kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]")
+          IO.print(usage())
     case Nil{}:
-      IO.print("usage: kernel <k> [ref|plus|plusref|fma|fmaref|lvl|lvlref]")
+      IO.print(usage())
 
 def main() -> IO(Unit):
   do IO<Unit>:

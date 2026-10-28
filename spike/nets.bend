@@ -265,3 +265,73 @@ def t_chain(+n: U32) -> T.Tpl:
       [l(b, 0, 0, 0), l(b, 1, (b + 1 : U32), 0), l(b, 2, (b + 2 : U32), 0), l((b + 2 : U32), 1, (b + 3 : U32), 0)]),
     T.TE{(b + 2 : U32), 2}, (b + 4 : U32)}
 
+
+# Composed terms
+# ==============
+
+# Templates put together: t's links and exposed port moved past `by` nodes
+def sh_end(e: T.TEnd, +by: U32) -> T.TEnd:
+  match e:
+    case T.TE{+n, +p}:
+      T.TE{(n + by : U32), p}
+
+def sh_links(ls: List<&2, T.TLink>, +by: U32) -> List<&2, T.TLink>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{T.TL{a, b}, t}:
+      T.TL{sh_end(a, by), sh_end(b, by)} <> sh_links(t, by)
+
+def t_ap.x(x: T.Tpl, f_nodes: List<&2, T.TNode>, f_links: List<&2, T.TLink>, f_root: T.TEnd, +fs: U32) -> T.Tpl:
+  match x:
+    case T.Tpl{nodes, links, root, +size}:
+      +a = (fs + size : U32)
+      T.Tpl{List.append(&2, T.TNode, f_nodes, List.append(&2, T.TNode, nodes, [ap()])),
+        List.append(&2, T.TLink, f_links, List.append(&2, T.TLink, sh_links(links, fs),
+          [T.TL{T.TE{a, 0}, f_root}, T.TL{T.TE{a, 1}, sh_end(root, fs)}])),
+        T.TE{a, 2}, (a + 1 : U32)}
+
+# f applied to x
+def t_ap(f: T.Tpl, x: T.Tpl) -> T.Tpl:
+  match f:
+    case T.Tpl{nodes, links, root, +size}:
+      t_ap.x(x, nodes, links, root, size)
+
+def t_one(n: T.TNode) -> T.Tpl:
+  T.Tpl{[n], [], T.TE{0, 0}, 1}
+
+# \x y. x
+def t_k() -> T.Tpl:
+  T.Tpl{[fn(), fn(), era()], [l(0, 1, 1, 0), l(0, 2, 1, 1), l(1, 2, 2, 0)], T.TE{0, 0}, 3}
+
+# \z. z z, its fan at the given site
+def t_w(+site: U32) -> T.Tpl:
+  T.Tpl{[fn(), cp(site), ap()], [l(0, 1, 2, 2), l(0, 2, 1, 0), l(1, 1, 2, 0), l(1, 2, 2, 1)], T.TE{0, 0}, 3}
+
+# the Church numeral n >= 1 alone
+def t_numeral(+n: U32, +site: U32) -> T.Tpl:
+  T.Tpl{numeral_nodes(n, site), numeral_links(n, 0), T.TE{0, 0}, nsize(n)}
+
+# a handle to cell k, a value another cell holds
+def t_lazy(+k: U32) -> T.Tpl:
+  t_one(T.TN{R.KData{}, V.PVal{V.VLazy{k}}})
+
+# K 0 x: x never used
+def t_k0(x: T.Tpl) -> T.Tpl:
+  t_ap(t_ap(t_k(), t_one(num(0))), x)
+
+# K 0 (m 2 succ 0): 2^m left undone
+def t_k_pow(+m: U32) -> T.Tpl:
+  t_k0(t_pow(m, 2))
+
+# K 0 n: the numeral n, a value, erased
+def t_k_num(+n: U32) -> T.Tpl:
+  t_k0(t_numeral(n, 1))
+
+# K 0 ((\z. z z) (\z. z z)): a term with no normal form, unused
+def t_k_omega() -> T.Tpl:
+  t_k0(t_ap(t_w(1), t_w(2)))
+
+# n succ: a function, its body still to reduce
+def t_whnf(+n: U32) -> T.Tpl:
+  t_ap(t_numeral(n, 1), t_one(succ()))

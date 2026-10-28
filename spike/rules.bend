@@ -442,6 +442,28 @@ def ends_count(ls: List<&2, Link>) -> Nat:
     case Con{l, t}:
       2n+ends_count(t)
 
+def is_stuck(r: Rule) -> Bool:
+  match r:
+    case RStuck{}:
+      True{}
+    case _:
+      False{}
+
+def made_at_most_one(r: Rule) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      Nat.is_lt(List.length(&2, Spec, xs), 2n)
+    case RStuck{}:
+      True{}
+
+# where the payload test decides whether A >< B is stuck, the rule that
+# rewrites makes at most one node: the kernel's walk tells a rewrite from
+# a stuck pair by B's slot alone (kernel.bend, Demand)
+def tested_small(+a: NodeKind, +b: NodeKind) -> Bool:
+  Bool.not(Bool.not(is_stuck(rule(a, b, True{}))) && is_stuck(rule(a, b, False{})) ||
+      is_stuck(rule(a, b, True{})) && Bool.not(is_stuck(rule(a, b, False{})))) ||
+    made_at_most_one(rule(a, b, True{})) && made_at_most_one(rule(a, b, False{}))
+
 # every end the rule must link is linked exactly once, and nothing else
 def linear(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
   match r:

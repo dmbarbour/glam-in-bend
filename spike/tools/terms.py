@@ -17,7 +17,8 @@ croissant per use, rather than one fused control per edge. --kernel
 writes a differential test instead: each term through the spike, the
 kernel's interpreted rule table and its generated rewrites (kernel.bend),
 flagging any difference between the last two, or in value with the
-spike. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
+spike, and on demand (kernel.bend's Demand), flagging a table mismatch
+or more interactions than the full reduction. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
 so the partial application is data the copies share; --fma ends them in
 `(fma 1 1) 0`, whose partial application, holding two numbers, is a data
 table entry.
@@ -601,14 +602,39 @@ def verdict(+tab: Bool, +same: Bool, +agree: Bool, +counts: Bool) -> String:
     case True{} True{} True{} False{}:
       "same, counts differ"
 
-def cmp.go(+k: U32, +sp: K.KRes, +rf: K.KRes, +fs: K.KRes) -> String:
-  "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": spike " ++ res_str(sp) ++ " | ref " ++ res_str(rf) ++
-    " | fast " ++ res_str(fs) ++ "  " ++
-    verdict(res_tab(rf) && res_tab(fs), String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
-    "  " ++ name_of(k)
+def lazy_res(r: K.DRes) -> K.KRes:
+  match r:
+    case K.DRes{k, +st, +lz, +live}:
+      k
 
+# on demand: the state it ended in, the nodes it left
+def lazy_st(r: K.DRes) -> String:
+  match r:
+    case K.DRes{k, +st, +lz, +live}:
+      K.st_name(st) ++ ", " ++ U32.show(live) ++ " live"
+
+def lazy_more.s(more: Bool) -> String:
+  match more:
+    case True{}:
+      "  LAZY MORE"
+    case False{}:
+      ""
+
+def lazy_more(+lz: K.KRes, +fs: K.KRes) -> String:
+  match lz fs:
+    case K.KRes{v, +i, +e, +ok} K.KRes{v2, +i2, +e2, +ok2}:
+      lazy_more.s(U32.is_gt(i, i2))
+
+def cmp.go(+k: U32, +sp: K.KRes, +rf: K.KRes, +fs: K.KRes, +lz: K.DRes) -> String:
+  "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": spike " ++ res_str(sp) ++ " | ref " ++ res_str(rf) ++
+    " | fast " ++ res_str(fs) ++ " | lazy " ++ res_str(lazy_res(lz)) ++ " " ++ lazy_st(lz) ++ "  " ++
+    verdict(res_tab(rf) && res_tab(fs) && res_tab(lazy_res(lz)), String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
+    lazy_more(lazy_res(lz), fs) ++ "  " ++ name_of(k)
+
+# demand's fuel counts the walk's steps too
 def cmp_one(+k: U32) -> String:
-  cmp.go(k, spike_res(T.result(T.run(tpl_of(k), 5000n))), K.run_t(tpl_of(k), 320000n, False{}), K.run_t(tpl_of(k), 320000n, True{}))
+  cmp.go(k, spike_res(T.result(T.run(tpl_of(k), 5000n))), K.run_t(tpl_of(k), 320000n, False{}), K.run_t(tpl_of(k), 320000n, True{}),
+    K.run_d(tpl_of(k), 1280000n, []))
 
 def cmp_all(n: Nat, +k: U32) -> String:
   match n:

@@ -65,6 +65,63 @@ def kind_neg(+k: U32) -> Bool:
     case _:
       False{}
 
+# when the rule leaves A, negative principal, meeting B as it is (R.rule):
+# 0 never, 1 always, 2 when the payload test fails, 3 when it passes
+def stuck_by(+ka: U32, +kb: U32) -> U32:
+  match ka kb:
+    case 2 1:
+      2
+    case 2 4:
+      0
+    case 2 5:
+      2
+    case 2 7:
+      0
+    case 2 11:
+      0
+    case 3 1:
+      0
+    case 3 4:
+      0
+    case 3 5:
+      0
+    case 3 7:
+      0
+    case 3 11:
+      0
+    case 6 1:
+      0
+    case 6 4:
+      0
+    case 6 5:
+      0
+    case 6 7:
+      0
+    case 6 11:
+      0
+    case 8 11:
+      0
+    case 9 4:
+      0
+    case 9 5:
+      0
+    case 9 7:
+      0
+    case 9 11:
+      0
+    case 10 1:
+      0
+    case 10 4:
+      0
+    case 10 5:
+      0
+    case 10 7:
+      0
+    case 10 11:
+      0
+    case _ _:
+      1
+
 # the level checks the rewrites below make, for the kernel's interpreter
 def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:
   match ka kb:

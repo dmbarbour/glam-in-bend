@@ -235,6 +235,62 @@ takes from it:
    pair on the path needing another cell set aside with the need recorded;
    done when node 0 faces data. Workloads: terms whose arguments go
    unused, erasure-heavy ones.
+   Built 2026-10-28. The loader makes the interface first, node 0, and
+   `P.fresh2` frees a rule's B before its A, so the first new node takes
+   A's slot and the root's rule keeps node 0; the result is read there
+   rather than found by a scan. `K.demand` walks from node 0 along
+   principal ports, keeping the path, so a rewrite at its end resumes
+   from the node below and cost stays linear. Erasers' pairs reduce from
+   the pair stack as rewrites make them (each removes a node that is no
+   eraser and makes at most two erasers); other pairs stay in the net,
+   unrecorded, found by the walk where they lie on its path and garbage
+   where not, so a computation only an eraser takes is never started
+   (`K 0 Ω` is 0). A fresh net may be assumed to hold no eraser in an
+   active pair, lowering erasing as it builds (the maintainer,
+   2026-10-28); the walk does not need it, draining the loader's pairs
+   like a rewrite's, though it would let the loader leave them off the
+   stack. Fusion at the link a rule made to the node below the
+   path's end can free that node; the walk then steps past it. Done when
+   node 0 faces any principal port but a control's; a handle there is the
+   value, a forward. An application or strict call meeting a table entry
+   that is a handle stops the walk with the handle and the data node, and
+   `K.resume` puts the value there and goes on. Stuck pairs come from the
+   rule table (`KR.stuck_by`, generated); where the payload test decides,
+   the rewrite is told from a stuck pair by B's slot after it (law
+   `rules_tested_small`), so the test keeps one caller: a second had
+   clang move it out of line, and the full reduction cost 6 to 18% more
+   in all four builds until it went. `spike/test_demand.bend`: 22 cases,
+   needs met and resumed, stuck pairs, fuel.
+   Measured (i7-6700, Bend 2.0.39, instructions, forced-inline build,
+   k 18 or n, 2n, 4n): where every pair is needed, demand costs about
+   770 instructions more per interaction than the full reduction (`succ`
+   659 to 1,431, `fma` 986 to 1,766, levels 593 to 1,341), 1.7 to 2.3
+   times in every build, linear in n; the full reduction itself is 0.1 to
+   2.3% cheaper than before, no scan for the root. `K 0 (k 2 succ 0)`:
+   2 interactions at k 14, 15, 16 against 32,946, 65,727, 131,276, the
+   power left as garbage (42 to 46 nodes). `K 0 #n`, a value erased: the
+   full reduction's interactions, n 16,384 to 65,536, 7% more
+   instructions, 2 nodes left. `#n succ`, a function: 1 interaction
+   against n. Ways to cut the walk's cost: the path in an array rather
+   than a list; the pair a rewrite makes at the path's end taken straight
+   from the stack; a narrower state record.
+   The 3,600 random terms (`terms.py --kernel`, now with a demand run
+   each): without levels, demand gets 89 of 600 per ending wrong where
+   the full reduction gets 94, static labels' known failures, with 21%
+   fewer interactions on the 506 both get right. With levels, demand gets
+   8 of 600 wrong and makes more interactions than the full reduction on
+   107 to 110, where the full reduction gets 1 wrong (#33 of seed 11,
+   out of fuel; demand gets it right). The cause is fusion, not demand:
+   with `P.fuse` a no-op, demand gets all 600 right, never more
+   interactions than the full reduction, 24% fewer on the 599 both get
+   right. Fusion is not sound in every order. Draining every pair rather
+   than erasers' alone gives the right values, so the walk's choices are
+   sound; with only one kind of control fused, the full reduction too
+   goes wrong (`((\f. add (f #3) (f (mul (pow #2 #3) (pow #1 #2))))
+   (\n. mul n #2)) succ 0`, 22, runs out of fuel). The smallest term
+   found: `self (add #2 #1) succ 0`, 27, read as none on demand. Likely
+   cause: NetPairing's caveat, a fused control crossing a facing control
+   that its first part would have cancelled (an open question below).
 3. `heap-freeze` — frozen nets: freeze a live net once its reduction is
    done, instantiate a frozen net into a live one or splice it into a
    running net, at n, 2n and 4n nodes; local reduction of build-only pairs
@@ -256,6 +312,17 @@ interior nodes (`spike-lazy-data`); rounds over pages (`spike-page-rounds`).
 
 ## Open questions
 
+- Control fusion (NetPairing), for the maintainer: it gives wrong values
+  in orders other than the full reduction's (`heap-demand`), as
+  NetPairing feared, a fused control crossing a facing control its first
+  part would have cancelled. Off at run time until a fusion that keeps
+  nets proper; fused only where lowering emits; or kept for the full
+  reduction alone, whose order rounds and demand will not keep.
+- `net-demand-whnf` says pairs that only feed erasers reduce as found.
+  Read literally that would start `K 0 Ω`'s Ω. Built instead: an eraser
+  meeting a value reduces as found; a computation only an eraser takes is
+  never started, as in the Rust bootstrap. The record's wording, for the
+  maintainer.
 - What "done reducing" means for a function's net: which pairs local
   reduction takes, under what bound, and whether hoisting
   argument-independent calls into shared thunks belongs to lowering.
