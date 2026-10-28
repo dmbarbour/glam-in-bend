@@ -206,7 +206,34 @@ derivation made here first.
    (AAECC 8, 1997), merging a raise with a drop where no partner can
    reach it. The lowering's own fused croissant at a use is such a merge,
    sound on the terms so far.
-8. `pairing-nets` — levels for nets not built from lambda terms: every
+8. `pairing-overhead` — the bookkeeping that remains, where it sits:
+   on the full differential test, two terms make 54.5% of all leveled
+   interactions and four 61% (store run 28). Two of those four, #124 of
+   seed 7 and #107 of seed 23, static labels get right in 326 and 193
+   interactions against 17,795 and 14,783 with levels, bookkeeping alone
+   55 and 77 times over; the other two are self-applications labels get
+   wrong. Static analysis or a lowering pass for the first kind, sound
+   containment of accumulation for the second.
+   - `pairing-overhead.polarity` — built 2026-10-28 — the precondition
+     checked: all 5,400 nets the differential test lowers (1,800 terms,
+     with levels, without, unfused) link positive ports to negative ones
+     only, each port once, the exposed port positive (`spike/tools/
+     polarity.py`, store run 29); enforcing it is `pairing-nets.check`.
+   - `pairing-overhead.profile` — contingent on `heap-strategies.profile`
+     — the four costliest terms profiled: which pairs of kinds, fusions
+     and controls make their cost.
+   - `pairing-overhead.trace` — contingent on `heap-strategies.trace` —
+     #133 and #124 traced where their controls pile up.
+   - `pairing-overhead.stratify` — tentative — box constraints for the
+     corpus terms after Coppola and Martini (elementary affine logic,
+     Fable's review 2026-10-28): which terms stratify, whether they are
+     among those labels get right, and what lowering them without
+     controls saves.
+   - `pairing-overhead.safe-ops` — contingent on `pairing-overhead.trace`
+     — criteria for merging a raise with a drop where no partner can
+     reach it (Asperti and Chroboczek), each checked in `ctlwire.py`
+     before the corpus.
+9. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
    which discipline glam's own net construction follows (levels assigned
@@ -242,7 +269,13 @@ derivation made here first.
    other way. Open: whether glam's monadic construction can assign
    levels as it builds, which would make inference needless for its own
    nets.
-9. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
+   - `pairing-nets.check` — tentative — polarization enforced, glam's
+     precondition: the kernel's loader refuses a net with a link joining
+     two ports of one polarity, a port linked twice or not at all, or a
+     negative exposed port, as `spike/tools/polarity.py` checks the
+     lowered ones; rules keep it (`rules_polarized`), and fusion and
+     peeling link positive to negative by construction, with no law yet.
+10. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness as Guerrini's
    properness: nets as built are proper, every rule preserves properness,
@@ -250,9 +283,9 @@ derivation made here first.
    properties to prove first: a copy meets only deeper nodes, and fans
    meeting at one level are residuals of one duplication. Attempt it, or
    find the restriction under which it holds.
-10. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
+11. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
-11. `pairing-docs` — revise the standing docs to the verdict. Design.md's
+12. `pairing-docs` — revise the standing docs to the verdict. Design.md's
     copy-copy rule says pairing follows complete dynamic duplication
     identity and that duplication history distinguishes residual fans;
     histories pair wrongly, so say what does, and check the other docs

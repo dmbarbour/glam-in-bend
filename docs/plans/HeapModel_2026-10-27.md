@@ -294,18 +294,47 @@ takes from it:
    `pairing-fusion` (`fuse-control-runs`): with fusion limited to runs of
    raises and runs peeled where a partner meets them, demand gets all 600
    right and never makes more interactions than the full reduction.
-3. `heap-freeze` — frozen nets: freeze a live net once its reduction is
+3. `heap-strategies` — a net's state apart from how it is evaluated (the
+   maintainer, 2026-10-28): the net holds its nodes, free list, data table
+   and faults; an evaluation strategy wraps it with state of its own,
+   decides which pair is next, and is done when it hands the net back, so
+   that a cell holds a bare live net at rest. Several strategies, each
+   measured: eager pairs last in first out, demand toward the interface,
+   parallel rounds; profiling and tracing as strategies wrapping another.
+   - `heap-strategies.net` — active — the net's operations, and a bag of
+     the pairs its rewrites make, a cache a strategy may use or clear
+     rather than a stack; strategies in their own module; demand clears
+     the bag, without eager erasure, which the maintainer did not want.
+     Measured four ways against the full reduction before it.
+   - `heap-strategies.profile` — contingent on `heap-strategies.net` —
+     interactions counted per pair of kinds, fusions by shape, peels and
+     the controls alive, per term, into the analysis store.
+   - `heap-strategies.trace` — contingent on `heap-strategies.net` — the
+     net as rows at boundaries the caller sets (every n interactions, a
+     demand step, a count of live controls), into a store of traces,
+     written from Bend once its SQLite package is vetted, else imported.
+   - `heap-strategies.demand` — contingent on `heap-strategies.net` —
+     demand's own cost: the path in an array, the walk's layers folded
+     (its profile is store run 26).
+   - `heap-strategies.bagless` — tentative — rewrites generated without
+     the bag for strategies that do not use it, and a scan of the whole
+     net for strategies that want every pair; kept if it measures better.
+   - `heap-strategies.rounds` — tentative — parallel rounds in two
+     phases: every pair's local outcome, nothing written outside its own
+     nodes, then the links between outcomes resolved and the next pairs
+     found; pages owned by workers as `spike-page-rounds` measured.
+4. `heap-freeze` — frozen nets: freeze a live net once its reduction is
    done, instantiate a frozen net into a live one or splice it into a
    running net, at n, 2n and 4n nodes; local reduction of build-only pairs
    under fuel before freezing.
-4. `heap-cells` — one page of the flat cells: recipes, live nets,
+5. `heap-cells` — one page of the flat cells: recipes, live nets,
    suspension in the cell, resumption, inline forcing within a worker,
    forwarding, values; final and partial data told apart by tag; laws on
    cell states (a cell only moves forward; a value is written once).
-5. `heap-apply` — lazy applications of function values, applied to all
+6. `heap-apply` — lazy applications of function values, applied to all
    arguments at once where known, partial applications taken over where
    used linearly; interaction-net calls copying raw nets.
-6. `heap-measure` — taking and returning nets, freezing and instantiating,
+7. `heap-measure` — taking and returning nets, freezing and instantiating,
    memory per small net, forcing depth against round latency, at n, 2n and
    4n.
 
