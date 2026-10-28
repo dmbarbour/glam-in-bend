@@ -11,58 +11,69 @@ why: a Lift raising 2 cancels a LiftC raising 1, its rest passes the 5
 nodes: ctl(0,+2) ctlc(0,+1) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 3 peels 1
+net: 5 logical 3 peels 1
 
 name: peel-raises-1-2
 why: a LiftC raising 2 cancels a Lift raising 1
 nodes: ctl(0,+1) ctlc(0,+2) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 3 peels 1
+net: 5 logical 3 peels 1
 
 name: peel-drop-raise-2
 why: a drop facing a Lift raising 2 crosses its first unit, then the rest
 nodes: ctl(0,+2) ctlc(0,-1) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 6 peels 1
+net: 5 logical 6 peels 1
 
 name: peel-raise-2-drop
 why: a LiftC raising 2 facing a drop
 nodes: ctl(0,-1) ctlc(0,+2) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 6 peels 1
+net: 5 logical 6 peels 1
 
 name: cross-runs-2-1
-why: runs at different indices cross whole, weighing each unit of one
-  crossing each of the other (2 by 1), then each crossing what follows
+why: runs at different indices cross whole, each unit of one crossing
+  each of the other (2 by 1 logical interactions), then what follows
 nodes: ctl(0,+2) ctlc(1,+1) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 6 peels 0
+net: 5 logical 6 peels 0
 
 name: cancel-runs-3
-why: equal runs of 3 cancel in one interaction, weighing 3
+why: equal runs of 3 cancel in one interaction, 3 logical ones
 nodes: ctl(0,+3) ctlc(0,+3) num(5)
 links: 0.0-1.0 1.1-2.0
 root: 0.1
-net: 5 weighted 4 peels 0
+net: 5 logical 4 peels 0
+
+# Nets no lambda term lowers to
+
+name: cycle-copy-lift
+why: a copy whose input is a lift fed by its own second output: polarized,
+  with no active pair, a cycle of principal ports each facing an auxiliary
+  one, which demand once walked until its fuel ran out
+nodes: cp(1,0) ctl(0,+1)
+links: 0.0-1.1 1.0-0.2
+root: 0.1
+net: cycle
 
 # Terms that found faults (NetPairing's pairing-fusion)
 
 name: self-add
 why: the smallest term the old fusion read as none on demand
 term: self (add #2 #1) succ 0
-levels: 27 weighted 341 peels 0
-unfused: 27 weighted 1275 peels 0
+levels: 27 logical 341 peels 0
+unfused: 27 logical 1275 peels 0
 
 name: fused-crossing-22
 why: under the old fusion, a fused control crossing a facing control its
   first part would have cancelled: the full reduction ran out of fuel
 term: ((\f. add (f #3) (f (mul (pow #2 #3) (pow #1 #2)))) (\n. mul n #2)) succ 0
-levels: 22 weighted 423 peels 0
-unfused: 22 weighted 1663 peels 0
+levels: 22 logical 423 peels 0
+unfused: 22 logical 1663 peels 0
 
 # The costliest leveled terms of the random corpus (pairing-overhead.profile;
 # store run 44): bookkeeping, controls crossing controls and fans
@@ -71,71 +82,83 @@ name: costly-124
 why: labels need 326 interactions; with levels, 97% of the work is controls
   crossing controls, fans and numbers, and erased one at a time
 term: (mul (pow ((\f. add (f #1) (f #2)) (\n. n (add #1) #0)) (mul #3 #2)) (pow (mul #0 #3) (mul #3 #3))) succ 0
-levels: 0 weighted 23370 peels 0
-labels: 0 weighted 326 peels 0
-unfused: 0 weighted 128934 peels 0
+levels: 0 logical 23370 peels 0
+labels: 0 logical 326 peels 0
+unfused: 0 logical 128934 peels 0
 
 name: costly-107
 why: labels need 193 interactions, levels 77 times as many
 term: ((\f. mul (f ((\f. mul (f ((\x. mul x x) #3)) (f #2)) (\n. pow n #2))) (f (twice (\n. add n n) #0))) (\n. mul n #2)) succ 0
-levels: 0 weighted 19568 peels 0
-labels: 0 weighted 193 peels 0
-unfused: 0 weighted 53548 peels 0
+levels: 0 logical 19568 peels 0
+labels: 0 logical 193 peels 0
+unfused: 0 logical 53548 peels 0
 
 name: costly-133
 why: the costliest that finishes, a self-application labels cannot finish;
   with unit brackets it needs more than the fuel
 term: (pow ((\n. n (add #1) #0) (self #1)) (self (twice (mul #2) #1))) succ 0
-levels: 1 weighted 230763 peels 0
+levels: 1 logical 230763 peels 0
 
 name: costly-6
 why: a self-application labels get wrong; the kernel's fusion saves half
-  its weighted count. With labels the full reduction stops with no value,
-  and demand walks until its fuel runs out: a cycle of principal ports
-  facing auxiliary ones
+  its logical interactions. With labels the full reduction stops with no
+  value, and demand finds a cycle of principal ports facing auxiliary
+  ones, which it once walked until its fuel ran out
 term: (pow (self (twice (\n. pow n #2) #0)) ((\f. mul (f (twice (\n. mul n #2) #1)) (f (twice (\n. n n) #2))) (\n. n (add #1) #0))) succ 0
-levels: 1 weighted 150320 peels 0
+levels: 1 logical 150320 peels 0
 labels: wrong
-unfused: 1 weighted 1634554 peels 0
+unfused: 1 logical 1634554 peels 0
+
+# Demand
+
+name: demand-dead-factor
+why: #33 of seed 11: `mul 0 x` with x 16^9, which demand never needs (340
+  interactions) and every full reduction builds in unary, 2^36, past any
+  fuel; given more, past the 2^21 nodes, where the kernel counts errors
+  and goes on reducing a corrupted net
+term: (mul (twice (\n. add n n) ((\f. mul (f #2) (f #0)) (mul #2))) (pow (twice (\n. pow n #2) #2) ((\f. mul (f #1) (f #3)) (\n. pow n #2)))) succ 0
+fuel: 100000
+levels: demand 0
+unfused: demand 0
 
 # Families at n, 2n and 4n, for fitting cost to a + b n^k
 
 name: pow-2-3
 why: 2^3 with levels, a family with pow-2-6 and pow-2-12
 term: pow #2 #3 succ 0
-levels: 8 weighted 128 peels 0
-labels: 8 weighted 50 peels 0
-unfused: 8 weighted 286 peels 0
+levels: 8 logical 128 peels 0
+labels: 8 logical 50 peels 0
+unfused: 8 logical 286 peels 0
 
 name: pow-2-6
 why: 2^6
 term: pow #2 #6 succ 0
-levels: 64 weighted 590 peels 0
-labels: 64 weighted 201 peels 0
-unfused: 64 weighted 1550 peels 0
+levels: 64 logical 590 peels 0
+labels: 64 logical 201 peels 0
+unfused: 64 logical 1550 peels 0
 
 name: pow-2-12
 why: 2^12
 term: pow #2 #12 succ 0
-levels: 4096 weighted 25034 peels 0
-labels: 4096 weighted 8343 peels 0
-unfused: 4096 weighted 82478 peels 0
+levels: 4096 logical 25034 peels 0
+labels: 4096 logical 8343 peels 0
+unfused: 4096 logical 82478 peels 0
 
 name: self-2
 why: n^n by self-application, a family with self-3 and self-4; labels run
   past any fuel on each
 term: self #2 succ 0
-levels: 4 weighted 71 peels 0
-unfused: 4 weighted 171 peels 0
+levels: 4 logical 71 peels 0
+unfused: 4 logical 171 peels 0
 
 name: self-3
 why: 3^3
 term: self #3 succ 0
-levels: 27 weighted 319 peels 0
-unfused: 27 weighted 579 peels 0
+levels: 27 logical 319 peels 0
+unfused: 27 logical 579 peels 0
 
 name: self-4
 why: 4^4
 term: self #4 succ 0
-levels: 256 weighted 2135 peels 0
-unfused: 256 weighted 3335 peels 0
+levels: 256 logical 2135 peels 0
+unfused: 256 logical 3335 peels 0

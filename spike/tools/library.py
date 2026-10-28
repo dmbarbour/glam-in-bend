@@ -8,7 +8,7 @@ measurements, recorded in the analysis store when asked.
     library.py OUT [--update] [--store NOTE] [NAME...]
 
 OUT holds the program written and its output; NAME runs those entries
-alone. --update writes each mode's weighted count and peels back into
+alone. --update writes each mode's logical interactions and peels into
 the library from the run, never its value. --store records every case in
 the store (scripts/results.py library). Exits 1 if any check fails.
 
@@ -23,14 +23,23 @@ spike/library.txt holds the entries, separated by blank lines, each a few
            ctlc(n,+by) num(v) succ plus fma era), links `a.p-b.p`, the
            exposed port `a.p`, and
   net      what must hold
-What must hold is `VALUE weighted W peels P`: the value every strategy
-reaches, and the weighted count and peels the profile shows (kstrat.bend's
-Profiling); or `wrong`, a mode known to miss the value (labels on some
-self-applications), which must still miss it. Checked besides, for every
-case: no errors and the data table in step, the interpreted table and the
-generated rewrites making the same interactions and the profile too,
-demand done in no more; a term's value its evaluator's (terms.py), and
-every net polarized (polarity.py).
+  fuel     the full reductions' fuel, 1280000 if not given (demand has
+           twice as many steps, the spike as many interactions)
+What must hold is one of
+  VALUE logical L peels P    the value every strategy reaches, demand in
+           no more interactions, and the logical interactions and peels
+           the profile counts (kstrat.bend's Profiling)
+  demand VALUE   the value demand reaches; the full reductions need not
+           finish in the fuel, as where the value needs only part of the
+           net
+  cycle    demand finds a cycle of principal ports facing auxiliary ones,
+           and the full reductions no value
+  wrong    a mode known to miss the value (labels on some
+           self-applications), which must still miss it.
+Checked besides, for every case: no errors and the data table in step,
+the interpreted table and the generated rewrites making the same
+interactions and the profile too; a term's value its evaluator's
+(terms.py), and every net polarized (polarity.py).
 """
 import os
 import re
@@ -49,12 +58,13 @@ FUEL = 1280000
 
 NODE = re.compile(r"([a-z]+)(?:\(([^)]*)\))?$")
 END = re.compile(r"(\d+)\.(\d+)$")
-WANT = re.compile(r"(\S+) weighted (\d+) peels (\d+)$")
+WANT = re.compile(r"(\S+) logical (\d+) peels (\d+)$")
+DEMAND = re.compile(r"demand (\S+)$")
 
 
 class Case:
-    def __init__(self, entry, mode, want, line):
-        self.entry, self.mode, self.want, self.line = entry, mode, want, line
+    def __init__(self, entry, mode, want, line, fuel):
+        self.entry, self.mode, self.want, self.line, self.fuel = entry, mode, want, line, fuel
         self.net = self.root = self.value = None
 
 
@@ -109,16 +119,17 @@ def cases(es, only):
         names.add(name)
         if only and name not in only:
             continue
+        fuel = int(e["fuel"][0]) if "fuel" in e else FUEL
         if "term" in e:
             t = terms.parse(e["term"][0])
             for mode in MODES:
                 if mode in e:
-                    c = Case(name, mode, *e[mode])
+                    c = Case(name, mode, *e[mode], fuel)
                     c.net, c.root = terms.to_tpl(t, mode != "labels", mode != "unfused")
                     c.value = terms.evaluate(t)
                     out.append(c)
         else:
-            c = Case(name, "net", *e["net"])
+            c = Case(name, "net", *e["net"], fuel)
             c.net, c.root = written_net(e)
             out.append(c)
     return out
@@ -161,11 +172,11 @@ def lazy_str(r: K.DRes) -> String:
 
 # a case through every strategy
 def one(+k: U32) -> String:
-  "#" ++ U32.show(k) ++ ": spike " ++ spike_str(T.result(T.run(tpl_of(k), SFUELn))) ++
-    " | ref " ++ res_str(K.run_t(tpl_of(k), FUELn, False{})) ++
-    " | fast " ++ res_str(K.run_t(tpl_of(k), FUELn, True{})) ++
-    " | lazy " ++ lazy_str(K.run_d(tpl_of(k), DFUELn, [])) ++
-    " | prof " ++ K.profile_t(tpl_of(k), FUELn, True{})
+  "#" ++ U32.show(k) ++ ": spike " ++ spike_str(T.result(T.run(tpl_of(k), fuel_of(k, 1n)))) ++
+    " | ref " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), False{})) ++
+    " | fast " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{})) ++
+    " | lazy " ++ lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), [])) ++
+    " | prof " ++ K.profile_t(tpl_of(k), fuel_of(k, 0n), True{})
 
 def all(n: Nat, +k: U32) -> String:
   match n:
@@ -191,10 +202,15 @@ def program(cs, out):
     for i in range(len(cs)):
         lines.append(f"    case {i}:\n      t{i}()")
     lines.append(f"    case _:\n      t{len(cs) - 1}()\n")
-    # the spike's fuel counts rounds of 64 interactions (tpl.bend's run)
-    main = (MAIN.replace("COUNT", f"{len(cs)}n").replace("SFUELn", f"{FUEL // 64}n")
-            .replace("DFUELn", f"{2 * FUEL}n").replace("FUELn", f"{FUEL}n"))
-    lines.append(main)
+    # case k's fuel for the full reductions (0), the spike (1), whose fuel
+    # counts rounds of 64 interactions (tpl.bend's run), and demand (2)
+    lines.append("def fuel.go(+f: Nat, +who: Nat) -> Nat:\n  match who:\n    case 0n:\n      f\n"
+                 "    case 1n:\n      Nat.div(f, 64n)\n    case _:\n      Nat.mul(f, 2n)\n")
+    lines.append("def fuel_of(+k: U32, +who: Nat) -> Nat:\n  match k:")
+    for i, c in enumerate(cs):
+        lines.append(f"    case {i}:\n      fuel.go({c.fuel}n, who)")
+    lines.append(f"    case _:\n      fuel.go({FUEL}n, who)\n")
+    lines.append(MAIN.replace("COUNT", f"{len(cs)}n"))
     path = os.path.join(out, "library.bend")
     with open(path, "w") as f:
         f.write("\n".join(lines))
@@ -203,7 +219,7 @@ def program(cs, out):
 
 RES = r"(\S+) \((\d+), (\d+)\)(!?)"
 LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live"
-                  r" \| prof (.+?) \((\d+), (\d+)\); weighted (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs(.*)$")
+                  r" \| prof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs(.*)$")
 
 
 class Run:
@@ -214,20 +230,29 @@ class Run:
         self.lazy = (g[12], int(g[13]), int(g[14]), g[15])
         self.state, self.live = g[16], int(g[17])
         self.prof = (g[18], int(g[19]), int(g[20]))
-        self.weighted = None if g[21].startswith("past") else int(g[21])
+        self.logical = None if g[21].startswith("past") else int(g[21])
         self.peels, self.wide = int(g[22]), int(g[23])
 
 
 def check(c, r):
     """the failures of case c in run r"""
     bad = []
-    m = WANT.match(c.want)
+    m, d = WANT.match(c.want), DEMAND.match(c.want)
     if c.want == "wrong":
         if r.fast[0] == str(c.value):
             bad.append(f"marked wrong, but gives {c.value}: update the library")
+    elif c.want == "cycle":
+        if r.state != "a cycle":
+            bad.append(f"demand ends {r.state}, not a cycle")
+        if r.fast[0] != "none":
+            bad.append(f"the full reduction gives {r.fast[0]}")
+    elif d:
+        if c.value is not None and d.group(1) != str(c.value):
+            bad.append(f"the library says {d.group(1)}, the evaluator {c.value}")
+        if r.lazy[0] != d.group(1) or r.state != "done":
+            bad.append(f"demand gives {r.lazy[0]}, {r.state}, not {d.group(1)}")
     elif not m:
-        bad.append(f"wants `{c.want}`, not `VALUE weighted W peels P` (--update fills them)")
-        m = None
+        bad.append(f"wants `{c.want}`, not `VALUE logical L peels P` (--update fills them)")
     if m:
         want = m.group(1)
         if c.value is not None and want != str(c.value):
@@ -235,8 +260,8 @@ def check(c, r):
         for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("profile", r.prof)):
             if res[0] != want and not (label == "profile" and res[0] == "no value" and want == "none"):
                 bad.append(f"{label} gives {res[0]}, not {want}")
-        if r.weighted != int(m.group(2)):
-            bad.append(f"weighted {r.weighted}, not {m.group(2)}")
+        if r.logical != int(m.group(2)):
+            bad.append(f"{r.logical} logical interactions, not {m.group(2)}")
         if r.peels != int(m.group(3)):
             bad.append(f"{r.peels} peels, not {m.group(3)}")
         if r.state != "done":
@@ -251,7 +276,7 @@ def check(c, r):
     if r.ref[1] != r.fast[1] or r.prof[1] != r.fast[1]:
         bad.append(f"interactions differ: ref {r.ref[1]}, fast {r.fast[1]}, profile {r.prof[1]}")
     if r.wide:
-        bad.append(f"{r.wide} weights past 2^32")
+        bad.append(f"{r.wide} interactions too wide to count as logical ones")
     return bad
 
 
@@ -264,7 +289,7 @@ def store(note, out, runs):
         for c, r in runs:
             f.write("\t".join(str(x) for x in (
                 c.entry, c.mode, int(not check(c, r)), r.fast[0], r.spike[1], r.fast[1], r.lazy[1],
-                "" if r.weighted is None else r.weighted, r.peels)) + "\n")
+                "" if r.logical is None else r.logical, r.peels)) + "\n")
     subprocess.run(R + ["library", run, rows], check=True)
     return run
 
@@ -314,18 +339,18 @@ def main(argv):
             print(f"FAIL {c.entry} {c.mode}: no result (the run's status {res.returncode})")
             continue
         runs.append((c, r))
-        if update and c.want != "wrong":
+        if update and c.want not in ("wrong", "cycle") and not DEMAND.match(c.want):
             w = WANT.match(c.want)
-            lines[c.line] = f"{c.mode}: {w.group(1) if w else c.want.split()[0]} weighted {r.weighted} peels {r.peels}"
+            lines[c.line] = f"{c.mode}: {w.group(1) if w else c.want.split()[0]} logical {r.logical} peels {r.peels}"
             c.want = lines[c.line].partition(": ")[2]
         bad = check(c, r)
-        saved = "" if not r.weighted else f" ({100 * (r.weighted - r.fast[1]) // r.weighted}% fused away)"
+        saved = "" if not r.logical else f" ({100 * (r.logical - r.fast[1]) // r.logical}% fused away)"
         if bad:
             failing += 1
             print(f"FAIL {c.entry} {c.mode}: " + "; ".join(bad))
         else:
             print(f"ok   {c.entry} {c.mode}: {r.fast[0]} in {r.fast[1]} interactions, demand {r.lazy[1]},"
-                  f" weighted {r.weighted}{saved}, {r.peels} peels")
+                  f" logical {r.logical}{saved}, {r.peels} peels")
     if update:
         with open(LIBRARY, "w") as f:
             f.write("\n".join(lines))

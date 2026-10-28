@@ -3,9 +3,9 @@
 # --profile; kstrat.bend's Profiling): each ending, `succ 0`, `(plus 1) 0`
 # and `(fma 1 1) 0`, lowered with levels, with static labels, and with
 # levels as unit brackets (--unfused), three seeds of COUNT terms, each
-# reduced fully by the profiling strategy. Each set is built and run under
-# scripts/capped.sh, and every term's counts, weighted count, peels and
-# interactions by pair of kinds recorded in the analysis store
+# reduced fully by the profiling strategy. Each set is built and run
+# under scripts/capped.sh, and every term's counts, logical interactions,
+# peels and interactions by pair of kinds recorded in the analysis store
 # (scripts/results.py profiles) under one run.
 #
 #   [FUSE=off] spike/tools/profile.sh OUT [COUNT [NOTE]]

@@ -20,7 +20,7 @@ flagging any difference between the last two, or in value with the
 spike, and on demand (kstrat.bend's Demand), flagging a table mismatch
 or more interactions than the full reduction. --profile writes each term
 through the kernel's profiling strategy instead (kstrat.bend's
-Profiling): value, counts, the weighted count, peels and interactions by
+Profiling): value, counts, the logical interactions, peels, interactions by
 pair of kinds (spike/tools/profile.sh). --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
 so the partial application is data the copies share; --fma ends them in
 `(fma 1 1) 0`, whose partial application, holding two numbers, is a data

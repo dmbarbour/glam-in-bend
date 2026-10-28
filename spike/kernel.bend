@@ -20,7 +20,7 @@ import ./kstrat.bend as KS
 #       ref, by the interpreted table alone; with lazy, on demand (see
 #       kstrat.bend's Demand), the state it ends in and the nodes left;
 #       with profile, by the profiling strategy (kstrat.bend's Profiling),
-#       the weighted count, peels and interactions by pair of kinds
+#       the logical interactions, peels and interactions by pair of kinds
 
 # the value at the root, interactions, errors, and whether the table's live
 # entries match the nodes holding them
@@ -157,6 +157,8 @@ def st_name(+st: U32) -> String:
       "stuck"
     case 4:
       "out of fuel"
+    case 5:
+      "a cycle"
     case _:
       "going"
 

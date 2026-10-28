@@ -231,7 +231,7 @@ derivation made here first.
      controls erased one at a time (Lift·EraP) 12% and 21% in #124 and
      #133, controls meeting numbers (Lift·Data) 12% and 26% in #124 and
      #107: bookkeeping is 97% of what #124 and #107 do. The kernel's
-     fusion saves 54% of #6's weighted count (68,512 interactions for
+     fusion saves 54% of #6's logical interactions (68,512 for
      150,320) and 10% to 25% of the others'. No term peels.
    - `pairing-overhead.trace` — contingent on `heap-strategies.trace` —
      #133 and #124 traced where their controls pile up.
@@ -256,16 +256,22 @@ derivation made here first.
      frees and computes nothing (the maintainer, 2026-10-28): a control
      meeting data (which carries no level: `R.rule` passes Data's
      payload through a Lift unchanged) or an eraser, an annihilation.
-     Each still counts as an interaction. Open: an eraser's cascade is
-     eager erasure, which `net-demand-whnf` set aside, so whether
-     inlining stops after one rewrite.
+     Each still counts as an interaction. An eraser's cascade is welcome
+     if done well (the maintainer, 2026-10-28: the eager erasure
+     `net-demand-whnf` set aside was awkward and did not generalize).
+     Erasing a node with two auxiliary ports reuses it as one of the two
+     erasers, allocating nothing, and goes on down one branch in a loop;
+     the other branch's pair waits on the eager strategy's stack, grown
+     or sized to half the nodes (12.5% of memory), or in a bitmap of
+     active pairs (`heap-strategies.bitmap`), never on Bend's call
+     stack.
 9. `pairing-library` — a growing library of small nets kept for what
    they exercise, in place of random corpora as the main test (the
    maintainer, 2026-10-28): 1,800 random terms in three lowerings catch
    some faults by luck and miss others, most teach nothing, and none
    stands for what glam programs cost. Each entry is a net, a lambda
    term in its lowerings or nodes and links written out; it says why it
-   is kept and what must hold: its value, no errors, its weighted count
+   is kept and what must hold: its value, no errors, its logical interactions
    (`heap-strategies.profile`) and its peels. Every strategy runs it:
    the spike's, the interpreted table's and the generated rewrites' full
    reductions agree, and demand does no more. Interactions go to the
@@ -276,10 +282,10 @@ derivation made here first.
      every case through the spike, the interpreted table, the generated
      rewrites, demand and the profile, checks what it prints (values,
      no errors, the data table in step, the eager counts equal, demand
-     done in no more, weighted count and peels, the evaluator's value,
-     polarity), rewrites the weighted counts and peels on `--update`,
+     done in no more, logical interactions and peels, the evaluator's value,
+     polarity), rewrites the logical interactions and peels on `--update`,
      never a value, and records every case in the store on `--store`
-     (table `library`). A case changed by one weighted interaction, or
+     (table `library`). A case changed by one logical interaction, or
      a net linking two positive ports, fails.
    - `pairing-library.seed` — built 2026-10-28 — 18 entries, 35 cases:
      the six controls-facing nets (four peeling), the two terms that
@@ -287,14 +293,33 @@ derivation made here first.
      random corpus, and families `pow #2 #n` (n 3, 6, 12) and `self #n`
      (n 2, 3, 4), each in the lowerings that finish: labels never finish
      a self-application, and `costly-6` keeps labels as `wrong`. Left
-     out: #33 of seed 11, which no full reduction finishes in the fuel
-     though demand finds its value in 340 interactions. Store run 46.
+     out at first: #33 of seed 11, which no full reduction finishes in
+     the fuel though demand finds its value in 340 interactions. Store
+     run 46. Then two expectations more and a fuel per entry: `demand
+     VALUE` for #33 (`demand-dead-factor`: `mul 0 x` with x 16^9, built
+     in unary by every full reduction, 2^36; with 16^1 and 16^3 in its
+     place they finish in 907 and 88,792 interactions), and `cycle` for
+     a net with a deadlock (`cycle-copy-lift`): 20 entries, 38 cases.
+     Tracing #33 waits for `heap-strategies.trace`.
    - `pairing-library.gate` — built 2026-10-28 — `scripts/check.sh`
      runs the library, writing to `results/library`: 22 s of the
      gate's 40.
    - `pairing-library.grow` — tentative — entries from what the one-wire
      model, random search or traces find, shrunk first; nets not built
      from terms (`pairing-nets`).
+   - `pairing-library.explore` — tentative — a systematic search of
+     small nets (the maintainer, 2026-10-28): every polarized net of a
+     few nodes over a small vocabulary (functions, applications, fans,
+     controls, data, erasers), most of them no lambda term's, reduced by
+     every strategy and kept where it shows something: a peel, a cycle,
+     an error, strategies disagreeing, fusion changing the logical
+     interactions, demand far cheaper. Then the same over a simplified
+     subset of glam's own net construction (`pairing-nets`: copy, data,
+     bind, wire).
+   - `pairing-library.programs` — tentative — families from small
+     programs nearer glam's own, Church-encoded (the maintainer,
+     2026-10-28): a list monad, a state monad with alternation and cut
+     for backtracking, mixin object models.
 10. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle

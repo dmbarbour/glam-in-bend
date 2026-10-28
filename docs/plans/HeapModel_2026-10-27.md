@@ -312,6 +312,13 @@ takes from it:
      The full differential test (store run 32): the full reduction the
      same on all 3,600 terms; demand the same values, fewer interactions
      on 1,866 terms and more nodes left on 1,605, what eager erasure freed.
+     - `heap-strategies.net.capacity` — tentative — a net that cannot
+       grow stops its strategy at the first such error. Given fuel
+       enough, the library's `demand-dead-factor` passes the 2^21 nodes
+       in a full reduction, and the kernel counts 2,534,093 errors while
+       it goes on reducing a corrupted net, with pairs no polarized net
+       has (a freed node and data, two merges): reported, not crashed,
+       but work wasted on a net already failed.
    - `heap-strategies.stack` — built 2026-10-28 — no
      pairs kept in the net (the maintainer, 2026-10-28): every active pair
      is in such a set once, every strategy but one would clear it, and
@@ -345,34 +352,34 @@ takes from it:
      differential test clean (run 37).
    - `heap-strategies.profile` — built 2026-10-28 — interactions
      counted per pair of kinds and peels, per term, into the analysis
-     store. Also counted as the unit system would (the maintainer,
-     2026-10-28): a run of k
-     crossing a node or cancelling its equal counts k, two runs crossing
-     c times b, a peeled pair what peeling leaves; that count is the
-     unfused interactions, the same in every order of a complete
-     evaluation, and fusion's savings are it less the interactions made,
-     which may differ by order. Equal counts across orders test fusion's
+     store. Also as logical interactions (the maintainer, 2026-10-28),
+     those of the unit system: a run of k crossing a node or cancelling
+     its equal is k, two runs crossing c times b, a peeled pair what
+     peeling leaves; they are the unfused interactions, as many in every
+     order of a complete evaluation, and fusion's savings are they less
+     the interactions made, which may differ by order. Equal counts across orders test fusion's
      soundness on whole nets, beyond `ctlwire.py`'s one wire. Fusions by
      shape are not counted: one shape remains, and the savings measure
      what fusion does; controls alive wait for `heap-strategies.trace`.
-     - `heap-strategies.profile.weights` — built 2026-10-28 — each
-       move's weight checked on the one-wire model (`ctlwire.py
-       --weights`): a fused start's reductions, every move weighted, all
-       total the interactions of its runs as unit brackets reduced
-       unfused. A run crossing a value, a consumer or another run weighs
-       its units times the other's, equal runs cancelling their units, a
-       peel what it cancels or the run a drop crosses whole, a fusion
-       nothing. The kernel's rule (`--peel --shapes 0`) holds on all
+     - `heap-strategies.profile.weights` — built 2026-10-28 — the
+       logical interactions of each move checked on the one-wire model
+       (`ctlwire.py --logical`): a fused start's reductions, every move
+       counted so, all total the interactions of its runs as unit
+       brackets reduced unfused. A run crossing a value, a consumer or
+       another run counts its units times the other's, equal runs
+       cancelling their units, a peel what it cancels or the run a drop
+       crosses whole, a fusion nothing. The kernel's rule (`--peel --shapes 0`) holds on all
        4,001,400 starts to length 4 and 20,000 sampled at each of
        lengths 6, 8 and 10 (indices to 3, levels to 6), the unit counts
        never depending on order; the old fusion fails 46,872 of the
        222,264 starts of length 3 (store runs 38 to 42).
      - `heap-strategies.profile.strategy` — built 2026-10-28 — a
        profiling strategy in `kstrat.bend`: the eager one, each pair
-       counted by kinds, A's principal negative, and weighted before it
-       interacts, the sum in two words; `kernel K W profile`, and
-       `profile_t` for tests. On `lvl` at k 10, 12 and 14 the weighted
-       count is the same with the kernel's fusion on and off (6,458,
+       counted by kinds, A's principal negative, and as logical
+       interactions before it interacts, the sum in two words; `kernel K
+       W profile`, and `profile_t` for tests. On `lvl` at k 10, 12 and
+       14 the logical interactions are as many with the kernel's fusion
+       on and off (6,458,
        24,962, 98,762) while fusion saves 24% of the interactions. The
        eager and demand strategies cost what they did (store run 43
        against run 36: 0.0% in the default, inlined and profile-guided
@@ -389,15 +396,16 @@ takes from it:
        runs 44 (fusion on) and 45 (off).
      - `heap-strategies.profile.check` — built 2026-10-28 — fusion is
        sound on whole nets, on every term both runs complete: with
-       unit brackets the weighted count with fusion is the interactions
-       made without it, on all 1,791 (3,778,521 in all); with levels the
-       weighted counts with and without fusion agree on all 1,797. The
-       21 rows that do not complete ran out of fuel, none wrong. The
-       kernel's fusion saves 23.3% of the weighted interactions with
-       levels, 21.9% with unit brackets. The lowering's own fused
-       controls, a croissant cancelled against brackets, save far more:
-       on the 1,794 terms both lowerings complete, 1,296,183 weighted
-       against 8,682,189, since runs crossing weigh their product. No
+       unit brackets the logical interactions with fusion are the
+       interactions made without it, on all 1,791 (3,778,521 in all);
+       with levels the logical interactions with and without fusion
+       agree on all 1,797. The 21 rows that do not complete ran out of
+       fuel, none wrong. The kernel's fusion saves 23.3% of the logical
+       interactions with levels, 21.9% with unit brackets. The
+       lowering's own fused controls, a croissant cancelled against
+       brackets, save far more: on the 1,794 terms both lowerings
+       complete, 1,296,183 logical interactions against 8,682,189, since
+       runs crossing count their product. No
        term of the 5,400 peels; only the hand-built nets of
        `test_levels.bend` do, whose profiles are now regressions there.
    - `heap-strategies.trace` — contingent on `heap-strategies.net` — the
@@ -406,12 +414,37 @@ takes from it:
      written from Bend once its SQLite package is vetted, else imported.
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
-     (its profile is store run 26). And a deadlock reported, not walked:
-     on a cycle of principal ports each facing an auxiliary one, the
-     walk goes round until its fuel runs out (the library's `costly-6`
-     with labels: 84 interactions, then 2.56M steps). A path longer than
-     the net has nodes is such a cycle. Lowered terms make none with
-     levels, but nets users wire may (`pairing-nets`).
+     (its profile is store run 26).
+     - `heap-strategies.demand.cycle` — built 2026-10-28 — a deadlock
+       reported, not walked (the maintainer, 2026-10-28): on a cycle of
+       principal ports each facing an auxiliary one, the walk went round
+       until its fuel ran out (the library's `costly-6` with labels: 84
+       interactions, then 2.56M steps, its depth cap a fixed 2^22). A
+       path as long as the net has nodes is such a cycle, so the walk
+       reads the net's capacity where its depth is a power of two from
+       128 and stops there in a new state, a cycle. Each push tests only
+       for a multiple of 128 (a full test on every push cost demand 1.3%
+       to 2.1%, store run 47); now demand costs -0.1% to +0.3% more, the
+       full reduction nothing (store run 48 against 43). Lowered terms make
+       no cycle with levels, but nets users wire may (`pairing-nets`):
+       `test_demand.bend` and the library's `cycle-copy-lift` build one.
+   - `heap-strategies.bitmap` — tentative — under discussion (the
+     maintainer, 2026-10-28): the net marks its active pairs in a
+     bitmap, one bit per node, set at the lower node of each pair. The
+     pairs the net once kept were dropped as a representation that hung
+     on the strategy; a bitmap holds by computation whatever the
+     strategy runs (a bit set exactly where two principal ports face), so
+     switching strategies needs no scan, and parallel rounds take their
+     pairs from the pages they own. Kept in the node array, one node of
+     bits for each 128, it costs 0.8% of memory and no width in the
+     state; a link joining two principals sets a bit, an interaction
+     clears one. The eager strategy would still want a stack, for order
+     and locality, but a bounded one of hints checked against the
+     bitmap: a hint lost to overflow is found by a sweep, so the stack
+     neither grows nor keeps a margin. Erasure pairs off demand's path
+     could be reduced in batches, as before the net doubles. To measure:
+     the bits' cost to demand, which needs none of them; sweeps on
+     families at n, 2n and 4n; whether hints overflow.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

@@ -8,7 +8,7 @@ note. Results hang off runs:
   terms    the differential test (spike/tools/differential.sh), one row
            per term, ending, pairing mode and seed
   profiles the profiling strategy (spike/tools/profile.sh), one row per
-           term: value, interactions, errors, the weighted count, peels
+           term: value, interactions, errors, logical interactions, peels
   pair_counts  its interactions by pair of kinds, A's principal negative
   library  the library of nets (spike/tools/library.py --store), one row
            per entry and mode: whether its checks passed, its value, and
@@ -63,7 +63,7 @@ create table if not exists metrics (
 create table if not exists profiles (
   run_id integer not null references runs(id), ending text not null, mode text not null,
   seed integer not null, term integer not null, name text, want text, value text,
-  interactions integer, errors integer, weighted integer, peels integer, wide integer,
+  interactions integer, errors integer, logical integer, peels integer, wide integer,
   primary key (run_id, ending, mode, seed, term));
 create table if not exists pair_counts (
   run_id integer not null references runs(id), ending text not null, mode text not null,
@@ -71,7 +71,7 @@ create table if not exists pair_counts (
   primary key (run_id, ending, mode, seed, term, a, b));
 create table if not exists library (
   run_id integer not null references runs(id), name text not null, mode text not null, ok integer,
-  value text, spike_i integer, fast_i integer, lazy_i integer, weighted integer, peels integer,
+  value text, spike_i integer, fast_i integer, lazy_i integer, logical integer, peels integer,
   primary key (run_id, name, mode));
 """
 
@@ -83,7 +83,7 @@ TERM = re.compile(
 
 # one line of terms.py --profile's output
 PROFILE = re.compile(
-    r"#(\d+) want (\S+): (.+?) \((\d+), (\d+)\); weighted (\d+|past 2\^48), (\d+) peels, (\d+) wide; "
+    r"#(\d+) want (\S+): (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; "
     r"pairs((?: \d+\.\d+:\d+)*)  (.*)$")
 
 # rule kinds by code (kprim.bend's header, low four bits)
@@ -208,16 +208,16 @@ order by case ending when 'succ' then 0 when 'plus' then 1 else 2 end, mode desc
 """
 
 # per mode, the terms both runs reduced to the wanted value: whether the
-# weighted counts agree, and with unit brackets (unfused), whether the
-# weighted count with fusion is the interactions without it
+# logical interactions agree, and with unit brackets (unfused), whether
+# the logical interactions with fusion are the interactions without it
 FUSION = """
 with a as (select * from profiles where run_id = {on}), b as (select * from profiles where run_id = {off})
 select a.mode, count(*) as terms, sum(a.value = a.want and b.value = b.want) as complete,
-  sum(a.value = a.want and b.value = b.want and a.weighted = b.weighted) as weighted_equal,
-  sum(a.value = a.want and b.value = b.want and a.weighted = b.interactions) as weighted_is_unfused,
+  sum(a.value = a.want and b.value = b.want and a.logical = b.logical) as logical_equal,
+  sum(a.value = a.want and b.value = b.want and a.logical = b.interactions) as logical_is_unfused,
   sum(case when a.value = a.want and b.value = b.want then a.interactions end) as interactions_on,
   sum(case when a.value = a.want and b.value = b.want then b.interactions end) as interactions_off,
-  sum(case when a.value = a.want and b.value = b.want then a.weighted end) as weighted
+  sum(case when a.value = a.want and b.value = b.want then a.logical end) as logical
 from a join b using (ending, mode, seed, term)
 group by a.mode order by a.mode
 """

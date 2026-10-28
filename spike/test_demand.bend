@@ -101,6 +101,12 @@ def num(+n: U32) -> T.Tpl:
 def succ() -> T.Tpl:
   X.t_one(X.succ())
 
+# a copy whose input is a lift fed by the copy's second output: polarized,
+# no active pair, and a cycle of principal ports each facing an auxiliary
+# one, which a walk from the interface would go round forever
+def t_cycle() -> T.Tpl:
+  T.Tpl{[X.cpl(1, 0), X.ctl(0, True{}, 1)], [X.l(0, 0, 1, 1), X.l(1, 0, 0, 2)], T.TE{0, 1}, 2}
+
 def main() -> IO(Unit):
   do IO<Unit>:
     IO.print(case_line("succ L0, L0 = 41", X.t_ap(succ(), X.t_lazy(0)), [V.VNum{41}], 5000n, 1, "42", 2))
@@ -112,6 +118,7 @@ def main() -> IO(Unit):
     IO.print(case_line("L0 1, L0 a unit: stuck once met", X.t_ap(X.t_lazy(0), num(1)), [], 5000n, 3, "none", 0))
     IO.print(case_line("0 1: stuck", X.t_ap(num(0), num(1)), [], 5000n, 3, "none", 0))
     IO.print(case_line("succ I: stuck", X.t_ap(succ(), t_i()), [], 5000n, 3, "none", 0))
+    IO.print(case_line("a cycle of principal ports facing auxiliary ones: found, not walked", t_cycle(), [], 5000n, 5, "none", 0))
     IO.print(case_line("K 0 omega: omega never reduced", X.t_k_omega(), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 (10 2 succ 0): the power never reduced", X.t_k_pow(10), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 #64: the numeral left, never erased", X.t_k_num(64), [], 5000n, 1, "0", 132))

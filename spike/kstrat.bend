@@ -92,19 +92,19 @@ def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 
 # The eager strategy counting what it does (heap-strategies.profile): its
 # interactions by pair of kinds, A's principal negative as in the rule
-# table, and each weighted by the interactions it stands for were every
-# run of raises its unit brackets (ctlwire.py --weights): a run of b
+# table, and each as the logical interactions it stands for, were every
+# run of raises its unit brackets (ctlwire.py --logical): a run of b
 # meeting any other node, b; two runs at different indices, each unit of
 # one crossing each unit of the other, b times c; facing at one index,
 # what cancels, the shorter of two raises, or else 1, a drop and a unit
-# once peeling has split off the rest of a longer run. The weighted count
-# is the unit brackets' interactions, the same in every order of a
-# complete reduction whether controls fuse or not; fusion's savings are it
-# less the interactions made, and may depend on the order.
+# once peeling has split off the rest of a longer run. The logical
+# interactions are the unit brackets' interactions, as many in every
+# order of a complete reduction whether controls fuse or not; fusion's
+# savings are they less the interactions made, and may depend on order.
 
-# interactions by pair of kinds (A's kind times 16 plus B's), the
-# weighted count in two words, the pairs peeled, and the interactions
-# whose weight would pass 2^32, left out of the count
+# interactions by pair of kinds (A's kind times 16 plus B's), the logical
+# interactions in two words, the pairs peeled, and the interactions whose
+# logical count would pass 2^32, left out of it
 type Pf is Type:
   Pf{kp: KM.M, +lo: U32, +hi: U32, +peels: U32, +wide: U32}
 
@@ -126,27 +126,27 @@ def one_if(b: Bool) -> U32:
       0
 
 # runs of b and c crossing: b times c, and whether that passes 2^32
-def wt.cross(+b: U32, +c: U32) -> U32 & Bool:
+def lg.cross(+b: U32, +c: U32) -> U32 & Bool:
   ((b * c : U32), U32.is_gt(c, (4294967295 / P.sel_u(U32.is_eq(b, 0), 1, b) : U32)))
 
-def wt.same(up: Bool, +b: U32, +c: U32) -> U32:
+def lg.same(up: Bool, +b: U32, +c: U32) -> U32:
   match up:
     case True{}:
       P.sel_u(U32.is_lt(b, c), b, c)
     case False{}:
       1
 
-def wt.cc(same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+def lg.cc(same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
   match same:
     case True{}:
-      (wt.same(P.off_up(oa) && P.off_up(ob), P.off_by(oa), P.off_by(ob)), False{})
+      (lg.same(P.off_up(oa) && P.off_up(ob), P.off_by(oa), P.off_by(ob)), False{})
     case False{}:
-      wt.cross(P.off_by(oa), P.off_by(ob))
+      lg.cross(P.off_by(oa), P.off_by(ob))
 
-def weight.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
+def logical.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
   match ca cb:
     case True{} True{}:
-      wt.cc(U32.is_eq(P.fld(ha), P.fld(hb)), oa, ob)
+      lg.cc(U32.is_eq(P.fld(ha), P.fld(hb)), oa, ob)
     case True{} False{}:
       (P.off_by(oa), False{})
     case False{} True{}:
@@ -155,8 +155,8 @@ def weight.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 
       (1, False{})
 
 # the unit interactions A (header ha, word 3 oa) meeting B stands for
-def weight(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
-  weight.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob)
+def logical(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
+  logical.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob)
 
 # does peeling split either control? (kprim.bend's peel_ctl)
 def peeled(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Bool:
@@ -179,7 +179,7 @@ def pf.w(r: U32 & Bool, pf: Pf, +i: U32, +pl: Bool) -> Pf:
 
 # A (header ha, word 3 oa) meeting B, counted
 def pf.add(pf: Pf, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Pf:
-  pf.w(weight(ha, hb, oa, ob), pf, ((P.rk(ha) << 4n : U32) + P.rk(hb) : U32), peeled(ha, hb, oa, ob))
+  pf.w(logical(ha, hb, oa, ob), pf, ((P.rk(ha) << 4n : U32) + P.rk(hb) : U32), peeled(ha, hb, oa, ob))
 
 def pr.or(neg: Bool, pf: Pf, +hx: U32, +hy: U32, +ox: U32, +oy: U32) -> Pf:
   match neg:
@@ -282,12 +282,12 @@ def pf.big(small: Bool, +lo: U32, +hi: U32) -> String:
     case False{}:
       "past 2^48"
 
-# the profile as text: weighted interactions, peels, weights left out,
-# and interactions by pair of kinds, A's code then B's
+# the profile as text: logical interactions, peels, interactions left out
+# of them, and interactions by pair of kinds, A's code then B's
 def pf_str(pf: Pf) -> String:
   match pf:
     case Pf{kp, +lo, +hi, +peels, +wide}:
-      "weighted " ++ pf.big(U32.is_lt(hi, 65536), lo, hi) ++ ", " ++ U32.show(peels) ++ " peels, " ++
+      "logical " ++ pf.big(U32.is_lt(hi, 65536), lo, hi) ++ ", " ++ U32.show(peels) ++ " peels, " ++
         U32.show(wide) ++ " wide; pairs" ++ pf.pairs(255n, KM.m_get(kp, 0), 0)
 
 # Demand
@@ -311,8 +311,8 @@ def pf_str(pf: Pf) -> String:
 # call meeting a table entry that is a handle, the need recorded.
 
 # the path below its last node, top, and its length; interactions; the
-# state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of fuel;
-# for a need, the handle and the data node holding it
+# state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of fuel,
+# 5 a cycle; for a need, the handle and the data node holding it
 type D is Type:
   D{h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +st: U32, +lz: U32, +at: U32}
 
@@ -437,14 +437,37 @@ def wk.pair(root: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n:
     case False{}:
       wk.hx(P.rd(h, top), path, top, depth, n, y)
 
-# a path longer than any net's nodes has gone round a cycle
-def deep_cap() -> U32:
-  4194304
-
-def wk.deeper(over: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+def wk.cyc(over: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match over:
     case True{}:
-      d.stop(h, path, top, depth, n, 3)
+      d.stop(h, path, top, depth, n, 5)
+    case False{}:
+      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
+
+def wk.cap(r: P.H & P.HS, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      wk.cyc(U32.is_ge(depth, cap), h, path, top, depth, n, q)
+
+def wk.pow2(p2: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match p2:
+    case True{}:
+      wk.cap(P.stats(h), path, top, depth, n, q)
+    case False{}:
+      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
+
+# A path of depth + 1 nodes, all distinct unless the walk has gone round a
+# cycle of principal ports each facing an auxiliary one, a deadlock that
+# never reduces: so a path as long as the net has nodes is one. The
+# capacity, a power of two, is in the cold record; it is read only where
+# the depth is a power of two from 128 on, so that a cycle is found once
+# the path is as long as the net. Each push tests only for a multiple of
+# 128, the rest left to those (a full test on every push cost demand 1.5%).
+def wk.deeper(chk: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match chk:
+    case True{}:
+      wk.pow2(U32.is_eq((depth .&. (depth - 1 : U32) : U32), 0), h, path, top, depth, n, q)
     case False{}:
       d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
 
@@ -455,7 +478,7 @@ def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth
     case False{} True{}:
       wk.pair(U32.is_eq(top, 0), h, path, top, depth, n, q)
     case False{} False{}:
-      wk.deeper(U32.is_ge(depth, deep_cap()), h, path, top, depth, n, q)
+      wk.deeper(U32.is_eq((depth .&. 127 : U32), 0) && U32.is_ne(depth, 0), h, path, top, depth, n, q)
 
 # what the path's last node's principal port faces
 def wk.q(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
