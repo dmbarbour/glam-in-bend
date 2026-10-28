@@ -1,3 +1,4 @@
 */.tmp/
 .devcontainer/
 results/
+__pycache__/
