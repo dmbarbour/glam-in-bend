@@ -52,6 +52,11 @@ if ! command -v node >/dev/null 2>&1; then
   apt-get update && apt-get install -y nodejs
 fi
 
+# pdftotext, to read papers fetched as PDF
+if ! command -v pdftotext >/dev/null 2>&1; then
+  apt-get update && apt-get install -y poppler-utils
+fi
+
 # GCC 16 from source, a second compiler for reference (slow the first time)
 sh scripts/gcc-setup.sh
 
