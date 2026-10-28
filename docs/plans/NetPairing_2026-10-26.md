@@ -244,7 +244,48 @@ derivation made here first.
      — criteria for merging a raise with a drop where no partner can
      reach it (Asperti and Chroboczek), each checked in `ctlwire.py`
      before the corpus.
-9. `pairing-nets` — levels for nets not built from lambda terms: every
+   - `pairing-overhead.lowering` — tentative — optimizing at lowering,
+     where the term's structure is known (the maintainer, 2026-10-28).
+     The lowering's fused controls already do 85% less unit work than
+     unit brackets (`heap-strategies.profile.check`); next, what else it
+     can cancel or leave out, stratified terms
+     (`pairing-overhead.stratify`) among them.
+   - `pairing-overhead.inline` — tentative — a rewrite applied where the
+     link making its pair is made, as fusion is, skipping the stack and
+     the dispatch, for pairs whose rewrite makes no more nodes than it
+     frees and computes nothing (the maintainer, 2026-10-28): a control
+     meeting data (which carries no level: `R.rule` passes Data's
+     payload through a Lift unchanged) or an eraser, an annihilation.
+     Each still counts as an interaction. Open: an eraser's cascade is
+     eager erasure, which `net-demand-whnf` set aside, so whether
+     inlining stops after one rewrite.
+9. `pairing-library` — a growing library of small nets kept for what
+   they exercise, in place of random corpora as the main test (the
+   maintainer, 2026-10-28): 1,800 random terms in three lowerings catch
+   some faults by luck and miss others, most teach nothing, and none
+   stands for what glam programs cost. Each entry is a net, a lambda
+   term in its lowerings or nodes and links written out; it says why it
+   is kept and what must hold: its value, no errors, its weighted count
+   (`heap-strategies.profile`) and its peels. Every strategy runs it:
+   the spike's, the interpreted table's and the generated rewrites' full
+   reductions agree, and demand does no more. Interactions go to the
+   analysis store as measurements, not expectations. Random search stays
+   to find entries: what it finds is shrunk and added.
+   - `pairing-library.format` — active — `spike/library.txt` and
+     `spike/tools/library.py`, which writes the program running the
+     entries, checks what it prints, rewrites the weighted counts on
+     `--update`, and records interactions in the store.
+   - `pairing-library.seed` — contingent on `pairing-library.format` —
+     the nets known to matter: the peel nets of `test_levels.bend`, the
+     costliest terms (`pairing-overhead.profile`), the terms that found
+     the fusion faults, self-applications labels get wrong, and families
+     at n, 2n and 4n.
+   - `pairing-library.gate` — contingent on `pairing-library.seed` —
+     `scripts/check.sh` runs the library, if it stays fast.
+   - `pairing-library.grow` — tentative — entries from what the one-wire
+     model, random search or traces find, shrunk first; nets not built
+     from terms (`pairing-nets`).
+10. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
    which discipline glam's own net construction follows (levels assigned
@@ -286,7 +327,7 @@ derivation made here first.
      negative exposed port, as `spike/tools/polarity.py` checks the
      lowered ones; rules keep it (`rules_polarized`), and fusion and
      peeling link positive to negative by construction, with no law yet.
-10. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
+11. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness as Guerrini's
    properness: nets as built are proper, every rule preserves properness,
@@ -294,9 +335,9 @@ derivation made here first.
    properties to prove first: a copy meets only deeper nodes, and fans
    meeting at one level are residuals of one duplication. Attempt it, or
    find the restriction under which it holds.
-11. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
+12. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
-12. `pairing-docs` — revise the standing docs to the verdict. Design.md's
+13. `pairing-docs` — revise the standing docs to the verdict. Design.md's
     copy-copy rule says pairing follows complete dynamic duplication
     identity and that duplication history distinguishes residual fans;
     histories pair wrongly, so say what does, and check the other docs

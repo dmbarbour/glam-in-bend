@@ -300,9 +300,8 @@ takes from it:
    and faults; an evaluation strategy wraps it with state of its own,
    decides which pair is next, and is done when it hands the net back, so
    that a cell holds a bare live net at rest. Several strategies, each
-   measured: eager pairs last in first out, demand toward the interface;
-   profiling and tracing as strategies wrapping another. Each reduces its
-   pairs in sequence; parallelism comes from sparks (`parallel-sparks`).
+   measured: eager pairs last in first out, demand toward the interface,
+   parallel rounds; profiling and tracing as strategies wrapping another.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
      and the tests' entry points in `spike/kernel.bend`; demand without
@@ -408,12 +407,16 @@ takes from it:
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
      (its profile is store run 26).
-   - `heap-strategies.rounds` — dropped 2026-10-28 — the maintainer:
-     sparks are the primary source of parallelism, not a net's pairs
-     reduced together (`parallel-sparks`). It would have run parallel
-     rounds in two phases: every pair's local outcome, nothing written
-     outside its own nodes, then the links between outcomes resolved and
-     the next pairs found.
+   - `heap-strategies.rounds` — tentative — parallel rounds in two
+     phases: every pair's local outcome, nothing written outside its own
+     nodes, then the links between outcomes resolved and the next pairs
+     found; pages owned by workers as `spike-page-rounds` measured. Kept
+     as an experiment (the maintainer, 2026-10-28): sparks, tasks
+     reducing lazy values ahead of demand, are the anticipated main
+     source of parallelism, but not decided. This measures what reducing
+     a net's pairs together costs, the sequential case above all, so
+     that Bend's lightweight parallelism is kept wherever careful design
+     makes it cheap.
 4. `heap-freeze` — frozen nets: freeze a live net once its reduction is
    done, instantiate a frozen net into a live one or splice it into a
    running net, at n, 2n and 4n nodes; local reduction of build-only pairs

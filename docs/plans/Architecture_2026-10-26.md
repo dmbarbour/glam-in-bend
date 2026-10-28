@@ -381,9 +381,10 @@ Fork-join fits balanced work with no shared affine state:
 - Bulk structure operations on ground data: map, fold and union on ropes
   and dicts, serializing outputs, hashing for content addressing and
   caching.
-- Evaluation tasks (sparks, reflection tasks) on workers that own their
-  pages, in rounds ("Pages and rounds"); a net's own pairs reduce in
-  sequence (`parallel-sparks`).
+- Evaluation tasks (sparks, reflection tasks, independent active pairs) on
+  workers that own their pages, in rounds ("Pages and rounds"). Sparks
+  are the anticipated main source, not yet decided (HeapModel's
+  `heap-strategies.rounds` measures the pairs).
 - Within a task, nested parallel calls over what its worker holds (its
   pages, split between the calls, and ground data). A fork reached late
   inside a branch still runs in parallel: eight branches forking after
