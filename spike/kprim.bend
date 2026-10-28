@@ -376,8 +376,11 @@ def free(h: H, +r: U32) -> H:
     case H{w, +fh, rs, +nr, c}:
       H{KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), ((r >> 2n : U32) + 1 : U32), rs, nr, c}
 
+# free a redex's two nodes, b first, so that a's slot heads the free list
+# and the rule's first new node takes it: the interface, node 0, keeps its
+# slot when a rule replaces it
 def fresh2(h: H, +a: U32, +b: U32) -> H:
-  free(free(h, a), b)
+  free(free(h, b), a)
 
 # Headers, levels, values
 # =======================
@@ -648,6 +651,30 @@ def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
       (h, True{})
     case _:
       is_fn.fin(tab_get(h, w))
+
+# a table entry that is a handle, VLazy: a pair meeting it may need
+# another cell's value (HeapModel's "Forcing")
+type Lz is Type:
+  Lz{h: H, +lazy: Bool, +k: U32}
+
+def lazy.v(v: V.Val, h: H) -> Lz:
+  match v:
+    case V.VLazy{+k}:
+      Lz{h, True{}, k}
+    case _:
+      Lz{h, False{}, 0}
+
+def lazy.fin(r: H & V.Val) -> Lz:
+  (h, v) = r
+  lazy.v(v, h)
+
+# is the value of form m and word w a handle, and which?
+def val_lazy(h: H, +m: U32, +w: U32) -> Lz:
+  match m:
+    case 0:
+      lazy.fin(tab_get(h, w))
+    case _:
+      Lz{h, False{}, 0}
 
 # Level checks
 # ============

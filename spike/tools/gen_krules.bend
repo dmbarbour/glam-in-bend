@@ -519,6 +519,39 @@ def tables() -> String:
   "# is the principal port negative? (R.port_pol)\n" ++
   "def kind_neg(+k: U32) -> Bool:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      False{}\n\n"
 
+def stuck_v(+t: Bool, +f: Bool) -> String:
+  match t f:
+    case True{} True{}:
+      "1"
+    case False{} False{}:
+      "0"
+    case True{} False{}:
+      "3"
+    case False{} True{}:
+      "2"
+
+def stuck_case.s(s: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match s:
+    case True{}:
+      ""
+    case False{}:
+      "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n      " ++
+        stuck_v(is_stuck(R.rule(a, b, True{})), is_stuck(R.rule(a, b, False{}))) ++ "\n"
+
+def stuck_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      stuck_case.s(both_stuck(a, b), a, b) ++ stuck_b(t, a)
+
+def stuck_a(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      stuck_b(kinds(), a) ++ stuck_a(t)
+
 def file() -> String:
   "import Base\n" ++
   "import ./kprim.bend as P\n\n" ++
@@ -526,6 +559,9 @@ def file() -> String:
   "# by spike/tools/gen_krules.bend; do not edit. scripts/check.sh fails if\n" ++
   "# this file differs from what the generator writes.\n\n" ++
   tables() ++
+  "# when the rule leaves A, negative principal, meeting B as it is (R.rule):\n" ++
+  "# 0 never, 1 always, 2 when the payload test fails, 3 when it passes\n" ++
+  "def stuck_by(+ka: U32, +kb: U32) -> U32:\n  match ka kb:\n" ++ stuck_a(kinds()) ++ "    case _ _:\n      1\n\n" ++
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++

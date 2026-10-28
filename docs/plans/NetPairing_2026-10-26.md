@@ -149,6 +149,11 @@ derivation made here first.
    the fused control crosses it. The results look equivalent, the shift
    between values and consumers agreeing, but the criterion is semantic
    (properness, below), not structural. Wider fusion waits on it.
+   2026-10-28: the current fusion is not equivalent in every order. In
+   the order demand reduces, it reads wrong values on 8 of 600 random
+   leveled terms that unfused levels get right, and with one kind of
+   control fused the full reduction goes wrong too; evidence and terms in
+   `heap-demand` ([`HeapModel_2026-10-27.md`](HeapModel_2026-10-27.md)).
 7. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle

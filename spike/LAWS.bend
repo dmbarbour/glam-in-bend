@@ -85,3 +85,12 @@ law apply_keeps_clean:
 law norm_keeps_clean:
   for +v: V.Val
   {Bool.or(Bool.not(V.clean(v)), V.clean(V.norm(v))) == True{} : Bool}
+
+# LAW: where the payload test decides whether A meeting B is stuck, the
+# rule that rewrites them makes at most one node, so the kernel's demand
+# walk tells a rewrite from a stuck pair by B's slot alone.
+# Record: net-demand-whnf
+law rules_tested_small:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  {R.tested_small(a, b) == True{} : Bool}
