@@ -7,15 +7,21 @@ it ran on and how many paths were changed, Bend's version, the CPU, a
 note. Results hang off runs:
   terms    the differential test (spike/tools/differential.sh), one row
            per term, ending, pairing mode and seed
+  profiles the profiling strategy (spike/tools/profile.sh), one row per
+           term: value, interactions, errors, the weighted count, peels
+  pair_counts  its interactions by pair of kinds, A's principal negative
   counts   instructions and interactions per build and workload
   metrics  any named number
 
     results.py run TOOL PARAMS_JSON [NOTE]       start a run, print its id
     results.py terms RUN ENDING MODE SEED FILE   import a differential output
+    results.py profiles RUN ENDING MODE SEED FILE  import a profile output
     results.py count RUN BUILD WORKLOAD K LAZY ITRS INSTRUCTIONS [CYCLES]
     results.py metric RUN NAME VALUE
     results.py sql QUERY                         print rows, tab-separated
     results.py summary RUN                       the differential's verdicts
+    results.py fusion ON OFF                     two profile runs, fusion on
+                                                 and off, compared per mode
 
 Run from anywhere in the repository; read the store with any SQLite client
 (`results.py sql "select ..."`), e.g. to compare runs with one parameter
@@ -50,6 +56,15 @@ create table if not exists counts (
   k integer not null, lazy integer not null, interactions integer, instructions integer, cycles integer);
 create table if not exists metrics (
   run_id integer not null references runs(id), name text not null, value real);
+create table if not exists profiles (
+  run_id integer not null references runs(id), ending text not null, mode text not null,
+  seed integer not null, term integer not null, name text, want text, value text,
+  interactions integer, errors integer, weighted integer, peels integer, wide integer,
+  primary key (run_id, ending, mode, seed, term));
+create table if not exists pair_counts (
+  run_id integer not null references runs(id), ending text not null, mode text not null,
+  seed integer not null, term integer not null, a text not null, b text not null, n integer not null,
+  primary key (run_id, ending, mode, seed, term, a, b));
 """
 
 # one line of terms.py --kernel's output
@@ -57,6 +72,15 @@ TERM = re.compile(
     r"#(\d+) want (\S+): spike (\S+) \((\d+), (\d+)\) \| ref (\S+) \((\d+), (\d+)\) \| fast (\S+) \((\d+), (\d+)\)"
     r"(?: \| lazy (\S+) \((\d+), (\d+)\) (.+?), (\d+) live)?  "
     r"(TABLE MISMATCH|DIFFER ref/fast|DIFFER value|same, counts equal|same, counts differ)(  LAZY MORE)?  (.*)$")
+
+# one line of terms.py --profile's output
+PROFILE = re.compile(
+    r"#(\d+) want (\S+): (.+?) \((\d+), (\d+)\); weighted (\d+|past 2\^48), (\d+) peels, (\d+) wide; "
+    r"pairs((?: \d+\.\d+:\d+)*)  (.*)$")
+
+# rule kinds by code (kprim.bend's header, low four bits)
+KINDS = {1: "Fn", 2: "Ap", 3: "Copy", 4: "Merge", 5: "Data", 6: "EraN", 7: "EraP", 8: "Root", 9: "Call",
+         10: "Lift", 11: "LiftC"}
 
 
 def db():
@@ -115,6 +139,26 @@ def cmd_terms(run, ending, mode, seed, path):
     print(len(rows), "terms from", path)
 
 
+def cmd_profiles(run, ending, mode, seed, path):
+    rows, pairs = [], []
+    for line in open(path):
+        m = PROFILE.match(line.rstrip("\n"))
+        if not m:
+            continue
+        g = m.groups()
+        key = (int(run), ending, mode, int(seed), int(g[0]))
+        rows.append(key + (g[9], g[1], g[2], num(g[3]), num(g[4]), None if g[5].startswith("past") else int(g[5]),
+                           num(g[6]), num(g[7])))
+        for p in g[8].split():
+            ab, n = p.split(":")
+            a, b = (int(x) for x in ab.split("."))
+            pairs.append(key + (KINDS.get(a, str(a)), KINDS.get(b, str(b)), int(n)))
+    with db() as c:
+        c.executemany("insert or replace into profiles values (" + ",".join("?" * 13) + ")", rows)
+        c.executemany("insert or replace into pair_counts values (" + ",".join("?" * 8) + ")", pairs)
+    print(len(rows), "terms,", len(pairs), "pair counts from", path)
+
+
 def cmd_count(run, build, workload, k, lazy, itrs, ins, cycles=None):
     with db() as c:
         c.execute("insert into counts values (?,?,?,?,?,?,?,?)",
@@ -145,10 +189,26 @@ from terms where run_id = {run} group by ending, mode, seed
 order by case ending when 'succ' then 0 when 'plus' then 1 else 2 end, mode desc, seed
 """
 
+# per mode, the terms both runs reduced to the wanted value: whether the
+# weighted counts agree, and with unit brackets (unfused), whether the
+# weighted count with fusion is the interactions without it
+FUSION = """
+with a as (select * from profiles where run_id = {on}), b as (select * from profiles where run_id = {off})
+select a.mode, count(*) as terms, sum(a.value = a.want and b.value = b.want) as complete,
+  sum(a.value = a.want and b.value = b.want and a.weighted = b.weighted) as weighted_equal,
+  sum(a.value = a.want and b.value = b.want and a.weighted = b.interactions) as weighted_is_unfused,
+  sum(case when a.value = a.want and b.value = b.want then a.interactions end) as interactions_on,
+  sum(case when a.value = a.want and b.value = b.want then b.interactions end) as interactions_off,
+  sum(case when a.value = a.want and b.value = b.want then a.weighted end) as weighted
+from a join b using (ending, mode, seed, term)
+group by a.mode order by a.mode
+"""
+
 
 def main(argv):
-    cmds = {"run": cmd_run, "terms": cmd_terms, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
-            "summary": lambda run: cmd_sql(SUMMARY.format(run=int(run)))}
+    cmds = {"run": cmd_run, "terms": cmd_terms, "profiles": cmd_profiles, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
+            "summary": lambda run: cmd_sql(SUMMARY.format(run=int(run))),
+            "fusion": lambda on, off: cmd_sql(FUSION.format(on=int(on), off=int(off)))}
     if not argv or argv[0] not in cmds:
         print(__doc__.strip())
         return 2

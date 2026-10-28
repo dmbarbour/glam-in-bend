@@ -18,7 +18,10 @@ writes a differential test instead: each term through the spike, the
 kernel's interpreted rule table and its generated rewrites (knet.bend),
 flagging any difference between the last two, or in value with the
 spike, and on demand (kstrat.bend's Demand), flagging a table mismatch
-or more interactions than the full reduction. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
+or more interactions than the full reduction. --profile writes each term
+through the kernel's profiling strategy instead (kstrat.bend's
+Profiling): value, counts, the weighted count, peels and interactions by
+pair of kinds (spike/tools/profile.sh). --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
 so the partial application is data the copies share; --fma ends them in
 `(fma 1 1) 0`, whose partial application, holding two numbers, is a data
 table entry.
@@ -451,7 +454,7 @@ def bend_str(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def emit(out, terms, spike, levels=True, fused=True, kernel=False):
+def emit(out, terms, spike, levels=True, fused=True, kernel=False, profile=False):
     os.makedirs(out, exist_ok=True)
     rel = os.path.relpath(spike, out)
     rows = []
@@ -479,7 +482,8 @@ def emit(out, terms, spike, levels=True, fused=True, kernel=False):
     lines.append(dispatch("tpl_of", "T.Tpl", lambda i, r: f"t{i}()"))
     lines.append(dispatch("name_of", "String", lambda i, r: bend_str(r[0])))
     lines.append(dispatch("want_of", "U32", lambda i, r: str(r[1] if r[1] is not None else 4294967295)))
-    lines.append((KERNEL_MAIN if kernel else TEST_MAIN).replace("COUNT", f"{len(rows)}n"))
+    main = PROFILE_MAIN if profile else KERNEL_MAIN if kernel else TEST_MAIN
+    lines.append(main.replace("COUNT", f"{len(rows)}n"))
     path = os.path.join(out, "terms.bend")
     with open(path, "w") as f:
         f.write("\n".join(lines))
@@ -649,6 +653,24 @@ def main() -> IO(Unit):
 '''
 
 
+PROFILE_MAIN = r'''
+# a term reduced fully by the kernel's profiling strategy
+def prof_one(+k: U32) -> String:
+  "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": " ++ K.profile_t(tpl_of(k), 1280000n, True{}) ++ "  " ++ name_of(k)
+
+def prof_all(n: Nat, +k: U32) -> String:
+  match n:
+    case 0n:
+      ""
+    case 1n+p:
+      prof_one(k) ++ "\n" ++ prof_all(p, (k + 1 : U32))
+
+# every term profiled
+def main() -> IO(Unit):
+  IO.print(prof_all(COUNT, 0))
+'''
+
+
 # Random numeral expressions
 # ==========================
 
@@ -698,13 +720,14 @@ def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     levels, fused, kernel = "--labels" not in argv, "--unfused" not in argv, "--kernel" in argv
+    profile = "--profile" in argv
     tail = "(plus 1) 0" if "--plus" in argv else "(fma 1 1) 0" if "--fma" in argv else "succ 0"
-    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--plus", "--fma")]
+    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--profile", "--plus", "--fma")]
     if len(argv) >= 3 and argv[1] == "emit":
-        emit(argv[2], argv[3:], spike, levels, fused, kernel)
+        emit(argv[2], argv[3:], spike, levels, fused, kernel, profile)
     elif len(argv) >= 4 and argv[1] == "gen":
         seed = int(argv[4]) if len(argv) > 4 else 1
-        emit(argv[2], gen(int(argv[3]), seed, tail=tail), spike, levels, fused, kernel)
+        emit(argv[2], gen(int(argv[3]), seed, tail=tail), spike, levels, fused, kernel, profile)
     else:
         print(__doc__)
         return 2

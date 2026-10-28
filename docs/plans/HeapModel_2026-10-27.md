@@ -344,9 +344,10 @@ takes from it:
      instructions in all four builds at k 18, the same interactions
      (store run 36, by the new `spike/tools/count_builds.sh`); the full
      differential test clean (run 37).
-   - `heap-strategies.profile` — active — interactions counted per pair
-     of kinds and peels, per term, into the analysis store. Also counted
-     as the unit system would (the maintainer, 2026-10-28): a run of k
+   - `heap-strategies.profile` — built 2026-10-28 — interactions
+     counted per pair of kinds and peels, per term, into the analysis
+     store. Also counted as the unit system would (the maintainer,
+     2026-10-28): a run of k
      crossing a node or cancelling its equal counts k, two runs crossing
      c times b, a peeled pair what peeling leaves; that count is the
      unfused interactions, the same in every order of a complete
@@ -379,15 +380,27 @@ takes from it:
        builds; +1.4% to +1.7% on full reductions where inlined and
        profile-guided both), though the eager rewrites now have two
        callers.
-     - `heap-strategies.profile.store` — contingent on
-       `heap-strategies.profile.strategy` — `terms.py --profile` and
-       `spike/tools/profile.sh`, every term's profile into the store,
-       with levels, labels and unit brackets (`--unfused`), fusion on
-       or off.
-     - `heap-strategies.profile.check` — contingent on
-       `heap-strategies.profile.store` — on whole nets: the weighted
-       count the same with fusion on and off; with unit brackets, equal
-       to the interactions made without fusion.
+     - `heap-strategies.profile.store` — built 2026-10-28 —
+       `terms.py --profile` writes each term through `K.profile_t`;
+       `spike/tools/profile.sh` profiles three seeds of 200 terms per
+       ending, with levels, labels and unit brackets (`--unfused`),
+       into the store's `profiles` and `pair_counts` tables, and with
+       `FUSE=off` a copy of the spike whose kernel never fuses;
+       `results.py fusion ON OFF` compares two runs mode by mode. Store
+       runs 44 (fusion on) and 45 (off).
+     - `heap-strategies.profile.check` — built 2026-10-28 — fusion is
+       sound on whole nets, on every term both runs complete: with
+       unit brackets the weighted count with fusion is the interactions
+       made without it, on all 1,791 (3,778,521 in all); with levels the
+       weighted counts with and without fusion agree on all 1,797. The
+       21 rows that do not complete ran out of fuel, none wrong. The
+       kernel's fusion saves 23.3% of the weighted interactions with
+       levels, 21.9% with unit brackets. The lowering's own fused
+       controls, a croissant cancelled against brackets, save far more:
+       on the 1,794 terms both lowerings complete, 1,296,183 weighted
+       against 8,682,189, since runs crossing weigh their product. No
+       term of the 5,400 peels; only the hand-built nets of
+       `test_levels.bend` do, whose profiles are now regressions there.
    - `heap-strategies.trace` — contingent on `heap-strategies.net` — the
      net as rows at boundaries the caller sets (every n interactions, a
      demand step, a count of live controls), into a store of traces,

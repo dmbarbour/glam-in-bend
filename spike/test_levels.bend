@@ -125,6 +125,13 @@ def peel_line(+name: String, +t: T.Tpl, +itrs: U32) -> String:
       U32.is_eq(itrs_of(s), itrs) && U32.is_eq(itrs_of(r), itrs) && U32.is_eq(itrs_of(f), itrs)) ++
     " " ++ name ++ ": spike " ++ out_str(s) ++ " | ref " ++ out_str(r) ++ " | fast " ++ out_str(f)
 
+# the profiling strategy on facing controls (kstrat.bend's Profiling):
+# its line, each run weighted as its unit brackets would interact, a
+# peel counted where the kernel splits a run
+def prof_line(+name: String, +t: T.Tpl, +want: String) -> String:
+  +p = K.profile_t(t, 5000n, True{})
+  mark(String.eq(p, want)) ++ " profile, " ++ name ++ ": " ++ p
+
 def pow_line(+m: U32) -> String:
   +s = spike_out(T.result(T.run(X.t_pow_lvl(m, 2), 5000000n)))
   +f = kernel_out(K.run_t(X.t_pow_lvl(m, 2), 5000000n, True{}))
@@ -150,6 +157,10 @@ def main() -> IO(Unit):
     IO.print(peel_line("a drop facing a lift raising 2 crosses its first unit", t_ctl_pair(0, True{}, 2, 0, False{}, 1), 6))
     IO.print(peel_line("a liftc raising 2 facing a drop", t_ctl_pair(0, False{}, 1, 0, True{}, 2), 6))
     IO.print(peel_line("different indices cross whole", t_ctl_pair(0, True{}, 2, 1, True{}, 1), 4))
+    IO.print(prof_line("a raise of 2 peeled by a raise of 1", t_ctl_pair(0, True{}, 2, 0, True{}, 1), "5 (3, 0); weighted 3, 1 peels, 0 wide; pairs 8.5:1 10.5:1 10.11:1"))
+    IO.print(prof_line("a drop facing a raise of 2", t_ctl_pair(0, True{}, 2, 0, False{}, 1), "5 (6, 0); weighted 6, 1 peels, 0 wide; pairs 8.5:1 8.11:1 10.5:2 10.11:2"))
+    IO.print(prof_line("runs of 2 and 1 crossing weigh 2", t_ctl_pair(0, True{}, 2, 1, True{}, 1), "5 (4, 0); weighted 6, 0 peels, 0 wide; pairs 8.5:1 8.11:1 10.5:1 10.11:1"))
+    IO.print(prof_line("equal runs of 3 cancelling weigh 3", t_ctl_pair(0, True{}, 3, 0, True{}, 3), "5 (2, 0); weighted 4, 0 peels, 0 wide; pairs 8.5:1 10.11:1"))
     IO.print(case_line("a function at 2^24 - 1", t_id((cap() - 1 : U32)), "none", 0, 0))
     IO.print(case_line("a function at 2^24", t_id(cap()), "none", 0, 1))
     IO.print(case_line("a fan at site 2^24 - 1", t_site((cap() - 1 : U32)), "5", 0, 0))
