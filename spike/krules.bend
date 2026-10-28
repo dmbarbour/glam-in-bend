@@ -142,6 +142,44 @@ def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) ->
     case _ _:
       h
 
+# the most active pairs one rewrite makes (R.pairs_made, over the table):
+# a strategy's stack keeps room for that many before each rewrite (P.pop)
+def most_pairs() -> U32:
+  4
+
+# the payload test that picks a rule's variant where the two differ (R.rule's
+# t; net.bend's rule_test), a copy for each family: shared, it has two
+# callers, and the compiler folds it into neither, which cost the eager
+# chain 5% to 12% (heap-strategies.stack). A Lift facing a LiftC is tested
+# after peeling instead (P.peel_ctl).
+def test.k(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  match ka kb:
+    case 2 1:
+      (h, P.same_lvl(ha, hb))
+    case 2 5:
+      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
+    case 3 4:
+      (h, P.same_lvl(ha, hb))
+    case _ _:
+      (h, False{})
+
+def test(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  test.k(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
+
+def test.k.e(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  match ka kb:
+    case 2 1:
+      (h, P.same_lvl(ha, hb))
+    case 2 5:
+      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
+    case 3 4:
+      (h, P.same_lvl(ha, hb))
+    case _ _:
+      (h, False{})
+
+def test.e(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
+  test.k.e(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
+
 def rw.Ap.Fn.yes(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2), e0), e1)
 

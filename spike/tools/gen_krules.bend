@@ -135,15 +135,6 @@ def links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
     case Con{R.Link{u, v}, t}:
       links(xs, t, "P.link(" ++ acc ++ ", " ++ end(xs, u) ++ ", " ++ end(xs, v) ++ ")")
 
-# may this end be a principal port? An external peer may; a new node's
-# port is one when it is port 0
-def may_pri(e: R.End) -> Bool:
-  match e:
-    case R.Ext{i}:
-      True{}
-    case R.New{j, +p}:
-      Nat.is_eq(p, 0n)
-
 def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
   match c:
     case True{}:
@@ -151,14 +142,14 @@ def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
     case False{}:
       acc
 
-# the eager family's notes: each link that may join two principal ports,
-# in the order links makes them
+# the eager family's notes: each link that may join two principal ports
+# (R.may_pri, as R.pairs_made counts them), in the order links makes them
 def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
   match ls:
     case Nil{}:
       acc
     case Con{R.Link{+u, +v}, t}:
-      notes(xs, t, note_if(may_pri(u) && may_pri(v), acc, end(xs, u), end(xs, v)))
+      notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, end(xs, u), end(xs, v)))
 
 # Two families of rewrites (heap-strategies.stack): the plain one, on the
 # net alone, and the eager one (e), which takes a strategy's stack beside
@@ -598,6 +589,85 @@ def checks_a(as: List<&2, R.NodeKind>) -> String:
     case Con{+a, t}:
       checks_b(kinds(), a) ++ checks_a(t)
 
+# Payload tests: where a rule's two variants differ (R.rule's t), the test
+# on the payloads that picks one (net.bend's rule_test). A Lift facing a
+# LiftC is tested after peeling instead (P.peel_ctl).
+def test_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  match a b:
+    case R.KAp{} R.KFn{}:
+      "(h, P.same_lvl(ha, hb))"
+    case R.KAp{} R.KData{}:
+      "P.val_is_fn(h, P.form(hb), P.fld(hb), pb)"
+    case R.KCopy{} R.KMerge{}:
+      "(h, P.same_lvl(ha, hb))"
+    case _ _:
+      ""
+
+# a pair whose variants differ and which has no test here names itself in
+# code that does not compile
+def test_or_missing(none: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match none:
+    case True{}:
+      "missing_payload_test_" ++ kname(a) ++ "_" ++ kname(b)
+    case False{}:
+      x
+
+def test_case.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match d:
+    case True{}:
+      "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n      " ++ test_or_missing(String.eq(test_expr(a, b), ""), test_expr(a, b), a, b) ++ "\n"
+    case False{}:
+      ""
+
+def test_case(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  test_case.d(differs(a, b) && Bool.not(is_ctl_pair(a, b)), a, b)
+
+def tests_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      test_case(a, b) ++ tests_b(t, a)
+
+def tests_a(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      tests_b(kinds(), a) ++ tests_a(t)
+
+# the payload test for one family (sfx): both from this one source
+def tests(+e: Bool) -> String:
+  "def test.k" ++ sfx(e) ++ "(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:\n" ++
+  "  match ka kb:\n" ++ tests_a(kinds()) ++ "    case _ _:\n      (h, False{})\n\n" ++
+  "def test" ++ sfx(e) ++ "(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:\n" ++
+  "  test.k" ++ sfx(e) ++ "(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)\n\n"
+
+def max.go(lt: Bool, +a: Nat, +b: Nat) -> Nat:
+  match lt:
+    case True{}:
+      b
+    case False{}:
+      a
+
+def nat_max(+a: Nat, +b: Nat) -> Nat:
+  max.go(Nat.is_lt(a, b), a, b)
+
+def most_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind, +m: Nat) -> Nat:
+  match bs:
+    case Nil{}:
+      m
+    case Con{+b, t}:
+      most_b(t, a, nat_max(m, nat_max(R.pairs_made(R.rule(a, b, True{})), R.pairs_made(R.rule(a, b, False{})))))
+
+# the most active pairs any rewrite in the table makes
+def most_a(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
+  match as:
+    case Nil{}:
+      m
+    case Con{+a, t}:
+      most_a(t, most_b(kinds(), a, m))
+
 def over_a(+e: Bool, as: List<&2, R.NodeKind>, +fns: Bool) -> String:
   match as:
     case Nil{}:
@@ -677,6 +747,15 @@ def file() -> String:
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++
+  "# the most active pairs one rewrite makes (R.pairs_made, over the table):\n" ++
+  "# a strategy's stack keeps room for that many before each rewrite (P.pop)\n" ++
+  "def most_pairs() -> U32:\n  " ++ Nat.show(most_a(kinds(), 0n)) ++ "\n\n" ++
+  "# the payload test that picks a rule's variant where the two differ (R.rule's\n" ++
+  "# t; net.bend's rule_test), a copy for each family: shared, it has two\n" ++
+  "# callers, and the compiler folds it into neither, which cost the eager\n" ++
+  "# chain 5% to 12% (heap-strategies.stack). A Lift facing a LiftC is tested\n" ++
+  "# after peeling instead (P.peel_ctl).\n" ++
+  tests(False{}) ++ tests(True{}) ++
   over_a(False{}, kinds(), True{}) ++
   over_a(True{}, kinds(), True{}) ++
   "# the rewrite for A, negative principal, meeting B; t is the payload test\n" ++

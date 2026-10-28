@@ -360,51 +360,6 @@ def payload.k(+k: U32, +w1: U32, +w3: U32) -> U32:
 def payload(+h: U32, +w1: U32, +w3: U32) -> U32:
   payload.k(P.rk(h), w1, w3)
 
-def ctl_eq(+ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Bool:
-  U32.is_eq(P.fld(ha), P.fld(hb)) && U32.is_eq(pa, pb)
-
-# fans pair, and an application meets its function, when level and
-# marker agree (a net without levels: equal sites)
-def same_lvl(+ha: U32, +hb: U32) -> Bool:
-  U32.is_eq((ha >> 4n : U32), (hb >> 4n : U32))
-
-def test.k(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
-  match ka kb:
-    case 3 4:
-      (h, same_lvl(ha, hb))
-    case 2 5:
-      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
-    case 2 1:
-      (h, same_lvl(ha, hb))
-    case 10 11:
-      (h, ctl_eq(ha, hb, pa, pb))
-    case _ _:
-      (h, False{})
-
-# the payload test the rule takes (net.bend's rule_test)
-def test(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
-  test.k(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
-
-# The same test for the eager chain, a copy kept identical to test.k: one
-# shared by both chains has two callers, and the compiler then folds it
-# into neither, which cost the eager reduction 5% to 12%
-# (heap-strategies.stack). The differential test compares the paths.
-def test.k.e(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
-  match ka kb:
-    case 3 4:
-      (h, same_lvl(ha, hb))
-    case 2 5:
-      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)
-    case 2 1:
-      (h, same_lvl(ha, hb))
-    case 10 11:
-      (h, ctl_eq(ha, hb, pa, pb))
-    case _ _:
-      (h, False{})
-
-def test.e(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
-  test.k.e(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
-
 # is e a port of the redex itself? (net.bend's partner, without the index)
 def mine(+e: U32, +a: U32, +b: U32) -> Bool:
   U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
@@ -449,7 +404,7 @@ def go.rule(r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +p
   go.which(fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
 
 def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
-  go.rule(test(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+  go.rule(KR.test(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
@@ -529,7 +484,7 @@ def go.rule.e(r: P.H & Bool, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32,
   go.which.e(fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x)
 
 def go.ext.e(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: P.Stk) -> P.E:
-  go.rule.e(test.e(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+  go.rule.e(KR.test.e(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 

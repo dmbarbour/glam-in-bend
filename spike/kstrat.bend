@@ -62,7 +62,7 @@ def run(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
         case P.Pop{h, st, +cap, +x, +y, +ok}:
           match ok:
             case True{}:
-              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), cap))
+              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), cap, KR.most_pairs()))
             case False{}:
               Ran{h, 1n+p}
 
@@ -73,7 +73,7 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
 
 def reduce.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
   (st, +room) = r
-  ran(run(fuel, fast, P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room)), fuel)
+  ran(run(fuel, fast, P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room, KR.most_pairs())), fuel)
 
 def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
   (h, hs) = r

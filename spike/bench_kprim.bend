@@ -96,7 +96,7 @@ def step(b: B, +op: U32, +i: U32) -> B:
         case 4:
           b.h(P.link(h, 1, 5), st, acc)
         case 5:
-          b.pop(P.pop(P.E{h, P.push(st, 1)}, 64), acc)
+          b.pop(P.pop(P.E{h, P.push(st, 1)}, 64, 4), acc)
         case 6:
           b.val(P.tab_get(h, 0), st, acc)
         case 7:

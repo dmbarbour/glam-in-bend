@@ -456,6 +456,33 @@ def made_at_most_one(r: Rule) -> Bool:
     case RStuck{}:
       True{}
 
+# could this end be a principal port once linked? an external peer may be
+# any node's port; a new node's, only its port 0
+def may_pri(e: End) -> Bool:
+  match e:
+    case Ext{i}:
+      True{}
+    case New{j, +p}:
+      nat_eq(p, 0n)
+
+def pri_links(ls: List<&2, Link>) -> Nat:
+  match ls:
+    case Nil{}:
+      0n
+    case Con{Link{x, y}, t}:
+      Nat.add(one_if(may_pri(x) && may_pri(y)), pri_links(t))
+
+# the most active pairs a rule's rewrite makes: its links that may join
+# two principal ports, each of which an eager strategy notes
+# (gen_krules.bend); a commutation makes four, each new node facing an
+# external peer
+def pairs_made(r: Rule) -> Nat:
+  match r:
+    case RWire{xs, ls}:
+      pri_links(ls)
+    case RStuck{}:
+      0n
+
 # where the payload test decides whether A >< B is stuck, the rule that
 # rewrites makes at most one node: the kernel's walk tells a rewrite from
 # a stuck pair by B's slot alone (kstrat.bend, Demand)

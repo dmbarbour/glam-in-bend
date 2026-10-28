@@ -380,6 +380,11 @@ def form(+h: U32) -> U32:
 def fld(+h: U32) -> U32:
   (h >> 8n : U32)
 
+# fans pair, and an application meets its function, when level and
+# marker agree (a net without levels: equal sites)
+def same_lvl(+ha: U32, +hb: U32) -> Bool:
+  U32.is_eq((ha >> 4n : U32), (hb >> 4n : U32))
+
 def off_up(+o: U32) -> Bool:
   U32.is_ne((o .&. 2147483648 : U32), 0)
 
@@ -912,9 +917,13 @@ def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0
 # the links its rewrites make between two principal ports, which the
 # eager variant of the rewrites notes (gen_krules.bend), in the order
 # they make them. A pair holds two nodes and a node is in one at most, so
-# the stack never holds more pairs than half the nodes; it grows before
-# a pop when a rewrite could fill it, by more than the links any rule
-# makes, and noting checks nothing.
+# the stack never holds more pairs than half the nodes. Noting checks
+# nothing: before each pop the stack is grown, if need be, to keep room
+# for the most pairs one rewrite makes (krules.bend's most_pairs, which
+# the generator counts over the rule table: four, a commutation's new
+# nodes each facing an external peer). The interpreter notes no more than
+# the generated rewrite would: it links the same ends, or joins two of
+# the rule's links into one where an external peer is the redex's own.
 
 type Stk is Type:
   Stk{s: KM.M, +n: U32}
@@ -987,13 +996,13 @@ def pop.grow(full: Bool, h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
       pop.go(h, s, n, cap)
 
 # the newest pair on the stack of e, which has room for cap, grown first
-# when the next rewrite could fill it
-def pop(e: E, +cap: U32) -> Pop:
+# unless it has room for most more pairs, the most a rewrite makes
+def pop(e: E, +cap: U32, +most: U32) -> Pop:
   match e:
     case E{h, st}:
       match st:
         case Stk{s, +n}:
-          pop.grow(U32.is_lt(cap, (n + 16 : U32)), h, s, n, cap)
+          pop.grow(U32.is_lt(cap, (n + most : U32)), h, s, n, cap)
 
 # a run's end: the net, the stack let go
 def unpop(pp: Pop) -> H:

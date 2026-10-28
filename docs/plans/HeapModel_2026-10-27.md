@@ -300,8 +300,9 @@ takes from it:
    and faults; an evaluation strategy wraps it with state of its own,
    decides which pair is next, and is done when it hands the net back, so
    that a cell holds a bare live net at rest. Several strategies, each
-   measured: eager pairs last in first out, demand toward the interface,
-   parallel rounds; profiling and tracing as strategies wrapping another.
+   measured: eager pairs last in first out, demand toward the interface;
+   profiling and tracing as strategies wrapping another. Each reduces its
+   pairs in sequence; parallelism comes from sparks (`parallel-sparks`).
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
      and the tests' entry points in `spike/kernel.bend`; demand without
@@ -331,17 +332,47 @@ takes from it:
      interactions do not depend on order, and the stack loses or repeats
      no pair. With fusion on, 378 of the 1,800 leveled terms change
      count with the order, 126 fewer and 252 more, -0.09% in all
-     (run 33 against run 32): fusion's savings depend on order.
-   - `heap-strategies.profile` — contingent on `heap-strategies.net` —
-     interactions counted per pair of kinds, fusions by shape, peels and
-     the controls alive, per term, into the analysis store. Also counted
+     (run 33 against run 32): fusion's savings depend on order. After
+     the maintainer's review: the stack keeps room for the most pairs one
+     rewrite makes, four (a commutation's new nodes, each facing an
+     external peer), counted over the rule table by the generator
+     (`KR.most_pairs`, from `R.pairs_made`) where it had kept sixteen; the
+     payload test, copied by hand for the eager chain, is generated for
+     both chains from one source, and a pair whose variants differ
+     without a test fails to compile. The test lost its Lift and LiftC
+     arm, dead since peeling decides that pair: 0.7% to 3.5% fewer
+     instructions in all four builds at k 18, the same interactions
+     (store run 36, by the new `spike/tools/count_builds.sh`); the full
+     differential test clean (run 37).
+   - `heap-strategies.profile` — active — interactions counted per pair
+     of kinds and peels, per term, into the analysis store. Also counted
      as the unit system would (the maintainer, 2026-10-28): a run of k
      crossing a node or cancelling its equal counts k, two runs crossing
      c times b, a peeled pair what peeling leaves; that count is the
      unfused interactions, the same in every order of a complete
      evaluation, and fusion's savings are it less the interactions made,
      which may differ by order. Equal counts across orders test fusion's
-     soundness on whole nets, beyond `ctlwire.py`'s one wire.
+     soundness on whole nets, beyond `ctlwire.py`'s one wire. Fusions by
+     shape are not counted: one shape remains, and the savings measure
+     what fusion does; controls alive wait for `heap-strategies.trace`.
+     - `heap-strategies.profile.weights` — active — each move's weight
+       checked on the one-wire model (`ctlwire.py --weights`): a fused
+       start's reductions, every move weighted, all total the
+       interactions of its runs as unit brackets reduced unfused. A
+       peel weighs what it cancels, or the run a drop crosses whole.
+     - `heap-strategies.profile.strategy` — contingent on
+       `heap-strategies.profile.weights` — a profiling strategy in
+       `kstrat.bend`: the eager one, each pair counted by kinds and
+       weighted before it interacts; `kernel K W profile`.
+     - `heap-strategies.profile.store` — contingent on
+       `heap-strategies.profile.strategy` — `terms.py --profile` and
+       `spike/tools/profile.sh`, every term's profile into the store,
+       with levels, labels and unit brackets (`--unfused`), fusion on
+       or off.
+     - `heap-strategies.profile.check` — contingent on
+       `heap-strategies.profile.store` — on whole nets: the weighted
+       count the same with fusion on and off; with unit brackets, equal
+       to the interactions made without fusion.
    - `heap-strategies.trace` — contingent on `heap-strategies.net` — the
      net as rows at boundaries the caller sets (every n interactions, a
      demand step, a count of live controls), into a store of traces,
@@ -349,10 +380,12 @@ takes from it:
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
      (its profile is store run 26).
-   - `heap-strategies.rounds` — tentative — parallel rounds in two
-     phases: every pair's local outcome, nothing written outside its own
-     nodes, then the links between outcomes resolved and the next pairs
-     found; pages owned by workers as `spike-page-rounds` measured.
+   - `heap-strategies.rounds` — dropped 2026-10-28 — the maintainer:
+     sparks are the primary source of parallelism, not a net's pairs
+     reduced together (`parallel-sparks`). It would have run parallel
+     rounds in two phases: every pair's local outcome, nothing written
+     outside its own nodes, then the links between outcomes resolved and
+     the next pairs found.
 4. `heap-freeze` — frozen nets: freeze a live net once its reduction is
    done, instantiate a frozen net into a live one or splice it into a
    running net, at n, 2n and 4n nodes; local reduction of build-only pairs
