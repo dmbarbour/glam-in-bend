@@ -131,6 +131,18 @@ table entries (which may hold handles, never own cells). Out of a net: the
 interface's value, normalized (`V.norm`), placeholders held out by the laws
 of `spike-node-layout`.
 
+**Cached copies during work.** A worker may pair a handle to partial data
+with a copy of the cell's current value, to read without going back to the
+cell. That copy must never be captured: stored where a value goes, it
+would duplicate partial data by value, breaking identity, or freeze a value
+that is still changing. The invalid state should be unrepresentable rather
+than merely avoided: a cached copy is its own type, which can be read from
+but not stored, and what can be stored is only the handle, or final data
+(the maintainer, 2026-10-28; a proof that no store captures it would do,
+but a type costs less to keep true). In Bend the wrapper is free while it
+is passed between functions, since a record is flattened into its callers'
+arguments, and would only cost if stored, which the type forbids.
+
 **Workers and collection.** A worker holds the cells it works on for a
 round, and Bend's linear types make that hold exclusive: nothing can race.
 The collector runs between rounds, when the coordinator holds everything.
@@ -249,8 +261,14 @@ interior nodes (`spike-lazy-data`); rounds over pages (`spike-page-rounds`).
   argument-independent calls into shared thunks belongs to lowering.
 - The frozen format: one made for materialization first; whether one made
   for interpretation is worth a second type.
-- How lowering knows a partial application is used linearly, and when it
-  emits sparks.
+- Linear partial applications beyond the obvious cases. The obvious ones
+  (the maintainer, 2026-10-28) the model must handle: applications chained
+  within a net, an application's result wired straight to the function
+  port of the next, up to a copy of the function (each copy's chain is
+  linear on its own); and curried arguments in syntax, `f a b c`, which
+  lowering emits as one application of three arguments. Both gather into
+  one recipe, a function and its arguments, copied once. Beyond those:
+  annotations, or analysis. And when lowering emits sparks.
 - How pairing levels are offset when a raw net is copied into a running
   net, and whether copies need fresh identities (NetPairing).
 - How far inline forcing goes before a need goes to the coordinator, and
