@@ -113,9 +113,9 @@ place, once for every thunk over it, and never copied (the Rust bootstrap
 does the same).
 
 **Forcing.** A worker takes a cell's live net and reduces the path from the
-interface toward weak head normal form, erasing eagerly
-(`net-demand-whnf`); the Rust bootstrap reduces only that path, erases
-only on it, and leaves the rest as garbage. A pair on the path that needs
+interface toward weak head normal form (`net-demand-whnf`), reducing
+only the pairs on the way, as the Rust bootstrap does, which leaves the
+rest as garbage; unneeded work is for analysis ahead of evaluation. A pair on the path that needs
 another cell's value is set aside and the cell suspends with that need;
 pairs off the path do not block it, or the coordinator would report cycles
 that are not there. Where the needed cell can be forced in the same worker,
@@ -238,9 +238,10 @@ takes from it:
    Built 2026-10-28. The loader makes the interface first, node 0, and
    `P.fresh2` frees a rule's B before its A, so the first new node takes
    A's slot and the root's rule keeps node 0; the result is read there
-   rather than found by a scan. `K.demand` walks from node 0 along
+   rather than found by a scan. `KS.demand` walks from node 0 along
    principal ports, keeping the path, so a rewrite at its end resumes
-   from the node below and cost stays linear. Erasers' pairs reduce from
+   from the node below and cost stays linear. (Eager erasure, below, was
+   dropped in `heap-strategies.net`.) Erasers' pairs reduce from
    the pair stack as rewrites make them (each removes a node that is no
    eraser and makes at most two erasers); other pairs stay in the net,
    unrecorded, found by the walk where they lie on its path and garbage
@@ -301,11 +302,25 @@ takes from it:
    that a cell holds a bare live net at rest. Several strategies, each
    measured: eager pairs last in first out, demand toward the interface,
    parallel rounds; profiling and tracing as strategies wrapping another.
-   - `heap-strategies.net` — active — the net's operations, and a bag of
-     the pairs its rewrites make, a cache a strategy may use or clear
-     rather than a stack; strategies in their own module; demand clears
-     the bag, without eager erasure, which the maintainer did not want.
-     Measured four ways against the full reduction before it.
+   - `heap-strategies.net` — built 2026-10-28 — the net's operations in
+     `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
+     and the tests' entry points in `spike/kernel.bend`; demand without
+     eager erasure, which the maintainer did not want, clearing the pairs
+     the net still collects. Against f73b932, four builds at k 18 (store
+     runs 30, 31): the full reduction unchanged (0.0%, -0.6% to -0.9%
+     profile-guided), demand 13.7% to 17.5% cheaper, the same interactions.
+     The full differential test (store run 32): the full reduction the
+     same on all 3,600 terms; demand the same values, fewer interactions
+     on 1,866 terms and more nodes left on 1,605, what eager erasure freed.
+   - `heap-strategies.stack` — active — no
+     pairs kept in the net (the maintainer, 2026-10-28): every active pair
+     is in such a set once, every strategy but one would clear it, and
+     switching strategies rebuilds it anyway. A stack strategy builds its
+     stack when it starts, walking the net for the lower node of each
+     pair, and learns of the pairs its rewrites make from a variant of
+     the generated rewrites that notes each link joining two principals,
+     its stack beside the net; demand's variant notes nothing, its state
+     narrower; the interpreter returns the links it made.
    - `heap-strategies.profile` — contingent on `heap-strategies.net` —
      interactions counted per pair of kinds, fusions by shape, peels and
      the controls alive, per term, into the analysis store.
@@ -316,9 +331,6 @@ takes from it:
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
      (its profile is store run 26).
-   - `heap-strategies.bagless` — tentative — rewrites generated without
-     the bag for strategies that do not use it, and a scan of the whole
-     net for strategies that want every pair; kept if it measures better.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

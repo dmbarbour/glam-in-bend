@@ -15,9 +15,9 @@ that tests every term, or traces one through tracelib.bend.
 their site alone; --unfused emits a bracket per box boundary and a
 croissant per use, rather than one fused control per edge. --kernel
 writes a differential test instead: each term through the spike, the
-kernel's interpreted rule table and its generated rewrites (kernel.bend),
+kernel's interpreted rule table and its generated rewrites (knet.bend),
 flagging any difference between the last two, or in value with the
-spike, and on demand (kernel.bend's Demand), flagging a table mismatch
+spike, and on demand (kstrat.bend's Demand), flagging a table mismatch
 or more interactions than the full reduction. --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
 so the partial application is data the copies share; --fma ends them in
 `(fma 1 1) 0`, whose partial application, holding two numbers, is a data

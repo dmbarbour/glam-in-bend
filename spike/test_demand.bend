@@ -4,6 +4,7 @@ import ./rules.bend as R
 import ./tpl.bend as T
 import ./nets.bend as X
 import ./kernel.bend as K
+import ./knet.bend as KN
 
 # Demand (heap-demand in docs/plans/HeapModel_2026-10-27.md): small nets
 # reduced toward the interface, each against the state it should end in
@@ -50,7 +51,7 @@ def out_str(o: Out) -> String:
   match o:
     case Out{+st, +v, +itrs, +errs, +live, +tab}:
       K.st_name(st) ++ " " ++ v ++ " (" ++ U32.show(itrs) ++ " interactions, " ++ U32.show(errs) ++ " errors, " ++
-        U32.show(live) ++ " nodes live" ++ K.table_str(tab) ++ ")"
+        U32.show(live) ++ " nodes live" ++ KN.table_str(tab) ++ ")"
 
 def mark(ok: Bool) -> String:
   match ok:
@@ -106,14 +107,14 @@ def main() -> IO(Unit):
     IO.print(case_line("plus x x on L0 = 5, needed twice", X.t_ap(t_double(), X.t_lazy(0)), [V.VNum{5}], 5000n, 1, "10", 2))
     IO.print(case_line("L0 1, L0 = succ", X.t_ap(X.t_lazy(0), num(1)), [V.VFun{1, 1, Nil{}}], 5000n, 1, "2", 2))
     IO.print(case_line("succ (succ L1), L1 = 7", X.t_ap(succ(), X.t_ap(succ(), X.t_lazy(1))), [V.VUnit{}, V.VNum{7}], 5000n, 1, "9", 2))
-    IO.print(case_line("K 0 L0: the handle dropped", X.t_k0(X.t_lazy(0)), [], 5000n, 1, "0", 2))
+    IO.print(case_line("K 0 L0: the handle left, its eraser too", X.t_k0(X.t_lazy(0)), [], 5000n, 1, "0", 4))
     IO.print(case_line("I L0: a handle is a value", X.t_ap(t_i(), X.t_lazy(0)), [], 5000n, 1, "lazy 0", 2))
     IO.print(case_line("L0 1, L0 a unit: stuck once met", X.t_ap(X.t_lazy(0), num(1)), [], 5000n, 3, "none", 0))
     IO.print(case_line("0 1: stuck", X.t_ap(num(0), num(1)), [], 5000n, 3, "none", 0))
     IO.print(case_line("succ I: stuck", X.t_ap(succ(), t_i()), [], 5000n, 3, "none", 0))
     IO.print(case_line("K 0 omega: omega never reduced", X.t_k_omega(), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 (10 2 succ 0): the power never reduced", X.t_k_pow(10), [], 5000n, 1, "0", 0))
-    IO.print(case_line("K 0 #64: the numeral erased", X.t_k_num(64), [], 5000n, 1, "0", 2))
+    IO.print(case_line("K 0 #64: the numeral left, never erased", X.t_k_num(64), [], 5000n, 1, "0", 132))
     IO.print(case_line("#3 succ: a function, its body left", X.t_whnf(3), [], 5000n, 1, "none", 0))
     IO.print(case_line("8 2 succ 0 for 100 steps", X.t_pow(8, 2), [], 100n, 4, "none", 0))
     IO.print(agree_line("2 2 succ 0", X.t_pow(2, 2)))

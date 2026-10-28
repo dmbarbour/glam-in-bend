@@ -152,14 +152,17 @@ type C is Type:
   C{+errs: U32, +itrs: U32, +wcap: U32, dt: DT}
   CBox{c: C}
 
-# nodes, the free list's head, active pairs, the cold record. Every node
-# not in use is on the free list: growing the store threads the new nodes
-# onto it, so making a node is a pop, and the capacity, needed only to
-# grow, stays cold. The pair stack holds one node of each active pair;
-# the other is the peer of its principal port. A pair holds two live
-# nodes and a node is in one at most, so the stack never holds more than
-# half as many words as nodes fit: it grows with the node store (at least
-# 64 words), and a push checks nothing.
+# nodes, the free list's head, the bag of pairs, the cold record. Every
+# node not in use is on the free list: growing the store threads the new
+# nodes onto it, so making a node is a pop, and the capacity, needed only
+# to grow, stays cold. The bag holds one node of each active pair a link
+# made since a strategy last took or cleared it (kstrat.bend); the other
+# is the peer of its principal port. While each pair in it is live, as
+# when a strategy takes every pair it reduces from the bag, a pair holds
+# two nodes and a node is in one at most, so the bag never holds more
+# than half as many words as nodes fit: it grows with the node store (at
+# least 64 words), and adding to it checks nothing. A strategy reducing
+# pairs it did not take from the bag clears the bag every step.
 type H is Type:
   H{w: KM.M, +fh: U32, rs: KM.M, +nr: U32, c: C}
 
@@ -267,7 +270,7 @@ def wr(h: H, +i: U32, +v: U32) -> H:
     case H{w, +fh, rs, +nr, c}:
       H{KM.m_set(w, i, v), fh, rs, nr, c}
 
-# push an active pair, x >< y, as x: the stack has room for every pair
+# add an active pair, x >< y, to the bag as x: it has room for every pair
 # the nodes allow
 def push(h: H, +x: U32, +y: U32) -> H:
   match h:
@@ -929,7 +932,13 @@ def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0
 # Active pairs
 # ============
 
-# the newest active pair, if any
+# empty the bag, for a strategy that finds its pairs some other way
+def bag_clear(h: H) -> H:
+  match h:
+    case H{w, +fh, rs, +nr, c}:
+      H{w, fh, rs, 0, c}
+
+# the newest pair in the bag, if any: the eager strategy's way to take one
 type Pop is Type:
   Pop{h: H, +x: U32, +y: U32, +ok: Bool}
 

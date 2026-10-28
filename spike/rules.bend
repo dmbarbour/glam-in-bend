@@ -458,7 +458,7 @@ def made_at_most_one(r: Rule) -> Bool:
 
 # where the payload test decides whether A >< B is stuck, the rule that
 # rewrites makes at most one node: the kernel's walk tells a rewrite from
-# a stuck pair by B's slot alone (kernel.bend, Demand)
+# a stuck pair by B's slot alone (kstrat.bend, Demand)
 def tested_small(+a: NodeKind, +b: NodeKind) -> Bool:
   Bool.not(Bool.not(is_stuck(rule(a, b, True{}))) && is_stuck(rule(a, b, False{})) ||
       is_stuck(rule(a, b, True{})) && Bool.not(is_stuck(rule(a, b, False{})))) ||

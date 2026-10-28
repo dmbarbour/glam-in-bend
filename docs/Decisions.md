@@ -102,8 +102,8 @@ where the shared lazy state that Bend cannot hold goes.
   nodes in one flat array of its own, doubled when full; the heap holds nets
   as values, each reduced by one worker at a time.
 - [`net-demand-whnf`](decisions/net-demand-whnf.md): a forced net reduces
-  to weak head normal form at its root, erasing eagerly; other strategies
-  only where they terminate.
+  to weak head normal form at its root, only the pairs on the way; other
+  strategies only where they terminate.
 - [`copy-reduced-function-nets`](decisions/copy-reduced-function-nets.md):
   a function's net reduces locally, then each application copies it
   whole; cursors wait for measurements.
