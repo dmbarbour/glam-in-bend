@@ -27,6 +27,17 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 - A commit that advances a step ends with a `Plan-Step: <name>` trailer, one
   per step, before any attribution lines. Find a step's history with
   `git log --grep 'Plan-Step: spike-net-store'`.
+- When a step breaks into smaller steps, write them down as it does: a
+  sub-step is named after its parent with a dot, glam's separator
+  (`heap-strategies.net`, and `heap-strategies.net.bag` below that), and
+  listed under the parent in the same plan as
+
+      - `parent.sub` — disposition — what it does, and what it found
+
+  where the disposition is `tentative`, `contingent on` one or more steps
+  in backticks, `active`, `built <date>` or `dropped <date>`, the reason
+  after it. A trailer names the deepest step advanced; `git log -F --grep
+  'Plan-Step: heap-strategies'` finds a step and its sub-steps.
 
 ## Active Plans
 

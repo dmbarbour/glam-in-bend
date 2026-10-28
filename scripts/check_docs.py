@@ -17,7 +17,10 @@ FENCE = re.compile(r"^```.*?^```", re.S | re.M)
 HEADER = re.compile(r"^`([a-z0-9-]+)` · (maintainer|agent) · rev ([0-9a-f]{7,40})$")
 INDEX_LINE = re.compile(r"^- \[`([a-z0-9-]+)`\]\(decisions/\1\.md\)")
 RECORD_BODY = re.compile(r"^\*\*(Context|Decision|Consequences)\.\*\*")
-STEP = re.compile(r"^\s*(?:\d+\.|[-*])\s+`([a-z][a-z0-9-]*)`\s+—", re.M)
+STEP = re.compile(r"^\s*(?:\d+\.|[-*])\s+`([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*)`\s+—(.*)$", re.M)
+# a sub-step's disposition, the first words after its name (docs/plans/README.md)
+DISPOSITION = re.compile(r"^\s*(tentative|active|contingent on `[^`]+`(?:(?:,| and) `[^`]+`)*"
+                         r"|built \d{4}-\d\d-\d\d|dropped \d{4}-\d\d-\d\d)(?![\w-])")
 PLAN_STEP = re.compile(r"^Plan-Step:\s*(\S+)\s*$", re.M)
 
 errors = []
@@ -119,15 +122,32 @@ def history_docs(tree):
 def steps(tree):
     found = {}
     for path, text in history_docs(tree):
-        for name in STEP.findall(text):
+        for name, _ in STEP.findall(text):
             found.setdefault(name, []).append(path)
     return found
 
 
 def check_step_names():
-    for name, paths in sorted(steps("work").items()):
+    known = steps("work")
+    for name, paths in sorted(known.items()):
         if len(paths) > 1:
             fail(", ".join(paths), f"step `{name}` is named more than once")
+    # a sub-step sits in its parent's plan, with a disposition naming real steps
+    for path, text in history_docs("work"):
+        mine = {name for name, _ in STEP.findall(text)}
+        for name, rest in STEP.findall(text):
+            if "." not in name:
+                continue
+            parent = name.rsplit(".", 1)[0]
+            if parent not in mine:
+                fail(path, f"sub-step `{name}` has no parent `{parent}` in its plan")
+            d = DISPOSITION.match(rest)
+            if not d:
+                fail(path, f"sub-step `{name}` gives no disposition (tentative, contingent on `step`, active, built <date>, dropped <date>)")
+            elif d.group(1).startswith("contingent on"):
+                for dep in re.findall(r"`([^`]+)`", d.group(1)):
+                    if dep not in known:
+                        fail(path, f"sub-step `{name}` is contingent on `{dep}`, which names no step")
 
 
 def check_commit_msg(message_file):
