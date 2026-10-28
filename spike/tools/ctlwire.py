@@ -30,8 +30,14 @@ Shapes of a fusion of (n1, up b1) then (n2, o2), by number:
   0 up then up, n2 = n1 + b1   1 up then up, n2 = n1   2 up then up, between
   3 up then down by b1 (nothing)   4 up then down by less   5 up then down by more
 
-    ctlwire.py [--peel] [--shapes 0,1,..] exhaustive MAXLEN [MAXN [MAXLVL]]
-    ctlwire.py [--peel] [--shapes 0,1,..] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--shapes 0,1,..] [--weights] exhaustive MAXLEN [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--shapes 0,1,..] [--weights] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
+
+With --weights, a start fails instead when its fused reductions, each
+move weighted by the unit interactions it stands for (Model.weighted),
+do not all total the interactions of its unit brackets reduced unfused
+(units), or when those depend on order: the weights that
+heap-strategies.profile counts on whole nets.
 
 The kernel's rule: --peel --shapes 0. Its old fusion: --shapes 0,1,2,3,4,5.
 Drops are by 1 only, as lowering emits. Memory grows with MAXLEN; run under
@@ -78,40 +84,60 @@ class Model:
         self.shapes, self.peel = shapes, peel
 
     def facing(self, a, b):
-        """C a then L b facing: what replaces them"""
+        """C a then L b facing: what replaces them, and the unit
+        interactions that stands for (--weights)"""
         if a[1:] == b[1:]:
-            return ()
+            return (), a[3]
         if self.peel and a[1] == b[1]:
             n = a[1]
             if a[2] and b[2]:
                 m = min(a[3], b[3])
                 if b[3] > a[3]:
-                    return (("L", n + m, True, b[3] - m),)
-                return (("C", n + m, True, a[3] - m),)
+                    return (("L", n + m, True, b[3] - m),), m
+                return (("C", n + m, True, a[3] - m),), m
             if b[2] and b[3] > 1:
-                return (("L", n, True, 1), ("L", n, True, b[3] - 1), a)
+                return (("L", n, True, 1), ("L", n, True, b[3] - 1), a), b[3]
             if a[2] and a[3] > 1:
-                return (b, ("C", n, True, a[3] - 1), ("C", n, True, 1))
-        return (("L", lift(a, b[1]), b[2], b[3]), ("C", lift(b, a[1]), a[2], a[3]))
+                return (b, ("C", n, True, a[3] - 1), ("C", n, True, 1)), a[3]
+        return (("L", lift(a, b[1]), b[2], b[3]), ("C", lift(b, a[1]), a[2], a[3])), a[3] * b[3]
 
-    def moves(self, state, fuse):
+    def weighted(self, state, fuse):
+        """each move from state, and the unit interactions it stands for: a
+        run of b crossing a value, a consumer or a control's b units, two
+        runs crossing each unit of one each of the other, equal runs
+        cancelling unit by unit, a peel what it cancels or crosses, a
+        fusion none"""
         v, w, u = state
         out = []
         if w and w[0][0] == "L":
-            out.append((lift(w[0], v), w[1:], u))
+            out.append(((lift(w[0], v), w[1:], u), w[0][3]))
         if w and w[-1][0] == "C":
-            out.append((v, w[:-1], lift(w[-1], u)))
+            out.append(((v, w[:-1], lift(w[-1], u)), w[-1][3]))
         for i in range(len(w) - 1):
             a, b = w[i], w[i + 1]
             if a[0] == "C" and b[0] == "L":
-                out.append((v, w[:i] + self.facing(a, b) + w[i + 2:], u))
+                rep, k = self.facing(a, b)
+                out.append(((v, w[:i] + rep + w[i + 2:], u), k))
             if fuse and a[0] == b[0]:
                 first, second = (a, b) if a[0] == "L" else (b, a)
                 r = compose(first, second)
                 if r is not None and shape(first, second) in self.shapes:
                     rep = () if r == "id" else ((a[0],) + r,)
-                    out.append((v, w[:i] + rep + w[i + 2:], u))
+                    out.append(((v, w[:i] + rep + w[i + 2:], u), 0))
         return out
+
+    def moves(self, state, fuse):
+        return [m for m, _ in self.weighted(state, fuse)]
+
+    def totals(self, state, fuse, memo):
+        """the unit interactions of every complete reduction from state"""
+        if state in memo:
+            return memo[state]
+        ws = self.weighted(state, fuse)
+        res = frozenset([0]) if not ws else frozenset(
+            k + t for m, k in ws for t in self.totals(m, fuse, memo))
+        memo[state] = res
+        return res
 
     def outcomes(self, state, fuse, memo):
         if state in memo:
@@ -152,6 +178,19 @@ def show(state):
     return f"v{v} [{ws}] u{u}"
 
 
+def units(state):
+    """the start with every run of raises as its unit brackets, in the
+    order they are crossed: an L's from the source, a C's from the
+    consumer (law units_are_run)"""
+    v, w, u = state
+    out = []
+    for k, n, up, by in w:
+        idx = range(n, n + by) if up else [n]
+        us = [(k, j, up, 1 if up else by) for j in idx]
+        out.extend(us if k == "L" else us[::-1])
+    return (v, tuple(out), u)
+
+
 def smaller(state):
     v, w, u = state
     for i in range(len(w)):
@@ -169,7 +208,8 @@ def smaller(state):
 
 def main(argv):
     peel = "--peel" in argv
-    argv = [a for a in argv if a != "--peel"]
+    weights = "--weights" in argv
+    argv = [a for a in argv if a not in ("--peel", "--weights")]
     shapes = {0, 1, 2, 3, 4, 5}
     if "--shapes" in argv:
         i = argv.index("--shapes")
@@ -189,12 +229,18 @@ def main(argv):
     found, failures, total, multi = set(), 0, 0, 0
 
     def fails(s):
+        if weights:
+            ut = model.totals(units(s), False, um)
+            return len(ut) != 1 or model.totals(s, True, fm) != ut
         return model.outcomes(s, True, fm) != model.outcomes(s, False, um)
 
     def check(state):
         nonlocal failures, total, multi
         total += 1
-        if len(model.outcomes(state, False, um)) > 1:
+        if weights:
+            if len(model.totals(units(state), False, um)) > 1:
+                multi += 1
+        elif len(model.outcomes(state, False, um)) > 1:
             multi += 1
         if fails(state):
             failures += 1
@@ -220,6 +266,14 @@ def main(argv):
         rng = random.Random(seed)
         for _ in range(count):
             check((rng.randrange(maxlvl + 1), tuple(rng.choice(cs) for _ in range(length)), rng.randrange(maxlvl + 1)))
+    if weights:
+        print(f"shapes {sorted(shapes)}, peel {peel}, weights: {failures} of {total} starts fail; "
+              f"{multi} where the unit brackets' interactions depend on order; "
+              f"{len(found)} distinct minimal failures")
+        for st in sorted(found, key=lambda s: (len(s[1]), s)):
+            print(show(st), "units", sorted(model.totals(units(st), False, {})),
+                  "| fused", sorted(model.totals(st, True, {})))
+        return 1 if failures else 0
     print(f"shapes {sorted(shapes)}, peel {peel}: {failures} of {total} starts fail; "
           f"{multi} where unfused reaches more than one outcome; {len(found)} distinct minimal failures")
     for st in sorted(found, key=lambda s: (len(s[1]), s)):

@@ -355,11 +355,18 @@ takes from it:
      soundness on whole nets, beyond `ctlwire.py`'s one wire. Fusions by
      shape are not counted: one shape remains, and the savings measure
      what fusion does; controls alive wait for `heap-strategies.trace`.
-     - `heap-strategies.profile.weights` — active — each move's weight
-       checked on the one-wire model (`ctlwire.py --weights`): a fused
-       start's reductions, every move weighted, all total the
-       interactions of its runs as unit brackets reduced unfused. A
-       peel weighs what it cancels, or the run a drop crosses whole.
+     - `heap-strategies.profile.weights` — built 2026-10-28 — each
+       move's weight checked on the one-wire model (`ctlwire.py
+       --weights`): a fused start's reductions, every move weighted, all
+       total the interactions of its runs as unit brackets reduced
+       unfused. A run crossing a value, a consumer or another run weighs
+       its units times the other's, equal runs cancelling their units, a
+       peel what it cancels or the run a drop crosses whole, a fusion
+       nothing. The kernel's rule (`--peel --shapes 0`) holds on all
+       4,001,400 starts to length 4 and 20,000 sampled at each of
+       lengths 6, 8 and 10 (indices to 3, levels to 6), the unit counts
+       never depending on order; the old fusion fails 46,872 of the
+       222,264 starts of length 3 (store runs 38 to 42).
      - `heap-strategies.profile.strategy` — contingent on
        `heap-strategies.profile.weights` — a profiling strategy in
        `kstrat.bend`: the eager one, each pair counted by kinds and
