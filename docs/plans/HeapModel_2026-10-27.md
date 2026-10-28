@@ -25,117 +25,124 @@ kernel (`spike-node-layout` in
 - One worker reduces a net at a time (`net-nodes-double`); workers own their
   pages for a round (`rounds-of-coarse-work`).
 
-## The preliminary model
+## The model
 
-**Values.** `Val` is Bend data: ground values, and handles naming cells. A
-handle never owns its cell; the collector reclaims cells unreachable from
-the roots (`store-collection`).
+The maintainer's direction (2026-10-27 and 28), with the Rust bootstrap's
+lessons; records follow at `heap-model-review`.
 
-**Two forms of a net** (the maintainer, 2026-10-27). A *live* net is the
-kernel's collection of arrays (`H`: node array, free list, pair stack, data
-table), hosted in a heap cell and reduced there, in place, by whichever one
-worker holds the cell. A *frozen* net is compact, plain data, ideally a
-compact string: immutable, shared cheaply, read by any number of workers
-at once, never reduced. Arrays cannot be shared, so whatever several
-workers read at once must be frozen; whatever is reduced is live. Copies
-are taken from the frozen form. The Rust bootstrap reduces one mutable net
-behind a lock and copies from it through cursors; holding the live net in
-a cell that one worker takes at a time rules out that lock and its bugs.
+**Final and partial data.** Every value is one of two kinds:
+- *Final* data is wholly computed and holds no handle: plain Bend data,
+  shared freely, and tagged as final so the collector never walks it.
+- *Partial* data holds a handle, or is a computation in progress. It keeps
+  referential identity: it lives in a cell and is referred to by handle,
+  never copied by value.
+- Final data moves into partial data (a completed cell's final value
+  replacing a handle to it), never the reverse. So every partial structure
+  is reached through cells, each marked once, and final data is skipped:
+  no tree is walked twice. Partial structures that versions share (a
+  persistent dict of lazy entries, updated with `with`) keep identity at
+  their interior nodes, above a small inline bound (`split-heap`), so what
+  two versions share is cells.
+- The tag is not a cached `ground` flag that goes stale: final data is
+  final by construction, and partial data turns final only when its cell
+  is rewritten.
 
-**Cells**, provisionally:
+**Cells.** One flat type, with no thunk header nested inside:
 
     Cell = Free{next}
-         | Net{live: H, frozen: Maybe<Frozen>, root: Result}
-                                            -- a net value: its live net,
-                                            --   a snapshot to copy from,
-                                            --   its root's value once known
-         | Thunk{state}                     -- a lazy value
-    state = Fresh{recipe}                   -- not started: an owned live
-                                            --   net, a net cell to wait on,
-                                            --   or an application
-          | Suspended{net: H, need}         -- its progress, in the cell
-          | Busy{task}                      -- being forced this round
-          | Forward{to: handle}             -- its value is another's
-          | Forced{v: Val}                  -- memoized, written once
-          | Failed{e}                       -- a permanent failure, cached
+         | Recipe{…}                -- not started: a function applied to
+                                    --   arguments, a net cell to wait on
+         | Live{net: H}             -- a live net, reduced here in place
+         | Suspended{net: H, need}  -- its progress, kept in the cell
+         | Forward{to: handle}      -- its value is another cell's
+         | Value{v: Val}            -- wholly computed, written once
+         | Failed{e}                -- a permanent failure, cached
 
-- A *net value* (a raw net) is a handle to a `Net` cell; binding or sharing
-  it copies the handle. Reducing the live net in place is safe for every
-  holder, since reduction preserves a net's meaning.
-- A *function* is `Fun{h, arity}` over a net cell. A function meeting an
-  application, at the value level or inside a net, makes a *lazy
-  application*: a thunk whose recipe is the function and the argument.
-  Forcing it instantiates the function's frozen net into the thunk's own
-  live net and binds the argument (`copy-reduced-function-nets`); with
-  arguments still to come, its value is a function of one less arity.
-  The Rust bootstrap does the same, and forbids opening a function's net
-  where it meets an application, to keep partial application a value.
-- A *raw net* meeting an application inside a net (an interaction-net
-  call) is logically copied into the caller: first as a whole copy from its
-  frozen snapshot, spliced into the running net with its pairing levels
-  offset to fit (NetPairing); cursors later. A snapshot taken before some
-  reduction is still the same net, only less reduced, so a stale snapshot
-  is still correct to copy.
-- A *thunk* memoizes. One the evaluator makes owns its live net outright
-  (its recipe holds the net, whose handle never escaped). One over a user's
-  net value (`net_arity 0`) waits on that net cell: the net is reduced in
-  place toward its root's value, and the thunk shares the data result; the
-  net is never copied (the maintainer, 2026-10-27; the Rust bootstrap does
-  the same). Thunks over one net share its reduction.
-- *Progress lives in the cell*: a thunk stopped on a need keeps its live
-  net there (`Suspended`), never in the task, so cycles through tasks
-  cannot keep it alive (the Rust bootstrap learned this the hard way, and
-  recorded it as its decision lazy-owns-partial-progress). A tail call becomes `Forward`, so tail
-  recursion does not nest forces.
-- *Faults are not failures*: a crash in the evaluator, or a kernel fault
-  such as a free slot read as a value, is reported and never cached as a
-  thunk's result; only a permanent failure of the program is (`Failed`).
+A cell only moves forward, from a recipe or a live net to a value, and a
+handle stays valid through every rewrite. Progress lives in the cell,
+never in a task, so cycles through tasks cannot keep it alive (the Rust
+bootstrap learned this, recording it as its decision
+lazy-owns-partial-progress); a tail call becomes `Forward`, so tail
+recursion does not nest forces. Faults (a crash in the evaluator, a kernel
+fault such as a free slot read as a value) are reported and never cached
+as a value; only a program's permanent failure is (`Failed`).
 
-**Local reduction** of a function's net, which every copy shares, happens
-on a live net before it is frozen: build-only pairs only, never calls
-(reducing a call there could unroll recursion without end), under fuel
-(the Rust bootstrap's compiled nets allow 4 reductions a node, up to 256
-nodes). What depends on the argument is done per copy; what does not, but
-needs calls (`\x -> g 1000 + x`), would be redone per copy, so lowering
-should hoist it into a thunk the function's net refers to, shared by every
-copy through its handle.
+**Nets.** A *live* net is the kernel's arrays (`H`) in a cell, reduced
+there by whichever one worker holds the cell. Its interface node is node 0
+and never moves: a negative principal port with no rules, the user's
+access to the net (the Rust bootstrap's `Interface`, the kernel's `Root`,
+whose rules are tuned to keep slot 0). A `net_arity 0` computation is done
+exactly when node 0 faces a data node, `Interface >< Data`, and its value
+is node 0's peer, read in one step.
 
-**Forcing.** A worker takes a thunk's live net and reduces the path from
-the root toward weak head normal form, erasing eagerly (`net-demand-whnf`);
-the Rust bootstrap reduces only that path, erases only on it, and leaves
-the rest as garbage. A pair on that path that needs another cell's value is
-set aside and the thunk suspends with that need; pairs off the path that
-need values do not block it, or the coordinator would report cycles that
-are not there. Where the needed thunk can be forced in the same worker, it
-is forced inline rather than sent round the coordinator: the Rust
+A *frozen* net is a value: compact, plain data, made once, when reducing
+is done, never as snapshots along the way. Freezing may be costly
+(ordering nodes for materialization, encoding each node compactly, the
+data array beside it), which is why it is done once. One format first,
+made for materialization; whether a second, made for interpretation, earns
+its place is open. A frozen net with no handle in its data is final; one
+holding handles is partial and lives in a cell.
+
+**Functions.** A function is a value referring to a net, frozen or still
+live in its cell, with its remaining arity. A function meeting an argument
+makes a lazy application: a recipe that, when forced, instantiates the
+function's frozen net into its own cell and binds the argument, so the
+cell owns its live net with no indirection (`copy-reduced-function-nets`).
+Applied to all its arguments at once, a function is copied once and bound
+to all; where a partial application is known to be used linearly, its
+live net is taken over rather than frozen and copied. Callers of a
+function whose net is not yet frozen wait for the freeze, as any lazy value
+serializes its observers; sparks, tasks reducing lazy values ahead of
+demand, recover the parallelism. The Rust bootstrap likewise never opens a
+function's net where it meets an application, keeping partial application
+a value.
+
+Local reduction before freezing reduces build-only pairs only, never calls
+(reducing a call there could unroll recursion without end), under fuel (the
+Rust bootstrap's compiled nets allow 4 reductions a node, up to 256 nodes).
+What depends on the argument is done per copy; what does not but needs
+calls (`\x -> g 1000 + x`) would be redone per copy, unless lowering
+hoists it into a thunk the function's net refers to, shared by every copy.
+
+**Raw nets.** A raw net meeting an application inside a net (an
+interaction-net call) is logically copied into the caller: first as a
+whole copy of its frozen form, its pairing levels offset to fit
+(NetPairing); cursors later. A thunk over a user's net (`net_arity 0`)
+waits on that net's cell and takes the data result: the net is reduced in
+place, once for every thunk over it, and never copied (the Rust bootstrap
+does the same).
+
+**Forcing.** A worker takes a cell's live net and reduces the path from the
+interface toward weak head normal form, erasing eagerly
+(`net-demand-whnf`); the Rust bootstrap reduces only that path, erases
+only on it, and leaves the rest as garbage. A pair on the path that needs
+another cell's value is set aside and the cell suspends with that need;
+pairs off the path do not block it, or the coordinator would report cycles
+that are not there. Where the needed cell can be forced in the same worker,
+it is forced inline rather than sent round the coordinator: the Rust
 bootstrap's largest evaluation cost was one coordinator round trip per lazy
-value, about 60 per level of recursion. A value at the root ends the force:
-data becomes `Forced{v}`; a function at the root, its arity coming from the
-recipe, freezes the reduced remainder into a net cell (no copy, since the
-thunk owned it) and the result is `Fun{h, arity}`.
+value, about 60 per level of recursion. When node 0 faces data, the cell
+becomes `Value{v}`; when it faces a function, arguments still to come, the
+net freezes and the cell's value is a function over it, its arity from the
+recipe.
 
 **Values crossing.** Into a net: numbers inline in nodes, other values as
 table entries (which may hold handles, never own cells). Out of a net: the
-root's value, normalized (`V.norm`), placeholders held out by the laws of
-`spike-node-layout`.
+interface's value, normalized (`V.norm`), placeholders held out by the laws
+of `spike-node-layout`.
 
-**Collection.** Roots: the coordinator's tasks and needs, thunk waiters,
-the intern table, the assembly's roots. Marking a live net scans its data
-table; marking a frozen net scans its template's values. Collect only
-between rounds, since a net held by a worker is out of sight, and mark with
-an explicit stack. Two lessons from the Rust bootstrap:
-- Marking each cell once is not enough. Its lists and dicts were shared
-  shells without mark bits, walked once per path to them: on one workload
-  each cell was reached 120 to 150 times a collection, the cost grew as
-  n^1.70, and collection took 45 to 47% of the time. A cached `ground` flag
-  skips ground subtrees but not shared structure that holds handles, and
-  goes stale as thunks are forced (the maintainer doubted it too). What
-  marks shared structure once is identity: interior nodes holding handles,
-  above a small inline bound, become cells themselves (`split-heap` says
-  so), or are interned, with ground leaves skipped.
-- A reused handle must not alias: a cell freed and reused while a stale
-  handle survives somewhere (a fault, but one to catch) wants a generation
-  check, at least in debug runs.
+**Workers and collection.** A worker holds the cells it works on for a
+round, and Bend's linear types make that hold exclusive: nothing can race.
+The collector runs between rounds, when the coordinator holds everything.
+It marks partial cells, each once (a mark bit per cell, an explicit
+stack), never walks final data, and may move a completed cell's final
+value into the partial data referring to it (a live net's table entries, a
+partial structure's slots), so the completed cell goes once nothing refers
+to it. A reused handle must not alias a freed cell: a generation check, at
+least in debug runs. What getting this wrong cost the Rust bootstrap: its
+shared shells, without identity, were walked once per path, each cell
+reached 120 to 150 times a collection, the cost growing as n^1.70, and
+collection taking 45 to 47% of the time.
 
 ## Laws and runtime checks
 
@@ -210,20 +217,23 @@ takes from it:
 
 1. `heap-model-review` — the maintainer reviews this model; record what is
    decided in `docs/decisions/`.
-2. `heap-demand` — demand in the kernel: reduce the root's path toward
+2. `heap-demand` — demand in the kernel: the interface at node 0, kept
+   there by the rules and the loader; reduce the interface's path toward
    weak head normal form, erasing eagerly, other pairs left pending; a
-   pair on the path needing another cell set aside with the need recorded.
-   Workloads: terms whose arguments go unused, erasure-heavy ones.
-3. `heap-freeze` — frozen nets: freeze a live net into a template,
-   instantiate a template into a live net or splice one into a running
-   net, at n, 2n and 4n nodes; local reduction of build-only pairs under
-   fuel before freezing.
-4. `heap-cells` — one page of cells: net and thunk cells; forcing with
-   needs, suspension in the cell, resumption, inline forcing within a
-   worker, forwarding; a function at the root becoming a net cell; laws on
-   cell states.
-5. `heap-apply` — lazy applications of function values, partial
-   application, and interaction-net calls opening raw nets.
+   pair on the path needing another cell set aside with the need recorded;
+   done when node 0 faces data. Workloads: terms whose arguments go
+   unused, erasure-heavy ones.
+3. `heap-freeze` — frozen nets: freeze a live net once its reduction is
+   done, instantiate a frozen net into a live one or splice it into a
+   running net, at n, 2n and 4n nodes; local reduction of build-only pairs
+   under fuel before freezing.
+4. `heap-cells` — one page of the flat cells: recipes, live nets,
+   suspension in the cell, resumption, inline forcing within a worker,
+   forwarding, values; final and partial data told apart by tag; laws on
+   cell states (a cell only moves forward; a value is written once).
+5. `heap-apply` — lazy applications of function values, applied to all
+   arguments at once where known, partial applications taken over where
+   used linearly; interaction-net calls copying raw nets.
 6. `heap-measure` — taking and returning nets, freezing and instantiating,
    memory per small net, forcing depth against round latency, at n, 2n and
    4n.
@@ -234,14 +244,16 @@ interior nodes (`spike-lazy-data`); rounds over pages (`spike-page-rounds`).
 
 ## Open questions
 
-- Local reduction before freezing: which pairs exactly, what bound, and
-  whether hoisting argument-independent calls into shared thunks belongs to
-  lowering.
-- How pairing levels are offset when a raw net is spliced into a running
+- What "done reducing" means for a function's net: which pairs local
+  reduction takes, under what bound, and whether hoisting
+  argument-independent calls into shared thunks belongs to lowering.
+- The frozen format: one made for materialization first; whether one made
+  for interpretation is worth a second type.
+- How lowering knows a partial application is used linearly, and when it
+  emits sparks.
+- How pairing levels are offset when a raw net is copied into a running
   net, and whether copies need fresh identities (NetPairing).
-- When a net cell is frozen: after its local reduction ends, on the first
-  copy, or on request; and what a frozen form holds (node words renumbered
-  densely, each wire stored once, small indices packed; the data table's
-  values beside it), traded between size and how fast a copy is made.
 - How far inline forcing goes before a need goes to the coordinator, and
-  how divergence in one forced thunk is kept from holding a worker.
+  how divergence in one forced cell is kept from holding a worker.
+- Where partial structures keep identity: the inline bound below which an
+  interior node holding handles is copied by value inside its cell.
