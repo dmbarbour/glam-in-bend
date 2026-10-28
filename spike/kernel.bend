@@ -10,7 +10,7 @@ import ./kstrat.bend as KS
 # reduced fully by the eager strategy or on demand (kstrat.bend), over the
 # net of knet.bend.
 #
-#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy]
+#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile]
 #       reduce `k 2 succ 0` (2^k) built without levels; with plus
 #       `k 2 (plus 1) 0`, adding by a partial application in a node; with
 #       fma `k 2 (fma 1 1) 0`, by one in the data table; with lvl
@@ -18,7 +18,9 @@ import ./kstrat.bend as KS
 #       `K 0 (k 2 succ 0)`; knum `K 0 #k`; komega `K 0 ((\z. z z) (\z. z
 #       z))`; whnf `#k succ`, a function. Report value, counts, time; with
 #       ref, by the interpreted table alone; with lazy, on demand (see
-#       kstrat.bend's Demand), the state it ends in and the nodes left
+#       kstrat.bend's Demand), the state it ends in and the nodes left;
+#       with profile, by the profiling strategy (kstrat.bend's Profiling),
+#       the weighted count, peels and interactions by pair of kinds
 
 # the value at the root, interactions, errors, and whether the table's live
 # entries match the nodes holding them
@@ -57,6 +59,20 @@ def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 # fast, else by the interpreted table: value and counts
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   KN.report(KN.result(KS.reduce_h(fuel, fast, KN.load(t))))
+
+def prof.k(r: KRes, pf: KS.Pf) -> String:
+  match r:
+    case KRes{v, +itrs, +errs, +ok}:
+      KN.show_val(v) ++ " (" ++ U32.show(itrs) ++ ", " ++ U32.show(errs) ++ "); " ++ KS.pf_str(pf)
+
+def prof(r: P.H & KS.Pf) -> String:
+  (h, pf) = r
+  prof.k(kres(KN.result(h)), pf)
+
+# reduce t as reduce does, profiled (kstrat.bend's Profiling): value,
+# interactions and errors, then the profile
+def profile_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
+  prof(KS.reduce_p(fuel, fast, KN.load(t)))
 
 # Results of demand
 # =================
@@ -180,18 +196,20 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
     case _:
       X.t_pow(k, 2)
 
-# reduce the workload fully, or on demand
-def main.run(+lazy: Bool, t: T.Tpl, +fast: Bool) -> String:
-  match lazy:
-    case True{}:
+# reduce the workload fully (how 0), on demand (1) or profiled (2)
+def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
+  match how:
+    case 1:
       dres_str(run_d(t, 268435456n, Nil{}))
-    case False{}:
+    case 2:
+      profile_t(t, 268435456n, fast)
+    case _:
       reduce(t, 268435456n, fast)
 
-def main.k(+k: U32, +fast: Bool, +w: U32, +lazy: Bool) -> IO(Unit):
+def main.k(+k: U32, +fast: Bool, +w: U32, +how: U32) -> IO(Unit):
   do IO<Unit>:
     +t0 : Nat <- IO.now()
-    +res : String = main.run(lazy, workload(w, k), fast)
+    +res : String = main.run(how, workload(w, k), fast)
     +t1 : Nat <- IO.now()
     IO.print("kernel k " ++ U32.show(k) ++ ": " ++ res ++ " in " ++ Nat.show(Nat.sub(t1, t0)) ++ " ms")
 
@@ -219,25 +237,47 @@ def mode_of(ms: List<&2, Md>, +m: String) -> Maybe<&2, Md>:
       mode_of.hit(String.eq(name, m), Md{name, w, fast}, mode_of(t, m))
 
 def usage() -> String:
-  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy]"
+  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile]"
 
-def main.mode(md: Maybe<&2, Md>, +k: U32, +lazy: Bool) -> IO(Unit):
+def main.mode(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
   match md:
     case Some{Md{name, +w, +fast}}:
-      main.k(k, fast, w, lazy)
+      main.k(k, fast, w, how)
     case None{}:
       IO.print(usage())
+
+def how.p(+profile: Bool) -> U32:
+  match profile:
+    case True{}:
+      2
+    case False{}:
+      3
+
+# the strategy a third argument names: lazy 1, profile 2, else 3 (none)
+def how_of(+lazy: Bool, +profile: Bool) -> U32:
+  match lazy:
+    case True{}:
+      1
+    case False{}:
+      how.p(profile)
+
+def main.how(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
+  match how:
+    case 3:
+      IO.print(usage())
+    case _:
+      main.mode(md, k, how)
 
 def main.rest(+k: U32, xs: List<String>) -> IO(Unit):
   match xs:
     case Nil{}:
-      main.k(k, True{}, 0, False{})
+      main.k(k, True{}, 0, 0)
     case Con{+m, r}:
       match r:
         case Nil{}:
-          main.mode(mode_of(modes(), m), k, False{})
+          main.mode(mode_of(modes(), m), k, 0)
         case Con{+l, r2}:
-          main.mode(mode_of(modes(), m), k, String.eq(l, "lazy"))
+          main.how(mode_of(modes(), m), k, how_of(String.eq(l, "lazy"), String.eq(l, "profile")))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:

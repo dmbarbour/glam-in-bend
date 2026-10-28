@@ -367,10 +367,18 @@ takes from it:
        lengths 6, 8 and 10 (indices to 3, levels to 6), the unit counts
        never depending on order; the old fusion fails 46,872 of the
        222,264 starts of length 3 (store runs 38 to 42).
-     - `heap-strategies.profile.strategy` — contingent on
-       `heap-strategies.profile.weights` — a profiling strategy in
-       `kstrat.bend`: the eager one, each pair counted by kinds and
-       weighted before it interacts; `kernel K W profile`.
+     - `heap-strategies.profile.strategy` — built 2026-10-28 — a
+       profiling strategy in `kstrat.bend`: the eager one, each pair
+       counted by kinds, A's principal negative, and weighted before it
+       interacts, the sum in two words; `kernel K W profile`, and
+       `profile_t` for tests. On `lvl` at k 10, 12 and 14 the weighted
+       count is the same with the kernel's fusion on and off (6,458,
+       24,962, 98,762) while fusion saves 24% of the interactions. The
+       eager and demand strategies cost what they did (store run 43
+       against run 36: 0.0% in the default, inlined and profile-guided
+       builds; +1.4% to +1.7% on full reductions where inlined and
+       profile-guided both), though the eager rewrites now have two
+       callers.
      - `heap-strategies.profile.store` — contingent on
        `heap-strategies.profile.strategy` — `terms.py --profile` and
        `spike/tools/profile.sh`, every term's profile into the store,

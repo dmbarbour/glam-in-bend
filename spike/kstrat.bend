@@ -3,6 +3,7 @@ import ./val.bend as V
 import ./kprim.bend as P
 import ./krules.bend as KR
 import ./knet.bend as KN
+import ./kmem_grow.bend as KM
 
 # Strategies over a net (heap-strategies in docs/plans/HeapModel_2026-10-27.md):
 # each wraps a net (knet.bend) with state of its own, decides which pair is
@@ -85,6 +86,209 @@ def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
 # used; the stack, with room for half the nodes, is let go at the end
 def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
   reduce.st(P.stats(h), fuel, fast)
+
+# Profiling
+# =========
+
+# The eager strategy counting what it does (heap-strategies.profile): its
+# interactions by pair of kinds, A's principal negative as in the rule
+# table, and each weighted by the interactions it stands for were every
+# run of raises its unit brackets (ctlwire.py --weights): a run of b
+# meeting any other node, b; two runs at different indices, each unit of
+# one crossing each unit of the other, b times c; facing at one index,
+# what cancels, the shorter of two raises, or else 1, a drop and a unit
+# once peeling has split off the rest of a longer run. The weighted count
+# is the unit brackets' interactions, the same in every order of a
+# complete reduction whether controls fuse or not; fusion's savings are it
+# less the interactions made, and may depend on the order.
+
+# interactions by pair of kinds (A's kind times 16 plus B's), the
+# weighted count in two words, the pairs peeled, and the interactions
+# whose weight would pass 2^32, left out of the count
+type Pf is Type:
+  Pf{kp: KM.M, +lo: U32, +hi: U32, +peels: U32, +wide: U32}
+
+def pf_new.go(r: KM.M & U32) -> Pf:
+  (kp, +cap) = r
+  Pf{kp, 0, 0, 0, 0}
+
+def pf_new() -> Pf:
+  pf_new.go(KM.m_new(8n, 8n))
+
+def is_ctl(+k: U32) -> Bool:
+  U32.is_eq(k, 10) || U32.is_eq(k, 11)
+
+def one_if(b: Bool) -> U32:
+  match b:
+    case True{}:
+      1
+    case False{}:
+      0
+
+# runs of b and c crossing: b times c, and whether that passes 2^32
+def wt.cross(+b: U32, +c: U32) -> U32 & Bool:
+  ((b * c : U32), U32.is_gt(c, (4294967295 / P.sel_u(U32.is_eq(b, 0), 1, b) : U32)))
+
+def wt.same(up: Bool, +b: U32, +c: U32) -> U32:
+  match up:
+    case True{}:
+      P.sel_u(U32.is_lt(b, c), b, c)
+    case False{}:
+      1
+
+def wt.cc(same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+  match same:
+    case True{}:
+      (wt.same(P.off_up(oa) && P.off_up(ob), P.off_by(oa), P.off_by(ob)), False{})
+    case False{}:
+      wt.cross(P.off_by(oa), P.off_by(ob))
+
+def weight.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
+  match ca cb:
+    case True{} True{}:
+      wt.cc(U32.is_eq(P.fld(ha), P.fld(hb)), oa, ob)
+    case True{} False{}:
+      (P.off_by(oa), False{})
+    case False{} True{}:
+      (P.off_by(ob), False{})
+    case False{} False{}:
+      (1, False{})
+
+# the unit interactions A (header ha, word 3 oa) meeting B stands for
+def weight(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
+  weight.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob)
+
+# does peeling split either control? (kprim.bend's peel_ctl)
+def peeled(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Bool:
+  U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11) && U32.is_eq(P.fld(ha), P.fld(hb)) &&
+    U32.is_ne((P.peel.amt(P.off_up(oa), P.off_by(oa), P.off_up(ob), P.off_by(ob)) +
+      P.peel.amt(P.off_up(ob), P.off_by(ob), P.off_up(oa), P.off_by(oa)) : U32), 0)
+
+def pf.fin(kp: KM.M, +lo: U32, +hi: U32, +peels: U32, +wide: U32, +w: U32, +pl: Bool, +wd: Bool) -> Pf:
+  Pf{kp, (lo + w : U32), (hi + one_if(U32.is_lt((lo + w : U32), lo)) : U32), (peels + one_if(pl) : U32), (wide + one_if(wd) : U32)}
+
+def pf.kp(r: KM.M & U32, +i: U32, +lo: U32, +hi: U32, +peels: U32, +wide: U32, +w: U32, +pl: Bool, +wd: Bool) -> Pf:
+  (kp, +n) = r
+  pf.fin(KM.m_set(kp, i, (n + 1 : U32)), lo, hi, peels, wide, P.sel_u(wd, 0, w), pl, wd)
+
+def pf.w(r: U32 & Bool, pf: Pf, +i: U32, +pl: Bool) -> Pf:
+  (+w, +wd) = r
+  match pf:
+    case Pf{kp, +lo, +hi, +peels, +wide}:
+      pf.kp(KM.m_get(kp, i), i, lo, hi, peels, wide, w, pl, wd)
+
+# A (header ha, word 3 oa) meeting B, counted
+def pf.add(pf: Pf, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Pf:
+  pf.w(weight(ha, hb, oa, ob), pf, ((P.rk(ha) << 4n : U32) + P.rk(hb) : U32), peeled(ha, hb, oa, ob))
+
+def pr.or(neg: Bool, pf: Pf, +hx: U32, +hy: U32, +ox: U32, +oy: U32) -> Pf:
+  match neg:
+    case True{}:
+      pf.add(pf, hx, hy, ox, oy)
+    case False{}:
+      pf.add(pf, hy, hx, oy, ox)
+
+def pr.oy(r: P.H & U32, pf: Pf, +hx: U32, +hy: U32, +ox: U32) -> P.H & Pf:
+  (h, +oy) = r
+  (h, pr.or(KR.kind_neg(P.rk(hx)), pf, hx, hy, ox, oy))
+
+def pr.ox(r: P.H & U32, pf: Pf, +y: U32, +hx: U32, +hy: U32) -> P.H & Pf:
+  (h, +ox) = r
+  pr.oy(P.rd(h, (y + 3 : U32)), pf, hx, hy, ox)
+
+def pr.hy(r: P.H & U32, pf: Pf, +x: U32, +y: U32, +hx: U32) -> P.H & Pf:
+  (h, +hy) = r
+  pr.ox(P.rd(h, (x + 3 : U32)), pf, y, hx, hy)
+
+def pr.hx(r: P.H & U32, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
+  (h, +hx) = r
+  pr.hy(P.rd(h, y), pf, x, y, hx)
+
+# the pair x - y, counted before it interacts
+def probe(h: P.H, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
+  pr.hx(P.rd(h, x), pf, x, y)
+
+# the state after a profiled run, and the fuel it left
+type PRan is Type:
+  PRan{h: P.H, pf: Pf, +left: Nat}
+
+# the next pair, and the profile
+type PPop is Type:
+  PPop{pp: P.Pop, pf: Pf}
+
+# the pair x - y, counted, interacts; the next is popped
+def pstep(r: P.H & Pf, st: P.Stk, +fast: Bool, +cap: U32, +x: U32, +y: U32) -> PPop:
+  (h, pf) = r
+  PPop{P.pop(KN.interact.e(h, st, fast, x, y), cap, KR.most_pairs()), pf}
+
+def prun(n: Nat, +fast: Bool, q: PPop) -> PRan:
+  match n:
+    case 0n:
+      match q:
+        case PPop{pp, pf}:
+          PRan{P.unpop(pp), pf, 0n}
+    case 1n+p:
+      match q:
+        case PPop{pp, pf}:
+          match pp:
+            case P.Pop{h, st, +cap, +x, +y, +ok}:
+              match ok:
+                case True{}:
+                  prun(p, fast, pstep(probe(h, pf, x, y), st, fast, cap, x, y))
+                case False{}:
+                  PRan{h, pf, 1n+p}
+
+def pran(r: PRan, +fuel: Nat) -> P.H & Pf:
+  match r:
+    case PRan{h, pf, +left}:
+      (P.count(h, U32.from_nat(Nat.sub(fuel, left))), pf)
+
+def reduce_p.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H & Pf:
+  (st, +room) = r
+  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room, KR.most_pairs()), pf_new()}), fuel)
+
+def reduce_p.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H & Pf:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      reduce_p.go(P.stk_new(P.rs_words(cap)), h, cap, fuel, fast)
+
+# reduce_h, profiled
+def reduce_p(+fuel: Nat, +fast: Bool, h: P.H) -> P.H & Pf:
+  reduce_p.st(P.stats(h), fuel, fast)
+
+def pf.one(+i: U32, +n: U32) -> String:
+  match n:
+    case 0:
+      ""
+    case _:
+      " " ++ U32.show((i >> 4n : U32)) ++ "." ++ U32.show((i .&. 15 : U32)) ++ ":" ++ U32.show(n)
+
+def pf.pairs(k: Nat, r: KM.M & U32, +i: U32) -> String:
+  match k:
+    case 0n:
+      match r:
+        case (kp, +n):
+          pf.one(i, n)
+    case 1n+p:
+      match r:
+        case (kp, +n):
+          pf.one(i, n) ++ pf.pairs(p, KM.m_get(kp, (i + 1 : U32)), (i + 1 : U32))
+
+def pf.big(small: Bool, +lo: U32, +hi: U32) -> String:
+  match small:
+    case True{}:
+      Nat.show(Nat.add(Nat.mul(Nat.mul(U32.to_nat(hi), 65536n), 65536n), U32.to_nat(lo)))
+    case False{}:
+      "past 2^48"
+
+# the profile as text: weighted interactions, peels, weights left out,
+# and interactions by pair of kinds, A's code then B's
+def pf_str(pf: Pf) -> String:
+  match pf:
+    case Pf{kp, +lo, +hi, +peels, +wide}:
+      "weighted " ++ pf.big(U32.is_lt(hi, 65536), lo, hi) ++ ", " ++ U32.show(peels) ++ " peels, " ++
+        U32.show(wide) ++ " wide; pairs" ++ pf.pairs(255n, KM.m_get(kp, 0), 0)
 
 # Demand
 # ======
