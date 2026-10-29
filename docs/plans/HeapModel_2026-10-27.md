@@ -450,9 +450,12 @@ takes from it:
      to 5.6%; full reductions 0.3% to 5.5%. The same interactions; the
      library's 44 cases print the same on both layouts, two of them new
      to cover the data table (`pow-2-6-plus`, `pow-2-6-fma`).
-     - `heap-strategies.header.stack` — tentative — the eager
-       strategy's stack keeps its count at its position 0 the same way,
-       one word less in its state (the maintainer, 2026-10-29).
+     - `heap-strategies.header.stack` — built 2026-10-29 — the eager
+       strategy's stack keeps its count at its word 0 the same way, and
+       its room at word 1 (the maintainer, 2026-10-29): the stack is one
+       array, the pop's record two words narrower. Full reductions 0.9%
+       to 3.4% fewer instructions in every build, demand untouched, the
+       same interactions (store run 51 against 50).
    - `heap-strategies.bitmap` — tentative — under discussion (the
      maintainer, 2026-10-28 and 29): active pairs marked in a bitmap, a
      bit per node at the lower node of each pair, kept in pages of the

@@ -994,31 +994,38 @@ def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0
 # the generated rewrite would: it links the same ends, or joins two of
 # the rule's links into one where an external peer is the redex's own.
 
+# The stack is one array, its count at word 0 and its room at word 1,
+# its pairs from word 2: no word of it in the state but the array, as the
+# net keeps its own words (heap-strategies.header.stack).
 type Stk is Type:
-  Stk{s: KM.M, +n: U32}
+  Stk{s: KM.M}
 
 # the net and a strategy's stack, as the eager rewrites take and return them
 type E is Type:
   E{h: H, st: Stk}
 
-def stk.fin(r: KM.M & U32) -> Stk & U32:
+def stk.fin(r: KM.M & U32) -> Stk:
   (s, +cap) = r
-  (Stk{s, 0}, cap)
+  Stk{KM.m_set(s, 1, cap)}
 
-def stk.ensure(r: KM.M & U32, +words: U32) -> Stk & U32:
+def stk.ensure(r: KM.M & U32, +words: U32) -> Stk:
   (s, +cap) = r
-  stk.fin(KM.m_ensure(s, words, cap, rs_maxd()))
+  stk.fin(KM.m_ensure(s, (words + 2 : U32), cap, rs_maxd()))
 
-# an empty stack with room for `words` pairs at least, and its room
-def stk_new(+words: U32) -> Stk & U32:
+# an empty stack with room for `words` pairs at least
+def stk_new(+words: U32) -> Stk:
   stk.ensure(KM.m_new(6n, rs_maxd()), words)
+
+def note.n(r: KM.M & U32, +x: U32) -> Stk:
+  (s, +n) = r
+  Stk{KM.m_set(KM.m_set(s, (n + 2 : U32), x), 0, (n + 1 : U32))}
 
 def note.go(both: Bool, st: Stk, +x: U32) -> Stk:
   match both:
     case True{}:
       match st:
-        case Stk{s, +n}:
-          Stk{KM.m_set(s, n, x), (n + 1 : U32)}
+        case Stk{s}:
+          note.n(KM.m_get(s, 0), x)
     case False{}:
       st
 
@@ -1031,52 +1038,60 @@ def push(st: Stk, +x: U32) -> Stk:
 def note(st: Stk, +x: U32, +y: U32) -> Stk:
   note.go(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), st, x)
 
-# the newest pair on the stack, if any; the stack's room carried along
+# the newest pair on the stack, if any
 type Pop is Type:
-  Pop{h: H, st: Stk, +cap: U32, +x: U32, +y: U32, +ok: Bool}
+  Pop{h: H, st: Stk, +x: U32, +y: U32, +ok: Bool}
 
-def pop.y(r: KM.M & U32, s: KM.M, a: Array<V.Val>, +n: U32, +cap: U32, +x: U32) -> Pop:
+def pop.y(r: KM.M & U32, s: KM.M, a: Array<V.Val>, +x: U32) -> Pop:
   (w, +y) = r
-  Pop{H{w, a}, Stk{s, n}, cap, x, y, True{}}
+  Pop{H{w, a}, Stk{s}, x, y, True{}}
 
 # x's partner: the peer of its principal port
-def pop.x(r: KM.M & U32, w: KM.M, a: Array<V.Val>, +n: U32, +cap: U32) -> Pop:
+def pop.x(r: KM.M & U32, w: KM.M, a: Array<V.Val>) -> Pop:
   (s, +x) = r
-  pop.y(KM.m_get(w, (x + 1 : U32)), s, a, n, cap, x)
+  pop.y(KM.m_get(w, (x + 1 : U32)), s, a, x)
 
-def pop.go(h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
-  match h:
-    case H{w, a}:
-      match n:
-        case 0:
-          Pop{H{w, a}, Stk{s, 0}, cap, 0, 0, False{}}
-        case _:
-          pop.x(KM.m_get(s, (n - 1 : U32)), w, a, (n - 1 : U32), cap)
+def pop.k(+n: U32, h: H, s: KM.M) -> Pop:
+  match n:
+    case 0:
+      Pop{h, Stk{s}, 0, 0, False{}}
+    case _:
+      match h:
+        case H{w, a}:
+          pop.x(KM.m_get(KM.m_set(s, 0, (n - 1 : U32)), (n + 1 : U32)), w, a)
 
 def pop.room(r: KM.M & U32, h: H, +n: U32) -> Pop:
   (s, +cap) = r
-  pop.go(h, s, n, cap)
+  pop.k(n, h, KM.m_set(s, 1, cap))
 
 def pop.grow(full: Bool, h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
   match full:
     case True{}:
       pop.room(KM.m_ensure(s, (cap * 2 : U32), cap, rs_maxd()), h, n)
     case False{}:
-      pop.go(h, s, n, cap)
+      pop.k(n, h, s)
 
-# the newest pair on the stack of e, which has room for cap, grown first
-# unless it has room for most more pairs, the most a rewrite makes
-def pop(e: E, +cap: U32, +most: U32) -> Pop:
+def pop.cap(r: KM.M & U32, h: H, +n: U32, +most: U32) -> Pop:
+  (s, +cap) = r
+  pop.grow(U32.is_lt(cap, ((n + most : U32) + 2 : U32)), h, s, n, cap)
+
+def pop.n(r: KM.M & U32, h: H, +most: U32) -> Pop:
+  (s, +n) = r
+  pop.cap(KM.m_get(s, 1), h, n, most)
+
+# the newest pair on the stack of e, grown first unless it has room for
+# most more pairs, the most a rewrite makes
+def pop(e: E, +most: U32) -> Pop:
   match e:
     case E{h, st}:
       match st:
-        case Stk{s, +n}:
-          pop.grow(U32.is_lt(cap, (n + most : U32)), h, s, n, cap)
+        case Stk{s}:
+          pop.n(KM.m_get(s, 0), h, most)
 
 # a run's end: the net, the stack let go
 def unpop(pp: Pop) -> H:
   match pp:
-    case Pop{h, st, +cap, +x, +y, +ok}:
+    case Pop{h, st, +x, +y, +ok}:
       h
 
 # a node of rule kind k holding the value pw

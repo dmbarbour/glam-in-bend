@@ -60,10 +60,10 @@ def run(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
       Ran{P.unpop(pp), 0n}
     case 1n+p:
       match pp:
-        case P.Pop{h, st, +cap, +x, +y, +ok}:
+        case P.Pop{h, st, +x, +y, +ok}:
           match ok:
             case True{}:
-              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), cap, KR.most_pairs()))
+              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), KR.most_pairs()))
             case False{}:
               Ran{h, 1n+p}
 
@@ -72,9 +72,8 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
     case Ran{h, +left}:
       P.count(h, U32.from_nat(Nat.sub(fuel, left)))
 
-def reduce.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
-  (st, +room) = r
-  ran(run(fuel, fast, P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), room, KR.most_pairs())), fuel)
+def reduce.go(st: P.Stk, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
+  ran(run(fuel, fast, P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), KR.most_pairs())), fuel)
 
 def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
   (h, hs) = r
@@ -217,9 +216,9 @@ type PPop is Type:
   PPop{pp: P.Pop, pf: Pf}
 
 # the pair x - y, counted, interacts; the next is popped
-def pstep(r: P.H & Pf, st: P.Stk, +fast: Bool, +cap: U32, +x: U32, +y: U32) -> PPop:
+def pstep(r: P.H & Pf, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> PPop:
   (h, pf) = r
-  PPop{P.pop(KN.interact.e(h, st, fast, x, y), cap, KR.most_pairs()), pf}
+  PPop{P.pop(KN.interact.e(h, st, fast, x, y), KR.most_pairs()), pf}
 
 def prun(n: Nat, +fast: Bool, q: PPop) -> PRan:
   match n:
@@ -231,10 +230,10 @@ def prun(n: Nat, +fast: Bool, q: PPop) -> PRan:
       match q:
         case PPop{pp, pf}:
           match pp:
-            case P.Pop{h, st, +cap, +x, +y, +ok}:
+            case P.Pop{h, st, +x, +y, +ok}:
               match ok:
                 case True{}:
-                  prun(p, fast, pstep(probe(h, pf, x, y), st, fast, cap, x, y))
+                  prun(p, fast, pstep(probe(h, pf, x, y), st, fast, x, y))
                 case False{}:
                   PRan{h, pf, 1n+p}
 
@@ -243,9 +242,8 @@ def pran(r: PRan, +fuel: Nat) -> P.H & Pf:
     case PRan{h, pf, +left}:
       (P.count(h, U32.from_nat(Nat.sub(fuel, left))), pf)
 
-def reduce_p.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H & Pf:
-  (st, +room) = r
-  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), room, KR.most_pairs()), pf_new()}), fuel)
+def reduce_p.go(st: P.Stk, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H & Pf:
+  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), KR.most_pairs()), pf_new()}), fuel)
 
 def reduce_p.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H & Pf:
   (h, hs) = r

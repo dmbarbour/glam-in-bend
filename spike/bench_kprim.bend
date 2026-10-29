@@ -36,7 +36,7 @@ def b.free(r: P.H & U32, st: P.Stk, +acc: U32) -> B:
 
 def b.pop(pp: P.Pop, +acc: U32) -> B:
   match pp:
-    case P.Pop{h, st, +cap, +x, +y, +ok}:
+    case P.Pop{h, st, +x, +y, +ok}:
       B{h, st, (acc + x : U32)}
 
 def b.val(r: P.H & V.Val, st: P.Stk, +acc: U32) -> B:
@@ -96,7 +96,7 @@ def step(b: B, +op: U32, +i: U32) -> B:
         case 4:
           b.h(P.link(h, 9, 13), st, acc)
         case 5:
-          b.pop(P.pop(P.E{h, P.push(st, 8)}, 64, 4), acc)
+          b.pop(P.pop(P.E{h, P.push(st, 8)}, 4), acc)
         case 6:
           b.val(P.tab_get(h, 0), st, acc)
         case 7:
@@ -136,8 +136,7 @@ def setup() -> P.H:
   setup.e(P.tab_put(setup.n(P.node(setup.n(P.node(P.h_new(), P.hd(10, 0), 0)), P.hd(10, 0), 0)), fma11()))
 
 # the net, an empty stack, nothing accumulated
-def start(r: P.Stk & U32) -> B:
-  (st, +cap) = r
+def start(st: P.Stk) -> B:
   B{setup(), st, 0}
 
 def report(b: B) -> String:
