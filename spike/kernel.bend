@@ -130,20 +130,25 @@ def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
               KS.D{h, path, top, depth, n, st, lz, at}
 
 # a demand's end: the result as reduce_h's, its state, the handle needed,
-# the nodes left, how many nodes the net grew to hold
+# the nodes left, how many nodes the net grew to hold, how many of those
+# left the interface still reaches (KN.reach)
 type DRes is Data:
-  DRes{r: KRes, +st: U32, +lz: U32, +live: U32, +cap: U32}
+  DRes{r: KRes, +st: U32, +lz: U32, +live: U32, +cap: U32, +reach: U32}
 
-def dres.cap(r: P.H & P.HS, +st: U32, +lz: U32, +n: U32) -> DRes:
+def dres.cap(r: P.H & P.HS, +st: U32, +lz: U32, +n: U32, +reach: U32) -> DRes:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      DRes{kres(KN.result(h)), st, lz, n, cap}
+      DRes{kres(KN.result(h)), st, lz, n, cap, reach}
+
+def dres.r(r: P.H & U32, +st: U32, +lz: U32, +n: U32) -> DRes:
+  (h, +reach) = r
+  dres.cap(P.stats(h), st, lz, n, reach)
 
 def dres.au(au: KN.Au, +st: U32, +lz: U32) -> DRes:
   match au:
     case KN.Au{h, +n}:
-      dres.cap(P.stats(h), st, lz, n)
+      dres.r(KN.reach(h), st, lz, n)
 
 def dres.h(h: P.H, +st: U32, +lz: U32) -> DRes:
   dres.au(live_nodes.st(P.stats(h)), st, lz)
@@ -152,6 +157,19 @@ def dres(d: KS.D) -> DRes:
   match d:
     case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
       dres.h(P.count(h, n), st, lz)
+
+def dres.sw(r: P.H & U32, +st: U32, +lz: U32) -> DRes:
+  (h, +f) = r
+  dres.h(h, st, lz)
+
+def dres.s(d: KS.D) -> DRes:
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+      dres.sw(KN.sweep(P.count(h, n)), st, lz)
+
+# run_d, then every node the interface does not reach freed (KN.sweep)
+def run_ds(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
+  dres.s(force(64n, fuel, vals, KS.demand(fuel, KS.d.start(KN.load(t)))))
 
 # reduce t toward weak head normal form for at most fuel steps, its needs
 # met from vals, at most 64
@@ -180,8 +198,9 @@ def kres_str(r: KRes) -> String:
 
 def dres_str(r: DRes) -> String:
   match r:
-    case DRes{k, +st, +lz, +live, +cap}:
-      st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ kres_str(k) ++ ", " ++ U32.show(live) ++ " nodes live of " ++ U32.show(cap)
+    case DRes{k, +st, +lz, +live, +cap, +reach}:
+      st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ kres_str(k) ++ ", " ++ U32.show(live) ++ " nodes live of " ++ U32.show(cap) ++
+        ", " ++ U32.show(reach) ++ " reached"
 
 # Workloads
 # =========

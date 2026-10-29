@@ -37,7 +37,7 @@ type Out is Data:
 
 def out(r: K.DRes) -> Out:
   match r:
-    case K.DRes{k, +st, +lz, +live, +cap}:
+    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
       match k:
         case K.KRes{v, +itrs, +errs, +ok}:
           Out{st, show_m(v), itrs, errs, live, ok}
@@ -73,6 +73,11 @@ def case_ok(o: Out, +st: U32, +v: String, +live: U32) -> Bool:
 # left it should end with
 def case_line(+name: String, +t: T.Tpl, +vals: List<&2, V.Val>, +fuel: Nat, +st: U32, +v: String, +live: U32) -> String:
   +o = out(K.run_d(t, fuel, vals))
+  mark(case_ok(o, st, v, live)) ++ " " ++ name ++ ": " ++ out_str(o)
+
+# a net on demand as case_line has it, then swept (K.run_ds)
+def sweep_line(+name: String, +t: T.Tpl, +vals: List<&2, V.Val>, +fuel: Nat, +st: U32, +v: String, +live: U32) -> String:
+  +o = out(K.run_ds(t, fuel, vals))
   mark(case_ok(o, st, v, live)) ++ " " ++ name ++ ": " ++ out_str(o)
 
 def agree(d: Out, e: Out) -> Bool:
@@ -122,6 +127,7 @@ def main() -> IO(Unit):
     IO.print(case_line("K 0 omega: omega never reduced", X.t_k_omega(), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 (10 2 succ 0): the power never reduced", X.t_k_pow(10), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 #64: the numeral left, never erased", X.t_k_num(64), [], 5000n, 1, "0", 132))
+    IO.print(sweep_line("K 0 #64 swept: the numeral, cut off from the interface, freed", X.t_k_num(64), [], 5000n, 1, "0", 2))
     IO.print(case_line("#3 succ: a function, its body left", X.t_whnf(3), [], 5000n, 1, "none", 0))
     IO.print(case_line("8 2 succ 0 for 100 steps", X.t_pow(8, 2), [], 100n, 4, "none", 0))
     IO.print(agree_line("2 2 succ 0", X.t_pow(2, 2)))

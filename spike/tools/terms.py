@@ -608,13 +608,13 @@ def verdict(+tab: Bool, +same: Bool, +agree: Bool, +counts: Bool) -> String:
 
 def lazy_res(r: K.DRes) -> K.KRes:
   match r:
-    case K.DRes{k, +st, +lz, +live, +cap}:
+    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
       k
 
 # on demand: the state it ended in, the nodes it left
 def lazy_st(r: K.DRes) -> String:
   match r:
-    case K.DRes{k, +st, +lz, +live, +cap}:
+    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
       K.st_name(st) ++ ", " ++ U32.show(live) ++ " live"
 
 def lazy_more.s(more: Bool) -> String:

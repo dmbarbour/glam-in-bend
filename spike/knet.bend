@@ -6,6 +6,7 @@ import ./tpl.bend as T
 import ./nets.bend as X
 import ./kprim.bend as P
 import ./krules.bend as KR
+import ./kmem_grow.bend as KM
 
 # A net in the kernel's node layout (spike-node-layout in
 # docs/plans/EvalSpike_2026-10-26.md), over kprim.bend's primitives: how a
@@ -738,4 +739,181 @@ def audit(k: Nat, +i: U32, au: Au) -> Au:
       match au:
         case Au{h, +n}:
           audit(p, (i + 1 : U32), audit.hit(P.rd(h, (i << 2n : U32)), n))
+
+# Reachability (heap-strategies.cascade): the nodes a walk along links
+# reaches from the interface, each marked once in a bitmap, a word per 32
+# nodes, and kept on a worklist until its ports are followed. A live node
+# it does not reach is cut off from the interface: garbage no reduction
+# can make observable.
+type Rc is Type:
+  Rc{h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32}
+
+def rc.bit(+j: U32) -> U32:
+  (1 << U32.to_nat((j .&. 31 : U32)) : U32)
+
+def rc.push(new: Bool, h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32, +j: U32) -> Rc:
+  match new:
+    case True{}:
+      Rc{h, mk, KM.m_set(wl, n, j), (n + 1 : U32), (c + 1 : U32)}
+    case False{}:
+      Rc{h, mk, wl, n, c}
+
+def rc.mark(r: KM.M & U32, h: P.H, wl: KM.M, +n: U32, +c: U32, +j: U32) -> Rc:
+  (mk, +v) = r
+  rc.push(U32.is_eq((v .&. rc.bit(j) : U32), 0), h, KM.m_set(mk, (j >> 5n : U32), (v .|. rc.bit(j) : U32)), wl, n, c, j)
+
+def rc.see.go(ok: Bool, h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32, +j: U32) -> Rc:
+  match ok:
+    case True{}:
+      rc.mark(KM.m_get(mk, (j >> 5n : U32)), h, wl, n, c, j)
+    case False{}:
+      Rc{h, mk, wl, n, c}
+
+# the node behind reference p, marked and put on the worklist if new
+def rc.see(+p: U32, h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32) -> Rc:
+  rc.see.go(U32.is_ne(p, P.nil()), h, mk, wl, n, c, (p >> 2n : U32))
+
+def rc.port.r(r: P.H & U32, mk: KM.M, wl: KM.M, +n: U32, +c: U32) -> Rc:
+  (h, +q) = r
+  rc.see(q, h, mk, wl, n, c)
+
+def rc.port(s: Rc, +i: U32, +p: U32) -> Rc:
+  match s:
+    case Rc{h, mk, wl, +n, +c}:
+      rc.port.r(P.rd(h, (((i << 2n : U32) + 1 : U32) + p : U32)), mk, wl, n, c)
+
+def rc.ports(+a: U32, s: Rc, +i: U32) -> Rc:
+  match a:
+    case 1:
+      rc.port(s, i, 0)
+    case 2:
+      rc.port(rc.port(s, i, 0), i, 1)
+    case _:
+      rc.port(rc.port(rc.port(s, i, 0), i, 1), i, 2)
+
+def rc.node(r: P.H & U32, mk: KM.M, wl: KM.M, +n: U32, +c: U32, +i: U32) -> Rc:
+  (h, +hd) = r
+  rc.ports(KR.kind_arity(P.rk(hd)), Rc{h, mk, wl, n, c}, i)
+
+def rc.pop(r: KM.M & U32, h: P.H, mk: KM.M, +n: U32, +c: U32) -> Rc:
+  (wl, +j) = r
+  rc.node(P.rd(h, (j << 2n : U32)), mk, wl, n, c, j)
+
+def rc.go(k: Nat, s: Rc) -> Rc:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Rc{h, mk, wl, +n, +c}:
+          match n:
+            case 0:
+              Rc{h, mk, wl, 0, c}
+            case _:
+              rc.go(p, rc.pop(KM.m_get(wl, (n - 1 : U32)), h, mk, (n - 1 : U32), c))
+
+def rc.fin(s: Rc) -> P.H & U32:
+  match s:
+    case Rc{h, mk, wl, +n, +c}:
+      (h, c)
+
+def rc.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> P.H & U32:
+  (wl, +room) = r
+  rc.fin(rc.go(U32.to_nat((cap + 1 : U32)), rc.see(P.iface(), h, mk, wl, 0, 0)))
+
+def rc.ensure(r: KM.M & U32, +words: U32) -> KM.M & U32:
+  (m, +cap) = r
+  KM.m_ensure(m, words, cap, P.w_maxd())
+
+# a zeroed array of `words` words at least, and its size
+def rc.new(+words: U32) -> KM.M & U32:
+  rc.ensure(KM.m_new(6n, P.w_maxd()), words)
+
+def rc.mk(r: KM.M & U32, h: P.H, +cap: U32) -> P.H & U32:
+  (mk, +room) = r
+  rc.wl(rc.new((cap + 1 : U32)), h, mk, cap)
+
+def reach.st(r: P.H & P.HS) -> P.H & U32:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      rc.mk(rc.new(((cap >> 5n : U32) + 1 : U32)), h, cap)
+
+# the nodes reached from the interface along links, the interface's own
+# among them
+def reach(h: P.H) -> P.H & U32:
+  reach.st(P.stats(h))
+
+# Sweeping (heap-strategies.cascade): every live node the walk from the
+# interface does not reach freed, a data node's or a call's table entry
+# released with it. Nothing reached links to what is freed, so nothing
+# dangles; what is freed could never be observed.
+type Sw is Type:
+  Sw{h: P.H, mk: KM.M, +f: U32}
+
+def sw.pd(r: P.H & U32, +hd: U32) -> P.H:
+  (h, +w) = r
+  P.drop(h, P.form(hd), w)
+
+def sw.payload(+k: U32, h: P.H, +i: U32, +hd: U32) -> P.H:
+  match k:
+    case 5:
+      sw.pd(P.rd(h, ((i << 2n : U32) + 2 : U32)), hd)
+    case 9:
+      sw.pd(P.rd(h, ((i << 2n : U32) + 3 : U32)), hd)
+    case _:
+      h
+
+def sw.free(dead: Bool, h: P.H, mk: KM.M, +f: U32, +i: U32, +hd: U32) -> Sw:
+  match dead:
+    case True{}:
+      Sw{P.free(sw.payload(P.rk(hd), h, i, hd), (i << 2n : U32)), mk, (f + 1 : U32)}
+    case False{}:
+      Sw{h, mk, f}
+
+def sw.m(r: KM.M & U32, h: P.H, +f: U32, +i: U32, +hd: U32) -> Sw:
+  (mk, +v) = r
+  sw.free(U32.is_ne(hd, 0) && U32.is_eq((v .&. rc.bit(i) : U32), 0), h, mk, f, i, hd)
+
+def sw.hd(r: P.H & U32, mk: KM.M, +f: U32, +i: U32) -> Sw:
+  (h, +hd) = r
+  sw.m(KM.m_get(mk, (i >> 5n : U32)), h, f, i, hd)
+
+def sw.go(k: Nat, +i: U32, s: Sw) -> Sw:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sw{h, mk, +f}:
+          sw.go(p, (i + 1 : U32), sw.hd(P.rd(h, (i << 2n : U32)), mk, f, i))
+
+def sw.fin(s: Sw) -> P.H & U32:
+  match s:
+    case Sw{h, mk, +f}:
+      (h, f)
+
+def sw.start(s: Rc, +cap: U32) -> P.H & U32:
+  match s:
+    case Rc{h, mk, wl, +n, +c}:
+      sw.fin(sw.go(U32.to_nat((cap - P.first() : U32)), P.first(), Sw{h, mk, 0}))
+
+def sweep.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> P.H & U32:
+  (wl, +room) = r
+  sw.start(rc.go(U32.to_nat((cap + 1 : U32)), rc.see(P.iface(), h, mk, wl, 0, 0)), cap)
+
+def sweep.mk(r: KM.M & U32, h: P.H, +cap: U32) -> P.H & U32:
+  (mk, +room) = r
+  sweep.wl(rc.new((cap + 1 : U32)), h, mk, cap)
+
+def sweep.st(r: P.H & P.HS) -> P.H & U32:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      sweep.mk(rc.new(((cap >> 5n : U32) + 1 : U32)), h, cap)
+
+# every node the interface does not reach freed: the net, and the nodes
+# freed
+def sweep(h: P.H) -> P.H & U32:
+  sweep.st(P.stats(h))
 

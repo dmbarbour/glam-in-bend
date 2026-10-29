@@ -592,7 +592,30 @@ takes from it:
        reachability, marking from the interface along every link and
        freeing what is unmarked (releasing their table entries), would
        reclaim it without reducing it. Unobservable, as divergence is.
-       Open for the maintainer, garbage collection having been put off.
+     - `heap-strategies.cascade.nongrow` — built 2026-10-29 on branch
+       `heap-collect` (96ceaca), not merged: the maintainer's version,
+       collecting every pair that does not grow the net, and doubling
+       unless the collection made more interactions than half the
+       capacity. The pairs are the generator's `KR.collects`: never
+       stuck, no more nodes made than freed, no builtin applied, no data
+       copied, a need for a lazy value never touched. It frees more
+       (`costly-6` with unit brackets ends with 1,360 live nodes, not
+       2,399) and changes no capacity: no collection comes near half.
+     - `heap-strategies.cascade.reach` — built 2026-10-29: `KN.reach`
+       counts the nodes a walk along links reaches from the interface,
+       marking each in a bitmap, and `KN.sweep` frees every live node
+       it does not reach, releasing table entries; demand's result
+       reports the count, and `K.run_ds` sweeps after demand
+       (`test_demand.bend`: `K 0 #64` from 132 live nodes to 2). At
+       demand's end the interface reaches 2 nodes, itself and its value,
+       on every library case but the cycle: everything else left is cut
+       off (`costly-133` 45,290 nodes). Demand sweeping wherever its
+       free list is empty (branch `heap-collect`, dc983fa) changes no
+       capacity, doubling unless half or even a quarter was freed:
+       wherever the net fills, three quarters of it or more is still
+       reached. The garbage comes as a computation collapses at its
+       end, so the sweep's place is a finished net, before it is
+       frozen or kept (`heap-freeze`), not a running one.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs
