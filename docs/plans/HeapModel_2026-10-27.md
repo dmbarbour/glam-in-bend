@@ -454,9 +454,9 @@ takes from it:
          vicious circle with a node on it stays in the net, stuck, and
          demand reaching it reports a cycle: with `r` used, a copy shares
          it, and beta joins the copy's input to its own output
-         (`vicious-circle-formed`). The maintainer to confirm that the
-         loop with no node is to vanish rather than be reported, or
-         counted for diagnosis. Is it a sign of garbage (the maintainer,
+         (`vicious-circle-formed`). The loop with no node vanishes from
+         the net, no error, and diagnostics show it once they are built
+         (the maintainer, 2026-10-29). Is it a sign of garbage (the maintainer,
          2026-10-29)? The loop itself is: nothing touches it. The pair
          that forms it need not be: its ports not facing each other may
          lead to the root, as in `vicious-circle-live`, where the root is
@@ -624,24 +624,37 @@ takes from it:
        `test_demand.bend` and the library's `cycle-copy-lift` build one,
        and in `vicious-circle-formed` beta forms one. The walk follows
        principal ports, so the cycles it finds are exactly the vicious
-       circles it reaches.
-       - `heap-strategies.demand.cycle.early` — contingent on
-         `heap-strategies.demand` — a cycle found soon after the walk
-         repeats, not once the path is as long as the net, as the Rust
-         bootstrap did with a two-pointer cycle finder (the maintainer,
-         2026-10-29), and found once. Simpler than Brent's algorithm,
-         with the path in an array (the maintainer, 2026-10-29): just
-         before the array grows, the node being pushed compared with
-         every node on the path. Apart from a cycle the path's nodes are
-         distinct, and the walk, following principal ports, repeats for
-         good once it repeats at all; so the first growth after it
-         closes finds it, by twice the depth where it closes, and pushes
-         cost nothing more than the array's own test for room, where
-         the list now tests every push for a multiple of 128. The scan,
-         like the copy that grows the array, costs a constant per push,
-         amortized. Found once: the circle recorded among the net's
-         faults, so that later demands need not walk it again. Measured
-         against demand's cost now.
+       circles it reaches. The capacity test is replaced since
+       (`heap-strategies.demand.cycle.early`).
+     - `heap-strategies.demand.array` — built 2026-10-29 — the path in
+       an array of words (`kmem_grow.bend`), its capacity in word 0 and
+       the nodes from the interface on in words 1 to the depth, starting
+       at 64 words and doubling, for the list with a cell per push. A
+       push tests only whether the depth plus one is a power of two,
+       where alone the array can be full, and reads the capacity there.
+       Against 70f086f, four builds at k 18 (store runs 62, 63): demand
+       6.3% to 12.3% fewer instructions, the same interactions; the full
+       reduction the same within 600 instructions, -0.3% on `fma`
+       profile-guided.
+       - `heap-strategies.demand.cycle.early` — built 2026-10-29 — a
+         cycle found soon after the walk repeats, not once the path is
+         as long as the net, as the Rust bootstrap did with a two-pointer
+         cycle finder (the maintainer, 2026-10-29); simpler than Brent's
+         algorithm, with the path in an array (the maintainer,
+         2026-10-29): just before the array grows, the node being pushed
+         is compared with every node on the path. Apart from a cycle the
+         path's nodes are distinct, and the walk, following principal
+         ports, repeats for good once it repeats at all; so the first
+         growth after it closes finds it, by twice the depth where it
+         closes, and the scan costs a constant per push, amortized, as
+         the copy that grows the array does. The net's capacity is no
+         longer read. `test_demand.bend` adds a ring of 200 lifts through
+         a copy, a vicious circle of 201 nodes found at the third
+         growth, and a line of 300 lifts with no cycle, the path grown
+         three times; with the comparison always false, both cycle tests
+         run out of fuel. Not done: finding a circle once for later
+         demands, which a cell holding the failure would do
+         (`heap-cells`).
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

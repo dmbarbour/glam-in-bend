@@ -386,33 +386,38 @@ def pf_str(pf: Pf) -> String:
 # the walk; so does one needing another cell, an application or a strict
 # call meeting a table entry that is a handle, the need recorded.
 
-# the path below its last node, top, and its length; interactions; the
-# state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of fuel,
-# 5 a cycle; for a need, the handle and the data node holding it
+# the path below its last node, top, in an array, its capacity in word 0
+# and the nodes from the interface on in words 1 .. depth; interactions;
+# the state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of
+# fuel, 5 a cycle; for a need, the handle and the data node holding it
 type D is Type:
-  D{h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +st: U32, +lz: U32, +at: U32}
+  D{h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +lz: U32, +at: U32}
 
-def d.go(h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+def d.go(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   D{h, path, top, depth, n, 0, 0, 0}
 
-def d.stop(h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+def d.stop(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
   D{h, path, top, depth, n, st, 0, 0}
 
-def wk.pop(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
-  match path:
-    case Con{+p, rest}:
-      d.go(h, rest, p, (depth - 1 : U32), n)
-    case Nil{}:
-      d.go(h, Nil{}, P.iface(), 0, n)
+def wk.pop.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
+  (path, +p) = r
+  d.go(h, path, p, (depth - 1 : U32), n)
 
-def wk.past(gone: Bool, h: P.H, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D:
+def wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
+  match depth:
+    case 0:
+      d.go(h, path, P.iface(), 0, n)
+    case _:
+      wk.pop.r(KM.m_get(path, depth), h, depth, n)
+
+def wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
       wk.pop(h, path, depth, n)
     case False{}:
       d.go(h, path, p, depth, n)
 
-def wk.hp(r: P.H & U32, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D:
+def wk.hp(r: P.H & U32, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   (h, +hp) = r
   wk.past(U32.is_eq(hp, 0), h, path, p, depth, n)
 
@@ -422,21 +427,25 @@ def wk.hp(r: P.H & U32, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D
 # node (a lift facing the source keeps the one behind it, a control facing
 # consumers the one ahead); at its auxiliary ports a fusion keeps it, and
 # the node below it is not touched, its link made by no rule.
-def wk.back(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
-  match path:
-    case Con{+p, rest}:
-      wk.hp(P.rd(h, p), rest, p, (depth - 1 : U32), n)
-    case Nil{}:
-      d.go(h, Nil{}, P.iface(), 0, n)
+def wk.back.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
+  (path, +p) = r
+  wk.hp(P.rd(h, p), path, p, (depth - 1 : U32), n)
 
-def wk.hb.go(gone: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+def wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
+  match depth:
+    case 0:
+      d.go(h, path, P.iface(), 0, n)
+    case _:
+      wk.back.r(KM.m_get(path, depth), h, depth, n)
+
+def wk.hb.go(gone: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
       wk.back(h, path, depth, (n + 1 : U32))
     case False{}:
       d.stop(h, path, top, depth, n, 3)
 
-def wk.hb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+def wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +hb) = r
   wk.hb.go(U32.is_eq(hb, 0), h, path, top, depth, n)
 
@@ -446,7 +455,7 @@ def wk.hb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) ->
 # b's is freed (heap-strategies.reuse): b's slot is free after a rewrite
 # and held if stuck. The test itself is left to the rewrite, its only
 # caller.
-def wk.rw(+sb: U32, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def wk.rw(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
       wk.back(KN.go(h, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
@@ -455,7 +464,7 @@ def wk.rw(+sb: U32, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32
     case _:
       wk.hb(P.rd(KN.go(h, True{}, a, b, ha, hb), b), path, top, depth, n)
 
-def nd.lz(z: P.Lz, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:
     case P.Lz{h, +lazy, +k}:
       match lazy:
@@ -464,11 +473,11 @@ def nd.lz(z: P.Lz, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32
         case False{}:
           wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-def nd.pb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.pb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   (h, +pb) = r
   nd.lz(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
 
-def nd.go(chk: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match chk:
     case True{}:
       nd.pb(P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
@@ -479,86 +488,122 @@ def nd.go(chk: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U3
 def may_need(+ha: U32, +hb: U32) -> Bool:
   (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
-def wk.ori(neg: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
+def wk.ori(neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
   match neg:
     case True{}:
       nd.go(may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
     case False{}:
       nd.go(may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
 
-def wk.hy(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
+def wk.hy(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
   (h, +hy) = r
   wk.ori(KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
 
-def wk.hx(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.hx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hx) = r
   wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
 
 # the interface facing a principal port: a control's moves past it (the
 # root's rule keeps the interface), anything else is the value
-def wk.root.go(c: Bool, h: P.H, path: List<&2, U32>, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root.go(c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
       d.go(KN.interact(h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
       d.stop(h, path, 0, depth, n, 1)
 
-def wk.root(r: P.H & U32, path: List<&2, U32>, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root(r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
   wk.root.go(U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
 
-def wk.pair(root: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:
     case True{}:
       wk.root(P.rd(h, y), path, depth, n, y)
     case False{}:
       wk.hx(P.rd(h, top), path, top, depth, n, y)
 
-def wk.cyc(over: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
-  match over:
+# The path's nodes are distinct unless the walk has gone round a vicious
+# circle, principal ports each facing an auxiliary one, a deadlock that
+# never reduces; and once the walk repeats, it repeats for good, nothing
+# on the path changing. So just before the array grows, the node pushed
+# is compared with the path's (heap-strategies.demand.cycle.early): the
+# first growth after the walk closes a circle finds it, by twice the
+# depth where it closes. A push tests only whether the array may be full,
+# its words a power of two.
+
+type Sc is Type:
+  Sc{m: KM.M, +hit: Bool}
+
+def sc.step(r: KM.M & U32, +x: U32) -> Sc:
+  (m, +v) = r
+  Sc{m, U32.is_eq(v, x)}
+
+# whether x is in words i .. i + k - 1
+def sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sc{m, +hit}:
+          match hit:
+            case True{}:
+              Sc{m, True{}}
+            case False{}:
+              sc.run(p, sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
+
+def wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
+  match ok:
     case True{}:
-      d.stop(h, path, top, depth, n, 5)
+      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
     case False{}:
-      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
+      d.stop(P.h_err(h), path, top, depth, n, 3)
 
-def wk.cap(r: P.H & P.HS, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
-  (h, hs) = r
-  match hs:
-    case P.HS{+itrs, +errs, +cap}:
-      wk.cyc(U32.is_ge(depth, cap), h, path, top, depth, n, q)
+# the array doubled, or the net failed where it could not grow
+def wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  (path, +cap2) = r
+  wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
 
-def wk.pow2(p2: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+def wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match s:
+    case Sc{path, +hit}:
+      match hit:
+        case True{}:
+          d.stop(h, path, top, depth, n, 5)
+        case False{}:
+          wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
+
+def wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match full:
+    case True{}:
+      wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
+    case False{}:
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+
+def wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
+  (path, +cap) = r
+  wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
+
+# top pushed, the walk going on at x
+def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
   match p2:
     case True{}:
-      wk.cap(P.stats(h), path, top, depth, n, q)
+      wk.full(KM.m_get(path, 0), h, top, depth, n, x)
     case False{}:
-      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
-# A path of depth + 1 nodes, all distinct unless the walk has gone round a
-# cycle of principal ports each facing an auxiliary one, a deadlock that
-# never reduces: so a path as long as the net has nodes is one. The
-# capacity, a power of two, is in the cold record; it is read only where
-# the depth is a power of two from 128 on, so that a cycle is found once
-# the path is as long as the net. Each push tests only for a multiple of
-# 128, the rest left to those (a full test on every push cost demand 1.5%).
-def wk.deeper(chk: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
-  match chk:
-    case True{}:
-      wk.pow2(U32.is_eq((depth .&. (depth - 1 : U32) : U32), 0), h, path, top, depth, n, q)
-    case False{}:
-      d.go(h, Con{top, path}, P.base(q), (depth + 1 : U32), n)
-
-def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match nil pr:
     case True{} _:
       d.stop(h, path, top, depth, n, 3)
     case False{} True{}:
       wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
-      wk.deeper(U32.is_eq((depth .&. 127 : U32), 0) && U32.is_ne(depth, 0), h, path, top, depth, n, q)
+      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
 # what the path's last node's principal port faces
-def wk.q(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
+def wk.q(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +q) = r
   wk.q.go(U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
 
@@ -588,8 +633,12 @@ def demand(k: Nat, d: D) -> D:
             case _:
               D{h, path, top, depth, n, st, lz, at}
 
+def d.path(r: KM.M & U32) -> KM.M:
+  (m, +cap) = r
+  KM.m_set(m, 0, cap)
+
 def d.start(h: P.H) -> D:
-  d.go(h, Nil{}, P.iface(), 0, 0)
+  d.go(h, d.path(KM.m_new(6n, P.w_maxd())), P.iface(), 0, 0)
 
 def resume.put(r: P.H & P.PW, +at: U32) -> P.H:
   (h, pw) = r

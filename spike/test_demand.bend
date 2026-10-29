@@ -116,6 +116,37 @@ def succ() -> T.Tpl:
 def t_cycle() -> T.Tpl:
   T.Tpl{[X.cpl(1, 0), X.ctl(0, True{}, 1)], [X.l(0, 0, 1, 1), X.l(1, 0, 0, 2)], T.TE{0, 1}, 2}
 
+# k lifts
+def lifts(k: Nat) -> List<&2, T.TNode>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      X.ctl(0, True{}, 1) <> lifts(p)
+
+# each of k nodes from i on its principal port facing the next one's
+# output
+def lift_links(k: Nat, +i: U32) -> List<&2, T.TLink>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      X.l(i, 0, (i + 1 : U32), 1) <> lift_links(p, (i + 1 : U32))
+
+# n lifts in a ring through a copy: the copy's principal port facing the
+# first lift's output, each lift's the next one's, the last one's the
+# copy's first output, the second the root; a vicious circle of n + 1
+# nodes, which the walk closes only past the path's first growths
+def t_ring(+n: U32) -> T.Tpl:
+  T.Tpl{X.cpl(1, 0) <> lifts(U32.to_nat(n)),
+    X.l(0, 0, 1, 1) <> List.append(&2, T.TLink, lift_links(U32.to_nat((n - 1 : U32)), 1), [X.l(n, 0, 0, 1)]),
+    T.TE{0, 2}, (n + 1 : U32)}
+
+# n lifts in a line from the root to a 5: a path n deep with no cycle
+def t_line(+n: U32) -> T.Tpl:
+  T.Tpl{List.append(&2, T.TNode, lifts(U32.to_nat(n)), [X.num(5)]),
+    List.append(&2, T.TLink, lift_links(U32.to_nat((n - 1 : U32)), 0), [X.l((n - 1 : U32), 0, n, 0)]), T.TE{0, 1}, (n + 1 : U32)}
+
 def main() -> IO(Unit):
   do IO<Unit>:
     IO.print(case_line("succ L0, L0 = 41", X.t_ap(succ(), X.t_lazy(0)), [V.VNum{41}], 5000n, 1, "42", 2))
@@ -128,6 +159,8 @@ def main() -> IO(Unit):
     IO.print(case_line("0 1: stuck", X.t_ap(num(0), num(1)), [], 5000n, 3, "none", 0))
     IO.print(case_line("succ I: stuck", X.t_ap(succ(), t_i()), [], 5000n, 3, "none", 0))
     IO.print(case_line("a cycle of principal ports facing auxiliary ones: found, not walked", t_cycle(), [], 5000n, 5, "none", 0))
+    IO.print(case_line("a vicious circle of 201 nodes: found where the path grows past it", t_ring(200), [], 5000n, 5, "none", 0))
+    IO.print(case_line("300 lifts in a line: the path grown three times, no cycle", t_line(300), [], 5000n, 1, "5", 0))
     IO.print(case_line("K 0 omega: omega never reduced", X.t_k_omega(), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 (10 2 succ 0): the power never reduced", X.t_k_pow(10), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 #64: the numeral left, never erased", X.t_k_num(64), [], 5000n, 1, "0", 132))
