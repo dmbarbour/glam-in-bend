@@ -169,8 +169,8 @@ def spike_str(r: N.Q & Maybe<&2, V.Val>) -> String:
 
 def lazy_str(r: K.DRes) -> String:
   match r:
-    case K.DRes{k, +st, +lz, +live}:
-      res_str(k) ++ " " ++ K.st_name(st) ++ ", " ++ U32.show(live) ++ " live"
+    case K.DRes{k, +st, +lz, +live, +cap}:
+      res_str(k) ++ " " ++ K.st_name(st) ++ ", " ++ U32.show(live) ++ " live of " ++ U32.show(cap)
 
 # a case through every strategy
 def one(+k: U32) -> String:
@@ -221,7 +221,7 @@ def program(cs, out):
 
 
 RES = r"(\S+) \((\d+), (\d+)\)(!?)"
-LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live \| two {RES}"
+LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live of (\d+) \| two {RES}"
                   r" \| prof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs(.*)$")
 
 
@@ -231,11 +231,11 @@ class Run:
         self.ref = (g[4], int(g[5]), int(g[6]), g[7])
         self.fast = (g[8], int(g[9]), int(g[10]), g[11])
         self.lazy = (g[12], int(g[13]), int(g[14]), g[15])
-        self.state, self.live = g[16], int(g[17])
-        self.two = (g[18], int(g[19]), int(g[20]), g[21])
-        self.prof = (g[22], int(g[23]), int(g[24]))
-        self.logical = None if g[25].startswith("past") else int(g[25])
-        self.peels, self.wide = int(g[26]), int(g[27])
+        self.state, self.live, self.cap = g[16], int(g[17]), int(g[18])
+        self.two = (g[19], int(g[20]), int(g[21]), g[22])
+        self.prof = (g[23], int(g[24]), int(g[25]))
+        self.logical = None if g[26].startswith("past") else int(g[26])
+        self.peels, self.wide = int(g[27]), int(g[28])
 
 
 def check(c, r):
@@ -355,7 +355,8 @@ def main(argv):
             failing += 1
             print(f"FAIL {c.entry} {c.mode}: " + "; ".join(bad))
         else:
-            print(f"ok   {c.entry} {c.mode}: {r.fast[0]} in {r.fast[1]} interactions, demand {r.lazy[1]},"
+            print(f"ok   {c.entry} {c.mode}: {r.fast[0]} in {r.fast[1]} interactions, demand {r.lazy[1]}"
+                  f" ({r.live} live of {r.cap}),"
                   f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels")
     if update:
         with open(LIBRARY, "w") as f:

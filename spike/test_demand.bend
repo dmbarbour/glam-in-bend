@@ -37,7 +37,7 @@ type Out is Data:
 
 def out(r: K.DRes) -> Out:
   match r:
-    case K.DRes{k, +st, +lz, +live}:
+    case K.DRes{k, +st, +lz, +live, +cap}:
       match k:
         case K.KRes{v, +itrs, +errs, +ok}:
           Out{st, show_m(v), itrs, errs, live, ok}

@@ -577,6 +577,22 @@ takes from it:
      noted per rewrite; demand pays a test of the free list's head per
      rewrite. To measure: demand's peak capacity and live nodes on the
      library's costly entries, and its instructions.
+     - `heap-strategies.cascade.collect` — built 2026-10-29 on branch
+       `heap-collect` (7719115), not merged: as above, a collection that
+       erases less than a quarter of the capacity doubling the net too,
+       so the scans stay linear. Demand's result now reports the
+       capacity it grew to (merged). On the library it frees 2 to 27
+       nodes more on the costly entries and changes no capacity:
+       `costly-133` ends with 45,296 of 65,536 nodes live either way,
+       `costly-124` 2,273 of 8,192. Demand's garbage is not erasure
+       pairs but unevaluated work hanging off an eraser at its result,
+       an auxiliary port, which an eraser can take apart only by doing
+       the work. Such a subnet is joined to the rest only through its
+       eraser, so it is cut off from the interface: a collection by
+       reachability, marking from the interface along every link and
+       freeing what is unmarked (releasing their table entries), would
+       reclaim it without reducing it. Unobservable, as divergence is.
+       Open for the maintainer, garbage collection having been put off.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

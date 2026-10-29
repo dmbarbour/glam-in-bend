@@ -130,14 +130,20 @@ def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
               KS.D{h, path, top, depth, n, st, lz, at}
 
 # a demand's end: the result as reduce_h's, its state, the handle needed,
-# the nodes left
+# the nodes left, how many nodes the net grew to hold
 type DRes is Data:
-  DRes{r: KRes, +st: U32, +lz: U32, +live: U32}
+  DRes{r: KRes, +st: U32, +lz: U32, +live: U32, +cap: U32}
+
+def dres.cap(r: P.H & P.HS, +st: U32, +lz: U32, +n: U32) -> DRes:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      DRes{kres(KN.result(h)), st, lz, n, cap}
 
 def dres.au(au: KN.Au, +st: U32, +lz: U32) -> DRes:
   match au:
     case KN.Au{h, +n}:
-      DRes{kres(KN.result(h)), st, lz, n}
+      dres.cap(P.stats(h), st, lz, n)
 
 def dres.h(h: P.H, +st: U32, +lz: U32) -> DRes:
   dres.au(live_nodes.st(P.stats(h)), st, lz)
@@ -174,8 +180,8 @@ def kres_str(r: KRes) -> String:
 
 def dres_str(r: DRes) -> String:
   match r:
-    case DRes{k, +st, +lz, +live}:
-      st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ kres_str(k) ++ ", " ++ U32.show(live) ++ " nodes live"
+    case DRes{k, +st, +lz, +live, +cap}:
+      st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ kres_str(k) ++ ", " ++ U32.show(live) ++ " nodes live of " ++ U32.show(cap)
 
 # Workloads
 # =========
