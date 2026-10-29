@@ -36,16 +36,8 @@ else
 fi
 
 echo "== generated code"
-# code generated from a Bend source must match what its generator writes
-# now: spike/krules.bend, from the rule table (spike-node-layout)
-if [ -f spike/tools/gen_krules.bend ]; then
-  if (cd spike && "$BEND" tools/gen_krules.bend | cmp -s - krules.bend); then
-    echo "spike/krules.bend: matches its generator"
-  else
-    echo "spike/krules.bend differs from what spike/tools/gen_krules.bend writes: regenerate it"
-    status=1
-  fi
-fi
+# every generated file matches its generator (generated-sources)
+BEND=$BEND scripts/check_generated.sh || status=1
 
 echo "== library"
 # every net of spike/library.txt through every strategy, its checks

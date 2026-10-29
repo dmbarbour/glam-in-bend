@@ -48,6 +48,9 @@ IO shell.
   bootstrap is reference, not specification.
 - [`pure-core-io-shell`](decisions/pure-core-io-shell.md): a pure core
   answering results or requests, behind a thin IO shell.
+- [`generated-sources`](decisions/generated-sources.md): code needed in
+  several variants is generated into files of its own, by Bend programs,
+  and checked current; no macro processor, no script editing sources.
 
 ## Language
 

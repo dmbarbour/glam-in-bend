@@ -4,7 +4,7 @@
 # profile tools of its version for profile-guided builds
 # (spike/tools/inline_build.sh); `perf` for instruction counts
 # (scripts/count.sh); Node, to run Bend's JavaScript output; GCC 16, built
-# from source (scripts/gcc-setup.sh); the commit-msg hook.
+# from source (scripts/gcc-setup.sh); the commit hooks.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu

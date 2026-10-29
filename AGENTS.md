@@ -35,7 +35,7 @@ Contingent:
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
 links `clang`, installs `perf`, the LLVM profile tools and Node, builds
 GCC 16 from source (the first time, a quarter of an hour or more), and
-enables the commit-msg hook; run it once per container.
+enables the commit hooks; run it once per container.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
 kernel instead of polling; run it at each container start.
 
@@ -79,6 +79,11 @@ Lessons carried over from the Rust bootstrap:
   exercise.
 - Run the full gate every time. A check once run only periodically let a
   regression go unnoticed for weeks.
+- Code needed in several variants is generated, by a Bend program where
+  possible, into files of its own that nobody edits; list each in
+  `scripts/check_generated.sh`, which the gate and the pre-commit hook run.
+  Python is a development tool, never the source; no macro processors, no
+  scripts that rewrite sources (`generated-sources`).
 
 ## Measuring
 
@@ -119,7 +124,8 @@ must hold. Add an entry for each fault or costly case found, shrunk first;
 random corpora are for finding them, not the main test.
 
 The commit-msg hook in `.githooks/` checks `Plan-Step:` and `Law:` trailers
-before a commit is recorded. Enable it once per clone with
+before a commit is recorded, and the pre-commit hook that every generated
+file matches its generator. Enable it once per clone with
 `git config core.hooksPath .githooks`.
 
 ## Laws
