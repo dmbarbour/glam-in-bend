@@ -9,6 +9,7 @@ import ./ctl.bend as CT
 import ./kprim.bend as P
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
+import ./vendor/u32laws.bend as UD
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -1206,3 +1207,179 @@ def Laws.lift_raise(n, b, j, h):
   %gt_is_above(U32.to_nat(j), U32.to_nat(n)) : {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise.go(_, U32.to_nat(j), U32.to_nat(b)) : Nat}
   %MU.u32_is_gt_to_nat(j, n) : {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise.go(_, U32.to_nat(j), U32.to_nat(b)) : Nat}
   raise_g(U32.is_gt(j, n), b, j, h)
+
+# Field bounds
+# ============
+#
+# The checker compares two Nats that differ in form by expanding both in
+# unary, and overflows its stack at 2^16 (docs/BendIssues.md, "Reasoning
+# about U32 in proofs"). So a closed power such as Nat.pow(2n, 24n) only
+# ever meets itself: each lemma reasons under a variable bound, and is
+# instantiated with the power where the forms match exactly.
+
+# a below x * (1 + b) leaves a / (1 + b) below x
+def div_lt(+a: Nat, +x: Nat, +b: Nat, h: MNat.lt(a, Nat.mul(x, 1n+b))) -> MNat.lt(Nat.div(a, 1n+b), x):
+  MNat.lt_of_not_le(x, Nat.div(a, 1n+b),
+    Equal.trans(Bool, Nat.is_le(x, Nat.div(a, 1n+b)), Nat.is_le(Nat.mul(x, 1n+b), a), False{},
+      MNat.le_div_iff_mul_le(x, a, b),
+      MNat.not_le_of_lt(a, Nat.mul(x, 1n+b), h)))
+
+def pow_8() -> {Nat.pow(2n, 8n) == 256n : Nat}:
+  {==}
+
+def sum_32() -> {32n == Nat.add(24n, 8n) : Nat}:
+  {==}
+
+# a U32 lies below 2^24 * 256
+def lt_32(+h: U32) -> MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 24n), 256n)):
+  %pow_8() : MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 24n), _))
+  %MNat.pow_add(2n, 24n, 8n) : MNat.lt(U32.to_nat(h), _)
+  %sum_32() : MNat.lt(U32.to_nat(h), Nat.pow(2n, _))
+  MU.u32_to_nat_lt(h)
+
+def fld_bits.go(+h: U32, +x: Nat, l: MNat.lt(Nat.div(U32.to_nat(h), 1n+255n), x)) -> MNat.lt(U32.to_nat(P.fld(h)), x):
+  %Equal.sym(Nat, U32.to_nat(U32.div(h, 256)), Nat.div(U32.to_nat(h), 1n+255n), UD.U32.to_nat_div(h, 256)) : MNat.lt(_, x)
+  l
+
+def Laws.fld_bits(h):
+  fld_bits.go(h, Nat.pow(2n, 24n), div_lt(U32.to_nat(h), Nat.pow(2n, 24n), 255n, lt_32(h)))
+
+# the w-bit word with one bit set, at n
+def one_at(w: Nat, n: Nat) -> Word(w):
+  match w:
+    case 0n:
+      WNil{}
+    case 1n+q:
+      match n:
+        case 0n:
+          WCon{True{}, Word.zero(q)}
+        case 1n+p:
+          WCon{False{}, one_at(q, p)}
+
+def one_at_nat(+w: Nat, +n: Nat, h: MNat.lt(n, w)) -> {Word.to_nat(w, one_at(w, n)) == Nat.pow(2n, n) : Nat}:
+  match w n:
+    case 0n 0n:
+      Empty.absurd({Word.to_nat(0n, one_at(0n, 0n)) == Nat.pow(2n, 0n) : Nat}, MNat.internal_false_ne_true(h))
+    case 0n 1n+p:
+      Empty.absurd({Word.to_nat(0n, one_at(0n, 1n+p)) == Nat.pow(2n, 1n+p) : Nat}, MNat.internal_false_ne_true(h))
+    case 1n++q 0n:
+      %Equal.sym(Nat, Word.to_nat(q, Word.zero(q)), 0n, MU.word_to_nat_zero(q)) : {1n+Nat.double(_) == 1n : Nat}
+      {==}
+    case 1n++q 1n++p:
+      %MNat.two_pow_succ_sym(p) : {Nat.double(Word.to_nat(q, one_at(q, p))) == _ : Nat}
+      %one_at_nat(q, p, h) : {Nat.double(Word.to_nat(q, one_at(q, p))) == Nat.double(_) : Nat}
+      {==}
+
+def one_31() -> {one_at(32n, 31n) == UD.U32.word(2147483648) : Word(32n)}:
+  {==}
+
+def one_24() -> {one_at(32n, 24n) == UD.U32.word(P.lvl_cap()) : Word(32n)}:
+  {==}
+
+def u32_31() -> {U32.to_nat(2147483648) == Nat.pow(2n, 31n) : Nat}:
+  %UD.U32.word_nat(2147483648) : {_ == Nat.pow(2n, 31n) : Nat}
+  %one_31() : {Word.to_nat(32n, _) == Nat.pow(2n, 31n) : Nat}
+  one_at_nat(32n, 31n, {==})
+
+def u32_24() -> {U32.to_nat(P.lvl_cap()) == Nat.pow(2n, 24n) : Nat}:
+  %UD.U32.word_nat(P.lvl_cap()) : {_ == Nat.pow(2n, 24n) : Nat}
+  %one_24() : {Word.to_nat(32n, _) == Nat.pow(2n, 24n) : Nat}
+  one_at_nat(32n, 24n, {==})
+
+# zero is not below zero
+def lt0(+x: Nat, e: {x == 0n : Nat}, pos: MNat.lt(0n, x)) -> MNat.lt(0n, 0n):
+  %e : MNat.lt(0n, _)
+  pos
+
+def mod_lt.fin(+a: Word(32n), +b: U32, qr: Word(32n) & U32, v: UD.U32.DivSpec(32n, a, b, qr)) ->
+  MNat.lt(U32.to_nat(U32.mod.fin(qr)), U32.to_nat(b)):
+  (+q, +r) = qr
+  (e, hr) = v
+  hr
+
+def mod_lt.if(z: Bool, +a: U32, +b: U32, e: {U32.is_zero(b) == z : Bool}, pos: MNat.lt(0n, U32.to_nat(b))) ->
+  MNat.lt(U32.to_nat(U32.mod.if(UD.U32.word(a), b, z)), U32.to_nat(b)):
+  match z:
+    case True{}:
+      +zero = MNat.eq_of_is_eq(U32.to_nat(b), 0n,
+        Equal.trans(Bool, Nat.is_eq(U32.to_nat(b), 0n), U32.is_zero(b), True{},
+          Equal.sym(Bool, U32.is_zero(b), Nat.is_eq(U32.to_nat(b), 0n), UD.U32.zero_nat(b)), e))
+      Empty.absurd(MNat.lt(U32.to_nat(U32.mod.if(UD.U32.word(a), b, True{})), U32.to_nat(b)),
+        MNat.internal_false_ne_true(lt0(U32.to_nat(b), zero, pos)))
+    case False{}:
+      +pos = pos
+      mod_lt.fin(UD.U32.word(a), b, U32.divmod.go(32n, UD.U32.word(a), b),
+        UD.U32.divmod_spec(32n, UD.U32.word(a), b, MNat.le_refl(32n), pos))
+
+def mod_word(a: U32, b: U32) -> {U32.mod.if(UD.U32.word(a), b, U32.is_zero(b)) == U32.mod(a, b) : U32}:
+  match a b:
+    case U32{x} U32{y}:
+      {==}
+
+# a U32 remainder lies below a positive divisor
+def mod_lt(+a: U32, +b: U32, pos: MNat.lt(0n, U32.to_nat(b))) -> MNat.lt(U32.to_nat(U32.mod(a, b)), U32.to_nat(b)):
+  %mod_word(a, b) : MNat.lt(U32.to_nat(_), U32.to_nat(b))
+  mod_lt.if(U32.is_zero(b), a, b, {==}, pos)
+
+def off_by_mod(+o: U32) -> {U32.mod(o, 2147483648) == P.off_by(o) : U32}:
+  {==}
+
+def pos_31() -> MNat.lt(0n, U32.to_nat(2147483648)):
+  {==}
+
+def off_by_bits.go(+o: U32, +x: Nat, eb: {U32.to_nat(2147483648) == x : Nat}) -> MNat.lt(U32.to_nat(P.off_by(o)), x):
+  %eb : MNat.lt(U32.to_nat(P.off_by(o)), _)
+  %off_by_mod(o) : MNat.lt(U32.to_nat(_), U32.to_nat(2147483648))
+  mod_lt(o, 2147483648, pos_31())
+
+def Laws.off_by_bits(o):
+  off_by_bits.go(o, Nat.pow(2n, 31n), u32_31())
+
+# a below x and b below y, x no more than y, sum below y + y
+def sum_lt(+a: Nat, +b: Nat, +x: Nat, +y: Nat, ha: MNat.lt(a, x), hb: MNat.lt(b, y), xy: MNat.le(x, y)) ->
+  MNat.lt(Nat.add(a, b), Nat.add(y, y)):
+  MNat.lt_of_lt_of_le(Nat.add(a, b), Nat.add(x, y), Nat.add(y, y), MNat.add_lt_add(a, b, x, y, ha, hb),
+    MNat.add_le_add(x, y, y, y, xy, MNat.le_refl(y)))
+
+# a 24-bit level and a 31-bit amount sum within a U32
+def fits_32(+a: Nat, +b: Nat, ha: MNat.lt(a, Nat.pow(2n, 24n)), hb: MNat.lt(b, Nat.pow(2n, 31n))) ->
+  MNat.lt(Nat.add(a, b), Nat.pow(2n, 32n)):
+  %MNat.two_pow_succ_sym(31n) : MNat.lt(Nat.add(a, b), _)
+  %MNat.double_eq_add_sym(Nat.pow(2n, 31n)) : MNat.lt(Nat.add(a, b), _)
+  sum_lt(a, b, Nat.pow(2n, 24n), Nat.pow(2n, 31n), ha, hb, MNat.pow_le_pow_right(1n, 24n, 31n, {==}))
+
+# off_up(o) rewritten to True, then lift_raise with its fit discharged
+def Laws.lift_decoded(n, o, h, up):
+  %Equal.sym(Bool, P.off_up(o), True{}, up) : {U32.to_nat(P.lift.go(U32.is_gt(P.fld(h), n), _, P.off_by(o), P.fld(h))) == CT.raise(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(P.fld(h))) : Nat}
+  Laws.lift_raise(n, P.off_by(o), P.fld(h),
+    fits_32(U32.to_nat(P.fld(h)), U32.to_nat(P.off_by(o)), Laws.fld_bits(h), Laws.off_by_bits(o)))
+
+# over the guards as variables: a level not above n is unchanged; one
+# above, raised, is below the cap, which lift_wraps compares in U32
+def lift_fits.go(above: Bool, u: Bool, +b: U32, +j: U32, +cap: U32, +x: Nat,
+  eu: {u == True{} : Bool},
+  ok: {(u && above && U32.is_ge((j + b : U32), cap)) == False{} : Bool},
+  hj: MNat.lt(U32.to_nat(j), x),
+  ecap: {U32.to_nat(cap) == x : Nat}) -> MNat.lt(U32.to_nat(P.lift.go(above, u, b, j)), x):
+  match above:
+    case False{}:
+      hj
+    case True{}:
+      match u:
+        case False{}:
+          Empty.absurd(MNat.lt(U32.to_nat(P.lift.go(True{}, False{}, b, j)), x), MNat.internal_false_ne_true(eu))
+        case True{}:
+          %ecap : MNat.lt(U32.to_nat((j + b : U32)), _)
+          MNat.lt_of_not_le(U32.to_nat(cap), U32.to_nat((j + b : U32)),
+            Equal.trans(Bool, Nat.is_le(U32.to_nat(cap), U32.to_nat((j + b : U32))), Nat.is_ge(U32.to_nat((j + b : U32)), U32.to_nat(cap)), False{},
+              MNat.is_ge_eq_is_le_sym(U32.to_nat((j + b : U32)), U32.to_nat(cap)),
+              Equal.trans(Bool, Nat.is_ge(U32.to_nat((j + b : U32)), U32.to_nat(cap)), U32.is_ge((j + b : U32), cap), False{},
+                MU.u32_is_ge_to_nat_sym((j + b : U32), cap), ok)))
+
+def lift_fits.at(+n: U32, +o: U32, +j: U32, +x: Nat, up: {P.off_up(o) == True{} : Bool},
+  ok: {P.lift_wraps(n, o, j) == False{} : Bool}, hj: MNat.lt(U32.to_nat(j), x),
+  ecap: {U32.to_nat(P.lvl_cap()) == x : Nat}) -> MNat.lt(U32.to_nat(P.lift(n, o, j)), x):
+  lift_fits.go(U32.is_gt(j, n), P.off_up(o), P.off_by(o), j, P.lvl_cap(), x, up, ok, hj, ecap)
+
+def Laws.lift_fits(n, o, h, up, ok):
+  lift_fits.at(n, o, P.fld(h), Nat.pow(2n, 24n), up, ok, Laws.fld_bits(h), u32_24())
