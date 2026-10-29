@@ -49,10 +49,11 @@ of 2026-10-26, Bend 2.0.39.
   in `docs/plans/EvalSpike_2026-10-26.md`; variant B of
   `spike/tools/rewrites/`); rewrites written by hand ran 1.6 times faster.
   A plain constant does fold: a `Bool` from another file guarding a check
-  costs nothing when false (`bench/bend/const_flag/`), clang inlining
-  through it, so a generated file reporting a build's mode can switch
-  audits off; whether it still folds deep in the kernel, where clang's
-  inlining is less certain, wants checking where it is used.
+  costs nothing when false (`bench/bend/const_flag/`), the guard gone
+  from the disassembled hot loop, even with the guarded function shared
+  by two call sites: a generated file reporting a build's mode can switch
+  audits off. The kernel's larger functions should be checked where a
+  guard is used.
 - **Workaround:** a generator, itself a Bend program reading the table,
   writes the rewrites out; the gate regenerates them and fails on any
   difference, and the test corpora run through both the table and the
@@ -65,7 +66,10 @@ of 2026-10-26, Bend 2.0.39.
   capacities, offsets, the stack's bound, the data table's links).
   Proved as laws, they would replace run-time audits and checks; the
   maintainer judges many could go (2026-10-29).
-- **Upstream:** none known; a suggestion to raise later.
+- **Upstream:** #1850 (open), laws relating `U32` to `Nat` so that proofs
+  can move into `Nat` arithmetic and back: 41 proven in another project
+  (order, subtraction without underflow, conversions, shifts, division),
+  the issue asking whether they belong in Base or a hub package.
 - **Evidence:** `U32` is defined over `Word` bits, so its operations do not
   reduce on symbolic values: a `case _` after `U32` literal cases leaves
   the value symbolic, and a function matching on it never reduces in a
@@ -75,7 +79,9 @@ of 2026-10-26, Bend 2.0.39.
   the free list, `KN.free_ok`).
 - **Workaround:** small counts encoded as constructors; `U32` tests routed
   through a `Bool` helper whose lemma is proved over the `Bool`; models in
-  `Nat` with laws, the kernel tested against them; audits in tests.
+  `Nat` with laws, the kernel tested against them; audits in tests. The
+  laws #1850 offers would let the kernel's own `U32` code be proved
+  against those models.
 - **Revisit:** before the kernel leaves the spike.
 
 ### Run-time code generation

@@ -6,8 +6,9 @@ import ./flag.bend as F
 # (mode 0) or with no check at all (mode 1); both pay the same branch on
 # the mode. With the flag False, mode 0 costing what mode 1 costs means
 # Bend and clang folded the guard; with it True, the audit's cost shows.
-# Count instructions at n, 2n and 4n (scripts/count.sh): the slope is the
-# cost of a step.
+# Modes 2 and 3 do the same from two call sites picked by i's parity, the
+# guarded function shared in the hot path. Count instructions at n, 2n and
+# 4n (scripts/count.sh): the slope is the cost of a step.
 #
 #   const_flag <mode> <n>
 
@@ -34,12 +35,33 @@ def step.go(dbg: Bool, +acc: U32, +i: U32) -> U32:
 def checked(+acc: U32, +i: U32) -> U32:
   step.go(F.debug_mode(), acc, i)
 
+# the guarded step from two call sites, picked by i's parity, which no
+# compiler can hoist out of the loop (mode 2); the same shape unguarded
+# (mode 3)
+def shared.go(odd: Bool, +acc: U32, +i: U32) -> U32:
+  match odd:
+    case True{}:
+      checked(acc, i)
+    case False{}:
+      plain(checked(acc, i), 1)
+
+def unshared.go(odd: Bool, +acc: U32, +i: U32) -> U32:
+  match odd:
+    case True{}:
+      plain(acc, i)
+    case False{}:
+      plain(plain(acc, i), 1)
+
 def one(+mode: U32, +acc: U32, +i: U32) -> U32:
   match mode:
     case 0:
       checked(acc, i)
-    case _:
+    case 1:
       plain(acc, i)
+    case 2:
+      shared.go(U32.is_eq((i .&. 1 : U32), 1), acc, i)
+    case _:
+      unshared.go(U32.is_eq((i .&. 1 : U32), 1), acc, i)
 
 def loop(n: Nat, +mode: U32, +acc: U32, +i: U32) -> U32:
   match n:
