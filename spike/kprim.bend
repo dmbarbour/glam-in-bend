@@ -424,8 +424,13 @@ def rk(+h: U32) -> U32:
 def form(+h: U32) -> U32:
   ((h >> 4n : U32) .&. 15 : U32)
 
+# the field, offsets' up flag and amount decode by division, remainder
+# and comparison, which have laws relating U32 to Nat (LAWS.bend's
+# fld_bits, off_by_bits), where shifts and masks have none, and cost the
+# same instructions (docs/BendIssues.md, "Reasoning about U32 in
+# proofs")
 def fld(+h: U32) -> U32:
-  (h >> 8n : U32)
+  (h / 256 : U32)
 
 # fans pair, and an application meets its function, when level and
 # marker agree (a net without levels: equal sites)
@@ -433,10 +438,10 @@ def same_lvl(+ha: U32, +hb: U32) -> Bool:
   U32.is_eq((ha >> 4n : U32), (hb >> 4n : U32))
 
 def off_up(+o: U32) -> Bool:
-  U32.is_ne((o .&. 2147483648 : U32), 0)
+  U32.is_ge(o, 2147483648)
 
 def off_by(+o: U32) -> U32:
-  (o .&. 2147483647 : U32)
+  (o % 2147483648 : U32)
 
 def lift.go(+above: Bool, +up: Bool, +by: U32, +j: U32) -> U32:
   match above up:

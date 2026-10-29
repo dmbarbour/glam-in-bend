@@ -85,10 +85,37 @@ of 2026-10-26, Bend 2.0.39.
   increment against `Nat`, exact or wrapping; with it the spike proves
   the kernel's own `U32` raise equal to its `Nat` model (law
   `lift_raise`, 2026-10-29), Bend caching the package under
-  `~/.bend/lib` by its hash. Not yet covered: `.&.`, `.|.` and shifts, by
-  which the kernel decodes its headers and offsets, so where a `U32` came
-  from (a 24-bit field, a 31-bit offset) stays a hypothesis.
+  `~/.bend/lib` by its hash. Neither covers `.&.`, `.|.` or shifts, so
+  the kernel decodes a header's field and an offset's amount by division
+  and remainder instead, at no cost in instructions (store runs 58 and
+  59: each of 20 counts, 3 to 13 x 10^8, within 37 of the shifts' and
+  masks'), and the file #1850 points to, vendored as
+  `spike/vendor/u32laws.bend` (MIT), proves `U32` division against `Nat`.
+  With both, the laws bound a decoded field to 24 bits and an amount to
+  31 (`fld_bits`, `off_by_bits`), so the kernel's raise of a decoded
+  level is the model's without hypothesis (`lift_decoded`) and fits its
+  field whenever the kernel's check passes it (`lift_fits`). The encoders
+  still shift and mask, without laws.
 - **Revisit:** before the kernel leaves the spike.
+
+### Big constants in proofs
+
+- **Need:** bounds such as 2^24 and 2^32 in the kernel's laws.
+- **Upstream:** [#957](https://github.com/bendlang/bend/issues/957),
+  open: the checker keeps a `Nat` unary, so a closed term over a big
+  literal recurses once per successor; a fix waits on a rule BendTT's
+  kernel lacks (#1291, closed as its duplicate). PR
+  [#1832](https://github.com/bendlang/bend/pull/1832), open, would make
+  a copy of one closed call met past an unfold compare as itself.
+- **Evidence:** the checker's stack overflows at `{Nat.pow(2n, 16n) ==
+  65536n : Nat}`, though 2^14 checks; `Nat.pow(2n, Nat.add(24n, 8n))`
+  against `Nat.pow(2n, 32n)` overflows, and so does a field bound whose
+  forms differ only in a `U32` call under `MNat.lt(_, Nat.pow(2n, 24n))`.
+- **Workaround:** the one #1291 suggests: each lemma reasons under a
+  variable bound and is applied at the power where both forms match
+  exactly; a `U32` literal's value comes from its bits, as a word with one
+  bit set (`spike/PROOF.bend`, "Field bounds").
+- **Revisit:** when #957 or #1832 lands.
 
 ### Run-time code generation
 

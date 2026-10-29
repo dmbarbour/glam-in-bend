@@ -133,7 +133,7 @@ law peel_pairs_units:
 # is CT.raise of their Nat values, whenever j + b fits a U32. The kernel's
 # own U32 arithmetic proved against the model, through bend-mathlib's laws
 # relating U32 to Nat (docs/BendIssues.md, "Reasoning about U32 in
-# proofs"); the bit fields that decode n, b and j have no laws yet.
+# proofs"); lift_decoded below discharges the fit for decoded fields.
 # Record: fuse-control-runs
 law lift_raise:
   for +n: U32
@@ -141,3 +141,39 @@ law lift_raise:
   for +j: U32
   for h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))
   {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise(U32.to_nat(n), U32.to_nat(b), U32.to_nat(j)) : Nat}
+
+# LAW: a level decoded from a header has 24 bits: kprim.bend's fld, a U32
+# division by 2^8, read as a Nat, lies below 2^24.
+# Record: net-nodes-double
+law fld_bits:
+  for +h: U32
+  MNat.lt(U32.to_nat(P.fld(h)), Nat.pow(2n, 24n))
+
+# LAW: an offset's amount has 31 bits: kprim.bend's off_by, a U32
+# remainder by 2^31, read as a Nat, lies below 2^31.
+# Record: net-nodes-double
+law off_by_bits:
+  for +o: U32
+  MNat.lt(U32.to_nat(P.off_by(o)), Nat.pow(2n, 31n))
+
+# LAW: the kernel raises a decoded level as the model does: lift_raise
+# without its hypothesis, a 24-bit level and a 31-bit amount summing
+# within a U32.
+# Record: fuse-control-runs
+law lift_decoded:
+  for +n: U32
+  for +o: U32
+  for +h: U32
+  for up: {P.off_up(o) == True{} : Bool}
+  {U32.to_nat(P.lift(n, o, P.fld(h))) == CT.raise(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(P.fld(h))) : Nat}
+
+# LAW: the kernel's level check suffices: a raise of a decoded level that
+# lift_wraps passes has 24 bits, so it fits the field it is written to.
+# Record: fuse-control-runs
+law lift_fits:
+  for +n: U32
+  for +o: U32
+  for +h: U32
+  for up: {P.off_up(o) == True{} : Bool}
+  for ok: {P.lift_wraps(n, o, P.fld(h)) == False{} : Bool}
+  MNat.lt(U32.to_nat(P.lift(n, o, P.fld(h))), Nat.pow(2n, 24n))
