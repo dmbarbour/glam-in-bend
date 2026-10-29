@@ -327,6 +327,18 @@ derivation made here first.
      demand does a sixth of the full reduction's work on
      `search-first` and leaves the rest as garbage. 24 entries, 56
      cases.
+   - `pairing-library.circles` — built 2026-10-29 — nets checked for
+     vicious circles beside polarity (the maintainer, 2026-10-29): a
+     closed principal path, each cell's principal port linked to an
+     auxiliary port of the next (Lafont, Interaction Combinators, 1997,
+     §1.6), never reduced, so demand meeting one finds a cycle.
+     `polarity.py`'s `vicious` finds them; it fails a lowered net with
+     one, and `library.py` a case with one unless the entry expects a
+     cycle, or one expecting a cycle without one. None in the corpus's
+     1,620 lowered nets; among the library's 58 cases, one, in
+     `cycle-copy-lift`, the entry built to have it. A vicious circle of
+     length zero, a cyclic wire, has no ports, so a built net cannot hold
+     one; rewriting makes them (`heap-strategies.net.wiring.circles`).
 10. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
@@ -369,6 +381,32 @@ derivation made here first.
      negative exposed port, as `spike/tools/polarity.py` checks the
      lowered ones; rules keep it (`rules_polarized`), and fusion and
      peeling link positive to negative by construction, with no law yet.
+     A vicious circle refused too, as `pairing-library.circles` checks.
+   - `pairing-nets.switching` — dropped 2026-10-29 — a structural
+     condition that every rule keeps and that no net with a vicious
+     circle meets, so that circles never form at run time (the
+     maintainer, 2026-10-29). Tried: Danos and Regnier's switching
+     acyclicity, each three-port kind called tensor or par, a rule
+     keeping it when every cycle its new nodes could close under some
+     switching, however the rest of the net joins the pair's outer ends,
+     the pair closed too. A vicious circle is a cycle under the switching
+     keeping each cell's port on the path, so a net acyclic under every
+     switching has none. No assignment of the 16 is kept by every rule
+     (`spike/tools/switching.py` over `spike/tools/rules_dump.bend`'s
+     table): the fan commutations, which duplicate, break each one. The
+     most natural, functions and copies par, applications and merges
+     tensor, fails only where a copy meets a function, as in
+     `(\f -> f f) (\x -> g x)`, both copies used together and the body
+     using its variable: one new function's result and the other's
+     argument close a cycle, through the copy of the body and the merge
+     of the arguments, where the one function, par, kept one of the two.
+     So linear logic's need for
+     boxes where it duplicates: a condition that holds through
+     duplication sees levels or paths, as Guerrini's properness does
+     (`pairing-lean`), and whether properness rules out vicious circles
+     is a question for that study. Meanwhile a vicious circle of length
+     zero vanishes as it forms (`heap-strategies.net.wiring.circles`),
+     and demand reports a longer one as a cycle.
 11. `pairing-lean` — after that testing, a time-boxed study in Lean 4.
    Formalize polarized nets and their rules, prove polarity preservation
    as a warm-up, then state the adaptation's correctness as Guerrini's

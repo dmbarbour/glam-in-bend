@@ -39,10 +39,12 @@ What must hold is one of
   wrong    a mode known to miss the value (labels on some
            self-applications), which must still miss it.
 Checked besides, for every case: no errors, the data table, the free
-list (KN.free_ok) and the wiring (KN.wired_ok) in step,
+list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
+polarized and with a vicious circle (a closed principal path) only where
+`cycle` is expected (polarity.py),
 the interpreted table and the generated rewrites making the same
 interactions and the profile too; a term's value its evaluator's
-(terms.py), and every net polarized (polarity.py).
+(terms.py).
 """
 import os
 import re
@@ -323,6 +325,11 @@ def main(argv):
         if bad:
             failing += 1
             print(f"FAIL {c.entry} {c.mode}: not polarized: {bad[:3]}")
+        # a vicious circle exactly where the entry expects demand to find one
+        circles = polarity.vicious(c.net, c.root)
+        if bool(circles) != (c.want == "cycle"):
+            failing += 1
+            print(f"FAIL {c.entry} {c.mode}: " + (f"vicious circles {circles[:3]}" if circles else "no vicious circle, but cycle expected"))
     if failing:
         return 1
     path = program(cs, out)

@@ -437,8 +437,18 @@ takes from it:
          `rules_pairs_exact` still holds. The library's
          `vicious-circle-beta` and `vicious-circle-controls` failed before,
          an error in every strategy, and pass now, the wiring audit with
-         them. The maintainer to confirm that a vicious circle is to vanish
-         rather than be reported.
+         them. Nothing takes the loop's place, not an eraser: every port
+         on it is one of the pair's, freed with the pair, and every
+         outside peer is still linked exactly once (`rules_pairs_exact`),
+         so none is left open. In `vicious-circle-beta`, a function whose
+         body is the application's own result (`r` where
+         `r = (\_ -> r) 7`, which nothing uses), beta links the body to
+         the result, two ends that are the pair's own, and the argument
+         to the eraser of the unused variable. Lafont keeps such a
+         cyclic wire as a component of the net; dropping it is the same
+         net, a component with no ports and no cells. The maintainer to
+         confirm that a vicious circle is to vanish rather than be
+         reported.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
