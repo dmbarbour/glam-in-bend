@@ -2132,6 +2132,8 @@ def Laws.rules_pairs_exact(a, b, s):
 
 
 
+
+
 def or_l(a: Bool, b: Bool, h: {a == True{} : Bool}) -> {(a || b) == True{} : Bool}:
   match a:
     case True{}:
@@ -2210,23 +2212,6 @@ def neq_comm(a: Nat, b: Nat) -> {R.nat_eq(a, b) == R.nat_eq(b, a) : Bool}:
       {==}
     case 1n+x 1n+y:
       neq_comm(x, y)
-
-def neq_add(n: Nat, -j: Nat, -k: Nat) -> {R.nat_eq(Nat.add(n, j), Nat.add(n, k)) == R.nat_eq(j, k) : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+m:
-      neq_add(m, j, k)
-
-# m below n is not n + j
-def below_ne_add(n: Nat, m: Nat, -j: Nat, h: {W.below(m, n) == True{} : Bool}) -> {R.nat_eq(m, Nat.add(n, j)) == False{} : Bool}:
-  match n m:
-    case 0n _:
-      ft(h, {R.nat_eq(m, Nat.add(0n, j)) == False{} : Bool})
-    case 1n+k 0n:
-      {==}
-    case 1n+k 1n+q:
-      below_ne_add(k, q, j, h)
 
 def below_succ(n: Nat, p: Nat, h: {W.below(p, n) == True{} : Bool}) -> {W.below(p, 1n+n) == True{} : Bool}:
   match n p:
@@ -2579,13 +2564,6 @@ def in_app_l(A: List<&2, R.End>, +B: List<&2, R.End>) -> {R.all_in(A, List.appen
         or_l(R.end_eq(x, x), R.end_mem(x, List.append(&2, R.End, t, B)), end_refl(x)),
         in_cons(t, x, List.append(&2, R.End, t, B), in_app_l(t, B)))
 
-def in_app_r(A: List<&2, R.End>, +B: List<&2, R.End>) -> {R.all_in(B, List.append(&2, R.End, A, B)) == True{} : Bool}:
-  match A:
-    case Nil{}:
-      in_refl(B)
-    case Con{+x, +t}:
-      in_cons(B, x, List.append(&2, R.End, t, B), in_app_r(t, B))
-
 def in_trans(X: List<&2, R.End>, +Y: List<&2, R.End>, +Z: List<&2, R.End>, h: {R.all_in(X, Y) == True{} : Bool}, +hyz: {R.all_in(Y, Z) == True{} : Bool}) -> {R.all_in(X, Z) == True{} : Bool}:
   match X:
     case Nil{}:
@@ -2683,14 +2661,6 @@ def new_live(xs: List<&2, R.Spec>, +j0: Nat, j: Nat, +p: Nat, h: {R.end_mem(R.Ne
         emem_or(R.New{1n+Nat.add(j0, r), p}, R.node_ends(j0, R.arity(k), 0n), R.new_ends(t, 1n+j0), h1),
         node_low(j0, R.arity(k), 0n, 1n+Nat.add(j0, r), p, neq_succ_add(j0, r))))
 
-def aux_no_new(+j: Nat, +p: Nat, n: Nat, +base: Nat) -> {R.end_mem(R.New{j, p}, R.aux_ends(n, base)) == False{} : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+q:
-      aux_no_new(j, p, q, 1n+base)
-
-# Ports and kinds
 def ports_has.go(c: Bool, +n: Nat, +q: Nat, +p: Nat, he: {R.nat_eq(q, p) == c : Bool}, h: {W.below(p, 1n+q) == True{} : Bool},
   ih: {W.below(p, q) == True{} : Bool} -> {W.mem(W.Pt{n, p}, W.ports(n, q)) == True{} : Bool}) ->
   {W.mem(W.Pt{n, p}, W.ports(n, 1n+q)) == True{} : Bool}:
@@ -2748,44 +2718,6 @@ def klen_set(ks: List<&2, R.NodeKind>, n: Nat, +v: R.NodeKind) -> {List.length(&
       %klen_set(t, m, v) : {1n+List.length(&2, R.NodeKind, W.set(t, m, v)) == 1n+_ : Nat}
       {==}
 
-def ka_lt(K1: List<&2, R.NodeKind>, +K2: List<&2, R.NodeKind>, m: Nat, h: {W.below(m, List.length(&2, R.NodeKind, K1)) == True{} : Bool}) ->
-  {W.kind_at(List.append(&2, R.NodeKind, K1, K2), m) == W.kind_at(K1, m) : R.NodeKind}:
-  match K1 m:
-    case Nil{} _:
-      ft(h, {W.kind_at(List.append(&2, R.NodeKind, Nil{}, K2), m) == W.kind_at(Nil{}, m) : R.NodeKind})
-    case Con{k, t} 0n:
-      {==}
-    case Con{k, t} 1n+q:
-      ka_lt(t, K2, q, h)
-
-def ka_off(K1: List<&2, R.NodeKind>, +K2: List<&2, R.NodeKind>, -j: Nat) ->
-  {W.kind_at(List.append(&2, R.NodeKind, K1, K2), Nat.add(List.length(&2, R.NodeKind, K1), j)) == W.kind_at(K2, j) : R.NodeKind}:
-  match K1:
-    case Nil{}:
-      {==}
-    case Con{k, t}:
-      ka_off(t, K2, j)
-
-def len_app(K1: List<&2, R.NodeKind>, +K2: List<&2, R.NodeKind>) ->
-  {List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, K1, K2)) == Nat.add(List.length(&2, R.NodeKind, K1), List.length(&2, R.NodeKind, K2)) : Nat}:
-  match K1:
-    case Nil{}:
-      {==}
-    case Con{k, t}:
-      %len_app(t, K2) : {1n+List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, t, K2)) == 1n+_ : Nat}
-      {==}
-
-# a live port's node is in range
-def live_range(ks: List<&2, R.NodeKind>, n: Nat, +p: Nat, h: {W.live(ks, W.Pt{n, p}) == True{} : Bool}) -> {W.below(n, List.length(&2, R.NodeKind, ks)) == True{} : Bool}:
-  match ks n:
-    case Nil{} _:
-      ft(h, {W.below(n, 0n) == True{} : Bool})
-    case Con{k, t} 0n:
-      {==}
-    case Con{k, t} 1n+m:
-      live_range(t, m, p, h)
-
-# Placing the rule's ends
 def ends_app(A: List<&2, W.Ln>, +B: List<&2, W.Ln>) -> {W.ends(List.append(&2, W.Ln, A, B)) == List.append(&2, W.Pt, W.ends(A), W.ends(B)) : List<&2, W.Pt>}:
   match A:
     case Nil{}:
@@ -2818,47 +2750,6 @@ def app_assoc(A: List<&2, W.Pt>, +B: List<&2, W.Pt>, +C: List<&2, W.Pt>) -> {Lis
       %app_assoc(t, B, C) : {Con{x, List.append(&2, W.Pt, List.append(&2, W.Pt, t, B), C)} == Con{x, _} : List<&2, W.Pt>}
       {==}
 
-def mso.go(c: Bool, +n0: Nat, +es: W.Peers, +x: R.End, +y: R.End, +t: List<&2, R.End>, he: {R.end_eq(y, x) == c : Bool},
-  hm: {(c || R.end_mem(x, t)) == True{} : Bool},
-  ih: {R.end_mem(x, t) == True{} : Bool} -> {W.mem(W.sig(n0, es, x), W.sigs(n0, es, t)) == True{} : Bool}) ->
-  {W.mem(W.sig(n0, es, x), W.sigs(n0, es, Con{y, t})) == True{} : Bool}:
-  match c:
-    case True{}:
-      %end_eqv(y, x, he) : {W.mem(W.sig(n0, es, _), W.sigs(n0, es, Con{y, t})) == True{} : Bool}
-      or_l(W.pt_eq(W.sig(n0, es, y), W.sig(n0, es, y)), W.mem(W.sig(n0, es, y), W.sigs(n0, es, t)), pt_refl(W.sig(n0, es, y)))
-    case False{}:
-      or_r(W.pt_eq(W.sig(n0, es, y), W.sig(n0, es, x)), W.mem(W.sig(n0, es, x), W.sigs(n0, es, t)), ih(hm))
-
-# an end in Y lands among Y's placed ends
-def mem_sigs_of(+n0: Nat, +es: W.Peers, +x: R.End, Y: List<&2, R.End>, h: {R.end_mem(x, Y) == True{} : Bool}) -> {W.mem(W.sig(n0, es, x), W.sigs(n0, es, Y)) == True{} : Bool}:
-  match Y:
-    case Nil{}:
-      ft(h, {W.mem(W.sig(n0, es, x), W.sigs(n0, es, Nil{})) == True{} : Bool})
-    case Con{+y, +t}:
-      mso.go(R.end_eq(y, x), n0, es, x, y, t, {==}, h, h2 => mem_sigs_of(n0, es, x, t, h2))
-
-def sub.go(c: Bool, +n0: Nat, +es: W.Peers, +x: R.End, +t: List<&2, R.End>, +Y: List<&2, R.End>, +q: W.Pt, he: {W.pt_eq(W.sig(n0, es, x), q) == c : Bool},
-  hx: {R.end_mem(x, Y) == True{} : Bool}, hm: {(c || W.mem(q, W.sigs(n0, es, t))) == True{} : Bool},
-  ih: {W.mem(q, W.sigs(n0, es, t)) == True{} : Bool} -> {W.mem(q, W.sigs(n0, es, Y)) == True{} : Bool}) -> {W.mem(q, W.sigs(n0, es, Y)) == True{} : Bool}:
-  match c:
-    case True{}:
-      %pt_eqv(W.sig(n0, es, x), q, he) : {W.mem(_, W.sigs(n0, es, Y)) == True{} : Bool}
-      mem_sigs_of(n0, es, x, Y, hx)
-    case False{}:
-      ih(hm)
-
-# X's ends all in Y: X's placed ends are among Y's
-def sigs_sub(+n0: Nat, +es: W.Peers, X: List<&2, R.End>, +Y: List<&2, R.End>, h: {R.all_in(X, Y) == True{} : Bool}, +q: W.Pt,
-  hq: {W.mem(q, W.sigs(n0, es, X)) == True{} : Bool}) -> {W.mem(q, W.sigs(n0, es, Y)) == True{} : Bool}:
-  match X:
-    case Nil{}:
-      ft(hq, {W.mem(q, W.sigs(n0, es, Y)) == True{} : Bool})
-    case Con{+x, +t}:
-      +h = h
-      sub.go(W.pt_eq(W.sig(n0, es, x), q), n0, es, x, t, Y, q, {==}, and_l(R.end_mem(x, Y), R.all_in(t, Y), h), hq,
-        h2 => sigs_sub(n0, es, t, Y, and_r(R.end_mem(x, Y), R.all_in(t, Y), h), q, h2))
-
-# Ext ends only
 def is_ext(x: R.End) -> Bool:
   match x:
     case R.Ext{i}:
@@ -2945,171 +2836,8 @@ def ij.c2(c: Bool, +a: W.Pt, +b: W.Pt, +z: W.Pt, +T: List<&2, W.Pt>, he: {W.pt_e
     case False{}:
       {==}
 
-def inj.go(cx: Bool, cy: Bool, +n0: Nat, +es: W.Peers, +x: R.End, +y: R.End, +z: R.End, +t: List<&2, R.End>,
-  hex: {R.end_eq(z, x) == cx : Bool}, hey: {R.end_eq(z, y) == cy : Bool},
-  hmx: {(cx || R.end_mem(x, t)) == True{} : Bool}, hmy: {(cy || R.end_mem(y, t)) == True{} : Bool},
-  hz: {W.mem(W.sig(n0, es, z), W.sigs(n0, es, t)) == False{} : Bool}, hxy: {R.end_eq(x, y) == False{} : Bool},
-  ih: {R.end_mem(x, t) == True{} : Bool} -> {R.end_mem(y, t) == True{} : Bool} -> {W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)) == False{} : Bool}) ->
-  {W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)) == False{} : Bool}:
-  match cx cy:
-    case True{} True{}:
-      Empty.absurd({W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)) == False{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, R.end_eq(x, y), True{},
-        Equal.sym(Bool, R.end_eq(x, y), False{}, hxy),
-        eeq_true(x, y, Equal.trans(R.End, x, z, y, Equal.sym(R.End, z, x, end_eqv(z, x, hex)), end_eqv(z, y, hey))))))
-    case True{} False{}:
-      ij.c(W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)), W.sig(n0, es, x), W.sig(n0, es, y), W.sig(n0, es, z), W.sigs(n0, es, t), {==},
-        Equal.cong(R.End, W.Pt, (v => W.sig(n0, es, v)), z, x, end_eqv(z, x, hex)), mem_sigs_of(n0, es, y, t, hmy), hz)
-    case False{} True{}:
-      ij.c2(W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)), W.sig(n0, es, x), W.sig(n0, es, y), W.sig(n0, es, z), W.sigs(n0, es, t), {==},
-        Equal.cong(R.End, W.Pt, (v => W.sig(n0, es, v)), z, y, end_eqv(z, y, hey)), mem_sigs_of(n0, es, x, t, hmx), hz)
-    case False{} False{}:
-      ih(hmx)(hmy)
-
-# placed ends no two alike: distinct ends of the list land apart
-def inj(Xs: List<&2, R.End>, +n0: Nat, +es: W.Peers, +x: R.End, +y: R.End, hn: {W.nodup(W.sigs(n0, es, Xs)) == True{} : Bool},
-  hx: {R.end_mem(x, Xs) == True{} : Bool}, hy: {R.end_mem(y, Xs) == True{} : Bool}, +hxy: {R.end_eq(x, y) == False{} : Bool}) ->
-  {W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)) == False{} : Bool}:
-  match Xs:
-    case Nil{}:
-      ft(hx, {W.pt_eq(W.sig(n0, es, x), W.sig(n0, es, y)) == False{} : Bool})
-    case Con{+z, +t}:
-      +hn = hn
-      inj.go(R.end_eq(z, x), R.end_eq(z, y), n0, es, x, y, z, t, {==}, {==}, hx, hy,
-        not_true(W.mem(W.sig(n0, es, z), W.sigs(n0, es, t)), and_l(Bool.not(W.mem(W.sig(n0, es, z), W.sigs(n0, es, t))), W.nodup(W.sigs(n0, es, t)), hn)), hxy,
-        h1 => h2 => inj(t, n0, es, x, y, and_r(Bool.not(W.mem(W.sig(n0, es, z), W.sigs(n0, es, t))), W.nodup(W.sigs(n0, es, t)), hn), h1, h2, hxy))
-
-def pt_ne_new(y: W.Pt, +ks: List<&2, R.NodeKind>, +j: Nat, +p: Nat, hl: {W.live(ks, y) == True{} : Bool}) ->
-  {W.pt_eq(y, W.Pt{Nat.add(List.length(&2, R.NodeKind, ks), j), p}) == False{} : Bool}:
-  match y:
-    case W.Pt{+m, +q}:
-      and_fl(R.nat_eq(m, Nat.add(List.length(&2, R.NodeKind, ks), j)), R.nat_eq(q, p), below_ne_add(List.length(&2, R.NodeKind, ks), m, j, live_range(ks, m, q, hl)))
-
-def pt_ne_new2(y: W.Pt, +ks: List<&2, R.NodeKind>, +j: Nat, +p: Nat, hl: {W.live(ks, y) == True{} : Bool}) ->
-  {W.pt_eq(W.Pt{Nat.add(List.length(&2, R.NodeKind, ks), j), p}, y) == False{} : Bool}:
-  match y:
-    case W.Pt{+m, +q}:
-      and_fl(R.nat_eq(Nat.add(List.length(&2, R.NodeKind, ks), j), m), R.nat_eq(p, q),
-        Equal.trans(Bool, R.nat_eq(Nat.add(List.length(&2, R.NodeKind, ks), j), m), R.nat_eq(m, Nat.add(List.length(&2, R.NodeKind, ks), j)), False{},
-          neq_comm(Nat.add(List.length(&2, R.NodeKind, ks), j), m), below_ne_add(List.length(&2, R.NodeKind, ks), m, j, live_range(ks, m, q, hl))))
-
-def rf.ext(c: Bool, +i: Nat, +k: Nat, +ks: List<&2, R.NodeKind>, +es: W.Peers, +Y: List<&2, R.End>, +xs: List<&2, R.Spec>, +hY: {all_ext(Y) == True{} : Bool}, +hX: {W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, +hL: {W.all_live(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, he: {R.nat_eq(i, k) == c : Bool},
-  hx: {R.end_mem(R.Ext{i}, Y) == True{} : Bool}, hy: {R.end_mem(R.Ext{k}, Y) == True{} : Bool}) ->
-  {W.pt_eq(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{k})) == c : Bool}:
-  match c:
-    case True{}:
-      %neq_eq(i, k, he) : {W.pt_eq(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{_})) == True{} : Bool}
-      pt_refl(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}))
-    case False{}:
-      inj(Y, List.length(&2, R.NodeKind, ks), es, R.Ext{i}, R.Ext{k}, hX, hx, hy, he)
-
-# the placement keeps the rule's ends apart: equal exactly when the ends are
-def reflect(x: R.End, y: R.End, +ks: List<&2, R.NodeKind>, +es: W.Peers, +Y: List<&2, R.End>, +xs: List<&2, R.Spec>, +hY: {all_ext(Y) == True{} : Bool}, +hX: {W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, +hL: {W.all_live(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, hy: {R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
-  {W.pt_eq(W.sig(List.length(&2, R.NodeKind, ks), es, x), W.sig(List.length(&2, R.NodeKind, ks), es, y)) == R.end_eq(x, y) : Bool}:
-  match x y:
-    case R.Ext{+i} R.Ext{+k}:
-      rf.ext(R.nat_eq(i, k), i, k, ks, es, Y, xs, hY, hX, hL, {==}, ext_in_Y(i, Y, xs, hx), ext_in_Y(k, Y, xs, hy))
-    case R.Ext{+i} R.New{+j, +p}:
-      pt_ne_new(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), ks, j, p, live_at(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), ks, W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), hL, mem_sigs_of(List.length(&2, R.NodeKind, ks), es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hx))))
-    case R.New{+j, +p} R.Ext{+i}:
-      pt_ne_new2(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), ks, j, p, live_at(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), ks, W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), hL, mem_sigs_of(List.length(&2, R.NodeKind, ks), es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hy))))
-    case R.New{+j, +p} R.New{+j2, +p2}:
-      %Equal.sym(Bool, R.nat_eq(Nat.add(List.length(&2, R.NodeKind, ks), j), Nat.add(List.length(&2, R.NodeKind, ks), j2)), R.nat_eq(j, j2), neq_add(List.length(&2, R.NodeKind, ks), j, j2)) : {(_ && R.nat_eq(p, p2)) == (R.nat_eq(j, j2) && R.nat_eq(p, p2)) : Bool}
-      {==}
-
-def msi(+x: R.End, t: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +es: W.Peers, +Y: List<&2, R.End>, +xs: List<&2, R.Spec>, +hY: {all_ext(Y) == True{} : Bool}, +hX: {W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, +hL: {W.all_live(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, +hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, ht: {R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
-  {W.mem(W.sig(List.length(&2, R.NodeKind, ks), es, x), W.sigs(List.length(&2, R.NodeKind, ks), es, t)) == R.end_mem(x, t) : Bool}:
-  match t:
-    case Nil{}:
-      {==}
-    case Con{+y, +r}:
-      +ht = ht
-      %Equal.sym(Bool, W.pt_eq(W.sig(List.length(&2, R.NodeKind, ks), es, y), W.sig(List.length(&2, R.NodeKind, ks), es, x)), R.end_eq(y, x), reflect(y, x, ks, es, Y, xs, hY, hX, hL, and_l(R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(r, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), ht), hx)) : {(_ || W.mem(W.sig(List.length(&2, R.NodeKind, ks), es, x), W.sigs(List.length(&2, R.NodeKind, ks), es, r))) == (R.end_eq(y, x) || R.end_mem(x, r)) : Bool}
-      %Equal.sym(Bool, W.mem(W.sig(List.length(&2, R.NodeKind, ks), es, x), W.sigs(List.length(&2, R.NodeKind, ks), es, r)), R.end_mem(x, r), msi(x, r, ks, es, Y, xs, hY, hX, hL, hx, and_r(R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(r, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), ht))) : {(R.end_eq(y, x) || _) == (R.end_eq(y, x) || R.end_mem(x, r)) : Bool}
-      {==}
-
-# the rule's ends placed: no port twice
-def nodup_sigs(Xs: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +es: W.Peers, +Y: List<&2, R.End>, +xs: List<&2, R.Spec>, +hY: {all_ext(Y) == True{} : Bool}, +hX: {W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, +hL: {W.all_live(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}, hin: {R.all_in(Xs, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, hd: {R.ends_distinct(Xs) == True{} : Bool}) ->
-  {W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, Xs)) == True{} : Bool}:
-  match Xs:
-    case Nil{}:
-      {==}
-    case Con{+x, +t}:
-      +hin = hin
-      +hd = hd
-      %Equal.sym(Bool, W.mem(W.sig(List.length(&2, R.NodeKind, ks), es, x), W.sigs(List.length(&2, R.NodeKind, ks), es, t)), R.end_mem(x, t), msi(x, t, ks, es, Y, xs, hY, hX, hL, and_l(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin), and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin))) : {(Bool.not(_) && W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, t))) == True{} : Bool}
-      and_i(Bool.not(R.end_mem(x, t)), W.nodup(W.sigs(List.length(&2, R.NodeKind, ks), es, t)), and_l(Bool.not(R.end_mem(x, t)), R.ends_distinct(t), hd),
-        nodup_sigs(t, ks, es, Y, xs, hY, hX, hL, and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin), and_r(Bool.not(R.end_mem(x, t)), R.ends_distinct(t), hd)))
-
-# Transports: the peers placed as one list
-
-def in_cat(A: List<&2, R.End>, +B: List<&2, R.End>, +Z: List<&2, R.End>, hA: {R.all_in(A, Z) == True{} : Bool}, +hB: {R.all_in(B, Z) == True{} : Bool}) ->
-  {R.all_in(List.append(&2, R.End, A, B), Z) == True{} : Bool}:
-  match A:
-    case Nil{}:
-      hB
-    case Con{+x, +t}:
-      +hA = hA
-      and_i(R.end_mem(x, Z), R.all_in(List.append(&2, R.End, t, B), Z), and_l(R.end_mem(x, Z), R.all_in(t, Z), hA),
-        in_cat(t, B, Z, and_r(R.end_mem(x, Z), R.all_in(t, Z), hA), hB))
-
-def is_new(x: R.End) -> Bool:
-  match x:
-    case R.Ext{i}:
-      False{}
-    case R.New{j, p}:
-      True{}
-
-def all_new(xs: List<&2, R.End>) -> Bool:
-  match xs:
-    case Nil{}:
-      True{}
-    case Con{x, t}:
-      is_new(x) && all_new(t)
-
-def new_cat(A: List<&2, R.End>, +B: List<&2, R.End>, hA: {all_new(A) == True{} : Bool}, +hB: {all_new(B) == True{} : Bool}) -> {all_new(List.append(&2, R.End, A, B)) == True{} : Bool}:
-  match A:
-    case Nil{}:
-      hB
-    case Con{+x, +t}:
-      +hA = hA
-      and_i(is_new(x), all_new(List.append(&2, R.End, t, B)), and_l(is_new(x), all_new(t), hA), new_cat(t, B, and_r(is_new(x), all_new(t), hA), hB))
-
-def node_new(+j: Nat, n: Nat, +p: Nat) -> {all_new(R.node_ends(j, n, p)) == True{} : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+q:
-      node_new(j, q, 1n+p)
-
-def news_new(xs: List<&2, R.Spec>, +j: Nat) -> {all_new(R.new_ends(xs, j)) == True{} : Bool}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{R.Spec{+k, s}, +t}:
-      new_cat(R.node_ends(j, R.arity(k), 0n), R.new_ends(t, 1n+j), node_new(j, R.arity(k), 0n), news_new(t, 1n+j))
-
-# a live port is no new node's
-def far(Y: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +es: W.Peers, +x: W.Pt, hy: {all_new(Y) == True{} : Bool}, +hl: {W.live(ks, x) == True{} : Bool}) ->
-  {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == False{} : Bool}:
-  match Y:
-    case Nil{}:
-      {==}
-    case Con{R.Ext{i}, t}:
-      ft(hy, {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Con{R.Ext{i}, t})) == False{} : Bool})
-    case Con{R.New{+j, +p}, +t}:
-      or_f(W.pt_eq(W.Pt{Nat.add(List.length(&2, R.NodeKind, ks), j), p}, x), W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, t)), pt_ne_new2(x, ks, j, p, hl), far(t, ks, es, x, hy, hl))
-
-# Kinds after the rewrite
 def len_k1(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat) -> {List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})) == List.length(&2, R.NodeKind, ks) : Nat}:
   Equal.trans(Nat, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), List.length(&2, R.NodeKind, W.set(ks, a, R.KFree{})), List.length(&2, R.NodeKind, ks), klen_set(W.set(ks, a, R.KFree{}), b, R.KFree{}), klen_set(ks, a, R.KFree{}))
-
-def rng(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +m: Nat, h: {W.below(m, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) -> {W.below(m, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}))) == True{} : Bool}:
-  %Equal.sym(Nat, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), List.length(&2, R.NodeKind, ks), len_k1(ks, a, b)) : {W.below(m, _) == True{} : Bool}
-  h
-
-def rng_back(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +m: Nat, h: {W.below(m, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}))) == True{} : Bool}) -> {W.below(m, List.length(&2, R.NodeKind, ks)) == True{} : Bool}:
-  %len_k1(ks, a, b) : {W.below(m, _) == True{} : Bool}
-  h
 
 def kl.below(+ks: List<&2, R.NodeKind>, +a: Nat, +m: Nat, +p: Nat, eq: {a == m : Nat}, hl: {W.below(p, R.arity(W.kind_at(ks, m))) == True{} : Bool}) ->
   {W.below(p, R.arity(W.kind_at(ks, a))) == True{} : Bool}:
@@ -3131,123 +2859,9 @@ def kl.ne(c: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +m: Nat, +p: Nat, he: {R.
     case False{}:
       {==}
 
-def keep.go(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +xs: List<&2, R.Spec>, +m: Nat, +p: Nat, hl: {W.below(p, R.arity(W.kind_at(ks, m))) == True{} : Bool},
-  hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}, hr: {W.below(m, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) ->
-  {W.below(p, R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m))) == True{} : Bool}:
-  %Equal.sym(R.NodeKind, W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m), W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), ka_lt(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), m, rng(ks, a, b, m, hr))) : {W.below(p, R.arity(_)) == True{} : Bool}
-  %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), W.kind_at(W.set(ks, a, R.KFree{}), m), ka_ne(W.set(ks, a, R.KFree{}), b, R.KFree{}, m, hmb)) : {W.below(p, R.arity(_)) == True{} : Bool}
-  %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), m), W.kind_at(ks, m), ka_ne(ks, a, R.KFree{}, m, hma)) : {W.below(p, R.arity(_)) == True{} : Bool}
-  hl
-
-# a live port off the pair's ports stays live
-def keep(q: W.Pt, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +xs: List<&2, R.Spec>, hl: {W.live(ks, q) == True{} : Bool},
-  hA: {W.mem(q, W.ports(a, R.arity(W.kind_at(ks, a)))) == False{} : Bool}, hB: {W.mem(q, W.ports(b, R.arity(W.kind_at(ks, b)))) == False{} : Bool}) -> {W.live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), q) == True{} : Bool}:
-  match q:
-    case W.Pt{+m, +p}:
-      +hl = hl
-      keep.go(ks, a, b, xs, m, p, hl, kl.ne(R.nat_eq(a, m), ks, a, m, p, {==}, hl, hA), kl.ne(R.nat_eq(b, m), ks, b, m, p, {==}, hl, hB), live_range(ks, m, p, hl))
-
-def live_new(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +xs: List<&2, R.Spec>, +j: Nat, +p: Nat, h: {W.below(p, R.arity(W.kind_at(W.kinds(xs), j))) == True{} : Bool}) ->
-  {W.live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.Pt{Nat.add(List.length(&2, R.NodeKind, ks), j), p}) == True{} : Bool}:
-  %len_k1(ks, a, b) : {W.below(p, R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(_, j)))) == True{} : Bool}
-  %Equal.sym(R.NodeKind, W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), j)), W.kind_at(W.kinds(xs), j), ka_off(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), j)) : {W.below(p, R.arity(_)) == True{} : Bool}
-  h
-
-
 def mem_or(+q: W.Pt, +A: List<&2, W.Pt>, +B: List<&2, W.Pt>, h: {W.mem(q, List.append(&2, W.Pt, A, B)) == True{} : Bool}) -> {(W.mem(q, A) || W.mem(q, B)) == True{} : Bool}:
   Equal.trans(Bool, (W.mem(q, A) || W.mem(q, B)), W.mem(q, List.append(&2, W.Pt, A, B)), True{}, Equal.sym(Bool, W.mem(q, List.append(&2, W.Pt, A, B)), (W.mem(q, A) || W.mem(q, B)), mem_app(q, A, B)), h)
 
-# The old net's facts, from wired
-def d_nec(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.nodup(List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))) == True{} : Bool}:
-  nodup_r(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), nodup_r(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), hn))
-
-
-def d_lec(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.all_live(ks, List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))) == True{} : Bool}:
-  live_r(ks, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), live_r(ks, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), hl))
-
-
-def d_oa(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {all_out(List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), W.ports(a, R.arity(W.kind_at(ks, a)))) == True{} : Bool}:
-  out_snd(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), W.ports(a, R.arity(W.kind_at(ks, a))), out_sym(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), nodup_out(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), hn)))
-
-
-def d_ob(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {all_out(List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), W.ports(b, R.arity(W.kind_at(ks, b)))) == True{} : Bool}:
-  out_sym(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), nodup_out(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), nodup_r(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), hn)))
-
-
-def d_xl(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {R.all_in(Y, R.ends(ls)) == True{} : Bool}:
-  in_trans(Y, List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls), in_app_l(Y, R.new_ends(xs, 0n)), hall)
-
-
-def not_in_v(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +x: W.Pt, hlx: {W.live(ks, x) == True{} : Bool}, hox: {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == False{} : Bool}) -> {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))) == False{} : Bool}:
-  %Equal.sym(List<&2, W.Pt>, W.sigs(List.length(&2, R.NodeKind, ks), es, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.sigs(List.length(&2, R.NodeKind, ks), es, R.new_ends(xs, 0n))), sigs_app(List.length(&2, R.NodeKind, ks), es, Y, R.new_ends(xs, 0n))) : {W.mem(x, _) == False{} : Bool}
-  mem_ff(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.sigs(List.length(&2, R.NodeKind, ks), es, R.new_ends(xs, 0n)), hox, far(R.new_ends(xs, 0n), ks, es, x, news_new(xs, 0n), hlx))
-
-
-def cn.go(cm: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +x: W.Pt, he: {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))) == cm : Bool}, hno: {W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))) == False{} : Bool}) -> {cm == False{} : Bool}:
-  match cm:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))), True{},
-        Equal.sym(Bool, W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))), False{}, hno), sigs_sub(List.length(&2, R.NodeKind, ks), es, R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n)), hin, x, he))))
-    case False{}:
-      {==}
-
-def c_out_n(C2: List<&2, W.Pt>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hl2: {W.all_live(ks, C2) == True{} : Bool}, ho: {all_out(C2, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == True{} : Bool}) -> {all_out(C2, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))) == True{} : Bool}:
-  match C2:
-    case Nil{}:
-      {==}
-    case Con{+x, +t}:
-      +hl2 = hl2
-      +ho = ho
-      and_i(Bool.not(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), all_out(t, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))),
-        not_false(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))), cn.go(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, x, {==},
-          not_in_v(ks, a, b, es, c, xs, ls, Y, x, and_l(W.live(ks, x), W.all_live(ks, t), hl2), not_true(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)), and_l(Bool.not(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y))), all_out(t, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)), ho))))),
-        c_out_n(t, ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, and_r(W.live(ks, x), W.all_live(ks, t), hl2), and_r(Bool.not(W.mem(x, W.sigs(List.length(&2, R.NodeKind, ks), es, Y))), all_out(t, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)), ho)))
-
-def g_nodup(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.nodup(List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  +nec = d_nec(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)
-  nodup_cat(W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), nodup_r(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), nec),
-    nodup_sigs(R.ends(ls), ks, es, Y, xs, hY, nodup_l(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), nec), live_l(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), d_lec(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), hin, hd),
-    c_out_n(W.ends(c), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, live_r(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), d_lec(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), out_sym(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), nodup_out(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), nec))))
-
-# Goal two: every end live
-def live_c(C2: List<&2, W.Pt>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, hl2: {W.all_live(ks, C2) == True{} : Bool}, oa: {all_out(C2, W.ports(a, R.arity(W.kind_at(ks, a)))) == True{} : Bool}, ob: {all_out(C2, W.ports(b, R.arity(W.kind_at(ks, b)))) == True{} : Bool}) ->
-  {W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), C2) == True{} : Bool}:
-  match C2:
-    case Nil{}:
-      {==}
-    case Con{+x, +t}:
-      +hl2 = hl2
-      +oa = oa
-      +ob = ob
-      and_i(W.live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), x), W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), t),
-        keep(x, ks, a, b, xs, and_l(W.live(ks, x), W.all_live(ks, t), hl2), not_true(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a)))), and_l(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), oa)),
-          not_true(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b)))), and_l(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), ob))),
-        live_c(t, ks, a, b, es, c, xs, ls, Y, and_r(W.live(ks, x), W.all_live(ks, t), hl2), and_r(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), oa), and_r(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), ob)))
-
-def live_one(x: R.End, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) -> {W.live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sig(List.length(&2, R.NodeKind, ks), es, x)) == True{} : Bool}:
-  match x:
-    case R.Ext{+i}:
-      +hq = mem_sigs_of(List.length(&2, R.NodeKind, ks), es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hx))
-      keep(W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), ks, a, b, xs, live_at(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), ks, W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), live_l(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), d_lec(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), hq),
-        out_at(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ports(a, R.arity(W.kind_at(ks, a))), W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), out_fst(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), d_oa(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), hq),
-        out_at(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ports(b, R.arity(W.kind_at(ks, b))), W.sig(List.length(&2, R.NodeKind, ks), es, R.Ext{i}), out_fst(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), d_ob(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), hq))
-    case R.New{+j, +p}:
-      live_new(ks, a, b, xs, j, p, new_live(xs, 0n, j, p, new_in_new_g(j, p, Y, xs, hY, hx)))
-
-def live_n(Xs: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, h: {R.all_in(Xs, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) -> {W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigs(List.length(&2, R.NodeKind, ks), es, Xs)) == True{} : Bool}:
-  match Xs:
-    case Nil{}:
-      {==}
-    case Con{+x, +t}:
-      +h = h
-      and_i(W.live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sig(List.length(&2, R.NodeKind, ks), es, x)), W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigs(List.length(&2, R.NodeKind, ks), es, t)),
-        live_one(x, ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, and_l(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)), live_n(t, ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)))
-
-def g_live(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  live_cat(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), live_c(W.ends(c), ks, a, b, es, c, xs, ls, Y, live_r(ks, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), d_lec(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), out_snd(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), d_oa(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)), out_snd(W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), d_ob(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall))),
-    live_n(R.ends(ls), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, hin))
-
-# Goal three: every live port present
 def cov_at.go(c: Bool, +ks: List<&2, R.NodeKind>, +P: List<&2, W.Pt>, +k: Nat, +m: Nat, he: {R.nat_eq(k, m) == c : Bool},
   hh: {W.ports_in(k, R.arity(W.kind_at(ks, k)), P) == True{} : Bool}, hm: {W.below(m, 1n+k) == True{} : Bool},
   ih: {W.below(m, k) == True{} : Bool} -> {W.ports_in(m, R.arity(W.kind_at(ks, m)), P) == True{} : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(ks, m)), P) == True{} : Bool}:
@@ -3268,115 +2882,838 @@ def cov_at(+ks: List<&2, R.NodeKind>, n: Nat, +P: List<&2, W.Pt>, +m: Nat, hm: {
       cov_at.go(R.nat_eq(k, m), ks, P, k, m, {==}, and_l(W.ports_in(k, R.arity(W.kind_at(ks, k)), P), W.covered(ks, k, P), h), hm,
         h2 => cov_at(ks, k, P, m, h2, and_r(W.ports_in(k, R.arity(W.kind_at(ks, k)), P), W.covered(ks, k, P), h)))
 
-def port_tr.go(cE: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +q: W.Pt, he: {W.mem(q, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)) == cE : Bool}, hm: {(cE || W.mem(q, W.ends(c))) == True{} : Bool}) -> {W.mem(q, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
+def nth_ne(ss: List<&2, Nat>, j: Nat, +m: Nat, h: {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool}, hn: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {R.nat_eq(W.nth(ss, j), m) == False{} : Bool}:
+  match ss j:
+    case Nil{} _:
+      ft(h, {R.nat_eq(W.nth(Nil{}, j), m) == False{} : Bool})
+    case Con{+s, +t} 0n:
+      or_false_l(R.nat_eq(s, m), W.nat_in(m, t), hn)
+    case Con{+s, +t} 1n+i:
+      nth_ne(t, i, m, h, or_false_r(R.nat_eq(s, m), W.nat_in(m, t), hn))
+
+def nth_inj(ss: List<&2, Nat>, j: Nat, k: Nat, hd: {W.nodup_nat(ss) == True{} : Bool}, hj: {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool},
+  hk: {W.below(k, List.length(&2, Nat, ss)) == True{} : Bool}) -> {R.nat_eq(W.nth(ss, j), W.nth(ss, k)) == R.nat_eq(j, k) : Bool}:
+  match ss j k:
+    case Nil{} _ _:
+      ft(hj, {R.nat_eq(W.nth(Nil{}, j), W.nth(Nil{}, k)) == R.nat_eq(j, k) : Bool})
+    case Con{+s, +t} 0n 0n:
+      neq_refl(s)
+    case Con{+s, +t} 0n 1n++q:
+      Equal.trans(Bool, R.nat_eq(s, W.nth(t, q)), R.nat_eq(W.nth(t, q), s), False{}, neq_comm(s, W.nth(t, q)),
+        nth_ne(t, q, s, hk, not_true(W.nat_in(s, t), and_l(Bool.not(W.nat_in(s, t)), W.nodup_nat(t), hd))))
+    case Con{+s, +t} 1n++r 0n:
+      nth_ne(t, r, s, hj, not_true(W.nat_in(s, t), and_l(Bool.not(W.nat_in(s, t)), W.nodup_nat(t), hd)))
+    case Con{+s, +t} 1n+r 1n+q:
+      nth_inj(t, r, q, and_r(Bool.not(W.nat_in(s, t)), W.nodup_nat(t), hd), hj, hk)
+
+def ke_same(n: Nat, ks: List<&2, R.NodeKind>, +v: R.NodeKind) -> {W.kind_at(W.set_ext(n, ks, v), n) == v : R.NodeKind}:
+  match n ks:
+    case 0n Nil{}:
+      {==}
+    case 0n Con{k, t}:
+      {==}
+    case 1n+m Nil{}:
+      ke_same(m, Nil{}, v)
+    case 1n+m Con{k, t}:
+      ke_same(m, t, v)
+
+def ke_ne(n: Nat, ks: List<&2, R.NodeKind>, +v: R.NodeKind, m: Nat, h: {R.nat_eq(n, m) == False{} : Bool}) ->
+  {W.kind_at(W.set_ext(n, ks, v), m) == W.kind_at(ks, m) : R.NodeKind}:
+  match n ks m:
+    case 0n Nil{} 0n:
+      tf(h, {W.kind_at(W.set_ext(0n, Nil{}, v), 0n) == W.kind_at(Nil{}, 0n) : R.NodeKind})
+    case 0n Nil{} 1n+q:
+      {==}
+    case 0n Con{k, t} 0n:
+      tf(h, {W.kind_at(W.set_ext(0n, Con{k, t}, v), 0n) == W.kind_at(Con{k, t}, 0n) : R.NodeKind})
+    case 0n Con{k, t} 1n+q:
+      {==}
+    case 1n+r Nil{} 0n:
+      {==}
+    case 1n+r Nil{} 1n+q:
+      ke_ne(r, Nil{}, v, q, h)
+    case 1n+r Con{k, t} 0n:
+      {==}
+    case 1n+r Con{k, t} 1n+q:
+      ke_ne(r, t, v, q, h)
+
+# a node off the placement keeps its kind
+def pl_off(ss: List<&2, Nat>, +ks: List<&2, R.NodeKind>, kx: List<&2, R.NodeKind>, +m: Nat, hn: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {W.kind_at(W.place(ss, ks, kx), m) == W.kind_at(ks, m) : R.NodeKind}:
+  match ss kx:
+    case Con{+s, +st} Con{+k, +kt}:
+      +hn = hn
+      Equal.trans(R.NodeKind, W.kind_at(W.place(st, W.set_ext(s, ks, k), kt), m), W.kind_at(W.set_ext(s, ks, k), m), W.kind_at(ks, m),
+        pl_off(st, W.set_ext(s, ks, k), kt, m, or_false_r(R.nat_eq(s, m), W.nat_in(m, st), hn)),
+        ke_ne(s, ks, k, m, or_false_l(R.nat_eq(s, m), W.nat_in(m, st), hn)))
+    case Con{s, st} Nil{}:
+      {==}
+    case Nil{} _:
+      {==}
+
+# a placed slot reads its node's kind
+def pl_at(ss: List<&2, Nat>, +ks: List<&2, R.NodeKind>, kx: List<&2, R.NodeKind>, j: Nat, hd: {W.nodup_nat(ss) == True{} : Bool},
+  hj: {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool}, hk: {W.below(j, List.length(&2, R.NodeKind, kx)) == True{} : Bool}) ->
+  {W.kind_at(W.place(ss, ks, kx), W.nth(ss, j)) == W.kind_at(kx, j) : R.NodeKind}:
+  match ss kx j:
+    case Nil{} _ _:
+      ft(hj, {W.kind_at(W.place(Nil{}, ks, kx), W.nth(Nil{}, j)) == W.kind_at(kx, j) : R.NodeKind})
+    case Con{s, st} Nil{} _:
+      ft(hk, {W.kind_at(W.place(Con{s, st}, ks, Nil{}), W.nth(Con{s, st}, j)) == W.kind_at(Nil{}, j) : R.NodeKind})
+    case Con{+s, +st} Con{+k, +kt} 0n:
+      Equal.trans(R.NodeKind, W.kind_at(W.place(st, W.set_ext(s, ks, k), kt), s), W.kind_at(W.set_ext(s, ks, k), s), k,
+        pl_off(st, W.set_ext(s, ks, k), kt, s, not_true(W.nat_in(s, st), and_l(Bool.not(W.nat_in(s, st)), W.nodup_nat(st), hd))), ke_same(s, ks, k))
+    case Con{+s, +st} Con{+k, +kt} 1n+i:
+      pl_at(st, W.set_ext(s, ks, k), kt, i, and_r(Bool.not(W.nat_in(s, st)), W.nodup_nat(st), hd), hj, hk)
+
+# where m sits in the placement
+def pos.k(c: Bool, r: Nat) -> Nat:
+  match c:
+    case True{}:
+      0n
+    case False{}:
+      1n+r
+
+def pos(ss: List<&2, Nat>, +m: Nat) -> Nat:
+  match ss:
+    case Nil{}:
+      0n
+    case Con{s, t}:
+      pos.k(R.nat_eq(s, m), pos(t, m))
+
+def pos_nth.go(c: Bool, +s: Nat, +t: List<&2, Nat>, +m: Nat, he: {R.nat_eq(s, m) == c : Bool}, h: {(c || W.nat_in(m, t)) == True{} : Bool},
+  ih: {W.nat_in(m, t) == True{} : Bool} -> {R.nat_eq(W.nth(t, pos(t, m)), m) == True{} : Bool}) -> {R.nat_eq(W.nth(Con{s, t}, pos.k(c, pos(t, m))), m) == True{} : Bool}:
+  match c:
+    case True{}:
+      he
+    case False{}:
+      ih(h)
+
+def pos_nth(ss: List<&2, Nat>, +m: Nat, h: {W.nat_in(m, ss) == True{} : Bool}) -> {R.nat_eq(W.nth(ss, pos(ss, m)), m) == True{} : Bool}:
+  match ss:
+    case Nil{}:
+      ft(h, {R.nat_eq(W.nth(Nil{}, pos(Nil{}, m)), m) == True{} : Bool})
+    case Con{+s, +t}:
+      pos_nth.go(R.nat_eq(s, m), s, t, m, {==}, h, h2 => pos_nth(t, m, h2))
+
+def pos_lt.go(c: Bool, +t: List<&2, Nat>, +m: Nat, h: {(c || W.nat_in(m, t)) == True{} : Bool},
+  ih: {W.nat_in(m, t) == True{} : Bool} -> {W.below(pos(t, m), List.length(&2, Nat, t)) == True{} : Bool}) -> {W.below(pos.k(c, pos(t, m)), 1n+List.length(&2, Nat, t)) == True{} : Bool}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      ih(h)
+
+def pos_lt(ss: List<&2, Nat>, +m: Nat, h: {W.nat_in(m, ss) == True{} : Bool}) -> {W.below(pos(ss, m), List.length(&2, Nat, ss)) == True{} : Bool}:
+  match ss:
+    case Nil{}:
+      ft(h, {W.below(pos(Nil{}, m), 0n) == True{} : Bool})
+    case Con{+s, +t}:
+      pos_lt.go(R.nat_eq(s, m), t, m, h, h2 => pos_lt(t, m, h2))
+
+def free_arity(k: R.NodeKind, +p: Nat, h: {W.is_free_kind(k) == True{} : Bool}) -> {W.below(p, R.arity(k)) == False{} : Bool}:
+  match k:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      ft(h, {W.below(p, R.arity(R.KFn{})) == False{} : Bool})
+    case R.KAp{}:
+      ft(h, {W.below(p, R.arity(R.KAp{})) == False{} : Bool})
+    case R.KCopy{}:
+      ft(h, {W.below(p, R.arity(R.KCopy{})) == False{} : Bool})
+    case R.KMerge{}:
+      ft(h, {W.below(p, R.arity(R.KMerge{})) == False{} : Bool})
+    case R.KData{}:
+      ft(h, {W.below(p, R.arity(R.KData{})) == False{} : Bool})
+    case R.KEraN{}:
+      ft(h, {W.below(p, R.arity(R.KEraN{})) == False{} : Bool})
+    case R.KEraP{}:
+      ft(h, {W.below(p, R.arity(R.KEraP{})) == False{} : Bool})
+    case R.KRoot{}:
+      ft(h, {W.below(p, R.arity(R.KRoot{})) == False{} : Bool})
+    case R.KCall{}:
+      ft(h, {W.below(p, R.arity(R.KCall{})) == False{} : Bool})
+    case R.KLift{}:
+      ft(h, {W.below(p, R.arity(R.KLift{})) == False{} : Bool})
+    case R.KLiftC{}:
+      ft(h, {W.below(p, R.arity(R.KLiftC{})) == False{} : Bool})
+
+def slot_tr(+s: Nat, +m: Nat, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, eq: {s == m : Nat},
+  hs: {(R.nat_eq(s, a) || (R.nat_eq(s, b) || W.is_free_kind(W.kind_at(ks, s)))) == True{} : Bool}) ->
+  {(R.nat_eq(m, a) || (R.nat_eq(m, b) || W.is_free_kind(W.kind_at(ks, m)))) == True{} : Bool}:
+  %eq : {(R.nat_eq(_, a) || (R.nat_eq(_, b) || W.is_free_kind(W.kind_at(ks, _)))) == True{} : Bool}
+  hs
+
+def sn.go(c: Bool, +s: Nat, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +m: Nat, +p: Nat, he: {R.nat_eq(s, m) == c : Bool},
+  hs: {(R.nat_eq(s, a) || (R.nat_eq(s, b) || W.is_free_kind(W.kind_at(ks, s)))) == True{} : Bool},
+  hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}, hl: {W.below(p, R.arity(W.kind_at(ks, m))) == True{} : Bool}) -> {c == False{} : Bool}:
+  match c:
+    case True{}:
+      +h1 = slot_tr(s, m, ks, a, b, neq_eq(s, m, he), hs)
+      Empty.absurd({True{} == False{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, W.below(p, R.arity(W.kind_at(ks, m))), True{},
+        Equal.sym(Bool, W.below(p, R.arity(W.kind_at(ks, m))), False{}, free_arity(W.kind_at(ks, m), p,
+          or_res(R.nat_eq(m, b), W.is_free_kind(W.kind_at(ks, m)),
+            or_res(R.nat_eq(m, a), (R.nat_eq(m, b) || W.is_free_kind(W.kind_at(ks, m))), h1, Equal.trans(Bool, R.nat_eq(m, a), R.nat_eq(a, m), False{}, neq_comm(m, a), hma)),
+            Equal.trans(Bool, R.nat_eq(m, b), R.nat_eq(b, m), False{}, neq_comm(m, b), hmb)))), hl)))
+    case False{}:
+      {==}
+
+# a live port's node, not the pair's, is no slot of the placement
+def slot_not(ss: List<&2, Nat>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +m: Nat, +p: Nat, hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool},
+  +hma: {R.nat_eq(a, m) == False{} : Bool}, +hmb: {R.nat_eq(b, m) == False{} : Bool}, +hl: {W.below(p, R.arity(W.kind_at(ks, m))) == True{} : Bool}) ->
+  {W.nat_in(m, ss) == False{} : Bool}:
+  match ss:
+    case Nil{}:
+      {==}
+    case Con{+s, +t}:
+      +hok = hok
+      or_f(R.nat_eq(s, m), W.nat_in(m, t),
+        sn.go(R.nat_eq(s, m), s, ks, a, b, m, p, {==}, and_l((R.nat_eq(s, a) || (R.nat_eq(s, b) || W.is_free_kind(W.kind_at(ks, s)))), W.slots_ok(ks, a, b, t), hok), hma, hmb, hl),
+        slot_not(t, ks, a, b, m, p, and_r((R.nat_eq(s, a) || (R.nat_eq(s, b) || W.is_free_kind(W.kind_at(ks, s)))), W.slots_ok(ks, a, b, t), hok), hma, hmb, hl))
+
+def ka_past(ks: List<&2, R.NodeKind>, m: Nat, h: {W.below(m, List.length(&2, R.NodeKind, ks)) == False{} : Bool}) -> {W.kind_at(ks, m) == R.KFree{} : R.NodeKind}:
+  match ks m:
+    case Nil{} _:
+      {==}
+    case Con{k, t} 0n:
+      tf(h, {W.kind_at(Con{k, t}, 0n) == R.KFree{} : R.NodeKind})
+    case Con{k, t} 1n+q:
+      ka_past(t, q, h)
+
+def njl.go(c: Bool, +K: List<&2, R.NodeKind>, +j: Nat, +p: Nat, he: {W.below(j, List.length(&2, R.NodeKind, K)) == c : Bool},
+  hl: {W.below(p, R.arity(W.kind_at(K, j))) == True{} : Bool}) -> {c == True{} : Bool}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, W.below(p, R.arity(W.kind_at(K, j))), True{},
+        Equal.sym(Bool, W.below(p, R.arity(W.kind_at(K, j))), False{},
+          Equal.cong(R.NodeKind, Bool, (k => W.below(p, R.arity(k))), W.kind_at(K, j), R.KFree{}, ka_past(K, j, he))), hl)))
+
+# a New end the rule must link names a node it makes
+def new_j_lt(+xs: List<&2, R.Spec>, +j: Nat, +p: Nat, h: {R.end_mem(R.New{j, p}, R.new_ends(xs, 0n)) == True{} : Bool}) ->
+  {W.below(j, List.length(&2, R.NodeKind, W.kinds(xs))) == True{} : Bool}:
+  njl.go(W.below(j, List.length(&2, R.NodeKind, W.kinds(xs))), W.kinds(xs), j, p, {==}, new_live(xs, 0n, j, p, h))
+
+def bl_tr(+ss: List<&2, Nat>, +kx: List<&2, R.NodeKind>, +j: Nat, hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, kx) : Nat},
+  h: {W.below(j, List.length(&2, R.NodeKind, kx)) == True{} : Bool}) -> {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool}:
+  %Equal.sym(Nat, List.length(&2, Nat, ss), List.length(&2, R.NodeKind, kx), hlen) : {W.below(j, _) == True{} : Bool}
+  h
+
+def farp.one(y: R.End, +ss: List<&2, Nat>, +es: W.Peers, +xs: List<&2, R.Spec>, +m: Nat, +r: Nat, hy: {R.end_mem(y, R.new_ends(xs, 0n)) == True{} : Bool},
+  hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, hn: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {W.pt_eq(W.sigp(ss, es, y), W.Pt{m, r}) == False{} : Bool}:
+  match y:
+    case R.Ext{+i}:
+      Empty.absurd({W.pt_eq(W.sigp(ss, es, R.Ext{i}), W.Pt{m, r}) == False{} : Bool}, ne_tf(Equal.trans(Bool, True{}, R.end_mem(R.Ext{i}, R.new_ends(xs, 0n)), False{},
+        Equal.sym(Bool, R.end_mem(R.Ext{i}, R.new_ends(xs, 0n)), True{}, hy), new_no_ext(i, xs, 0n))))
+    case R.New{+j, +p}:
+      and_fl(R.nat_eq(W.nth(ss, j), m), R.nat_eq(p, r), nth_ne(ss, j, m, bl_tr(ss, W.kinds(xs), j, hlen, new_j_lt(xs, j, p, hy)), hn))
+
+# a live port off the pair and the slots is no new node's
+def farp(Y2: List<&2, R.End>, +ss: List<&2, Nat>, +es: W.Peers, +xs: List<&2, R.Spec>, +m: Nat, +r: Nat, h: {R.all_in(Y2, R.new_ends(xs, 0n)) == True{} : Bool},
+  +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {W.mem(W.Pt{m, r}, W.sigsp(ss, es, Y2)) == False{} : Bool}:
+  match Y2:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      +h = h
+      or_f(W.pt_eq(W.sigp(ss, es, y), W.Pt{m, r}), W.mem(W.Pt{m, r}, W.sigsp(ss, es, t)),
+        farp.one(y, ss, es, xs, m, r, and_l(R.end_mem(y, R.new_ends(xs, 0n)), R.all_in(t, R.new_ends(xs, 0n)), h), hlen, hn),
+        farp(t, ss, es, xs, m, r, and_r(R.end_mem(y, R.new_ends(xs, 0n)), R.all_in(t, R.new_ends(xs, 0n)), h), hlen, hn))
+
+def ends_linksp(+ss: List<&2, Nat>, +es: W.Peers, ls: List<&2, R.Link>) -> {W.ends(W.linksp(ss, es, ls)) == W.sigsp(ss, es, R.ends(ls)) : List<&2, W.Pt>}:
+  match ls:
+    case Nil{}:
+      {==}
+    case Con{R.Link{+x, +y}, +t}:
+      %Equal.sym(List<&2, W.Pt>, W.ends(W.linksp(ss, es, t)), W.sigsp(ss, es, R.ends(t)), ends_linksp(ss, es, t)) : {Con{W.sigp(ss, es, x), Con{W.sigp(ss, es, y), _}} == Con{W.sigp(ss, es, x), Con{W.sigp(ss, es, y), W.sigsp(ss, es, R.ends(t))}} : List<&2, W.Pt>}
+      {==}
+
+
+def sigs_appp(+ss: List<&2, Nat>, +es: W.Peers, A: List<&2, R.End>, +B: List<&2, R.End>) -> {W.sigsp(ss, es, List.append(&2, R.End, A, B)) == List.append(&2, W.Pt, W.sigsp(ss, es, A), W.sigsp(ss, es, B)) : List<&2, W.Pt>}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(List<&2, W.Pt>, W.sigsp(ss, es, List.append(&2, R.End, t, B)), List.append(&2, W.Pt, W.sigsp(ss, es, t), W.sigsp(ss, es, B)), sigs_appp(ss, es, t, B)) : {Con{W.sigp(ss, es, x), _} == Con{W.sigp(ss, es, x), List.append(&2, W.Pt, W.sigsp(ss, es, t), W.sigsp(ss, es, B))} : List<&2, W.Pt>}
+      {==}
+
+
+def msop.go(c: Bool, +ss: List<&2, Nat>, +es: W.Peers, +x: R.End, +y: R.End, +t: List<&2, R.End>, he: {R.end_eq(y, x) == c : Bool},
+  hm: {(c || R.end_mem(x, t)) == True{} : Bool},
+  ih: {R.end_mem(x, t) == True{} : Bool} -> {W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, t)) == True{} : Bool}) ->
+  {W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, Con{y, t})) == True{} : Bool}:
+  match c:
+    case True{}:
+      %end_eqv(y, x, he) : {W.mem(W.sigp(ss, es, _), W.sigsp(ss, es, Con{y, t})) == True{} : Bool}
+      or_l(W.pt_eq(W.sigp(ss, es, y), W.sigp(ss, es, y)), W.mem(W.sigp(ss, es, y), W.sigsp(ss, es, t)), pt_refl(W.sigp(ss, es, y)))
+    case False{}:
+      or_r(W.pt_eq(W.sigp(ss, es, y), W.sigp(ss, es, x)), W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, t)), ih(hm))
+
+# an end in Y lands among Y's placed ends
+
+# an end in Y lands among Y's placed ends
+def mem_sigs_ofp(+ss: List<&2, Nat>, +es: W.Peers, +x: R.End, Y: List<&2, R.End>, h: {R.end_mem(x, Y) == True{} : Bool}) -> {W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, Y)) == True{} : Bool}:
+  match Y:
+    case Nil{}:
+      ft(h, {W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, Nil{})) == True{} : Bool})
+    case Con{+y, +t}:
+      msop.go(R.end_eq(y, x), ss, es, x, y, t, {==}, h, h2 => mem_sigs_ofp(ss, es, x, t, h2))
+
+
+def subp.go(c: Bool, +ss: List<&2, Nat>, +es: W.Peers, +x: R.End, +t: List<&2, R.End>, +Y: List<&2, R.End>, +q: W.Pt, he: {W.pt_eq(W.sigp(ss, es, x), q) == c : Bool},
+  hx: {R.end_mem(x, Y) == True{} : Bool}, hm: {(c || W.mem(q, W.sigsp(ss, es, t))) == True{} : Bool},
+  ih: {W.mem(q, W.sigsp(ss, es, t)) == True{} : Bool} -> {W.mem(q, W.sigsp(ss, es, Y)) == True{} : Bool}) -> {W.mem(q, W.sigsp(ss, es, Y)) == True{} : Bool}:
+  match c:
+    case True{}:
+      %pt_eqv(W.sigp(ss, es, x), q, he) : {W.mem(_, W.sigsp(ss, es, Y)) == True{} : Bool}
+      mem_sigs_ofp(ss, es, x, Y, hx)
+    case False{}:
+      ih(hm)
+
+# X's ends all in Y: X's placed ends are among Y's
+
+# X's ends all in Y: X's placed ends are among Y's
+def sigs_subp(+ss: List<&2, Nat>, +es: W.Peers, X: List<&2, R.End>, +Y: List<&2, R.End>, h: {R.all_in(X, Y) == True{} : Bool}, +q: W.Pt,
+  hq: {W.mem(q, W.sigsp(ss, es, X)) == True{} : Bool}) -> {W.mem(q, W.sigsp(ss, es, Y)) == True{} : Bool}:
+  match X:
+    case Nil{}:
+      ft(hq, {W.mem(q, W.sigsp(ss, es, Y)) == True{} : Bool})
+    case Con{+x, +t}:
+      +h = h
+      subp.go(W.pt_eq(W.sigp(ss, es, x), q), ss, es, x, t, Y, q, {==}, and_l(R.end_mem(x, Y), R.all_in(t, Y), h), hq,
+        h2 => sigs_subp(ss, es, t, Y, and_r(R.end_mem(x, Y), R.all_in(t, Y), h), q, h2))
+
+# Ext ends only
+
+def injp.go(cx: Bool, cy: Bool, +ss: List<&2, Nat>, +es: W.Peers, +x: R.End, +y: R.End, +z: R.End, +t: List<&2, R.End>,
+  hex: {R.end_eq(z, x) == cx : Bool}, hey: {R.end_eq(z, y) == cy : Bool},
+  hmx: {(cx || R.end_mem(x, t)) == True{} : Bool}, hmy: {(cy || R.end_mem(y, t)) == True{} : Bool},
+  hz: {W.mem(W.sigp(ss, es, z), W.sigsp(ss, es, t)) == False{} : Bool}, hxy: {R.end_eq(x, y) == False{} : Bool},
+  ih: {R.end_mem(x, t) == True{} : Bool} -> {R.end_mem(y, t) == True{} : Bool} -> {W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == False{} : Bool}) ->
+  {W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == False{} : Bool}:
+  match cx cy:
+    case True{} True{}:
+      Empty.absurd({W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == False{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, R.end_eq(x, y), True{},
+        Equal.sym(Bool, R.end_eq(x, y), False{}, hxy),
+        eeq_true(x, y, Equal.trans(R.End, x, z, y, Equal.sym(R.End, z, x, end_eqv(z, x, hex)), end_eqv(z, y, hey))))))
+    case True{} False{}:
+      ij.c(W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)), W.sigp(ss, es, x), W.sigp(ss, es, y), W.sigp(ss, es, z), W.sigsp(ss, es, t), {==},
+        Equal.cong(R.End, W.Pt, (v => W.sigp(ss, es, v)), z, x, end_eqv(z, x, hex)), mem_sigs_ofp(ss, es, y, t, hmy), hz)
+    case False{} True{}:
+      ij.c2(W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)), W.sigp(ss, es, x), W.sigp(ss, es, y), W.sigp(ss, es, z), W.sigsp(ss, es, t), {==},
+        Equal.cong(R.End, W.Pt, (v => W.sigp(ss, es, v)), z, y, end_eqv(z, y, hey)), mem_sigs_ofp(ss, es, x, t, hmx), hz)
+    case False{} False{}:
+      ih(hmx)(hmy)
+
+# placed ends no two alike: distinct ends of the list land apart
+
+# placed ends no two alike: distinct ends of the list land apart
+def injp(Xs: List<&2, R.End>, +ss: List<&2, Nat>, +es: W.Peers, +x: R.End, +y: R.End, hn: {W.nodup(W.sigsp(ss, es, Xs)) == True{} : Bool},
+  hx: {R.end_mem(x, Xs) == True{} : Bool}, hy: {R.end_mem(y, Xs) == True{} : Bool}, +hxy: {R.end_eq(x, y) == False{} : Bool}) ->
+  {W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == False{} : Bool}:
+  match Xs:
+    case Nil{}:
+      ft(hx, {W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == False{} : Bool})
+    case Con{+z, +t}:
+      +hn = hn
+      injp.go(R.end_eq(z, x), R.end_eq(z, y), ss, es, x, y, z, t, {==}, {==}, hx, hy,
+        not_true(W.mem(W.sigp(ss, es, z), W.sigsp(ss, es, t)), and_l(Bool.not(W.mem(W.sigp(ss, es, z), W.sigsp(ss, es, t))), W.nodup(W.sigsp(ss, es, t)), hn)), hxy,
+        h1 => h2 => injp(t, ss, es, x, y, and_r(Bool.not(W.mem(W.sigp(ss, es, z), W.sigsp(ss, es, t))), W.nodup(W.sigsp(ss, es, t)), hn), h1, h2, hxy))
+
+
+# The rewrite, its new nodes placed
+# =================================
+
+def qd_nec(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.nodup(List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))) == True{} : Bool}:
+  nodup_r(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), nodup_r(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), hn))
+
+def qd_lec(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.all_live(ks, List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))) == True{} : Bool}:
+  live_r(ks, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), live_r(ks, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), hl))
+
+def qd_oa(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {all_out(List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), W.ports(a, R.arity(W.kind_at(ks, a)))) == True{} : Bool}:
+  out_snd(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), W.ports(a, R.arity(W.kind_at(ks, a))), out_sym(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), nodup_out(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), hn)))
+
+def qd_ob(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {all_out(List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), W.ports(b, R.arity(W.kind_at(ks, b)))) == True{} : Bool}:
+  out_sym(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), nodup_out(W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), nodup_r(W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), hn)))
+
+def qd_xl(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {R.all_in(Y, R.ends(ls)) == True{} : Bool}:
+  in_trans(Y, List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls), in_app_l(Y, R.new_ends(xs, 0n)), hall)
+
+def bl_back(+ss: List<&2, Nat>, +kx: List<&2, R.NodeKind>, +j: Nat, hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, kx) : Nat},
+  h: {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool}) -> {W.below(j, List.length(&2, R.NodeKind, kx)) == True{} : Bool}:
+  %hlen : {W.below(j, _) == True{} : Bool}
+  h
+
+# a live port off the pair's ports stays live
+def keepq.go(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +r: Nat, hl1: {W.below(r, R.arity(W.kind_at(ks, m))) == True{} : Bool},
+  hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}, hnm: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {W.below(r, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m))) == True{} : Bool}:
+  %Equal.sym(R.NodeKind, W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m), W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), pl_off(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), m, hnm)) : {W.below(r, R.arity(_)) == True{} : Bool}
+  %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), W.kind_at(W.set(ks, a, R.KFree{}), m), ka_ne(W.set(ks, a, R.KFree{}), b, R.KFree{}, m, hmb)) : {W.below(r, R.arity(_)) == True{} : Bool}
+  %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), m), W.kind_at(ks, m), ka_ne(ks, a, R.KFree{}, m, hma)) : {W.below(r, R.arity(_)) == True{} : Bool}
+  hl1
+
+def keepq(q: W.Pt, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hlq: {W.live(ks, q) == True{} : Bool}, hA: {W.mem(q, W.ports(a, R.arity(W.kind_at(ks, a)))) == False{} : Bool}, hB: {W.mem(q, W.ports(b, R.arity(W.kind_at(ks, b)))) == False{} : Bool}) ->
+  {W.live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), q) == True{} : Bool}:
+  match q:
+    case W.Pt{+m, +r}:
+      +hl1 = hlq
+      +hma = kl.ne(R.nat_eq(a, m), ks, a, m, r, {==}, hl1, hA)
+      +hmb = kl.ne(R.nat_eq(b, m), ks, b, m, r, {==}, hl1, hB)
+      keepq.go(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, r, hl1, hma, hmb, slot_not(ss, ks, a, b, m, r, hok, hma, hmb, hl1))
+
+# a new node's port is live, its kind its own
+def live_newq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, +p: Nat, +hj: {W.below(j, List.length(&2, R.NodeKind, W.kinds(xs))) == True{} : Bool}, hb: {W.below(p, R.arity(W.kind_at(W.kinds(xs), j))) == True{} : Bool}) ->
+  {W.live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.Pt{W.nth(ss, j), p}) == True{} : Bool}:
+  %Equal.sym(R.NodeKind, W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.nth(ss, j)), W.kind_at(W.kinds(xs), j), pl_at(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), j, hss, bl_tr(ss, W.kinds(xs), j, hlen, hj), hj)) : {W.below(p, R.arity(_)) == True{} : Bool}
+  hb
+
+# Reflection, placed
+def rfq.ext(cc: Bool, +i: Nat, +k: Nat, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, he: {R.nat_eq(i, k) == cc : Bool},
+  hx: {R.end_mem(R.Ext{i}, Y) == True{} : Bool}, hy: {R.end_mem(R.Ext{k}, Y) == True{} : Bool}) ->
+  {W.pt_eq(W.sigp(ss, es, R.Ext{i}), W.sigp(ss, es, R.Ext{k})) == cc : Bool}:
+  match cc:
+    case True{}:
+      %neq_eq(i, k, he) : {W.pt_eq(W.sigp(ss, es, R.Ext{i}), W.sigp(ss, es, R.Ext{_})) == True{} : Bool}
+      pt_refl(W.sigp(ss, es, R.Ext{i}))
+    case False{}:
+      injp(Y, ss, es, R.Ext{i}, R.Ext{k}, nodup_l(W.sigsp(ss, es, Y), W.ends(c), qd_nec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hx, hy, he)
+
+def q_vs_new(q: W.Pt, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, +p: Nat, hlq: {W.live(ks, q) == True{} : Bool}, hA: {W.mem(q, W.ports(a, R.arity(W.kind_at(ks, a)))) == False{} : Bool},
+  hB: {W.mem(q, W.ports(b, R.arity(W.kind_at(ks, b)))) == False{} : Bool}, hj: {W.below(j, List.length(&2, R.NodeKind, W.kinds(xs))) == True{} : Bool}) -> {W.pt_eq(q, W.Pt{W.nth(ss, j), p}) == False{} : Bool}:
+  match q:
+    case W.Pt{+m, +r}:
+      +hl1 = hlq
+      +hma = kl.ne(R.nat_eq(a, m), ks, a, m, r, {==}, hl1, hA)
+      +hmb = kl.ne(R.nat_eq(b, m), ks, b, m, r, {==}, hl1, hB)
+      and_fl(R.nat_eq(m, W.nth(ss, j)), R.nat_eq(r, p), Equal.trans(Bool, R.nat_eq(m, W.nth(ss, j)), R.nat_eq(W.nth(ss, j), m), False{}, neq_comm(m, W.nth(ss, j)),
+        nth_ne(ss, j, m, bl_tr(ss, W.kinds(xs), j, hlen, hj), slot_not(ss, ks, a, b, m, r, hok, hma, hmb, hl1))))
+
+def new_vs_q(q: W.Pt, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, +p: Nat, hlq: {W.live(ks, q) == True{} : Bool}, hA: {W.mem(q, W.ports(a, R.arity(W.kind_at(ks, a)))) == False{} : Bool},
+  hB: {W.mem(q, W.ports(b, R.arity(W.kind_at(ks, b)))) == False{} : Bool}, hj: {W.below(j, List.length(&2, R.NodeKind, W.kinds(xs))) == True{} : Bool}) -> {W.pt_eq(W.Pt{W.nth(ss, j), p}, q) == False{} : Bool}:
+  match q:
+    case W.Pt{+m, +r}:
+      +hl1 = hlq
+      +hma = kl.ne(R.nat_eq(a, m), ks, a, m, r, {==}, hl1, hA)
+      +hmb = kl.ne(R.nat_eq(b, m), ks, b, m, r, {==}, hl1, hB)
+      and_fl(R.nat_eq(W.nth(ss, j), m), R.nat_eq(p, r), nth_ne(ss, j, m, bl_tr(ss, W.kinds(xs), j, hlen, hj), slot_not(ss, ks, a, b, m, r, hok, hma, hmb, hl1)))
+
+def reflectq(x: R.End, y: R.End, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, hy: {R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
+  {W.pt_eq(W.sigp(ss, es, x), W.sigp(ss, es, y)) == R.end_eq(x, y) : Bool}:
+  match x y:
+    case R.Ext{+i} R.Ext{+k}:
+      rfq.ext(R.nat_eq(i, k), i, k, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, {==}, ext_in_Y(i, Y, xs, hx), ext_in_Y(k, Y, xs, hy))
+    case R.Ext{+i} R.New{+j, +p}:
+      +hq = mem_sigs_ofp(ss, es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hx))
+      q_vs_new(W.sigp(ss, es, R.Ext{i}), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, p, live_at(W.sigsp(ss, es, Y), ks, W.sigp(ss, es, R.Ext{i}), live_l(ks, W.sigsp(ss, es, Y), W.ends(c), qd_lec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(a, R.arity(W.kind_at(ks, a))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), qd_oa(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(b, R.arity(W.kind_at(ks, b))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), qd_ob(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        new_j_lt(xs, j, p, new_in_new_g(j, p, Y, xs, hY, hy)))
+    case R.New{+j, +p} R.Ext{+i}:
+      +hq = mem_sigs_ofp(ss, es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hy))
+      new_vs_q(W.sigp(ss, es, R.Ext{i}), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, p, live_at(W.sigsp(ss, es, Y), ks, W.sigp(ss, es, R.Ext{i}), live_l(ks, W.sigsp(ss, es, Y), W.ends(c), qd_lec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(a, R.arity(W.kind_at(ks, a))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), qd_oa(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(b, R.arity(W.kind_at(ks, b))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), qd_ob(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        new_j_lt(xs, j, p, new_in_new_g(j, p, Y, xs, hY, hx)))
+    case R.New{+j, +p} R.New{+j2, +p2}:
+      %Equal.sym(Bool, R.nat_eq(W.nth(ss, j), W.nth(ss, j2)), R.nat_eq(j, j2), nth_inj(ss, j, j2, hss,
+        bl_tr(ss, W.kinds(xs), j, hlen, new_j_lt(xs, j, p, new_in_new_g(j, p, Y, xs, hY, hx))),
+        bl_tr(ss, W.kinds(xs), j2, hlen, new_j_lt(xs, j2, p2, new_in_new_g(j2, p2, Y, xs, hY, hy))))) : {(_ && R.nat_eq(p, p2)) == (R.nat_eq(j, j2) && R.nat_eq(p, p2)) : Bool}
+      {==}
+
+def msiq(+x: R.End, t: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, ht: {R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
+  {W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, t)) == R.end_mem(x, t) : Bool}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+y, +r}:
+      +ht = ht
+      %Equal.sym(Bool, W.pt_eq(W.sigp(ss, es, y), W.sigp(ss, es, x)), R.end_eq(y, x), reflectq(y, x, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_l(R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(r, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), ht), hx)) : {(_ || W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, r))) == (R.end_eq(y, x) || R.end_mem(x, r)) : Bool}
+      %Equal.sym(Bool, W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, r)), R.end_mem(x, r), msiq(x, r, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, hx, and_r(R.end_mem(y, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(r, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), ht))) : {(R.end_eq(y, x) || _) == (R.end_eq(y, x) || R.end_mem(x, r)) : Bool}
+      {==}
+
+def nodup_sigsq(Xs: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hin2: {R.all_in(Xs, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, hd2: {R.ends_distinct(Xs) == True{} : Bool}) ->
+  {W.nodup(W.sigsp(ss, es, Xs)) == True{} : Bool}:
+  match Xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      +hin2 = hin2
+      +hd2 = hd2
+      %Equal.sym(Bool, W.mem(W.sigp(ss, es, x), W.sigsp(ss, es, t)), R.end_mem(x, t), msiq(x, t, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_l(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin2), and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin2))) : {(Bool.not(_) && W.nodup(W.sigsp(ss, es, t))) == True{} : Bool}
+      and_i(Bool.not(R.end_mem(x, t)), W.nodup(W.sigsp(ss, es, t)), and_l(Bool.not(R.end_mem(x, t)), R.ends_distinct(t), hd2),
+        nodup_sigsq(t, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), hin2), and_r(Bool.not(R.end_mem(x, t)), R.ends_distinct(t), hd2)))
+
+# Goal one: no port twice
+def not_in_vq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +r: Nat, hox: {W.mem(W.Pt{m, r}, W.sigsp(ss, es, Y)) == False{} : Bool}, hnm: {W.nat_in(m, ss) == False{} : Bool}) ->
+  {W.mem(W.Pt{m, r}, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))) == False{} : Bool}:
+  %Equal.sym(List<&2, W.Pt>, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.sigsp(ss, es, R.new_ends(xs, 0n))), sigs_appp(ss, es, Y, R.new_ends(xs, 0n))) : {W.mem(W.Pt{m, r}, _) == False{} : Bool}
+  mem_ff(W.Pt{m, r}, W.sigsp(ss, es, Y), W.sigsp(ss, es, R.new_ends(xs, 0n)), hox, farp(R.new_ends(xs, 0n), ss, es, xs, m, r, in_refl(R.new_ends(xs, 0n)), hlen, hnm))
+
+def cnq.x(x: W.Pt, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hlx: {W.live(ks, x) == True{} : Bool}, hox: {W.mem(x, W.sigsp(ss, es, Y)) == False{} : Bool},
+  hA: {W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a)))) == False{} : Bool}, hB: {W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b)))) == False{} : Bool}) -> {W.mem(x, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))) == False{} : Bool}:
+  match x:
+    case W.Pt{+m, +r}:
+      +hl1 = hlx
+      not_in_vq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, r, hox, slot_not(ss, ks, a, b, m, r, hok, kl.ne(R.nat_eq(a, m), ks, a, m, r, {==}, hl1, hA), kl.ne(R.nat_eq(b, m), ks, b, m, r, {==}, hl1, hB), hl1))
+
+def cnq.go(cm: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +x: W.Pt, he: {W.mem(x, W.sigsp(ss, es, R.ends(ls))) == cm : Bool}, hno: {W.mem(x, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))) == False{} : Bool}) -> {cm == False{} : Bool}:
+  match cm:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MNat.internal_false_ne_true(Equal.trans(Bool, False{}, W.mem(x, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))), True{},
+        Equal.sym(Bool, W.mem(x, W.sigsp(ss, es, List.append(&2, R.End, Y, R.new_ends(xs, 0n)))), False{}, hno), sigs_subp(ss, es, R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n)), hin, x, he))))
+    case False{}:
+      {==}
+
+def c_out_nq(C2: List<&2, W.Pt>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hl2: {W.all_live(ks, C2) == True{} : Bool}, ho: {all_out(C2, W.sigsp(ss, es, Y)) == True{} : Bool},
+  hoa: {all_out(C2, W.ports(a, R.arity(W.kind_at(ks, a)))) == True{} : Bool}, hob: {all_out(C2, W.ports(b, R.arity(W.kind_at(ks, b)))) == True{} : Bool}) -> {all_out(C2, W.sigsp(ss, es, R.ends(ls))) == True{} : Bool}:
+  match C2:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      +hl2 = hl2
+      +ho = ho
+      +hoa = hoa
+      +hob = hob
+      and_i(Bool.not(W.mem(x, W.sigsp(ss, es, R.ends(ls)))), all_out(t, W.sigsp(ss, es, R.ends(ls))),
+        not_false(W.mem(x, W.sigsp(ss, es, R.ends(ls))), cnq.go(W.mem(x, W.sigsp(ss, es, R.ends(ls))), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, x, {==},
+          cnq.x(x, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_l(W.live(ks, x), W.all_live(ks, t), hl2), not_true(W.mem(x, W.sigsp(ss, es, Y)), and_l(Bool.not(W.mem(x, W.sigsp(ss, es, Y))), all_out(t, W.sigsp(ss, es, Y)), ho)),
+            not_true(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a)))), and_l(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), hoa)), not_true(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b)))), and_l(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), hob))))),
+        c_out_nq(t, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_r(W.live(ks, x), W.all_live(ks, t), hl2), and_r(Bool.not(W.mem(x, W.sigsp(ss, es, Y))), all_out(t, W.sigsp(ss, es, Y)), ho),
+          and_r(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), hoa), and_r(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), hob)))
+
+def g_nodupq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.nodup(List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  +nec = qd_nec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)
+  nodup_cat(W.ends(c), W.sigsp(ss, es, R.ends(ls)), nodup_r(W.sigsp(ss, es, Y), W.ends(c), nec), nodup_sigsq(R.ends(ls), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, hin, hd),
+    c_out_nq(W.ends(c), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, live_r(ks, W.sigsp(ss, es, Y), W.ends(c), qd_lec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), out_sym(W.sigsp(ss, es, Y), W.ends(c), nodup_out(W.sigsp(ss, es, Y), W.ends(c), nec)),
+      out_snd(W.sigsp(ss, es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), qd_oa(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), out_snd(W.sigsp(ss, es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), qd_ob(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall))))
+
+# Goal two: every end live
+def live_cq(C2: List<&2, W.Pt>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hl2: {W.all_live(ks, C2) == True{} : Bool}, oa: {all_out(C2, W.ports(a, R.arity(W.kind_at(ks, a)))) == True{} : Bool}, ob: {all_out(C2, W.ports(b, R.arity(W.kind_at(ks, b)))) == True{} : Bool}) ->
+  {W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), C2) == True{} : Bool}:
+  match C2:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      +hl2 = hl2
+      +oa = oa
+      +ob = ob
+      and_i(W.live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), x), W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), t),
+        keepq(x, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_l(W.live(ks, x), W.all_live(ks, t), hl2), not_true(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a)))), and_l(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), oa)),
+          not_true(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b)))), and_l(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), ob))),
+        live_cq(t, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_r(W.live(ks, x), W.all_live(ks, t), hl2), and_r(Bool.not(W.mem(x, W.ports(a, R.arity(W.kind_at(ks, a))))), all_out(t, W.ports(a, R.arity(W.kind_at(ks, a)))), oa), and_r(Bool.not(W.mem(x, W.ports(b, R.arity(W.kind_at(ks, b))))), all_out(t, W.ports(b, R.arity(W.kind_at(ks, b)))), ob)))
+
+def live_oneq(x: R.End, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) -> {W.live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigp(ss, es, x)) == True{} : Bool}:
+  match x:
+    case R.Ext{+i}:
+      +hq = mem_sigs_ofp(ss, es, R.Ext{i}, Y, ext_in_Y(i, Y, xs, hx))
+      keepq(W.sigp(ss, es, R.Ext{i}), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, live_at(W.sigsp(ss, es, Y), ks, W.sigp(ss, es, R.Ext{i}), live_l(ks, W.sigsp(ss, es, Y), W.ends(c), qd_lec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(a, R.arity(W.kind_at(ks, a))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), qd_oa(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq),
+        out_at(W.sigsp(ss, es, Y), W.ports(b, R.arity(W.kind_at(ks, b))), W.sigp(ss, es, R.Ext{i}), out_fst(W.sigsp(ss, es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), qd_ob(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), hq))
+    case R.New{+j, +p}:
+      +hnn = new_in_new_g(j, p, Y, xs, hY, hx)
+      live_newq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, p, new_j_lt(xs, j, p, hnn), new_live(xs, 0n, j, p, hnn))
+
+def live_nq(Xs: List<&2, R.End>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, h: {R.all_in(Xs, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) -> {W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigsp(ss, es, Xs)) == True{} : Bool}:
+  match Xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      +h = h
+      and_i(W.live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigp(ss, es, x)), W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.sigsp(ss, es, t)),
+        live_oneq(x, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_l(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)), live_nq(t, ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)))
+
+def g_liveq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  live_cat(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.ends(c), W.sigsp(ss, es, R.ends(ls)), live_cq(W.ends(c), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, live_r(ks, W.sigsp(ss, es, Y), W.ends(c), qd_lec(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), out_snd(W.sigsp(ss, es, Y), W.ends(c), W.ports(a, R.arity(W.kind_at(ks, a))), qd_oa(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall)), out_snd(W.sigsp(ss, es, Y), W.ends(c), W.ports(b, R.arity(W.kind_at(ks, b))), qd_ob(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall))),
+    live_nq(R.ends(ls), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, hin))
+
+# Goal three: every live port present
+def port_trq.go(cE: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +q: W.Pt, he: {W.mem(q, W.sigsp(ss, es, Y)) == cE : Bool}, hm: {(cE || W.mem(q, W.ends(c))) == True{} : Bool}) -> {W.mem(q, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
   match cE:
     case True{}:
-      mem_ir(q, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), sigs_sub(List.length(&2, R.NodeKind, ks), es, Y, R.ends(ls), d_xl(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall), q, he))
+      mem_ir(q, W.ends(c), W.sigsp(ss, es, R.ends(ls)), sigs_subp(ss, es, Y, R.ends(ls), qd_xl(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall), q, he))
     case False{}:
-      mem_il(q, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), hm)
+      mem_il(q, W.ends(c), W.sigsp(ss, es, R.ends(ls)), hm)
 
-def port_tr(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +p: Nat, hm: {W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
-  {W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  +h2 = mem_res(W.Pt{m, p}, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)), mem_res(W.Pt{m, p}, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))), hm, ports_not(a, R.arity(W.kind_at(ks, a)), m, p, hma)), ports_not(b, R.arity(W.kind_at(ks, b)), m, p, hmb))
-  port_tr.go(W.mem(W.Pt{m, p}, W.sigs(List.length(&2, R.NodeKind, ks), es, Y)), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, W.Pt{m, p}, {==}, mem_or(W.Pt{m, p}, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c), h2))
+def port_trq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +p: Nat, hm: {W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
+  {W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  +h2 = mem_res(W.Pt{m, p}, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)), mem_res(W.Pt{m, p}, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))), hm, ports_not(a, R.arity(W.kind_at(ks, a)), m, p, hma)), ports_not(b, R.arity(W.kind_at(ks, b)), m, p, hmb))
+  port_trq.go(W.mem(W.Pt{m, p}, W.sigsp(ss, es, Y)), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, W.Pt{m, p}, {==}, mem_or(W.Pt{m, p}, W.sigsp(ss, es, Y), W.ends(c), h2))
 
-
-def transfer(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, kk: Nat, h: {W.ports_in(m, kk, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hma: {R.nat_eq(a, m) == False{} : Bool}, +hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
-  {W.ports_in(m, kk, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
+def transferq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, kk: Nat, h: {W.ports_in(m, kk, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hma: {R.nat_eq(a, m) == False{} : Bool}, +hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
+  {W.ports_in(m, kk, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
   match kk:
     case 0n:
       {==}
     case 1n++p:
       +h = h
-      and_i(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), W.ports_in(m, p, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), port_tr(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, p, and_l(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), W.ports_in(m, p, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), h), hma, hmb),
-        transfer(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, p, and_r(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), W.ports_in(m, p, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), h), hma, hmb))
+      and_i(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), W.ports_in(m, p, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), port_trq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, p, and_l(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), W.ports_in(m, p, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), h), hma, hmb),
+        transferq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, p, and_r(W.mem(W.Pt{m, p}, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), W.ports_in(m, p, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), h), hma, hmb))
 
-def cov_a.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {R.nat_eq(a, m) == cc : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}, hm0: {W.below(m, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) ->
-  {W.ports_in(m, R.arity(W.kind_at(W.set(ks, a, R.KFree{}), m)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
+def cq_old.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {W.below(m, List.length(&2, R.NodeKind, ks)) == cc : Bool}, hma: {R.nat_eq(a, m) == False{} : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
+  {W.ports_in(m, R.arity(W.kind_at(ks, m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
   match cc:
     case True{}:
-      %neq_eq(a, m, he) : {W.ports_in(m, R.arity(W.kind_at(W.set(ks, a, R.KFree{}), _)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), a), R.KFree{}, ka_free(ks, a)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
+      transferq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, R.arity(W.kind_at(ks, m)), cov_at(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)))), m, he, hc), hma, hmb)
+    case False{}:
+      %Equal.sym(R.NodeKind, W.kind_at(ks, m), R.KFree{}, ka_past(ks, m, he)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+      {==}
+
+def cq_a.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {R.nat_eq(a, m) == cc : Bool}, hmb: {R.nat_eq(b, m) == False{} : Bool}) ->
+  {W.ports_in(m, R.arity(W.kind_at(W.set(ks, a, R.KFree{}), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  match cc:
+    case True{}:
+      %neq_eq(a, m, he) : {W.ports_in(m, R.arity(W.kind_at(W.set(ks, a, R.KFree{}), _)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+      %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), a), R.KFree{}, ka_free(ks, a)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
       {==}
     case False{}:
       +he = he
-      %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), m), W.kind_at(ks, m), ka_ne(ks, a, R.KFree{}, m, he)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      transfer(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, R.arity(W.kind_at(ks, m)), cov_at(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)))), m, hm0, hc), he, hmb)
+      %Equal.sym(R.NodeKind, W.kind_at(W.set(ks, a, R.KFree{}), m), W.kind_at(ks, m), ka_ne(ks, a, R.KFree{}, m, he)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+      cq_old.go(W.below(m, List.length(&2, R.NodeKind, ks)), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, {==}, he, hmb)
 
-def cov_b.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {R.nat_eq(b, m) == cc : Bool}, hm0: {W.below(m, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) ->
-  {W.ports_in(m, R.arity(W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
+def cq_b.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {R.nat_eq(b, m) == cc : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
   match cc:
     case True{}:
-      %neq_eq(b, m, he) : {W.ports_in(m, R.arity(W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), _)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), b), R.KFree{}, ka_free(W.set(ks, a, R.KFree{}), b)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
+      %neq_eq(b, m, he) : {W.ports_in(m, R.arity(W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), _)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+      %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), b), R.KFree{}, ka_free(W.set(ks, a, R.KFree{}), b)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
       {==}
     case False{}:
       +he = he
-      %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), W.kind_at(W.set(ks, a, R.KFree{}), m), ka_ne(W.set(ks, a, R.KFree{}), b, R.KFree{}, m, he)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      cov_a.go(R.nat_eq(a, m), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, {==}, he, hm0)
+      %Equal.sym(R.NodeKind, W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), W.kind_at(W.set(ks, a, R.KFree{}), m), ka_ne(W.set(ks, a, R.KFree{}), b, R.KFree{}, m, he)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+      cq_a.go(R.nat_eq(a, m), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, {==}, he)
 
-def old_port(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +hm: {W.below(m, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}))) == True{} : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  %Equal.sym(R.NodeKind, W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m), W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), ka_lt(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), m, hm)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-  cov_b.go(R.nat_eq(b, m), ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, {==}, rng_back(ks, a, b, m, hm))
+def cq_off(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, hnm: {W.nat_in(m, ss) == False{} : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  %Equal.sym(R.NodeKind, W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m), W.kind_at(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), m), pl_off(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), m, hnm)) : {W.ports_in(m, R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+  cq_b.go(R.nat_eq(b, m), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, {==})
 
-def cov_old(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, n: Nat, hle: {W.below(n, 1n+List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}))) == True{} : Bool}) -> {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), n, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n++m:
-      +hle = hle
-      and_i(W.ports_in(m, R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), old_port(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, hle),
-        cov_old(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, m, below_succ(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), m, hle)))
+def new_memq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, +p: Nat, hb: {W.below(p, R.arity(W.kind_at(W.kinds(xs), j))) == True{} : Bool}) -> {W.mem(W.Pt{W.nth(ss, j), p}, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  mem_ir(W.Pt{W.nth(ss, j), p}, W.ends(c), W.sigsp(ss, es, R.ends(ls)), mem_sigs_ofp(ss, es, R.New{j, p}, R.ends(ls), in_at(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls), R.New{j, p}, hall,
+    emem_ir(R.New{j, p}, Y, R.new_ends(xs, 0n), new_in(xs, 0n, j, p, hb)))))
 
-def new_mem(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +r: Nat, +p: Nat, hb: {W.below(p, R.arity(W.kind_at(W.kinds(xs), r))) == True{} : Bool}) -> {W.mem(W.Pt{Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), p}, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  %Equal.sym(Nat, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), List.length(&2, R.NodeKind, ks), len_k1(ks, a, b)) : {W.mem(W.Pt{Nat.add(_, r), p}, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-  mem_ir(W.Pt{Nat.add(List.length(&2, R.NodeKind, ks), r), p}, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), mem_sigs_of(List.length(&2, R.NodeKind, ks), es, R.New{r, p}, R.ends(ls), in_at(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls), R.New{r, p}, hall,
-    emem_ir(R.New{r, p}, Y, R.new_ends(xs, 0n), new_in(xs, 0n, r, p, hb)))))
-
-def new_ports(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +r: Nat, kk: Nat, hk: {W.below(kk, 1n+R.arity(W.kind_at(W.kinds(xs), r))) == True{} : Bool}) -> {W.ports_in(Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), kk, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
+def cq_newp(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, kk: Nat, hk: {W.below(kk, 1n+R.arity(W.kind_at(W.kinds(xs), j))) == True{} : Bool}) -> {W.ports_in(W.nth(ss, j), kk, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
   match kk:
     case 0n:
       {==}
     case 1n++p:
       +hk = hk
-      and_i(W.mem(W.Pt{Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), p}, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), W.ports_in(Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), p, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), new_mem(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, r, p, hk),
-        new_ports(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, r, p, below_succ(R.arity(W.kind_at(W.kinds(xs), r)), p, hk)))
+      and_i(W.mem(W.Pt{W.nth(ss, j), p}, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), W.ports_in(W.nth(ss, j), p, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), new_memq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, p, hk),
+        cq_newp(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, p, below_succ(R.arity(W.kind_at(W.kinds(xs), j)), p, hk)))
 
-def new_all(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +r: Nat) -> {W.ports_in(Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r))), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  %Equal.sym(R.NodeKind, W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r)), W.kind_at(W.kinds(xs), r), ka_off(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), r)) : {W.ports_in(Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-  new_ports(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, r, R.arity(W.kind_at(W.kinds(xs), r)), below_self(R.arity(W.kind_at(W.kinds(xs), r))))
+def cq_onj(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +j: Nat, +hj: {W.below(j, List.length(&2, Nat, ss)) == True{} : Bool}) -> {W.ports_in(W.nth(ss, j), R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.nth(ss, j))), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  %Equal.sym(R.NodeKind, W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), W.nth(ss, j)), W.kind_at(W.kinds(xs), j), pl_at(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs), j, hss, hj, bl_back(ss, W.kinds(xs), j, hlen, hj))) : {W.ports_in(W.nth(ss, j), R.arity(_), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+  cq_newp(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, j, R.arity(W.kind_at(W.kinds(xs), j)), below_self(R.arity(W.kind_at(W.kinds(xs), j))))
 
-def cov_new(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, j: Nat) -> {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), j), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  match j:
+def cq_on(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, +hinm: {W.nat_in(m, ss) == True{} : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  %neq_eq(W.nth(ss, pos(ss, m)), m, pos_nth(ss, m, hinm)) : {W.ports_in(_, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}
+  cq_onj(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, pos(ss, m), pos_lt(ss, m, hinm))
+
+def cq_m.go(cc: Bool, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, +m: Nat, he: {W.nat_in(m, ss) == cc : Bool}) -> {W.ports_in(m, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  match cc:
+    case True{}:
+      cq_on(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, he)
+    case False{}:
+      cq_off(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, he)
+
+def cov_allq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}, n: Nat) -> {W.covered(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), n, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) == True{} : Bool}:
+  match n:
     case 0n:
-      %Equal.sym(Nat, Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), 0n), List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), add_zero(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})))) : {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      cov_old(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), below_self(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}))))
-    case 1n++r:
-      %Equal.sym(Nat, Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), 1n+r), 1n+Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), succ_add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r)) : {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-      and_i(W.ports_in(Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), R.arity(W.kind_at(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r))), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), r), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))),
-        new_all(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, r), cov_new(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, r))
+      {==}
+    case 1n++m:
+      and_i(W.ports_in(m, R.arity(W.kind_at(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), W.covered(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), m, List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), cq_m.go(W.nat_in(m, ss), ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m, {==}), cov_allq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, m))
 
-def g_cov(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}:
-  %Equal.sym(Nat, List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), Nat.add(List.length(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{})), List.length(&2, R.NodeKind, W.kinds(xs))), len_app(W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))) : {W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _, List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) == True{} : Bool}
-  cov_new(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall, List.length(&2, R.NodeKind, W.kinds(xs)))
+def rw.goq(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}, +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.wired(W.rp_kinds(ks, a, b, ss, xs), W.ends(W.rp_links(es, c, ss, ls))) == True{} : Bool}:
+  %Equal.sym(List<&2, W.Pt>, W.ends(List.append(&2, W.Ln, c, W.linksp(ss, es, ls))), List.append(&2, W.Pt, W.ends(c), W.ends(W.linksp(ss, es, ls))), ends_app(c, W.linksp(ss, es, ls))) : {W.wired(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _) == True{} : Bool}
+  %Equal.sym(List<&2, W.Pt>, W.ends(W.linksp(ss, es, ls)), W.sigsp(ss, es, R.ends(ls)), ends_linksp(ss, es, ls)) : {W.wired(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), _)) == True{} : Bool}
+  and_i(W.nodup(List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), (W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))) && W.covered(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.length(&2, R.NodeKind, W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls))))), g_nodupq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall),
+    and_i(W.all_live(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), W.covered(W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.length(&2, R.NodeKind, W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), List.append(&2, W.Pt, W.ends(c), W.sigsp(ss, es, R.ends(ls)))), g_liveq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall), cov_allq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen, hn, hl, hc, hd, hin, hall, List.length(&2, R.NodeKind, W.place(ss, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))))))
 
-# The rewrite keeps the net wired
-def rw.go(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hn: {W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hl: {W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hc: {W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}, +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) -> {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls))) == True{} : Bool}:
-  %Equal.sym(List<&2, W.Pt>, W.ends(List.append(&2, W.Ln, c, W.links(List.length(&2, R.NodeKind, ks), es, ls))), List.append(&2, W.Pt, W.ends(c), W.ends(W.links(List.length(&2, R.NodeKind, ks), es, ls))), ends_app(c, W.links(List.length(&2, R.NodeKind, ks), es, ls))) : {W.wired(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _) == True{} : Bool}
-  %Equal.sym(List<&2, W.Pt>, W.ends(W.links(List.length(&2, R.NodeKind, ks), es, ls)), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), ends_links(List.length(&2, R.NodeKind, ks), es, ls)) : {W.wired(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), _)) == True{} : Bool}
-  and_i(W.nodup(List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), (W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))) && W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls))))), g_nodup(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall),
-    and_i(W.all_live(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), W.covered(List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs))), List.append(&2, W.Pt, W.ends(c), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)))), g_live(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall), g_cov(ks, a, b, es, c, xs, ls, Y, hY, hn, hl, hc, hd, hin, hall)))
-
-# the rewrite keeps the net wired, its outside peers any Ext ends Y
-def wired_gen(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hw: {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool},
+# the rewrite, its new nodes in any distinct slots each the pair's own or
+# free, keeps the net wired
+def wired_place(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +ss: List<&2, Nat>, +hY: {all_ext(Y) == True{} : Bool}, +hss: {W.nodup_nat(ss) == True{} : Bool}, +hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool},
+  +hlen: {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}, +hw: {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) == True{} : Bool},
   +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) ->
-  {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls))) == True{} : Bool}:
-  rw.go(ks, a, b, es, c, xs, ls, Y, hY,
-    and_l(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)))))), hw),
-    and_l(W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), and_r(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)))))), hw)),
-    and_r(W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), and_r(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c)))))), hw)),
+  {W.wired(W.rp_kinds(ks, a, b, ss, xs), W.ends(W.rp_links(es, c, ss, ls))) == True{} : Bool}:
+  rw.goq(ks, a, b, es, c, xs, ls, Y, ss, hY, hss, hok, hlen,
+    and_l(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)))))), hw),
+    and_l(W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), and_r(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)))))), hw)),
+    and_r(W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), and_r(W.nodup(List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))), (W.all_live(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c))))) && W.covered(ks, List.length(&2, R.NodeKind, ks), List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(ss, es, Y), W.ends(c)))))), hw)),
     hd, hin, hall)
 
+
+# The appended placement
+# ======================
+
+def set_ext_end(K: List<&2, R.NodeKind>, +v: R.NodeKind) -> {W.set_ext(List.length(&2, R.NodeKind, K), K, v) == List.append(&2, R.NodeKind, K, [v]) : List<&2, R.NodeKind>}:
+  match K:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      %set_ext_end(t, v) : {Con{k, W.set_ext(List.length(&2, R.NodeKind, t), t, v)} == Con{k, _} : List<&2, R.NodeKind>}
+      {==}
+
+def kapp_assoc(A: List<&2, R.NodeKind>, +B: List<&2, R.NodeKind>, +C: List<&2, R.NodeKind>) ->
+  {List.append(&2, R.NodeKind, List.append(&2, R.NodeKind, A, B), C) == List.append(&2, R.NodeKind, A, List.append(&2, R.NodeKind, B, C)) : List<&2, R.NodeKind>}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %kapp_assoc(t, B, C) : {Con{x, List.append(&2, R.NodeKind, List.append(&2, R.NodeKind, t, B), C)} == Con{x, _} : List<&2, R.NodeKind>}
+      {==}
+
+def len_snoc(K: List<&2, R.NodeKind>, +v: R.NodeKind) -> {List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, K, [v])) == 1n+List.length(&2, R.NodeKind, K) : Nat}:
+  match K:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      %len_snoc(t, v) : {1n+List.length(&2, R.NodeKind, List.append(&2, R.NodeKind, t, [v])) == 1n+_ : Nat}
+      {==}
+
+def app_nil(K: List<&2, R.NodeKind>) -> {List.append(&2, R.NodeKind, K, Nil{}) == K : List<&2, R.NodeKind>}:
+  match K:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      %app_nil(t) : {Con{k, List.append(&2, R.NodeKind, t, Nil{})} == Con{k, _} : List<&2, R.NodeKind>}
+      {==}
+
+
+# placing kx at the slots past K's end appends it
+def place_range.go(kx: List<&2, R.NodeKind>, +K: List<&2, R.NodeKind>, +n0: Nat, e: {List.length(&2, R.NodeKind, K) == n0 : Nat}) ->
+  {W.place(W.range(List.length(&2, R.NodeKind, kx), n0), K, kx) == List.append(&2, R.NodeKind, K, kx) : List<&2, R.NodeKind>}:
+  match kx:
+    case Nil{}:
+      %Equal.sym(List<&2, R.NodeKind>, List.append(&2, R.NodeKind, K, Nil{}), K, app_nil(K)) : {W.place(Nil{}, K, Nil{}) == _ : List<&2, R.NodeKind>}
+      {==}
+    case Con{+k, +kt}:
+      +e = e
+      %e : {W.place(W.range(List.length(&2, R.NodeKind, kt), 1n+_), W.set_ext(_, K, k), kt) == List.append(&2, R.NodeKind, K, Con{k, kt}) : List<&2, R.NodeKind>}
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(List.length(&2, R.NodeKind, K), K, k), List.append(&2, R.NodeKind, K, [k]), set_ext_end(K, k)) : {W.place(W.range(List.length(&2, R.NodeKind, kt), 1n+List.length(&2, R.NodeKind, K)), _, kt) == List.append(&2, R.NodeKind, K, Con{k, kt}) : List<&2, R.NodeKind>}
+      %kapp_assoc(K, [k], kt) : {W.place(W.range(List.length(&2, R.NodeKind, kt), 1n+List.length(&2, R.NodeKind, K)), List.append(&2, R.NodeKind, K, [k]), kt) == _ : List<&2, R.NodeKind>}
+      place_range.go(kt, List.append(&2, R.NodeKind, K, [k]), 1n+List.length(&2, R.NodeKind, K), len_snoc(K, k))
+
+def nth_range(k: Nat, +n0: Nat, j: Nat, h: {W.below(j, k) == True{} : Bool}) -> {W.nth(W.range(k, n0), j) == Nat.add(n0, j) : Nat}:
+  match k j:
+    case 0n _:
+      ft(h, {W.nth(W.range(0n, n0), j) == Nat.add(n0, j) : Nat})
+    case 1n+r 0n:
+      %Equal.sym(Nat, Nat.add(n0, 0n), n0, add_zero(n0)) : {n0 == _ : Nat}
+      {==}
+    case 1n+r 1n++i:
+      %Equal.sym(Nat, Nat.add(n0, 1n+i), 1n+Nat.add(n0, i), succ_add(n0, i)) : {W.nth(W.range(r, 1n+n0), i) == _ : Nat}
+      nth_range(r, 1n+n0, i, h)
+
+def range_len(k: Nat, +n0: Nat) -> {List.length(&2, Nat, W.range(k, n0)) == k : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++r:
+      %Equal.sym(Nat, List.length(&2, Nat, W.range(r, 1n+n0)), r, range_len(r, 1n+n0)) : {1n+_ == 1n+r : Nat}
+      {==}
+
+# a slot of range k n0 is at least n0
+def range_ge(k: Nat, +n0: Nat, +m: Nat, h: {W.below(m, n0) == True{} : Bool}) -> {W.nat_in(m, W.range(k, n0)) == False{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++r:
+      +h = h
+      or_f(R.nat_eq(n0, m), W.nat_in(m, W.range(r, 1n+n0)), below_ne(n0, m, h), range_ge(r, 1n+n0, m, below_succ(n0, m, h)))
+
+def range_nodup(k: Nat, +n0: Nat) -> {W.nodup_nat(W.range(k, n0)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++r:
+      and_i(Bool.not(W.nat_in(n0, W.range(r, 1n+n0))), W.nodup_nat(W.range(r, 1n+n0)), not_false(W.nat_in(n0, W.range(r, 1n+n0)), range_ge(r, 1n+n0, n0, below_self(n0))), range_nodup(r, 1n+n0))
+
+def below_le_self(n: Nat) -> {W.below(n, n) == False{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+k:
+      below_le_self(k)
+
+def below_up(n: Nat, +m: Nat, h: {W.below(m, n) == False{} : Bool}) -> {W.below(1n+m, n) == False{} : Bool}:
+  match n m:
+    case 0n _:
+      {==}
+    case 1n+k 0n:
+      tf(h, {W.below(1n, 1n+k) == False{} : Bool})
+    case 1n+k 1n+q:
+      below_up(k, q, h)
+
+# the slots past ks's end are free
+def range_ok(k: Nat, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +n0: Nat, h: {W.below(n0, List.length(&2, R.NodeKind, ks)) == False{} : Bool}) ->
+  {W.slots_ok(ks, a, b, W.range(k, n0)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++r:
+      +h = h
+      and_i((R.nat_eq(n0, a) || (R.nat_eq(n0, b) || W.is_free_kind(W.kind_at(ks, n0)))), W.slots_ok(ks, a, b, W.range(r, 1n+n0)),
+        or_r(R.nat_eq(n0, a), (R.nat_eq(n0, b) || W.is_free_kind(W.kind_at(ks, n0))), or_r(R.nat_eq(n0, b), W.is_free_kind(W.kind_at(ks, n0)),
+          Equal.cong(R.NodeKind, Bool, W.is_free_kind, W.kind_at(ks, n0), R.KFree{}, ka_past(ks, n0, h)))),
+        range_ok(r, ks, a, b, 1n+n0, below_up(List.length(&2, R.NodeKind, ks), n0, h)))
+
+# an Ext end lands where its peer is, wherever new nodes are placed
+def sigs_ext(Y: List<&2, R.End>, +n0: Nat, +es: W.Peers, +ss: List<&2, Nat>, hY: {all_ext(Y) == True{} : Bool}) -> {W.sigs(n0, es, Y) == W.sigsp(ss, es, Y) : List<&2, W.Pt>}:
+  match Y:
+    case Nil{}:
+      {==}
+    case Con{R.Ext{+i}, +t}:
+      %sigs_ext(t, n0, es, ss, hY) : {Con{W.peer(i, es), W.sigs(n0, es, t)} == Con{W.peer(i, es), _} : List<&2, W.Pt>}
+      {==}
+    case Con{R.New{j, p}, t}:
+      ft(hY, {W.sigs(n0, es, Con{R.New{j, p}, t}) == W.sigsp(ss, es, Con{R.New{j, p}, t}) : List<&2, W.Pt>})
+
+# appended and placed by range, a must-link end lands alike
+def sig_range(x: R.End, +n0: Nat, +es: W.Peers, +xs: List<&2, R.Spec>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool},
+  hx: {R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
+  {W.sig(n0, es, x) == W.sigp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), n0), es, x) : W.Pt}:
+  match x:
+    case R.Ext{i}:
+      {==}
+    case R.New{+j, +p}:
+      %Equal.sym(Nat, W.nth(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), n0), j), Nat.add(n0, j),
+        nth_range(List.length(&2, R.NodeKind, W.kinds(xs)), n0, j, new_j_lt(xs, j, p, new_in_new_g(j, p, Y, xs, hY, hx)))) : {W.Pt{Nat.add(n0, j), p} == W.Pt{_, p} : W.Pt}
+      {==}
+
+def sigs_range(X: List<&2, R.End>, +n0: Nat, +es: W.Peers, +xs: List<&2, R.Spec>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool},
+  h: {R.all_in(X, List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}) ->
+  {W.sigs(n0, es, X) == W.sigsp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), n0), es, X) : List<&2, W.Pt>}:
+  match X:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      +h = h
+      %sig_range(x, n0, es, xs, Y, hY, and_l(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)) :
+        {Con{W.sig(n0, es, x), W.sigs(n0, es, t)} == Con{_, W.sigsp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), n0), es, t)} : List<&2, W.Pt>}
+      %sigs_range(t, n0, es, xs, Y, hY, and_r(R.end_mem(x, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), R.all_in(t, List.append(&2, R.End, Y, R.new_ends(xs, 0n))), h)) :
+        {Con{W.sig(n0, es, x), W.sigs(n0, es, t)} == Con{W.sig(n0, es, x), _} : List<&2, W.Pt>}
+      {==}
+
+def wa_hw(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, hw: {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool}) -> {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigsp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), es, Y), W.ends(c))))) == True{} : Bool}:
+  %sigs_ext(Y, List.length(&2, R.NodeKind, ks), es, W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), hY) : {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, _, W.ends(c))))) == True{} : Bool}
+  hw
+
+# rewrite_wired's appended nodes are one placement: range(k, n0), the
+# slots past the end
+def wired_app(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +Y: List<&2, R.End>, +hY: {all_ext(Y) == True{} : Bool}, +hw: {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, W.sigs(List.length(&2, R.NodeKind, ks), es, Y), W.ends(c))))) == True{} : Bool},
+  +hd: {R.ends_distinct(R.ends(ls)) == True{} : Bool}, +hin: {R.all_in(R.ends(ls), List.append(&2, R.End, Y, R.new_ends(xs, 0n))) == True{} : Bool}, +hall: {R.all_in(List.append(&2, R.End, Y, R.new_ends(xs, 0n)), R.ends(ls)) == True{} : Bool}) ->
+  {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls))) == True{} : Bool}:
+  %place_range.go(W.kinds(xs), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), List.length(&2, R.NodeKind, ks), len_k1(ks, a, b)) : {W.wired(_, W.ends(List.append(&2, W.Ln, c, W.links(List.length(&2, R.NodeKind, ks), es, ls)))) == True{} : Bool}
+  %Equal.sym(List<&2, W.Pt>, W.ends(List.append(&2, W.Ln, c, W.links(List.length(&2, R.NodeKind, ks), es, ls))), List.append(&2, W.Pt, W.ends(c), W.ends(W.links(List.length(&2, R.NodeKind, ks), es, ls))), ends_app(c, W.links(List.length(&2, R.NodeKind, ks), es, ls))) : {W.wired(W.place(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _) == True{} : Bool}
+  %Equal.sym(List<&2, W.Pt>, W.ends(W.links(List.length(&2, R.NodeKind, ks), es, ls)), W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), ends_links(List.length(&2, R.NodeKind, ks), es, ls)) : {W.wired(W.place(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), _)) == True{} : Bool}
+  %Equal.sym(List<&2, W.Pt>, W.sigs(List.length(&2, R.NodeKind, ks), es, R.ends(ls)), W.sigsp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), es, R.ends(ls)), sigs_range(R.ends(ls), List.length(&2, R.NodeKind, ks), es, xs, Y, hY, hin)) : {W.wired(W.place(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), _)) == True{} : Bool}
+  %ends_linksp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), es, ls) : {W.wired(W.place(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), List.append(&2, W.Pt, W.ends(c), _)) == True{} : Bool}
+  %ends_app(c, W.linksp(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), es, ls)) : {W.wired(W.place(W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.kinds(xs)), _) == True{} : Bool}
+  wired_place(ks, a, b, es, c, xs, ls, Y, W.range(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)), hY, range_nodup(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)),
+    range_ok(List.length(&2, R.NodeKind, W.kinds(xs)), ks, a, b, List.length(&2, R.NodeKind, ks), below_le_self(List.length(&2, R.NodeKind, ks))), range_len(List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.NodeKind, ks)),
+    wa_hw(ks, a, b, es, c, xs, ls, Y, hY, hw), hd, hin, hall)
 
 def oinot(x: Bool, y: Bool, h: {(x || Bool.not(y)) == True{} : Bool}, hy: {y == True{} : Bool}) -> {x == True{} : Bool}:
   match x:
@@ -3442,7 +3779,7 @@ def tr_all0(+ka: R.NodeKind, +kb: R.NodeKind, +xs: List<&2, R.Spec>, +L: List<&2
 # rewrite_wired: the peers all outside
 def rw_wired(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +hw: {W.wired(ks, W.fends(W.Foc{ks, a, b, es, c})) == True{} : Bool},
   +hr: {R.exact(W.kind_at(ks, a), W.kind_at(ks, b), R.RWire{xs, ls}) == True{} : Bool}) -> {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls))) == True{} : Bool}:
-  wired_gen(ks, a, b, es, c, xs, ls, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b)), tr_hw0(ks, a, b, es, c, xs, ls, hw),
+  wired_app(ks, a, b, es, c, xs, ls, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b)), tr_hw0(ks, a, b, es, c, xs, ls, hw),
     and_l(R.ends_distinct(R.ends(ls)), (R.all_in(R.ends(ls), R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs)) && R.all_in(R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs), R.ends(ls))), hr),
     tr_in0(W.kind_at(ks, a), W.kind_at(ks, b), xs, R.ends(ls), and_l(R.all_in(R.ends(ls), R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs)), R.all_in(R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs), R.ends(ls)), and_r(R.ends_distinct(R.ends(ls)), (R.all_in(R.ends(ls), R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs)) && R.all_in(R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs), R.ends(ls))), hr))),
     tr_all0(W.kind_at(ks, a), W.kind_at(ks, b), xs, R.ends(ls), and_r(R.all_in(R.ends(ls), R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs)), R.all_in(R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs), R.ends(ls)), and_r(R.ends_distinct(R.ends(ls)), (R.all_in(R.ends(ls), R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs)) && R.all_in(R.expected(W.kind_at(ks, a), W.kind_at(ks, b), xs), R.ends(ls))), hr))))
@@ -3459,7 +3796,7 @@ def wired_in(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List
   hc: {R.contract(p, ls) == Some{ls2} : Maybe<&2, List<&2, R.Link>>}, hr: {R.exact_in(W.kind_at(ks, a), W.kind_at(ks, b), p, R.RWire{xs, ls}) == True{} : Bool}) ->
   {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls2))) == True{} : Bool}:
   +he = ein(ks, a, b, es, c, xs, ls, p, ls2, hc, hr)
-  wired_gen(ks, a, b, es, c, xs, ls2, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), outer_ext(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b))), hw,
+  wired_app(ks, a, b, es, c, xs, ls2, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), outer_ext(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b))), hw,
     and_l(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he),
     and_l(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)),
     and_r(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)))
@@ -3696,3 +4033,33 @@ def Laws.rules_pairs_total(a, b, s):
 
 # by cases again: under every pattern, each rule a constant the checker
 # computes
+
+def len_kinds(xs: List<&2, R.Spec>) -> {List.length(&2, R.NodeKind, W.kinds(xs)) == List.length(&2, R.Spec, xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{R.Spec{k, s}, t}:
+      %len_kinds(t) : {1n+List.length(&2, R.NodeKind, W.kinds(t)) == 1n+_ : Nat}
+      {==}
+
+def len_tr(+ss: List<&2, Nat>, +xs: List<&2, R.Spec>, h: {List.length(&2, Nat, ss) == List.length(&2, R.Spec, xs) : Nat}) ->
+  {List.length(&2, Nat, ss) == List.length(&2, R.NodeKind, W.kinds(xs)) : Nat}:
+  Equal.trans(Nat, List.length(&2, Nat, ss), List.length(&2, R.Spec, xs), List.length(&2, R.NodeKind, W.kinds(xs)), h, Equal.sym(Nat, List.length(&2, R.NodeKind, W.kinds(xs)), List.length(&2, R.Spec, xs), len_kinds(xs)))
+
+def wp_hw(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: W.Peers, +c: List<&2, W.Ln>, +p: R.Pat, +ss: List<&2, Nat>,
+  hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}) ->
+  {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))),
+    List.append(&2, W.Pt, W.sigsp(ss, es, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)))), W.ends(c))))) == True{} : Bool}:
+  %sigs_ext(R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), List.length(&2, R.NodeKind, ks), es, ss,
+    outer_ext(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b)))) :
+    {W.wired(ks, List.append(&2, W.Pt, W.ports(a, R.arity(W.kind_at(ks, a))), List.append(&2, W.Pt, W.ports(b, R.arity(W.kind_at(ks, b))), List.append(&2, W.Pt, _, W.ends(c))))) == True{} : Bool}
+  hw
+
+def Laws.rewrite_placed_wired(ks, a, b, es, c, xs, ls, p, ls2, ss, hw, hc, hr, hss, hok, hlen):
+  +he = ein(ks, a, b, es, c, xs, ls, p, ls2, hc, hr)
+  wired_place(ks, a, b, es, c, xs, ls2, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), ss,
+    outer_ext(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b)), hy0(W.kind_at(ks, a), W.kind_at(ks, b))), hss, hok, len_tr(ss, xs, hlen), wp_hw(ks, a, b, es, c, p, ss, hw),
+    and_l(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he),
+    and_l(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)),
+    and_r(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)))
+

@@ -314,3 +314,29 @@ law rules_pairs_total:
   for +b: R.NodeKind
   for +s: Bool
   {R.total_pairs(a, b, R.rule(a, b, s)) == True{} : Bool}
+
+# LAW: wherever the new nodes go, the rewrite keeps a wired net wired, as
+# long as their slots are distinct and each is the pair's own or free: the
+# kernel's placement, the pair's two slots then the free list's
+# (kprim.bend's renode and alloc), among them, rewrite_pairs_wired's
+# appended nodes another (W.range).
+# Record: net-nodes-double
+law rewrite_placed_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +xs: List<&2, R.Spec>
+  for +ls: List<&2, R.Link>
+  for +p: R.Pat
+  for +ls2: List<&2, R.Link>
+  for +ss: List<&2, Nat>
+  for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
+  for hc: {R.contract(p, ls) == Some{ls2} : Maybe<&2, List<&2, R.Link>>}
+  for hr: {R.exact_in(W.kind_at(ks, a), W.kind_at(ks, b), p, R.RWire{xs, ls}) == True{} : Bool}
+  for hss: {W.nodup_nat(ss) == True{} : Bool}
+  for hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}
+  for hlen: {List.length(&2, Nat, ss) == List.length(&2, R.Spec, xs) : Nat}
+  {W.wired(W.rp_kinds(ks, a, b, ss, xs), W.ends(W.rp_links(es, c, ss, ls2))) == True{} : Bool}
+
