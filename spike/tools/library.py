@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The library of nets (pairing-library in docs/plans/NetPairing_2026-10-26.md):
 small nets kept for what they exercise, each run through the spike, the
-kernel's interpreted table and its generated rewrites, on demand, and by
-the profiling strategy. What must hold is checked; interactions are
+kernel's interpreted table and its generated rewrites, on demand, with
+two stacks, and by the profiling strategy. What must hold is checked; interactions are
 measurements, recorded in the analysis store when asked.
 
     library.py OUT [--update] [--store NOTE] [NAME...]
@@ -28,7 +28,9 @@ spike/library.txt holds the entries, separated by blank lines, each a few
 What must hold is one of
   VALUE logical L peels P    the value every strategy reaches, demand in
            no more interactions, and the logical interactions and peels
-           the profile counts (kstrat.bend's Profiling)
+           the profile counts (kstrat.bend's Profiling); the two-stack
+           strategy's interactions are measured, not checked, since
+           fusion's savings depend on order
   demand VALUE   the value demand reaches; the full reductions need not
            finish in the fuel, as where the value needs only part of the
            net
@@ -176,6 +178,7 @@ def one(+k: U32) -> String:
     " | ref " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), False{})) ++
     " | fast " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{})) ++
     " | lazy " ++ lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), [])) ++
+    " | two " ++ res_str(K.run_two(tpl_of(k), fuel_of(k, 0n), True{})) ++
     " | prof " ++ K.profile_t(tpl_of(k), fuel_of(k, 0n), True{})
 
 def all(n: Nat, +k: U32) -> String:
@@ -218,7 +221,7 @@ def program(cs, out):
 
 
 RES = r"(\S+) \((\d+), (\d+)\)(!?)"
-LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live"
+LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live \| two {RES}"
                   r" \| prof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs(.*)$")
 
 
@@ -229,9 +232,10 @@ class Run:
         self.fast = (g[8], int(g[9]), int(g[10]), g[11])
         self.lazy = (g[12], int(g[13]), int(g[14]), g[15])
         self.state, self.live = g[16], int(g[17])
-        self.prof = (g[18], int(g[19]), int(g[20]))
-        self.logical = None if g[21].startswith("past") else int(g[21])
-        self.peels, self.wide = int(g[22]), int(g[23])
+        self.two = (g[18], int(g[19]), int(g[20]), g[21])
+        self.prof = (g[22], int(g[23]), int(g[24]))
+        self.logical = None if g[25].startswith("past") else int(g[25])
+        self.peels, self.wide = int(g[26]), int(g[27])
 
 
 def check(c, r):
@@ -257,7 +261,8 @@ def check(c, r):
         want = m.group(1)
         if c.value is not None and want != str(c.value):
             bad.append(f"the library says {want}, the evaluator {c.value}")
-        for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("profile", r.prof)):
+        for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("two", r.two),
+                           ("profile", r.prof)):
             if res[0] != want and not (label == "profile" and res[0] == "no value" and want == "none"):
                 bad.append(f"{label} gives {res[0]}, not {want}")
         if r.logical != int(m.group(2)):
@@ -268,7 +273,8 @@ def check(c, r):
             bad.append(f"demand ends {r.state}")
         if r.lazy[1] > r.fast[1]:
             bad.append(f"demand makes {r.lazy[1]} interactions, the full reduction {r.fast[1]}")
-    for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("profile", r.prof)):
+    for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("two", r.two),
+                       ("profile", r.prof)):
         if res[2]:
             bad.append(f"{label} counts {res[2]} errors")
         if len(res) > 3 and res[3]:
@@ -289,7 +295,7 @@ def store(note, out, runs):
         for c, r in runs:
             f.write("\t".join(str(x) for x in (
                 c.entry, c.mode, int(not check(c, r)), r.fast[0], r.spike[1], r.fast[1], r.lazy[1],
-                "" if r.logical is None else r.logical, r.peels)) + "\n")
+                "" if r.logical is None else r.logical, r.peels, r.two[1])) + "\n")
     subprocess.run(R + ["library", run, rows], check=True)
     return run
 
@@ -350,7 +356,7 @@ def main(argv):
             print(f"FAIL {c.entry} {c.mode}: " + "; ".join(bad))
         else:
             print(f"ok   {c.entry} {c.mode}: {r.fast[0]} in {r.fast[1]} interactions, demand {r.lazy[1]},"
-                  f" logical {r.logical}{saved}, {r.peels} peels")
+                  f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels")
     if update:
         with open(LIBRARY, "w") as f:
             f.write("\n".join(lines))

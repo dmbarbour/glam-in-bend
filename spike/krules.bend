@@ -180,6 +180,29 @@ def test.k.e(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32)
 def test.e(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:
   test.k.e(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)
 
+# does A, negative principal, meeting B make more nodes than the two it
+# frees? (R.rule; the pairs a two-stack strategy defers)
+def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:
+  match ka kb:
+    case 2 4:
+      True{}
+    case 2 11:
+      True{}
+    case 3 1:
+      True{}
+    case 3 4:
+      Bool.not(P.same_lvl(ha, hb))
+    case 3 11:
+      True{}
+    case 9 4:
+      True{}
+    case 10 1:
+      True{}
+    case 10 4:
+      True{}
+    case _ _:
+      False{}
+
 def rw.Ap.Fn.yes(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H:
   P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2), e0), e1)
 

@@ -12,7 +12,7 @@ note. Results hang off runs:
   pair_counts  its interactions by pair of kinds, A's principal negative
   library  the library of nets (spike/tools/library.py --store), one row
            per entry and mode: whether its checks passed, its value, and
-           the interactions of the spike, the full reduction and demand
+           the interactions of the spike, the full reduction, demand and two stacks
   counts   instructions and interactions per build and workload
   metrics  any named number
 
@@ -72,7 +72,7 @@ create table if not exists pair_counts (
 create table if not exists library (
   run_id integer not null references runs(id), name text not null, mode text not null, ok integer,
   value text, spike_i integer, fast_i integer, lazy_i integer, logical integer, peels integer,
-  primary key (run_id, name, mode));
+  two_i integer, primary key (run_id, name, mode));
 """
 
 # one line of terms.py --kernel's output
@@ -171,9 +171,10 @@ def cmd_library(run, path):
     rows = []
     for line in open(path):
         f = line.rstrip("\n").split("\t")
-        rows.append((int(run), f[0], f[1], int(f[2]), f[3]) + tuple(None if x == "" else int(x) for x in f[4:9]))
+        rows.append((int(run), f[0], f[1], int(f[2]), f[3]) + tuple(None if x == "" else int(x) for x in f[4:10]))
     with db() as c:
-        c.executemany("insert or replace into library values (" + ",".join("?" * 10) + ")", rows)
+        c.executemany("insert or replace into library (run_id, name, mode, ok, value, spike_i, fast_i, lazy_i, logical,"
+                      " peels, two_i) values (" + ",".join("?" * 11) + ")", rows)
     print(len(rows), "library cases from", path)
 
 

@@ -1088,6 +1088,107 @@ def pop(e: E, +most: U32) -> Pop:
         case Stk{s}:
           pop.n(KM.m_get(s, 0), h, most)
 
+# The far end (heap-strategies.twostack): a two-stack strategy keeps the
+# pairs it defers from the array's last word down, their count in that
+# word itself; the stack above is its near end. Both ends fit before each
+# pop with room for the most pairs a rewrite makes and one pair moved;
+# doubling the array moves the far end to the new top.
+
+def far.n(r: KM.M & U32, +cap: U32, +x: U32) -> Stk:
+  (s, +hn) = r
+  Stk{KM.m_set(KM.m_set(s, ((cap - 2 : U32) - hn : U32), x), (cap - 1 : U32), (hn + 1 : U32))}
+
+def far.cap(r: KM.M & U32, +x: U32) -> Stk:
+  (s, +cap) = r
+  far.n(KM.m_get(s, (cap - 1 : U32)), cap, x)
+
+# x deferred: onto the far end
+def far_push(st: Stk, +x: U32) -> Stk:
+  match st:
+    case Stk{s}:
+      far.cap(KM.m_get(s, 1), x)
+
+# the next pair, the end it came from (0 none, 1 near, 2 far), and the
+# interactions made so far
+type Pop2 is Type:
+  Pop2{h: H, st: Stk, +x: U32, +y: U32, +src: U32, +k: U32}
+
+def p2.y(r: KM.M & U32, s: KM.M, a: Array<V.Val>, +x: U32, +src: U32, +k: U32) -> Pop2:
+  (w, +y) = r
+  Pop2{H{w, a}, Stk{s}, x, y, src, k}
+
+def p2.x(r: KM.M & U32, w: KM.M, a: Array<V.Val>, +src: U32, +k: U32) -> Pop2:
+  (s, +x) = r
+  p2.y(KM.m_get(w, (x + 1 : U32)), s, a, x, src, k)
+
+def p2.far(+hn: U32, h: H, s: KM.M, +cap: U32, +k: U32) -> Pop2:
+  match hn:
+    case 0:
+      Pop2{h, Stk{s}, 0, 0, 0, k}
+    case _:
+      match h:
+        case H{w, a}:
+          p2.x(KM.m_get(KM.m_set(s, (cap - 1 : U32), (hn - 1 : U32)), ((cap - 1 : U32) - hn : U32)), w, a, 2, k)
+
+def p2.pick(+n: U32, +hn: U32, h: H, s: KM.M, +cap: U32, +k: U32) -> Pop2:
+  match n:
+    case 0:
+      p2.far(hn, h, s, cap, k)
+    case _:
+      match h:
+        case H{w, a}:
+          p2.x(KM.m_get(KM.m_set(s, 0, (n - 1 : U32)), (n + 1 : U32)), w, a, 1, k)
+
+def rl.step(r: KM.M & U32, +to: U32) -> KM.M:
+  (s, +v) = r
+  KM.m_set(s, to, v)
+
+# j words from word `from` down copied to word `to` down
+def relocate(j: Nat, s: KM.M, +from: U32, +to: U32) -> KM.M:
+  match j:
+    case 0n:
+      s
+    case 1n+p:
+      relocate(p, rl.step(KM.m_get(s, from), to), (from - 1 : U32), (to - 1 : U32))
+
+def p2.grown(r: KM.M & U32, h: H, +n: U32, +hn: U32, +cap0: U32, +k: U32) -> Pop2:
+  (s, +cap) = r
+  p2.pick(n, hn, h, KM.m_set(relocate(U32.to_nat((hn + 1 : U32)), s, (cap0 - 1 : U32), (cap - 1 : U32)), 1, cap), cap, k)
+
+def p2.grow(full: Bool, h: H, s: KM.M, +n: U32, +hn: U32, +cap: U32, +k: U32) -> Pop2:
+  match full:
+    case True{}:
+      p2.grown(KM.m_ensure(s, (cap * 2 : U32), cap, rs_maxd()), h, n, hn, cap, k)
+    case False{}:
+      p2.pick(n, hn, h, s, cap, k)
+
+def p2.hn(r: KM.M & U32, h: H, +n: U32, +cap: U32, +most: U32, +k: U32) -> Pop2:
+  (s, +hn) = r
+  p2.grow(U32.is_lt(cap, (((n + hn : U32) + most : U32) + 4 : U32)), h, s, n, hn, cap, k)
+
+def p2.cap(r: KM.M & U32, h: H, +n: U32, +most: U32, +k: U32) -> Pop2:
+  (s, +cap) = r
+  p2.hn(KM.m_get(s, (cap - 1 : U32)), h, n, cap, most, k)
+
+def p2.n(r: KM.M & U32, h: H, +most: U32, +k: U32) -> Pop2:
+  (s, +n) = r
+  p2.cap(KM.m_get(s, 1), h, n, most, k)
+
+# the near end's newest pair, else the far end's, the array grown first
+# unless both ends fit with room for most more pairs
+def pop2(e: E, +most: U32, +k: U32) -> Pop2:
+  match e:
+    case E{h, st}:
+      match st:
+        case Stk{s}:
+          p2.n(KM.m_get(s, 0), h, most, k)
+
+# a two-stack run's end: the net, its interactions counted
+def unpop2(q: Pop2) -> H:
+  match q:
+    case Pop2{h, st, +x, +y, +src, +k}:
+      count(h, k)
+
 # a run's end: the net, the stack let go
 def unpop(pp: Pop) -> H:
   match pp:

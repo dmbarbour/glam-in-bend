@@ -86,6 +86,84 @@ def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
 def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
   reduce.st(P.stats(h), fuel, fast)
 
+# Two stacks
+# ==========
+
+# Eager, the pairs whose rewrite grows the net put off (heap-strategies.
+# twostack): pairs are noted at the near end of the stack's array as the
+# eager strategy notes them, and sorted as popped: one that grows (KR.grows,
+# from the rule table) moves to the far end, the rest interact, and the
+# far end is drained only when the near is empty. Erasures, annihilations
+# and their cascades so run before anything is copied. A pair moves once
+# at most, so the run takes twice its fuel in steps.
+
+def two.ori(neg: Bool, +hx: U32, +hy: U32) -> Bool:
+  match neg:
+    case True{}:
+      KR.grows(P.rk(hx), P.rk(hy), hx, hy)
+    case False{}:
+      KR.grows(P.rk(hy), P.rk(hx), hy, hx)
+
+def two.hy(r: P.H & U32, +hx: U32) -> P.H & Bool:
+  (h, +hy) = r
+  (h, two.ori(KR.kind_neg(P.rk(hx)), hx, hy))
+
+def two.hx(r: P.H & U32, +y: U32) -> P.H & Bool:
+  (h, +hx) = r
+  two.hy(P.rd(h, y), hx)
+
+# would the pair x - y grow the net?
+def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
+  two.hx(P.rd(h, x), y)
+
+# the pair x - y reduced, unless the fuel's interactions are made: then the
+# run ends with the pair left
+def two.int(more: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32) -> P.Pop2:
+  match more:
+    case True{}:
+      P.pop2(KN.interact.e(h, st, fast, x, y), KR.most_pairs(), (k + 1 : U32))
+    case False{}:
+      P.Pop2{h, st, x, y, 0, k}
+
+def two.go(g: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
+  match g:
+    case True{}:
+      P.pop2(P.E{h, P.far_push(st, x)}, KR.most_pairs(), k)
+    case False{}:
+      two.int(U32.is_lt(k, lim), h, st, fast, x, y, k)
+
+# a pair from the near end: deferred if it grows, else reduced
+def two.near(r: P.H & Bool, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
+  (h, +g) = r
+  two.go(g, h, st, fast, x, y, k, lim)
+
+# lim interactions at most, in n steps
+def run2(n: Nat, +fast: Bool, +lim: U32, q: P.Pop2) -> P.H:
+  match n:
+    case 0n:
+      P.unpop2(q)
+    case 1n+p:
+      match q:
+        case P.Pop2{h, st, +x, +y, +src, +k}:
+          match src:
+            case 0:
+              P.count(h, k)
+            case 1:
+              run2(p, fast, lim, two.near(two.grows(h, x, y), st, fast, x, y, k, lim))
+            case _:
+              run2(p, fast, lim, two.int(U32.is_lt(k, lim), h, st, fast, x, y, k))
+
+def reduce2.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      run2(Nat.mul(fuel, 2n), fast, U32.from_nat(fuel), P.pop2(scan(U32.to_nat((cap - P.first() : U32)), P.iface(),
+        P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs(), 0))
+
+# reduce_h with two stacks: at most fuel interactions
+def reduce2_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
+  reduce2.st(P.stats(h), fuel, fast)
+
 # Profiling
 # =========
 

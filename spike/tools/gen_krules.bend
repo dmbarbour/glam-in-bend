@@ -643,6 +643,67 @@ def tests(+e: Bool) -> String:
   "def test" ++ sfx(e) ++ "(h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:\n" ++
   "  test.k" ++ sfx(e) ++ "(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb)\n\n"
 
+# Growth: does a rule make more nodes than the two it frees? The pairs a
+# two-stack strategy defers (heap-strategies.twostack). Where the two
+# variants differ, the payload test on the headers alone decides, true
+# for the variant that does not grow.
+def grows_r(r: R.Rule) -> Bool:
+  match r:
+    case R.RWire{xs, ls}:
+      Nat.is_lt(2n, List.length(&2, R.Spec, xs))
+    case R.RStuck{}:
+      False{}
+
+def grow_test(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  match a b:
+    case R.KCopy{} R.KMerge{}:
+      "P.same_lvl(ha, hb)"
+    case _ _:
+      ""
+
+def grow_tested(none: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match none:
+    case True{}:
+      "missing_growth_test_" ++ kname(a) ++ "_" ++ kname(b)
+    case False{}:
+      x
+
+def grow_expr(+gy: Bool, +gn: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match gy gn:
+    case True{} True{}:
+      "True{}"
+    case False{} False{}:
+      ""
+    case False{} True{}:
+      "Bool.not(" ++ grow_tested(String.eq(grow_test(a, b), ""), grow_test(a, b), a, b) ++ ")"
+    case True{} False{}:
+      grow_tested(String.eq(grow_test(a, b), ""), grow_test(a, b), a, b)
+
+def grow_case.e(none: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match none:
+    case True{}:
+      ""
+    case False{}:
+      "    case " ++ code(a) ++ " " ++ code(b) ++ ":\n      " ++ x ++ "\n"
+
+def grow_case(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  grow_case.e(String.eq(grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), ""),
+    grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), a, b)
+
+def grows_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      grow_case(a, b) ++ grows_b(t, a)
+
+def grows_a(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      grows_b(kinds(), a) ++ grows_a(t)
+
 def max.go(lt: Bool, +a: Nat, +b: Nat) -> Nat:
   match lt:
     case True{}:
@@ -756,6 +817,10 @@ def file() -> String:
   "# chain 5% to 12% (heap-strategies.stack). A Lift facing a LiftC is tested\n" ++
   "# after peeling instead (P.peel_ctl).\n" ++
   tests(False{}) ++ tests(True{}) ++
+  "# does A, negative principal, meeting B make more nodes than the two it\n" ++
+  "# frees? (R.rule; the pairs a two-stack strategy defers)\n" ++
+  "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  match ka kb:\n" ++ grows_a(kinds()) ++
+  "    case _ _:\n      False{}\n\n" ++
   over_a(False{}, kinds(), True{}) ++
   over_a(True{}, kinds(), True{}) ++
   "# the rewrite for A, negative principal, meeting B; t is the payload test\n" ++

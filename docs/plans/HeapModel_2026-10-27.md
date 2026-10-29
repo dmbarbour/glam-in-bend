@@ -519,6 +519,24 @@ takes from it:
      is the net's peak size, and locality. To measure: instructions and
      peak capacity against the one stack, on families at n, 2n, 4n and
      the library.
+     - `heap-strategies.twostack.first` — built 2026-10-29 — `kernel K
+       W two` and `K.run_two`; the stack's far end grows down from the
+       array's last word, its count there (`P.far_push`, `P.pop2`).
+       The library runs every case with it: the same values, no errors,
+       interactions within fusion's order effects (0% to +4.8%). On
+       `succ`, `fma` and `lvl` at k 14, 16 and 18 (store run 54) the
+       peak capacity halves at every size, 16,384 nodes against 32,768
+       at k 14, the interactions the same (`lvl` 0.02% to 0.2% more);
+       but instructions rise 19% to 28%, about 220 an interaction on
+       `succ`: every pop reads both ends' counts, every pair is sorted
+       by two header reads as it is popped, and each pair that grows is
+       popped twice. Cheaper: sort pairs as they are noted, the
+       generator knowing a new node's kind and reading only an external
+       peer's header; read the far end's count only when the near end
+       is empty. Copy meeting data keeps the node count and so does not
+       grow, the data table not counted (the maintainer, 2026-10-29:
+       either that, or growth where the data is a table entry, which
+       the data node's header tells).
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

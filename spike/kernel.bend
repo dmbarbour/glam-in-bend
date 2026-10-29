@@ -10,7 +10,7 @@ import ./kstrat.bend as KS
 # reduced fully by the eager strategy or on demand (kstrat.bend), over the
 # net of knet.bend.
 #
-#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile]
+#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two]
 #       reduce `k 2 succ 0` (2^k) built without levels; with plus
 #       `k 2 (plus 1) 0`, adding by a partial application in a node; with
 #       fma `k 2 (fma 1 1) 0`, by one in the data table; with lvl
@@ -20,7 +20,8 @@ import ./kstrat.bend as KS
 #       ref, by the interpreted table alone; with lazy, on demand (see
 #       kstrat.bend's Demand), the state it ends in and the nodes left;
 #       with profile, by the profiling strategy (kstrat.bend's Profiling),
-#       the logical interactions, peels and interactions by pair of kinds
+#       the logical interactions, peels and interactions by pair of kinds;
+#       with two, by the two-stack strategy (kstrat.bend's Two stacks)
 
 # the value at the root, interactions, errors, and whether the table's live
 # entries match the nodes holding them
@@ -54,6 +55,10 @@ def kres(r: P.H & Maybe<&2, V.Val>) -> KRes:
 # reduce t as reduce does, the result as data
 def run_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
   kres(KN.result(KS.reduce_h(fuel, fast, KN.load(t))))
+
+# reduce t by the two-stack strategy, the result as data
+def run_two(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
+  kres(KN.result(KS.reduce2_h(fuel, fast, KN.load(t))))
 
 # reduce t for at most fuel interactions, by the generated rewrites if
 # fast, else by the interpreted table: value and counts
@@ -198,13 +203,16 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
     case _:
       X.t_pow(k, 2)
 
-# reduce the workload fully (how 0), on demand (1) or profiled (2)
+# reduce the workload fully (how 0), on demand (1), profiled (2) or with
+# two stacks (4)
 def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
   match how:
     case 1:
       dres_str(run_d(t, 268435456n, Nil{}))
     case 2:
       profile_t(t, 268435456n, fast)
+    case 4:
+      KN.report(KN.result(KS.reduce2_h(268435456n, fast, KN.load(t))))
     case _:
       reduce(t, 268435456n, fast)
 
@@ -239,7 +247,7 @@ def mode_of(ms: List<&2, Md>, +m: String) -> Maybe<&2, Md>:
       mode_of.hit(String.eq(name, m), Md{name, w, fast}, mode_of(t, m))
 
 def usage() -> String:
-  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile]"
+  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two]"
 
 def main.mode(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
   match md:
@@ -248,20 +256,28 @@ def main.mode(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
     case None{}:
       IO.print(usage())
 
-def how.p(+profile: Bool) -> U32:
+def how.t(+two: Bool) -> U32:
+  match two:
+    case True{}:
+      4
+    case False{}:
+      3
+
+def how.p(+profile: Bool, +two: Bool) -> U32:
   match profile:
     case True{}:
       2
     case False{}:
-      3
+      how.t(two)
 
-# the strategy a third argument names: lazy 1, profile 2, else 3 (none)
-def how_of(+lazy: Bool, +profile: Bool) -> U32:
+# the strategy a third argument names: lazy 1, profile 2, two 4, else 3
+# (none)
+def how_of(+lazy: Bool, +profile: Bool, +two: Bool) -> U32:
   match lazy:
     case True{}:
       1
     case False{}:
-      how.p(profile)
+      how.p(profile, two)
 
 def main.how(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
   match how:
@@ -279,7 +295,7 @@ def main.rest(+k: U32, xs: List<String>) -> IO(Unit):
         case Nil{}:
           main.mode(mode_of(modes(), m), k, 0)
         case Con{+l, r2}:
-          main.how(mode_of(modes(), m), k, how_of(String.eq(l, "lazy"), String.eq(l, "profile")))
+          main.how(mode_of(modes(), m), k, how_of(String.eq(l, "lazy"), String.eq(l, "profile"), String.eq(l, "two")))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
