@@ -121,6 +121,41 @@ fuel: 100000
 levels: demand 0
 unfused: demand 0
 
+# Backtracking with two continuations (terms.py's ret, fail, alt, bind,
+# guard, once): a first solution drops the failure continuation, every
+# alternative not tried, which demand leaves as garbage
+
+name: search-first
+why: the first x in 0..7 with x + x = 6, the rest of the search dropped
+term: first (bind (upto #8) (\x. guard (eq (add x x) #6) (ret x))) #0 succ 0
+levels: 3 logical 71142 peels 0
+labels: 3 logical 13306 peels 0
+unfused: 3 logical 178892 peels 0
+
+name: search-pairs
+why: the first x, y in 0..5 with x + y = 5, nested choices, the inner
+  search dropped with the outer
+term: first (bind (upto #6) (\x. bind (upto #6) (\y. guard (eq (add x y) #5) (ret (add (mul x #3) y))))) #0 succ 0
+levels: 5 logical 131068 peels 0
+labels: 5 logical 24719 peels 0
+unfused: 5 logical 384166 peels 0
+
+name: search-once
+why: a cut (once) commits to the first x = 3 in 0..4 and computes on with
+  it, the alternatives dropped mid-program
+term: first (bind (once (bind (upto #5) (\x. guard (eq x #3) (ret x)))) (\x. ret (mul x x))) #0 succ 0
+levels: 9 logical 11217 peels 0
+labels: 9 logical 2707 peels 0
+unfused: 9 logical 32289 peels 0
+
+name: search-count
+why: every x, y in 0..5 with x + y = 5 counted: nothing dropped, the
+  search's whole cost
+term: count (bind (upto #6) (\x. bind (upto #6) (\y. guard (eq (add x y) #5) (ret x)))) succ 0
+levels: 6 logical 120330 peels 0
+labels: 6 logical 23561 peels 0
+unfused: 6 logical 332058 peels 0
+
 # Families at n, 2n and 4n, for fitting cost to a + b n^k
 
 name: pow-2-3

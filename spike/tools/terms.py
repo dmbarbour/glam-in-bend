@@ -54,6 +54,26 @@ PRELUDE = {
     "pair": r"\a b k. k a b",
     "fst": r"\p. p (\x y. x)",
     "snd": r"\p. p (\x y. y)",
+    # Church booleans and the arithmetic a search tests with
+    "T": r"\a b. a",
+    "F": r"\a b. b",
+    "and": r"\p q. p q p",
+    "S": r"\n f x. f (n f x)",
+    "iszero": r"\n. n (\x. F) T",
+    "pred": r"\n f x. n (\g h. h (g f)) (\u. x) (\u. u)",
+    "sub": r"\m n. n pred m",
+    "eq": r"\m n. and (iszero (sub m n)) (iszero (sub n m))",
+    # Backtracking, two continuations: success sk x fk, failure fk. A first
+    # solution drops the failure continuation, the alternatives not tried.
+    "ret": r"\x sk fk. sk x fk",
+    "fail": r"\sk fk. fk",
+    "alt": r"\m1 m2 sk fk. m1 sk (m2 sk fk)",
+    "bind": r"\m f sk fk. m (\x fk2. f x sk fk2) fk",
+    "guard": r"\b m. b m fail",
+    "once": r"\m sk fk. m (\x fk2. sk x fk) fk",
+    "upto": r"\k. k (\acc i. alt (ret i) (acc (S i))) (\i. fail) #0",
+    "first": r"\m d. m (\x fk. x) d",
+    "count": r"\m. m (\x fk. S fk) #0",
 }
 
 TOKEN = re.compile(r"\s*(?:(\\)|(\.)|(\()|(\))|#(\d+)|(\d+)|([A-Za-z_][A-Za-z0-9_']*))")

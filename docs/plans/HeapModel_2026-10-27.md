@@ -614,8 +614,23 @@ takes from it:
        capacity, doubling unless half or even a quarter was freed:
        wherever the net fills, three quarters of it or more is still
        reached. The garbage comes as a computation collapses at its
-       end, so the sweep's place is a finished net, before it is
-       frozen or kept (`heap-freeze`), not a running one.
+       end. A frozen net needs no sweep (the maintainer, 2026-10-29):
+       freezing walks from the interface to write the compact form, so
+       it copies only what is reached.
+     - `heap-strategies.cascade.combined` — built 2026-10-29 on branch
+       `heap-collect` (af51729), not merged: the non-growing pairs
+       first, cutting more off the interface (the maintainer:
+       structure held only by unreached erasers), then the sweep, the
+       net doubling unless pairs and nodes swept pass half its
+       capacity. It reclaims more than either alone (`costly-124` with
+       levels ends with 1,112 live nodes, against 2,263 and 2,228) and,
+       at half, changes no capacity. Doubling unless an eighth was
+       collected, three capacities halve: `costly-124` with levels and
+       `search-pairs` with labels and unit brackets; the others do not
+       move. Garbage at a growth point is real but between an eighth
+       and a half of the net on this library; a library of programs
+       that drop more as they run (`pairing-library.programs`) should
+       decide the threshold.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

@@ -316,10 +316,17 @@ derivation made here first.
      interactions, demand far cheaper. Then the same over a simplified
      subset of glam's own net construction (`pairing-nets`: copy, data,
      bind, wire).
-   - `pairing-library.programs` — tentative — families from small
-     programs nearer glam's own, Church-encoded (the maintainer,
-     2026-10-28): a list monad, a state monad with alternation and cut
-     for backtracking, mixin object models.
+   - `pairing-library.programs` — active — families from small programs
+     nearer glam's own, Church-encoded (the maintainer, 2026-10-28): a
+     list monad, a state monad with alternation and cut for
+     backtracking, mixin object models. First, 2026-10-29: a
+     two-continuation backtracking monad in `terms.py`'s prelude (`ret`,
+     `fail`, `alt`, `bind`, `guard`, `once`, `upto`, `first`, `count`,
+     over Church booleans and `pred`, `sub`, `eq`), and four searches
+     in the library, three of which drop their untried alternatives:
+     demand does a sixth of the full reduction's work on
+     `search-first` and leaves the rest as garbage. 24 entries, 56
+     cases.
 10. `pairing-nets` — levels for nets not built from lambda terms: every
    term lowers to a net, but not every net is a term's, and the
    maintainer's earlier discussion generalized through polarity. Settle
