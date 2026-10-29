@@ -370,7 +370,11 @@ takes from it:
          without audits: demand reports as the full reduction does, not
          through the tests' results with their audits and reachability
          walk, which its counts had included since
-         `heap-strategies.net.freelist`.
+         `heap-strategies.net.freelist`. Against 6223582, four builds at
+         k 18 (store runs 60, 61): demand 4.1% to 9.3% fewer instructions;
+         the full reductions the same within 260 instructions as built,
+         -3.8% to +0.8% profile-guided, whose training runs take the new
+         demand path.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
