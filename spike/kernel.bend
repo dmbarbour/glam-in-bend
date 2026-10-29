@@ -23,21 +23,26 @@ import ./kstrat.bend as KS
 #       the logical interactions, peels and interactions by pair of kinds;
 #       with two, by the two-stack strategy (kstrat.bend's Two stacks)
 
-# the value at the root, interactions, errors, and whether the table's live
-# entries match the nodes holding them and the free list the free nodes
-# (KN.free_ok)
+# the value at the root, interactions, errors, and whether the audits pass:
+# the table's live entries match the nodes holding them, the free list the
+# free nodes (KN.free_ok), and every live port links a port linking it
+# back (KN.wired_ok)
 type KRes is Data:
   KRes{v: Maybe<&2, V.Val>, +itrs: U32, +errs: U32, +tab_ok: Bool}
 
-def kres.fl(r: P.H & Bool, +n: U32, +itrs: U32, +errs: U32, v: Maybe<&2, V.Val>) -> KRes:
+def kres.fl(r: P.H & Bool, +n: U32, +itrs: U32, +errs: U32, +wired: Bool, v: Maybe<&2, V.Val>) -> KRes:
   (h, +free) = r
-  KRes{v, itrs, errs, free && P.h_ok(h, n)}
+  KRes{v, itrs, errs, wired && (free && P.h_ok(h, n))}
+
+def kres.wa(r: P.H & Bool, +n: U32, +itrs: U32, +errs: U32, v: Maybe<&2, V.Val>) -> KRes:
+  (h, +wired) = r
+  kres.fl(KN.free_ok(h), n, itrs, errs, wired, v)
 
 def kres.st(r: P.H & P.HS, +n: U32, v: Maybe<&2, V.Val>) -> KRes:
   (h, st) = r
   match st:
     case P.HS{+itrs, +errs, +cap}:
-      kres.fl(KN.free_ok(h), n, itrs, errs, v)
+      kres.wa(KN.wired_ok(h), n, itrs, errs, v)
 
 def kres.au(au: KN.Au, v: Maybe<&2, V.Val>) -> KRes:
   match au:
@@ -233,12 +238,19 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
     case _:
       X.t_pow(k, 2)
 
+# a demand's end as reduce reports a full reduction: its state, the value
+# and the counts, without the audits and the walks the tests' results make
+def bench_d(d: KS.D) -> String:
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+      st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ KN.report(KN.result(P.count(h, n)))
+
 # reduce the workload fully (how 0), on demand (1), profiled (2) or with
-# two stacks (4)
+# two stacks (4), each measured without the audits
 def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
   match how:
     case 1:
-      dres_str(run_d(t, 268435456n, Nil{}))
+      bench_d(force(64n, 268435456n, Nil{}, KS.demand(268435456n, KS.d.start(KN.load(t)))))
     case 2:
       profile_t(t, 268435456n, fast)
     case 4:

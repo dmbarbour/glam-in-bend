@@ -38,8 +38,8 @@ What must hold is one of
            and the full reductions no value
   wrong    a mode known to miss the value (labels on some
            self-applications), which must still miss it.
-Checked besides, for every case: no errors, the data table and the free
-list in step (KN.free_ok),
+Checked besides, for every case: no errors, the data table, the free
+list (KN.free_ok) and the wiring (KN.wired_ok) in step,
 the interpreted table and the generated rewrites making the same
 interactions and the profile too; a term's value its evaluator's
 (terms.py), and every net polarized (polarity.py).

@@ -356,6 +356,21 @@ takes from it:
        wired rules out, where the kernel joins through it (`link_pairs`).
        Reachability from the root is no invariant: erasure leaves unreached
        garbage, which `KN.sweep` collects.
+       - `heap-strategies.net.wiring.audit` — built 2026-10-29 — the
+         kernel audited for what `W.wired` says (the maintainer,
+         2026-10-29): after every test's run, `KN.wired_ok` checks that
+         every port of a live node links a port of a live node, past the
+         header and within the capacity, below its kind's arity, that links
+         it back and is not itself; so each live port is referenced once
+         and no free node at all. It joins the table and free-list audits
+         in `KRes`'s flag (`TABLE MISMATCH` names any of them). A `link`
+         writing one direction fails all 25 demand tests; a rule making no
+         nodes that frees only one of its pair fails 16, 4 of them caught
+         by this audit alone, values right. The benchmarks now measure
+         without audits: demand reports as the full reduction does, not
+         through the tests' results with their audits and reachability
+         walk, which its counts had included since
+         `heap-strategies.net.freelist`.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes

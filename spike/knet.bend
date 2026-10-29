@@ -819,6 +819,84 @@ def fo.st(r: P.H & P.HS) -> P.H & Bool:
 def free_ok(h: P.H) -> P.H & Bool:
   fo.st(P.stats(h))
 
+# The wiring's audit (heap-strategies.net.wiring.audit): every port of a
+# live node links a port of a live node, past the header and within the
+# capacity, below its kind's arity, that links it back, and is not itself.
+# So each live port is referenced exactly once and no free node at all, as
+# wiring.bend's W.wired says of the model: two ports linking one port
+# would both have to be its link.
+type Wa is Type:
+  Wa{h: P.H, +ok: Bool}
+
+# y's own link, which must be x
+def wa.back(r: P.H & U32, +x: U32, +ok: Bool) -> Wa:
+  (h, +z) = r
+  Wa{h, ok && U32.is_eq(z, x)}
+
+def wa.live(live: Bool, h: P.H, +x: U32, +y: U32, +ok: Bool) -> Wa:
+  match live:
+    case True{}:
+      wa.back(P.rd(h, (y + 1 : U32)), x, ok)
+    case False{}:
+      Wa{h, False{}}
+
+# y's node's header: live, with y below its arity
+def wa.peer(r: P.H & U32, +x: U32, +y: U32, +ok: Bool) -> Wa:
+  (h, +hy) = r
+  wa.live(U32.is_ne(hy, 0) && U32.is_lt(P.port(y), KR.kind_arity(P.rk(hy))), h, x, y, ok)
+
+def wa.at(inside: Bool, h: P.H, +x: U32, +y: U32, +ok: Bool) -> Wa:
+  match inside:
+    case True{}:
+      wa.peer(P.rd(h, P.base(y)), x, y, ok)
+    case False{}:
+      Wa{h, False{}}
+
+# port x's link y: a port of a node past the header and within the
+# capacity, not x
+def wa.link(r: P.H & U32, +x: U32, +cap: U32, +ok: Bool) -> Wa:
+  (h, +y) = r
+  wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
+
+# node i4 / 4's ports from p, k of them
+def wa.ports(k: Nat, +i4: U32, +p: U32, +cap: U32, s: Wa) -> Wa:
+  match k:
+    case 0n:
+      s
+    case 1n+q:
+      match s:
+        case Wa{h, +ok}:
+          wa.ports(q, i4, (p + 1 : U32), cap, wa.link(P.rd(h, ((i4 + p : U32) + 1 : U32)), (i4 + p : U32), cap, ok))
+
+# a node's ports, by its kind's arity: none for a free node
+def wa.node(r: P.H & U32, +i4: U32, +cap: U32, +ok: Bool) -> Wa:
+  (h, +hd) = r
+  wa.ports(U32.to_nat(KR.kind_arity(P.rk(hd))), i4, 0, cap, Wa{h, ok})
+
+def wa.go(k: Nat, +i: U32, +cap: U32, s: Wa) -> Wa:
+  match k:
+    case 0n:
+      s
+    case 1n+q:
+      match s:
+        case Wa{h, +ok}:
+          wa.go(q, (i + 1 : U32), cap, wa.node(P.rd(h, (i << 2n : U32)), (i << 2n : U32), cap, ok))
+
+def wa.fin(s: Wa) -> P.H & Bool:
+  match s:
+    case Wa{h, +ok}:
+      (h, ok)
+
+def wa.st(r: P.H & P.HS) -> P.H & Bool:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      wa.fin(wa.go(U32.to_nat((cap - P.first() : U32)), P.first(), cap, Wa{h, True{}}))
+
+# is every live port linked to a live port that links it back?
+def wired_ok(h: P.H) -> P.H & Bool:
+  wa.st(P.stats(h))
+
 # Reachability (heap-strategies.cascade): the nodes a walk along links
 # reaches from the interface, each marked once in a bitmap, a word per 32
 # nodes, and kept on a worklist until its ports are followed. A live node
