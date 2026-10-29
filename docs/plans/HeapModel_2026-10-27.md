@@ -456,7 +456,24 @@ takes from it:
          it, and beta joins the copy's input to its own output
          (`vicious-circle-formed`). The maintainer to confirm that the
          loop with no node is to vanish rather than be reported, or
-         counted for diagnosis.
+         counted for diagnosis. Is it a sign of garbage (the maintainer,
+         2026-10-29)? The loop itself is: nothing touches it. The pair
+         that forms it need not be: its ports not facing each other may
+         lead to the root, as in `vicious-circle-live`, where the root is
+         the function's variable, beta gives it the argument, and the
+         loop vanishes beside it. Only a pair whose every auxiliary port
+         faces another of its own (`vicious-circle-controls`) is a
+         component apart. And demand reduces only the pairs it reaches
+         from the root, so under demand a loop forms only in a pair the
+         root reaches: `vicious-circle-beta`'s pair, apart from the root,
+         is left as garbage, unreduced. Full reductions form loops in
+         garbage too.
+         - `heap-strategies.net.wiring.circles.events` — tentative —
+           loops counted where they form, by pair and pattern, over the
+           library and the corpus, by the profiling strategy; marked in
+           traces (`heap-strategies.trace`) and drawn
+           (`heap-strategies.trace.render`), to see how often they arise
+           and where (the maintainer, 2026-10-29).
        - `heap-strategies.net.wiring.kinds` — built 2026-10-29 —
          `kernel_in_step` took as a hypothesis that a rule's new nodes
          are live; `rules_kinds_live` proves it of every rule, by
@@ -584,6 +601,11 @@ takes from it:
      net as rows at boundaries the caller sets (every n interactions, a
      demand step, a count of live controls), into a store of traces,
      written from Bend once its SQLite package is vetted, else imported.
+     - `heap-strategies.trace.render` — tentative — a drawing of a net
+       from its rows that can focus on a part of it: a pair about to
+       form a loop with no node, a vicious circle demand found, a stuck
+       eraser, with the nodes within a few links and the path from the
+       root (the maintainer, 2026-10-29).
    - `heap-strategies.demand` — contingent on `heap-strategies.net` —
      demand's own cost: the path in an array, the walk's layers folded
      (its profile is store run 26).
@@ -603,17 +625,23 @@ takes from it:
        and in `vicious-circle-formed` beta forms one. The walk follows
        principal ports, so the cycles it finds are exactly the vicious
        circles it reaches.
-       - `heap-strategies.demand.cycle.early` — tentative — a cycle
-         found a few steps after the walk repeats, not once the path is
-         as long as the net, as the Rust bootstrap did with a two-pointer
-         cycle finder, Floyd's or Brent's (the maintainer, 2026-10-29),
-         and found once. At the checkpoints the walk already has, the
-         powers of two, the top compared with the path below it: a scan
-         costing a constant per push, amortized, that finds a cycle the
-         walk entered at depth m and runs round in k steps by depth
-         2(m + k), or 128. Found once: the circle recorded among the
-         net's faults, so that later demands need not walk it again.
-         Measured against demand's cost now.
+       - `heap-strategies.demand.cycle.early` — contingent on
+         `heap-strategies.demand` — a cycle found soon after the walk
+         repeats, not once the path is as long as the net, as the Rust
+         bootstrap did with a two-pointer cycle finder (the maintainer,
+         2026-10-29), and found once. Simpler than Brent's algorithm,
+         with the path in an array (the maintainer, 2026-10-29): just
+         before the array grows, the node being pushed compared with
+         every node on the path. Apart from a cycle the path's nodes are
+         distinct, and the walk, following principal ports, repeats for
+         good once it repeats at all; so the first growth after it
+         closes finds it, by twice the depth where it closes, and pushes
+         cost nothing more than the array's own test for room, where
+         the list now tests every push for a multiple of 128. The scan,
+         like the copy that grows the array, costs a constant per push,
+         amortized. Found once: the circle recorded among the net's
+         faults, so that later demands need not walk it again. Measured
+         against demand's cost now.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

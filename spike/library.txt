@@ -72,6 +72,16 @@ links: 0.0-1.0 0.1-1.1
 root: 2.0
 net: 5 logical 2 peels 0
 
+name: vicious-circle-live
+why: the pair that forms a loop with no node on it is not garbage: the
+  application's result feeds its own function's body, as in
+  vicious-circle-beta, but the root is the function's variable, so beta
+  joins the argument to the root and the loop vanishes beside it
+nodes: ap(0) fn(0) num(7)
+links: 0.0-1.0 0.1-2.0 0.2-1.1
+root: 1.2
+net: 7 logical 2 peels 0
+
 name: vicious-circle-formed
 why: `r` where `r = (\_ -> r) 7`, used: a copy shares r between the
   root and the function's body, so beta joins the copy's input to its own
