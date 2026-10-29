@@ -261,7 +261,7 @@ law rules_keep_wired:
 # the pair's arities allow (R.pat_ok), the links the kernel makes of a
 # rule's (R.contract, as knet.bend's link_plain and link_pairs) link
 # exactly the ends left, the outside peers and the new ports, none twice;
-# or the kernel reports an error.
+# or the kernel reports an error, which rules_pairs_total rules out.
 # Record: net-nodes-double
 law rules_pairs_exact:
   for +a: R.NodeKind
@@ -289,7 +289,8 @@ law rewrite_pairs_wired:
   {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls2))) == True{} : Bool}
 
 # LAW: so every step of the rule table, its pair's peers inside it or
-# not, keeps a wired net wired, unless the kernel reports an error.
+# not, keeps a wired net wired, unless the kernel reports an error, which
+# rules_pairs_total rules out.
 # Record: net-nodes-double
 law rules_keep_wired_in:
   for +ks: List<&2, R.NodeKind>
@@ -302,3 +303,14 @@ law rules_keep_wired_in:
   for hv: {R.pat_ok(W.kind_at(ks, a), W.kind_at(ks, b), p) == True{} : Bool}
   for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
   {W.keeps_wired(ks, a, b, es, c, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s), p) == True{} : Bool}
+
+# LAW: the kernel joins any rule's links under any pattern of peers inside
+# the pair its arities allow without an error: a closed loop the rule's
+# links and the pair's own make vanishes, and no chain through the pair
+# reaches outside at both ends.
+# Record: net-nodes-double
+law rules_pairs_total:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {R.total_pairs(a, b, R.rule(a, b, s)) == True{} : Bool}

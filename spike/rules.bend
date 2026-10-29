@@ -546,7 +546,8 @@ def exact(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
 # Ext end of the port it faces (net.bend's partner). The kernel links the
 # rule's links whose ends both face outside, then, for each such pair of
 # Ext ends, i below j, joins the ends the rule links to Ext i and to Ext
-# j, an error where either is itself inside or missing. A pattern says
+# j. Where either is itself inside, the rule's links and the pair's own
+# close a loop of wire, which vanishes; where either is missing, an error. A pattern says
 # which Ext ends face inside, and their partners: none, one link among
 # the pair's auxiliary ports, or two.
 type Pat is Data:
@@ -701,7 +702,7 @@ def other_of(ls: List<&2, Link>, +i: Nat) -> Maybe<&2, End>:
 def pair_link(+bad: Bool, u: End, v: End, rest: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
   match bad rest:
     case True{} _:
-      None{}
+      rest
     case False{} Some{t}:
       Some{Link{u, v} <> t}
     case False{} None{}:
@@ -797,3 +798,15 @@ def pat_ok(+a: NodeKind, +b: NodeKind, +p: Pat) -> Bool:
 # exact_in under every pattern the pair can have
 def exact_pairs(+a: NodeKind, +b: NodeKind, +r: Rule) -> Bool:
   ((exact_in(a, b, PNone{}, r) || Bool.not(pat_ok(a, b, PNone{}))) && ((exact_in(a, b, P01{}, r) || Bool.not(pat_ok(a, b, P01{}))) && ((exact_in(a, b, P02{}, r) || Bool.not(pat_ok(a, b, P02{}))) && ((exact_in(a, b, P03{}, r) || Bool.not(pat_ok(a, b, P03{}))) && ((exact_in(a, b, P12{}, r) || Bool.not(pat_ok(a, b, P12{}))) && ((exact_in(a, b, P13{}, r) || Bool.not(pat_ok(a, b, P13{}))) && ((exact_in(a, b, P23{}, r) || Bool.not(pat_ok(a, b, P23{}))) && ((exact_in(a, b, P01_23{}, r) || Bool.not(pat_ok(a, b, P01_23{}))) && ((exact_in(a, b, P02_13{}, r) || Bool.not(pat_ok(a, b, P02_13{}))) && (exact_in(a, b, P03_12{}, r) || Bool.not(pat_ok(a, b, P03_12{}))))))))))))
+
+# the kernel joins a rule's links under pattern p without an error
+def contracts(+p: Pat, r: Rule) -> Bool:
+  match r:
+    case RWire{xs, +ls}:
+      Maybe.is_some(&2, List<&2, Link>, contract(p, ls))
+    case _:
+      True{}
+
+# contracts under every pattern the pair can have
+def total_pairs(+a: NodeKind, +b: NodeKind, +r: Rule) -> Bool:
+  ((contracts(PNone{}, r) || Bool.not(pat_ok(a, b, PNone{}))) && ((contracts(P01{}, r) || Bool.not(pat_ok(a, b, P01{}))) && ((contracts(P02{}, r) || Bool.not(pat_ok(a, b, P02{}))) && ((contracts(P03{}, r) || Bool.not(pat_ok(a, b, P03{}))) && ((contracts(P12{}, r) || Bool.not(pat_ok(a, b, P12{}))) && ((contracts(P13{}, r) || Bool.not(pat_ok(a, b, P13{}))) && ((contracts(P23{}, r) || Bool.not(pat_ok(a, b, P23{}))) && ((contracts(P01_23{}, r) || Bool.not(pat_ok(a, b, P01_23{}))) && ((contracts(P02_13{}, r) || Bool.not(pat_ok(a, b, P02_13{}))) && (contracts(P03_12{}, r) || Bool.not(pat_ok(a, b, P03_12{}))))))))))))

@@ -307,10 +307,12 @@ def link_plain(ls: List<&2, R.Link>, +x: Ext, +refs: List<&2, U32>, +a: U32, +b:
       link_plain(t, x, refs, a, b,
         link_if(Bool.not(end_internal(x, a, b, u) || end_internal(x, a, b, v)), q, resolve(x, refs, u), resolve(x, refs, v)))
 
+# an inside end on either side: a closed loop of wire, which vanishes
+# (knet.bend's pair_link)
 def pair_link(bad: Bool, +u: R.End, +v: R.End, +x: Ext, +refs: List<&2, U32>, q: Q) -> Q:
   match bad:
     case True{}:
-      q_err(q)
+      q
     case False{}:
       link(q, resolve(x, refs, u), resolve(x, refs, v))
 

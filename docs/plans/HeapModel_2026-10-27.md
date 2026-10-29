@@ -383,7 +383,8 @@ takes from it:
          `R.contract` mirrors `knet.bend`'s `link_plain` and `link_pairs`:
          the rule's links facing outside, then for each inside pair, i
          below j, a link joining what the rule links to `Ext` i and `Ext`
-         j, an error where either is inside or missing. `rules_pairs_exact`
+         j, an error where either is inside (until
+         `heap-strategies.net.wiring.circles`) or missing. `rules_pairs_exact`
          proves, by computation over every rule and every pattern the
          pair's arities allow, that the result links exactly the ends
          left, or is that error; `rewrite_pairs_wired` that a rewrite by it
@@ -393,6 +394,23 @@ takes from it:
          dropping the joined pairs, or joining an end to itself, fails the
          proofs. The model keeps the kernel's links in its order, plain
          then pairs, though a net's links have none.
+       - `heap-strategies.net.wiring.circles` — built 2026-10-29 — where
+         an end the rule links to a pair's inside `Ext` end is itself
+         inside, the rule's links and the pair's own close a loop of bare
+         wire, a vicious circle: it holds no node and vanishes, but the
+         kernel (`knet.bend`, `net.bend`) reported an error. Polarity allows
+         nine such cases among the table's rules and patterns, all of
+         them rules linking two `Ext` ends (beta, fan and control
+         annihilation), and with no rule linking two `Ext` ends and also
+         making nodes, every chain through the pair closes. The kernel,
+         the reference net and the model now drop the loop;
+         `rules_pairs_total` proves, by computation, that the kernel's
+         joining never errors under any pattern the arities allow, and
+         `rules_pairs_exact` still holds. The library's
+         `vicious-circle-beta` and `vicious-circle-controls` failed before,
+         an error in every strategy, and pass now, the wiring audit with
+         them. The maintainer to confirm that a vicious circle is to vanish
+         rather than be reported.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
