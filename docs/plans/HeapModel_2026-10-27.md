@@ -420,8 +420,10 @@ takes from it:
          live. So the joint state carries from one rewrite to the next.
          Reusing a slot twice, or allocating one more slot than is
          placed, fails the proofs. Not modelled: growing the storage when
-         the free list runs short (`has` is a hypothesis), and the kernel's
-         U32 words themselves, which the audits check at run time.
+         the free list runs short (`has` is a hypothesis; since,
+         `heap-strategies.net.wiring.grow`), and the kernel's U32 words
+         themselves, which the audits check at run time
+         (`spike-refinement`).
        - `heap-strategies.net.wiring.circles` — built 2026-10-29 — where
          an end the rule links to a pair's inside `Ext` end is itself
          inside, the rule's links and the pair's own close a loop of bare
@@ -449,6 +451,31 @@ takes from it:
          net, a component with no ports and no cells. The maintainer to
          confirm that a vicious circle is to vanish rather than be
          reported.
+       - `heap-strategies.net.wiring.kinds` — built 2026-10-29 —
+         `kernel_in_step` took as a hypothesis that a rule's new nodes
+         are live; `rules_kinds_live` proves it of every rule, by
+         computation (`KP.rule_live`), and `kernel_rules_in_step` states
+         the step for the rule table without it (`KP.step_kinds`,
+         `KP.step_free`, `KP.step_has`; a stuck pair changes nothing). A
+         rule making a free node besides its others fails
+         `rules_kinds_live` and no law before it: a free node has no
+         ports, so the rules stay exact.
+       - `heap-strategies.net.wiring.grow` — built 2026-10-29 — growth
+         (`KP.grow`, `KP.grow_kinds`): n free slots appended, each
+         linking the next, the last the old head, the first now the
+         head, as `kprim.bend`'s `grow.done` and `thread` do with the old
+         head none; the kinds grow by as many free nodes. It keeps the
+         free list exact (`free_list_grow`), the two models in step
+         (`grow_in_step`), every node's kind (`grow_kind_at`) and the
+         wiring (`grow_wired`), and the list then holds the slots grown
+         (`grow_has`), the placement's `KP.has`. A last new slot not
+         linking the old head, or kinds grown live, fails the proofs.
+         Growing by 1+m is growing by m above one more slot, in use, and
+         freeing it, so `free_list_free` does the work. Not yet: growth
+         in the kernel's order, inside `alloc` when the list runs out
+         partway through a rewrite, which would retire the `KP.has`
+         hypothesis; its laws are drafted at the end of
+         `spike/LAWS.bend`.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
