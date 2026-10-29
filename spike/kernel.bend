@@ -24,15 +24,20 @@ import ./kstrat.bend as KS
 #       with two, by the two-stack strategy (kstrat.bend's Two stacks)
 
 # the value at the root, interactions, errors, and whether the table's live
-# entries match the nodes holding them
+# entries match the nodes holding them and the free list the free nodes
+# (KN.free_ok)
 type KRes is Data:
   KRes{v: Maybe<&2, V.Val>, +itrs: U32, +errs: U32, +tab_ok: Bool}
+
+def kres.fl(r: P.H & Bool, +n: U32, +itrs: U32, +errs: U32, v: Maybe<&2, V.Val>) -> KRes:
+  (h, +free) = r
+  KRes{v, itrs, errs, free && P.h_ok(h, n)}
 
 def kres.st(r: P.H & P.HS, +n: U32, v: Maybe<&2, V.Val>) -> KRes:
   (h, st) = r
   match st:
     case P.HS{+itrs, +errs, +cap}:
-      KRes{v, itrs, errs, P.h_ok(h, n)}
+      kres.fl(KN.free_ok(h), n, itrs, errs, v)
 
 def kres.au(au: KN.Au, v: Maybe<&2, V.Val>) -> KRes:
   match au:

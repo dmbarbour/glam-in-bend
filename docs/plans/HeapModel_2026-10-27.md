@@ -313,6 +313,16 @@ takes from it:
      The full differential test (store run 32): the full reduction the
      same on all 3,600 terms; demand the same values, fewer interactions
      on 1,866 terms and more nodes left on 1,605, what eager erasure freed.
+     - `heap-strategies.net.freelist` — built 2026-10-29 — the free
+       list audited after every test's run (`KN.free_ok`), as the data
+       table is (the maintainer, 2026-10-29): a node is free exactly
+       when its header is 0, so the list from its head holds only nodes
+       past the header and within the capacity, each with a zero header,
+       ends within as many steps as there are nodes, and holds as many
+       nodes as have a zero header. A failure flags the run as the table
+       audit does (`TABLE MISMATCH`). `free` left the header set, or not
+       linking the node, each fails 22 of the 25 demand tests, every one
+       that frees a node.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes

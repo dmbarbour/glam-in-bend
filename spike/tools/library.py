@@ -38,7 +38,8 @@ What must hold is one of
            and the full reductions no value
   wrong    a mode known to miss the value (labels on some
            self-applications), which must still miss it.
-Checked besides, for every case: no errors and the data table in step,
+Checked besides, for every case: no errors, the data table and the free
+list in step (KN.free_ok),
 the interpreted table and the generated rewrites making the same
 interactions and the profile too; a term's value its evaluator's
 (terms.py), and every net polarized (polarity.py).
@@ -278,7 +279,7 @@ def check(c, r):
         if res[2]:
             bad.append(f"{label} counts {res[2]} errors")
         if len(res) > 3 and res[3]:
-            bad.append(f"{label}'s data table out of step")
+            bad.append(f"{label}'s data table or free list out of step")
     if r.ref[1] != r.fast[1] or r.prof[1] != r.fast[1]:
         bad.append(f"interactions differ: ref {r.ref[1]}, fast {r.fast[1]}, profile {r.prof[1]}")
     if r.wide:

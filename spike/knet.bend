@@ -740,6 +740,85 @@ def audit(k: Nat, +i: U32, au: Au) -> Au:
         case Au{h, +n}:
           audit(p, (i + 1 : U32), audit.hit(P.rd(h, (i << 2n : U32)), n))
 
+# The free list's audit: a node is free exactly when its header is 0
+# (kprim.bend's free), so the list from its head must hold only nodes past
+# the header and within the capacity, each with a zero header, end within
+# as many steps as there are nodes (else it runs round a cycle), and hold
+# as many nodes as have a zero header.
+type Fl is Type:
+  Fl{h: P.H, +j: U32, +n: U32, +ok: Bool}
+
+def fl.nx(r: P.H & U32, +n: U32, +ok: Bool) -> Fl:
+  (h, +nx) = r
+  Fl{h, nx, n, ok}
+
+def fl.hd(r: P.H & U32, +i: U32, +n: U32, +ok: Bool) -> Fl:
+  (h, +hd) = r
+  fl.nx(P.rd(h, ((i << 2n : U32) + 1 : U32)), (n + 1 : U32), ok && U32.is_eq(hd, 0))
+
+# node i, the list's next: read if past the header and within the
+# capacity, else the walk ends, failed
+def fl.at(inside: Bool, h: P.H, +i: U32, +n: U32, +ok: Bool) -> Fl:
+  match inside:
+    case True{}:
+      fl.hd(P.rd(h, (i << 2n : U32)), i, n, ok)
+    case False{}:
+      Fl{h, 0, n, False{}}
+
+def fl.go(k: Nat, s: Fl, +cap: U32) -> Fl:
+  match k:
+    case 0n:
+      match s:
+        case Fl{h, +j, +n, +ok}:
+          Fl{h, j, n, ok && U32.is_eq(j, 0)}
+    case 1n+p:
+      match s:
+        case Fl{h, +j, +n, +ok}:
+          match j:
+            case 0:
+              Fl{h, 0, n, ok}
+            case _:
+              fl.go(p, fl.at(U32.is_ge((j - 1 : U32), P.first()) && U32.is_lt((j - 1 : U32), cap), h, (j - 1 : U32), n, ok), cap)
+
+def fz.one(r: P.H & U32, +c: U32) -> P.H & U32:
+  (h, +hd) = r
+  (h, audit.one(U32.is_eq(hd, 0), c))
+
+def fz.step(r: P.H & U32, +i: U32) -> P.H & U32:
+  (h, +c) = r
+  fz.one(P.rd(h, (i << 2n : U32)), c)
+
+# the nodes from i with a zero header, k of them read
+def fz(k: Nat, +i: U32, r: P.H & U32) -> P.H & U32:
+  match k:
+    case 0n:
+      r
+    case 1n+p:
+      fz(p, (i + 1 : U32), fz.step(r, i))
+
+def fo.cmp(r: P.H & U32, +n: U32, +ok: Bool) -> P.H & Bool:
+  (h, +z) = r
+  (h, ok && U32.is_eq(z, n))
+
+def fo.fl(s: Fl, +cap: U32) -> P.H & Bool:
+  match s:
+    case Fl{h, +j, +n, +ok}:
+      fo.cmp(fz(U32.to_nat((cap - P.first() : U32)), P.first(), (h, 0)), n, ok)
+
+def fo.fh(r: P.H & U32, +cap: U32) -> P.H & Bool:
+  (h, +fh) = r
+  fo.fl(fl.go(U32.to_nat(cap), Fl{h, fh, 0, True{}}, cap), cap)
+
+def fo.st(r: P.H & P.HS) -> P.H & Bool:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      fo.fh(P.rd(h, P.at_fh()), cap)
+
+# is the free list in step with the nodes' headers?
+def free_ok(h: P.H) -> P.H & Bool:
+  fo.st(P.stats(h))
+
 # Reachability (heap-strategies.cascade): the nodes a walk along links
 # reaches from the interface, each marked once in a bitmap, a word per 32
 # nodes, and kept on a worklist until its ports are followed. A live node
