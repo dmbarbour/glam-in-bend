@@ -442,9 +442,10 @@ def wk.hb(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) ->
 
 # rewrite a >< b, unless its rule leaves it as it is (KR.stuck_by). Where
 # the payload test decides that, the rule makes at most one node when it
-# rewrites (law rules_tested_small) and fresh2 frees b first, so the first
-# new node takes a's slot: b's slot is free after a rewrite, as it was if
-# stuck. The test itself is left to the rewrite, its only caller.
+# rewrites (law rules_tested_small), which takes a's slot in place while
+# b's is freed (heap-strategies.reuse): b's slot is free after a rewrite
+# and held if stuck. The test itself is left to the rewrite, its only
+# caller.
 def wk.rw(+sb: U32, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:

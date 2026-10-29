@@ -379,6 +379,12 @@ def node.fin(r: H & U32, +hd: U32, +p: U32) -> H & U32:
 def node(h: H, +hd: U32, +p: U32) -> H & U32:
   node.fin(alloc(h), hd, p)
 
+# node r's slot taken in place for a node with header hd and payload word
+# p, as node makes one: a rewrite's redex gives its slots to its first two
+# new nodes (heap-strategies.reuse)
+def renode(h: H, +r: U32, +hd: U32, +p: U32) -> H & U32:
+  node.fin((h, r), hd, p)
+
 def base(+r: U32) -> U32:
   (r .&. 4294967292 : U32)
 
@@ -1205,6 +1211,12 @@ def node_pw(h: H, +k: U32, pw: PW) -> H & U32:
   match pw:
     case PW{+m, +f, +w}:
       node(h, hd2(k, m, f), w)
+
+# node_pw in slot r (renode)
+def renode_pw(h: H, +r: U32, +k: U32, pw: PW) -> H & U32:
+  match pw:
+    case PW{+m, +f, +w}:
+      renode(h, r, hd2(k, m, f), w)
 
 type FW is Type:
   FW{a: Array<V.Val>, +fh: U32, +c: U32}

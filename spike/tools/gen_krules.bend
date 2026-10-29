@@ -284,13 +284,46 @@ def side(+isa: Bool) -> String:
     case False{}:
       "b"
 
+# Nodes in place (heap-strategies.reuse): a rule's first two new nodes take
+# the redex's two slots, a's then b's, as the free list would have handed
+# them back, so the net is the same node for node with no free list
+# traffic; a rule making one frees b alone, one making none both.
+
+def slot.go(first: Bool, +j: Nat) -> String:
+  match first:
+    case True{}:
+      "a"
+    case False{}:
+      "b"
+
+# node j's call: in slot a or b, or from the free list after those
+def node_call.go(reuse: Bool, +j: Nat, +st: String) -> String:
+  match reuse:
+    case True{}:
+      "P.renode(" ++ st ++ ", " ++ slot.go(Nat.is_eq(j, 0n), j) ++ ", "
+    case False{}:
+      "P.node(" ++ st ++ ", "
+
+def node_call(+j: Nat, +st: String) -> String:
+  node_call.go(Nat.is_lt(j, 2n), j, st)
+
+def node_pw_call.go(reuse: Bool, +j: Nat) -> String:
+  match reuse:
+    case True{}:
+      "P.renode_pw(h, " ++ slot.go(Nat.is_eq(j, 0n), j) ++ ", "
+    case False{}:
+      "P.node_pw(h, "
+
+def node_pw_call(+j: Nat) -> String:
+  node_pw_call.go(Nat.is_lt(j, 2n), j)
+
 # making node j (spec sp, step kind pre) on state `st`, then step j + 1
 def make_call(+e: Bool, +name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
   match sp:
     case R.Spec{+k, +s}:
       match pre:
         case PNo{}:
-          stepname(name, 1n+j) ++ "(P.node(" ++ st ++ ", " ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
+          stepname(name, 1n+j) ++ "(" ++ node_call(j, st) ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
         case PAp{}:
           stepname(name, 1n+j) ++ ".pre(P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args(e) ++ made_args(j, 0n) ++ ")"
         case PDup{+isa}:
@@ -306,11 +339,11 @@ def pre_fn(+e: Bool, +name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
         case PAp{}:
           "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & P.PW, " ++ common(e) ++ made_params(j, 0n) ++ ") -> " ++ ret(e) ++ ":\n" ++
             "  (h, pw) = r\n" ++
-            "  " ++ stepname(name, 1n+j) ++ "(P.node_pw(h, " ++ code(k) ++ ", pw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
+            "  " ++ stepname(name, 1n+j) ++ "(" ++ node_pw_call(j) ++ code(k) ++ ", pw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
         case PDup{+isa}:
           "def " ++ stepname(name, 1n+j) ++ ".pre(r: P.H & U32, " ++ common(e) ++ made_params(j, 0n) ++ ") -> " ++ ret(e) ++ ":\n" ++
             "  (h, +dw) = r\n" ++
-            "  " ++ stepname(name, 1n+j) ++ "(P.node(h, " ++ hdr(k, s) ++ ", dw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
+            "  " ++ stepname(name, 1n+j) ++ "(" ++ node_call(j, "h") ++ hdr(k, s) ++ ", dw), " ++ common_args(e) ++ made_args(j, 0n) ++ ")\n\n"
 
 # Fusing controls
 # ---------------
@@ -373,12 +406,28 @@ def drop_if(d: Bool, +st: String, +isa: Bool) -> String:
     case False{}:
       st
 
+def free.one(one: Bool) -> String:
+  match one:
+    case True{}:
+      "P.free(h, b)"
+    case False{}:
+      "h"
+
+# the redex's slots no new node takes, freed: both for a rule making
+# none, b's for one making one
+def free_of(+n: Nat) -> String:
+  match n:
+    case 0n:
+      "P.fresh2(h, a, b)"
+    case 1n+p:
+      free.one(Nat.is_eq(p, 0n))
+
 # the state after freeing the redex: a data payload no new node uses,
 # dropped
 def start(+xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   drop_if(is_data(b) && Nat.is_eq(uses(xs, False{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
     drop_if(is_data(a) && Nat.is_eq(uses(xs, True{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
-      "P.fresh2(h, a, b)", True{}), False{})
+      free_of(List.length(&2, R.Spec, xs)), True{}), False{})
 
 def entry(+e: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match xs:

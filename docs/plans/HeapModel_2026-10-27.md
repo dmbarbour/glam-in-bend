@@ -551,6 +551,32 @@ takes from it:
        grow, the data table not counted (the maintainer, 2026-10-29:
        either that, or growth where the data is a table entry, which
        the data node's header tells).
+   - `heap-strategies.reuse` — built 2026-10-29 — a rewrite's first two
+     new nodes take the redex's two slots in place (`P.renode`), a rule
+     making one frees b's slot alone, one making none both: the slots the
+     free list would have handed back, so the net is the same node for
+     node, without the free list's traffic. Generated for every rule;
+     the interpreter keeps the free list, its nets the same. The library
+     prints the same; every workload cheaper in every build, by 8.0% to
+     15.5% by default and 2.5% to 13.9% inlined or profile-guided, the
+     same interactions (store run 57 against 56). Erasing `K 0 #k` (k
+     2^14 to 2^18) gains only 1.5%, its cost mostly the template's load.
+     It is the eraser cascade's "allocating nothing" (the maintainer,
+     2026-10-29), for every rule.
+   - `heap-strategies.cascade` — active — erasure cascades (the
+     maintainer, 2026-10-29: a reduced two-stack approach). Under the
+     eager strategy they happen already: an erasure rule makes only
+     erasers, its pairs go on top of a stack taken last in first out, so
+     a cascade runs depth first to its end before older work, and with
+     `heap-strategies.reuse` its steps allocate nothing. Demand leaves
+     what it drops in the net. There, collect before growing: where a
+     rewrite finds the free list empty, scan the net for pairs with an
+     eraser, seed a fresh stack with them alone and run the eager loop,
+     which then makes only erasure pairs; the walk restarts from the
+     interface, its path a cache. No new family of rewrites, nothing
+     noted per rewrite; demand pays a test of the free list's head per
+     rewrite. To measure: demand's peak capacity and live nodes on the
+     library's costly entries, and its instructions.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs
