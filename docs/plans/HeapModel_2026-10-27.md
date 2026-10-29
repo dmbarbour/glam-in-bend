@@ -489,7 +489,19 @@ takes from it:
      simpler than bits in two places, its head kept at its position 0
      as the net's free list is (`heap-strategies.header`). To measure:
      the bits' cost to demand, sweeps on families at n, 2n and 4n, how
-     often hints overflow, against the stack as it is.
+     often hints overflow, against the stack as it is. Measured
+     2026-10-29 on branch `heap-pages` (d6841f9): pages of 128 nodes,
+     each with its bit node, the bits kept by both rewrite families, the
+     interpreter and the loader, cleared as `fresh2` frees a pair, every
+     bit checked against the links after each test run; the library's
+     output the same as main's. Read by nothing yet, the bits cost every
+     build at k 18: demand 5.6% to 9.4%, full reductions 3.8% to 7.8%
+     (store run 52 against 51). Pages alone, the marks and clears
+     disabled: demand 1.8% to 5.4%, full reductions -1.5% to +2.3% (run
+     53). A table for the bit instead of a shift by a `Nat` was no
+     cheaper. Each bit set or cleared is a read and a write through the
+     net's array; bits a strategy keeps for itself would cost demand
+     nothing.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs
