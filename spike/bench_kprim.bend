@@ -82,7 +82,7 @@ def b.imm(r: P.H & P.PW, st: P.Stk, +acc: U32) -> B:
     case P.PW{+m, +f, +w}:
       b.val(P.take(h, m, f, w), st, (acc + w : U32))
 
-# node 0 and node 1 are allocated, entry 0 holds fma 1 1
+# nodes 2 and 3, after the header, are allocated; entry 0 holds fma 1 1
 def step(b: B, +op: U32, +i: U32) -> B:
   match b:
     case B{h, st, +acc}:
@@ -94,9 +94,9 @@ def step(b: B, +op: U32, +i: U32) -> B:
         case 3:
           b.free(P.node(h, P.hd(7, 0), 0), st, acc)
         case 4:
-          b.h(P.link(h, 1, 5), st, acc)
+          b.h(P.link(h, 9, 13), st, acc)
         case 5:
-          b.pop(P.pop(P.E{h, P.push(st, 1)}, 64, 4), acc)
+          b.pop(P.pop(P.E{h, P.push(st, 8)}, 64, 4), acc)
         case 6:
           b.val(P.tab_get(h, 0), st, acc)
         case 7:

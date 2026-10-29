@@ -42,7 +42,7 @@ def kres.h.st(r: P.H & P.HS, v: Maybe<&2, V.Val>) -> KRes:
   (h, st) = r
   match st:
     case P.HS{+itrs, +errs, +cap}:
-      kres.au(KN.audit(U32.to_nat(cap), 0, KN.Au{h, 0}), v)
+      kres.au(KN.audit(U32.to_nat((cap - P.first() : U32)), P.first(), KN.Au{h, 0}), v)
 
 def kres.h(h: P.H, v: Maybe<&2, V.Val>) -> KRes:
   kres.h.st(P.stats(h), v)
@@ -95,7 +95,7 @@ def live_nodes.st(r: P.H & P.HS) -> KN.Au:
   (h, st) = r
   match st:
     case P.HS{+itrs, +errs, +cap}:
-      live(U32.to_nat(cap), 0, KN.Au{h, 0})
+      live(U32.to_nat((cap - P.first() : U32)), P.first(), KN.Au{h, 0})
 
 # the value a cell k holds, for a test meeting needs: vals's entry k, a
 # unit past its end

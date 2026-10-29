@@ -137,6 +137,22 @@ levels: 64 logical 590 peels 0
 labels: 64 logical 201 peels 0
 unfused: 64 logical 1550 peels 0
 
+name: pow-2-6-plus
+why: 2^6 by a partial application in a node, which the copies share as
+  data (`(plus 1) 0`)
+term: pow #2 #6 (plus 1) 0
+levels: 64 logical 592 peels 0
+labels: 64 logical 203 peels 0
+unfused: 64 logical 1552 peels 0
+
+name: pow-2-6-fma
+why: 2^6 by a partial application holding two numbers, an entry of the
+  data table each copy duplicates (`(fma 1 1) 0`)
+term: pow #2 #6 (fma 1 1) 0
+levels: 64 logical 594 peels 0
+labels: 64 logical 205 peels 0
+unfused: 64 logical 1554 peels 0
+
 name: pow-2-12
 why: 2^12
 term: pow #2 #12 succ 0

@@ -74,7 +74,7 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
 
 def reduce.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
   (st, +room) = r
-  ran(run(fuel, fast, P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room, KR.most_pairs())), fuel)
+  ran(run(fuel, fast, P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), room, KR.most_pairs())), fuel)
 
 def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
   (h, hs) = r
@@ -245,7 +245,7 @@ def pran(r: PRan, +fuel: Nat) -> P.H & Pf:
 
 def reduce_p.go(r: P.Stk & U32, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H & Pf:
   (st, +room) = r
-  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat(wcap), 0, P.E{h, st}), room, KR.most_pairs()), pf_new()}), fuel)
+  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), room, KR.most_pairs()), pf_new()}), fuel)
 
 def reduce_p.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H & Pf:
   (h, hs) = r
@@ -294,7 +294,7 @@ def pf_str(pf: Pf) -> String:
 # ======
 
 # Reducing toward the interface (net-demand-whnf; HeapModel's "Forcing"):
-# from node 0, follow principal ports. Where one faces another node's
+# from the interface, follow principal ports. Where one faces another node's
 # auxiliary port, that node must reduce first, and the walk goes on from
 # it, keeping a path; where it faces a principal port, that pair is next.
 # Only the path's last node can be in a pair, the others facing auxiliary
@@ -304,9 +304,9 @@ def pf_str(pf: Pf) -> String:
 # they come to lie on the path, garbage where they never do.
 # Erasures off the path are not reduced either (the maintainer, 2026-10-28:
 # unneeded work is better found by analysing nets ahead of time than by
-# erasing eagerly), so dropped values stay in the net. Done when node 0 faces a
-# principal port but a control's: the value there (an error value or a
-# superposition reads as none). A pair on the path stuck by its rule stops
+# erasing eagerly), so dropped values stay in the net. Done when the
+# interface faces a principal port but a control's: the value there (an
+# error value or a superposition reads as none). A pair on the path stuck by its rule stops
 # the walk; so does one needing another cell, an application or a strict
 # call meeting a table entry that is a handle, the need recorded.
 
@@ -327,7 +327,7 @@ def wk.pop(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
     case Con{+p, rest}:
       d.go(h, rest, p, (depth - 1 : U32), n)
     case Nil{}:
-      d.go(h, Nil{}, 0, 0, n)
+      d.go(h, Nil{}, P.iface(), 0, n)
 
 def wk.past(gone: Bool, h: P.H, path: List<&2, U32>, +p: U32, +depth: U32, +n: U32) -> D:
   match gone:
@@ -351,7 +351,7 @@ def wk.back(h: P.H, path: List<&2, U32>, +depth: U32, +n: U32) -> D:
     case Con{+p, rest}:
       wk.hp(P.rd(h, p), rest, p, (depth - 1 : U32), n)
     case Nil{}:
-      d.go(h, Nil{}, 0, 0, n)
+      d.go(h, Nil{}, P.iface(), 0, n)
 
 def wk.hb.go(gone: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32) -> D:
   match gone:
@@ -417,12 +417,12 @@ def wk.hx(r: P.H & U32, path: List<&2, U32>, +top: U32, +depth: U32, +n: U32, +y
   (h, +hx) = r
   wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
 
-# node 0 facing a principal port: a control's moves past it (the root's
-# rule keeps node 0), anything else is the value
+# the interface facing a principal port: a control's moves past it (the
+# root's rule keeps the interface), anything else is the value
 def wk.root.go(c: Bool, h: P.H, path: List<&2, U32>, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
-      d.go(KN.interact(h, True{}, 0, y), path, 0, depth, (n + 1 : U32))
+      d.go(KN.interact(h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
       d.stop(h, path, 0, depth, n, 1)
 
@@ -476,7 +476,7 @@ def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: List<&2, U32>, +top: U32, +depth
     case True{} _:
       d.stop(h, path, top, depth, n, 3)
     case False{} True{}:
-      wk.pair(U32.is_eq(top, 0), h, path, top, depth, n, q)
+      wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
       wk.deeper(U32.is_eq((depth .&. 127 : U32), 0) && U32.is_ne(depth, 0), h, path, top, depth, n, q)
 
@@ -512,7 +512,7 @@ def demand(k: Nat, d: D) -> D:
               D{h, path, top, depth, n, st, lz, at}
 
 def d.start(h: P.H) -> D:
-  d.go(h, Nil{}, 0, 0, 0)
+  d.go(h, Nil{}, P.iface(), 0, 0)
 
 def resume.put(r: P.H & P.PW, +at: U32) -> P.H:
   (h, pw) = r

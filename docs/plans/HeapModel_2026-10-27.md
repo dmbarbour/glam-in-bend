@@ -68,12 +68,13 @@ fault such as a free slot read as a value) are reported and never cached
 as a value; only a program's permanent failure is (`Failed`).
 
 **Nets.** A *live* net is the kernel's arrays (`H`) in a cell, reduced
-there by whichever one worker holds the cell. Its interface node is node 0
-and never moves: a negative principal port with no rules, the user's
-access to the net (the Rust bootstrap's `Interface`, the kernel's `Root`,
-whose rules are tuned to keep slot 0). A `net_arity 0` computation is done
-exactly when node 0 faces a data node, `Interface >< Data`, and its value
-is node 0's peer, read in one step.
+there by whichever one worker holds the cell. Its interface node sits
+first after the net's header (node 2, `heap-strategies.header`) and never
+moves: a negative principal port with no rules, the user's access to the
+net (the Rust bootstrap's `Interface`, the kernel's `Root`, whose rules are
+tuned to keep its slot). A `net_arity 0` computation is done exactly when
+the interface faces a data node, `Interface >< Data`, and its value is the
+interface's peer, read in one step.
 
 A *frozen* net is a value: compact, plain data, made once, when reducing
 is done, never as snapshots along the way. Freezing may be costly
@@ -121,10 +122,10 @@ pairs off the path do not block it, or the coordinator would report cycles
 that are not there. Where the needed cell can be forced in the same worker,
 it is forced inline rather than sent round the coordinator: the Rust
 bootstrap's largest evaluation cost was one coordinator round trip per lazy
-value, about 60 per level of recursion. When node 0 faces data, the cell
-becomes `Value{v}`; when it faces a function, arguments still to come, the
-net freezes and the cell's value is a function over it, its arity from the
-recipe.
+value, about 60 per level of recursion. When the interface faces data, the
+cell becomes `Value{v}`; when it faces a function, arguments still to
+come, the net freezes and the cell's value is a function over it, its
+arity from the recipe.
 
 **Values crossing.** Into a net: numbers inline in nodes, other values as
 table entries (which may hold handles, never own cells). Out of a net: the
@@ -428,8 +429,8 @@ takes from it:
        full reduction nothing (store run 48 against 43). Lowered terms make
        no cycle with levels, but nets users wire may (`pairing-nets`):
        `test_demand.bend` and the library's `cycle-copy-lift` build one.
-   - `heap-strategies.header` — active — the net's own words in slots
-     of the node array, not fields of the record Bend passes through
+   - `heap-strategies.header` — built 2026-10-29 — the net's own words
+     in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,
      the counters, the data table's head, so that a live net is an
      array of words paired with an array of values. A first measurement
@@ -438,9 +439,20 @@ takes from it:
      fewer instructions in all four builds at k 18, the full reduction
      3.8% to 4.9% fewer by default and -2.7% to +0.8% inlined or
      profile-guided, the same interactions (store run 49 against 48).
-     Next, the layout itself: a header of slots at the array's start,
-     the interface moving to the first node after it, and the cold
-     record's words there too, so that the record is the two arrays.
+     Then the layout itself: a header of two nodes at the array's
+     start, which the free list never holds, with the free list's head,
+     errors, interactions and capacity, and the data table's head,
+     high-water mark, capacity and depth; the interface the first node
+     after it, node 2; the record the two arrays, words and values, the
+     cold record gone. Against main (store run 50 against 48), every
+     workload cheaper in every build: `fma` 4.0% to 6.3%, the data
+     table no longer behind a record opened by allocating; demand 3.8%
+     to 5.6%; full reductions 0.3% to 5.5%. The same interactions; the
+     library's 44 cases print the same on both layouts, two of them new
+     to cover the data table (`pow-2-6-plus`, `pow-2-6-fma`).
+     - `heap-strategies.header.stack` — tentative — the eager
+       strategy's stack keeps its count at its position 0 the same way,
+       one word less in its state (the maintainer, 2026-10-29).
    - `heap-strategies.bitmap` — tentative — under discussion (the
      maintainer, 2026-10-28 and 29): active pairs marked in a bitmap, a
      bit per node at the lower node of each pair, kept in pages of the
@@ -464,10 +476,17 @@ takes from it:
      order, but any bound independent of the heap is still quadratic
      at worst, a sweep per overflow (the maintainer). Hints in
      proportion to the pages, one per page, amortize a sweep's n/32
-     words over at least n/128 interactions; or a summary bit per page
-     lets a sweep pass empty pages. To measure: the bits' cost to
-     demand, sweeps on families at n, 2n and 4n, how often hints
-     overflow.
+     words over at least n/128 interactions. A summary bit per page, or
+     a meta-bitmap passing 32 empty pages a word (8 if it tracks bitmap
+     words), only makes a sweep cheaper where pairs are compact: still
+     quadratic, and bits kept in two places (the maintainer,
+     2026-10-29). The simpler alternatives: one stack of half the
+     heap's size, so that no operation grows it, at 12.5% of memory; or
+     a growing stack whose limit is checked before every push, which is
+     simpler than bits in two places, its head kept at its position 0
+     as the net's free list is (`heap-strategies.header`). To measure:
+     the bits' cost to demand, sweeps on families at n, 2n and 4n, how
+     often hints overflow, against the stack as it is.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs

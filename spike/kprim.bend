@@ -139,26 +139,57 @@ def dt_dup(t: DT, +i: U32) -> DT & U32:
 #
 # Bend passes a record's fields one by one through every function that
 # takes it, so each word of the state costs every step that carries it: at
-# k 18 on `k 2 succ 0`, about 30 instructions an interaction a word. The
-# state keeps flat what most steps touch; the rest sits in one cold
-# record, which a recursive variant (never built) keeps Bend from
-# flattening, so it travels as one word and is opened only to count an
-# error, use the data table or grow. Opening it costs an allocation, so
-# nothing a common path needs may live there.
+# k 18 on `k 2 succ 0`, about 30 instructions an interaction a word. So
+# the net is two arrays alone, its words and its data table's values; its
+# own words (the free list's head, the counts, the table's bookkeeping)
+# sit in a header at the start of the words, read and written where they
+# are used (heap-strategies.header: 0.3% to 6.3% fewer instructions on
+# every workload, the data table no longer behind a record that
+# allocated when opened).
 
-# errors, interactions (counted by the run's fuel, set when it ends), how
-# many nodes fit, the data table
-type C is Type:
-  C{+errs: U32, +itrs: U32, +wcap: U32, dt: DT}
-  CBox{c: C}
-
-# the net: its nodes, the free list's head, the cold record. Every node
-# not in use is on the free list: growing the store threads the new nodes
-# onto it, so making a node is a pop, and the capacity, needed only to
-# grow, stays cold. Which pairs are active the net does not record; a
-# strategy that wants them keeps them (Stk, below).
+# the net: its words, nodes after a header of two, and the data table's
+# values. Every node not in use is on the free list: growing the store
+# threads the new nodes onto it, so making a node is a pop. Which pairs
+# are active the net does not record; a strategy that wants them keeps
+# them (Stk, below).
 type H is Type:
-  H{w: KM.M, +fh: U32, c: C}
+  H{w: KM.M, a: Array<V.Val>}
+
+# The header, nodes 0 and 1, which the free list never holds: the free
+# list's head (a node's index plus one, 0 for none), errors, interactions
+# (counted by the run's fuel, set when it ends), how many nodes fit; the
+# data table's free head, its high-water mark, its capacity and the depth
+# of its array (DT)
+def at_fh() -> U32:
+  0
+
+def at_errs() -> U32:
+  1
+
+def at_itrs() -> U32:
+  2
+
+def at_wcap() -> U32:
+  3
+
+def at_tfh() -> U32:
+  4
+
+def at_tn() -> U32:
+  5
+
+def at_tcap() -> U32:
+  6
+
+def at_td() -> U32:
+  7
+
+# the first node after the header, the interface, and its reference
+def first() -> U32:
+  2
+
+def iface() -> U32:
+  8
 
 # A net starts at 128 nodes, 2 KB (net-nodes-double); node words up to
 # 2^23 (2^21 nodes); a strategy's stack of pairs up to 2^22 words
@@ -183,24 +214,27 @@ def thread(k: Nat, m: KM.M, +i: U32, +to: U32) -> KM.M:
     case 1n+p:
       thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
 
+# the header of a new net of wcap nodes, the interface first on the free
+# list, the data table as dt_new makes it
+def hdr_new(w: KM.M, +wcap: U32) -> KM.M:
+  KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_fh(), (first() + 1 : U32)), at_wcap(), wcap), at_tcap(), 16), at_td(), 4)
+
 def h_new.w(r: KM.M & U32) -> H:
   (w, +cw) = r
-  H{thread(U32.to_nat((cw >> 2n : U32)), w, 0, (cw >> 2n : U32)), 1, C{0, 0, (cw >> 2n : U32), dt_new()}}
+  H{hdr_new(thread(U32.to_nat(((cw >> 2n : U32) - first() : U32)), w, first(), (cw >> 2n : U32)), (cw >> 2n : U32)),
+    Array.new(V.Val, 4n, V.VUnit{})}
 
 def h_new() -> H:
   h_new.w(KM.m_new(9n, w_maxd()))
 
-def c_err(c: C) -> C:
-  match c:
-    case C{+errs, +itrs, +wcap, dt}:
-      C{(errs + 1 : U32), itrs, wcap, dt}
-    case CBox{d}:
-      CBox{d}
+def h_err.n(r: KM.M & U32, a: Array<V.Val>) -> H:
+  (w, +e) = r
+  H{KM.m_set(w, at_errs(), (e + 1 : U32)), a}
 
 def h_err(h: H) -> H:
   match h:
-    case H{w, +fh, c}:
-      H{w, fh, c_err(c)}
+    case H{w, a}:
+      h_err.n(KM.m_get(w, at_errs()), a)
 
 def err_if(bad: Bool, h: H) -> H:
   match bad:
@@ -213,52 +247,46 @@ def err_if(bad: Bool, h: H) -> H:
 type HS is Data:
   HS{+itrs: U32, +errs: U32, +wcap: U32}
 
-def c_stats(c: C) -> C & HS:
-  match c:
-    case C{+errs, +itrs, +wcap, dt}:
-      (C{errs, itrs, wcap, dt}, HS{itrs, errs, wcap})
-    case CBox{d}:
-      (CBox{d}, HS{0, 0, 0})
+def stats.c(r: KM.M & U32, a: Array<V.Val>, +itrs: U32, +errs: U32) -> H & HS:
+  (w, +wcap) = r
+  (H{w, a}, HS{itrs, errs, wcap})
 
-def stats.fin(r: C & HS, w: KM.M, +fh: U32) -> H & HS:
-  (c, st) = r
-  (H{w, fh, c}, st)
+def stats.e(r: KM.M & U32, a: Array<V.Val>, +itrs: U32) -> H & HS:
+  (w, +errs) = r
+  stats.c(KM.m_get(w, at_wcap()), a, itrs, errs)
+
+def stats.i(r: KM.M & U32, a: Array<V.Val>) -> H & HS:
+  (w, +itrs) = r
+  stats.e(KM.m_get(w, at_errs()), a, itrs)
 
 # interactions, errors and node capacity, the state kept
 def stats(h: H) -> H & HS:
   match h:
-    case H{w, +fh, c}:
-      stats.fin(c_stats(c), w, fh)
-
-def c_count(c: C, +n: U32) -> C:
-  match c:
-    case C{+errs, +itrs, +wcap, dt}:
-      C{errs, n, wcap, dt}
-    case CBox{d}:
-      CBox{d}
+    case H{w, a}:
+      stats.i(KM.m_get(w, at_itrs()), a)
 
 # the interactions a run made, recorded when it ends
 def count(h: H, +n: U32) -> H:
   match h:
-    case H{w, +fh, c}:
-      H{w, fh, c_count(c, n)}
+    case H{w, a}:
+      H{KM.m_set(w, at_itrs(), n), a}
 
 # Words
 # =====
 
-def rd.fin(r: KM.M & U32, +fh: U32, c: C) -> H & U32:
+def rd.fin(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
   (w, +v) = r
-  (H{w, fh, c}, v)
+  (H{w, a}, v)
 
 def rd(h: H, +i: U32) -> H & U32:
   match h:
-    case H{w, +fh, c}:
-      rd.fin(KM.m_get(w, i), fh, c)
+    case H{w, a}:
+      rd.fin(KM.m_get(w, i), a)
 
 def wr(h: H, +i: U32, +v: U32) -> H:
   match h:
-    case H{w, +fh, c}:
-      H{KM.m_set(w, i, v), fh, c}
+    case H{w, a}:
+      H{KM.m_set(w, i, v), a}
 
 def port(+r: U32) -> U32:
   (r .&. 3 : U32)
@@ -283,44 +311,53 @@ def rs_words.go(small: Bool, +half: U32) -> U32:
 def rs_words(+wcap: U32) -> U32:
   rs_words.go(U32.is_lt((wcap >> 1n : U32), 64), (wcap >> 1n : U32))
 
-# the store doubled to wcap nodes: node wcap0 taken, the rest threaded onto
-# the free list; or, if either store could not grow, an error
-def grow.done(ok: Bool, w: KM.M, +errs: U32, +itrs: U32, +wcap0: U32, +wcap: U32, dt: DT) -> H & U32:
+# the store doubled to wcap nodes: node wcap0 taken, the rest threaded
+# onto the free list; or, if it could not grow, an error, and the
+# interface's reference as the node, so that nothing writes the header
+def grow.done(ok: Bool, w: KM.M, a: Array<V.Val>, +wcap0: U32, +wcap: U32) -> H & U32:
   match ok:
     case True{}:
-      (H{thread(U32.to_nat((wcap - (wcap0 + 1 : U32) : U32)), w, (wcap0 + 1 : U32), wcap), (wcap0 + 2 : U32), C{errs, itrs, wcap, dt}}, (wcap0 << 2n : U32))
+      (H{KM.m_set(KM.m_set(thread(U32.to_nat((wcap - (wcap0 + 1 : U32) : U32)), w, (wcap0 + 1 : U32), wcap),
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
     case False{}:
-      (H{w, 0, C{(errs + 1 : U32), itrs, wcap0, dt}}, 0)
+      (h_err(H{w, a}), iface())
 
-def grow.w(r: KM.M & U32, +errs: U32, +itrs: U32, +wcap0: U32, dt: DT) -> H & U32:
+def grow.w(r: KM.M & U32, a: Array<V.Val>, +wcap0: U32) -> H & U32:
   (w, +cap) = r
-  grow.done(U32.is_gt((cap >> 2n : U32), (wcap0 + 1 : U32)), w, errs, itrs, wcap0, (cap >> 2n : U32), dt)
+  grow.done(U32.is_gt((cap >> 2n : U32), (wcap0 + 1 : U32)), w, a, wcap0, (cap >> 2n : U32))
+
+def grow.c(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
+  (w, +wcap) = r
+  grow.w(KM.m_ensure(w, ((wcap * 2 : U32) * 4 : U32), (wcap * 4 : U32), w_maxd()), a, wcap)
 
 # the free list empty: every node is in use, so the store doubles
 def alloc.grow(h: H) -> H & U32:
   match h:
-    case H{w, +fh, c}:
-      match c:
-        case C{+errs, +itrs, +wcap, dt}:
-          grow.w(KM.m_ensure(w, ((wcap * 2 : U32) * 4 : U32), (wcap * 4 : U32), w_maxd()), errs, itrs, wcap, dt)
-        case CBox{d}:
-          (H{w, fh, CBox{d}}, 0)
+    case H{w, a}:
+      grow.c(KM.m_get(w, at_wcap()), a)
 
-def alloc.pop(r: KM.M & U32, +n: U32, c: C) -> H & U32:
+def alloc.pop(r: KM.M & U32, +n: U32, a: Array<V.Val>) -> H & U32:
   (w, +next) = r
-  (H{w, next, c}, n)
+  (H{KM.m_set(w, at_fh(), next), a}, n)
+
+def alloc.k(+fh: U32, w: KM.M, a: Array<V.Val>) -> H & U32:
+  match fh:
+    case 0:
+      alloc.grow(H{w, a})
+    case _:
+      alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
+
+def alloc.fh(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
+  (w, +fh) = r
+  alloc.k(fh, w, a)
 
 # a node: the head of the free list, which an intrusive list holds (the
 # head a node's index plus one, 0 for none; each free node's word 1 the
 # next in the same form)
 def alloc(h: H) -> H & U32:
   match h:
-    case H{w, +fh, c}:
-      match fh:
-        case 0:
-          alloc.grow(H{w, fh, c})
-        case _:
-          alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), c)
+    case H{w, a}:
+      alloc.fh(KM.m_get(w, at_fh()), a)
 
 def node.word.k(+k: U32) -> U32:
   match k:
@@ -345,15 +382,19 @@ def node(h: H, +hd: U32, +p: U32) -> H & U32:
 def base(+r: U32) -> U32:
   (r .&. 4294967292 : U32)
 
+def free.fh(q: KM.M & U32, a: Array<V.Val>, +r: U32) -> H:
+  (w, +fh) = q
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+
 # free the node behind reference r, whatever its port: its header zeroed,
 # its word 1 linking the old head of the free list
 def free(h: H, +r: U32) -> H:
   match h:
-    case H{w, +fh, c}:
-      H{KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), ((r >> 2n : U32) + 1 : U32), c}
+    case H{w, a}:
+      free.fh(KM.m_get(w, at_fh()), a, r)
 
 # free a redex's two nodes, b first, so that a's slot heads the free list
-# and the rule's first new node takes it: the interface, node 0, keeps its
+# and the rule's first new node takes it: the interface, node 2, keeps its
 # slot when a rule replaces it
 def fresh2(h: H, +a: U32, +b: U32) -> H:
   free(free(h, b), a)
@@ -408,50 +449,78 @@ def lift(+n: U32, +o: U32, +j: U32) -> U32:
 def lift_wraps(+n: U32, +o: U32, +j: U32) -> Bool:
   off_up(o) && U32.is_gt(j, n) && U32.is_ge((j + off_by(o) : U32), lvl_cap())
 
-def dt_op.fin(r: DT & U32, w: KM.M, +fh: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & U32:
-  (dt, +i) = r
-  (H{w, fh, C{errs, itrs, wcap, dt}}, i)
+def dt.d(r: KM.M & U32, a: Array<V.Val>, +fh: U32, +n: U32, +cap: U32) -> KM.M & DT:
+  (w, +d) = r
+  (w, DT{a, fh, n, cap, U32.to_nat(d)})
 
-def dt_val.fin(r: DT & V.Val, w: KM.M, +fh: U32, +errs: U32, +itrs: U32, +wcap: U32) -> H & V.Val:
-  (dt, v) = r
-  (H{w, fh, C{errs, itrs, wcap, dt}}, v)
+def dt.cap(r: KM.M & U32, a: Array<V.Val>, +fh: U32, +n: U32) -> KM.M & DT:
+  (w, +cap) = r
+  dt.d(KM.m_get(w, at_td()), a, fh, n, cap)
+
+def dt.n(r: KM.M & U32, a: Array<V.Val>, +fh: U32) -> KM.M & DT:
+  (w, +n) = r
+  dt.cap(KM.m_get(w, at_tcap()), a, fh, n)
+
+def dt.fh(r: KM.M & U32, a: Array<V.Val>) -> KM.M & DT:
+  (w, +fh) = r
+  dt.n(KM.m_get(w, at_tn()), a, fh)
+
+# the data table as its functions take it, from the header and the values
+def dt_of(w: KM.M, a: Array<V.Val>) -> KM.M & DT:
+  dt.fh(KM.m_get(w, at_tfh()), a)
+
+# the table's bookkeeping back into the header
+def dt_back(w: KM.M, t: DT) -> H:
+  match t:
+    case DT{a, +fh, +n, +cap, +d}:
+      H{KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_tfh(), fh), at_tn(), n), at_tcap(), cap), at_td(), U32.from_nat(d)), a}
+
+def dt_op.fin(r: DT & U32, w: KM.M) -> H & U32:
+  (t, +i) = r
+  (dt_back(w, t), i)
+
+def tab_put.t(r: KM.M & DT, v: V.Val) -> H & U32:
+  (w, t) = r
+  dt_op.fin(dt_put(t, v), w)
 
 def tab_put(h: H, v: V.Val) -> H & U32:
   match h:
-    case H{w, +fh, c}:
-      match c:
-        case C{+errs, +itrs, +wcap, dt}:
-          dt_op.fin(dt_put(dt, v), w, fh, errs, itrs, wcap)
-        case CBox{d}:
-          (H{w, fh, CBox{d}}, 0)
+    case H{w, a}:
+      tab_put.t(dt_of(w, a), v)
 
-# entry i duplicated, in one opening of the cold record
+def tab_dup.t(r: KM.M & DT, +i: U32) -> H & U32:
+  (w, t) = r
+  dt_op.fin(dt_dup(t, i), w)
+
+# entry i duplicated
 def tab_dup(h: H, +i: U32) -> H & U32:
   match h:
-    case H{w, +fh, c}:
-      match c:
-        case C{+errs, +itrs, +wcap, dt}:
-          dt_op.fin(dt_dup(dt, i), w, fh, errs, itrs, wcap)
-        case CBox{d}:
-          (H{w, fh, CBox{d}}, 0)
+    case H{w, a}:
+      tab_dup.t(dt_of(w, a), i)
 
+def tab_get.fin(r: Array<V.Val> & V.Val, w: KM.M) -> H & V.Val:
+  (a, v) = r
+  (H{w, a}, v)
+
+# entry i's value, the entry kept: the values alone
 def tab_get(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, +fh, c}:
-      match c:
-        case C{+errs, +itrs, +wcap, dt}:
-          dt_val.fin(dt_get(dt, i), w, fh, errs, itrs, wcap)
-        case CBox{d}:
-          (H{w, fh, CBox{d}}, V.VUnit{})
+    case H{w, a}:
+      tab_get.fin(Array.get(V.Val, a, i), w)
 
+def tab_take.fin(r: Array<V.Val> & V.Val, w: KM.M, +i: U32) -> H & V.Val:
+  (a, v) = r
+  (H{KM.m_set(w, at_tfh(), (i + 1 : U32)), a}, v)
+
+def tab_take.fh(r: KM.M & U32, a: Array<V.Val>, +i: U32) -> H & V.Val:
+  (w, +fh) = r
+  tab_take.fin(Array.swap(V.Val, a, i, V.VFree{fh}), w, i)
+
+# entry i's value, the entry freed: the values and the table's free head
 def tab_take(h: H, +i: U32) -> H & V.Val:
   match h:
-    case H{w, +fh, c}:
-      match c:
-        case C{+errs, +itrs, +wcap, dt}:
-          dt_val.fin(dt_take(dt, i), w, fh, errs, itrs, wcap)
-        case CBox{d}:
-          (H{w, fh, CBox{d}}, V.VUnit{})
+    case H{w, a}:
+      tab_take.fh(KM.m_get(w, at_tfh()), a, i)
 
 # a value as a node holds it: its form, field and word
 type PW is Data:
@@ -966,23 +1035,23 @@ def note(st: Stk, +x: U32, +y: U32) -> Stk:
 type Pop is Type:
   Pop{h: H, st: Stk, +cap: U32, +x: U32, +y: U32, +ok: Bool}
 
-def pop.y(r: KM.M & U32, s: KM.M, +fh: U32, c: C, +n: U32, +cap: U32, +x: U32) -> Pop:
+def pop.y(r: KM.M & U32, s: KM.M, a: Array<V.Val>, +n: U32, +cap: U32, +x: U32) -> Pop:
   (w, +y) = r
-  Pop{H{w, fh, c}, Stk{s, n}, cap, x, y, True{}}
+  Pop{H{w, a}, Stk{s, n}, cap, x, y, True{}}
 
 # x's partner: the peer of its principal port
-def pop.x(r: KM.M & U32, w: KM.M, +fh: U32, c: C, +n: U32, +cap: U32) -> Pop:
+def pop.x(r: KM.M & U32, w: KM.M, a: Array<V.Val>, +n: U32, +cap: U32) -> Pop:
   (s, +x) = r
-  pop.y(KM.m_get(w, (x + 1 : U32)), s, fh, c, n, cap, x)
+  pop.y(KM.m_get(w, (x + 1 : U32)), s, a, n, cap, x)
 
 def pop.go(h: H, s: KM.M, +n: U32, +cap: U32) -> Pop:
   match h:
-    case H{w, +fh, c}:
+    case H{w, a}:
       match n:
         case 0:
-          Pop{H{w, fh, c}, Stk{s, 0}, cap, 0, 0, False{}}
+          Pop{H{w, a}, Stk{s, 0}, cap, 0, 0, False{}}
         case _:
-          pop.x(KM.m_get(s, (n - 1 : U32)), w, fh, c, (n - 1 : U32), cap)
+          pop.x(KM.m_get(s, (n - 1 : U32)), w, a, (n - 1 : U32), cap)
 
 def pop.room(r: KM.M & U32, h: H, +n: U32) -> Pop:
   (s, +cap) = r
@@ -1083,28 +1152,22 @@ def dt_ok(t: DT, +held: U32) -> Bool:
     case DT{a, +fh, +n, +cap, +d}:
       dt_ok.fin(dt_free(U32.to_nat(n), FW{a, fh, 0}), n, held)
 
-def c_live(c: C) -> U32:
-  match c:
-    case C{+errs, +itrs, +wcap, dt}:
-      dt_live(dt)
-    case CBox{d}:
-      0
-
-def c_ok(c: C, +held: U32) -> Bool:
-  match c:
-    case C{+errs, +itrs, +wcap, dt}:
-      dt_ok(dt, held)
-    case CBox{d}:
-      False{}
+def h_live.t(r: KM.M & DT) -> U32:
+  (w, t) = r
+  dt_live(t)
 
 # data entries in use
 def h_live(h: H) -> U32:
   match h:
-    case H{w, +fh, c}:
-      c_live(c)
+    case H{w, a}:
+      h_live.t(dt_of(w, a))
+
+def h_ok.t(r: KM.M & DT, +held: U32) -> Bool:
+  (w, t) = r
+  dt_ok(t, held)
 
 # the table's audit (dt_ok) against held entries
 def h_ok(h: H, +held: U32) -> Bool:
   match h:
-    case H{w, +fh, c}:
-      c_ok(c, held)
+    case H{w, a}:
+      h_ok.t(dt_of(w, a), held)

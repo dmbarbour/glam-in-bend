@@ -604,11 +604,12 @@ def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
     case Con{t, rest}:
       load.nodes(rest, load.node(h, t))
 
-# a template's node n is the net's node n + 1, after the interface
+# a template's node n is the net's node n + 3, after the header and the
+# interface (kprim.bend's first)
 def tref(e: T.TEnd) -> U32:
   match e:
     case T.TE{+n, +p}:
-      (((n + 1 : U32) << 2n : U32) + p : U32)
+      (((n + 3 : U32) << 2n : U32) + p : U32)
 
 def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
   match ls:
@@ -621,8 +622,9 @@ def load.root(r: P.H & U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, 
   (h, +root) = r
   P.link(load.links(links, load.nodes(nodes, h)), root, x)
 
-# the template's net, its exposed port linked to the interface: node 0,
-# made first, which keeps its slot for good (HeapModel's "Nets")
+# the template's net, its exposed port linked to the interface: node 2,
+# the first after the header, which keeps its slot for good (HeapModel's
+# "Nets")
 def load(t: T.Tpl) -> P.H:
   match t:
     case T.Tpl{nodes, links, root, +size}:
@@ -664,11 +666,11 @@ def value.none(none: Bool, h: P.H, +root: U32) -> P.H & Maybe<&2, V.Val>:
 
 def value.root(r: P.H & U32) -> P.H & Maybe<&2, V.Val>:
   (h, +hdr) = r
-  value.none(U32.is_ne(P.kind(hdr), 8), h, 0)
+  value.none(U32.is_ne(P.kind(hdr), 8), h, P.iface())
 
-# the value at the interface, node 0: its peer's, when that is data
+# the value at the interface: its peer's, when that is data
 def result(h: P.H) -> P.H & Maybe<&2, V.Val>:
-  value.root(P.rd(h, 0))
+  value.root(P.rd(h, P.iface()))
 
 def counts.st(r: P.H & P.HS) -> String:
   (h, st) = r
