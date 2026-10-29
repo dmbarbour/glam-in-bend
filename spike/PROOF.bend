@@ -9,7 +9,7 @@ import ./ctl.bend as CT
 import ./kprim.bend as P
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
-import ./vendor/u32laws.bend as UD
+import ../vendor/wilderness-labs-stt/u32.bend as UD
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:

@@ -51,6 +51,9 @@ IO shell.
 - [`generated-sources`](decisions/generated-sources.md): code needed in
   several variants is generated into files of its own, by Bend programs,
   and checked current; no macro processor, no script editing sources.
+- [`vendored-sources`](decisions/vendored-sources.md): third-party code
+  not on the hub is copied under `vendor/`, a subdirectory per source with
+  its license and origin, indexed.
 
 ## Language
 

@@ -41,7 +41,7 @@ def git_ok(*args):
 
 
 def markdown_files():
-    files = set(ROOT.glob("*.md")) | set(ROOT.glob("docs/**/*.md")) | set(ROOT.glob("samples/**/*.md"))
+    files = set(ROOT.glob("*.md")) | set(ROOT.glob("docs/**/*.md")) | set(ROOT.glob("samples/**/*.md")) | set(ROOT.glob("vendor/**/*.md"))
     return sorted(files)
 
 

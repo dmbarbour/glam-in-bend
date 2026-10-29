@@ -90,7 +90,8 @@ of 2026-10-26, Bend 2.0.39.
   and remainder instead, at no cost in instructions (store runs 58 and
   59: each of 20 counts, 3 to 13 x 10^8, within 37 of the shifts' and
   masks'), and the file #1850 points to, vendored as
-  `spike/vendor/u32laws.bend` (MIT), proves `U32` division against `Nat`.
+  `vendor/wilderness-labs-stt/u32.bend` (MIT), proves `U32` division
+  against `Nat`.
   With both, the laws bound a decoded field to 24 bits and an amount to
   31 (`fld_bits`, `off_by_bits`), so the kernel's raise of a decoded
   level is the model's without hypothesis (`lift_decoded`) and fits its

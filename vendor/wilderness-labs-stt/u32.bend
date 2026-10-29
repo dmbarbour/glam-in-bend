@@ -1,34 +1,3 @@
-# Vendored: laws relating U32 to Nat, U32 division among them, from
-# github.com/ajbarryiii/wilderness-labs-stt, finetune/bend-planner/u32.bend
-# at commit f3603a0e14b8328d62488e0d0a3f5f907d96ef58: the file upstream
-# issue #1850 points to (docs/BendIssues.md, "Reasoning about U32 in
-# proofs"). Changed only to import bend-mathlib 0.8.0.0's nat.bend, as the
-# spike's own proofs do, in place of an earlier release's
-# (0xcd4682caa53da19986acd472c2181473). Not to be edited otherwise: replace
-# it with a package once one carries these laws. Its license:
-#
-# MIT License
-#
-# Copyright (c) 2026 ajbarryiii
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
-
 # Pure word/natural arithmetic. The Nat library is pinned by content hash.
 import Base
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as N
