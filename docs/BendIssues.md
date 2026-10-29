@@ -94,7 +94,8 @@ of 2026-10-26, Bend 2.0.39.
   new array.
 - **Upstream:** #1890. The maintainer's preference over a faster fill:
   no initialization at all, with a proof that each slot is written before
-  it is read.
+  it is read. A merge request for array allocation's cost is up (the
+  maintainer, 2026-10-29).
 - **Evidence:** `bench/bend/zero_fill.bend`: 8 instructions (3 cycles) a
   word; growing the kernel's stores is 14 to 18% of a run at k 18,
   most of it this fill (EvalSpike, `spike-node-layout`).

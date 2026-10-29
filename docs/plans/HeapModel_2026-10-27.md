@@ -502,6 +502,23 @@ takes from it:
      cheaper. Each bit set or cleared is a read and a write through the
      net's array; bits a strategy keeps for itself would cost demand
      nothing.
+   - `heap-strategies.twostack` — active — eager with two stacks (the
+     maintainer, 2026-10-29): the pairs whose rewrite would grow the net
+     wait at one end of the stack's array, the rest at the other, and the
+     rest drain first, so erasures, annihilations and cascades run before
+     anything duplicates; the basis for eraser cascades under eager
+     evaluation. A rule grows when it makes more nodes than the two it
+     frees, as the generator reads the rule table (`KR.grows`): fans,
+     calls, applications and controls meeting a fan, copies, controls
+     meeting a function; a copy meeting a merge only where they
+     commute. Erasers meeting anything, data copied, an application
+     meeting data do not. Pairs are noted to the near end and sorted as
+     popped, where their headers are read anyway: one that grows moves
+     to the far end. The total interactions cannot change, every complete
+     reduction making as many (fusion's savings aside); what may change
+     is the net's peak size, and locality. To measure: instructions and
+     peak capacity against the one stack, on families at n, 2n, 4n and
+     the library.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs
