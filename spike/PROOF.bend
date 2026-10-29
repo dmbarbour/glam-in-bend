@@ -7,6 +7,7 @@ import ./rules.bend as R
 import ./val.bend as V
 import ./ctl.bend as CT
 import ./kprim.bend as P
+import ./freelist.bend as FL
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
 import ../vendor/wilderness-labs-stt/u32.bend as UD
@@ -1383,3 +1384,357 @@ def lift_fits.at(+n: U32, +o: U32, +j: U32, +x: Nat, up: {P.off_up(o) == True{} 
 
 def Laws.lift_fits(n, o, h, up, ok):
   lift_fits.at(n, o, P.fld(h), Nat.pow(2n, 24n), up, ok, Laws.fld_bits(h), u32_24())
+
+# The free list
+# =============
+#
+# Over the model in freelist.bend: Bool steps, slot lemmas, then each
+# operation's case. A rule's fact about a computed value (a slot, a
+# comparison) is taken through a helper's parameter with its equation.
+
+def ne_tf(e: {True{} == False{} : Bool}) -> Empty:
+  MNat.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, e))
+
+def and_l(a: Bool, b: Bool, h: {(a && b) == True{} : Bool}) -> {a == True{} : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      h
+
+def and_r(a: Bool, b: Bool, h: {(a && b) == True{} : Bool}) -> {b == True{} : Bool}:
+  match a:
+    case True{}:
+      h
+    case False{}:
+      Empty.absurd({b == True{} : Bool}, MNat.internal_false_ne_true(h))
+
+def and_i(a: Bool, b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}) -> {(a && b) == True{} : Bool}:
+  match a:
+    case True{}:
+      hb
+    case False{}:
+      ha
+
+def or_false_l(a: Bool, b: Bool, h: {(a || b) == False{} : Bool}) -> {a == False{} : Bool}:
+  match a:
+    case True{}:
+      h
+    case False{}:
+      {==}
+
+def or_false_r(a: Bool, b: Bool, h: {(a || b) == False{} : Bool}) -> {b == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({b == False{} : Bool}, ne_tf(h))
+    case False{}:
+      h
+
+# x || (y || z) with y false is x || z
+def or_drop(+x: Bool, y: Bool, +z: Bool, h: {(x || (y || z)) == True{} : Bool}, hy: {y == False{} : Bool}) -> {(x || z) == True{} : Bool}:
+  match y:
+    case True{}:
+      Empty.absurd({(x || z) == True{} : Bool}, ne_tf(hy))
+    case False{}:
+      h
+
+def not_true(a: Bool, h: {Bool.not(a) == True{} : Bool}) -> {a == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MNat.internal_false_ne_true(h))
+    case False{}:
+      {==}
+
+def not_false(a: Bool, h: {a == False{} : Bool}) -> {Bool.not(a) == True{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, ne_tf(h))
+    case False{}:
+      {==}
+
+def same_refl(a: Nat) -> {FL.same(a, a) == True{} : Bool}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      same_refl(p)
+
+def same_eq(a: Nat, b: Nat, h: {FL.same(a, b) == True{} : Bool}) -> {a == b : Nat}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+y:
+      Empty.absurd({0n == 1n+y : Nat}, MNat.internal_false_ne_true(h))
+    case 1n+x 0n:
+      Empty.absurd({1n+x == 0n : Nat}, MNat.internal_false_ne_true(h))
+    case 1n+x 1n+y:
+      %same_eq(x, y, h) : {1n+x == 1n+_ : Nat}
+      {==}
+
+def same_comm(a: Nat, b: Nat) -> {FL.same(a, b) == FL.same(b, a) : Bool}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+y:
+      {==}
+    case 1n+x 0n:
+      {==}
+    case 1n+x 1n+y:
+      same_comm(x, y)
+
+def get_set_ne(s: List<&2, FL.Slot>, i: Nat, +v: FL.Slot, j: Nat, h: {FL.same(i, j) == False{} : Bool}) ->
+  {FL.get(FL.set(s, i, v), j) == FL.get(s, j) : FL.Slot}:
+  match s i j:
+    case Nil{} _ _:
+      {==}
+    case Con{c, t} 0n 0n:
+      Empty.absurd({FL.get(FL.set(Con{c, t}, 0n, v), 0n) == FL.get(Con{c, t}, 0n) : FL.Slot}, ne_tf(h))
+    case Con{c, t} 0n 1n+k:
+      {==}
+    case Con{c, t} 1n+m 0n:
+      {==}
+    case Con{c, t} 1n+m 1n+k:
+      get_set_ne(t, m, v, k, h)
+
+# a slot set in use reads in use, past the end too
+def get_set_used(s: List<&2, FL.Slot>, i: Nat) -> {FL.get(FL.set(s, i, FL.Used{}), i) == FL.Used{} : FL.Slot}:
+  match s i:
+    case Nil{} _:
+      {==}
+    case Con{c, t} 0n:
+      {==}
+    case Con{c, t} 1n+j:
+      get_set_used(t, j)
+
+def get_set_live(s: List<&2, FL.Slot>, i: Nat, +v: FL.Slot, h: {FL.in_use(s, i) == True{} : Bool}) ->
+  {FL.get(FL.set(s, i, v), i) == v : FL.Slot}:
+  match s i:
+    case Nil{} _:
+      Empty.absurd({FL.get(FL.set(Nil{}, i, v), i) == v : FL.Slot}, MNat.internal_false_ne_true(h))
+    case Con{c, t} 0n:
+      {==}
+    case Con{c, t} 1n+j:
+      get_set_live(t, j, v, h)
+
+def len_set(s: List<&2, FL.Slot>, i: Nat, +v: FL.Slot) ->
+  {List.length(&2, FL.Slot, FL.set(s, i, v)) == List.length(&2, FL.Slot, s) : Nat}:
+  match s i:
+    case Nil{} _:
+      {==}
+    case Con{c, t} 0n:
+      {==}
+    case Con{c, t} 1n+j:
+      %len_set(t, j, v) : {1n+List.length(&2, FL.Slot, FL.set(t, j, v)) == 1n+_ : Nat}
+      {==}
+
+def in_use_not_free(s: List<&2, FL.Slot>, i: Nat, h: {FL.in_use(s, i) == True{} : Bool}) ->
+  {FL.is_free(FL.get(s, i)) == False{} : Bool}:
+  match s i:
+    case Nil{} _:
+      {==}
+    case Con{c, t} 0n:
+      not_true(FL.is_free(c), h)
+    case Con{c, t} 1n+j:
+      in_use_not_free(t, j, h)
+
+# setting a slot off the list leaves what the links spell
+def walks_set(l: List<&2, Nat>, +s: List<&2, FL.Slot>, +i: Nat, +v: FL.Slot, x: Nat, h: {FL.mem(i, l) == False{} : Bool}) ->
+  {FL.walks(l, FL.set(s, i, v), x) == FL.walks(l, s, x) : Bool}:
+  match l:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      +h = h
+      %Equal.sym(FL.Slot, FL.get(FL.set(s, i, v), j), FL.get(s, j), get_set_ne(s, i, v, j, or_false_l(FL.same(i, j), FL.mem(i, t), h))) : {(FL.same(x, 1n+j) && (FL.is_free(_) && FL.walks(t, FL.set(s, i, v), FL.next_of(_)))) == (FL.same(x, 1n+j) && (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j))))) : Bool}
+      %Equal.sym(Bool, FL.walks(t, FL.set(s, i, v), FL.next_of(FL.get(s, j))), FL.walks(t, s, FL.next_of(FL.get(s, j))), walks_set(t, s, i, v, FL.next_of(FL.get(s, j)), or_false_r(FL.same(i, j), FL.mem(i, t), h))) : {(FL.same(x, 1n+j) && (FL.is_free(FL.get(s, j)) && _)) == (FL.same(x, 1n+j) && (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j))))) : Bool}
+      {==}
+
+# a fact about slot j, for slot i equal to j
+def tr_free(+s: List<&2, FL.Slot>, +i: Nat, +j: Nat, e: {i == j : Nat}, h: {FL.is_free(FL.get(s, j)) == True{} : Bool}) ->
+  {FL.is_free(FL.get(s, i)) == True{} : Bool}:
+  %Equal.sym(Nat, i, j, e) : {FL.is_free(FL.get(s, _)) == True{} : Bool}
+  h
+
+# j on the list is free; i is not, so i is not j
+def wnm.go(e: Bool, +i: Nat, +j: Nat, +s: List<&2, FL.Slot>, +t: List<&2, Nat>, he: {FL.same(i, j) == e : Bool},
+  hf: {FL.is_free(FL.get(s, j)) == True{} : Bool}, hu: {FL.is_free(FL.get(s, i)) == False{} : Bool},
+  ih: {FL.mem(i, t) == False{} : Bool}) -> {(e || FL.mem(i, t)) == False{} : Bool}:
+  match e:
+    case True{}:
+      Empty.absurd({(True{} || FL.mem(i, t)) == False{} : Bool}, MNat.internal_false_ne_true(
+        Equal.trans(Bool, False{}, FL.is_free(FL.get(s, i)), True{}, Equal.sym(Bool, FL.is_free(FL.get(s, i)), False{}, hu),
+          tr_free(s, i, j, same_eq(i, j, he), hf))))
+    case False{}:
+      ih
+
+# a slot not free is on no list the links spell
+def walks_not_mem(l: List<&2, Nat>, +s: List<&2, FL.Slot>, x: Nat, +i: Nat, hw: {FL.walks(l, s, x) == True{} : Bool},
+  +hu: {FL.is_free(FL.get(s, i)) == False{} : Bool}) -> {FL.mem(i, l) == False{} : Bool}:
+  match l:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      +hr = and_r(FL.same(x, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)
+      wnm.go(FL.same(i, j), i, j, s, t, {==},
+        and_l(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr), hu,
+        walks_not_mem(t, s, FL.next_of(FL.get(s, j)), i, and_r(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr), hu))
+
+# one slot of listed after alloc takes i: i reads in use; any other is as it was
+def la.step(e: Bool, +s: List<&2, FL.Slot>, +i: Nat, +k: Nat, +t: List<&2, Nat>, +he: {FL.same(i, k) == e : Bool},
+  h: {(Bool.not(FL.is_free(FL.get(s, k))) || (FL.same(k, i) || FL.mem(k, t))) == True{} : Bool}) ->
+  {(Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Used{}), k))) || FL.mem(k, t)) == True{} : Bool}:
+  match e:
+    case True{}:
+      %same_eq(i, k, he) : {(Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Used{}), _))) || FL.mem(k, t)) == True{} : Bool}
+      %Equal.sym(FL.Slot, FL.get(FL.set(s, i, FL.Used{}), i), FL.Used{}, get_set_used(s, i)) : {(Bool.not(FL.is_free(_)) || FL.mem(k, t)) == True{} : Bool}
+      {==}
+    case False{}:
+      %Equal.sym(FL.Slot, FL.get(FL.set(s, i, FL.Used{}), k), FL.get(s, k), get_set_ne(s, i, FL.Used{}, k, he)) : {(Bool.not(FL.is_free(_)) || FL.mem(k, t)) == True{} : Bool}
+      or_drop(Bool.not(FL.is_free(FL.get(s, k))), FL.same(k, i), FL.mem(k, t), h,
+        Equal.trans(Bool, FL.same(k, i), FL.same(i, k), False{}, same_comm(k, i), he))
+
+def listed_alloc(n: Nat, +s: List<&2, FL.Slot>, +i: Nat, +t: List<&2, Nat>, h: {FL.listed(s, n, Con{i, t}) == True{} : Bool}) ->
+  {FL.listed(FL.set(s, i, FL.Used{}), n, t) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n++k:
+      +h = h
+      and_i((Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Used{}), k))) || FL.mem(k, t)), FL.listed(FL.set(s, i, FL.Used{}), k, t),
+        la.step(FL.same(i, k), s, i, k, t, {==},
+          and_l((Bool.not(FL.is_free(FL.get(s, k))) || FL.mem(k, Con{i, t})), FL.listed(s, k, Con{i, t}), h)),
+        listed_alloc(k, s, i, t, and_r((Bool.not(FL.is_free(FL.get(s, k))) || FL.mem(k, Con{i, t})), FL.listed(s, k, Con{i, t}), h)))
+
+# one slot of listed after free puts i on the list: i is on it; any other is as it was
+def lf.step(e: Bool, +s: List<&2, FL.Slot>, +i: Nat, +k: Nat, +l: List<&2, Nat>, +fh: Nat, +he: {FL.same(i, k) == e : Bool},
+  h: {(Bool.not(FL.is_free(FL.get(s, k))) || FL.mem(k, l)) == True{} : Bool}) ->
+  {(Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Free{fh}), k))) || (FL.same(k, i) || FL.mem(k, l))) == True{} : Bool}:
+  match e:
+    case True{}:
+      %Equal.trans(Bool, True{}, FL.same(i, k), FL.same(k, i), Equal.sym(Bool, FL.same(i, k), True{}, he), same_comm(i, k)) : {(Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Free{fh}), k))) || (_ || FL.mem(k, l))) == True{} : Bool}
+      or_true(Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Free{fh}), k))))
+    case False{}:
+      %Equal.sym(FL.Slot, FL.get(FL.set(s, i, FL.Free{fh}), k), FL.get(s, k), get_set_ne(s, i, FL.Free{fh}, k, he)) : {(Bool.not(FL.is_free(_)) || (FL.same(k, i) || FL.mem(k, l))) == True{} : Bool}
+      %Equal.trans(Bool, False{}, FL.same(i, k), FL.same(k, i), Equal.sym(Bool, FL.same(i, k), False{}, he), same_comm(i, k)) : {(Bool.not(FL.is_free(FL.get(s, k))) || (_ || FL.mem(k, l))) == True{} : Bool}
+      h
+
+def listed_free(n: Nat, +s: List<&2, FL.Slot>, +i: Nat, +l: List<&2, Nat>, +fh: Nat, h: {FL.listed(s, n, l) == True{} : Bool}) ->
+  {FL.listed(FL.set(s, i, FL.Free{fh}), n, Con{i, l}) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n++k:
+      +h = h
+      and_i((Bool.not(FL.is_free(FL.get(FL.set(s, i, FL.Free{fh}), k))) || FL.mem(k, Con{i, l})), FL.listed(FL.set(s, i, FL.Free{fh}), k, Con{i, l}),
+        lf.step(FL.same(i, k), s, i, k, l, fh, {==},
+          and_l((Bool.not(FL.is_free(FL.get(s, k))) || FL.mem(k, l)), FL.listed(s, k, l), h)),
+        listed_free(k, s, i, l, fh, and_r((Bool.not(FL.is_free(FL.get(s, k))) || FL.mem(k, l)), FL.listed(s, k, l), h)))
+
+# listed over the slots' count after a set: the count is unchanged
+def listed_len(+s: List<&2, FL.Slot>, +i: Nat, +v: FL.Slot, +l: List<&2, Nat>,
+  h: {FL.listed(FL.set(s, i, v), List.length(&2, FL.Slot, s), l) == True{} : Bool}) ->
+  {FL.listed(FL.set(s, i, v), List.length(&2, FL.Slot, FL.set(s, i, v)), l) == True{} : Bool}:
+  %Equal.sym(Nat, List.length(&2, FL.Slot, FL.set(s, i, v)), List.length(&2, FL.Slot, s), len_set(s, i, v)) : {FL.listed(FL.set(s, i, v), _, l) == True{} : Bool}
+  h
+
+# alloc's slot j, the list's head, after it is set in use: the list's rest,
+# off it, still spelled from j's link
+def alloc_walks(+s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, +n: Nat, hc: {FL.get(s, j) == FL.Free{n} : FL.Slot},
+  hm: {FL.mem(j, t) == False{} : Bool}, hw: {FL.walks(t, s, FL.next_of(FL.get(s, j))) == True{} : Bool}) ->
+  {FL.walks(t, FL.set(s, j, FL.Used{}), n) == True{} : Bool}:
+  %Equal.sym(Bool, FL.walks(t, FL.set(s, j, FL.Used{}), n), FL.walks(t, s, n), walks_set(t, s, j, FL.Used{}, n, hm)) : {_ == True{} : Bool}
+  %hc : {FL.walks(t, s, FL.next_of(_)) == True{} : Bool}
+  hw
+
+def alloc_ok.go(c: FL.Slot, +s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, hc: {FL.get(s, j) == c : FL.Slot},
+  hf: {FL.is_free(FL.get(s, j)) == True{} : Bool}, hw: {FL.walks(t, s, FL.next_of(FL.get(s, j))) == True{} : Bool},
+  +hn: {FL.nodup(Con{j, t}) == True{} : Bool}, hl: {FL.listed(s, List.length(&2, FL.Slot, s), Con{j, t}) == True{} : Bool}) ->
+  {FL.ok(FL.alloc.go(c, s, j, Con{j, t})) == True{} : Bool}:
+  match c:
+    case FL.Used{}:
+      Empty.absurd({FL.ok(FL.alloc.go(FL.Used{}, s, j, Con{j, t})) == True{} : Bool}, MNat.internal_false_ne_true(
+        Equal.trans(Bool, False{}, FL.is_free(FL.get(s, j)), True{},
+          Equal.cong(FL.Slot, Bool, FL.is_free, FL.Used{}, FL.get(s, j), Equal.sym(FL.Slot, FL.get(s, j), FL.Used{}, hc)), hf)))
+    case FL.Free{+n}:
+      and_i(FL.walks(t, FL.set(s, j, FL.Used{}), n),
+        (FL.nodup(t) && FL.listed(FL.set(s, j, FL.Used{}), List.length(&2, FL.Slot, FL.set(s, j, FL.Used{})), t)),
+        alloc_walks(s, j, t, n, hc, not_true(FL.mem(j, t), and_l(Bool.not(FL.mem(j, t)), FL.nodup(t), hn)), hw),
+        and_i(FL.nodup(t), FL.listed(FL.set(s, j, FL.Used{}), List.length(&2, FL.Slot, FL.set(s, j, FL.Used{})), t),
+          and_r(Bool.not(FL.mem(j, t)), FL.nodup(t), hn),
+          listed_len(s, j, FL.Used{}, t, listed_alloc(List.length(&2, FL.Slot, s), s, j, t, hl))))
+
+def alloc_ok(+s: List<&2, FL.Slot>, +i: Nat, +j: Nat, +t: List<&2, Nat>, e: {i == j : Nat},
+  hf: {FL.is_free(FL.get(s, j)) == True{} : Bool}, hw: {FL.walks(t, s, FL.next_of(FL.get(s, j))) == True{} : Bool},
+  hn: {FL.nodup(Con{j, t}) == True{} : Bool}, hl: {FL.listed(s, List.length(&2, FL.Slot, s), Con{j, t}) == True{} : Bool}) ->
+  {FL.ok(FL.alloc.go(FL.get(s, i), s, i, Con{j, t})) == True{} : Bool}:
+  %Equal.sym(Nat, i, j, e) : {FL.ok(FL.alloc.go(FL.get(s, _), s, _, Con{j, t})) == True{} : Bool}
+  alloc_ok.go(FL.get(s, j), s, j, t, {==}, hf, hw, hn, hl)
+
+# ok, split
+def ok_w(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) -> {FL.walks(l, s, fh) == True{} : Bool}:
+  and_l(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h)
+
+def ok_n(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) -> {FL.nodup(l) == True{} : Bool}:
+  and_l(FL.nodup(l), FL.listed(s, List.length(&2, FL.Slot, s), l), and_r(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h))
+
+def ok_l(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) -> {FL.listed(s, List.length(&2, FL.Slot, s), l) == True{} : Bool}:
+  and_r(FL.nodup(l), FL.listed(s, List.length(&2, FL.Slot, s), l), and_r(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h))
+
+def fl_alloc(f: FL.FL, ok: {FL.ok(f) == True{} : Bool}) -> {FL.ok(FL.alloc(f)) == True{} : Bool}:
+  match f:
+    case FL.FL{+s, fh, +l}:
+      match fh:
+        case 0n:
+          ok
+        case 1n++i:
+          match l:
+            case Nil{}:
+              Empty.absurd({FL.ok(FL.alloc(FL.FL{s, 1n+i, Nil{}})) == True{} : Bool}, MNat.internal_false_ne_true(ok))
+            case Con{+j, +t}:
+              +ok = ok
+              +hw = ok_w(s, 1n+i, Con{j, t}, ok)
+              +hr = and_r(FL.same(1n+i, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)
+              alloc_ok(s, i, j, t, same_eq(i, j, and_l(FL.same(1n+i, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)),
+                and_l(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr),
+                and_r(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr),
+                ok_n(s, 1n+i, Con{j, t}, ok), ok_l(s, 1n+i, Con{j, t}, ok))
+
+# the head's link, after free: slot i reads free, linking the old head
+def free_walks(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +i: Nat, live: {FL.in_use(s, i) == True{} : Bool},
+  hw: {FL.walks(l, s, fh) == True{} : Bool}, hm: {FL.mem(i, l) == False{} : Bool}) ->
+  {FL.walks(Con{i, l}, FL.set(s, i, FL.Free{fh}), 1n+i) == True{} : Bool}:
+  %Equal.sym(FL.Slot, FL.get(FL.set(s, i, FL.Free{fh}), i), FL.Free{fh}, get_set_live(s, i, FL.Free{fh}, live)) : {(FL.same(1n+i, 1n+i) && (FL.is_free(_) && FL.walks(l, FL.set(s, i, FL.Free{fh}), FL.next_of(_)))) == True{} : Bool}
+  %Equal.sym(Bool, FL.same(i, i), True{}, same_refl(i)) : {(_ && (True{} && FL.walks(l, FL.set(s, i, FL.Free{fh}), fh))) == True{} : Bool}
+  %Equal.sym(Bool, FL.walks(l, FL.set(s, i, FL.Free{fh}), fh), FL.walks(l, s, fh), walks_set(l, s, i, FL.Free{fh}, fh, hm)) : {(True{} && (True{} && _)) == True{} : Bool}
+  hw
+
+def fl_free(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +i: Nat, +live: {FL.in_use(s, i) == True{} : Bool},
+  +ok: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) -> {FL.ok(FL.free(FL.FL{s, fh, l}, i)) == True{} : Bool}:
+  +hw = ok_w(s, fh, l, ok)
+  +hm = walks_not_mem(l, s, fh, i, hw, in_use_not_free(s, i, live))
+  and_i(FL.walks(Con{i, l}, FL.set(s, i, FL.Free{fh}), 1n+i),
+    (FL.nodup(Con{i, l}) && FL.listed(FL.set(s, i, FL.Free{fh}), List.length(&2, FL.Slot, FL.set(s, i, FL.Free{fh})), Con{i, l})),
+    free_walks(s, fh, l, i, live, hw, hm),
+    and_i(FL.nodup(Con{i, l}), FL.listed(FL.set(s, i, FL.Free{fh}), List.length(&2, FL.Slot, FL.set(s, i, FL.Free{fh})), Con{i, l}),
+      and_i(Bool.not(FL.mem(i, l)), FL.nodup(l), not_false(FL.mem(i, l), hm), ok_n(s, fh, l, ok)),
+      listed_len(s, i, FL.Free{fh}, Con{i, l}, listed_free(List.length(&2, FL.Slot, s), s, i, l, fh, ok_l(s, fh, l, ok)))))
+
+def fl_head(+s: List<&2, FL.Slot>, +i: Nat, l: List<&2, Nat>, ok: {FL.ok(FL.FL{s, 1n+i, l}) == True{} : Bool}) ->
+  {FL.is_free(FL.get(s, i)) == True{} : Bool}:
+  match l:
+    case Nil{}:
+      Empty.absurd({FL.is_free(FL.get(s, i)) == True{} : Bool}, MNat.internal_false_ne_true(ok))
+    case Con{+j, +t}:
+      +hw = ok_w(s, 1n+i, Con{j, t}, ok)
+      tr_free(s, i, j, same_eq(i, j, and_l(FL.same(1n+i, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)),
+        and_l(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))),
+          and_r(FL.same(1n+i, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)))
+
+def Laws.free_list_alloc(f, ok):
+  fl_alloc(f, ok)
+
+def Laws.free_list_free(s, fh, l, i, live, ok):
+  fl_free(s, fh, l, i, live, ok)
+
+def Laws.free_list_takes_free(s, i, l, ok):
+  fl_head(s, i, l, ok)

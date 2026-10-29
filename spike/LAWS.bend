@@ -7,6 +7,7 @@ import ./rules.bend as R
 import ./val.bend as V
 import ./ctl.bend as CT
 import ./kprim.bend as P
+import ./freelist.bend as FL
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
@@ -177,3 +178,35 @@ law lift_fits:
   for up: {P.off_up(o) == True{} : Bool}
   for ok: {P.lift_wraps(n, o, P.fld(h)) == False{} : Bool}
   MNat.lt(U32.to_nat(P.lift(n, o, P.fld(h))), Nat.pow(2n, 24n))
+
+# LAW: taking a slot keeps the net's free list exact. In the free-list
+# model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says
+# the links from the head spell a list holding every free slot and no
+# slot twice: each free node is on the free list exactly once, and no
+# node in use is. alloc keeps it.
+# Record: net-nodes-double
+law free_list_alloc:
+  for f: FL.FL
+  for ok: {FL.ok(f) == True{} : Bool}
+  {FL.ok(FL.alloc(f)) == True{} : Bool}
+
+# LAW: freeing a slot in use keeps the free list exact.
+# Record: net-nodes-double
+law free_list_free:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +i: Nat
+  for live: {FL.in_use(s, i) == True{} : Bool}
+  for ok: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  {FL.ok(FL.free(FL.FL{s, fh, l}, i)) == True{} : Bool}
+
+# LAW: the slot alloc takes, the head's, is free: allocation never takes a
+# node in use.
+# Record: net-nodes-double
+law free_list_takes_free:
+  for +s: List<&2, FL.Slot>
+  for +i: Nat
+  for l: List<&2, Nat>
+  for ok: {FL.ok(FL.FL{s, 1n+i, l}) == True{} : Bool}
+  {FL.is_free(FL.get(s, i)) == True{} : Bool}

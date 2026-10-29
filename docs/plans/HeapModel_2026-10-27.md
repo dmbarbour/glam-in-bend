@@ -323,6 +323,20 @@ takes from it:
        audit does (`TABLE MISMATCH`). `free` left the header set, or not
        linking the node, each fails 22 of the 25 demand tests, every one
        that frees a node.
+       - `heap-strategies.net.freelist.law` — built 2026-10-29 — the
+         same exactness as laws, over a model in `Nat`
+         (`spike/freelist.bend`): slots as the kernel's nodes, a free one
+         linking the next as a free node's word 1 does, and beside them
+         the list the links should spell. `FL.ok` says the links from the
+         head spell that list, which holds every free slot and no slot
+         twice: what the audit tells by the chain ending within as many
+         steps as there are nodes and holding as many as are free.
+         `free_list_alloc` and `free_list_free` say each operation keeps
+         it, and `free_list_takes_free` that alloc takes a free slot
+         (the maintainer, 2026-10-29). A free that leaves the old head
+         unlinked, or an alloc that leaves its slot free, fails the
+         proofs. The kernel's own `U32` free list is not proved against
+         the model; the audit still checks it after every test.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
