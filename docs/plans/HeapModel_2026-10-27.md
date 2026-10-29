@@ -427,8 +427,10 @@ takes from it:
        - `heap-strategies.net.wiring.circles` — built 2026-10-29 — where
          an end the rule links to a pair's inside `Ext` end is itself
          inside, the rule's links and the pair's own close a loop of bare
-         wire, a vicious circle: it holds no node and vanishes, but the
-         kernel (`knet.bend`, `net.bend`) reported an error. Polarity allows
+         wire with no node on it, a vicious circle of length 0 in
+         Lafont's terms (length counts the nodes on a circle), which no
+         port outside the pair touches, so nothing is left to link; but
+         the kernel (`knet.bend`, `net.bend`) reported an error. Polarity allows
          nine such cases among the table's rules and patterns, all of
          them rules linking two `Ext` ends (beta, fan and control
          annihilation), and with no rule linking two `Ext` ends and also
@@ -447,10 +449,14 @@ takes from it:
          `r = (\_ -> r) 7`, which nothing uses), beta links the body to
          the result, two ends that are the pair's own, and the argument
          to the eraser of the unused variable. Lafont keeps such a
-         cyclic wire as a component of the net; dropping it is the same
-         net, a component with no ports and no cells. The maintainer to
-         confirm that a vicious circle is to vanish rather than be
-         reported.
+         cyclic wire as a component of the net; a net stored as ports
+         has nowhere to keep it, a loop with no ports and no nodes. A
+         vicious circle with a node on it stays in the net, stuck, and
+         demand reaching it reports a cycle: with `r` used, a copy shares
+         it, and beta joins the copy's input to its own output
+         (`vicious-circle-formed`). The maintainer to confirm that the
+         loop with no node is to vanish rather than be reported, or
+         counted for diagnosis.
        - `heap-strategies.net.wiring.kinds` — built 2026-10-29 —
          `kernel_in_step` took as a hypothesis that a rule's new nodes
          are live; `rules_kinds_live` proves it of every rule, by
@@ -475,7 +481,9 @@ takes from it:
          in the kernel's order, inside `alloc` when the list runs out
          partway through a rewrite, which would retire the `KP.has`
          hypothesis; its laws are drafted at the end of
-         `spike/LAWS.bend`.
+         `spike/LAWS.bend`. The maintainer finds the hypothesis, a free
+         list never short, reasonable (2026-10-29); improving on it is
+         welcome.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
@@ -591,7 +599,21 @@ takes from it:
        to 2.1%, store run 47); now demand costs -0.1% to +0.3% more, the
        full reduction nothing (store run 48 against 43). Lowered terms make
        no cycle with levels, but nets users wire may (`pairing-nets`):
-       `test_demand.bend` and the library's `cycle-copy-lift` build one.
+       `test_demand.bend` and the library's `cycle-copy-lift` build one,
+       and in `vicious-circle-formed` beta forms one. The walk follows
+       principal ports, so the cycles it finds are exactly the vicious
+       circles it reaches.
+       - `heap-strategies.demand.cycle.early` — tentative — a cycle
+         found a few steps after the walk repeats, not once the path is
+         as long as the net, as the Rust bootstrap did with a two-pointer
+         cycle finder, Floyd's or Brent's (the maintainer, 2026-10-29),
+         and found once. At the checkpoints the walk already has, the
+         powers of two, the top compared with the path below it: a scan
+         costing a constant per push, amortized, that finds a cycle the
+         walk entered at depth m and runs round in k steps by depth
+         2(m + k), or 128. Found once: the circle recorded among the
+         net's faults, so that later demands need not walk it again.
+         Measured against demand's cost now.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

@@ -426,6 +426,11 @@ The `NetBuilder` Effects API:
 - Wires consume ports. Each port must be wired exactly once.
   - `.wire A B` - commutative (`.wire B A` is equivalent)
   - the return port wired implicitly
+- Construction refuses obvious errors, cheap to recognize: a port wired
+  twice or never, a subnet disconnected from the return port, a vicious
+  circle (nodes each with its principal port wired to an auxiliary of the
+  next, round to the first, which can never interact). A circle formed by
+  reduction is reported when demand reaches it.
 - *Standard Effects* to support bookkeeping and backtracking
 
 Nodes interact only when principal ports connect.

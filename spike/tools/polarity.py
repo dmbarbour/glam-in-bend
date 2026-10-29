@@ -3,7 +3,8 @@
 Every link must join a positive port to a negative one, every port be
 linked exactly once, and the exposed port be positive (the loader links it
 to the interface's negative principal); no principal path may close
-(vicious). Port polarities are rules.bend's (R.port_pol):
+(vicious), an obvious error glam's construction refuses
+(net-obvious-errors). Port polarities are rules.bend's (R.port_pol):
 
     Fn [+ fn, - result, + arg]    Ap [- ap, - arg, + result]
     Copy [- in, + left, + right]  Lift [- in, + out]

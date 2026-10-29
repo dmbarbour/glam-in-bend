@@ -68,6 +68,9 @@ Surface and semantic rules settled for this implementation.
 - [`handlers-assumed-lawful`](decisions/handlers-assumed-lawful.md):
   effects are described under handlers assumed, not required, to obey the
   monad laws.
+- [`net-obvious-errors`](decisions/net-obvious-errors.md): net
+  construction refuses errors it recognizes cheaply (disconnected
+  subnets, vicious circles), and restricts nothing it cannot.
 
 ## Language, from the Rust bootstrap
 

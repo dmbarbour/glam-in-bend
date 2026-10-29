@@ -333,8 +333,9 @@ derivation made here first.
      auxiliary port of the next (Lafont, Interaction Combinators, 1997,
      §1.6), never reduced, so demand meeting one finds a cycle.
      `polarity.py`'s `vicious` finds them; it fails a lowered net with
-     one, and `library.py` a case with one unless the entry expects a
-     cycle, or one expecting a cycle without one. None in the corpus's
+     one, and `library.py` a case built with one unless the entry
+     expects a cycle; a cycle may also form by rewriting
+     (`vicious-circle-formed`). None in the corpus's
      1,620 lowered nets; among the library's 58 cases, one, in
      `cycle-copy-lift`, the entry built to have it. A vicious circle of
      length zero, a cyclic wire, has no ports, so a built net cannot hold
@@ -381,7 +382,10 @@ derivation made here first.
      negative exposed port, as `spike/tools/polarity.py` checks the
      lowered ones; rules keep it (`rules_polarized`), and fusion and
      peeling link positive to negative by construction, with no law yet.
-     A vicious circle refused too, as `pairing-library.circles` checks.
+     A subnet disconnected from the exposed port refused too, as the
+     Rust bootstrap's construction does, and a vicious circle, as
+     `pairing-library.circles` checks: obvious errors, cheap to find
+     (`net-obvious-errors`).
    - `pairing-nets.switching` — dropped 2026-10-29 — a structural
      condition that every rule keeps and that no net with a vicious
      circle meets, so that circles never form at run time (the

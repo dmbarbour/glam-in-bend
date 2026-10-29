@@ -52,9 +52,11 @@ net: 5 logical 4 peels 0
 # Nets no lambda term lowers to
 
 name: vicious-circle-beta
-why: an application whose result is its function's own variable, apart
-  from the root: beta joins the two into a closed loop of wire, which
-  holds nothing and vanishes; the kernel once reported it an error
+why: an application whose result feeds its own function's body, `r`
+  where `r = (\_ -> r) 7`, which nothing uses: beta would join the
+  result to the body, both ports of the pair, which leaves a loop of wire
+  with no node on it (Lafont's vicious circle of length 0) and nothing
+  to link; the kernel once reported it an error
   (heap-strategies.net.wiring.pairs)
 nodes: ap(0) fn(0) num(7) era num(5)
 links: 0.0-1.0 0.1-2.0 0.2-1.1 1.2-3.0
@@ -69,6 +71,16 @@ nodes: ctl(0,+1) ctlc(0,+1) num(5)
 links: 0.0-1.0 0.1-1.1
 root: 2.0
 net: 5 logical 2 peels 0
+
+name: vicious-circle-formed
+why: `r` where `r = (\_ -> r) 7`, used: a copy shares r between the
+  root and the function's body, so beta joins the copy's input to its own
+  output, a vicious circle of length 1 formed by rewriting, kept in the
+  net, stuck; demand from the root walks round it
+nodes: ap(0) fn(0) num(7) era cp(0,0)
+links: 0.0-1.0 0.1-2.0 0.2-4.0 4.1-1.1 1.2-3.0
+root: 4.2
+net: cycle
 
 name: cycle-copy-lift
 why: a copy whose input is a lift fed by its own second output: polarized,
