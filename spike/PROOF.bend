@@ -4653,3 +4653,489 @@ def kis(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +ks: List<&2, R.Node
 
 def Laws.kernel_in_step(s, fh, l, ks, a, b, xs, hf, hs, hab, hla, hlb, hen, hkl):
   kis(s, fh, l, ks, a, b, xs, hf, hs, hab, hla, hlb, hen, hkl)
+
+# The rule table's new kinds
+# =========================
+
+# by cases: every rule a constant the checker computes
+def Laws.rules_kinds_live(a, b, s):
+  match a:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+    case R.KCopy{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+    case R.KCall{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+    case R.KLift{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          match s:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KLiftC{}:
+      {==}
+
+# a step of the table: a rule making nodes is kernel_in_step's, a stuck
+# pair leaves the state as it was
+def kris(r: R.Rule, +s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat,
+  +hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}, +hs: {KP.in_step(s, ks) == True{} : Bool}, +hab: {R.nat_eq(a, b) == False{} : Bool},
+  +hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}, +hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool},
+  hen: {KP.step_has(r, l) == True{} : Bool}, hr: {KP.rule_live(r) == True{} : Bool}) ->
+  {KP.in_step(KP.slots_of(KP.step_free(a, b, r, FL.FL{s, fh, l})), KP.step_kinds(ks, a, b, r, FL.FL{s, fh, l})) == True{} : Bool}:
+  match r:
+    case R.RWire{+xs, ls}:
+      kis(s, fh, l, ks, a, b, xs, hf, hs, hab, hla, hlb, hen, hr)
+    case R.RStuck{}:
+      hs
+
+def Laws.kernel_rules_in_step(s, fh, l, ks, a, b, t, hf, hs, hab, hla, hlb, hen):
+  kris(R.rule(W.kind_at(ks, a), W.kind_at(ks, b), t), s, fh, l, ks, a, b, hf, hs, hab, hla, hlb, hen, Laws.rules_kinds_live(W.kind_at(ks, a), W.kind_at(ks, b), t))
+
+# Growth
+# ======
+#
+# Over kplace.bend's grow. Growing by 1+m is growing by m above one more
+# slot, in use, then freeing it (grow_eq), so free_list_free carries the
+# free list's exactness up from a slot appended in use (ok_used). The
+# kinds grow by free nodes, which kind_at already gives past the end.
+
+def len_snoc_s(A: List<&2, FL.Slot>, +v: FL.Slot) -> {List.length(&2, FL.Slot, List.append(&2, FL.Slot, A, [v])) == 1n+List.length(&2, FL.Slot, A) : Nat}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %len_snoc_s(t, v) : {1n+List.length(&2, FL.Slot, List.append(&2, FL.Slot, t, [v])) == 1n+_ : Nat}
+      {==}
+
+def app_nil_s(A: List<&2, FL.Slot>) -> {List.append(&2, FL.Slot, A, Nil{}) == A : List<&2, FL.Slot>}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %app_nil_s(t) : {Con{x, List.append(&2, FL.Slot, t, Nil{})} == Con{x, _} : List<&2, FL.Slot>}
+      {==}
+
+def app_assoc_s(A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, +C: List<&2, FL.Slot>) ->
+  {List.append(&2, FL.Slot, List.append(&2, FL.Slot, A, B), C) == List.append(&2, FL.Slot, A, List.append(&2, FL.Slot, B, C)) : List<&2, FL.Slot>}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %app_assoc_s(t, B, C) : {Con{x, List.append(&2, FL.Slot, List.append(&2, FL.Slot, t, B), C)} == Con{x, _} : List<&2, FL.Slot>}
+      {==}
+
+# the slot just past A, replaced
+def set_len(A: List<&2, FL.Slot>, +u: FL.Slot, +B: List<&2, FL.Slot>, +v: FL.Slot) ->
+  {FL.set(List.append(&2, FL.Slot, A, Con{u, B}), List.length(&2, FL.Slot, A), v) == List.append(&2, FL.Slot, A, Con{v, B}) : List<&2, FL.Slot>}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %set_len(t, u, B, v) : {Con{x, FL.set(List.append(&2, FL.Slot, t, Con{u, B}), List.length(&2, FL.Slot, t), v)} == Con{x, _} : List<&2, FL.Slot>}
+      {==}
+
+def get_snoc(A: List<&2, FL.Slot>, +v: FL.Slot) -> {FL.get(List.append(&2, FL.Slot, A, [v]), List.length(&2, FL.Slot, A)) == v : FL.Slot}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{x, t}:
+      get_snoc(t, v)
+
+def in_use_snoc(A: List<&2, FL.Slot>) -> {FL.in_use(List.append(&2, FL.Slot, A, [FL.Used{}]), List.length(&2, FL.Slot, A)) == True{} : Bool}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{x, t}:
+      in_use_snoc(t)
+
+def in_use_app(A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, i: Nat, h: {FL.in_use(A, i) == True{} : Bool}) -> {FL.in_use(List.append(&2, FL.Slot, A, B), i) == True{} : Bool}:
+  match A i:
+    case Nil{} _:
+      ft(h, {FL.in_use(List.append(&2, FL.Slot, Nil{}, B), i) == True{} : Bool})
+    case Con{x, t} 0n:
+      h
+    case Con{x, t} 1n+j:
+      in_use_app(t, B, j, h)
+
+def get_app_lt(A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, j: Nat, h: {W.below(j, List.length(&2, FL.Slot, A)) == True{} : Bool}) ->
+  {FL.get(List.append(&2, FL.Slot, A, B), j) == FL.get(A, j) : FL.Slot}:
+  match A j:
+    case Nil{} _:
+      ft(h, {FL.get(List.append(&2, FL.Slot, Nil{}, B), j) == FL.get(Nil{}, j) : FL.Slot})
+    case Con{x, t} 0n:
+      {==}
+    case Con{x, t} 1n+i:
+      get_app_lt(t, B, i, h)
+
+def get_app_free(A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, j: Nat, h: {FL.is_free(FL.get(A, j)) == True{} : Bool}) ->
+  {FL.get(List.append(&2, FL.Slot, A, B), j) == FL.get(A, j) : FL.Slot}:
+  match A j:
+    case Nil{} _:
+      ft(h, {FL.get(List.append(&2, FL.Slot, Nil{}, B), j) == FL.get(Nil{}, j) : FL.Slot})
+    case Con{x, t} 0n:
+      {==}
+    case Con{x, t} 1n+i:
+      get_app_free(t, B, i, h)
+
+# a walk over A walks the same over A with slots after it
+def walks_app(l: List<&2, Nat>, +A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, +x: Nat, h: {FL.walks(l, A, x) == True{} : Bool}) ->
+  {FL.walks(l, List.append(&2, FL.Slot, A, B), x) == True{} : Bool}:
+  match l:
+    case Nil{}:
+      h
+    case Con{+j, +t}:
+      +h = h
+      %Equal.sym(FL.Slot, FL.get(List.append(&2, FL.Slot, A, B), j), FL.get(A, j),
+        get_app_free(A, B, j, and_l(FL.is_free(FL.get(A, j)), FL.walks(t, A, FL.next_of(FL.get(A, j))), and_r(FL.same(x, 1n+j), (FL.is_free(FL.get(A, j)) && FL.walks(t, A, FL.next_of(FL.get(A, j)))), h)))) :
+        {(FL.same(x, 1n+j) && (FL.is_free(_) && FL.walks(t, List.append(&2, FL.Slot, A, B), FL.next_of(_)))) == True{} : Bool}
+      and_i(FL.same(x, 1n+j), (FL.is_free(FL.get(A, j)) && FL.walks(t, List.append(&2, FL.Slot, A, B), FL.next_of(FL.get(A, j)))),
+        and_l(FL.same(x, 1n+j), (FL.is_free(FL.get(A, j)) && FL.walks(t, A, FL.next_of(FL.get(A, j)))), h),
+        and_i(FL.is_free(FL.get(A, j)), FL.walks(t, List.append(&2, FL.Slot, A, B), FL.next_of(FL.get(A, j))),
+          and_l(FL.is_free(FL.get(A, j)), FL.walks(t, A, FL.next_of(FL.get(A, j))), and_r(FL.same(x, 1n+j), (FL.is_free(FL.get(A, j)) && FL.walks(t, A, FL.next_of(FL.get(A, j)))), h)),
+          walks_app(t, A, B, FL.next_of(FL.get(A, j)), and_r(FL.is_free(FL.get(A, j)), FL.walks(t, A, FL.next_of(FL.get(A, j))), and_r(FL.same(x, 1n+j), (FL.is_free(FL.get(A, j)) && FL.walks(t, A, FL.next_of(FL.get(A, j)))), h)))))
+
+# every free slot of A below k listed, still so with slots after A
+def listed_app(k: Nat, +A: List<&2, FL.Slot>, +B: List<&2, FL.Slot>, +l: List<&2, Nat>, hk: {W.below(k, 1n+List.length(&2, FL.Slot, A)) == True{} : Bool},
+  h: {FL.listed(A, k, l) == True{} : Bool}) -> {FL.listed(List.append(&2, FL.Slot, A, B), k, l) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++j:
+      +h = h
+      +hk = hk
+      %Equal.sym(FL.Slot, FL.get(List.append(&2, FL.Slot, A, B), j), FL.get(A, j), get_app_lt(A, B, j, hk)) :
+        {((Bool.not(FL.is_free(_)) || FL.mem(j, l)) && FL.listed(List.append(&2, FL.Slot, A, B), j, l)) == True{} : Bool}
+      and_i((Bool.not(FL.is_free(FL.get(A, j))) || FL.mem(j, l)), FL.listed(List.append(&2, FL.Slot, A, B), j, l),
+        and_l((Bool.not(FL.is_free(FL.get(A, j))) || FL.mem(j, l)), FL.listed(A, j, l), h),
+        listed_app(j, A, B, l, below_succ(List.length(&2, FL.Slot, A), j, hk), and_r((Bool.not(FL.is_free(FL.get(A, j))) || FL.mem(j, l)), FL.listed(A, j, l), h)))
+
+# a slot appended in use keeps the free list exact
+def ok_used(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) ->
+  {FL.ok(FL.FL{List.append(&2, FL.Slot, s, [FL.Used{}]), fh, l}) == True{} : Bool}:
+  %Equal.sym(Nat, List.length(&2, FL.Slot, List.append(&2, FL.Slot, s, [FL.Used{}])), 1n+List.length(&2, FL.Slot, s), len_snoc_s(s, FL.Used{})) :
+    {(FL.walks(l, List.append(&2, FL.Slot, s, [FL.Used{}]), fh) && (FL.nodup(l) && FL.listed(List.append(&2, FL.Slot, s, [FL.Used{}]), _, l))) == True{} : Bool}
+  %Equal.sym(FL.Slot, FL.get(List.append(&2, FL.Slot, s, [FL.Used{}]), List.length(&2, FL.Slot, s)), FL.Used{}, get_snoc(s, FL.Used{})) :
+    {(FL.walks(l, List.append(&2, FL.Slot, s, [FL.Used{}]), fh) && (FL.nodup(l) && ((Bool.not(FL.is_free(_)) || FL.mem(List.length(&2, FL.Slot, s), l)) && FL.listed(List.append(&2, FL.Slot, s, [FL.Used{}]), List.length(&2, FL.Slot, s), l)))) == True{} : Bool}
+  and_i(FL.walks(l, List.append(&2, FL.Slot, s, [FL.Used{}]), fh), (FL.nodup(l) && FL.listed(List.append(&2, FL.Slot, s, [FL.Used{}]), List.length(&2, FL.Slot, s), l)),
+    walks_app(l, s, [FL.Used{}], fh, and_l(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h)),
+    and_i(FL.nodup(l), FL.listed(List.append(&2, FL.Slot, s, [FL.Used{}]), List.length(&2, FL.Slot, s), l),
+      and_l(FL.nodup(l), FL.listed(s, List.length(&2, FL.Slot, s), l), and_r(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h)),
+      listed_app(List.length(&2, FL.Slot, s), s, [FL.Used{}], l, below_self(List.length(&2, FL.Slot, s)),
+        and_r(FL.nodup(l), FL.listed(s, List.length(&2, FL.Slot, s), l), and_r(FL.walks(l, s, fh), (FL.nodup(l) && FL.listed(s, List.length(&2, FL.Slot, s), l)), h)))))
+
+# growing by 1+m: growing by m above a slot in use, then freeing it
+def grow_eq(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +m: Nat) ->
+  {FL.free(KP.grow(FL.FL{List.append(&2, FL.Slot, s, [FL.Used{}]), fh, l}, m), List.length(&2, FL.Slot, s)) == KP.grow(FL.FL{s, fh, l}, 1n+m) : FL.FL}:
+  %Equal.sym(Nat, List.length(&2, FL.Slot, List.append(&2, FL.Slot, s, [FL.Used{}])), 1n+List.length(&2, FL.Slot, s), len_snoc_s(s, FL.Used{})) :
+    {FL.FL{FL.set(List.append(&2, FL.Slot, List.append(&2, FL.Slot, s, [FL.Used{}]), KP.threaded(m, _, fh)), List.length(&2, FL.Slot, s), FL.Free{KP.ghead(_, m, fh)}),
+      1n+List.length(&2, FL.Slot, s), Con{List.length(&2, FL.Slot, s), List.append(&2, Nat, W.range(m, _), l)}} == KP.grow(FL.FL{s, fh, l}, 1n+m) : FL.FL}
+  %Equal.sym(List<&2, FL.Slot>, List.append(&2, FL.Slot, List.append(&2, FL.Slot, s, [FL.Used{}]), KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh)),
+    List.append(&2, FL.Slot, s, Con{FL.Used{}, KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh)}), app_assoc_s(s, [FL.Used{}], KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh))) :
+    {FL.FL{FL.set(_, List.length(&2, FL.Slot, s), FL.Free{KP.ghead(1n+List.length(&2, FL.Slot, s), m, fh)}),
+      1n+List.length(&2, FL.Slot, s), Con{List.length(&2, FL.Slot, s), List.append(&2, Nat, W.range(m, 1n+List.length(&2, FL.Slot, s)), l)}} == KP.grow(FL.FL{s, fh, l}, 1n+m) : FL.FL}
+  %Equal.sym(List<&2, FL.Slot>, FL.set(List.append(&2, FL.Slot, s, Con{FL.Used{}, KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh)}), List.length(&2, FL.Slot, s), FL.Free{KP.ghead(1n+List.length(&2, FL.Slot, s), m, fh)}),
+    List.append(&2, FL.Slot, s, Con{FL.Free{KP.ghead(1n+List.length(&2, FL.Slot, s), m, fh)}, KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh)}),
+    set_len(s, FL.Used{}, KP.threaded(m, 1n+List.length(&2, FL.Slot, s), fh), FL.Free{KP.ghead(1n+List.length(&2, FL.Slot, s), m, fh)})) :
+    {FL.FL{_, 1n+List.length(&2, FL.Slot, s), Con{List.length(&2, FL.Slot, s), List.append(&2, Nat, W.range(m, 1n+List.length(&2, FL.Slot, s)), l)}} == KP.grow(FL.FL{s, fh, l}, 1n+m) : FL.FL}
+  {==}
+
+# freeing a slot in use keeps an exact free list exact, whatever its form
+def ok_free(g: FL.FL, +i: Nat, live: {FL.in_use(KP.slots_of(g), i) == True{} : Bool}, h: {FL.ok(g) == True{} : Bool}) -> {FL.ok(FL.free(g, i)) == True{} : Bool}:
+  match g:
+    case FL.FL{+s, +fh, +l}:
+      Laws.free_list_free(s, fh, l, i, live, h)
+
+def ok_grow(n: Nat, +s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) -> {FL.ok(KP.grow(FL.FL{s, fh, l}, n)) == True{} : Bool}:
+  match n:
+    case 0n:
+      %Equal.sym(List<&2, FL.Slot>, List.append(&2, FL.Slot, s, Nil{}), s, app_nil_s(s)) : {FL.ok(FL.FL{_, fh, l}) == True{} : Bool}
+      h
+    case 1n++m:
+      %grow_eq(s, fh, l, m) : {FL.ok(_) == True{} : Bool}
+      ok_free(KP.grow(FL.FL{List.append(&2, FL.Slot, s, [FL.Used{}]), fh, l}, m), List.length(&2, FL.Slot, s),
+        in_use_app(List.append(&2, FL.Slot, s, [FL.Used{}]), KP.threaded(m, List.length(&2, FL.Slot, List.append(&2, FL.Slot, s, [FL.Used{}])), fh), List.length(&2, FL.Slot, s), in_use_snoc(s)),
+        ok_grow(m, List.append(&2, FL.Slot, s, [FL.Used{}]), fh, l, ok_used(s, fh, l, h)))
+
+def Laws.free_list_grow(s, fh, l, n, hf):
+  ok_grow(n, s, fh, l, hf)
+
+def in_step_app(A: List<&2, FL.Slot>, C: List<&2, R.NodeKind>, +B: List<&2, FL.Slot>, +D: List<&2, R.NodeKind>, h1: {KP.in_step(A, C) == True{} : Bool},
+  +h2: {KP.in_step(B, D) == True{} : Bool}) -> {KP.in_step(List.append(&2, FL.Slot, A, B), List.append(&2, R.NodeKind, C, D)) == True{} : Bool}:
+  match A C:
+    case Nil{} Nil{}:
+      h2
+    case Nil{} Con{k, u}:
+      ft(h1, {KP.in_step(List.append(&2, FL.Slot, Nil{}, B), List.append(&2, R.NodeKind, Con{k, u}, D)) == True{} : Bool})
+    case Con{x, t} Nil{}:
+      ft(h1, {KP.in_step(List.append(&2, FL.Slot, Con{x, t}, B), List.append(&2, R.NodeKind, Nil{}, D)) == True{} : Bool})
+    case Con{+x, +t} Con{+k, +u}:
+      +h1 = h1
+      and_i(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(List.append(&2, FL.Slot, t, B), List.append(&2, R.NodeKind, u, D)),
+        and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), h1),
+        in_step_app(t, u, B, D, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), h1), h2))
+
+def in_step_thr(n: Nat, +i: Nat, +x: Nat) -> {KP.in_step(KP.threaded(n, i, x), KP.frees(n)) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n++m:
+      in_step_thr(m, 1n+i, x)
+
+def Laws.grow_in_step(s, fh, l, ks, n, hs):
+  in_step_app(s, ks, KP.threaded(n, List.length(&2, FL.Slot, s), fh), KP.frees(n), hs, in_step_thr(n, List.length(&2, FL.Slot, s), fh))
+
+def ka_frees(n: Nat, i: Nat) -> {W.kind_at(KP.frees(n), i) == R.KFree{} : R.NodeKind}:
+  match n i:
+    case 0n _:
+      {==}
+    case 1n+m 0n:
+      {==}
+    case 1n+m 1n+j:
+      ka_frees(m, j)
+
+def ka_grow(ks: List<&2, R.NodeKind>, +n: Nat, i: Nat) -> {W.kind_at(KP.grow_kinds(ks, n), i) == W.kind_at(ks, i) : R.NodeKind}:
+  match ks i:
+    case Nil{} _:
+      ka_frees(n, i)
+    case Con{k, t} 0n:
+      {==}
+    case Con{k, t} 1n+j:
+      ka_grow(t, n, j)
+
+def Laws.grow_kind_at(ks, n, i):
+  ka_grow(ks, n, i)
+
+def live_grow(+ks: List<&2, R.NodeKind>, +n: Nat, xs: List<&2, W.Pt>) -> {W.all_live(KP.grow_kinds(ks, n), xs) == W.all_live(ks, xs) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{W.Pt{+p0, +p1}, t}:
+      %Equal.sym(R.NodeKind, W.kind_at(KP.grow_kinds(ks, n), p0), W.kind_at(ks, p0), ka_grow(ks, n, p0)) :
+        {(W.below(p1, R.arity(_)) && W.all_live(KP.grow_kinds(ks, n), t)) == (W.below(p1, R.arity(W.kind_at(ks, p0))) && W.all_live(ks, t)) : Bool}
+      %Equal.sym(Bool, W.all_live(KP.grow_kinds(ks, n), t), W.all_live(ks, t), live_grow(ks, n, t)) :
+        {(W.below(p1, R.arity(W.kind_at(ks, p0))) && _) == (W.below(p1, R.arity(W.kind_at(ks, p0))) && W.all_live(ks, t)) : Bool}
+      {==}
+
+def cov_grow(+ks: List<&2, R.NodeKind>, +n: Nat, k: Nat, +xs: List<&2, W.Pt>) -> {W.covered(KP.grow_kinds(ks, n), k, xs) == W.covered(ks, k, xs) : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++j:
+      %Equal.sym(R.NodeKind, W.kind_at(KP.grow_kinds(ks, n), j), W.kind_at(ks, j), ka_grow(ks, n, j)) :
+        {(W.ports_in(j, R.arity(_), xs) && W.covered(KP.grow_kinds(ks, n), j, xs)) == (W.ports_in(j, R.arity(W.kind_at(ks, j)), xs) && W.covered(ks, j, xs)) : Bool}
+      %Equal.sym(Bool, W.covered(KP.grow_kinds(ks, n), j, xs), W.covered(ks, j, xs), cov_grow(ks, n, j, xs)) :
+        {(W.ports_in(j, R.arity(W.kind_at(ks, j)), xs) && _) == (W.ports_in(j, R.arity(W.kind_at(ks, j)), xs) && W.covered(ks, j, xs)) : Bool}
+      {==}
+
+def cb.go(c: Bool, +ks: List<&2, R.NodeKind>, +j: Nat, +xs: List<&2, W.Pt>, he: {W.below(j, List.length(&2, R.NodeKind, ks)) == c : Bool},
+  h: {W.covered(ks, List.length(&2, R.NodeKind, ks), xs) == True{} : Bool}) -> {W.ports_in(j, R.arity(W.kind_at(ks, j)), xs) == True{} : Bool}:
+  match c:
+    case True{}:
+      cov_at(ks, List.length(&2, R.NodeKind, ks), xs, j, he, h)
+    case False{}:
+      %Equal.sym(R.NodeKind, W.kind_at(ks, j), R.KFree{}, ka_past(ks, j, he)) : {W.ports_in(j, R.arity(_), xs) == True{} : Bool}
+      {==}
+
+# covered up to its length, a net is covered up to any count: the nodes
+# past the end are free
+def cov_beyond(+ks: List<&2, R.NodeKind>, k: Nat, +xs: List<&2, W.Pt>, +h: {W.covered(ks, List.length(&2, R.NodeKind, ks), xs) == True{} : Bool}) ->
+  {W.covered(ks, k, xs) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n++j:
+      and_i(W.ports_in(j, R.arity(W.kind_at(ks, j)), xs), W.covered(ks, j, xs), cb.go(W.below(j, List.length(&2, R.NodeKind, ks)), ks, j, xs, {==}, h), cov_beyond(ks, j, xs, h))
+
+def Laws.grow_wired(ks, n, xs, hw):
+  +hw = hw
+  %Equal.sym(Bool, W.all_live(KP.grow_kinds(ks, n), xs), W.all_live(ks, xs), live_grow(ks, n, xs)) :
+    {(W.nodup(xs) && (_ && W.covered(KP.grow_kinds(ks, n), List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs))) == True{} : Bool}
+  %Equal.sym(Bool, W.covered(KP.grow_kinds(ks, n), List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs), W.covered(ks, List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs),
+    cov_grow(ks, n, List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs)) :
+    {(W.nodup(xs) && (W.all_live(ks, xs) && _)) == True{} : Bool}
+  and_i(W.nodup(xs), (W.all_live(ks, xs) && W.covered(ks, List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs)),
+    and_l(W.nodup(xs), (W.all_live(ks, xs) && W.covered(ks, List.length(&2, R.NodeKind, ks), xs)), hw),
+    and_i(W.all_live(ks, xs), W.covered(ks, List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs),
+      and_l(W.all_live(ks, xs), W.covered(ks, List.length(&2, R.NodeKind, ks), xs), and_r(W.nodup(xs), (W.all_live(ks, xs) && W.covered(ks, List.length(&2, R.NodeKind, ks), xs)), hw)),
+      cov_beyond(ks, List.length(&2, R.NodeKind, KP.grow_kinds(ks, n)), xs,
+        and_r(W.all_live(ks, xs), W.covered(ks, List.length(&2, R.NodeKind, ks), xs), and_r(W.nodup(xs), (W.all_live(ks, xs) && W.covered(ks, List.length(&2, R.NodeKind, ks), xs)), hw)))))
+
+def has_rng(n: Nat, +i: Nat, +l: List<&2, Nat>) -> {KP.has(n, List.append(&2, Nat, W.range(n, i), l)) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+m:
+      has_rng(m, 1n+i, l)
+
+def Laws.grow_has(s, fh, l, n):
+  has_rng(n, List.length(&2, FL.Slot, s), l)

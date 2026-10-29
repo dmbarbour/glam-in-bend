@@ -103,5 +103,81 @@ def kinds_live(ks: List<&2, R.NodeKind>) -> Bool:
     case Con{k, t}:
       Bool.not(W.is_free_kind(k)) && kinds_live(t)
 
-def main() -> List<&2, Nat>:
-  kslots(0n, 1n, 4n, FL.FL{[FL.Used{}, FL.Used{}, FL.Free{4n}, FL.Free{0n}], 3n, [2n, 3n]})
+# a rule's new nodes' kinds are live; a stuck pair makes none
+def rule_live(r: R.Rule) -> Bool:
+  match r:
+    case R.RWire{xs, ls}:
+      kinds_live(W.kinds(xs))
+    case R.RStuck{}:
+      True{}
+
+# A step of the rule table at the kernel's placement: the free list
+# holding enough for the rule's new nodes, the kinds after, the free list
+# after; a stuck pair changes nothing.
+
+def step_has(r: R.Rule, l: List<&2, Nat>) -> Bool:
+  match r:
+    case R.RWire{xs, ls}:
+      has(Nat.sub(List.length(&2, R.Spec, xs), 2n), l)
+    case R.RStuck{}:
+      True{}
+
+def step_kinds(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, r: R.Rule, f: FL.FL) -> List<&2, R.NodeKind>:
+  match r:
+    case R.RWire{+xs, ls}:
+      W.rp_kinds(ks, a, b, kslots(a, b, List.length(&2, R.Spec, xs), f), xs)
+    case R.RStuck{}:
+      ks
+
+def step_free(+a: Nat, +b: Nat, r: R.Rule, f: FL.FL) -> FL.FL:
+  match r:
+    case R.RWire{xs, ls}:
+      kfree(a, b, List.length(&2, R.Spec, xs), f)
+    case R.RStuck{}:
+      f
+
+# Growth
+# ======
+#
+# When its free list runs out, the kernel doubles its storage and threads
+# the new nodes onto the list in order, their headers zero, so free
+# (kprim.bend's grow.done and thread). grow appends n free slots, each
+# linking the next, the last the old head, the first now the head; the
+# kinds grow by as many free nodes. The kernel grows only with the list
+# empty, the old head none, and takes the first new slot at once.
+
+# the head after n new slots from slot i: the first, or the old head x if
+# none
+def ghead(+i: Nat, n: Nat, x: Nat) -> Nat:
+  match n:
+    case 0n:
+      x
+    case 1n+m:
+      1n+i
+
+# n free slots from slot i, each linking the next, the last x
+def threaded(n: Nat, +i: Nat, +x: Nat) -> List<&2, FL.Slot>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n++m:
+      FL.Free{ghead(1n+i, m, x)} <> threaded(m, 1n+i, x)
+
+def grow(f: FL.FL, +n: Nat) -> FL.FL:
+  match f:
+    case FL.FL{+s, +fh, l}:
+      FL.FL{List.append(&2, FL.Slot, s, threaded(n, List.length(&2, FL.Slot, s), fh)), ghead(List.length(&2, FL.Slot, s), n, fh),
+        List.append(&2, Nat, W.range(n, List.length(&2, FL.Slot, s)), l)}
+
+def frees(n: Nat) -> List<&2, R.NodeKind>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+m:
+      R.KFree{} <> frees(m)
+
+def grow_kinds(ks: List<&2, R.NodeKind>, n: Nat) -> List<&2, R.NodeKind>:
+  List.append(&2, R.NodeKind, ks, frees(n))
+
+def main() -> FL.FL:
+  grow(FL.FL{[FL.Used{}, FL.Free{0n}], 2n, [1n]}, 3n)

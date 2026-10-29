@@ -429,3 +429,133 @@ law kernel_in_step:
   for hkl: {KP.kinds_live(W.kinds(xs)) == True{} : Bool}
   {KP.in_step(KP.slots_of(KP.kfree(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), W.rp_kinds(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), xs)) == True{} : Bool}
 
+
+# LAW: every rule's new nodes have live kinds: a rewrite never makes a
+# free node, which kernel_in_step takes as a hypothesis.
+# Record: net-nodes-double
+law rules_kinds_live:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {KP.rule_live(R.rule(a, b, s)) == True{} : Bool}
+
+# LAW: so every step of the rule table at the kernel's placement leaves
+# the free list and the kinds agreeing, given only the state's own
+# conditions: an exact free list holding enough, kinds in step with it,
+# the pair's nodes distinct and live.
+# Record: net-nodes-double
+law kernel_rules_in_step:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +t: Bool
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  for hen: {KP.step_has(R.rule(W.kind_at(ks, a), W.kind_at(ks, b), t), l) == True{} : Bool}
+  {KP.in_step(KP.slots_of(KP.step_free(a, b, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), t), FL.FL{s, fh, l})), KP.step_kinds(ks, a, b, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), t), FL.FL{s, fh, l})) == True{} : Bool}
+
+# LAW: growing the storage keeps the free list exact: n free slots
+# appended, each linking the next, the last the old head, the first now
+# the head (kplace.bend's grow, as kprim.bend's grow.done and thread do
+# with the old head none).
+# Record: net-nodes-double
+law free_list_grow:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +n: Nat
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  {FL.ok(KP.grow(FL.FL{s, fh, l}, n)) == True{} : Bool}
+
+# LAW: and keeps the free list and the kinds agreeing, the kinds grown by
+# as many free nodes.
+# Record: net-nodes-double
+law grow_in_step:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +n: Nat
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  {KP.in_step(KP.slots_of(KP.grow(FL.FL{s, fh, l}, n)), KP.grow_kinds(ks, n)) == True{} : Bool}
+
+# LAW: growing changes no node's kind: past the end every node is free
+# already.
+# Record: net-nodes-double
+law grow_kind_at:
+  for +ks: List<&2, R.NodeKind>
+  for +n: Nat
+  for +i: Nat
+  {W.kind_at(KP.grow_kinds(ks, n), i) == W.kind_at(ks, i) : R.NodeKind}
+
+# LAW: so a wired net stays wired.
+# Record: net-nodes-double
+law grow_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +n: Nat
+  for +xs: List<&2, W.Pt>
+  for hw: {W.wired(ks, xs) == True{} : Bool}
+  {W.wired(KP.grow_kinds(ks, n), xs) == True{} : Bool}
+
+# LAW: and the free list then holds at least the n slots grown, what the
+# kernel's placement needs (KP.has).
+# Record: net-nodes-double
+law grow_has:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +n: Nat
+  {KP.has(n, KP.ghost(KP.grow(FL.FL{s, fh, l}, n))) == True{} : Bool}
+
+# To do
+# =====
+#
+# Laws wanted, not yet stated as laws: drafts, as comments, each with the
+# step it waits for. A draft is no law; stating one is a law change like
+# any other. The drafts name functions that do not exist yet.
+#
+# Growth in the kernel's order (heap-strategies.net.wiring.grow). The
+# kernel grows inside alloc, when the list runs out partway through a
+# rewrite's allocations, by its old size (kprim.bend's alloc.k); the
+# laws above grow apart from a rewrite. KP.galloc(g, f), alloc growing f
+# by g first if its list is empty, and KP.gkslots, KP.gkfree and
+# KP.gkinds, the placement through it:
+#
+#   law kernel_galloc_ok:   FL.ok(f) and g at least 1 give
+#                           FL.ok(KP.galloc(g, f)) and the slot taken free
+#   law kernel_grow_in_step: kernel_in_step through KP.galloc, with no
+#                           KP.has hypothesis
+#   law kernel_grow_wired:  kernel_rewrite_wired likewise
+#
+# The kernel refining the models (spike-refinement). KA, an abstraction
+# reading a kernel net H back as the models: KA.fl(h), its free list
+# (headers, word 1, the head; the ghost list the walk from the head);
+# KA.kinds(h), each node's kind from its header; KA.ends(h), the links'
+# ends from words 1 to 3. Then each kernel operation does on the
+# abstraction what the model's does:
+#
+#   law kernel_new_ok:      KA.fl(P.h_new()) is FL.ok, its kinds in step
+#                           (KP.in_step) and wired (W.wired)
+#   law kernel_alloc_refines: KA.fl of P.alloc(h)'s net is
+#                           KP.galloc(wcap, KA.fl(h)), its node the slot
+#                           taken, where KA.fl(h) is FL.ok
+#   law kernel_free_refines: KA.fl(P.free(h, n)) is FL.free(KA.fl(h), n)
+#                           for n in use
+#   law kernel_rewrite_refines: the kernel's rewrite of a pair (knet.bend)
+#                           reads back as W.rp_kinds and W.rp_links at
+#                           KP.kslots, its links R.contract's
+#   law kernel_audits_exact: KN.free_ok(h) and KN.wired_ok(h) hold exactly
+#                           when FL.ok(KA.fl(h)), KP.in_step and W.wired
+#                           hold of the abstraction
+#
+# Polarity of the kernel's own links (pairing-nets.check): fusion and
+# peeling link a positive port to a negative one, by construction so far.
+#
+#   law fusion_polarized:   each link fusion or peeling makes joins ports
+#                           of opposite polarity (R.port_pol)

@@ -593,7 +593,18 @@ Speed:
 12. `spike-measure` — interactions/s, peak cells, check and build times, JS
     against native, parallel speedup, at n, 2n and 4n; record the numbers
     here.
-13. `spike-verdict` — decide the representation, record it in
+13. `spike-refinement` — the kernel proved to refine the models: its
+    `U32` words (`spike/kprim.bend`, `spike/knet.bend`) read back as the
+    models in `Nat` (`spike/freelist.bend`, `spike/wiring.bend`,
+    `spike/kplace.bend`), each kernel operation shown to do there what the
+    model's does, so that the models' laws hold of the kernel itself and
+    not only where the audits check it at run time. Wanted within the
+    spike, but it may wait until after it (the maintainer, 2026-10-29);
+    placed here for now, though its work belongs to whichever kernel the
+    verdict keeps. It needs laws relating `U32` to `Nat`, a path to which
+    is vendored (`vendored-sources`) and not gone deep into yet. Its
+    laws, drafted, close `spike/LAWS.bend`.
+14. `spike-verdict` — decide the representation, record it in
     `docs/decisions/`, and retire this plan.
 
 ## Open questions
