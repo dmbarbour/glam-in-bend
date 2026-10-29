@@ -33,7 +33,8 @@ Contingent:
 ## Setup
 
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
-links `clang`, installs `perf`, the LLVM profile tools and Node, builds
+links `clang`, installs `perf`, the LLVM profile tools, Node and Lean
+(for `--verdict`), builds
 GCC 16 from source (the first time, a quarter of an hour or more), and
 enables the commit hooks; run it once per container.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
@@ -115,7 +116,8 @@ Lessons carried over from the Rust bootstrap:
 
 Run `scripts/check.sh` before every commit. It checks the docs (links,
 decision records and their index, plan and review lists, step names), the
-law history, then runs `bend PROOF.bend` and the library of nets
+law history, then runs `bend PROOF.bend --verdict` (the proofs rechecked
+by BendTT's kernel, itself proved in Lean) and the library of nets
 (`spike/library.txt`), and names the tree it checked. Report its result as
 it is: a check skipped or too slow to finish is not a pass.
 

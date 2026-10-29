@@ -1,6 +1,7 @@
 #!/bin/sh
 # The gate: run before every commit, from anywhere in the repository.
-# Checks the docs, the law history, the proofs (each `PROOF.bend`), that
+# Checks the docs, the law history, the proofs (each `PROOF.bend`, by bend
+# and by BendTT's proven kernel), that
 # generated code matches its generator, the library of nets
 # (spike/library.txt), then that every other Bend file still typechecks.
 # Exits nonzero on any
@@ -18,6 +19,12 @@ echo "== laws"
 python3 -I scripts/check_laws.py || status=1
 
 echo "== proofs"
+# each PROOF.bend checked by bend, then rechecked by BendTT's kernel, which
+# has a proof in Lean (`bend --verdict`); Lean as scripts/dev-setup.sh
+# installs it, last on the path: its toolchain carries a clang of its own,
+# without the system's headers, which native builds must not find first
+PATH="$PATH:$HOME/.lean/bin"
+command -v lean >/dev/null 2>&1 || { echo "no lean for --verdict: run scripts/dev-setup.sh"; status=1; }
 # every PROOF.bend outside bench/, and one beside every LAWS.bend
 proofs=$(git ls-files --cached --others --exclude-standard -- '*PROOF.bend' ':!bench/')
 for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' ':!bench/'); do
@@ -26,7 +33,7 @@ done
 if [ -n "$proofs" ]; then
   for f in $proofs; do
     echo "-- $f"
-    "$BEND" "$f" || status=1
+    "$BEND" "$f" --verdict || status=1
   done
 elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | grep -q .; then
   echo "Bend sources exist but no PROOF.bend does"
