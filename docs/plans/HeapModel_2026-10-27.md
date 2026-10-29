@@ -394,6 +394,17 @@ takes from it:
          dropping the joined pairs, or joining an end to itself, fails the
          proofs. The model keeps the kernel's links in its order, plain
          then pairs, though a net's links have none.
+       - `heap-strategies.net.wiring.place` — built 2026-10-29 — new
+         nodes wherever the kernel puts them: a placement lists each new
+         node's slot (`W.place`, `W.sigp`), and `rewrite_placed_wired`
+         says the rewrite keeps a wired net wired whenever the slots are
+         distinct and each is the pair's own or free. The kernel's
+         placement, the pair's two slots then the free list's, is one;
+         appending, which `rewrite_wired` and `rewrite_pairs_wired` state,
+         is another (`W.range`, slots past the end), so they are now proved
+         through it, one proof (`wired_place`) where there were two. A slot
+         condition that admits a live node fails the proof. Which slots
+         the free list gives, and that they are free, is the next step.
        - `heap-strategies.net.wiring.circles` — built 2026-10-29 — where
          an end the rule links to a pair's inside `Ext` end is itself
          inside, the rule's links and the pair's own close a loop of bare

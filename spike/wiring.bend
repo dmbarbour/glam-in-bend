@@ -249,6 +249,111 @@ def step_ends(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: Peers, c: List<&
     case R.RStuck{}:
       fends(Foc{ks, a, b, es, c})
 
+# Placing new nodes
+# =================
+#
+# The kernel puts a rewrite's first two new nodes in the pair's own slots
+# and the rest in slots its free list gives (kprim.bend's renode and
+# alloc). A placement lists each new node's slot: rewrite_wired's nodes,
+# appended, are the placement range(k, n0); place_wired allows any whose
+# slots are distinct, each the pair's own or free.
+
+def nth(ss: List<&2, Nat>, j: Nat) -> Nat:
+  match ss j:
+    case Nil{} _:
+      0n
+    case Con{s, t} 0n:
+      s
+    case Con{s, t} 1n+i:
+      nth(t, i)
+
+# k slots from n0
+def range(k: Nat, +n0: Nat) -> List<&2, Nat>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+r:
+      n0 <> range(r, 1n+n0)
+
+# node n's kind replaced by v, free slots added up to it
+def set_ext(n: Nat, ks: List<&2, R.NodeKind>, v: R.NodeKind) -> List<&2, R.NodeKind>:
+  match n ks:
+    case 0n Nil{}:
+      [v]
+    case 0n Con{k, t}:
+      Con{v, t}
+    case 1n+m Nil{}:
+      R.KFree{} <> set_ext(m, Nil{}, v)
+    case 1n+m Con{k, t}:
+      Con{k, set_ext(m, t, v)}
+
+# each slot of ss given its new node's kind
+def place(ss: List<&2, Nat>, ks: List<&2, R.NodeKind>, kx: List<&2, R.NodeKind>) -> List<&2, R.NodeKind>:
+  match ss kx:
+    case Con{s, st} Con{k, kt}:
+      place(st, set_ext(s, ks, k), kt)
+    case _ _:
+      ks
+
+# where a rule's end lands, new node j in slot nth(ss, j)
+def sigp(+ss: List<&2, Nat>, +es: Peers, x: R.End) -> Pt:
+  match x:
+    case R.Ext{i}:
+      peer(i, es)
+    case R.New{j, p}:
+      Pt{nth(ss, j), p}
+
+def sigsp(+ss: List<&2, Nat>, +es: Peers, xs: List<&2, R.End>) -> List<&2, Pt>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      sigp(ss, es, x) <> sigsp(ss, es, t)
+
+def linksp(+ss: List<&2, Nat>, +es: Peers, ls: List<&2, R.Link>) -> List<&2, Ln>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{R.Link{x, y}, t}:
+      Ln{sigp(ss, es, x), sigp(ss, es, y)} <> linksp(ss, es, t)
+
+def is_free_kind(k: R.NodeKind) -> Bool:
+  match k:
+    case R.KFree{}:
+      True{}
+    case _:
+      False{}
+
+def nat_in(+m: Nat, ss: List<&2, Nat>) -> Bool:
+  match ss:
+    case Nil{}:
+      False{}
+    case Con{s, t}:
+      R.nat_eq(s, m) || nat_in(m, t)
+
+
+def nodup_nat(ss: List<&2, Nat>) -> Bool:
+  match ss:
+    case Nil{}:
+      True{}
+    case Con{+s, +t}:
+      Bool.not(nat_in(s, t)) && nodup_nat(t)
+
+# a placement for a rewrite of a >< b: each slot the pair's own or free
+def slots_ok(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, ss: List<&2, Nat>) -> Bool:
+  match ss:
+    case Nil{}:
+      True{}
+    case Con{+s, t}:
+      (R.nat_eq(s, a) || (R.nat_eq(s, b) || is_free_kind(kind_at(ks, s)))) && slots_ok(ks, a, b, t)
+
+# the rewrite with new nodes placed by ss
+def rp_kinds(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, ss: List<&2, Nat>, xs: List<&2, R.Spec>) -> List<&2, R.NodeKind>:
+  place(ss, set(set(ks, a, R.KFree{}), b, R.KFree{}), kinds(xs))
+
+def rp_links(+es: Peers, c: List<&2, Ln>, +ss: List<&2, Nat>, ls: List<&2, R.Link>) -> List<&2, Ln>:
+  List.append(&2, Ln, c, linksp(ss, es, ls))
+
 # a beta step: an application (node 0) meets a function (node 1); their
 # other ports link a root, two erasers and a datum
 def demo(r: R.Rule) -> Bool:
