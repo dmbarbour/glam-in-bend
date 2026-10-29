@@ -80,8 +80,14 @@ of 2026-10-26, Bend 2.0.39.
 - **Workaround:** small counts encoded as constructors; `U32` tests routed
   through a `Bool` helper whose lemma is proved over the `Bool`; models in
   `Nat` with laws, the kernel tested against them; audits in tests. The
-  laws #1850 offers would let the kernel's own `U32` code be proved
-  against those models.
+  hub's `bend-mathlib` 0.8.0.0 (`0x78e347bf8d0582a322c01b02c727566f`, its
+  `u32.bend`) already proves `U32` comparison, addition, subtraction and
+  increment against `Nat`, exact or wrapping; with it the spike proves
+  the kernel's own `U32` raise equal to its `Nat` model (law
+  `lift_raise`, 2026-10-29), Bend caching the package under
+  `~/.bend/lib` by its hash. Not yet covered: `.&.`, `.|.` and shifts, by
+  which the kernel decodes its headers and offsets, so where a `U32` came
+  from (a 24-bit field, a 31-bit offset) stays a hypothesis.
 - **Revisit:** before the kernel leaves the spike.
 
 ### Run-time code generation
