@@ -428,23 +428,46 @@ takes from it:
        full reduction nothing (store run 48 against 43). Lowered terms make
        no cycle with levels, but nets users wire may (`pairing-nets`):
        `test_demand.bend` and the library's `cycle-copy-lift` build one.
+   - `heap-strategies.header` — active — the net's own words in slots
+     of the node array, not fields of the record Bend passes through
+     every function (the maintainer, 2026-10-29): the free list's head,
+     the counters, the data table's head, so that a live net is an
+     array of words paired with an array of values. A first measurement
+     moved the free list's head alone into node 1, which the free list
+     never holds (branch `heap-header`, 93bccb2): demand 2.9% to 5.3%
+     fewer instructions in all four builds at k 18, the full reduction
+     3.8% to 4.9% fewer by default and -2.7% to +0.8% inlined or
+     profile-guided, the same interactions (store run 49 against 48).
+     Next, the layout itself: a header of slots at the array's start,
+     the interface moving to the first node after it, and the cold
+     record's words there too, so that the record is the two arrays.
    - `heap-strategies.bitmap` — tentative — under discussion (the
-     maintainer, 2026-10-28): the net marks its active pairs in a
-     bitmap, one bit per node, set at the lower node of each pair. The
-     pairs the net once kept were dropped as a representation that hung
-     on the strategy; a bitmap holds by computation whatever the
-     strategy runs (a bit set exactly where two principal ports face), so
-     switching strategies needs no scan, and parallel rounds take their
-     pairs from the pages they own. Kept in the node array, one node of
-     bits for each 128, it costs 0.8% of memory and no width in the
-     state; a link joining two principals sets a bit, an interaction
-     clears one. The eager strategy would still want a stack, for order
-     and locality, but a bounded one of hints checked against the
-     bitmap: a hint lost to overflow is found by a sweep, so the stack
-     neither grows nor keeps a margin. Erasure pairs off demand's path
-     could be reduced in batches, as before the net doubles. To measure:
-     the bits' cost to demand, which needs none of them; sweeps on
-     families at n, 2n and 4n; whether hints overflow.
+     maintainer, 2026-10-28 and 29): active pairs marked in a bitmap, a
+     bit per node at the lower node of each pair, kept in pages of the
+     node array, one node of each 128 holding its page's bits (0.8% of
+     memory, nothing added to the record). A link joining two
+     principals sets a bit, an interaction clears one. Where it belongs
+     is open. In the net, every strategy keeps it, so it holds whatever
+     runs, switching strategies needs no scan, parallel rounds take
+     their pairs from the pages they own, and erasure pairs off
+     demand's path could be reduced in batches, as before the net
+     doubles; demand pays for bits it never reads. As a strategy's, the
+     way the stack is now, demand pays nothing and an eager strategy
+     starts with a scan. How new pairs are tracked is then a parameter
+     of the rewrites (none, a stack, bits): Bend does not specialize
+     static higher-order code (`docs/BendIssues.md`, "Compile-time
+     specialization"), so the generator writes one family per tracker,
+     as it writes the plain and eager families now. Choosing pairs
+     eagerly from the bits alone loses order and locality, and a chain
+     whose next pair always lands behind the sweep costs a sweep per
+     interaction; a stack of hints checked against the bits keeps the
+     order, but any bound independent of the heap is still quadratic
+     at worst, a sweep per overflow (the maintainer). Hints in
+     proportion to the pages, one per page, amortize a sweep's n/32
+     words over at least n/128 interactions; or a summary bit per page
+     lets a sweep pass empty pages. To measure: the bits' cost to
+     demand, sweeps on families at n, 2n and 4n, how often hints
+     overflow.
    - `heap-strategies.rounds` — tentative — parallel rounds in two
      phases: every pair's local outcome, nothing written outside its own
      nodes, then the links between outcomes resolved and the next pairs
