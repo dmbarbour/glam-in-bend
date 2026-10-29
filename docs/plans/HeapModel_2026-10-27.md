@@ -533,7 +533,21 @@ takes from it:
        popped twice. Cheaper: sort pairs as they are noted, the
        generator knowing a new node's kind and reading only an external
        peer's header; read the far end's count only when the near end
-       is empty. Copy meeting data keeps the node count and so does not
+       is empty.
+     - `heap-strategies.twostack.cheaper` — built 2026-10-29 — the
+       low-hanging part (the maintainer judged the trade poor in most
+       cases, 2026-10-29). The stack's word 1 marks where the far end
+       begins and word 2 holds the capacity, so either pop reads two
+       words and the far end's only when the near end is empty: two
+       stacks 0.9% to 1.1% cheaper by default, one stack unchanged in
+       all four builds (store run 56 against 55).
+       Passing the headers read to sort a pair into the interaction
+       (`KN.ori.e`) gave two stacks nothing and cost one stack 3.7% to
+       4.0%, `ori.e` with a second caller: dropped. What remains, about
+       +18% to +27%, is the sorting and the moves; sorting pairs as they
+       are noted needs a third copy of the interaction chain in
+       `knet.bend`, beside the plain and eager ones, which a template
+       or generator should write rather than a hand. Copy meeting data keeps the node count and so does not
        grow, the data table not counted (the maintainer, 2026-10-29:
        either that, or growth where the data is a table entry, which
        the data node's header tells).
