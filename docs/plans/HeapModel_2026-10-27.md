@@ -337,6 +337,25 @@ takes from it:
          unlinked, or an alloc that leaves its slot free, fails the
          proofs. The kernel's own `U32` free list is not proved against
          the model; the audit still checks it after every test.
+     - `heap-strategies.net.wiring` — built 2026-10-29 — the net's
+       wiring as laws, over a model in `Nat` (`spike/wiring.bend`): node
+       kinds, and links between ports. `W.wired` says the links' ends
+       name each live port once and nothing else: every live node is
+       referenced once at each of its ports, and no dead one is (the
+       maintainer, 2026-10-29). `rewrite_wired`: replacing an active pair
+       by a rule's new nodes and links keeps it, for any rule `R.exact`
+       accepts (its links' ends repeat none and are the ends
+       `rules_linear` expects); `rules_exact` proves every rule of the
+       table exact, and `rules_keep_wired` puts the two together. A
+       rewrite that leaves a node of the pair live, or drops the other
+       links, fails the proof. Simplified from the kernel: new nodes are
+       appended rather than taken from the free list; the net is focused
+       on its pair, its links' ends grouped (the pair's ports, their
+       peers, the other links'); and a peer that is itself a port of the
+       pair, a's auxiliary port linked to b's, is outside the model, which
+       wired rules out, where the kernel joins through it (`link_pairs`).
+       Reachability from the root is no invariant: erasure leaves unreached
+       garbage, which `KN.sweep` collects.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes
