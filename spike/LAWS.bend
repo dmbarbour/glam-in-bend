@@ -8,6 +8,7 @@ import ./val.bend as V
 import ./ctl.bend as CT
 import ./kprim.bend as P
 import ./freelist.bend as FL
+import ./wiring.bend as W
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
@@ -33,7 +34,8 @@ law rules_polarized:
   {R.polarized(a, b, R.rule(a, b, s)) == True{} : Bool}
 
 # LAW: every interaction rule links each external peer and each new port
-# exactly once, so reduction keeps every live port wired exactly once.
+# exactly once, so reduction keeps every live port wired exactly once
+# (rules_keep_wired, below, proves that of a model of the net).
 law rules_linear:
   for +a: R.NodeKind
   for +b: R.NodeKind
@@ -210,3 +212,46 @@ law free_list_takes_free:
   for l: List<&2, Nat>
   for ok: {FL.ok(FL.FL{s, 1n+i, l}) == True{} : Bool}
   {FL.is_free(FL.get(s, i)) == True{} : Bool}
+
+# LAW: every interaction rule links exactly the ends it must, none twice:
+# its links' ends, listed, repeat none, and are the ends rules_linear
+# expects (R.exact), the form the net's wiring law takes.
+# Record: net-nodes-double
+law rules_exact:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {R.exact(a, b, R.rule(a, b, s)) == True{} : Bool}
+
+# LAW: a rewrite keeps the net's wiring exact. In the wiring model
+# (wiring.bend, the net's node kinds and links in Nat), W.wired says the
+# links' ends name each live port once and nothing else: every live node is
+# referenced once at each port, and no dead one is. Replacing an active
+# pair a >< b by a rule's new nodes and links, the rule exact by R.exact,
+# keeps it.
+# Record: net-nodes-double
+law rewrite_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +xs: List<&2, R.Spec>
+  for +ls: List<&2, R.Link>
+  for hw: {W.wired(ks, W.fends(W.Foc{ks, a, b, es, c})) == True{} : Bool}
+  for hr: {R.exact(W.kind_at(ks, a), W.kind_at(ks, b), R.RWire{xs, ls}) == True{} : Bool}
+  {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls))) == True{} : Bool}
+
+# LAW: so every step of the rule table keeps a wired net wired: the
+# rewrite of an active pair by the rule its kinds select, or a stuck pair
+# left as it was.
+# Record: net-nodes-double
+law rules_keep_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +s: Bool
+  for hw: {W.wired(ks, W.fends(W.Foc{ks, a, b, es, c})) == True{} : Bool}
+  {W.wired(W.step_kinds(ks, a, b, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s)), W.step_ends(ks, a, b, es, c, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s))) == True{} : Bool}

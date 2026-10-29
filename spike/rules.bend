@@ -498,3 +498,42 @@ def linear(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
       all_once(ls, expected(a, b, xs)) && nat_eq(ends_count(ls), List.length(&2, End, expected(a, b, xs)))
     case _:
       True{}
+
+# the ends of a rule's links, in order, two a link
+def ends(ls: List<&2, Link>) -> List<&2, End>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{Link{x, y}, t}:
+      x <> (y <> ends(t))
+
+def end_mem(+e: End, es: List<&2, End>) -> Bool:
+  match es:
+    case Nil{}:
+      False{}
+    case Con{x, t}:
+      end_eq(x, e) || end_mem(e, t)
+
+def ends_distinct(es: List<&2, End>) -> Bool:
+  match es:
+    case Nil{}:
+      True{}
+    case Con{+x, +t}:
+      Bool.not(end_mem(x, t)) && ends_distinct(t)
+
+# every end of xs is in es
+def all_in(xs: List<&2, End>, +es: List<&2, End>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{x, t}:
+      end_mem(x, es) && all_in(t, es)
+
+# the ends the rule links are the ends it must link, none twice: what
+# linear says, in the form the net's wiring law (wiring.bend) takes
+def exact(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
+  match r:
+    case RWire{+xs, +ls}:
+      ends_distinct(ends(ls)) && (all_in(ends(ls), expected(a, b, xs)) && all_in(expected(a, b, xs), ends(ls)))
+    case _:
+      True{}
