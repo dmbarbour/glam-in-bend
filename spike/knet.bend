@@ -161,10 +161,14 @@ def link_plain(ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<
       link_plain(t, x, refs, xs, a, b,
         link_if(Bool.not(internal(x, a, b, u) || internal(x, a, b, v)), h, resolve(x, refs, xs, u), resolve(x, refs, xs, v)))
 
+# where an end the rule links to the pair's Ext ends is itself inside, the
+# rule's links and the pair's own run round a closed loop of wire, which
+# holds nothing and vanishes (R.contract; law rules_pairs_total says no
+# other chain through the pair arises)
 def pair_link(bad: Bool, +u: R.End, +v: R.End, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, h: P.H) -> P.H:
   match bad:
     case True{}:
-      P.h_err(h)
+      h
     case False{}:
       P.link(h, resolve(x, refs, xs, u), resolve(x, refs, xs, v))
 

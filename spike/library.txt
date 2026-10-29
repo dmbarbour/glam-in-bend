@@ -51,6 +51,25 @@ net: 5 logical 4 peels 0
 
 # Nets no lambda term lowers to
 
+name: vicious-circle-beta
+why: an application whose result is its function's own variable, apart
+  from the root: beta joins the two into a closed loop of wire, which
+  holds nothing and vanishes; the kernel once reported it an error
+  (heap-strategies.net.wiring.pairs)
+nodes: ap(0) fn(0) num(7) era num(5)
+links: 0.0-1.0 0.1-2.0 0.2-1.1 1.2-3.0
+root: 4.0
+net: 5 logical 3 peels 0
+
+name: vicious-circle-controls
+why: facing controls whose auxiliary ports link each other: cancelling,
+  they leave a closed loop of wire, which vanishes; the kernel once
+  reported it an error (heap-strategies.net.wiring.pairs)
+nodes: ctl(0,+1) ctlc(0,+1) num(5)
+links: 0.0-1.0 0.1-1.1
+root: 2.0
+net: 5 logical 2 peels 0
+
 name: cycle-copy-lift
 why: a copy whose input is a lift fed by its own second output: polarized,
   with no active pair, a cycle of principal ports each facing an auxiliary
