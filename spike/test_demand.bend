@@ -103,6 +103,10 @@ def t_double() -> T.Tpl:
 def num(+n: U32) -> T.Tpl:
   X.t_one(X.num(n))
 
+# a data node holding fma 1 1, a partial application kept in the table
+def t_fma11() -> T.Tpl:
+  X.t_one(T.TN{R.KData{}, V.PVal{V.VFun{3, 1, [V.VNum{1}, V.VNum{1}]}}})
+
 def succ() -> T.Tpl:
   X.t_one(X.succ())
 
@@ -128,6 +132,7 @@ def main() -> IO(Unit):
     IO.print(case_line("K 0 (10 2 succ 0): the power never reduced", X.t_k_pow(10), [], 5000n, 1, "0", 0))
     IO.print(case_line("K 0 #64: the numeral left, never erased", X.t_k_num(64), [], 5000n, 1, "0", 132))
     IO.print(sweep_line("K 0 #64 swept: the numeral, cut off from the interface, freed", X.t_k_num(64), [], 5000n, 1, "0", 2))
+    IO.print(sweep_line("K 0 (fma 1 1) swept: the partial application's table entry released with its node", X.t_k0(t_fma11()), [], 5000n, 1, "0", 2))
     IO.print(case_line("#3 succ: a function, its body left", X.t_whnf(3), [], 5000n, 1, "none", 0))
     IO.print(case_line("8 2 succ 0 for 100 steps", X.t_pow(8, 2), [], 100n, 4, "none", 0))
     IO.print(agree_line("2 2 succ 0", X.t_pow(2, 2)))
