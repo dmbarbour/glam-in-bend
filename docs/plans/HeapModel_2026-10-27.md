@@ -405,6 +405,23 @@ takes from it:
          through it, one proof (`wired_place`) where there were two. A slot
          condition that admits a live node fails the proof. Which slots
          the free list gives, and that they are free, is the next step.
+       - `heap-strategies.net.wiring.alloc` — built 2026-10-29 — the
+         free-list and wiring models joined (`spike/kplace.bend`), as the
+         maintainer asked (2026-10-29): the kernel's placement, a
+         rewrite's first two new nodes in the pair's own slots and the
+         rest in the free list's heads, one node freeing b, none freeing
+         b then a (`kprim.bend`'s renode, alloc, fresh2); `KP.in_step`
+         says the free list's free slots are the kinds' free nodes. With
+         an exact free list holding enough, kinds in step with it, and the
+         pair's nodes distinct and live: `kernel_slots_ok`, the slots meet
+         `rewrite_placed_wired`'s conditions; `kernel_free_ok`, the free
+         list after is exact; `kernel_rewrite_wired`, the net stays wired;
+         `kernel_in_step`, the two still agree, every new node's kind
+         live. So the joint state carries from one rewrite to the next.
+         Reusing a slot twice, or allocating one more slot than is
+         placed, fails the proofs. Not modelled: growing the storage when
+         the free list runs short (`has` is a hypothesis), and the kernel's
+         U32 words themselves, which the audits check at run time.
        - `heap-strategies.net.wiring.circles` — built 2026-10-29 — where
          an end the rule links to a pair's inside `Ext` end is itself
          inside, the rule's links and the pair's own close a loop of bare
