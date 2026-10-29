@@ -537,3 +537,263 @@ def exact(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
       ends_distinct(ends(ls)) && (all_in(ends(ls), expected(a, b, xs)) && all_in(expected(a, b, xs), ends(ls)))
     case _:
       True{}
+
+# Peers inside the pair (knet.bend's link_pairs)
+# ===============================================
+#
+# A peer of the pair's auxiliary ports may be a port of the pair itself,
+# a's port linked to b's or to a's other: its Ext end then stands for the
+# Ext end of the port it faces (net.bend's partner). The kernel links the
+# rule's links whose ends both face outside, then, for each such pair of
+# Ext ends, i below j, joins the ends the rule links to Ext i and to Ext
+# j, an error where either is itself inside or missing. A pattern says
+# which Ext ends face inside, and their partners: none, one link among
+# the pair's auxiliary ports, or two.
+type Pat is Data:
+  PNone{}
+  P01{}
+  P02{}
+  P03{}
+  P12{}
+  P13{}
+  P23{}
+  P01_23{}
+  P02_13{}
+  P03_12{}
+
+# the partner of Ext i under pattern p, None facing outside
+def pat_at(p: Pat, i: Nat) -> Maybe<&2, Nat>:
+  match p:
+    case PNone{}:
+      None{}
+    case P01{}:
+      match i:
+        case 0n:
+          Some{1n}
+        case 1n:
+          Some{0n}
+        case _:
+          None{}
+    case P02{}:
+      match i:
+        case 0n:
+          Some{2n}
+        case 2n:
+          Some{0n}
+        case _:
+          None{}
+    case P03{}:
+      match i:
+        case 0n:
+          Some{3n}
+        case 3n:
+          Some{0n}
+        case _:
+          None{}
+    case P12{}:
+      match i:
+        case 1n:
+          Some{2n}
+        case 2n:
+          Some{1n}
+        case _:
+          None{}
+    case P13{}:
+      match i:
+        case 1n:
+          Some{3n}
+        case 3n:
+          Some{1n}
+        case _:
+          None{}
+    case P23{}:
+      match i:
+        case 2n:
+          Some{3n}
+        case 3n:
+          Some{2n}
+        case _:
+          None{}
+    case P01_23{}:
+      match i:
+        case 0n:
+          Some{1n}
+        case 1n:
+          Some{0n}
+        case 2n:
+          Some{3n}
+        case 3n:
+          Some{2n}
+        case _:
+          None{}
+    case P02_13{}:
+      match i:
+        case 0n:
+          Some{2n}
+        case 1n:
+          Some{3n}
+        case 2n:
+          Some{0n}
+        case 3n:
+          Some{1n}
+        case _:
+          None{}
+    case P03_12{}:
+      match i:
+        case 0n:
+          Some{3n}
+        case 1n:
+          Some{2n}
+        case 2n:
+          Some{1n}
+        case 3n:
+          Some{0n}
+        case _:
+          None{}
+
+# an end facing a port of the pair
+def pat_in(+p: Pat, e: End) -> Bool:
+  match e:
+    case Ext{i}:
+      Maybe.is_some(&2, Nat, pat_at(p, i))
+    case New{j, q}:
+      False{}
+
+def plain.k(+keep: Bool, l: Link, rest: List<&2, Link>) -> List<&2, Link>:
+  match keep:
+    case True{}:
+      l <> rest
+    case False{}:
+      rest
+
+# the rule's links with both ends facing outside (knet.bend's link_plain)
+def plain(+p: Pat, ls: List<&2, Link>) -> List<&2, Link>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{Link{+u, +v}, t}:
+      plain.k(Bool.not(pat_in(p, u) || pat_in(p, v)), Link{u, v}, plain(p, t))
+
+def other1(onx: Bool, ony: Bool, x: End, y: End) -> Maybe<&2, End>:
+  match onx ony:
+    case True{} _:
+      Some{y}
+    case False{} True{}:
+      Some{x}
+    case False{} False{}:
+      None{}
+
+def first_of(a: Maybe<&2, End>, b: Maybe<&2, End>) -> Maybe<&2, End>:
+  match a:
+    case Some{x}:
+      Some{x}
+    case None{}:
+      b
+
+# the end the rule links to Ext i (net.bend's other)
+def other_of(ls: List<&2, Link>, +i: Nat) -> Maybe<&2, End>:
+  match ls:
+    case Nil{}:
+      None{}
+    case Con{Link{+x, +y}, t}:
+      first_of(other1(end_eq(x, Ext{i}), end_eq(y, Ext{i}), x, y), other_of(t, i))
+
+def pair_link(+bad: Bool, u: End, v: End, rest: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
+  match bad rest:
+    case True{} _:
+      None{}
+    case False{} Some{t}:
+      Some{Link{u, v} <> t}
+    case False{} None{}:
+      None{}
+
+def pair_ends(oi: Maybe<&2, End>, oj: Maybe<&2, End>, +p: Pat, rest: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
+  match oi oj:
+    case Some{+u} Some{+v}:
+      pair_link(pat_in(p, u) || pat_in(p, v), u, v, rest)
+    case _ _:
+      None{}
+
+def pair_go(lt: Bool, +i: Nat, +j: Nat, +p: Pat, +ls: List<&2, Link>, rest: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
+  match lt:
+    case True{}:
+      pair_ends(other_of(ls, i), other_of(ls, j), p, rest)
+    case False{}:
+      rest
+
+def pair_at(pt: Maybe<&2, Nat>, +i: Nat, +p: Pat, +ls: List<&2, Link>, rest: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
+  match pt:
+    case None{}:
+      rest
+    case Some{+j}:
+      pair_go(Nat.is_lt(i, j), i, j, p, ls, rest)
+
+# the joined pairs from Ext i, n of them (knet.bend's link_pairs)
+def pairs(n: Nat, +i: Nat, +p: Pat, +ls: List<&2, Link>) -> Maybe<&2, List<&2, Link>>:
+  match n:
+    case 0n:
+      Some{Nil{}}
+    case 1n+k:
+      pair_at(pat_at(p, i), i, p, ls, pairs(k, 1n+i, p, ls))
+
+def contract.go(pl: List<&2, Link>, m: Maybe<&2, List<&2, Link>>) -> Maybe<&2, List<&2, Link>>:
+  match m:
+    case None{}:
+      None{}
+    case Some{t}:
+      Some{List.append(&2, Link, pl, t)}
+
+# the links the kernel makes of the rule's under pattern p, None where it
+# reports an error: the plain links, then the joined pairs
+def contract(+p: Pat, +ls: List<&2, Link>) -> Maybe<&2, List<&2, Link>>:
+  contract.go(plain(p, ls), pairs(4n, 0n, p, ls))
+
+# the Ext ends a rule may link: a's auxiliary peers, then b's
+def ext_ends(+a: NodeKind, +b: NodeKind) -> List<&2, End>:
+  List.append(&2, End, aux_ends(Nat.sub(arity(a), 1n), 0n), aux_ends(Nat.sub(arity(b), 1n), 2n))
+
+def outer.k(+keep: Bool, e: End, rest: List<&2, End>) -> List<&2, End>:
+  match keep:
+    case True{}:
+      e <> rest
+    case False{}:
+      rest
+
+
+# the ends of es facing outside
+def outer(+p: Pat, es: List<&2, End>) -> List<&2, End>:
+  match es:
+    case Nil{}:
+      Nil{}
+    case Con{+e, t}:
+      outer.k(Bool.not(pat_in(p, e)), e, outer(p, t))
+
+def exact_in.m(m: Maybe<&2, List<&2, Link>>, +a: NodeKind, +b: NodeKind, +p: Pat, +xs: List<&2, Spec>) -> Bool:
+  match m:
+    case None{}:
+      True{}
+    case Some{+ls}:
+      ends_distinct(ends(ls)) && (all_in(ends(ls), List.append(&2, End, outer(p, ext_ends(a, b)), new_ends(xs, 0n))) &&
+        all_in(List.append(&2, End, outer(p, ext_ends(a, b)), new_ends(xs, 0n)), ends(ls)))
+
+# under pattern p, the links the kernel makes link exactly the ends left
+# to link, none twice: the outside peers and the new ports; or the kernel
+# reports an error
+def exact_in(+a: NodeKind, +b: NodeKind, +p: Pat, r: Rule) -> Bool:
+  match r:
+    case RWire{+xs, +ls}:
+      exact_in.m(contract(p, ls), a, b, p, xs)
+    case _:
+      True{}
+
+# a pattern the pair can have: every Ext end it puts inside is one the
+# pair's arities give it
+def pat_ok.i(+a: NodeKind, +b: NodeKind, +p: Pat, +i: Nat) -> Bool:
+  Bool.not(Maybe.is_some(&2, Nat, pat_at(p, i))) || end_mem(Ext{i}, ext_ends(a, b))
+
+def pat_ok(+a: NodeKind, +b: NodeKind, +p: Pat) -> Bool:
+  pat_ok.i(a, b, p, 0n) && (pat_ok.i(a, b, p, 1n) && (pat_ok.i(a, b, p, 2n) && pat_ok.i(a, b, p, 3n)))
+
+# exact_in under every pattern the pair can have
+def exact_pairs(+a: NodeKind, +b: NodeKind, +r: Rule) -> Bool:
+  ((exact_in(a, b, PNone{}, r) || Bool.not(pat_ok(a, b, PNone{}))) && ((exact_in(a, b, P01{}, r) || Bool.not(pat_ok(a, b, P01{}))) && ((exact_in(a, b, P02{}, r) || Bool.not(pat_ok(a, b, P02{}))) && ((exact_in(a, b, P03{}, r) || Bool.not(pat_ok(a, b, P03{}))) && ((exact_in(a, b, P12{}, r) || Bool.not(pat_ok(a, b, P12{}))) && ((exact_in(a, b, P13{}, r) || Bool.not(pat_ok(a, b, P13{}))) && ((exact_in(a, b, P23{}, r) || Bool.not(pat_ok(a, b, P23{}))) && ((exact_in(a, b, P01_23{}, r) || Bool.not(pat_ok(a, b, P01_23{}))) && ((exact_in(a, b, P02_13{}, r) || Bool.not(pat_ok(a, b, P02_13{}))) && (exact_in(a, b, P03_12{}, r) || Bool.not(pat_ok(a, b, P03_12{}))))))))))))

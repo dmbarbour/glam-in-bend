@@ -351,9 +351,8 @@ takes from it:
        links, fails the proof. Simplified from the kernel: new nodes are
        appended rather than taken from the free list; the net is focused
        on its pair, its links' ends grouped (the pair's ports, their
-       peers, the other links'); and a peer that is itself a port of the
-       pair, a's auxiliary port linked to b's, is outside the model, which
-       wired rules out, where the kernel joins through it (`link_pairs`).
+       peers, the other links'). A peer that is itself a port of the pair
+       came later (`heap-strategies.net.wiring.pairs`).
        Reachability from the root is no invariant: erasure leaves unreached
        garbage, which `KN.sweep` collects.
        - `heap-strategies.net.wiring.audit` — built 2026-10-29 — the
@@ -375,6 +374,25 @@ takes from it:
          the full reductions the same within 260 instructions as built,
          -3.8% to +0.8% profile-guided, whose training runs take the new
          demand path.
+       - `heap-strategies.net.wiring.pairs` — built 2026-10-29 — a peer
+         of the pair's auxiliary ports that is a port of the pair itself
+         (a's auxiliary port linked to b's, or to a's other), as the
+         maintainer asked (2026-10-29). A pattern (`R.Pat`, ten of them:
+         none, one such link, or two) says which `Ext` ends face inside;
+         the focused net lists only the outside peers (`W.fends_in`); and
+         `R.contract` mirrors `knet.bend`'s `link_plain` and `link_pairs`:
+         the rule's links facing outside, then for each inside pair, i
+         below j, a link joining what the rule links to `Ext` i and `Ext`
+         j, an error where either is inside or missing. `rules_pairs_exact`
+         proves, by computation over every rule and every pattern the
+         pair's arities allow, that the result links exactly the ends
+         left, or is that error; `rewrite_pairs_wired` that a rewrite by it
+         keeps a wired net wired; `rules_keep_wired_in` puts them
+         together. The rewrite's proof is now one, `wired_gen`, over any
+         outside peers, `rewrite_wired` an instance of it. A contraction
+         dropping the joined pairs, or joining an end to itself, fails the
+         proofs. The model keeps the kernel's links in its order, plain
+         then pairs, though a net's links have none.
      - `heap-strategies.net.capacity` — tentative — a net that cannot
        grow stops its strategy at the first such error. Given fuel
        enough, the library's `demand-dead-factor` passes the 2^21 nodes

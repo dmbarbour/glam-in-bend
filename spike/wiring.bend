@@ -12,11 +12,14 @@ import ./rules.bend as R
 # rewrite_wired says a rule exact by R.exact keeps a net wired, so with
 # rules_exact every rewrite of the rule table does.
 #
-# Simplified from the kernel: new nodes are appended rather than taken from
-# the free list (freelist.bend models that), and a peer that is itself a
-# port of the pair, a link from a's auxiliary port to b's, is outside the
-# model, which wired then rules out; the kernel joins such peers through
-# (knet.bend's link_pairs).
+# A peer may be a port of the pair itself, a's auxiliary port linked to
+# b's or to a's other: a pattern (R.Pat) says which, the focused net then
+# lists only the peers outside (fends_in), and the kernel joins what the
+# rule links to the two ends of each such link (R.contract, mirroring
+# knet.bend's link_pairs), or reports an error; rules_keep_wired_in says
+# every step that reports none keeps a net wired. Simplified from the
+# kernel: new nodes are appended rather than taken from the free list
+# (freelist.bend models that).
 
 type Pt is Data:
   Pt{n: Nat, p: Nat}
@@ -203,6 +206,33 @@ def rw_kinds(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, xs: List<&2, R.Spec>) 
 def rw_links(+ks: List<&2, R.NodeKind>, +es: Peers, c: List<&2, Ln>, ls: List<&2, R.Link>) -> List<&2, Ln>:
   List.append(&2, Ln, c, links(List.length(&2, R.NodeKind, ks), es, ls))
 
+# the focused net's ends under pattern p: the pair's ports, then only the
+# peers facing outside (a link between two of the pair's ports has both
+# its ends among those ports), then the other links' ends
+def fends_in(f: Foc, +p: R.Pat) -> List<&2, Pt>:
+  match f:
+    case Foc{+ks, +a, +b, +es, c}:
+      List.append(&2, Pt, ports(a, R.arity(kind_at(ks, a))),
+        List.append(&2, Pt, ports(b, R.arity(kind_at(ks, b))),
+          List.append(&2, Pt, sigs(List.length(&2, R.NodeKind, ks), es, R.outer(p, R.ext_ends(kind_at(ks, a), kind_at(ks, b)))), ends(c))))
+
+def keeps_wired.m(m: Maybe<&2, List<&2, R.Link>>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: Peers, c: List<&2, Ln>, xs: List<&2, R.Spec>) -> Bool:
+  match m:
+    case None{}:
+      True{}
+    case Some{ls}:
+      wired(rw_kinds(ks, a, b, xs), ends(rw_links(ks, es, c, ls)))
+
+# one step by rule r under pattern p leaves a wired net, or the kernel
+# reports an error (R.contract's None), or the pair is stuck and the net
+# stays as it was
+def keeps_wired(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +es: Peers, c: List<&2, Ln>, r: R.Rule, +p: R.Pat) -> Bool:
+  match r:
+    case R.RWire{xs, +ls}:
+      keeps_wired.m(R.contract(p, ls), ks, a, b, es, c, xs)
+    case R.RStuck{}:
+      True{}
+
 # one rewrite by rule r, its kinds and its links' ends; a stuck pair
 # leaves the net as it was
 def step_kinds(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, r: R.Rule) -> List<&2, R.NodeKind>:
@@ -232,5 +262,24 @@ def demo(r: R.Rule) -> Bool:
     case R.RStuck{}:
       False{}
 
+def demo2.m(m: Maybe<&2, List<&2, R.Link>>, +ks: List<&2, R.NodeKind>, +es: Peers, xs: List<&2, R.Spec>) -> Bool:
+  match m:
+    case Some{ls}:
+      wired(rw_kinds(ks, 0n, 1n, xs), ends(rw_links(ks, es, [], ls)))
+    case None{}:
+      False{}
+
+# a beta step whose function's body is the application's result (port 2
+# of node 1 linked to port 2 of node 0, pattern P13): the argument, a
+# datum, joins the variable's eraser
+def demo2(r: R.Rule) -> Bool:
+  match r:
+    case R.RWire{xs, +ls}:
+      wired([R.KAp{}, R.KFn{}, R.KData{}, R.KEraN{}], fends_in(Foc{[R.KAp{}, R.KFn{}, R.KData{}, R.KEraN{}], 0n, 1n,
+          Peers{Pt{2n, 0n}, Pt{1n, 2n}, Pt{3n, 0n}, Pt{0n, 2n}}, []}, R.P13{})) &&
+        demo2.m(R.contract(R.P13{}, ls), [R.KAp{}, R.KFn{}, R.KData{}, R.KEraN{}], Peers{Pt{2n, 0n}, Pt{1n, 2n}, Pt{3n, 0n}, Pt{0n, 2n}}, xs)
+    case R.RStuck{}:
+      False{}
+
 def main() -> Bool:
-  demo(R.rule(R.KAp{}, R.KFn{}, True{}))
+  demo(R.rule(R.KAp{}, R.KFn{}, True{})) && demo2(R.rule(R.KAp{}, R.KFn{}, True{}))

@@ -255,3 +255,50 @@ law rules_keep_wired:
   for +s: Bool
   for hw: {W.wired(ks, W.fends(W.Foc{ks, a, b, es, c})) == True{} : Bool}
   {W.wired(W.step_kinds(ks, a, b, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s)), W.step_ends(ks, a, b, es, c, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s))) == True{} : Bool}
+
+# LAW: a peer of the pair may be a port of the pair itself (a's auxiliary
+# port linked to b's, or to a's other). Under every pattern of such peers
+# the pair's arities allow (R.pat_ok), the links the kernel makes of a
+# rule's (R.contract, as knet.bend's link_plain and link_pairs) link
+# exactly the ends left, the outside peers and the new ports, none twice;
+# or the kernel reports an error.
+# Record: net-nodes-double
+law rules_pairs_exact:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {R.exact_pairs(a, b, R.rule(a, b, s)) == True{} : Bool}
+
+# LAW: with peers inside the pair as pattern p says, the focused net
+# listing only the outside ones (W.fends_in), the rewrite by the links the
+# kernel makes keeps a wired net wired.
+# Record: net-nodes-double
+law rewrite_pairs_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +xs: List<&2, R.Spec>
+  for +ls: List<&2, R.Link>
+  for +p: R.Pat
+  for +ls2: List<&2, R.Link>
+  for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
+  for hc: {R.contract(p, ls) == Some{ls2} : Maybe<&2, List<&2, R.Link>>}
+  for hr: {R.exact_in(W.kind_at(ks, a), W.kind_at(ks, b), p, R.RWire{xs, ls}) == True{} : Bool}
+  {W.wired(W.rw_kinds(ks, a, b, xs), W.ends(W.rw_links(ks, es, c, ls2))) == True{} : Bool}
+
+# LAW: so every step of the rule table, its pair's peers inside it or
+# not, keeps a wired net wired, unless the kernel reports an error.
+# Record: net-nodes-double
+law rules_keep_wired_in:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +s: Bool
+  for +p: R.Pat
+  for hv: {R.pat_ok(W.kind_at(ks, a), W.kind_at(ks, b), p) == True{} : Bool}
+  for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
+  {W.keeps_wired(ks, a, b, es, c, R.rule(W.kind_at(ks, a), W.kind_at(ks, b), s), p) == True{} : Bool}
