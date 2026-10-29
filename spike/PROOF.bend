@@ -6,6 +6,9 @@ import ./store.bend as S
 import ./rules.bend as R
 import ./val.bend as V
 import ./ctl.bend as CT
+import ./kprim.bend as P
+import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
+import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -1174,3 +1177,32 @@ def Laws.peel_pairs_units(c, l, n):
     case 1n+p 1n+q:
       %peel_shift(Nat.is_lt(p, q), Nat.is_eq(p, q), n, p, q) : {CT.pair_off(p, q, 1n+n) == _ : CT.Left}
       Laws.peel_pairs_units(p, q, 1n+n)
+
+# Nat.is_gt read as the model's "above", for rewriting toward it
+def gt_is_above(a: Nat, b: Nat) -> {Nat.is_gt(a, b) == CT.above(a, b) : Bool}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+m:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+m:
+      gt_is_above(p, m)
+
+# over a Bool guard: raising by b in U32 is raising in Nat, when j + b fits
+def raise_g(g: Bool, +b: U32, +j: U32, h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))) ->
+  {U32.to_nat(P.lift.go(g, True{}, b, j)) == CT.raise.go(g, U32.to_nat(j), U32.to_nat(b)) : Nat}:
+  match g:
+    case True{}:
+      MU.u32_add_exact(j, b, h)
+    case False{}:
+      {==}
+
+# the guard rewritten from the model's above to Nat.is_gt, then to the
+# kernel's U32.is_gt (bend-mathlib's u32_is_gt_to_nat); raise_g does the
+# rest
+def Laws.lift_raise(n, b, j, h):
+  %gt_is_above(U32.to_nat(j), U32.to_nat(n)) : {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise.go(_, U32.to_nat(j), U32.to_nat(b)) : Nat}
+  %MU.u32_is_gt_to_nat(j, n) : {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise.go(_, U32.to_nat(j), U32.to_nat(b)) : Nat}
+  raise_g(U32.is_gt(j, n), b, j, h)

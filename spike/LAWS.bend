@@ -6,6 +6,8 @@ import ./store.bend as S
 import ./rules.bend as R
 import ./val.bend as V
 import ./ctl.bend as CT
+import ./kprim.bend as P
+import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
 # still sum to the page's capacity.
@@ -125,3 +127,17 @@ law peel_pairs_units:
   for +l: Nat
   for +n: Nat
   {CT.pair_off(c, l, n) == CT.peel(n, c, l) : CT.Left}
+
+# LAW: the kernel's raise is the model's: a level j through a control
+# raising levels above n by b (kprim.bend's lift.go, U32), read as a Nat,
+# is CT.raise of their Nat values, whenever j + b fits a U32. The kernel's
+# own U32 arithmetic proved against the model, through bend-mathlib's laws
+# relating U32 to Nat (docs/BendIssues.md, "Reasoning about U32 in
+# proofs"); the bit fields that decode n, b and j have no laws yet.
+# Record: fuse-control-runs
+law lift_raise:
+  for +n: U32
+  for +b: U32
+  for +j: U32
+  for h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))
+  {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise(U32.to_nat(n), U32.to_nat(b), U32.to_nat(j)) : Nat}
