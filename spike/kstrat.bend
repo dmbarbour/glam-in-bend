@@ -604,37 +604,51 @@ def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n
     case False{} False{}:
       wk.push(U32.is_eq(((depth + 3 : U32) .&. (depth + 2 : U32) : U32), 0), h, path, top, depth, n, P.base(q))
 
-# A push and what follows it in one step: most pushes find a pair at
-# once, and a step costs the walk a round through demand's loop. Where
+# Pushes and what follows them in one step: most pushes find a pair at
+# once, and a step costs the walk a round through demand's loop. While
 # the last node faces an auxiliary port and the array has room, it is
-# pushed and what the next node faces read, before the step looks at
-# what it faces: a pair, rewritten, or another auxiliary port, pushed
-# too, where the step ends. One place looks, so that the rewrite's chain
-# keeps its one caller.
+# pushed and the next node's link read (wk.down), before the step looks
+# at what the last faces: a pair, rewritten, or an auxiliary port where
+# the array is full, pushed as it grows. One place looks, so that the
+# rewrite's chain keeps its one caller.
 
-type Adv is Type:
-  Adv{h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32}
+type Dn is Type:
+  Dn{+go: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32}
 
-def adv.r(r: P.H & U32, path: KM.M, +x: U32, +depth: U32) -> Adv:
+# whether the walk can push past a node facing q, at depth: an auxiliary
+# port, and room in the array
+def dn.can(+q: U32, +depth: U32) -> Bool:
+  U32.is_ne(q, P.nil()) && U32.is_ne(P.port(q), 0) && U32.is_ne(((depth + 3 : U32) .&. (depth + 2 : U32) : U32), 0)
+
+def dn.r(r: P.H & U32, path: KM.M, +x: U32, +depth: U32) -> Dn:
   (h, +q) = r
-  Adv{h, path, x, depth, q}
+  Dn{dn.can(q, depth), h, path, x, depth, q}
 
-def wk.adv(go: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Adv:
-  match go:
-    case True{}:
-      adv.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 3 : U32), top), P.base(q), (depth + 1 : U32))
-    case False{}:
-      Adv{h, path, top, depth, q}
+def dn.step(h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Dn:
+  dn.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 3 : U32), top), P.base(q), (depth + 1 : U32))
 
-def wk.c(a: Adv, +n: U32) -> D:
-  match a:
-    case Adv{h, path, +top, +depth, +q}:
+def wk.down(f: Nat, s: Dn) -> Dn:
+  match f:
+    case 0n:
+      s
+    case 1n+g:
+      match s:
+        case Dn{+go, h, path, +top, +depth, +q}:
+          match go:
+            case True{}:
+              wk.down(g, dn.step(h, path, top, depth, q))
+            case False{}:
+              Dn{False{}, h, path, top, depth, q}
+
+def wk.c(s: Dn, +n: U32) -> D:
+  match s:
+    case Dn{+go, h, path, +top, +depth, +q}:
       wk.q.go(U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
 
 # what the path's last node's principal port faces
 def wk.q(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +q) = r
-  wk.c(wk.adv(U32.is_ne(q, P.nil()) && U32.is_ne(P.port(q), 0) && U32.is_ne(((depth + 3 : U32) .&. (depth + 2 : U32) : U32), 0), h, path, top, depth, q), n)
+  wk.c(wk.down(4294967295n, Dn{dn.can(q, depth), h, path, top, depth, q}), n)
 
 def d.out(+st: U32) -> U32:
   match st:

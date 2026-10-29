@@ -673,11 +673,18 @@ takes from it:
        and 2 (`KS.need`), the nodes from word 3. Against ffb4eee, four
        builds at k 18 (store runs 63, 64): demand 4.9% to 6.6% fewer
        instructions, the same interactions; the full reduction the same
-       within 300 instructions. Left: the array fill, 28% of demand on
-       `succ` against 27% of the full reduction, demand's share the path,
-       which there grows to about the node store's size (Bend #1890,
-       `docs/BendIssues.md`); and long descents, most of the half step
-       left, two pushes a step.
+       within 300 instructions. Then the pushes looped (`wk.down`):
+       while the last node faces an auxiliary port and the array has
+       room, push and read on, then look once, so that long descents
+       (on `succ`, some 262,000 pushes before the first pair) take one
+       step: one step per interaction on `succ` and `lvl`. Against
+       51a472a (store runs 64, 65): demand 2.1% to 6.0% fewer
+       instructions, the full reduction the same within 30; against
+       ffb4eee, 6.8% to 12.2% fewer, and against the list (run 62),
+       16.4% to 19.5%. Left: the array fill, 28% of demand on `succ`
+       against 27% of the full reduction, demand's share the path, which
+       there grows to about the node store's size (Bend #1890,
+       `docs/BendIssues.md`).
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,
