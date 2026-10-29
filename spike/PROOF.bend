@@ -9,6 +9,7 @@ import ./ctl.bend as CT
 import ./kprim.bend as P
 import ./freelist.bend as FL
 import ./wiring.bend as W
+import ./kplace.bend as KP
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
 import ../vendor/wilderness-labs-stt/u32.bend as UD
@@ -4063,3 +4064,592 @@ def Laws.rewrite_placed_wired(ks, a, b, es, c, xs, ls, p, ls2, ss, hw, hc, hr, h
     and_l(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)),
     and_r(R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))), R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2)), and_r(R.ends_distinct(R.ends(ls2)), (R.all_in(R.ends(ls2), List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n))) && R.all_in(List.append(&2, R.End, R.outer(p, R.ext_ends(W.kind_at(ks, a), W.kind_at(ks, b))), R.new_ends(xs, 0n)), R.ends(ls2))), he)))
 
+# The kernel's placement
+# ======================
+#
+# Over kplace.bend: the free-list model's notions bridged to the wiring
+# model's, the allocations as the ghost list's first entries, then the
+# placement's conditions and the free list after.
+
+def same_nat(a: Nat, b: Nat) -> {FL.same(a, b) == R.nat_eq(a, b) : Bool}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+y:
+      {==}
+    case 1n+x 0n:
+      {==}
+    case 1n+x 1n+y:
+      same_nat(x, y)
+
+def fmem_nat(+i: Nat, l: List<&2, Nat>) -> {FL.mem(i, l) == W.nat_in(i, l) : Bool}:
+  match l:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Bool, FL.same(i, j), R.nat_eq(j, i), Equal.trans(Bool, FL.same(i, j), R.nat_eq(i, j), R.nat_eq(j, i), same_nat(i, j), neq_comm(i, j))) : {(_ || FL.mem(i, t)) == (R.nat_eq(j, i) || W.nat_in(i, t)) : Bool}
+      %Equal.sym(Bool, FL.mem(i, t), W.nat_in(i, t), fmem_nat(i, t)) : {(R.nat_eq(j, i) || _) == (R.nat_eq(j, i) || W.nat_in(i, t)) : Bool}
+      {==}
+
+def fnodup_nat(l: List<&2, Nat>) -> {FL.nodup(l) == W.nodup_nat(l) : Bool}:
+  match l:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Bool, FL.mem(j, t), W.nat_in(j, t), fmem_nat(j, t)) : {(Bool.not(_) && FL.nodup(t)) == (Bool.not(W.nat_in(j, t)) && W.nodup_nat(t)) : Bool}
+      %Equal.sym(Bool, FL.nodup(t), W.nodup_nat(t), fnodup_nat(t)) : {(Bool.not(W.nat_in(j, t)) && _) == (Bool.not(W.nat_in(j, t)) && W.nodup_nat(t)) : Bool}
+      {==}
+
+# the first n of l
+def take(n: Nat, l: List<&2, Nat>) -> List<&2, Nat>:
+  match n l:
+    case 0n _:
+      Nil{}
+    case 1n+m Nil{}:
+      Nil{}
+    case 1n+m Con{j, t}:
+      j <> take(m, t)
+
+def tk_out(n: Nat, l: List<&2, Nat>, +x: Nat, h: {W.nat_in(x, l) == False{} : Bool}) -> {W.nat_in(x, take(n, l)) == False{} : Bool}:
+  match n l:
+    case 0n _:
+      {==}
+    case 1n+m Nil{}:
+      {==}
+    case 1n++m Con{+j, +t}:
+      +h = h
+      or_f(R.nat_eq(j, x), W.nat_in(x, take(m, t)), or_false_l(R.nat_eq(j, x), W.nat_in(x, t), h), tk_out(m, t, x, or_false_r(R.nat_eq(j, x), W.nat_in(x, t), h)))
+
+def tk_nodup(n: Nat, l: List<&2, Nat>, h: {W.nodup_nat(l) == True{} : Bool}) -> {W.nodup_nat(take(n, l)) == True{} : Bool}:
+  match n l:
+    case 0n _:
+      {==}
+    case 1n+m Nil{}:
+      {==}
+    case 1n++m Con{+j, +t}:
+      +h = h
+      and_i(Bool.not(W.nat_in(j, take(m, t))), W.nodup_nat(take(m, t)),
+        not_false(W.nat_in(j, take(m, t)), tk_out(m, t, j, not_true(W.nat_in(j, t), and_l(Bool.not(W.nat_in(j, t)), W.nodup_nat(t), h)))),
+        tk_nodup(m, t, and_r(Bool.not(W.nat_in(j, t)), W.nodup_nat(t), h)))
+
+def tk_len(n: Nat, l: List<&2, Nat>, h: {KP.has(n, l) == True{} : Bool}) -> {List.length(&2, Nat, take(n, l)) == n : Nat}:
+  match n l:
+    case 0n _:
+      {==}
+    case 1n+m Nil{}:
+      ft(h, {List.length(&2, Nat, take(1n+m, Nil{})) == 1n+m : Nat})
+    case 1n++m Con{j, t}:
+      %Equal.sym(Nat, List.length(&2, Nat, take(m, t)), m, tk_len(m, t, h)) : {1n+_ == 1n+m : Nat}
+      {==}
+
+def same_b_t(a: Bool, +b: Bool, h: {KP.same_b(a, b) == True{} : Bool}, ha: {a == True{} : Bool}) -> {b == True{} : Bool}:
+  match a b:
+    case True{} True{}:
+      {==}
+    case True{} False{}:
+      h
+    case False{} _:
+      ft(ha, {b == True{} : Bool})
+
+def same_b_f(+a: Bool, b: Bool, h: {KP.same_b(a, b) == True{} : Bool}, hb: {b == False{} : Bool}) -> {a == False{} : Bool}:
+  match a b:
+    case False{} False{}:
+      {==}
+    case True{} False{}:
+      ft(h, {True{} == False{} : Bool})
+    case _ True{}:
+      tf(hb, {a == False{} : Bool})
+
+# a slot free in the free list has a free kind
+def free_kind(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, i: Nat, hs: {KP.in_step(s, ks) == True{} : Bool}, hf: {FL.is_free(FL.get(s, i)) == True{} : Bool}) ->
+  {W.is_free_kind(W.kind_at(ks, i)) == True{} : Bool}:
+  match s ks i:
+    case Nil{} Nil{} _:
+      ft(hf, {W.is_free_kind(W.kind_at(Nil{}, i)) == True{} : Bool})
+    case Nil{} Con{k, u} _:
+      ft(hs, {W.is_free_kind(W.kind_at(Con{k, u}, i)) == True{} : Bool})
+    case Con{x, t} Nil{} _:
+      ft(hs, {W.is_free_kind(W.kind_at(Nil{}, i)) == True{} : Bool})
+    case Con{+x, +t} Con{+k, +u} 0n:
+      +hs = hs
+      same_b_t(FL.is_free(x), W.is_free_kind(k), and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hs), hf)
+    case Con{+x, +t} Con{+k, +u} 1n+q:
+      free_kind(t, u, q, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hs), hf)
+
+# a slot whose kind is live is in use in the free list
+def live_use(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, i: Nat, hs: {KP.in_step(s, ks) == True{} : Bool}, hk: {W.is_free_kind(W.kind_at(ks, i)) == False{} : Bool}) ->
+  {FL.in_use(s, i) == True{} : Bool}:
+  match s ks i:
+    case Nil{} Nil{} _:
+      tf(hk, {FL.in_use(Nil{}, i) == True{} : Bool})
+    case Nil{} Con{k, u} _:
+      ft(hs, {FL.in_use(Nil{}, i) == True{} : Bool})
+    case Con{x, t} Nil{} _:
+      ft(hs, {FL.in_use(Con{x, t}, i) == True{} : Bool})
+    case Con{+x, +t} Con{+k, +u} 0n:
+      +hs = hs
+      not_false(FL.is_free(x), same_b_f(FL.is_free(x), W.is_free_kind(k), and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hs), hk))
+    case Con{+x, +t} Con{+k, +u} 1n+q:
+      live_use(t, u, q, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hs), hk)
+
+def ga.go(c: FL.Slot, +s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, he: {FL.get(s, j) == c : FL.Slot}, hf: {FL.is_free(FL.get(s, j)) == True{} : Bool}) ->
+  {KP.ghost(FL.alloc.go(c, s, j, Con{j, t})) == t : List<&2, Nat>}:
+  match c:
+    case FL.Used{}:
+      Empty.absurd({KP.ghost(FL.alloc.go(FL.Used{}, s, j, Con{j, t})) == t : List<&2, Nat>}, MNat.internal_false_ne_true(
+        Equal.trans(Bool, False{}, FL.is_free(FL.get(s, j)), True{}, Equal.cong(FL.Slot, Bool, FL.is_free, FL.Used{}, FL.get(s, j), Equal.sym(FL.Slot, FL.get(s, j), FL.Used{}, he)), hf)))
+    case FL.Free{n}:
+      {==}
+
+# allocating from an exact list drops its head from the ghost
+def ghost_alloc(+s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, hok: {FL.ok(FL.FL{s, 1n+j, Con{j, t}}) == True{} : Bool}) ->
+  {KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})) == t : List<&2, Nat>}:
+  ga.go(FL.get(s, j), s, j, t, {==}, fl_head(s, j, Con{j, t}, hok))
+
+def ok_tr(+s: List<&2, FL.Slot>, +fh: Nat, +j: Nat, +l: List<&2, Nat>, eq: {fh == 1n+j : Nat}, h: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}) ->
+  {FL.ok(FL.FL{s, 1n+j, l}) == True{} : Bool}:
+  %eq : {FL.ok(FL.FL{s, _, l}) == True{} : Bool}
+  h
+
+def has_tr(+m: Nat, +s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, hok: {FL.ok(FL.FL{s, 1n+j, Con{j, t}}) == True{} : Bool}, h: {KP.has(m, t) == True{} : Bool}) ->
+  {KP.has(m, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), t, ghost_alloc(s, j, t, hok)) : {KP.has(m, _) == True{} : Bool}
+  h
+
+def at.k(+s: List<&2, FL.Slot>, +fh: Nat, +j: Nat, +t: List<&2, Nat>, +m: Nat, +eq: {fh == 1n+j : Nat}, hf: {FL.ok(FL.FL{s, fh, Con{j, t}}) == True{} : Bool},
+  hh: {KP.has(m, t) == True{} : Bool},
+  ih: {FL.ok(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})) == True{} : Bool} -> {KP.has(m, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))) == True{} : Bool} ->
+    {KP.allocs(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}})) == take(m, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))) : List<&2, Nat>}) ->
+  {KP.allocs(1n+m, FL.FL{s, fh, Con{j, t}}) == Con{j, take(m, t)} : List<&2, Nat>}:
+  +hf2 = ok_tr(s, fh, j, Con{j, t}, eq, hf)
+  %Equal.sym(Nat, fh, 1n+j, eq) : {KP.allocs(1n+m, FL.FL{s, _, Con{j, t}}) == Con{j, take(m, t)} : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, KP.allocs(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), take(m, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))),
+    ih(fl_alloc(FL.FL{s, 1n+j, Con{j, t}}, hf2), has_tr(m, s, j, t, hf2, hh))) : {Con{j, _} == Con{j, take(m, t)} : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), t, ghost_alloc(s, j, t, hf2)) : {Con{j, take(m, _)} == Con{j, take(m, t)} : List<&2, Nat>}
+  {==}
+
+# n allocations from an exact list holding n take its first n
+def allocs_take(n: Nat, f: FL.FL, hf: {FL.ok(f) == True{} : Bool}, hh: {KP.has(n, KP.ghost(f)) == True{} : Bool}) ->
+  {KP.allocs(n, f) == take(n, KP.ghost(f)) : List<&2, Nat>}:
+  match n f:
+    case 0n _:
+      {==}
+    case 1n++m FL.FL{+s, +fh, l}:
+      match l:
+        case Nil{}:
+          ft(hh, {KP.allocs(1n+m, FL.FL{s, fh, Nil{}}) == take(1n+m, KP.ghost(FL.FL{s, fh, Nil{}})) : List<&2, Nat>})
+        case Con{+j, +t}:
+          +hf = hf
+          at.k(s, fh, j, t, m, same_eq(fh, 1n+j, and_l(FL.same(fh, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), ok_w(s, fh, Con{j, t}, hf))),
+            hf, hh, h1 => h2 => allocs_take(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}}), h1, h2))
+
+# the ghost's first n slots have free kinds
+def tk_slots(n: Nat, l: List<&2, Nat>, +s: List<&2, FL.Slot>, x: Nat, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, hw: {FL.walks(l, s, x) == True{} : Bool},
+  +hs: {KP.in_step(s, ks) == True{} : Bool}) -> {W.slots_ok(ks, a, b, take(n, l)) == True{} : Bool}:
+  match n l:
+    case 0n _:
+      {==}
+    case 1n+m Nil{}:
+      {==}
+    case 1n++m Con{+j, +t}:
+      +hr = and_r(FL.same(x, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), hw)
+      and_i((R.nat_eq(j, a) || (R.nat_eq(j, b) || W.is_free_kind(W.kind_at(ks, j)))), W.slots_ok(ks, a, b, take(m, t)),
+        or_r(R.nat_eq(j, a), (R.nat_eq(j, b) || W.is_free_kind(W.kind_at(ks, j))), or_r(R.nat_eq(j, b), W.is_free_kind(W.kind_at(ks, j)),
+          free_kind(s, ks, j, hs, and_l(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr)))),
+        tk_slots(m, t, s, FL.next_of(FL.get(s, j)), ks, a, b, and_r(FL.is_free(FL.get(s, j)), FL.walks(t, s, FL.next_of(FL.get(s, j))), hr), hs))
+
+# a live node's slot is on no exact free list
+def live_off(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +ks: List<&2, R.NodeKind>, +i: Nat, hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool},
+  hs: {KP.in_step(s, ks) == True{} : Bool}, hk: {W.is_free_kind(W.kind_at(ks, i)) == False{} : Bool}) -> {W.nat_in(i, l) == False{} : Bool}:
+  Equal.trans(Bool, W.nat_in(i, l), FL.mem(i, l), False{}, Equal.sym(Bool, FL.mem(i, l), W.nat_in(i, l), fmem_nat(i, l)),
+    walks_not_mem(l, s, fh, i, ok_w(s, fh, l, hf), in_use_not_free(s, i, live_use(s, ks, i, hs, hk))))
+
+def len2_ok(+a: Nat, +b: Nat, +m: Nat, +l: List<&2, Nat>, h: {KP.has(m, l) == True{} : Bool}) ->
+  {R.nat_eq(List.length(&2, Nat, Con{a, Con{b, take(m, l)}}), 2n+m) == True{} : Bool}:
+  %Equal.sym(Nat, List.length(&2, Nat, take(m, l)), m, tk_len(m, l, h)) : {R.nat_eq(2n+_, 2n+m) == True{} : Bool}
+  neq_refl(m)
+
+def ksok2(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, +m: Nat, +s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool},
+  +hs: {KP.in_step(s, ks) == True{} : Bool}, +hab: {R.nat_eq(a, b) == False{} : Bool}, hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool},
+  hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}, +hen: {KP.has(m, l) == True{} : Bool}) ->
+  {(W.nodup_nat(Con{a, Con{b, take(m, l)}}) && (W.slots_ok(ks, a, b, Con{a, Con{b, take(m, l)}}) && R.nat_eq(List.length(&2, Nat, Con{a, Con{b, take(m, l)}}), 2n+m))) == True{} : Bool}:
+  +ha = live_off(s, fh, l, ks, a, hf, hs, hla)
+  +hb = live_off(s, fh, l, ks, b, hf, hs, hlb)
+  and_i(W.nodup_nat(Con{a, Con{b, take(m, l)}}), (W.slots_ok(ks, a, b, Con{a, Con{b, take(m, l)}}) && R.nat_eq(List.length(&2, Nat, Con{a, Con{b, take(m, l)}}), 2n+m)),
+    and_i(Bool.not(W.nat_in(a, Con{b, take(m, l)})), W.nodup_nat(Con{b, take(m, l)}),
+      not_false(W.nat_in(a, Con{b, take(m, l)}), or_f(R.nat_eq(b, a), W.nat_in(a, take(m, l)), Equal.trans(Bool, R.nat_eq(b, a), R.nat_eq(a, b), False{}, neq_comm(b, a), hab), tk_out(m, l, a, ha))),
+      and_i(Bool.not(W.nat_in(b, take(m, l))), W.nodup_nat(take(m, l)), not_false(W.nat_in(b, take(m, l)), tk_out(m, l, b, hb)),
+        tk_nodup(m, l, Equal.trans(Bool, W.nodup_nat(l), FL.nodup(l), True{}, Equal.sym(Bool, FL.nodup(l), W.nodup_nat(l), fnodup_nat(l)), ok_n(s, fh, l, hf))))),
+    and_i(W.slots_ok(ks, a, b, Con{a, Con{b, take(m, l)}}), R.nat_eq(List.length(&2, Nat, Con{a, Con{b, take(m, l)}}), 2n+m),
+      and_i((R.nat_eq(a, a) || (R.nat_eq(a, b) || W.is_free_kind(W.kind_at(ks, a)))), W.slots_ok(ks, a, b, Con{b, take(m, l)}),
+        or_l(R.nat_eq(a, a), (R.nat_eq(a, b) || W.is_free_kind(W.kind_at(ks, a))), neq_refl(a)),
+        and_i((R.nat_eq(b, a) || (R.nat_eq(b, b) || W.is_free_kind(W.kind_at(ks, b)))), W.slots_ok(ks, a, b, take(m, l)),
+          or_r(R.nat_eq(b, a), (R.nat_eq(b, b) || W.is_free_kind(W.kind_at(ks, b))), or_l(R.nat_eq(b, b), W.is_free_kind(W.kind_at(ks, b)), neq_refl(b))),
+          tk_slots(m, l, s, fh, ks, a, b, ok_w(s, fh, l, hf), hs))),
+      len2_ok(a, b, m, l, hen)))
+
+def sub_zero(m: Nat) -> {Nat.sub(m, 0n) == m : Nat}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+k:
+      {==}
+
+def has_sub(+m: Nat, +l: List<&2, Nat>, h: {KP.has(Nat.sub(m, 0n), l) == True{} : Bool}) -> {KP.has(m, l) == True{} : Bool}:
+  %sub_zero(m) : {KP.has(_, l) == True{} : Bool}
+  h
+
+# the kernel's slots meet the placement law's conditions
+def ksok(+ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, k: Nat, +s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool},
+  +hs: {KP.in_step(s, ks) == True{} : Bool}, +hab: {R.nat_eq(a, b) == False{} : Bool}, hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool},
+  hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}, hen: {KP.has(Nat.sub(k, 2n), l) == True{} : Bool}) ->
+  {KP.kslots_ok(ks, a, b, k, FL.FL{s, fh, l}) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n:
+      and_i(W.nodup_nat([a]), (W.slots_ok(ks, a, b, [a]) && R.nat_eq(1n, 1n)), {==},
+        and_i(W.slots_ok(ks, a, b, [a]), R.nat_eq(1n, 1n),
+          and_i((R.nat_eq(a, a) || (R.nat_eq(a, b) || W.is_free_kind(W.kind_at(ks, a)))), W.slots_ok(ks, a, b, Nil{}),
+            or_l(R.nat_eq(a, a), (R.nat_eq(a, b) || W.is_free_kind(W.kind_at(ks, a))), neq_refl(a)), {==}), {==}))
+    case 2n++m:
+      +hen = has_sub(m, l, hen)
+      %Equal.sym(List<&2, Nat>, KP.allocs(m, FL.FL{s, fh, l}), take(m, l), allocs_take(m, FL.FL{s, fh, l}, hf, hen)) :
+        {(W.nodup_nat(Con{a, Con{b, _}}) && (W.slots_ok(ks, a, b, Con{a, Con{b, _}}) && R.nat_eq(List.length(&2, Nat, Con{a, Con{b, _}}), 2n+m))) == True{} : Bool}
+      ksok2(ks, a, b, m, s, fh, l, hf, hs, hab, hla, hlb, hen)
+
+def after_ok(n: Nat, +f: FL.FL, hf: {FL.ok(f) == True{} : Bool}) -> {FL.ok(KP.after(n, f)) == True{} : Bool}:
+  match n:
+    case 0n:
+      hf
+    case 1n+m:
+      after_ok(m, FL.alloc(f), fl_alloc(f, hf))
+
+def in_use_ne(s: List<&2, FL.Slot>, i: Nat, +v: FL.Slot, j: Nat, h: {FL.same(i, j) == False{} : Bool}) -> {FL.in_use(FL.set(s, i, v), j) == FL.in_use(s, j) : Bool}:
+  match s i j:
+    case Nil{} _ _:
+      {==}
+    case Con{c, t} 0n 0n:
+      tf(h, {FL.in_use(FL.set(Con{c, t}, 0n, v), 0n) == FL.in_use(Con{c, t}, 0n) : Bool})
+    case Con{c, t} 0n 1n+k:
+      {==}
+    case Con{c, t} 1n+m 0n:
+      {==}
+    case Con{c, t} 1n+m 1n+k:
+      in_use_ne(t, m, v, k, h)
+
+# the free list after the kernel's placement is exact
+def kfok(+a: Nat, +b: Nat, k: Nat, +s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +ks: List<&2, R.NodeKind>, +hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool},
+  +hs: {KP.in_step(s, ks) == True{} : Bool}, hab: {R.nat_eq(a, b) == False{} : Bool}, hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool},
+  hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}) -> {FL.ok(KP.kfree(a, b, k, FL.FL{s, fh, l})) == True{} : Bool}:
+  match k:
+    case 0n:
+      fl_free(FL.set(s, b, FL.Free{fh}), 1n+b, Con{b, l}, a,
+        Equal.trans(Bool, FL.in_use(FL.set(s, b, FL.Free{fh}), a), FL.in_use(s, a), True{},
+          in_use_ne(s, b, FL.Free{fh}, a, Equal.trans(Bool, FL.same(b, a), R.nat_eq(b, a), False{}, same_nat(b, a), Equal.trans(Bool, R.nat_eq(b, a), R.nat_eq(a, b), False{}, neq_comm(b, a), hab))),
+          live_use(s, ks, a, hs, hla)),
+        fl_free(s, fh, l, b, live_use(s, ks, b, hs, hlb), hf))
+    case 1n:
+      fl_free(s, fh, l, b, live_use(s, ks, b, hs, hlb), hf)
+    case 2n+m:
+      after_ok(m, FL.FL{s, fh, l}, hf)
+
+
+def Laws.kernel_slots_ok(s, fh, l, ks, a, b, k, hf, hs, hab, hla, hlb, hen):
+  ksok(ks, a, b, k, s, fh, l, hf, hs, hab, hla, hlb, hen)
+
+def Laws.kernel_free_ok(s, fh, l, ks, a, b, k, hf, hs, hab, hla, hlb):
+  kfok(a, b, k, s, fh, l, ks, hf, hs, hab, hla, hlb)
+
+def Laws.kernel_rewrite_wired(ks, a, b, es, c, xs, ls, p, ls2, s, fh, l, hw, hc, hr, hf, hs, hab, hla, hlb, hen):
+  +ko = ksok(ks, a, b, List.length(&2, R.Spec, xs), s, fh, l, hf, hs, hab, hla, hlb, hen)
+  Laws.rewrite_placed_wired(ks, a, b, es, c, xs, ls, p, ls2, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), hw, hc, hr,
+    and_l(W.nodup_nat(KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), (W.slots_ok(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})) && R.nat_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs))), ko),
+    and_l(W.slots_ok(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), R.nat_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs)), and_r(W.nodup_nat(KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), (W.slots_ok(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})) && R.nat_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs))), ko)),
+    neq_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs), and_r(W.slots_ok(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), R.nat_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs)), and_r(W.nodup_nat(KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), (W.slots_ok(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})) && R.nat_eq(List.length(&2, Nat, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), List.length(&2, R.Spec, xs))), ko))))
+
+# The two models stay in step
+# ---------------------------
+
+def pair_set(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, i: Nat, +v: FL.Slot, +k: R.NodeKind, hs: {KP.in_step(s, ks) == True{} : Bool},
+  +hp: {KP.same_b(FL.is_free(v), W.is_free_kind(k)) == True{} : Bool}) -> {KP.in_step(FL.set(s, i, v), W.set(ks, i, k)) == True{} : Bool}:
+  match s ks i:
+    case Nil{} Nil{} _:
+      {==}
+    case Nil{} Con{k0, u} _:
+      ft(hs, {KP.in_step(FL.set(Nil{}, i, v), W.set(Con{k0, u}, i, k)) == True{} : Bool})
+    case Con{x, t} Nil{} _:
+      ft(hs, {KP.in_step(FL.set(Con{x, t}, i, v), W.set(Nil{}, i, k)) == True{} : Bool})
+    case Con{+x, +t} Con{+k0, +u} 0n:
+      and_i(KP.same_b(FL.is_free(v), W.is_free_kind(k)), KP.in_step(t, u), hp, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs))
+    case Con{+x, +t} Con{+k0, +u} 1n++q:
+      +hs = hs
+      and_i(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(FL.set(t, q, v), W.set(u, q, k)), and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs),
+        pair_set(t, u, q, v, k, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs), hp))
+
+def pair_ext(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, i: Nat, +v: FL.Slot, +k: R.NodeKind, hs: {KP.in_step(s, ks) == True{} : Bool},
+  +hp: {KP.same_b(FL.is_free(v), W.is_free_kind(k)) == True{} : Bool}, hi: {W.below(i, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) ->
+  {KP.in_step(FL.set(s, i, v), W.set_ext(i, ks, k)) == True{} : Bool}:
+  match s ks i:
+    case Nil{} Nil{} _:
+      ft(hi, {KP.in_step(FL.set(Nil{}, i, v), W.set_ext(i, Nil{}, k)) == True{} : Bool})
+    case Nil{} Con{k0, u} _:
+      ft(hs, {KP.in_step(FL.set(Nil{}, i, v), W.set_ext(i, Con{k0, u}, k)) == True{} : Bool})
+    case Con{x, t} Nil{} _:
+      ft(hs, {KP.in_step(FL.set(Con{x, t}, i, v), W.set_ext(i, Nil{}, k)) == True{} : Bool})
+    case Con{+x, +t} Con{+k0, +u} 0n:
+      and_i(KP.same_b(FL.is_free(v), W.is_free_kind(k)), KP.in_step(t, u), hp, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs))
+    case Con{+x, +t} Con{+k0, +u} 1n++q:
+      +hs = hs
+      and_i(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(FL.set(t, q, v), W.set_ext(q, u, k)), and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs),
+        pair_ext(t, u, q, v, k, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs), hp, hi))
+
+# a kind set where the free list already agrees
+def kinds_ext(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, i: Nat, +k: R.NodeKind, hs: {KP.in_step(s, ks) == True{} : Bool},
+  hp: {KP.same_b(FL.is_free(FL.get(s, i)), W.is_free_kind(k)) == True{} : Bool}, hi: {W.below(i, List.length(&2, R.NodeKind, ks)) == True{} : Bool}) ->
+  {KP.in_step(s, W.set_ext(i, ks, k)) == True{} : Bool}:
+  match s ks i:
+    case Nil{} Nil{} _:
+      ft(hi, {KP.in_step(Nil{}, W.set_ext(i, Nil{}, k)) == True{} : Bool})
+    case Nil{} Con{k0, u} _:
+      ft(hs, {KP.in_step(Nil{}, W.set_ext(i, Con{k0, u}, k)) == True{} : Bool})
+    case Con{x, t} Nil{} _:
+      ft(hs, {KP.in_step(Con{x, t}, W.set_ext(i, Nil{}, k)) == True{} : Bool})
+    case Con{+x, +t} Con{+k0, +u} 0n:
+      and_i(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hp, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs))
+    case Con{+x, +t} Con{+k0, +u} 1n++q:
+      +hs = hs
+      and_i(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, W.set_ext(q, u, k)), and_l(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs),
+        kinds_ext(t, u, q, k, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k0)), KP.in_step(t, u), hs), hp, hi))
+
+# setting a slot free, then placing over it, is placing
+def ext_over(i: Nat, K: List<&2, R.NodeKind>, +k: R.NodeKind) -> {W.set_ext(i, W.set(K, i, R.KFree{}), k) == W.set_ext(i, K, k) : List<&2, R.NodeKind>}:
+  match i K:
+    case 0n Nil{}:
+      {==}
+    case 0n Con{x, t}:
+      {==}
+    case 1n+m Nil{}:
+      {==}
+    case 1n+m Con{+x, +t}:
+      %ext_over(m, t, k) : {Con{x, W.set_ext(m, W.set(t, m, R.KFree{}), k)} == Con{x, _} : List<&2, R.NodeKind>}
+      {==}
+
+# freeing one slot and placing at another commute
+def ext_free(i: Nat, K: List<&2, R.NodeKind>, +k: R.NodeKind, j: Nat, h: {R.nat_eq(i, j) == False{} : Bool}) ->
+  {W.set_ext(i, W.set(K, j, R.KFree{}), k) == W.set(W.set_ext(i, K, k), j, R.KFree{}) : List<&2, R.NodeKind>}:
+  match i K j:
+    case 0n Nil{} 0n:
+      tf(h, {W.set_ext(0n, W.set(Nil{}, 0n, R.KFree{}), k) == W.set(W.set_ext(0n, Nil{}, k), 0n, R.KFree{}) : List<&2, R.NodeKind>})
+    case 0n Nil{} 1n+q:
+      {==}
+    case 0n Con{x, t} 0n:
+      tf(h, {W.set_ext(0n, W.set(Con{x, t}, 0n, R.KFree{}), k) == W.set(W.set_ext(0n, Con{x, t}, k), 0n, R.KFree{}) : List<&2, R.NodeKind>})
+    case 0n Con{x, t} 1n+q:
+      {==}
+    case 1n+m Nil{} 0n:
+      {==}
+    case 1n+m Nil{} 1n+q:
+      %ext_free(m, Nil{}, k, q, h) : {Con{R.KFree{}, W.set_ext(m, Nil{}, k)} == Con{R.KFree{}, _} : List<&2, R.NodeKind>}
+      {==}
+    case 1n+m Con{x, t} 0n:
+      {==}
+    case 1n+m Con{+x, +t} 1n+q:
+      %ext_free(m, t, k, q, h) : {Con{x, W.set_ext(m, W.set(t, q, R.KFree{}), k)} == Con{x, _} : List<&2, R.NodeKind>}
+      {==}
+
+def free_comm(K: List<&2, R.NodeKind>, i: Nat, j: Nat, h: {R.nat_eq(i, j) == False{} : Bool}) ->
+  {W.set(W.set(K, i, R.KFree{}), j, R.KFree{}) == W.set(W.set(K, j, R.KFree{}), i, R.KFree{}) : List<&2, R.NodeKind>}:
+  match K i j:
+    case Nil{} _ _:
+      {==}
+    case Con{x, t} 0n 0n:
+      tf(h, {W.set(W.set(Con{x, t}, 0n, R.KFree{}), 0n, R.KFree{}) == W.set(W.set(Con{x, t}, 0n, R.KFree{}), 0n, R.KFree{}) : List<&2, R.NodeKind>})
+    case Con{x, t} 0n 1n+q:
+      {==}
+    case Con{x, t} 1n+m 0n:
+      {==}
+    case Con{+x, +t} 1n+m 1n+q:
+      %free_comm(t, m, q, h) : {Con{x, W.set(W.set(t, m, R.KFree{}), q, R.KFree{})} == Con{x, _} : List<&2, R.NodeKind>}
+      {==}
+
+
+def sa.go(c: FL.Slot, +s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, he: {FL.get(s, j) == c : FL.Slot}, hf: {FL.is_free(FL.get(s, j)) == True{} : Bool}) ->
+  {KP.slots_of(FL.alloc.go(c, s, j, Con{j, t})) == FL.set(s, j, FL.Used{}) : List<&2, FL.Slot>}:
+  match c:
+    case FL.Used{}:
+      Empty.absurd({KP.slots_of(FL.alloc.go(FL.Used{}, s, j, Con{j, t})) == FL.set(s, j, FL.Used{}) : List<&2, FL.Slot>}, MNat.internal_false_ne_true(
+        Equal.trans(Bool, False{}, FL.is_free(FL.get(s, j)), True{}, Equal.cong(FL.Slot, Bool, FL.is_free, FL.Used{}, FL.get(s, j), Equal.sym(FL.Slot, FL.get(s, j), FL.Used{}, he)), hf)))
+    case FL.Free{n}:
+      {==}
+
+# allocating sets the head's slot in use
+def slots_alloc(+s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, hok: {FL.ok(FL.FL{s, 1n+j, Con{j, t}}) == True{} : Bool}) ->
+  {KP.slots_of(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})) == FL.set(s, j, FL.Used{}) : List<&2, FL.Slot>}:
+  sa.go(FL.get(s, j), s, j, t, {==}, fl_head(s, j, Con{j, t}, hok))
+
+def step_len(s: List<&2, FL.Slot>, ks: List<&2, R.NodeKind>, hs: {KP.in_step(s, ks) == True{} : Bool}) -> {List.length(&2, FL.Slot, s) == List.length(&2, R.NodeKind, ks) : Nat}:
+  match s ks:
+    case Nil{} Nil{}:
+      {==}
+    case Nil{} Con{k, u}:
+      ft(hs, {List.length(&2, FL.Slot, Nil{}) == List.length(&2, R.NodeKind, Con{k, u}) : Nat})
+    case Con{x, t} Nil{}:
+      ft(hs, {List.length(&2, FL.Slot, Con{x, t}) == List.length(&2, R.NodeKind, Nil{}) : Nat})
+    case Con{+x, +t} Con{+k, +u}:
+      %step_len(t, u, and_r(KP.same_b(FL.is_free(x), W.is_free_kind(k)), KP.in_step(t, u), hs)) : {1n+List.length(&2, FL.Slot, t) == 1n+_ : Nat}
+      {==}
+
+def free_rng(s: List<&2, FL.Slot>, i: Nat, h: {FL.is_free(FL.get(s, i)) == True{} : Bool}) -> {W.below(i, List.length(&2, FL.Slot, s)) == True{} : Bool}:
+  match s i:
+    case Nil{} _:
+      ft(h, {W.below(i, 0n) == True{} : Bool})
+    case Con{x, t} 0n:
+      {==}
+    case Con{x, t} 1n+q:
+      free_rng(t, q, h)
+
+def lr.go(cc: Bool, +ks: List<&2, R.NodeKind>, +i: Nat, he: {W.below(i, List.length(&2, R.NodeKind, ks)) == cc : Bool}, hk: {W.is_free_kind(W.kind_at(ks, i)) == False{} : Bool}) -> {cc == True{} : Bool}:
+  match cc:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, ne_tf(Equal.trans(Bool, True{}, W.is_free_kind(W.kind_at(ks, i)), False{},
+        Equal.sym(Bool, W.is_free_kind(W.kind_at(ks, i)), True{}, Equal.cong(R.NodeKind, Bool, W.is_free_kind, W.kind_at(ks, i), R.KFree{}, ka_past(ks, i, he))), hk)))
+
+# a live node is within the kinds
+def live_rng(+ks: List<&2, R.NodeKind>, +i: Nat, hk: {W.is_free_kind(W.kind_at(ks, i)) == False{} : Bool}) -> {W.below(i, List.length(&2, R.NodeKind, ks)) == True{} : Bool}:
+  lr.go(W.below(i, List.length(&2, R.NodeKind, ks)), ks, i, {==}, hk)
+
+def rng_step(+s: List<&2, FL.Slot>, +ks: List<&2, R.NodeKind>, +i: Nat, hs: {KP.in_step(s, ks) == True{} : Bool}, h: {W.below(i, List.length(&2, FL.Slot, s)) == True{} : Bool}) ->
+  {W.below(i, List.length(&2, R.NodeKind, ks)) == True{} : Bool}:
+  %step_len(s, ks, hs) : {W.below(i, _) == True{} : Bool}
+  h
+
+def sbff(x: Bool, y: Bool, hx: {x == False{} : Bool}, hy: {y == False{} : Bool}) -> {KP.same_b(x, y) == True{} : Bool}:
+  match x y:
+    case False{} False{}:
+      {==}
+    case True{} _:
+      tf(hx, {KP.same_b(True{}, y) == True{} : Bool})
+    case _ True{}:
+      tf(hy, {KP.same_b(x, True{}) == True{} : Bool})
+
+def len_ext(i: Nat, K: List<&2, R.NodeKind>, +k: R.NodeKind, hi: {W.below(i, List.length(&2, R.NodeKind, K)) == True{} : Bool}) ->
+  {List.length(&2, R.NodeKind, W.set_ext(i, K, k)) == List.length(&2, R.NodeKind, K) : Nat}:
+  match i K:
+    case _ Nil{}:
+      ft(hi, {List.length(&2, R.NodeKind, W.set_ext(i, Nil{}, k)) == 0n : Nat})
+    case 0n Con{x, t}:
+      {==}
+    case 1n+m Con{x, t}:
+      %len_ext(m, t, k, hi) : {1n+List.length(&2, R.NodeKind, W.set_ext(m, t, k)) == 1n+_ : Nat}
+      {==}
+
+# the first allocation's slot set in use, its kind placed
+def ia.s(+s: List<&2, FL.Slot>, +j: Nat, +t: List<&2, Nat>, +K: List<&2, R.NodeKind>, +k: R.NodeKind, +hf2: {FL.ok(FL.FL{s, 1n+j, Con{j, t}}) == True{} : Bool},
+  +hs: {KP.in_step(s, K) == True{} : Bool}, hk: {Bool.not(W.is_free_kind(k)) == True{} : Bool}) ->
+  {KP.in_step(KP.slots_of(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), W.set_ext(j, K, k)) == True{} : Bool}:
+  %Equal.sym(List<&2, FL.Slot>, KP.slots_of(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), FL.set(s, j, FL.Used{}), slots_alloc(s, j, t, hf2)) : {KP.in_step(_, W.set_ext(j, K, k)) == True{} : Bool}
+  pair_ext(s, K, j, FL.Used{}, k, hs, sbff(False{}, W.is_free_kind(k), {==}, not_true(W.is_free_kind(k), hk)),
+    rng_step(s, K, j, hs, free_rng(s, j, fl_head(s, j, Con{j, t}, hf2))))
+
+def ia.k(+s: List<&2, FL.Slot>, +fh: Nat, +j: Nat, +t: List<&2, Nat>, +m: Nat, +K: List<&2, R.NodeKind>, +k: R.NodeKind, +kt: List<&2, R.NodeKind>,
+  +eq: {fh == 1n+j : Nat}, hf: {FL.ok(FL.FL{s, fh, Con{j, t}}) == True{} : Bool}, hs: {KP.in_step(s, K) == True{} : Bool},
+  hh: {KP.has(m, t) == True{} : Bool}, hk: {Bool.not(W.is_free_kind(k)) == True{} : Bool},
+  ih: {FL.ok(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})) == True{} : Bool} -> {KP.in_step(KP.slots_of(FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), W.set_ext(j, K, k)) == True{} : Bool} ->
+    {KP.has(m, KP.ghost(FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))) == True{} : Bool} ->
+    {KP.in_step(KP.slots_of(KP.after(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}}))), W.place(KP.allocs(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}})), W.set_ext(j, K, k), kt)) == True{} : Bool}) ->
+  {KP.in_step(KP.slots_of(KP.after(m, FL.alloc(FL.FL{s, fh, Con{j, t}}))), W.place(KP.allocs(1n+m, FL.FL{s, fh, Con{j, t}}), K, Con{k, kt})) == True{} : Bool}:
+  +hf2 = ok_tr(s, fh, j, Con{j, t}, eq, hf)
+  %Equal.sym(Nat, fh, 1n+j, eq) : {KP.in_step(KP.slots_of(KP.after(m, FL.alloc(FL.FL{s, _, Con{j, t}}))), W.place(KP.allocs(1n+m, FL.FL{s, _, Con{j, t}}), K, Con{k, kt})) == True{} : Bool}
+  ih(fl_alloc(FL.FL{s, 1n+j, Con{j, t}}, hf2),
+    ia.s(s, j, t, K, k, hf2, hs, hk),
+    has_tr(m, s, j, t, hf2, hh))
+
+
+def zne(+m: Nat, e: {0n == 1n+m : Nat}) -> Empty:
+  MNat.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, Equal.cong(Nat, Bool, (n => Nat.is_eq(n, 0n)), 0n, 1n+m, e)))
+
+def pre(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+k:
+      k
+
+def succ_inj(+a: Nat, +b: Nat, e: {1n+a == 1n+b : Nat}) -> {a == b : Nat}:
+  Equal.cong(Nat, Nat, pre, 1n+a, 1n+b, e)
+
+# n allocations, each slot set in use as place gives it its live kind
+def in_step_allocs(n: Nat, f: FL.FL, +K: List<&2, R.NodeKind>, kt: List<&2, R.NodeKind>, hf: {FL.ok(f) == True{} : Bool},
+  hs: {KP.in_step(KP.slots_of(f), K) == True{} : Bool}, hh: {KP.has(n, KP.ghost(f)) == True{} : Bool}, hk: {KP.kinds_live(kt) == True{} : Bool},
+  hl: {List.length(&2, R.NodeKind, kt) == n : Nat}) -> {KP.in_step(KP.slots_of(KP.after(n, f)), W.place(KP.allocs(n, f), K, kt)) == True{} : Bool}:
+  match n f:
+    case 0n _:
+      hs
+    case 1n++m FL.FL{+s, +fh, l}:
+      match l:
+        case Nil{}:
+          ft(hh, {KP.in_step(KP.slots_of(KP.after(1n+m, FL.FL{s, fh, Nil{}})), W.place(KP.allocs(1n+m, FL.FL{s, fh, Nil{}}), K, kt)) == True{} : Bool})
+        case Con{+j, +t}:
+          match kt:
+            case Nil{}:
+              Empty.absurd({KP.in_step(KP.slots_of(KP.after(1n+m, FL.FL{s, fh, Con{j, t}})), W.place(KP.allocs(1n+m, FL.FL{s, fh, Con{j, t}}), K, Nil{})) == True{} : Bool}, zne(m, hl))
+            case Con{+k, +kt2}:
+              +hf = hf
+              +hk = hk
+              ia.k(s, fh, j, t, m, K, k, kt2,
+                same_eq(fh, 1n+j, and_l(FL.same(fh, 1n+j), (FL.is_free(FL.get(s, j)) && FL.walks(t, s, FL.next_of(FL.get(s, j)))), ok_w(s, fh, Con{j, t}, hf))),
+                hf, hs, hh, and_l(Bool.not(W.is_free_kind(k)), KP.kinds_live(kt2), hk),
+                h1 => h2 => h3 => in_step_allocs(m, FL.alloc(FL.FL{s, 1n+j, Con{j, t}}), W.set_ext(j, K, k), kt2, h1, h2, h3,
+                  and_r(Bool.not(W.is_free_kind(k)), KP.kinds_live(kt2), hk), succ_inj(List.length(&2, R.NodeKind, kt2), m, hl)))
+
+# the pair's node a in use, its new kind live: the two agree there
+def hp_live(+s: List<&2, FL.Slot>, +ks: List<&2, R.NodeKind>, +i: Nat, +k: R.NodeKind, hs: {KP.in_step(s, ks) == True{} : Bool}, hl: {W.is_free_kind(W.kind_at(ks, i)) == False{} : Bool},
+  hk: {Bool.not(W.is_free_kind(k)) == True{} : Bool}) -> {KP.same_b(FL.is_free(FL.get(s, i)), W.is_free_kind(k)) == True{} : Bool}:
+  sbff(FL.is_free(FL.get(s, i)), W.is_free_kind(k), in_use_not_free(s, i, live_use(s, ks, i, hs, hl)), not_true(W.is_free_kind(k), hk))
+
+def rng_ext(+i: Nat, +K: List<&2, R.NodeKind>, +k: R.NodeKind, +j: Nat, hi: {W.below(i, List.length(&2, R.NodeKind, K)) == True{} : Bool},
+  hj: {W.below(j, List.length(&2, R.NodeKind, K)) == True{} : Bool}) -> {W.below(j, List.length(&2, R.NodeKind, W.set_ext(i, K, k))) == True{} : Bool}:
+  %Equal.sym(Nat, List.length(&2, R.NodeKind, W.set_ext(i, K, k)), List.length(&2, R.NodeKind, K), len_ext(i, K, k, hi)) : {W.below(j, _) == True{} : Bool}
+  hj
+
+# after the kernel's placement, the free list and the kinds still agree
+def kis(+s: List<&2, FL.Slot>, +fh: Nat, +l: List<&2, Nat>, +ks: List<&2, R.NodeKind>, +a: Nat, +b: Nat, xs: List<&2, R.Spec>,
+  +hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}, +hs: {KP.in_step(s, ks) == True{} : Bool}, +hab: {R.nat_eq(a, b) == False{} : Bool},
+  +hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}, +hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool},
+  hen: {KP.has(Nat.sub(List.length(&2, R.Spec, xs), 2n), l) == True{} : Bool}, hkl: {KP.kinds_live(W.kinds(xs)) == True{} : Bool}) ->
+  {KP.in_step(KP.slots_of(KP.kfree(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), W.rp_kinds(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), xs)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      %Equal.sym(List<&2, R.NodeKind>, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), W.set(W.set(ks, b, R.KFree{}), a, R.KFree{}), free_comm(ks, a, b, hab)) :
+        {KP.in_step(FL.set(FL.set(s, b, FL.Free{fh}), a, FL.Free{1n+b}), _) == True{} : Bool}
+      pair_set(FL.set(s, b, FL.Free{fh}), W.set(ks, b, R.KFree{}), a, FL.Free{1n+b}, R.KFree{}, pair_set(s, ks, b, FL.Free{fh}, R.KFree{}, hs, {==}), {==})
+    case Con{R.Spec{+k0, +src0}, Nil{}}:
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(a, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), k0), W.set(W.set_ext(a, W.set(ks, a, R.KFree{}), k0), b, R.KFree{}),
+        ext_free(a, W.set(ks, a, R.KFree{}), k0, b, hab)) : {KP.in_step(FL.set(s, b, FL.Free{fh}), _) == True{} : Bool}
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(a, W.set(ks, a, R.KFree{}), k0), W.set_ext(a, ks, k0), ext_over(a, ks, k0)) :
+        {KP.in_step(FL.set(s, b, FL.Free{fh}), W.set(_, b, R.KFree{})) == True{} : Bool}
+      pair_set(s, W.set_ext(a, ks, k0), b, FL.Free{fh}, R.KFree{},
+        kinds_ext(s, ks, a, k0, hs, hp_live(s, ks, a, k0, hs, hla, and_l(Bool.not(W.is_free_kind(k0)), KP.kinds_live(Nil{}), hkl)), live_rng(ks, a, hla)), {==})
+    case Con{R.Spec{+k0, +src0}, Con{R.Spec{+k1, +src1}, +xt}}:
+      +hkl = hkl
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(a, W.set(W.set(ks, a, R.KFree{}), b, R.KFree{}), k0), W.set(W.set_ext(a, W.set(ks, a, R.KFree{}), k0), b, R.KFree{}),
+        ext_free(a, W.set(ks, a, R.KFree{}), k0, b, hab)) :
+        {KP.in_step(KP.slots_of(KP.after(List.length(&2, R.Spec, xt), FL.FL{s, fh, l})), W.place(KP.allocs(List.length(&2, R.Spec, xt), FL.FL{s, fh, l}), W.set_ext(b, _, k1), W.kinds(xt))) == True{} : Bool}
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(a, W.set(ks, a, R.KFree{}), k0), W.set_ext(a, ks, k0), ext_over(a, ks, k0)) :
+        {KP.in_step(KP.slots_of(KP.after(List.length(&2, R.Spec, xt), FL.FL{s, fh, l})), W.place(KP.allocs(List.length(&2, R.Spec, xt), FL.FL{s, fh, l}), W.set_ext(b, W.set(_, b, R.KFree{}), k1), W.kinds(xt))) == True{} : Bool}
+      %Equal.sym(List<&2, R.NodeKind>, W.set_ext(b, W.set(W.set_ext(a, ks, k0), b, R.KFree{}), k1), W.set_ext(b, W.set_ext(a, ks, k0), k1), ext_over(b, W.set_ext(a, ks, k0), k1)) :
+        {KP.in_step(KP.slots_of(KP.after(List.length(&2, R.Spec, xt), FL.FL{s, fh, l})), W.place(KP.allocs(List.length(&2, R.Spec, xt), FL.FL{s, fh, l}), _, W.kinds(xt))) == True{} : Bool}
+      in_step_allocs(List.length(&2, R.Spec, xt), FL.FL{s, fh, l}, W.set_ext(b, W.set_ext(a, ks, k0), k1), W.kinds(xt), hf,
+        kinds_ext(s, W.set_ext(a, ks, k0), b, k1,
+          kinds_ext(s, ks, a, k0, hs, hp_live(s, ks, a, k0, hs, hla, and_l(Bool.not(W.is_free_kind(k0)), KP.kinds_live(Con{k1, W.kinds(xt)}), hkl)), live_rng(ks, a, hla)),
+          hp_live(s, ks, b, k1, hs, hlb, and_l(Bool.not(W.is_free_kind(k1)), KP.kinds_live(W.kinds(xt)), and_r(Bool.not(W.is_free_kind(k0)), KP.kinds_live(Con{k1, W.kinds(xt)}), hkl))),
+          rng_ext(a, ks, k0, b, live_rng(ks, a, hla), live_rng(ks, b, hlb))),
+        has_sub(List.length(&2, R.Spec, xt), l, hen),
+        and_r(Bool.not(W.is_free_kind(k1)), KP.kinds_live(W.kinds(xt)), and_r(Bool.not(W.is_free_kind(k0)), KP.kinds_live(Con{k1, W.kinds(xt)}), hkl)),
+        len_kinds(xt))
+
+def Laws.kernel_in_step(s, fh, l, ks, a, b, xs, hf, hs, hab, hla, hlb, hen, hkl):
+  kis(s, fh, l, ks, a, b, xs, hf, hs, hab, hla, hlb, hen, hkl)

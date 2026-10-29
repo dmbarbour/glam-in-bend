@@ -9,6 +9,7 @@ import ./ctl.bend as CT
 import ./kprim.bend as P
 import ./freelist.bend as FL
 import ./wiring.bend as W
+import ./kplace.bend as KP
 import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
@@ -339,4 +340,92 @@ law rewrite_placed_wired:
   for hok: {W.slots_ok(ks, a, b, ss) == True{} : Bool}
   for hlen: {List.length(&2, Nat, ss) == List.length(&2, R.Spec, xs) : Nat}
   {W.wired(W.rp_kinds(ks, a, b, ss, xs), W.ends(W.rp_links(es, c, ss, ls2))) == True{} : Bool}
+
+# LAW: the kernel's placement (kplace.bend: the pair's two slots, then the
+# free list's heads) meets rewrite_placed_wired's conditions, its slots
+# distinct, each the pair's own or free, one for each new node, when the
+# free list is exact, agrees with the kinds on which slots are free
+# (KP.in_step) and holds enough, and the pair's nodes are distinct and
+# live.
+# Record: net-nodes-double
+law kernel_slots_ok:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  for hen: {KP.has(Nat.sub(k, 2n), l) == True{} : Bool}
+  {KP.kslots_ok(ks, a, b, k, FL.FL{s, fh, l}) == True{} : Bool}
+
+# LAW: and leaves the free list exact: the slots it takes off the list,
+# or the pair's slots it frees.
+# Record: net-nodes-double
+law kernel_free_ok:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +k: Nat
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  {FL.ok(KP.kfree(a, b, k, FL.FL{s, fh, l})) == True{} : Bool}
+
+# LAW: so a rewrite with the kernel's placement keeps a wired net wired.
+# Record: net-nodes-double
+law kernel_rewrite_wired:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +xs: List<&2, R.Spec>
+  for +ls: List<&2, R.Link>
+  for +p: R.Pat
+  for +ls2: List<&2, R.Link>
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
+  for hc: {R.contract(p, ls) == Some{ls2} : Maybe<&2, List<&2, R.Link>>}
+  for hr: {R.exact_in(W.kind_at(ks, a), W.kind_at(ks, b), p, R.RWire{xs, ls}) == True{} : Bool}
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  for hen: {KP.has(Nat.sub(List.length(&2, R.Spec, xs), 2n), l) == True{} : Bool}
+  {W.wired(W.rp_kinds(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), xs), W.ends(W.rp_links(es, c, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), ls2))) == True{} : Bool}
+
+# LAW: and after it the free list and the kinds still agree, every new
+# node's kind live: an exact free list, kinds in step with it and a wired
+# net carry from one rewrite to the next.
+# Record: net-nodes-double
+law kernel_in_step:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +xs: List<&2, R.Spec>
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  for hen: {KP.has(Nat.sub(List.length(&2, R.Spec, xs), 2n), l) == True{} : Bool}
+  for hkl: {KP.kinds_live(W.kinds(xs)) == True{} : Bool}
+  {KP.in_step(KP.slots_of(KP.kfree(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l})), W.rp_kinds(ks, a, b, KP.kslots(a, b, List.length(&2, R.Spec, xs), FL.FL{s, fh, l}), xs)) == True{} : Bool}
 
