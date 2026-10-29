@@ -48,11 +48,35 @@ of 2026-10-26, Bend 2.0.39.
   constant, ran no faster than interpreting the table (`spike-node-layout`
   in `docs/plans/EvalSpike_2026-10-26.md`; variant B of
   `spike/tools/rewrites/`); rewrites written by hand ran 1.6 times faster.
+  A plain constant does fold: a `Bool` from another file guarding a check
+  costs nothing when false (`bench/bend/const_flag/`), clang inlining
+  through it, so a generated file reporting a build's mode can switch
+  audits off; whether it still folds deep in the kernel, where clang's
+  inlining is less certain, wants checking where it is used.
 - **Workaround:** a generator, itself a Bend program reading the table,
   writes the rewrites out; the gate regenerates them and fails on any
   difference, and the test corpora run through both the table and the
   generated code (planned in `spike-node-layout`).
 - **Revisit:** at whole-system tuning.
+
+### Reasoning about U32 in proofs
+
+- **Need:** the kernel's invariants live in `U32` words (the free list,
+  capacities, offsets, the stack's bound, the data table's links).
+  Proved as laws, they would replace run-time audits and checks; the
+  maintainer judges many could go (2026-10-29).
+- **Upstream:** none known; a suggestion to raise later.
+- **Evidence:** `U32` is defined over `Word` bits, so its operations do not
+  reduce on symbolic values: a `case _` after `U32` literal cases leaves
+  the value symbolic, and a function matching on it never reduces in a
+  proof. The laws so far are over constructors (`spike/rules.bend`) or a
+  model in `Nat` (`spike/ctl.bend` for control runs), never the kernel's
+  own state; that state is audited at run time instead (the data table,
+  the free list, `KN.free_ok`).
+- **Workaround:** small counts encoded as constructors; `U32` tests routed
+  through a `Bool` helper whose lemma is proved over the `Bool`; models in
+  `Nat` with laws, the kernel tested against them; audits in tests.
+- **Revisit:** before the kernel leaves the spike.
 
 ### Run-time code generation
 
