@@ -655,6 +655,29 @@ takes from it:
          run out of fuel. Not done: finding a circle once for later
          demands, which a cell holding the failure would do
          (`heap-cells`).
+     - `heap-strategies.demand.fold` — built 2026-10-29 — the walk's
+       steps made fewer and its state narrower (the maintainer,
+       2026-10-29). Profiled at k 18 on `succ`, the walk's own functions
+       were about a third of demand's instructions, and it took 2.0 steps
+       per interaction, each a round through demand's loop returning the
+       whole state: Bend cannot branch on a computed value within one
+       function, nor a helper call back into the loop, so a step is that
+       round. A push and what follows it are now one step: where the last
+       node faces an auxiliary port and the array has room, it is pushed
+       and the next node's link read before the step looks at what it
+       faces, in one place, so that the rewrite's chain keeps its one
+       caller (looking in two places split it into a function of its own
+       and lost most of the gain): 1.5 steps per interaction. And the
+       state is seven words, not nine: the handle a need waits on and the
+       data node holding it, rare, are kept in the path array's words 1
+       and 2 (`KS.need`), the nodes from word 3. Against ffb4eee, four
+       builds at k 18 (store runs 63, 64): demand 4.9% to 6.6% fewer
+       instructions, the same interactions; the full reduction the same
+       within 300 instructions. Left: the array fill, 28% of demand on
+       `succ` against 27% of the full reduction, demand's share the path,
+       which there grows to about the node store's size (Bend #1890,
+       `docs/BendIssues.md`); and long descents, most of the half step
+       left, two pushes a step.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

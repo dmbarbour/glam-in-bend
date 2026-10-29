@@ -125,6 +125,10 @@ def val_at(vs: List<&2, V.Val>, +k: U32) -> V.Val:
         case _:
           val_at(t, (k - 1 : U32))
 
+def force.met(r: KS.D & U32, +vals: List<&2, V.Val>) -> KS.D:
+  (d, +lz) = r
+  KS.resume(d, val_at(vals, lz))
+
 # demand, each need met from vals, at most k times
 def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
   match k:
@@ -132,12 +136,12 @@ def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
       d
     case 1n+p:
       match d:
-        case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+        case KS.D{h, path, +top, +depth, +n, +st}:
           match st:
             case 2:
-              force(p, fuel, vals, KS.demand(fuel, KS.resume(KS.D{h, path, top, depth, n, st, lz, at}, val_at(vals, lz))))
+              force(p, fuel, vals, KS.demand(fuel, force.met(KS.need(KS.D{h, path, top, depth, n, st}), vals)))
             case _:
-              KS.D{h, path, top, depth, n, st, lz, at}
+              KS.D{h, path, top, depth, n, st}
 
 # a demand's end: the result as reduce_h's, its state, the handle needed,
 # the nodes left, how many nodes the net grew to hold, how many of those
@@ -163,19 +167,27 @@ def dres.au(au: KN.Au, +st: U32, +lz: U32) -> DRes:
 def dres.h(h: P.H, +st: U32, +lz: U32) -> DRes:
   dres.au(live_nodes.st(P.stats(h)), st, lz)
 
-def dres(d: KS.D) -> DRes:
+def dres.l(r: KS.D & U32) -> DRes:
+  (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+    case KS.D{h, path, +top, +depth, +n, +st}:
       dres.h(P.count(h, n), st, lz)
+
+def dres(d: KS.D) -> DRes:
+  dres.l(KS.need(d))
 
 def dres.sw(r: P.H & U32, +st: U32, +lz: U32) -> DRes:
   (h, +f) = r
   dres.h(h, st, lz)
 
-def dres.s(d: KS.D) -> DRes:
+def dres.sl(r: KS.D & U32) -> DRes:
+  (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+    case KS.D{h, path, +top, +depth, +n, +st}:
       dres.sw(KN.sweep(P.count(h, n)), st, lz)
+
+def dres.s(d: KS.D) -> DRes:
+  dres.sl(KS.need(d))
 
 # run_d, then every node the interface does not reach freed (KN.sweep)
 def run_ds(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
@@ -240,10 +252,14 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
 
 # a demand's end as reduce reports a full reduction: its state, the value
 # and the counts, without the audits and the walks the tests' results make
-def bench_d(d: KS.D) -> String:
+def bench_d.l(r: KS.D & U32) -> String:
+  (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st, +lz, +at}:
+    case KS.D{h, path, +top, +depth, +n, +st}:
       st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ KN.report(KN.result(P.count(h, n)))
+
+def bench_d(d: KS.D) -> String:
+  bench_d.l(KS.need(d))
 
 # reduce the workload fully (how 0), on demand (1), profiled (2) or with
 # two stacks (4), each measured without the audits
