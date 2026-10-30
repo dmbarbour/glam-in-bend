@@ -20,7 +20,8 @@ import itertools
 import sys
 
 AR = {"KFree": 0, "KFn": 3, "KAp": 3, "KCopy": 3, "KMerge": 3, "KData": 1, "KEraN": 1,
-      "KEraP": 1, "KRoot": 1, "KCall": 2, "KLift": 2, "KLiftC": 2}
+      "KEraP": 1, "KRoot": 1, "KCall": 2, "KLift": 2, "KLiftC": 2,
+      "KCopyL": 2, "KCopyR": 2, "KMergeL": 2, "KMergeR": 2}
 FANS = ["KFn", "KAp", "KCopy", "KMerge"]
 
 

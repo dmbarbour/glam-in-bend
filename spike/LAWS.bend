@@ -513,6 +513,26 @@ law grow_has:
   for +n: Nat
   {KP.has(n, KP.ghost(KP.grow(FL.FL{s, fh, l}, n))) == True{} : Bool}
 
+# LAW: a linear fan, a copy or merge one of whose sides an eraser met,
+# rewrites exactly where its full fan does: its rules are the full fan's
+# with an eraser where the dead side was, run among the new nodes
+# (rules.bend's Linear fans; heap-strategies.erasure.rules).
+# Record: net-nodes-double
+law rules_linear_rewrites:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {R.lin_rewrites(a, b, s) == True{} : Bool}
+
+# LAW: and where the full fan's rule makes nodes, the linear fan's makes
+# fewer: nothing is copied for the side erased.
+# Record: net-nodes-double
+law rules_linear_fewer:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +s: Bool
+  {R.lin_fewer(a, b, s) == True{} : Bool}
+
 # To do
 # =====
 #

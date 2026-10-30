@@ -37,6 +37,14 @@ def kcode(k: R.NodeKind) -> U32:
       10
     case R.KLiftC{}:
       11
+    case R.KCopyL{}:
+      12
+    case R.KCopyR{}:
+      13
+    case R.KMergeL{}:
+      14
+    case R.KMergeR{}:
+      15
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -62,6 +70,14 @@ def kof(c: U32) -> R.NodeKind:
       R.KLift{}
     case 11:
       R.KLiftC{}
+    case 12:
+      R.KCopyL{}
+    case 13:
+      R.KCopyR{}
+    case 14:
+      R.KMergeL{}
+    case 15:
+      R.KMergeR{}
     case _:
       R.KFree{}
 

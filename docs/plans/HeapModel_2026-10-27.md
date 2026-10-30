@@ -719,6 +719,94 @@ takes from it:
      levers left are the toolchain's: profile-guided builds run the full
      reduction 16% under the default build and demand 13% on `succ`, 14%
      and 11% on `lvl` (store run 66), and the fill.
+   - `heap-strategies.erasure` — active — deadness that travels (the
+     maintainer, 2026-10-30): erasers propagated as far as they can go,
+     at run time, so that nothing is copied into a branch already known
+     dead. An eraser at an auxiliary port forms no active pair, so the
+     links rules make are inspected, as control fusion inspects them,
+     and the node there changes its kind in place: a copy with one output
+     erased becomes a linear copy, two ports and the side it keeps; a
+     merge with one input an error value, a linear merge; a fan with
+     both erased, an eraser (a fan into two erasers is one); an
+     application, call or control whose output is erased, an eraser
+     facing what it took in. Changing kinds in place keeps every node a
+     strategy holds where it was, and frees only the erasers absorbed,
+     which are in no active pair, the invariant fusion keeps. A linear
+     fan still carries its identity, level or label, and its side: its
+     dual must still annihilate with it, the live side wired through and
+     the dead side's partner erased, so it cannot simply become a wire.
+     It goes only where its full fan would go, annihilating with a dual
+     or at a leaf: it selects its side at every fan of its identity it
+     meets, and no local test tells when it has met them all. Dropping a
+     dual pair together, the copy on a function's body and the merge on
+     its argument made by one commutation and dead on one side, looked
+     safe and is not: copy `\y. \x. y x` with fan A, apply the second
+     copy to `a2` and drop its result, and the inner body's copy and the
+     inner variable's merge learn together that side 2 is dead, while
+     `y`'s merge, of identity A too, still holds `a2` live; dropped, the
+     inner body's copy is not there to select side 1 at it, and the
+     body's `y` stays a superposition. What a linear fan saves is the
+     dead side's copies: meeting a function, it makes one function and
+     linear residuals, not two functions and full ones. Only a fan that
+     has never commuted, with no residuals anywhere, can become a wire
+     when a side is erased (`heap-strategies.erasure.aot`). In trees of
+     fans, liveness is kept fan by fan, a dead leaf making its parent
+     linear and a parent with both outputs dead an eraser, so a tree
+     duplicates into a subtree exactly where some leaf lives.
+     - `heap-strategies.erasure.rules` — built 2026-10-30 — linear fans
+       in the rule table (`spike/rules.bend`): four kinds, `KCopyL`,
+       `KCopyR`, `KMergeL`, `KMergeR`, two ports each, named for the side
+       kept (the kernel's codes 12 to 15, its four bits full). Their
+       rules are derived from the full fan's (`rule.full`): the full rule
+       rewrites, an eraser stands where the dead side was, erasures and
+       the events above run among the new nodes until none can, and fans
+       left with one side erased become linear. Every law over the rule
+       table now covers them and holds: polarized, linear, exact, exact
+       and total with peers inside, the test's rules small, the new
+       nodes live. Two more: `rules_linear_rewrites`, a linear fan
+       rewriting exactly where its full fan does, and
+       `rules_linear_fewer`, where the full fan's rule makes nodes, the
+       linear fan's making fewer. A derivation that leaves the fans full,
+       their erasers beside them, fails the second. Derived, a linear
+       copy meeting a function makes the function, a linear copy on its
+       body and a linear merge on its argument (three nodes for four); an
+       application meeting a linear merge, the application, a linear
+       copy on its argument and a linear merge on its result; a linear
+       copy meeting data, one datum; a linear copy annihilating a full
+       merge, the wire and an eraser for the merge's other input
+       (`spike/tools/rules_dump.bend` prints them all). The kernel's
+       generated rewrites leave the new kinds out until
+       `heap-strategies.erasure.kernel`. Drafted with dual pairs dropped,
+       which the derivation no longer does (above).
+     - `heap-strategies.erasure.events` — tentative — the events in the
+       wiring model, with laws that each keeps a net wired and
+       polarized, and the free list exact; then in the kernel, at the
+       links rules make, with the kinds changed in place.
+     - `heap-strategies.erasure.kernel` — contingent on
+       `heap-strategies.erasure.events` — the linear kinds' generated
+       rewrites; every strategy measured on the library's families
+       (`mixin-chain` against `mixin-once`, `list-head`, `search-first`,
+       `parse-cut`, `K 2 Ω`, the mixins' full reductions), and the
+       standard workloads in four builds, for what the checks cost nets
+       with nothing dead.
+     - `heap-strategies.erasure.strategies` — tentative — erasure under
+       demand as a strategy of its own; or demand with eager collection
+       on a second stack, as the two-stack strategy keeps its deferred
+       pairs; and the two-stack strategy with only collection on its
+       priority stack (the maintainer, 2026-10-30).
+     - `heap-strategies.erasure.aot` — tentative — the simple case ahead
+       of time (the maintainer, 2026-10-30): a fan that has no remote
+       dual yet, as a variable's tree of fans before it commutes with
+       anything, has nothing to annihilate with, so an erased side makes
+       it a wire, and its tree can be rebalanced. At run time too, given
+       a mark for a fan that has never commuted: the copy of `super` in
+       each mixin is such a fan when `super T` dies.
+     - `heap-strategies.erasure.trees` — tentative — chains of linear
+       fans, if they come to dominate, compressed into one node holding
+       the tree's identity and the path, as runs of controls fuse.
+     - Open: how logical interactions count a linear fan's interaction;
+       perhaps twice, for the eraser's it stands for (the maintainer,
+       2026-10-30).
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,
