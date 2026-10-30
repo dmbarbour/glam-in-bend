@@ -756,7 +756,11 @@ takes from it:
      - `heap-strategies.erasure.rules` — built 2026-10-30 — linear fans
        in the rule table (`spike/rules.bend`): four kinds, `KCopyL`,
        `KCopyR`, `KMergeL`, `KMergeR`, two ports each, named for the side
-       kept (the kernel's codes 12 to 15, its four bits full). Their
+       kept (the kernel's codes 12 to 15, its four bits of kind full;
+       the split of a header's low byte between kind and form is
+       arbitrary, and 64 or 128 kinds are to be expected, reserved for
+       builtin operators, all of one form: the maintainer, 2026-10-30).
+       Their
        rules are derived from the full fan's (`rule.full`): the full rule
        rewrites, an eraser stands where the dead side was, erasures and
        the events above run among the new nodes until none can, and fans
@@ -798,15 +802,20 @@ takes from it:
        of time (the maintainer, 2026-10-30): a fan that has no remote
        dual yet, as a variable's tree of fans before it commutes with
        anything, has nothing to annihilate with, so an erased side makes
-       it a wire, and its tree can be rebalanced. At run time too, given
-       a mark for a fan that has never commuted: the copy of `super` in
-       each mixin is such a fan when `super T` dies.
+       it a wire, and its tree can be rebalanced.
      - `heap-strategies.erasure.trees` — tentative — chains of linear
        fans, if they come to dominate, compressed into one node holding
        the tree's identity and the path, as runs of controls fuse.
      - Open: how logical interactions count a linear fan's interaction;
        perhaps twice, for the eraser's it stands for (the maintainer,
        2026-10-30).
+   - `heap-strategies.fresh` — tentative — a future experiment, apart
+     from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
+     on a fan that has never commuted, which has no residuals anywhere,
+     so that an erased side makes it a wire at run time too, as
+     `heap-strategies.erasure.aot` does ahead of time. Each mixin's copy
+     of `super` is such a fan when `super T` dies. Whether it is worth
+     its complexity, a profile is to say first.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,
