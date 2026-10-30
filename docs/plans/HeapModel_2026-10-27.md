@@ -305,7 +305,7 @@ takes from it:
    parallel rounds; profiling and tracing as strategies wrapping another.
    Waypoints (2026-10-30), in the order intended:
    `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume` (built),
-   `heap-strategies.fusions.loops`, `heap-strategies.fusions.payloads`,
+   `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads`,
    `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`,
@@ -1113,8 +1113,8 @@ takes from it:
        eraser's rule stuck when the test fails, `erasers_untested` at 6
        kinds; a self-link in erasing a function, `rules_no_self_links` at
        6 rules (that one and the linear ones derived through it).
-     - `heap-strategies.fusions.loops` — tentative — a node with a port
-       facing its own other port (the maintainer, 2026-10-30): principal
+     - `heap-strategies.fusions.loops` — built 2026-10-30 — a node with
+       a port facing its own other port (the maintainer, 2026-10-30): principal
        to auxiliary, a vicious circle on any node, never interacting;
        auxiliary to auxiliary, by polarity only a function's (body to
        variable, the identity) or an application's (argument to result),
@@ -1125,10 +1125,23 @@ takes from it:
        through a variable the root reads; `fn-self-identity` checks the
        identity. Fused nodes keep their components' polarities at the
        ports they keep, so their loops classify as the components' do (a
-       law, `fused_polarity`). Wanted: the classification as laws over
-       the table, and the graph rewriting of the law checks (`lf.tr`)
-       resolving a peer that is the redex's own port, as the kernel's
-       interpreter does, since multi-node patterns can meet one.
+       law, `fused_polarity`). Built: the law checks' rule application
+       resolving a peer that is the redex's own port as the kernel's
+       interpreter does (the rule's links with no end inside the redex,
+       then those its own ports join, a loop with no node vanishing);
+       laws `aux_loops` (opposite polarities on auxiliary ports only on
+       a function or an application), `fused_polarity`, and `beta_loops`
+       (beta with the function looped the identity, the application
+       looped a knot of the function's body into its variable, both
+       nothing, neither beta). Each fails on its mutation: pairs not
+       joined, `beta_loops`; a copy's second output negative,
+       `aux_loops` (and `fused_polarity` through the right linear copy);
+       a right linear copy's port negative, `fused_polarity`. Derived
+       rules unchanged. An operator's loop, payload to result, waits for
+       operators (`spike-operators`); a copy of a looped function, two
+       identities, for payloads (`heap-strategies.fusions.payloads`):
+       its copy and merge meet with one fan's label, which the
+       normalizer cannot know yet.
      - `heap-strategies.fusions.upto` — tentative — the argument the laws
        lean on, stated as laws where it can be: equal up to the events
        means equal (events end, one step observes all, rules with

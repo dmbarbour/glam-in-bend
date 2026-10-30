@@ -835,19 +835,94 @@ def lf.tr(+ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat, e: End) -> End:
     case New{j, p}:
       New{Nat.add(n0, j), p}
 
-def lf.trs(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat) -> List<&2, Link>:
+# nodes a and b of g rewritten by r, if it rewrites
+# Peers inside the redex (heap-strategies.fusions.loops), as the kernel's
+# interpreter takes them (knet.bend's link_plain, link_pairs): external
+# peer i that is a port of the redex itself, A's ports 1 and 2 standing
+# for external peers 0 and 1, B's for 2 and 3, joins what the rule links
+# to the two; a loop the rule's links and the redex's own close holds no
+# node and vanishes (law rules_pairs_total: no longer chain arises)
+
+def lf.partner.n(isa: Bool, isb: Bool, +q: Nat) -> Maybe<&2, Nat>:
+  match isa isb:
+    case True{} _:
+      Some{Nat.sub(q, 1n)}
+    case False{} True{}:
+      Some{Nat.add(q, 1n)}
+    case False{} False{}:
+      None{}
+
+def lf.partner.e(e: End, +a: Nat, +b: Nat) -> Maybe<&2, Nat>:
+  match e:
+    case New{+j, +q}:
+      lf.partner.n(nat_eq(j, a), nat_eq(j, b), q)
+    case Ext{i}:
+      None{}
+
+# the external peer a port of the redex is, for external peer i
+def lf.partner(+ls: List<&2, Link>, +a: Nat, +b: Nat, +i: Nat) -> Maybe<&2, Nat>:
+  lf.partner.e(lf.tr(ls, a, b, 0n, Ext{i}), a, b)
+
+def lf.internal(+ls: List<&2, Link>, +a: Nat, +b: Nat, e: End) -> Bool:
+  match e:
+    case Ext{+i}:
+      Maybe.is_some(&2, Nat, lf.partner(ls, a, b, i))
+    case New{j, p}:
+      False{}
+
+def lf.plain.k(skip: Bool, +u: End, +v: End, rest: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat) -> List<&2, Link>:
+  match skip:
+    case True{}:
+      rest
+    case False{}:
+      Con{Link{lf.tr(ls, a, b, n0, u), lf.tr(ls, a, b, n0, v)}, rest}
+
+# the rule's links with no end inside the redex, in its order
+def lf.plain(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat) -> List<&2, Link>:
   match ms:
     case Nil{}:
       Nil{}
-    case Con{Link{x, y}, t}:
-      Con{Link{lf.tr(ls, a, b, n0, x), lf.tr(ls, a, b, n0, y)}, lf.trs(t, ls, a, b, n0)}
+    case Con{Link{+u, +v}, t}:
+      lf.plain.k(lf.internal(ls, a, b, u) || lf.internal(ls, a, b, v), u, v, lf.plain(t, ls, a, b, n0), ls, a, b, n0)
 
-# nodes a and b of g rewritten by r, if it rewrites
+def lf.pair.ends(mu: Maybe<&2, End>, mv: Maybe<&2, End>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat) -> List<&2, Link>:
+  match mu mv:
+    case Some{+u} Some{+v}:
+      lf.plain.k(lf.internal(ls, a, b, u) || lf.internal(ls, a, b, v), u, v, Nil{}, ls, a, b, n0)
+    case _ _:
+      Nil{}
+
+def lf.pair.j(lt: Bool, +ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat, +i: Nat, +j: Nat) -> List<&2, Link>:
+  match lt:
+    case True{}:
+      lf.pair.ends(lf.peer(ms, Ext{i}), lf.peer(ms, Ext{j}), ls, a, b, n0)
+    case False{}:
+      Nil{}
+
+def lf.pair.i(m: Maybe<&2, Nat>, +ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat, +i: Nat) -> List<&2, Link>:
+  match m:
+    case Some{+j}:
+      lf.pair.j(Nat.is_lt(i, j), ms, ls, a, b, n0, i, j)
+    case None{}:
+      Nil{}
+
+# for each external peer i that is the redex's own port, partner of j > i,
+# what the rule links to the two joined
+def lf.pairs(k: Nat, +ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +n0: Nat, +i: Nat) -> List<&2, Link>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+r:
+      List.append(&2, Link, lf.pair.i(lf.partner(ls, a, b, i), ms, ls, a, b, n0, i), lf.pairs(r, ms, ls, a, b, n0, Nat.add(i, 1n)))
+
+# nodes a and b of g rewritten by r, if it rewrites: the rule's links with
+# no end inside the redex, then those its own ports join
 def lf.apply(r: Rule, g: G, +a: Nat, +b: Nat) -> Maybe<&2, G>:
   match r g:
-    case RWire{ys, ms} G{+xs, +ls}:
+    case RWire{ys, +ms} G{+xs, +ls}:
       Some{G{List.append(&2, Spec, set_kind(set_kind(xs, a, KFree{}), b, KFree{}), ys),
-        List.append(&2, Link, lf.unlink(lf.unlink(ls, a), b), lf.trs(ms, ls, a, b, List.length(&2, Spec, xs)))}}
+        List.append(&2, Link, lf.unlink(lf.unlink(ls, a), b),
+          List.append(&2, Link, lf.plain(ms, ls, a, b, List.length(&2, Spec, xs)), lf.pairs(4n, ms, ls, a, b, List.length(&2, Spec, xs), 0n)))}}
     case RStuck{} G{xs, ls}:
       None{}
 
@@ -2329,3 +2404,83 @@ def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +v: NodeKind
 def fz_event(+a: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
   fz.go(Bool.not(is_stuck(event(a, ex.eraser(a), p))) && fz.meets(a, v),
     fz_event.cmp(a, ex.eraser(a), p, ex.first(event(a, ex.eraser(a), p)), v, t))
+
+# Loops: a node's port facing its own other port
+# -----------------------------------------------
+#
+# heap-strategies.fusions.loops (the maintainer, 2026-10-30). Principal to
+# auxiliary is a vicious circle on any node: its principal faces no other
+# node's, so it never interacts. Auxiliary to auxiliary, polarity allows
+# only on a function, its body its variable, the identity, or on an
+# application, its result its argument, which applying its function
+# knots into the function's body feeding its variable: observed only
+# where that variable is, which may be outside the body
+# (`ap-self-extruded` in the library). A fan's two outputs, or two
+# inputs, share a polarity. A linear fan keeps its full fan's polarities
+# at the ports it keeps, so its loops are its components'.
+
+def is_bind(k: NodeKind) -> Bool:
+  match k:
+    case KFn{}:
+      True{}
+    case KAp{}:
+      True{}
+    case _:
+      False{}
+
+# auxiliary ports of opposite polarity, which a loop may join, only on a
+# function or an application (law aux_loops)
+def loops_aux(+k: NodeKind) -> Bool:
+  Bool.not(nat_eq(arity(k), 3n) && Bool.not(pol_eq(port_pol(k, 1n), port_pol(k, 2n)))) || is_bind(k)
+
+def fused_pol.aux(full: Bool, +k: NodeKind) -> Bool:
+  match full:
+    case True{}:
+      True{}
+    case False{}:
+      pol_eq(port_pol(k, 1n), port_pol(lf.full(k), ex.kept(k)))
+
+# a linear fan's ports have its full fan's polarities at the ports it
+# keeps (law fused_polarity)
+def fused_pol(+k: NodeKind) -> Bool:
+  pol_eq(port_pol(k, 0n), port_pol(lf.full(k), 0n)) && fused_pol.aux(Nat.is_eq(ex.dead(k), 0n), k)
+
+def loop.ap(l: Bool) -> List<&2, Link>:
+  match l:
+    case True{}:
+      [Link{New{0n, 1n}, New{0n, 2n}}]
+    case False{}:
+      [Link{New{0n, 1n}, Ext{0n}}, Link{New{0n, 2n}, Ext{1n}}]
+
+def loop.fn(l: Bool) -> List<&2, Link>:
+  match l:
+    case True{}:
+      [Link{New{1n, 1n}, New{1n, 2n}}]
+    case False{}:
+      [Link{New{1n, 1n}, Ext{2n}}, Link{New{1n, 2n}, Ext{3n}}]
+
+# an application (node 0) meeting a function (node 1): its argument and
+# result external peers 0 and 1, or joined; the function's body and
+# variable 2 and 3, or joined
+def loop.g(+ap: Bool, +fn: Bool) -> G:
+  G{[Spec{KAp{}, SNone{}}, Spec{KFn{}, SNone{}}], Con{Link{New{0n, 0n}, New{1n, 0n}}, List.append(&2, Link, loop.ap(ap), loop.fn(fn))}}
+
+def loop.after(m: Maybe<&2, G>) -> List<&2, Nat>:
+  match m:
+    case Some{g}:
+      fz.canon(g)
+    case None{}:
+      [999n]
+
+def loop.beta(+ap: Bool, +fn: Bool) -> List<&2, Nat>:
+  loop.after(lf.apply(rule(KAp{}, KFn{}, True{}), loop.g(ap, fn), 0n, 1n))
+
+# beta with loops: a function whose body is its variable is the identity,
+# the argument's peer joined to the result's; an application whose result
+# is its argument knots the function, its body's peer joined to its
+# variable's; both, nothing left; neither, beta (law beta_loops). In
+# canonical order, what external peers 0 to 3 face (none 0, peer i 1 + i)
+# and the nodes left.
+def beta_loops() -> Bool:
+  ex.eq(loop.beta(False{}, True{}), [2n, 1n, 0n, 0n, 0n]) && ex.eq(loop.beta(True{}, False{}), [0n, 0n, 4n, 3n, 0n]) &&
+    ex.eq(loop.beta(True{}, True{}), [0n, 0n, 0n, 0n, 0n]) && ex.eq(loop.beta(False{}, False{}), [4n, 3n, 2n, 1n, 0n])

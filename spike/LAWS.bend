@@ -618,6 +618,33 @@ law events_one_node:
   for +p: Nat
   {R.ev_one_node(a, b, p) == True{} : Bool}
 
+# LAW: a loop from a node's auxiliary port to its other one joins ports of
+# opposite polarity, which only a function has (body to variable, the
+# identity) and an application (argument to result); a fan's two outputs,
+# or two inputs, share a polarity, and a node of two ports has one
+# auxiliary port. A loop from a principal port to an auxiliary one is a
+# vicious circle on any node.
+# Record: net-obvious-errors
+law aux_loops:
+  for +k: R.NodeKind
+  {R.loops_aux(k) == True{} : Bool}
+
+# LAW: a linear fan has its full fan's polarities at the ports it keeps,
+# so its loops are its components'.
+# Record: net-nodes-double
+law fused_polarity:
+  for +k: R.NodeKind
+  {R.fused_pol(k) == True{} : Bool}
+
+# LAW: beta where the redex's own ports are joined, as the kernel's
+# interpreter rewrites it: a function whose body is its variable is the
+# identity; an application whose result is its argument knots the
+# function, its body feeding its variable, observed only where that
+# variable is; both, nothing left.
+# Record: net-nodes-double
+law beta_loops:
+  {R.beta_loops() == True{} : Bool}
+
 # LAW: a fused node behaves as its components: a linear fan, whatever its
 # principal meets, is stuck where its full fan with the dead side erased
 # is, and otherwise leaves the same graph, both normalized by the
