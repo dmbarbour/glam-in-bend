@@ -698,6 +698,27 @@ takes from it:
        `KS.resume` finds the node again the same way (`d.at`), puts the
        value there and goes on. The path array's header is its capacity
        alone again, the nodes from word 1.
+   - `heap-strategies.rewrite` — dropped 2026-10-30 — the rewrite's
+     cost cut by its shape (the maintainer, 2026-10-30): reading each of
+     the pair's nodes whole rather than a word at a time, narrowing the
+     generated rules' arguments to what each uses, folding the payload
+     test into the rule dispatch. Measured first, none holds. Reads:
+     `bench/bend/node_read.bend`, four helpers each carrying six words of
+     context against one four-word read, 31 instructions a step either
+     way, the same code. Arguments: the rule whose body the default
+     build leaves out of line, 11% of the full reduction on `succ` (a
+     call meeting a merge), narrowed by hand to what each step uses,
+     saved 1,088 of 351,868,256 instructions (k 18; `succ`, `lvl` and
+     `fma` alike): clang drops unused arguments of these static
+     functions itself, and the stack moves there are the rule's own live
+     values. The payload test is inlined already, a few compares of kind
+     codes an interaction. Where the full reduction's instructions go on
+     `succ` (store run 66's default build): the array fill 29% (Bend
+     #1890), the rewrite and its inlined rules 32%, that one rule 11%,
+     the stack's loop 9%, node allocation 4.5%, applying data 5%. The
+     levers left are the toolchain's: profile-guided builds run the full
+     reduction 16% under the default build and demand 13% on `succ`, 14%
+     and 11% on `lvl` (store run 66), and the fill.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

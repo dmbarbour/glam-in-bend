@@ -13,6 +13,7 @@ Build one natively, then run it:
 | `bend/rounds.bend` | parallel workers owning pages, moved between workers every round; the cost of a round | log2 workers, rounds, steps per worker per round, log2 cells per page |
 | `bend/interleave.bend` | pure work sharing Bend's IO event loop with a computation sending every 10 ms | steps, slices, yield between slices (0 or 1) |
 | `bend/zero_fill.bend` | making a zeroed array, filled word by word | log2 words |
+| `bend/node_read.bend` | reading a node's four words as four helpers, each carrying a rewrite's context on (mode 0), against one read returning the four (mode 1) | mode, steps |
 | `bend/const_flag/const_flag.bend` | whether a constant `Bool` from another file (`flag.bend`, as a generated file reporting a build's mode would) folds away: steps through a guarded check (mode 0) or none (mode 1); the guarded step from two call sites picked by parity (mode 2) or the same unguarded (mode 3) | mode, steps |
 
 Results on an i7-6700 (4 cores, 2 hyperthreads each), Bend 2.0.39,
@@ -34,5 +35,11 @@ Results on an i7-6700 (4 cores, 2 hyperthreads each), Bend 2.0.39,
   step's arithmetic alone, unrolled, with no compare or call for the
   guard: folded, not predicted. 2026-10-29. A first version whose steps clang could sum in closed form
   ran 100M steps in a millisecond: feed the result back through a shift.
+- `node_read 0` and `node_read 1` at 1M, 2M and 4M steps: 32,661,246,
+  63,661,187 and 125,661,293 instructions, and 32,661,247, 63,661,187 and
+  125,661,289: 31 a step either way, the same code. Bend and clang fold a
+  chain of single-read helpers, each carrying six words of context, into
+  what one four-word read makes, so reading a node whole would save the
+  kernel's rewrites nothing. 2026-10-30.
 - `interleave 2000000000 1000 0`: no message arrives during the work.
   `interleave 2000000000 1000 1`: all of them arrive, about 30.
