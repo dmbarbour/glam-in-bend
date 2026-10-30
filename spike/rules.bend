@@ -147,7 +147,10 @@ type Link is Data:
 # where a new node's payload comes from: nothing; A's or B's payload
 # (data, a call's function, a control node); A's function applied to B's
 # data; A's or B's fan identity; A's or B's payload (a level, a fan's, a
-# control's index) passed through the other, a control node
+# control's index) passed through the other, a control node. The laws'
+# graphs compose them: SAp, a function applied to data, each a source
+# resolved against the nodes a rewrite took; no rule makes one (law
+# rules_base_sources)
 type Src is Data:
   SNone{}
   SPayA{}
@@ -157,6 +160,7 @@ type Src is Data:
   SFanB{}
   SLiftA{}
   SLiftB{}
+  SAp{f: Src, x: Src}
 
 type Spec is Data:
   Spec{k: NodeKind, src: Src}
@@ -676,32 +680,36 @@ def kind_n(k: NodeKind) -> Nat:
     case KMergeR{}:
       15n
 
-# a source as a number
-def src_n(s: Src) -> Nat:
-  match s:
-    case SNone{}:
-      0n
-    case SPayA{}:
-      1n
-    case SPayB{}:
-      2n
-    case SApply{}:
-      3n
-    case SFanA{}:
-      4n
-    case SFanB{}:
-      5n
-    case SLiftA{}:
-      6n
-    case SLiftB{}:
-      7n
+# two sources the same, composed ones term by term
+def src_eq(s: Src, u: Src) -> Bool:
+  match s u:
+    case SNone{} SNone{}:
+      True{}
+    case SPayA{} SPayA{}:
+      True{}
+    case SPayB{} SPayB{}:
+      True{}
+    case SApply{} SApply{}:
+      True{}
+    case SFanA{} SFanA{}:
+      True{}
+    case SFanB{} SFanB{}:
+      True{}
+    case SLiftA{} SLiftA{}:
+      True{}
+    case SLiftB{} SLiftB{}:
+      True{}
+    case SAp{f, x} SAp{g, y}:
+      src_eq(f, g) && src_eq(x, y)
+    case _ _:
+      False{}
 
 def specs_eq(xs: List<&2, Spec>, ys: List<&2, Spec>) -> Bool:
   match xs ys:
     case Nil{} Nil{}:
       True{}
     case Con{Spec{k, s}, xt} Con{Spec{l, u}, yt}:
-      nat_eq(kind_n(k), kind_n(l)) && nat_eq(src_n(s), src_n(u)) && specs_eq(xt, yt)
+      nat_eq(kind_n(k), kind_n(l)) && src_eq(s, u) && specs_eq(xt, yt)
     case _ _:
       False{}
 
@@ -915,12 +923,34 @@ def lf.pairs(k: Nat, +ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat,
     case 1n+r:
       List.append(&2, Link, lf.pair.i(lf.partner(ls, a, b, i), ms, ls, a, b, n0, i), lf.pairs(r, ms, ls, a, b, n0, Nat.add(i, 1n)))
 
-# nodes a and b of g rewritten by r, if it rewrites: the rule's links with
-# no end inside the redex, then those its own ports join
+# a new node's payload source, A's and B's those of the nodes taken (sa,
+# sb), a function applied to data the term of the two; a fan's identity or
+# a control's index passed on as the rule gives it
+def lf.res(s: Src, +sa: Src, +sb: Src) -> Src:
+  match s:
+    case SPayA{}:
+      sa
+    case SPayB{}:
+      sb
+    case SApply{}:
+      SAp{sa, sb}
+    case _:
+      s
+
+def lf.res.specs(ys: List<&2, Spec>, +sa: Src, +sb: Src) -> List<&2, Spec>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{Spec{k, s}, t}:
+      Con{Spec{k, lf.res(s, sa, sb)}, lf.res.specs(t, sa, sb)}
+
+# nodes a and b of g rewritten by r, if it rewrites: the rule's nodes,
+# their payloads resolved against a's and b's; the rule's links with no
+# end inside the redex, then those its own ports join
 def lf.apply(r: Rule, g: G, +a: Nat, +b: Nat) -> Maybe<&2, G>:
   match r g:
     case RWire{ys, +ms} G{+xs, +ls}:
-      Some{G{List.append(&2, Spec, set_kind(set_kind(xs, a, KFree{}), b, KFree{}), ys),
+      Some{G{List.append(&2, Spec, set_kind(set_kind(xs, a, KFree{}), b, KFree{}), lf.res.specs(ys, spec_src(xs, a), spec_src(xs, b))),
         List.append(&2, Link, lf.unlink(lf.unlink(ls, a), b),
           List.append(&2, Link, lf.plain(ms, ls, a, b, List.length(&2, Spec, xs)), lf.pairs(4n, ms, ls, a, b, List.length(&2, Spec, xs), 0n)))}}
     case RStuck{} G{xs, ls}:
@@ -1566,6 +1596,37 @@ def no_self.r(r: Rule) -> Bool:
 def no_self_links(+a: NodeKind, +b: NodeKind, +t: Bool) -> Bool:
   no_self.r(rule(a, b, t))
 
+def base.src(s: Src) -> Bool:
+  match s:
+    case SAp{f, x}:
+      False{}
+    case _:
+      True{}
+
+def base.specs(xs: List<&2, Spec>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{Spec{k, s}, t}:
+      base.src(s) && base.specs(t)
+
+def base.r(r: Rule) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      base.specs(xs)
+    case RStuck{}:
+      True{}
+
+# every rule's new nodes take their payloads from A's and B's as the
+# kernel does, none a composed source, derived rules too (law
+# rules_base_sources)
+def base_sources(+a: NodeKind, +b: NodeKind, +t: Bool) -> Bool:
+  base.r(rule(a, b, t))
+
+# every event's new node too (law events_base_sources)
+def ev_base_sources(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
+  base.r(event(a, b, p))
+
 def ev_one.r(r: Rule) -> Bool:
   match r:
     case RWire{ys, ms}:
@@ -2067,10 +2128,24 @@ def ev_last(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
 type XB is Data:
   XB{xs: List<&2, Spec>, ls: List<&2, Link>}
 
-def xb.add(+b: XB, +k: NodeKind) -> XB:
+def xb.add.s(+b: XB, +k: NodeKind, +s: Src) -> XB:
   match b:
     case XB{+xs, +ls}:
-      XB{List.append(&2, Spec, xs, [Spec{k, SNone{}}]), ls}
+      XB{List.append(&2, Spec, xs, [Spec{k, s}]), ls}
+
+def xb.add(+b: XB, +k: NodeKind) -> XB:
+  xb.add.s(b, k, SNone{})
+
+# a node of kind k, its payload source s if it carries data, a function
+# or a call's; a level or index is not followed
+def xb.add.p(+b: XB, k: NodeKind, +s: Src) -> XB:
+  match k:
+    case KData{}:
+      xb.add.s(b, KData{}, s)
+    case KCall{}:
+      xb.add.s(b, KCall{}, s)
+    case _:
+      xb.add(b, k)
 
 def xb.link(+b: XB, +u: End, +v: End) -> XB:
   match b:
@@ -2216,6 +2291,22 @@ def fz.ends(m: Nat, +ls: List<&2, Link>, +j: Nat, +q: Nat, +ns: List<&2, Nat>) -
       Con{fz.end(lf.peer(ls, New{j, q}), ns), fz.ends(r, ls, j, Nat.add(q, 1n), ns)}
 
 # each node in order: its kind, then its ports' peers
+# a node's payload source: the pattern node's (1) or its partner's (2), a
+# function applied to data (3, then each), a rule's unresolved (4); none,
+# or a level or index, 0
+def fz.src(s: Src) -> List<&2, Nat>:
+  match s:
+    case SPayA{}:
+      [1n]
+    case SPayB{}:
+      [2n]
+    case SAp{f, x}:
+      Con{3n, List.append(&2, Nat, fz.src(f), fz.src(x))}
+    case SApply{}:
+      [4n]
+    case _:
+      [0n]
+
 def fz.nodes(rest: List<&2, Nat>, +g: G, +ns: List<&2, Nat>) -> List<&2, Nat>:
   match rest:
     case Nil{}:
@@ -2223,7 +2314,7 @@ def fz.nodes(rest: List<&2, Nat>, +g: G, +ns: List<&2, Nat>) -> List<&2, Nat>:
     case Con{+j, t}:
       match g:
         case G{+xs, +ls}:
-          Con{kind_n(lf.kind(G{xs, ls}, j)), List.append(&2, Nat, fz.ends(arity(lf.kind(G{xs, ls}, j)), ls, j, 0n, ns), fz.nodes(t, G{xs, ls}, ns))}
+          Con{kind_n(lf.kind(G{xs, ls}, j)), List.append(&2, Nat, fz.src(spec_src(xs, j)), List.append(&2, Nat, fz.ends(arity(lf.kind(G{xs, ls}, j)), ls, j, 0n, ns), fz.nodes(t, G{xs, ls}, ns)))}
 
 def fz.live(xs: List<&2, Spec>) -> Nat:
   match xs:
@@ -2327,8 +2418,8 @@ def fz.go(go: Bool, +r: Bool) -> Bool:
 # a linear fan f facing v (as it is) against f's components facing v's
 def fz_linear.cmp(+f: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
   fz.same(
-    fz.run(f, v, t, False{}, xb.g(xb.fused(xb.fused(xb.link(xb.add(xb.add(XB{[], []}, f), v), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))),
-    fz.run(lf.full(f), lf.full(v), t, True{}, xb.g(xb.comp(xb.comp(xb.link(xb.add(xb.add(XB{[], []}, lf.full(f)), lf.full(v)), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))))
+    fz.run(f, v, t, False{}, xb.g(xb.fused(xb.fused(xb.link(xb.add.p(xb.add.p(XB{[], []}, f, SPayA{}), v, SPayB{}), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))),
+    fz.run(lf.full(f), lf.full(v), t, True{}, xb.g(xb.comp(xb.comp(xb.link(xb.add.p(xb.add.p(XB{[], []}, lf.full(f), SPayA{}), lf.full(v), SPayB{}), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))))
 
 # a linear fan behaves as its components against any partner (law
 # linear_as_components)
@@ -2380,7 +2471,7 @@ def fz.pat.a(+b: XB, +a: NodeKind, +p: Nat) -> XB:
 # the pattern: a's components facing v's, a's port p (full numbering)
 # erased by an eraser of kind b at node 2
 def fz.pattern(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind) -> G:
-  xb.g(xb.comp(fz.pat.a(xb.link(xb.add(xb.add(xb.add(XB{[], []}, lf.full(a)), lf.full(v)), b), New{0n, 0n}, New{1n, 0n}), a, p), 1n, v, 2n))
+  xb.g(xb.comp(fz.pat.a(xb.link(xb.add(xb.add.p(xb.add.p(XB{[], []}, lf.full(a), SPayA{}), lf.full(v), SPayB{}), b), New{0n, 0n}, New{1n, 0n}), a, p), 1n, v, 2n))
 
 def fz.res.go(none: Bool, +b: XB, +e: NodeKind) -> XB:
   match none:
@@ -2392,7 +2483,7 @@ def fz.res.go(none: Bool, +b: XB, +e: NodeKind) -> XB:
 # the event's result, its node of kind e as its components: a linear fan
 # its kept port the pattern's port not erased, an eraser none
 def fz.result(+e: NodeKind, +v: NodeKind) -> G:
-  xb.g(xb.comp(fz.res.go(Nat.is_eq(ex.dead(e), 0n), xb.link(xb.add(xb.add(XB{[], []}, lf.full(e)), lf.full(v)), New{0n, 0n}, New{1n, 0n}), e), 1n, v, 2n))
+  xb.g(xb.comp(fz.res.go(Nat.is_eq(ex.dead(e), 0n), xb.link(xb.add.p(xb.add.p(XB{[], []}, lf.full(e), SPayA{}), lf.full(v), SPayB{}), New{0n, 0n}, New{1n, 0n}), e), 1n, v, 2n))
 
 def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
   fz.same(fz.run(lf.full(a), lf.full(v), t, True{}, fz.pattern(a, b, fz.evport(a, p), v)),

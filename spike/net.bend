@@ -239,6 +239,9 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
       pa
     case R.SFanB{}:
       pb
+    # no rule makes a composed source (law rules_base_sources)
+    case R.SAp{f, x}:
+      V.PNone{}
 
 type Made is Type:
   Made{q: Q, refs: List<&2, U32>}

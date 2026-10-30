@@ -70,6 +70,9 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
       (h, P.PW{0, P.lift(P.fld(hb), pb, P.fld(ha)), pa})
     case R.SLiftB{}:
       (h, P.PW{0, P.lift(P.fld(ha), pa, P.fld(hb)), pb})
+    # no rule makes a composed source (law rules_base_sources)
+    case R.SAp{f, x}:
+      (h, P.PW{0, 0, 0})
 
 def takes_a(s: R.Src) -> Bool:
   match s:

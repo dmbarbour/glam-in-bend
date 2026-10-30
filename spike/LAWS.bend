@@ -618,6 +618,25 @@ law events_one_node:
   for +p: Nat
   {R.ev_one_node(a, b, p) == True{} : Bool}
 
+# LAW: every rule's new nodes take their payloads from the two nodes it
+# rewrites, as the kernel's do: none takes a source composed of others,
+# as the laws' graphs follow a payload through several rewrites, derived
+# rules included.
+# Record: fusions-as-components
+law rules_base_sources:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  {R.base_sources(a, b, t) == True{} : Bool}
+
+# LAW: and every event's new node.
+# Record: fusions-as-components
+law events_base_sources:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_base_sources(a, b, p) == True{} : Bool}
+
 # LAW: a loop from a node's auxiliary port to its other one joins ports of
 # opposite polarity, which only a function has (body to variable, the
 # identity) and an application (argument to result); a fan's two outputs,

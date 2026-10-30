@@ -305,7 +305,8 @@ takes from it:
    parallel rounds; profiling and tracing as strategies wrapping another.
    Waypoints (2026-10-30), in the order intended:
    `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume` (built),
-   `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads`,
+   `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads.data` (built),
+   `heap-strategies.fusions.payloads.levels`,
    `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`,
@@ -1087,11 +1088,39 @@ takes from it:
        pattern again: equal up to itself. Once dead calls are a kind and
        that chain an event of `R.event`, the normalizer runs it, and
        `events_as_components` covers it (`heap-strategies.erasure.deadcall`).
-     - `heap-strategies.fusions.payloads` — tentative — the comparison
-       to include each payload's provenance (which node's payload goes
-       where, copied, moved or dropped: no value observed, beyond
-       whether it is immediate) and each level update (a fan's level
-       raised by a control, on the fused form and on the expanded).
+     - `heap-strategies.fusions.payloads` — active — the comparison to
+       include what payloads and fields go where, in two parts, data the
+       easier (the maintainer, 2026-10-30).
+       - `heap-strategies.fusions.payloads.data` — built 2026-10-30 —
+         each data payload's provenance: which node's payload goes where,
+         copied, moved or dropped, a function applied to data a term of
+         the two, no value observed, beyond whether it is immediate.
+         Built: in the laws' graphs the pattern's node and its partner
+         each carry their own payload as a source (A's, B's), data and
+         calls only, a level or an index not followed; a rewrite
+         resolves its new nodes' sources against the two nodes it took,
+         a function applied to data the term of theirs (`SAp`, a source
+         only the laws' graphs compose); the canonical order lists each
+         node's source after its kind. No value is observed: the
+         normalizer runs only rules the payload test cannot change, and
+         the model has no immediates yet. No rule or event makes a
+         composed source (laws `rules_base_sources`,
+         `events_base_sources`), so the kernel meets none, its
+         interpreters' arms for one unreachable. Both fusion laws hold,
+         now over payloads; derived rules and the generated rewrites
+         unchanged. Mutated: the derived rules' payloads A's for B's and
+         B's for A's, `linear_as_components` at 8 cases (the linear
+         copies against data, the linear merges against a call); B's
+         dropped, 4; the call's rule on data making a composed source,
+         `rules_base_sources` at 2; a linear copy's event making one,
+         `events_base_sources` there and `rules_base_sources` at 9 rules
+         derived through it. No fused pattern yet combines two payloads,
+         a call and its data in one: that waits for operators
+         (`heap-strategies.fusions.operators`).
+       - `heap-strategies.fusions.payloads.levels` — tentative — each
+         field's: a fan's identity and level, a control's raise, the
+         fused form's update against the expanded form's; and with them
+         a fan meeting a fan of one source reduced, its label known.
      - `heap-strategies.fusions.controls` — tentative — control fusion
        at the level of rules: a run, against each partner, as its unit
        controls, stuck where they are, its levels as theirs (the levels
