@@ -5,9 +5,13 @@
 # inline, and both profile-guided, trained at k 14. Each run is counted
 # by scripts/count.sh under scripts/capped.sh and recorded in the analysis
 # store (scripts/results.py) under one run; with BASE, an earlier run of
-# this tool, each count is printed beside that run's.
+# this tool, each count is printed beside that run's. With EV=1, the
+# erasure modes too (spike/kernel.bend's ev and evlazy: succ, fma and lvl
+# eagerly, succ and lvl on demand), recorded as workloads `succ.ev` and
+# so on, demand's lazy; the profile-guided builds are trained without
+# them.
 #
-#   [BASE=RUN] spike/tools/count_builds.sh OUT [K [NOTE]]
+#   [BASE=RUN] [EV=1] spike/tools/count_builds.sh OUT [K [NOTE]]
 #
 # OUT holds the builds.
 set -eu
@@ -20,12 +24,14 @@ NOTE=${3:-}
 R="python3 -I $ROOT/scripts/results.py"
 "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" \
   "14 succ" "14 succ lazy" "14 fma" "14 lvl" "14 lvl lazy" >/dev/null
-RUN=$($R run count_builds "{\"k\": $K, \"builds\": [\"default\", \"ai\", \"pgo\", \"ai_pgo\"], \"train\": [\"14 succ\", \"14 succ lazy\", \"14 fma\", \"14 lvl\", \"14 lvl lazy\"], \"tool\": \"spike/tools/count_builds.sh\"}" "$NOTE")
+RUN=$($R run count_builds "{\"k\": $K, \"builds\": [\"default\", \"ai\", \"pgo\", \"ai_pgo\"], \"train\": [\"14 succ\", \"14 succ lazy\", \"14 fma\", \"14 lvl\", \"14 lvl lazy\"], \"ev\": ${EV:-0}, \"tool\": \"spike/tools/count_builds.sh\"}" "$NOTE")
 echo "run $RUN"
 for b in default ai pgo ai_pgo; do
   bin=$OUT/kernel
   [ "$b" = default ] || bin=$OUT/kernel_$b
-  for w in "succ" "succ lazy" "fma" "lvl" "lvl lazy"; do
+  set -- "succ" "succ lazy" "fma" "lvl" "lvl lazy"
+  [ "${EV:-0}" = 1 ] && set -- "$@" "succ ev" "succ evlazy" "fma ev" "lvl ev" "lvl evlazy"
+  for w in "$@"; do
     # shellcheck disable=SC2086
     out=$("$ROOT/scripts/capped.sh" 4000 600 "$ROOT/scripts/count.sh" "$bin" "$K" $w 2>&1)
     itrs=$(echo "$out" | sed -n 's/.* \([0-9]*\) interactions.*/\1/p' | head -n 1)
@@ -33,7 +39,7 @@ for b in default ai pgo ai_pgo; do
     cyc=$(echo "$out" | sed -n 's/^count.sh: .* instructions, \([0-9?]*\) cycles.*/\1/p')
     lazy=0
     case "$w" in *lazy) lazy=1 ;; esac
-    $R count "$RUN" "$b" "${w% lazy}" "$K" "$lazy" "$itrs" "$ins" "$cyc"
+    $R count "$RUN" "$b" "$(echo "${w% lazy}" | tr ' ' '.')" "$K" "$lazy" "$itrs" "$ins" "$cyc"
   done
 done
 if [ -n "${BASE:-}" ]; then

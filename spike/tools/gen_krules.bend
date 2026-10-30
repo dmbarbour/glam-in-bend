@@ -18,7 +18,7 @@ import ../net.bend as N
 # interpreter of the table instead.
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}]
 
 def kname(k: R.NodeKind) -> String:
   match k:
@@ -479,7 +479,7 @@ def lift_a() -> String:
 def lift_b() -> String:
   "P.lift_wraps(P.fld(hb), pb, P.fld(ha))"
 
-def check_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+def check_expr.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
   match a b:
     case R.KCopy{} R.KFn{}:
       "P.copy_fn_bad(ha, hb)"
@@ -495,6 +495,10 @@ def check_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
       lift_b()
     case _ _:
       ""
+
+# a linear fan's pairs are checked as its full fan's
+def check_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  check_expr.full(R.lf.full(a), R.lf.full(b))
 
 # the state a pair's rewrite starts from: h, checked
 def checked.e(none: Bool, +e: String) -> String:
@@ -649,7 +653,7 @@ def checks_a(as: List<&2, R.NodeKind>) -> String:
 # Payload tests: where a rule's two variants differ (R.rule's t), the test
 # on the payloads that picks one (net.bend's rule_test). A Lift facing a
 # LiftC is tested after peeling instead (P.peel_ctl).
-def test_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+def test_expr.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
   match a b:
     case R.KAp{} R.KFn{}:
       "(h, P.same_lvl(ha, hb))"
@@ -659,6 +663,10 @@ def test_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
       "(h, P.same_lvl(ha, hb))"
     case _ _:
       ""
+
+# a linear fan's pairs are tested as its full fan's
+def test_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  test_expr.full(R.lf.full(a), R.lf.full(b))
 
 # a pair whose variants differ and which has no test here names itself in
 # code that does not compile
@@ -711,12 +719,16 @@ def grows_r(r: R.Rule) -> Bool:
     case R.RStuck{}:
       False{}
 
-def grow_test(+a: R.NodeKind, +b: R.NodeKind) -> String:
+def grow_test.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
   match a b:
     case R.KCopy{} R.KMerge{}:
       "P.same_lvl(ha, hb)"
     case _ _:
       ""
+
+# a linear fan's pairs are tested as its full fan's
+def grow_test(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  grow_test.full(R.lf.full(a), R.lf.full(b))
 
 def grow_tested(none: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match none:
@@ -850,6 +862,278 @@ def stuck_a(as: List<&2, R.NodeKind>) -> String:
     case Con{+a, t}:
       stuck_b(kinds(), a) ++ stuck_a(t)
 
+# Events
+# ------
+#
+# heap-strategies.erasure.kernel: an eraser's principal facing an
+# auxiliary port (R.event, A the node and B the eraser). The kernel looks
+# for events at a rewrite's external peers (knet.bend's Events), so a rule
+# linking two of its own new nodes into an event would go unseen; the
+# file fails to compile if one does (inner_events). An event's rewrite is
+# a rule's, its new node 0 in A's slot, its external peer 0 the peer of A's
+# principal: their link is A's own, left as it is, so neither made nor
+# noted again, while A's pair, if A is in one, keeps its place on the
+# stack.
+
+def eraser_codes() -> List<&2, R.NodeKind>:
+  [R.KEraN{}, R.KEraP{}]
+
+def is_eraser(k: R.NodeKind) -> Bool:
+  match k:
+    case R.KEraN{}:
+      True{}
+    case R.KEraP{}:
+      True{}
+    case _:
+      False{}
+
+def is_n00(e: R.End) -> Bool:
+  match e:
+    case R.New{+j, +p}:
+      Nat.is_eq(j, 0n) && Nat.is_eq(p, 0n)
+    case R.Ext{i}:
+      False{}
+
+def is_x0(e: R.End) -> Bool:
+  match e:
+    case R.Ext{+i}:
+      Nat.is_eq(i, 0n)
+    case R.New{j, p}:
+      False{}
+
+def ev_kept(+u: R.End, +v: R.End) -> Bool:
+  Bool.not((is_n00(u) && is_x0(v)) || (is_x0(u) && is_n00(v)))
+
+def ev_links.go(keep: Bool, l: R.Link, t: List<&2, R.Link>) -> List<&2, R.Link>:
+  match keep:
+    case True{}:
+      Con{l, t}
+    case False{}:
+      t
+
+# an event's links but the one A's principal keeps
+def ev_links(ls: List<&2, R.Link>) -> List<&2, R.Link>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{R.Link{+u, +v}, t}:
+      ev_links.go(ev_kept(u, v), R.Link{u, v}, ev_links(t))
+
+def ev_rule(r: R.Rule) -> R.Rule:
+  match r:
+    case R.RWire{xs, ls}:
+      R.RWire{xs, ev_links(ls)}
+    case R.RStuck{}:
+      R.RStuck{}
+
+def ev_name(+a: R.NodeKind, +p: Nat) -> String:
+  "ev." ++ kname(a) ++ ".p" ++ Nat.show(p)
+
+def ev_eraser.hit(stuck: Bool, +b: R.NodeKind, rest: Maybe<&2, R.NodeKind>) -> Maybe<&2, R.NodeKind>:
+  match stuck:
+    case True{}:
+      rest
+    case False{}:
+      Some{b}
+
+# the eraser making an event at port p of kind a, if any
+def ev_eraser(es: List<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> Maybe<&2, R.NodeKind>:
+  match es:
+    case Nil{}:
+      None{}
+    case Con{+b, t}:
+      ev_eraser.hit(is_stuck(R.event(a, b, p)), b, ev_eraser(t, a, p))
+
+def ev_ports() -> List<&2, Nat>:
+  [1n, 2n]
+
+def first_kind(xs: List<&2, R.Spec>) -> R.NodeKind:
+  match xs:
+    case Nil{}:
+      R.KFree{}
+    case Con{R.Spec{+k, s}, t}:
+      k
+
+def ev_case(+a: R.NodeKind, +p: Nat, +body: String) -> String:
+  "    case " ++ code(a) ++ " " ++ Nat.show(p) ++ ":\n      " ++ body ++ "\n"
+
+def ev_one.f(+f: U32, r: R.Rule, +a: R.NodeKind, +b: R.NodeKind, +p: Nat) -> String:
+  match f:
+    case 0:
+      rule_fns(False{}, ev_rule(r), ev_name(a, p), a, b)
+    case 1:
+      rule_fns(True{}, ev_rule(r), ev_name(a, p) ++ ".e", a, b)
+    case 2:
+      ev_case(a, p, ev_name(a, p) ++ "(h, " ++ common_args(False{}) ++ ")")
+    case _:
+      ev_case(a, p, ev_name(a, p) ++ ".e(h, " ++ common_args(True{}) ++ ")")
+
+# over kinds and ports with an event: f 0 the rewrites (plain), 1 (eager),
+# 2 the dispatch's cases (plain), 3 (eager)
+def ev_one(+f: U32, m: Maybe<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> String:
+  match m:
+    case None{}:
+      ""
+    case Some{+b}:
+      ev_one.f(f, R.event(a, b, p), a, b, p)
+
+def ev_over_p(+f: U32, ps: List<&2, Nat>, +a: R.NodeKind) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{+p, t}:
+      ev_one(f, ev_eraser(eraser_codes(), a, p), a, p) ++ ev_over_p(f, t, a)
+
+def ev_over(+f: U32, as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      ev_over_p(f, ev_ports(), a) ++ ev_over(f, t)
+
+# ev_by's words: two bits a port (0 none, 1 EraN, 2 EraP), eight a kind,
+# four kinds a word, so that the check after each rewrite reads a word
+# where a match on the kind would make a chain of comparisons (2% to 5% of
+# the erasure modes' instructions, measured on a prototype)
+def ev_bits.b(b: R.NodeKind) -> U32:
+  match b:
+    case R.KEraN{}:
+      1
+    case _:
+      2
+
+def ev_bits(m: Maybe<&2, R.NodeKind>, +k: R.NodeKind, +p: Nat) -> U32:
+  match m:
+    case None{}:
+      0
+    case Some{+b}:
+      (ev_bits.b(b) << U32.to_nat((((N.kcode(k) .&. 3 : U32) * 8 : U32) + (U32.from_nat(p) * 2 : U32) : U32)) : U32)
+
+def ev_word_ps(ps: List<&2, Nat>, +k: R.NodeKind, +acc: U32) -> U32:
+  match ps:
+    case Nil{}:
+      acc
+    case Con{+p, t}:
+      ev_word_ps(t, k, (acc .|. ev_bits(ev_eraser(eraser_codes(), k, p), k, p) : U32))
+
+def ev_word_k.hit(hit: Bool, +k: R.NodeKind, +acc: U32) -> U32:
+  match hit:
+    case True{}:
+      ev_word_ps(ev_ports(), k, acc)
+    case False{}:
+      acc
+
+# word w: kinds 4w to 4w + 3
+def ev_word_k(ks: List<&2, R.NodeKind>, +w: U32, +acc: U32) -> U32:
+  match ks:
+    case Nil{}:
+      acc
+    case Con{+k, t}:
+      ev_word_k(t, w, ev_word_k.hit(U32.is_eq((N.kcode(k) >> 2n : U32), w), k, acc))
+
+def ev_most_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat, +m: Nat) -> Nat:
+  match bs:
+    case Nil{}:
+      m
+    case Con{+b, t}:
+      ev_most_b(t, a, p, nat_max(m, R.pairs_made(ev_rule(R.event(a, b, p)))))
+
+def ev_most_p(ps: List<&2, Nat>, +a: R.NodeKind, +m: Nat) -> Nat:
+  match ps:
+    case Nil{}:
+      m
+    case Con{+p, t}:
+      ev_most_p(t, a, ev_most_b(eraser_codes(), a, p, m))
+
+# the most active pairs one event makes
+def ev_most(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
+  match as:
+    case Nil{}:
+      m
+    case Con{+a, t}:
+      ev_most(t, ev_most_p(ev_ports(), a, m))
+
+def spec_k(xs: List<&2, R.Spec>, +j: Nat) -> R.NodeKind:
+  spec_kind(spec_at(xs, j))
+
+# an eraser's principal, new node j port p, facing an auxiliary port of
+# new node k, port q, that it erases
+def inner_ev.dir(+xs: List<&2, R.Spec>, +j: Nat, +p: Nat, +k: Nat, +q: Nat) -> Bool:
+  is_eraser(spec_k(xs, j)) && Nat.is_eq(p, 0n) && Nat.is_ne(q, 0n) && Bool.not(is_stuck(R.event(spec_k(xs, k), spec_k(xs, j), q)))
+
+def inner_ev.link(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> Bool:
+  match u v:
+    case R.New{+j, +p} R.New{+k, +q}:
+      inner_ev.dir(xs, j, p, k, q) || inner_ev.dir(xs, k, q, j, p)
+    case _ _:
+      False{}
+
+def inner_ev.ls(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>) -> Bool:
+  match ls:
+    case Nil{}:
+      False{}
+    case Con{R.Link{u, v}, t}:
+      inner_ev.link(xs, u, v) || inner_ev.ls(xs, t)
+
+def inner_ev.r(r: R.Rule) -> Bool:
+  match r:
+    case R.RWire{+xs, ls}:
+      inner_ev.ls(xs, ls)
+    case R.RStuck{}:
+      False{}
+
+def inner_ev.hit(bad: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match bad:
+    case True{}:
+      " + inner_event_" ++ kname(a) ++ "_" ++ kname(b)
+    case False{}:
+      ""
+
+def inner_ev_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      inner_ev.hit(inner_ev.r(R.rule(a, b, True{})) || inner_ev.r(R.rule(a, b, False{})), a, b) ++ inner_ev_b(t, a)
+
+def inner_ev_a(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      inner_ev_b(kinds(), a) ++ inner_ev_a(t)
+
+def events() -> String:
+  "# Events (R.event)\n\n" ++
+  "# rules linking two of their own new nodes into an event: none, or this\n" ++
+  "# names what does not exist\n" ++
+  "def inner_events() -> U32:\n  0" ++ inner_ev_a(kinds()) ++ "\n\n" ++
+  "# the eraser kind making an event at port p of kind k, 0 for none: two\n" ++
+  "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word\n" ++
+  "def ev_word(+w: U32) -> U32:\n  match w:\n" ++
+  "    case 0:\n      " ++ U32.show(ev_word_k(kinds(), 0, 0)) ++ "\n" ++
+  "    case 1:\n      " ++ U32.show(ev_word_k(kinds(), 1, 0)) ++ "\n" ++
+  "    case 2:\n      " ++ U32.show(ev_word_k(kinds(), 2, 0)) ++ "\n" ++
+  "    case _:\n      " ++ U32.show(ev_word_k(kinds(), 3, 0)) ++ "\n\n" ++
+  "def ev_by.c(+c: U32) -> U32:\n  match c:\n    case 0:\n      0\n    case _:\n      (c + 5 : U32)\n\n" ++
+  "def ev_by(+k: U32, +p: U32) -> U32:\n" ++
+  "  ev_by.c(((ev_word((k >> 2n : U32)) >> U32.to_nat((((k .&. 3 : U32) * 8 : U32) + (p * 2 : U32) : U32)) : U32) .&. 3 : U32))\n\n" ++
+  "# may port p of kind k be one end of an event: an eraser's principal, or\n" ++
+  "# an auxiliary port some eraser makes an event at\n" ++
+  "def ev_end(+k: U32, +p: U32) -> Bool:\n" ++
+  "  (U32.is_eq(p, 0) && U32.is_eq((k .|. 1 : U32), 7)) || U32.is_ne(ev_by(k, p), 0)\n\n" ++
+
+  "# the most active pairs one event makes\n" ++
+  "def ev_most() -> U32:\n  " ++ Nat.show(ev_most(kinds(), 0n)) ++ "\n\n" ++
+  ev_over(0, kinds()) ++ ev_over(1, kinds()) ++
+  "# the event at port p of a node of kind ka, A, the eraser facing it B;\n" ++
+  "# e0 the peer of A's principal, e1 of its other auxiliary port\n" ++
+  "def event(+ka: U32, +p: U32, h: P.H, " ++ common(False{}) ++ ") -> P.H:\n" ++
+  "  match ka p:\n" ++ ev_over(2, kinds()) ++ "    case _ _:\n      P.h_err(h)\n\n" ++
+  "# the same, noting the pairs it makes on the strategy's stack\n" ++
+  "def event.e(+ka: U32, +p: U32, h: P.H, " ++ common(True{}) ++ ") -> P.E:\n" ++
+  "  match ka p:\n" ++ ev_over(3, kinds()) ++ "    case _ _:\n      P.E{P.h_err(h), st}\n\n"
+
 def file() -> String:
   "import Base\n" ++
   "import ./kprim.bend as P\n\n" ++
@@ -880,6 +1164,7 @@ def file() -> String:
   "    case _ _:\n      False{}\n\n" ++
   over_a(False{}, kinds(), True{}) ++
   over_a(True{}, kinds(), True{}) ++
+  events() ++
   "# the rewrite for A, negative principal, meeting B; t is the payload test\n" ++
   "def rewrite(+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common(False{}) ++ ") -> P.H:\n" ++
   "  match ka kb:\n" ++

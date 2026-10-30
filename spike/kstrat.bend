@@ -4,8 +4,9 @@ import ./kprim.bend as P
 import ./krules.bend as KR
 import ./knet.bend as KN
 import ./kmem_grow.bend as KM
+import ./net.bend as N
 
-# Strategies over a net (heap-strategies in docs/plans/HeapModel_2026-10-27.md):
+# Strategies over a net (heap-strategies in docs/plans/HeapModel_2026-10-27.fast):
 # each wraps a net (knet.bend) with state of its own, decides which pair is
 # next, and hands the net back when done. The net records none of its
 # active pairs: a strategy finds them itself (heap-strategies.stack).
@@ -63,7 +64,22 @@ def run(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
         case P.Pop{h, st, +x, +y, +ok}:
           match ok:
             case True{}:
-              run(p, fast, P.pop(KN.interact.e(h, st, fast, x, y), KR.most_pairs()))
+              run(p, fast, P.pop(KN.interact.e(~KN.go.none.e, h, st, fast, x, y), KR.most_pairs()))
+            case False{}:
+              Ran{h, 1n+p}
+
+# the same, running events (knet.bend's Events): a loop of its own, so
+# that the one without them compiles as it did
+def run.v(n: Nat, +fast: Bool, pp: P.Pop) -> Ran:
+  match n:
+    case 0n:
+      Ran{P.unpop(pp), 0n}
+    case 1n+p:
+      match pp:
+        case P.Pop{h, st, +x, +y, +ok}:
+          match ok:
+            case True{}:
+              run.v(p, fast, P.pop(KN.interact.e(~KN.ev.settle.e, h, st, fast, x, y), KR.most_pairs()))
             case False{}:
               Ran{h, 1n+p}
 
@@ -72,19 +88,27 @@ def ran(r: Ran, +fuel: Nat) -> P.H:
     case Ran{h, +left}:
       P.count(h, U32.from_nat(Nat.sub(fuel, left)))
 
-def reduce.go(st: P.Stk, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H:
-  ran(run(fuel, fast, P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), KR.most_pairs())), fuel)
+def reduce.pop(st: P.Stk, h: P.H, +wcap: U32) -> P.Pop:
+  P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), KR.most_pairs())
 
-def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
+def reduce.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool, +ev: Bool) -> P.H:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      reduce.go(P.stk_new(P.rs_words(cap)), h, cap, fuel, fast)
+      match ev:
+        case True{}:
+          ran(run.v(fuel, fast, reduce.pop(P.stk_new(P.rs_words(cap)), h, cap)), fuel)
+        case False{}:
+          ran(run(fuel, fast, reduce.pop(P.stk_new(P.rs_words(cap)), h, cap)), fuel)
 
 # a run of at most fuel interactions, which counts them by the fuel it
 # used; the stack, with room for half the nodes, is let go at the end
 def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
-  reduce.st(P.stats(h), fuel, fast)
+  reduce.st(P.stats(h), fuel, fast, False{})
+
+# the same, running events
+def reduce_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
+  reduce.st(P.stats(h), fuel, fast, True{})
 
 # Two stacks
 # ==========
@@ -118,24 +142,24 @@ def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
 
 # the pair x - y reduced, unless the fuel's interactions are made: then the
 # run ends with the pair left
-def two.int(more: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32) -> P.Pop2:
+def two.int(~after: P.E -> @+x:N.Ext -> P.E, more: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32) -> P.Pop2:
   match more:
     case True{}:
-      P.pop2(KN.interact.e(h, st, fast, x, y), KR.most_pairs(), (k + 1 : U32))
+      P.pop2(KN.interact.e(~after, h, st, fast, x, y), KR.most_pairs(), (k + 1 : U32))
     case False{}:
       P.Pop2{h, st, x, y, 0, k}
 
-def two.go(g: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
+def two.go(~after: P.E -> @+x:N.Ext -> P.E, g: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
   match g:
     case True{}:
       P.pop2(P.E{h, P.far_push(st, x)}, KR.most_pairs(), k)
     case False{}:
-      two.int(U32.is_lt(k, lim), h, st, fast, x, y, k)
+      two.int(~after, U32.is_lt(k, lim), h, st, fast, x, y, k)
 
 # a pair from the near end: deferred if it grows, else reduced
-def two.near(r: P.H & Bool, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
+def two.near(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & Bool, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +k: U32, +lim: U32) -> P.Pop2:
   (h, +g) = r
-  two.go(g, h, st, fast, x, y, k, lim)
+  two.go(~after, g, h, st, fast, x, y, k, lim)
 
 # lim interactions at most, in n steps
 def run2(n: Nat, +fast: Bool, +lim: U32, q: P.Pop2) -> P.H:
@@ -149,20 +173,46 @@ def run2(n: Nat, +fast: Bool, +lim: U32, q: P.Pop2) -> P.H:
             case 0:
               P.count(h, k)
             case 1:
-              run2(p, fast, lim, two.near(two.grows(h, x, y), st, fast, x, y, k, lim))
+              run2(p, fast, lim, two.near(~KN.go.none.e, two.grows(h, x, y), st, fast, x, y, k, lim))
             case _:
-              run2(p, fast, lim, two.int(U32.is_lt(k, lim), h, st, fast, x, y, k))
+              run2(p, fast, lim, two.int(~KN.go.none.e, U32.is_lt(k, lim), h, st, fast, x, y, k))
 
-def reduce2.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H:
+# the same, running events
+def run2.v(n: Nat, +fast: Bool, +lim: U32, q: P.Pop2) -> P.H:
+  match n:
+    case 0n:
+      P.unpop2(q)
+    case 1n+p:
+      match q:
+        case P.Pop2{h, st, +x, +y, +src, +k}:
+          match src:
+            case 0:
+              P.count(h, k)
+            case 1:
+              run2.v(p, fast, lim, two.near(~KN.ev.settle.e, two.grows(h, x, y), st, fast, x, y, k, lim))
+            case _:
+              run2.v(p, fast, lim, two.int(~KN.ev.settle.e, U32.is_lt(k, lim), h, st, fast, x, y, k))
+
+def reduce2.pop(h: P.H, +cap: U32) -> P.Pop2:
+  P.pop2(scan(U32.to_nat((cap - P.first() : U32)), P.iface(), P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs(), 0)
+
+def reduce2.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool, +ev: Bool) -> P.H:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      run2(Nat.mul(fuel, 2n), fast, U32.from_nat(fuel), P.pop2(scan(U32.to_nat((cap - P.first() : U32)), P.iface(),
-        P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs(), 0))
+      match ev:
+        case True{}:
+          run2.v(Nat.mul(fuel, 2n), fast, U32.from_nat(fuel), reduce2.pop(h, cap))
+        case False{}:
+          run2(Nat.mul(fuel, 2n), fast, U32.from_nat(fuel), reduce2.pop(h, cap))
 
 # reduce_h with two stacks: at most fuel interactions
 def reduce2_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
-  reduce2.st(P.stats(h), fuel, fast)
+  reduce2.st(P.stats(h), fuel, fast, False{})
+
+# the same, running events
+def reduce2_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
+  reduce2.st(P.stats(h), fuel, fast, True{})
 
 # Profiling
 # =========
@@ -294,9 +344,9 @@ type PPop is Type:
   PPop{pp: P.Pop, pf: Pf}
 
 # the pair x - y, counted, interacts; the next is popped
-def pstep(r: P.H & Pf, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> PPop:
+def pstep(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & Pf, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> PPop:
   (h, pf) = r
-  PPop{P.pop(KN.interact.e(h, st, fast, x, y), KR.most_pairs()), pf}
+  PPop{P.pop(KN.interact.e(~after, h, st, fast, x, y), KR.most_pairs()), pf}
 
 def prun(n: Nat, +fast: Bool, q: PPop) -> PRan:
   match n:
@@ -311,7 +361,27 @@ def prun(n: Nat, +fast: Bool, q: PPop) -> PRan:
             case P.Pop{h, st, +x, +y, +ok}:
               match ok:
                 case True{}:
-                  prun(p, fast, pstep(probe(h, pf, x, y), st, fast, x, y))
+                  prun(p, fast, pstep(~KN.go.none.e, probe(h, pf, x, y), st, fast, x, y))
+                case False{}:
+                  PRan{h, pf, 1n+p}
+
+# the same, running events, which the net counts by kind (P.evk) and the
+# profile leaves out of the logical interactions: they are patterns
+# recognized, not interactions (heap-strategies.erasure.kernel)
+def prun.v(n: Nat, +fast: Bool, q: PPop) -> PRan:
+  match n:
+    case 0n:
+      match q:
+        case PPop{pp, pf}:
+          PRan{P.unpop(pp), pf, 0n}
+    case 1n+p:
+      match q:
+        case PPop{pp, pf}:
+          match pp:
+            case P.Pop{h, st, +x, +y, +ok}:
+              match ok:
+                case True{}:
+                  prun.v(p, fast, pstep(~KN.ev.settle.e, probe(h, pf, x, y), st, fast, x, y))
                 case False{}:
                   PRan{h, pf, 1n+p}
 
@@ -320,18 +390,26 @@ def pran(r: PRan, +fuel: Nat) -> P.H & Pf:
     case PRan{h, pf, +left}:
       (P.count(h, U32.from_nat(Nat.sub(fuel, left))), pf)
 
-def reduce_p.go(st: P.Stk, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool) -> P.H & Pf:
-  pran(prun(fuel, fast, PPop{P.pop(scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), P.E{h, st}), KR.most_pairs()), pf_new()}), fuel)
+def reduce_p.go(st: P.Stk, h: P.H, +wcap: U32, +fuel: Nat, +fast: Bool, +ev: Bool) -> P.H & Pf:
+  match ev:
+    case True{}:
+      pran(prun.v(fuel, fast, PPop{reduce.pop(st, h, wcap), pf_new()}), fuel)
+    case False{}:
+      pran(prun(fuel, fast, PPop{reduce.pop(st, h, wcap), pf_new()}), fuel)
 
-def reduce_p.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool) -> P.H & Pf:
+def reduce_p.st(r: P.H & P.HS, +fuel: Nat, +fast: Bool, +ev: Bool) -> P.H & Pf:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      reduce_p.go(P.stk_new(P.rs_words(cap)), h, cap, fuel, fast)
+      reduce_p.go(P.stk_new(P.rs_words(cap)), h, cap, fuel, fast, ev)
 
 # reduce_h, profiled
 def reduce_p(+fuel: Nat, +fast: Bool, h: P.H) -> P.H & Pf:
-  reduce_p.st(P.stats(h), fuel, fast)
+  reduce_p.st(P.stats(h), fuel, fast, False{})
+
+# reduce_h.v, profiled
+def reduce_p.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H & Pf:
+  reduce_p.st(P.stats(h), fuel, fast, True{})
 
 def pf.one(+i: U32, +n: U32) -> String:
   match n:
@@ -456,73 +534,73 @@ def wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
 # b's is freed (heap-strategies.reuse): b's slot is free after a rewrite
 # and held if stuck. The test itself is left to the rewrite, its only
 # caller.
-def wk.rw(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def wk.rw(~after: P.H -> @+x:N.Ext -> P.H, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
-      wk.back(KN.go(h, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
+      wk.back(KN.go(~after, h, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
     case 1:
       d.stop(h, path, top, depth, n, 3)
     case _:
-      wk.hb(P.rd(KN.go(h, True{}, a, b, ha, hb), b), path, top, depth, n)
+      wk.hb(P.rd(KN.go(~after, h, True{}, a, b, ha, hb), b), path, top, depth, n)
 
-def nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.lz(~after: P.H -> @+x:N.Ext -> P.H, z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:
     case P.Lz{h, +lazy, +k}:
       match lazy:
         case True{}:
           D{h, path, top, depth, n, 2}
         case False{}:
-          wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
+          wk.rw(~after, KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-def nd.pb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.pb(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   (h, +pb) = r
-  nd.lz(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
+  nd.lz(~after, P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
 
-def nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.go(~after: P.H -> @+x:N.Ext -> P.H, chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match chk:
     case True{}:
-      nd.pb(P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
+      nd.pb(~after, P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
     case False{}:
-      wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
+      wk.rw(~after, KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
 # an application or a strict call meeting data in the table
 def may_need(+ha: U32, +hb: U32) -> Bool:
   (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
-def wk.ori(neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
+def wk.ori(~after: P.H -> @+x:N.Ext -> P.H, neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
   match neg:
     case True{}:
-      nd.go(may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
+      nd.go(~after, may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
     case False{}:
-      nd.go(may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
+      nd.go(~after, may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
 
-def wk.hy(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
+def wk.hy(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
   (h, +hy) = r
-  wk.ori(KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
+  wk.ori(~after, KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
 
-def wk.hx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.hx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hx) = r
-  wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
+  wk.hy(~after, P.rd(h, y), path, top, depth, n, y, hx)
 
 # the interface facing a principal port: a control's moves past it (the
 # root's rule keeps the interface), anything else is the value
-def wk.root.go(c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
-      d.go(KN.interact(h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
+      d.go(KN.interact(~after, h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
       d.stop(h, path, 0, depth, n, 1)
 
-def wk.root(r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
-  wk.root.go(U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
+  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
 
-def wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.pair(~after: P.H -> @+x:N.Ext -> P.H, root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:
     case True{}:
-      wk.root(P.rd(h, y), path, depth, n, y)
+      wk.root(~after, P.rd(h, y), path, depth, n, y)
     case False{}:
-      wk.hx(P.rd(h, top), path, top, depth, n, y)
+      wk.hx(~after, P.rd(h, top), path, top, depth, n, y)
 
 # The path's nodes are distinct unless the walk has gone round a vicious
 # circle, principal ports each facing an auxiliary one, a deadlock that
@@ -594,12 +672,12 @@ def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U
     case False{}:
       d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
-def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match nil pr:
     case True{} _:
       d.stop(h, path, top, depth, n, 3)
     case False{} True{}:
-      wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
+      wk.pair(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
       wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
@@ -639,15 +717,15 @@ def wk.down(f: Nat, s: Dn) -> Dn:
             case False{}:
               Dn{False{}, h, path, top, depth, q}
 
-def wk.c(s: Dn, +n: U32) -> D:
+def wk.c(~after: P.H -> @+x:N.Ext -> P.H, s: Dn, +n: U32) -> D:
   match s:
     case Dn{+go, h, path, +top, +depth, +q}:
-      wk.q.go(U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
+      wk.q.go(~after, U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
 
 # what the path's last node's principal port faces
-def wk.q(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
+def wk.q(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +q) = r
-  wk.c(wk.down(4294967295n, Dn{dn.can(q, depth), h, path, top, depth, q}), n)
+  wk.c(~after, wk.down(4294967295n, Dn{dn.can(q, depth), h, path, top, depth, q}), n)
 
 def d.out(+st: U32) -> U32:
   match st:
@@ -671,7 +749,22 @@ def demand(k: Nat, d: D) -> D:
         case D{h, path, +top, +depth, +n, +st}:
           match st:
             case 0:
-              demand(p, wk.q(P.rd(h, (top + 1 : U32)), path, top, depth, n))
+              demand(p, wk.q(~KN.go.none, P.rd(h, (top + 1 : U32)), path, top, depth, n))
+            case _:
+              D{h, path, top, depth, n, st}
+
+# the same, running events (knet.bend's Events), which free no node on
+# the path (law events_erase_last)
+def demand.v(k: Nat, d: D) -> D:
+  match k:
+    case 0n:
+      d.end(d)
+    case 1n+p:
+      match d:
+        case D{h, path, +top, +depth, +n, +st}:
+          match st:
+            case 0:
+              demand.v(p, wk.q(~KN.ev.settle, P.rd(h, (top + 1 : U32)), path, top, depth, n))
             case _:
               D{h, path, top, depth, n, st}
 

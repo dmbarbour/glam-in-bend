@@ -13,6 +13,10 @@ note. Results hang off runs:
   library  the library of nets (spike/tools/library.py --store), one row
            per entry and mode: whether its checks passed, its value, and
            the interactions of the spike, the full reduction, demand and two stacks
+  library_ev  the same in the erasure modes: interactions and events
+           eager, on demand (and its nodes live after, and demand's
+           without events) and with two stacks; eager profiled, its
+           logical interactions and its events by kind (` k:n`)
   counts   instructions and interactions per build and workload
   metrics  any named number
 
@@ -20,6 +24,7 @@ note. Results hang off runs:
     results.py terms RUN ENDING MODE SEED FILE   import a differential output
     results.py profiles RUN ENDING MODE SEED FILE  import a profile output
     results.py library RUN FILE                  import library.py's rows
+    results.py library_ev RUN FILE               and its erasure modes' rows
     results.py count RUN BUILD WORKLOAD K LAZY ITRS INSTRUCTIONS [CYCLES]
     results.py metric RUN NAME VALUE
     results.py sql QUERY                         print rows, tab-separated
@@ -73,7 +78,15 @@ create table if not exists library (
   run_id integer not null references runs(id), name text not null, mode text not null, ok integer,
   value text, spike_i integer, fast_i integer, lazy_i integer, logical integer, peels integer,
   two_i integer, primary key (run_id, name, mode));
+create table if not exists library_ev (
+  run_id integer not null references runs(id), name text not null, mode text not null,
+  ev_i integer, ev_n integer, evlazy_i integer, evlazy_n integer, evlazy_live integer,
+  evtwo_i integer, evtwo_n integer, lazy_live integer, evprof_logical integer, ev_kinds text,
+  primary key (run_id, name, mode));
 """
+
+# columns added to a table after a store was made: (table, column, type)
+LATER = [("library_ev", "evprof_logical", "integer"), ("library_ev", "ev_kinds", "text")]
 
 # one line of terms.py --kernel's output
 TERM = re.compile(
@@ -88,13 +101,16 @@ PROFILE = re.compile(
 
 # rule kinds by code (kprim.bend's header, low four bits)
 KINDS = {1: "Fn", 2: "Ap", 3: "Copy", 4: "Merge", 5: "Data", 6: "EraN", 7: "EraP", 8: "Root", 9: "Call",
-         10: "Lift", 11: "LiftC"}
+         10: "Lift", 11: "LiftC", 12: "CopyL", 13: "CopyR", 14: "MergeL", 15: "MergeR"}
 
 
 def db():
     os.makedirs(os.path.dirname(DB), exist_ok=True)
     c = sqlite3.connect(DB)
     c.executescript(SCHEMA)
+    for table, col, ty in LATER:
+        if col not in [r[1] for r in c.execute(f"pragma table_info({table})")]:
+            c.execute(f"alter table {table} add column {col} {ty}")
     return c
 
 
@@ -178,6 +194,16 @@ def cmd_library(run, path):
     print(len(rows), "library cases from", path)
 
 
+def cmd_library_ev(run, path):
+    rows = []
+    for line in open(path):
+        f = line.rstrip("\n").split("\t")
+        rows.append((int(run), f[0], f[1]) + tuple(int(x) for x in f[2:10]) + (None if f[10] == "" else int(f[10]), f[11]))
+    with db() as c:
+        c.executemany("insert or replace into library_ev values (" + ",".join("?" * 13) + ")", rows)
+    print(len(rows), "library cases in the erasure modes from", path)
+
+
 def cmd_count(run, build, workload, k, lazy, itrs, ins, cycles=None):
     with db() as c:
         c.execute("insert into counts values (?,?,?,?,?,?,?,?)",
@@ -225,7 +251,7 @@ group by a.mode order by a.mode
 
 
 def main(argv):
-    cmds = {"run": cmd_run, "terms": cmd_terms, "profiles": cmd_profiles, "library": cmd_library, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
+    cmds = {"run": cmd_run, "terms": cmd_terms, "profiles": cmd_profiles, "library": cmd_library, "library_ev": cmd_library_ev, "count": cmd_count, "metric": cmd_metric, "sql": cmd_sql,
             "summary": lambda run: cmd_sql(SUMMARY.format(run=int(run))),
             "fusion": lambda on, off: cmd_sql(FUSION.format(on=int(on), off=int(off)))}
     if not argv or argv[0] not in cmds:

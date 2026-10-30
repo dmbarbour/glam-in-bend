@@ -2,8 +2,12 @@
 """The library of nets (pairing-library in docs/plans/NetPairing_2026-10-26.md):
 small nets kept for what they exercise, each run through the spike, the
 kernel's interpreted table and its generated rewrites, on demand, with
-two stacks, and by the profiling strategy. What must hold is checked; interactions are
-measurements, recorded in the analysis store when asked.
+two stacks, by the profiling strategy, and in the erasure modes, which
+run events (heap-strategies.erasure.kernel): eager by the generated
+rewrites and by the interpreted table, on demand, with two stacks, and
+profiled, its logical interactions those of the interactions made, its
+events by kind apart. What must hold is checked; interactions and events
+are measurements, recorded in the analysis store when asked.
 
     library.py OUT [--update] [--store NOTE] [NAME...]
 
@@ -38,6 +42,11 @@ What must hold is one of
            and the full reductions no value
   wrong    a mode known to miss the value (labels on some
            self-applications), which must still miss it.
+The erasure modes must reach the same value where every strategy must,
+and demand's where demand must; events change the interactions, which are
+measured, the generated rewrites and the interpreted table making the
+same interactions and events, and the profile with events as many as the
+generated rewrites.
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -177,6 +186,16 @@ def lazy_str(r: K.DRes) -> String:
     case K.DRes{k, +st, +lz, +live, +cap, +reach}:
       res_str(k) ++ " " ++ K.st_name(st) ++ ", " ++ U32.show(live) ++ " live of " ++ U32.show(cap) ++ ", " ++ U32.show(reach) ++ " reached"
 
+def ev_str(r: K.ERes) -> String:
+  match r:
+    case K.ERes{k, +evs}:
+      res_str(k) ++ " ev " ++ U32.show(evs)
+
+def evlazy_str(r: K.EDRes) -> String:
+  match r:
+    case K.EDRes{k, +evs}:
+      lazy_str(k) ++ " ev " ++ U32.show(evs)
+
 # a case through every strategy
 def one(+k: U32) -> String:
   "#" ++ U32.show(k) ++ ": spike " ++ spike_str(T.result(T.run(tpl_of(k), fuel_of(k, 1n)))) ++
@@ -184,6 +203,11 @@ def one(+k: U32) -> String:
     " | fast " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{})) ++
     " | lazy " ++ lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), [])) ++
     " | two " ++ res_str(K.run_two(tpl_of(k), fuel_of(k, 0n), True{})) ++
+    " | ev " ++ ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), True{})) ++
+    " | evref " ++ ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), False{})) ++
+    " | evlazy " ++ evlazy_str(K.run_dev(tpl_of(k), fuel_of(k, 2n), [])) ++
+    " | evtwo " ++ ev_str(K.run_two_ev(tpl_of(k), fuel_of(k, 0n), True{})) ++
+    " | evprof " ++ K.profile_ev(tpl_of(k), fuel_of(k, 0n), True{}) ++
     " | prof " ++ K.profile_t(tpl_of(k), fuel_of(k, 0n), True{})
 
 def all(n: Nat, +k: U32) -> String:
@@ -226,7 +250,11 @@ def program(cs, out):
 
 
 RES = r"(\S+) \((\d+), (\d+)\)(!?)"
-LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} (.+?), (\d+) live of (\d+), (\d+) reached \| two {RES}"
+LAZY = r"(.+?), (\d+) live of (\d+), (\d+) reached"
+LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {RES} \| lazy {RES} {LAZY} \| two {RES}"
+                  rf" \| ev {RES} ev (\d+) \| evref {RES} ev (\d+) \| evlazy {RES} {LAZY} ev (\d+) \| evtwo {RES} ev (\d+)"
+                  r" \| evprof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs[^|;]*;"
+                  r" events (\d+) by kind([^|]*)"
                   r" \| prof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs(.*)$")
 
 
@@ -238,9 +266,21 @@ class Run:
         self.lazy = (g[12], int(g[13]), int(g[14]), g[15])
         self.state, self.live, self.cap, self.reach = g[16], int(g[17]), int(g[18]), int(g[19])
         self.two = (g[20], int(g[21]), int(g[22]), g[23])
-        self.prof = (g[24], int(g[25]), int(g[26]))
-        self.logical = None if g[27].startswith("past") else int(g[27])
-        self.peels, self.wide = int(g[28]), int(g[29])
+        # the erasure modes: value, interactions, errors, table, events
+        self.ev = (g[24], int(g[25]), int(g[26]), g[27], int(g[28]))
+        self.evref = (g[29], int(g[30]), int(g[31]), g[32], int(g[33]))
+        self.evlazy = (g[34], int(g[35]), int(g[36]), g[37], int(g[42]))
+        self.evstate, self.evlive = g[38], int(g[39])
+        self.evtwo = (g[43], int(g[44]), int(g[45]), g[46], int(g[47]))
+        # profiled with events: value, interactions, errors; its events,
+        # logical interactions and events by kind
+        self.evprof = (g[48], int(g[49]), int(g[50]))
+        self.evprof_n = int(g[54])
+        self.evlogical = None if g[51].startswith("past") else int(g[51])
+        self.evkinds = g[55].strip()
+        self.prof = (g[56], int(g[57]), int(g[58]))
+        self.logical = None if g[59].startswith("past") else int(g[59])
+        self.peels, self.wide = int(g[60]), int(g[61])
 
 
 def check(c, r):
@@ -255,11 +295,17 @@ def check(c, r):
             bad.append(f"demand ends {r.state}, not a cycle")
         if r.fast[0] != "none":
             bad.append(f"the full reduction gives {r.fast[0]}")
+        if r.evstate != "a cycle":
+            bad.append(f"demand with events ends {r.evstate}, not a cycle")
+        if r.ev[0] != "none":
+            bad.append(f"the full reduction with events gives {r.ev[0]}")
     elif d:
         if c.value is not None and d.group(1) != str(c.value):
             bad.append(f"the library says {d.group(1)}, the evaluator {c.value}")
         if r.lazy[0] != d.group(1) or r.state != "done":
             bad.append(f"demand gives {r.lazy[0]}, {r.state}, not {d.group(1)}")
+        if r.evlazy[0] != d.group(1) or r.evstate != "done":
+            bad.append(f"demand with events gives {r.evlazy[0]}, {r.evstate}, not {d.group(1)}")
     elif not m:
         bad.append(f"wants `{c.want}`, not `VALUE logical L peels P` (--update fills them)")
     if m:
@@ -267,8 +313,9 @@ def check(c, r):
         if c.value is not None and want != str(c.value):
             bad.append(f"the library says {want}, the evaluator {c.value}")
         for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("two", r.two),
-                           ("profile", r.prof)):
-            if res[0] != want and not (label == "profile" and res[0] == "no value" and want == "none"):
+                           ("profile", r.prof), ("ev", r.ev), ("evref", r.evref), ("evlazy", r.evlazy),
+                           ("evtwo", r.evtwo), ("evprofile", r.evprof)):
+            if res[0] != want and not (label in ("profile", "evprofile") and res[0] == "no value" and want == "none"):
                 bad.append(f"{label} gives {res[0]}, not {want}")
         if r.logical != int(m.group(2)):
             bad.append(f"{r.logical} logical interactions, not {m.group(2)}")
@@ -276,16 +323,22 @@ def check(c, r):
             bad.append(f"{r.peels} peels, not {m.group(3)}")
         if r.state != "done":
             bad.append(f"demand ends {r.state}")
+        if r.evstate != "done":
+            bad.append(f"demand with events ends {r.evstate}")
         if r.lazy[1] > r.fast[1]:
             bad.append(f"demand makes {r.lazy[1]} interactions, the full reduction {r.fast[1]}")
     for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("two", r.two),
-                       ("profile", r.prof)):
+                       ("profile", r.prof), ("ev", r.ev), ("evref", r.evref), ("evlazy", r.evlazy),
+                       ("evtwo", r.evtwo), ("evprofile", r.evprof)):
         if res[2]:
             bad.append(f"{label} counts {res[2]} errors")
         if len(res) > 3 and res[3]:
             bad.append(f"{label}'s data table or free list out of step")
     if r.ref[1] != r.fast[1] or r.prof[1] != r.fast[1]:
         bad.append(f"interactions differ: ref {r.ref[1]}, fast {r.fast[1]}, profile {r.prof[1]}")
+    if r.evref[1] != r.ev[1] or r.evref[4] != r.ev[4] or r.evprof[1] != r.ev[1] or r.evprof_n != r.ev[4]:
+        bad.append(f"with events, interactions or events differ: evref {r.evref[1]}, {r.evref[4]},"
+                   f" ev {r.ev[1]}, {r.ev[4]}, evprofile {r.evprof[1]}, {r.evprof_n}")
     if r.wide:
         bad.append(f"{r.wide} interactions too wide to count as logical ones")
     return bad
@@ -302,6 +355,13 @@ def store(note, out, runs):
                 c.entry, c.mode, int(not check(c, r)), r.fast[0], r.spike[1], r.fast[1], r.lazy[1],
                 "" if r.logical is None else r.logical, r.peels, r.two[1])) + "\n")
     subprocess.run(R + ["library", run, rows], check=True)
+    evrows = os.path.join(out, "evrows.tsv")
+    with open(evrows, "w") as f:
+        for c, r in runs:
+            f.write("\t".join(str(x) for x in (
+                c.entry, c.mode, r.ev[1], r.ev[4], r.evlazy[1], r.evlazy[4], r.evlive, r.evtwo[1], r.evtwo[4],
+                r.live, "" if r.evlogical is None else r.evlogical, r.evkinds)) + "\n")
+    subprocess.run(R + ["library_ev", run, evrows], check=True)
     return run
 
 
@@ -367,7 +427,9 @@ def main(argv):
         else:
             print(f"ok   {c.entry} {c.mode}: {r.fast[0]} in {r.fast[1]} interactions, demand {r.lazy[1]}"
                   f" ({r.live} live of {r.cap}, {r.reach} reached),"
-                  f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels")
+                  f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels;"
+                  f" events: eager {r.ev[1]}+{r.ev[4]} (logical {r.evlogical}), demand {r.evlazy[1]}+{r.evlazy[4]}"
+                  f" ({r.evlive} live), two {r.evtwo[1]}+{r.evtwo[4]}")
     if update:
         with open(LIBRARY, "w") as f:
             f.write("\n".join(lines))

@@ -5,12 +5,13 @@ import ./nets.bend as X
 import ./kprim.bend as P
 import ./knet.bend as KN
 import ./kstrat.bend as KS
+import ./kmem_grow.bend as KM
 
 # The kernel as a program, and the entry points tests use: a template
 # reduced fully by the eager strategy or on demand (kstrat.bend), over the
 # net of knet.bend.
 #
-#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two]
+#   kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two|ev|evlazy|evtwo|evprofile]
 #       reduce `k 2 succ 0` (2^k) built without levels; with plus
 #       `k 2 (plus 1) 0`, adding by a partial application in a node; with
 #       fma `k 2 (fma 1 1) 0`, by one in the data table; with lvl
@@ -21,7 +22,10 @@ import ./kstrat.bend as KS
 #       kstrat.bend's Demand), the state it ends in and the nodes left;
 #       with profile, by the profiling strategy (kstrat.bend's Profiling),
 #       the logical interactions, peels and interactions by pair of kinds;
-#       with two, by the two-stack strategy (kstrat.bend's Two stacks)
+#       with two, by the two-stack strategy (kstrat.bend's Two stacks);
+#       with ev, evlazy and evtwo, the eager, demand and two-stack
+#       strategies running events (knet.bend's Events), counted; with
+#       evprofile, the profiling strategy running them, by kind
 
 # the value at the root, interactions, errors, and whether the audits pass:
 # the table's live entries match the nodes holding them, the free list the
@@ -75,6 +79,39 @@ def run_two(t: T.Tpl, +fuel: Nat, +fast: Bool) -> KRes:
 def reduce(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   KN.report(KN.result(KS.reduce_h(fuel, fast, KN.load(t))))
 
+# Erasure modes
+# =============
+#
+# The strategies running events (knet.bend's Events): a result as KRes,
+# and the events counted.
+
+type ERes is Data:
+  ERes{r: KRes, +evs: U32}
+
+def eres.e(r: P.H & U32, v: Maybe<&2, V.Val>) -> ERes:
+  (h, +evs) = r
+  ERes{kres.h(h, v), evs}
+
+def eres(r: P.H & Maybe<&2, V.Val>) -> ERes:
+  (h, v) = r
+  eres.e(P.evs(h), v)
+
+# reduce t as run_t does, running events
+def run_ev(t: T.Tpl, +fuel: Nat, +fast: Bool) -> ERes:
+  eres(KN.result(KS.reduce_h.v(fuel, fast, KN.load(t))))
+
+# reduce t as run_two does, running events
+def run_two_ev(t: T.Tpl, +fuel: Nat, +fast: Bool) -> ERes:
+  eres(KN.result(KS.reduce2_h.v(fuel, fast, KN.load(t))))
+
+def ev_str(r: P.H & U32) -> String:
+  (h, +evs) = r
+  KN.report(KN.result(h)) ++ ", " ++ U32.show(evs) ++ " events"
+
+# reduce t as reduce does, running events, which are counted
+def reduce_ev(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
+  ev_str(P.evs(KS.reduce_h.v(fuel, fast, KN.load(t))))
+
 def prof.k(r: KRes, pf: KS.Pf) -> String:
   match r:
     case KRes{v, +itrs, +errs, +ok}:
@@ -88,6 +125,51 @@ def prof(r: P.H & KS.Pf) -> String:
 # interactions and errors, then the profile
 def profile_t(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
   prof(KS.reduce_p(fuel, fast, KN.load(t)))
+
+def evk.one(+i: U32, +n: U32) -> String:
+  match n:
+    case 0:
+      ""
+    case _:
+      " " ++ U32.show(i) ++ ":" ++ U32.show(n)
+
+def evk.r(r: P.H & U32, s: String, +i: U32) -> P.H & String:
+  (h, +n) = r
+  (h, s ++ evk.one(i, n))
+
+def evk.step(r: P.H & String, +i: U32) -> P.H & String:
+  (h, s) = r
+  evk.r(P.evk(h, i), s, i)
+
+def evk.go(k: Nat, r: P.H & String, +i: U32) -> P.H & String:
+  match k:
+    case 0n:
+      r
+    case 1n+p:
+      evk.go(p, evk.step(r, i), (i + 1 : U32))
+
+# the events by the kind code of the node each acted on, ` k:n` for each
+# kind with any
+def ev_kinds(h: P.H) -> P.H & String:
+  evk.go(16n, (h, ""), 0)
+
+def prof_ev.s(r: P.H & String, pf: KS.Pf, +n: U32) -> String:
+  (h, s) = r
+  prof.k(kres(KN.result(h)), pf) ++ "; events " ++ U32.show(n) ++ " by kind" ++ s
+
+def prof_ev.n(r: P.H & U32, pf: KS.Pf) -> String:
+  (h, +n) = r
+  prof_ev.s(ev_kinds(h), pf, n)
+
+def prof_ev(r: P.H & KS.Pf) -> String:
+  (h, pf) = r
+  prof_ev.n(P.evs(h), pf)
+
+# reduce t as profile_t does, running events (KS.reduce_p.v): the profile,
+# its logical interactions those of the interactions made, then the
+# events, by kind
+def profile_ev(t: T.Tpl, +fuel: Nat, +fast: Bool) -> String:
+  prof_ev(KS.reduce_p.v(fuel, fast, KN.load(t)))
 
 # Results of demand
 # =================
@@ -129,8 +211,16 @@ def force.met(r: KS.D & U32, +vals: List<&2, V.Val>) -> KS.D:
   (d, +lz) = r
   KS.resume(d, val_at(vals, lz))
 
+# demand, running events if ev (KS.demand.v)
+def demand_ev(+ev: Bool, +fuel: Nat, d: KS.D) -> KS.D:
+  match ev:
+    case True{}:
+      KS.demand.v(fuel, d)
+    case False{}:
+      KS.demand(fuel, d)
+
 # demand, each need met from vals, at most k times
-def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
+def force(k: Nat, +fuel: Nat, +ev: Bool, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
   match k:
     case 0n:
       d
@@ -139,7 +229,7 @@ def force(k: Nat, +fuel: Nat, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
         case KS.D{h, path, +top, +depth, +n, +st}:
           match st:
             case 2:
-              force(p, fuel, vals, KS.demand(fuel, force.met(KS.need(KS.D{h, path, top, depth, n, st}), vals)))
+              force(p, fuel, ev, vals, demand_ev(ev, fuel, force.met(KS.need(KS.D{h, path, top, depth, n, st}), vals)))
             case _:
               KS.D{h, path, top, depth, n, st}
 
@@ -189,14 +279,34 @@ def dres.sl(r: KS.D & U32) -> DRes:
 def dres.s(d: KS.D) -> DRes:
   dres.sl(KS.need(d))
 
+# demand, running events if ev, its needs met from vals, at most 64
+def demand_m(t: T.Tpl, +fuel: Nat, +ev: Bool, +vals: List<&2, V.Val>) -> KS.D:
+  force(64n, fuel, ev, vals, demand_ev(ev, fuel, KS.d.start(KN.load(t))))
+
 # run_d, then every node the interface does not reach freed (KN.sweep)
 def run_ds(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
-  dres.s(force(64n, fuel, vals, KS.demand(fuel, KS.d.start(KN.load(t)))))
+  dres.s(demand_m(t, fuel, False{}, vals))
 
 # reduce t toward weak head normal form for at most fuel steps, its needs
 # met from vals, at most 64
 def run_d(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
-  dres(force(64n, fuel, vals, KS.demand(fuel, KS.d.start(KN.load(t)))))
+  dres(demand_m(t, fuel, False{}, vals))
+
+# run_d running events, which are counted
+type EDRes is Data:
+  EDRes{r: DRes, +evs: U32}
+
+def edres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> EDRes:
+  (h, +evs) = r
+  EDRes{dres(KS.D{h, path, top, depth, n, st}), evs}
+
+def edres(d: KS.D) -> EDRes:
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st}:
+      edres.e(P.evs(h), path, top, depth, n, st)
+
+def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
+  edres(demand_m(t, fuel, True{}, vals))
 
 def st_name(+st: U32) -> String:
   match st:
@@ -261,16 +371,34 @@ def bench_d.l(r: KS.D & U32) -> String:
 def bench_d(d: KS.D) -> String:
   bench_d.l(KS.need(d))
 
+def bench_dev.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> String:
+  (h, +evs) = r
+  bench_d(KS.D{h, path, top, depth, n, st}) ++ ", " ++ U32.show(evs) ++ " events"
+
+def bench_dev(d: KS.D) -> String:
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st}:
+      bench_dev.e(P.evs(h), path, top, depth, n, st)
+
 # reduce the workload fully (how 0), on demand (1), profiled (2) or with
-# two stacks (4), each measured without the audits
+# two stacks (4), each measured without the audits; or running events,
+# fully (5), on demand (6), with two stacks (7), profiled (8)
 def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
   match how:
     case 1:
-      bench_d(force(64n, 268435456n, Nil{}, KS.demand(268435456n, KS.d.start(KN.load(t)))))
+      bench_d(demand_m(t, 268435456n, False{}, Nil{}))
     case 2:
       profile_t(t, 268435456n, fast)
     case 4:
       KN.report(KN.result(KS.reduce2_h(268435456n, fast, KN.load(t))))
+    case 5:
+      reduce_ev(t, 268435456n, fast)
+    case 6:
+      bench_dev(demand_m(t, 268435456n, True{}, Nil{}))
+    case 7:
+      ev_str(P.evs(KS.reduce2_h.v(268435456n, fast, KN.load(t))))
+    case 8:
+      profile_ev(t, 268435456n, fast)
     case _:
       reduce(t, 268435456n, fast)
 
@@ -305,7 +433,7 @@ def mode_of(ms: List<&2, Md>, +m: String) -> Maybe<&2, Md>:
       mode_of.hit(String.eq(name, m), Md{name, w, fast}, mode_of(t, m))
 
 def usage() -> String:
-  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two]"
+  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two|ev|evlazy|evtwo|evprofile]"
 
 def main.mode(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
   match md:
@@ -328,8 +456,33 @@ def how.p(+profile: Bool, +two: Bool) -> U32:
     case False{}:
       how.t(two)
 
-# the strategy a third argument names: lazy 1, profile 2, two 4, else 3
-# (none)
+# the strategy a third argument names: lazy 1, profile 2, two 4, ev 5,
+# evlazy 6, evtwo 7, evprofile 8, else 3 (none)
+def how.evp(+evprofile: Bool) -> U32:
+  match evprofile:
+    case True{}:
+      8
+    case False{}:
+      3
+
+def how.ev(+ev: Bool, +evlazy: Bool, +evtwo: Bool, +evprofile: Bool) -> U32:
+  match ev evlazy evtwo:
+    case True{} _ _:
+      5
+    case _ True{} _:
+      6
+    case _ _ True{}:
+      7
+    case _ _ _:
+      how.evp(evprofile)
+
+def how.e(+how: U32, +l: String) -> U32:
+  match how:
+    case 3:
+      how.ev(String.eq(l, "ev"), String.eq(l, "evlazy"), String.eq(l, "evtwo"), String.eq(l, "evprofile"))
+    case _:
+      how
+
 def how_of(+lazy: Bool, +profile: Bool, +two: Bool) -> U32:
   match lazy:
     case True{}:
@@ -353,7 +506,7 @@ def main.rest(+k: U32, xs: List<String>) -> IO(Unit):
         case Nil{}:
           main.mode(mode_of(modes(), m), k, 0)
         case Con{+l, r2}:
-          main.how(mode_of(modes(), m), k, how_of(String.eq(l, "lazy"), String.eq(l, "profile"), String.eq(l, "two")))
+          main.how(mode_of(modes(), m), k, how.e(how_of(String.eq(l, "lazy"), String.eq(l, "profile"), String.eq(l, "two")), l))
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
