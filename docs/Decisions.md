@@ -49,8 +49,9 @@ IO shell.
 - [`pure-core-io-shell`](decisions/pure-core-io-shell.md): a pure core
   answering results or requests, behind a thin IO shell.
 - [`generated-sources`](decisions/generated-sources.md): code needed in
-  several variants is generated into files of its own, by Bend programs,
-  and checked current; no macro processor, no script editing sources.
+  several variants is a template where Bend's templates serve, else
+  generated into files of its own, by Bend programs, and checked current;
+  no macro processor, no script editing sources.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.
@@ -119,6 +120,11 @@ where the shared lazy state that Bend cannot hold goes.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.
+- [`header-kind-byte`](decisions/header-kind-byte.md): a node's header is
+  a kind byte, two bits of form and a 22-bit field.
+- [`fusions-as-components`](decisions/fusions-as-components.md): a fused
+  op behaves as its components, stuck where they are, observing no data
+  value, and a law proves it; at lowering too.
 - [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):

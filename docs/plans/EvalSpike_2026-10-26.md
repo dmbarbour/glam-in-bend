@@ -608,7 +608,36 @@ Speed:
     verdict keeps. It needs laws relating `U32` to `Nat`, a path to which
     is vendored (`vendored-sources`) and not gone deep into yet. Its
     laws, drafted, close `spike/LAWS.bend`.
-14. `spike-verdict` — decide the representation, record it in
+14. `spike-operators` — tentative — builtin operators, which the spike
+    must account for at least abstractly (the maintainer, 2026-10-30).
+    The general form is the specification: an operator awaits data on
+    its principal, its first auxiliary port leading to its payload, its
+    second to its result; data arriving, it rotates, its principal now
+    the payload port, the argument kept in the word the consumed link
+    frees; the payload's data arriving, two data meet and one is written
+    to the result (see two data, write one). A payload behind a port may
+    be any computation, so it stays lazy and shared, demand reaching it
+    through the rotated principal, where the Rust bootstrap's immediate
+    payload could not. Where arity remains, the result is another
+    operator: one of n arguments holding k is a static fusion of n - k
+    binds (the bootstrap's Bind). A general payload is a data node pairing
+    an opcode, a full word, with a payload. Fused forms for speed, each
+    proven to behave as the general one (`fusions-as-components`,
+    `heap-strategies.fusions.operators`): a hot operator's first stage
+    with its opcode immediate and no payload, which saves a kind; its
+    later stages fused into kinds with the payload immediate; an
+    operator of one stage, `succ`, a single word to allocate. About two
+    kinds a hot operator, some 40 for 20 primops: room past 16 kinds
+    first (`heap-strategies.kinds.layout`).
+15. `spike-templates` — tentative — a task of its own (the maintainer,
+    2026-10-30): the variants generated before Bend's templates were
+    found to work, such as the rewrites' plain and eager families
+    (`spike/tools/gen_krules.bend`), written once as templates where they
+    serve (`generated-sources`), each change measured in the four builds;
+    and whether a template can specialize the rule table's interpreter on
+    a constant pair of kinds, which `docs/BendIssues.md`'s
+    "Compile-time specialization" wanted, the generator then retired.
+16. `spike-verdict` — decide the representation, record it in
     `docs/decisions/`, and retire this plan.
 
 ## Open questions

@@ -303,6 +303,18 @@ takes from it:
    that a cell holds a bare live net at rest. Several strategies, each
    measured: eager pairs last in first out, demand toward the interface,
    parallel rounds; profiling and tracing as strategies wrapping another.
+   Waypoints (2026-10-30), in the order intended:
+   `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume`,
+   `heap-strategies.fusions.loops`, `heap-strategies.fusions.payloads`,
+   `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
+   `heap-strategies.kinds.layout`,
+   `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`,
+   `heap-strategies.erasure.deadcall`, `heap-strategies.erasure.kernel.parity`
+   with `heap-strategies.erasure.kernel.sites` (templates; and
+   `spike-templates`), `heap-strategies.erasure.merge`,
+   `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
+   `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
+   `heap-strategies.fresh`. Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
      and the tests' entry points in `spike/kernel.bend`; demand without
@@ -801,7 +813,7 @@ takes from it:
        list exact by `kernel_free_ok`, which holds for any count of new
        nodes. An event marking the wrong side fails `events_side`; one
        leaving the result's eraser where it was, `events_exact`.
-     - `heap-strategies.erasure.kernel` — tentative — the events in the
+     - `heap-strategies.erasure.kernel` — active — the events in the
        kernel, at the links rules make, as control fusion looks at them,
        and the linear kinds' generated rewrites; every strategy measured
        on the library's families
@@ -809,6 +821,161 @@ takes from it:
        `parse-cut`, `K 2 Ω`, the mixins' full reductions), and the
        standard workloads in four builds, for what the checks cost nets
        with nothing dead.
+       - `heap-strategies.erasure.kernel.inert` — built 2026-10-30, on
+         branch `erasure-kernel` — the linear kinds in the generated
+         rewrites, which nothing yet makes: the generator tests and
+         checks a linear fan's pairs as its full fan's. Values and
+         interactions unchanged, but against 4ab0efc's kernel, four builds
+         at k 18 (store runs 66, 69): 0.2% to 3.2% more instructions for
+         the full reduction, 2.3% to 5.0% for demand. Not the rule
+         table's new dispatch, which only the interpreter calls (the old
+         generated tables with it: -0.3% to +0.4%, one build), but the
+         generated tables' longer matches on kind codes, which Bend makes
+         chains of comparisons: a cost that grows with the kinds, and so
+         with the 64 or 128 expected.
+       - `heap-strategies.erasure.kernel.events` — built 2026-10-30, on
+         branch `erasure-kernel` — the events, in modes a strategy picks:
+         each strategy has a loop running them beside its own (the
+         kernel's `ev`, `evlazy`, `evtwo`), calling the rewrite chain, a
+         template over the step after each rewrite, with the events where
+         the other passes nothing (`generated-sources`). After a rewrite, its
+         external peers are looked at (`spike/knet.bend`'s Events): every
+         link a rule makes has one but those between its new nodes, and
+         the generator checks no rule makes an event there
+         (`inner_events`). The events' rewrites are generated from
+         `R.event` with the rules', the link at the node's principal left
+         as it is, so that a pair the node is in keeps its place on a
+         stack, and with tables of which ports and erasers make events. A
+         cascade waits on a list, not the stack; each eager event is given
+         room for the one pair it may note. No interpreter for events: a
+         copy's or merge's principal facing its own other output is the
+         only peer an event's node can be its own, which the generated
+         rewrite handles and the rule interpreter misreads (found on
+         `K 0 Ω`, where eager reduction leaves such a copy). Demand first
+         declined an event making its node an eraser while the node's
+         other auxiliary port faced a principal, so that no node on the
+         walk's path was freed; `.exact` removed the need. The header
+         gains nodes for the events, counted by the kind of node each acts
+         on. The library runs every entry in four
+         erasure modes too (eager by the generated rewrites and by the
+         interpreted table, on demand, with two stacks): values as every
+         strategy's, no errors, audits passing, the two eager modes'
+         interactions and events equal; all 114 cases pass. Over the
+         library, interactions: eager 7,556,957 to 6,838,156 (-9.5%, with
+         23,093 events), two stacks 7,554,741 to 5,787,943 (-23%, 51,082
+         events), demand unchanged at 2,671,126 (58 events), fewer nodes
+         live where they fire (`mixin-once-16` labels 888 to 144). The
+         largest: `costly-133` levels eager 207,315 to 116,225 on two
+         events; `list-bind-32` unfused, two stacks, 848,389 to 149,435;
+         `demand-dead-factor` levels, two stacks, out of fuel at 100,000
+         to done in 472; `K 0 (k 2 succ 0)` at k 10, two stacks, 2,174 to
+         15 and 29 events. The mixins' full reductions still run out of
+         fuel. Its cost, four builds at k 18 (store runs 71 and 72 to
+         77, each against run 69): first, a run-time mode word guarding
+         the events after each rewrite, 6% to 13% more instructions with
+         events off, from no single cause the header node (run 73) or the
+         word (run 74, which matched run 69 with the events unreachable)
+         explains. The chain a template over the step after the rewrite
+         (runs 76, 77): 9% to 15%. What the variants share beneath the
+         templates, `go.which` and the generated rewrites, each gains a
+         second caller, which Bend folds into neither (the cost the
+         eager family's own copy of the payload test once avoided, 5% to
+         12%). With events and nothing dead, 15% to 33% more than events
+         off (packed tables for the checks: 5% of that recovered, run 75).
+       - `heap-strategies.erasure.kernel.parity` — tentative — events off
+         costing nothing, by the templates carried down through the
+         generated rewrites, so that neither copy shares a function Bend
+         would fold (the maintainer, 2026-10-30, over a build-time
+         constant), with `.sites` the template's argument, the check at
+         each site.
+       - `heap-strategies.erasure.kernel.sites` — tentative — the checks
+         after a rewrite only where its rule can make an event, known
+         from the rule as fusion's ends are: an external peer linked to a
+         new eraser's principal; one linked to a new node's auxiliary port
+         at which an eraser makes an event, where the peer, by the port it
+         faced, could be that eraser's principal; and one end of each wire
+         joining two external peers, whose other end is read only if the
+         first may be in an event. The rest are skipped: today all four
+         are read after every rewrite, each call spilling registers,
+         which costs the erasure modes 15% to 33% more instructions where
+         nothing is dead.
+       - `heap-strategies.erasure.kernel.exact` — built 2026-10-30 — the
+         model's part on main, the kernel's on branch `erasure-kernel` —
+         each event
+         checked to preserve meaning exactly. The linear fans' rules are
+         the full rules followed by erasure, by derivation, which uses no
+         application event (the rule table dumped with it left out is the
+         same). A call's or a control's output erased, an eraser of its
+         input: the node is pure. A dead application, an eraser of its
+         function and of its argument, is not exact where a variable is
+         used outside its function's body, which the `interaction_net`
+         escape hatch allows (`docs/Design.md`): applying the function
+         would bind the variable. Shown on a net the library does not yet
+         hold, `F = \v. 5` passed to `f = \g. g 7`, the result dead, the
+         root reading v: 7 by every strategy, none by the eager and
+         two-stack erasure modes. Demand's exception is the same case: of
+         the events making a node an eraser, only the application's
+         leaves it another auxiliary port, and demand reaches an
+         application through its argument only past a function entered
+         by its variable, since every positive auxiliary port but a
+         function's variable belongs to a node with a negative principal.
+         Without the application event, over the library: eager +0.3%
+         interactions, two stacks +6.1% (5,787,943 to 6,141,359), and
+         `demand-dead-factor` with two stacks out of fuel again; demand
+         the same. Then every event making an eraser erases its node's
+         last auxiliary port, and demand needs no exception. Dropped
+         (the maintainer, 2026-10-30): no event for a dead application,
+         in `R.event` or the derivation; the rule kept as an optimization
+         where it is exact, as at lowering where a function's scope is
+         known; part of its use may be masked where data nodes capture
+         and copy closed subnets (the maintainer). Law
+         `events_erase_last`: an event making its node an eraser erased
+         its last auxiliary port (it fails with the event restored), so
+         demand's exception is gone. The net above in the library,
+         `ap-dead-extruded`. Over the library now: eager 7,556,961 to
+         6,856,871 interactions (-9.3%, 18,964 events), two stacks
+         7,554,745 to 6,141,363 (-18.7%, 35,805), demand the same.
+         The calls and the controls reviewed (the maintainer, 2026-10-30:
+         stuck is not to become an error value by default), by the law
+         teased out of it, `events_erase_exact`: an event that makes its
+         node an eraser leaves, whatever the node's principal meets, what
+         the eraser alone leaves there, the rule followed by the erasure
+         against the eraser's rule, both normalized by the derivation's
+         normalizer, linear fans as their full fans with the dead side
+         erased (`R.ev_exact`; the interface left out). Tabulated over
+         every kind and test: the linear fans' collapses exact; a call's
+         event not, against a function, where its rule is stuck and the
+         event erased the function: dropped, from `R.event` and the
+         derivation, whose rules are unchanged. A control's event exact
+         but against a function, where lifting leaves a co-control holding
+         an error value; a co-control whose input is an error value
+         becoming that error value, a new event, closes it and is exact
+         against everything: added. The law fails with the call's event
+         restored. Over the library: eager 6,849,159 interactions (19,420
+         events), two stacks 6,108,846 (36,151), demand the same; but the
+         kernel's `K 0 (k 2 succ 0)` at k 10, with two stacks, back to
+         2,174 interactions, its dead calls of `succ` no longer erased.
+         Generalized (the maintainer, 2026-10-30): every fusion behaves
+         as its components, the fused op as the ops it stands for, and
+         what does not reduce expanded does not reduce fused. Two laws
+         replace `events_erase_exact`, which compared only what the
+         partner's external peers faced: `linear_as_components`, a linear
+         fan against its full fan with the dead side erased, and
+         `events_as_components`, each event's pattern, the node and the
+         eraser at the port it erases, against the node the event makes;
+         each stuck where the other is, or else leaving the same graph,
+         linear fans expanded, normalized up to the events (each itself
+         under the law), compared in a canonical order from the external
+         peers. All hold over every kind, port, partner and test. Four
+         mutations each fail them: the call's event restored (10 cases),
+         the linear copy's sides swapped (28; `events_side` is implied),
+         the co-control's event left out of the normalizer (13), one
+         linear rule replaced by its full fan's (2). Control fusion is
+         the third kind of fusion: `units_are_run`, `run_splits` and
+         `peel_pairs_units` say it of levels; the same of a run's rules
+         against each partner, and where it is stuck, against its unit
+         controls', is wanted. Recorded as `fusions-as-components`; what
+         the laws must still say is `heap-strategies.fusions`.
      - `heap-strategies.erasure.strategies` — tentative — erasure under
        demand as a strategy of its own; or demand with eager collection
        on a second stack, as the two-stack strategy keeps its deferred
@@ -822,9 +989,147 @@ takes from it:
      - `heap-strategies.erasure.trees` — tentative — chains of linear
        fans, if they come to dominate, compressed into one node holding
        the tree's identity and the path, as runs of controls fuse.
-     - Open: how logical interactions count a linear fan's interaction;
-       perhaps twice, for the eraser's it stands for (the maintainer,
-       2026-10-30).
+     - `heap-strategies.erasure.deadcall` — contingent on
+       `heap-strategies.kinds.layout` — a dead call, a
+       call fused with the eraser at its output, under the same law
+       (the maintainer, 2026-10-30). Its components against each
+       partner, derived as the linear fans' rules are: stuck against a
+       function, as a call is; two dead calls against a superposition;
+       nothing against data or an error value, so the builtin need not
+       run; one dead call against a co-control or a linear merge: so
+       the kind is closed, and stuck where a call is. A dead call facing
+       another call's output making that call dead too is exact where a
+       call against data never sticks, as the table has it, so a chain
+       of calls dies whole: what `K 0 (k 2 succ 0)` lost. It cannot
+       erase its input before the input is a value. It needs a kind
+       code past the 16 the header's four bits hold, so the kind field
+       widened first (the maintainer, 2026-10-30: 64 or 128 kinds
+       expected for builtins).
+     - `heap-strategies.erasure.load` — tentative — patterns recognized
+       only when lowering or loading a fresh net, perhaps after a GC
+       cycle (the maintainer, 2026-10-30), against after every rewrite:
+       nothing paid per rewrite, but the events that arise while
+       reducing (`K 0 Ω`'s copy, the library's search and list
+       families) missed until the next load; to be counted. What is
+       recognized there answers to the same law, each pattern behaving
+       as its components, and lowering knows more than the kernel does:
+       a dead application is exact where the function is known to keep
+       its variable inside its body, a dead call's input erasable where
+       it is known to be data (the maintainer, 2026-10-30).
+     - `heap-strategies.erasure.merge` — contingent on
+       `heap-strategies.erasure.kernel.parity` and the maintainer's
+       approval — branch `erasure-kernel` onto main: the events in their
+       own strategies, costing nothing where they are off, and the law
+       changes named in its trailers (added: `events_erase_last`,
+       `linear_as_components`, `events_as_components`; scope changed by
+       the events dropped and added: `events_exact`, `events_polarized`,
+       `events_shrink`, `events_kinds_live`, `events_side`,
+       `events_keep_wired_in`, `kernel_events_in_step`,
+       `rules_linear_rewrites`, `rules_linear_fewer`).
+     - Logical interactions count no event: events are patterns that a
+       graph language recognizes and names for performance, each meant to
+       preserve meaning exactly (the maintainer, 2026-10-30). Events are
+       still profiled, apart: the profiling strategy runs them in a loop
+       of its own (the kernel's `evprofile`, the library's `evprof`), its
+       logical interactions those of the interactions made, its events
+       counted by the kind of node each acts on. Over the library, with
+       events: 9.0% fewer logical interactions (9,303,412 to 8,461,554).
+   - `heap-strategies.kinds` — tentative — room past the 16 kinds a
+     header's four bits hold, for dead calls first and builtins'
+     kinds later: options set out for the maintainer, 2026-10-30. The
+     maintainer: 4 bits of kind and 4 of form too tight for builtin
+     operators, 6 and 2 viable, 8 and 2 room to spare. Dispatch
+     measured first (`docs/BendIssues.md`, "Dispatch on numbers";
+     store run 80): Bend's match on two kinds grows with the cases
+     (per dispatch, 39 to 57 instructions at 16 kinds, 90 to 153 at
+     64), where a rule number from Bend's own lookup table, then a
+     balanced tree of comparisons, holds at 28 to 33, the hottest
+     pairs tested first 17; the high nibbles then the low, 31 to 50.
+     Next, the kernel's dispatch rebuilt that way at 16 kinds, in the
+     four builds.
+     - `heap-strategies.kinds.dispatch` — tentative — next: the
+       kernel's dispatch rebuilt as measured best: a rule number from
+       Bend's own lookup table for the pair of kinds, the hottest rules
+       (by the profiling strategy's pair counts) tested first, then a
+       balanced tree of comparisons; and every table of kinds' facts
+       (arity, polarity, stuck, grows) a lookup table. Measured at 16
+       kinds, in the four builds and on the library, before any kind
+       is added; generated, as the rewrites are.
+     - `heap-strategies.kinds.layout` — tentative — the header widened
+       to 8 bits of kind, 2 of form and a 22-bit field, levels and sites
+       to 4M (the maintainer, 2026-10-30: `header-kind-byte`); the
+       model's kinds widened with it; dispatch in tiers, kind to class by a lookup table, the class
+       pair to a rule, an operator's own code chosen only inside its
+       step.
+   - `heap-strategies.fusions` — active — every fusion behaving as its
+     components, proven (`fusions-as-components`); built so far in
+     `heap-strategies.erasure.kernel.exact` (laws `linear_as_components`,
+     `events_as_components`).
+     - `heap-strategies.fusions.norm` — built 2026-10-30 — the
+       derivation's normalizer running the events
+       of `R.event` itself, its own copy of them (`lf.ev`) gone, and
+       reducing any pair whose rule the payload test cannot change (the
+       normalizer knows no payload), linear fans expanded into their
+       components first. An event of one node applies in place, its
+       node in the node's own slot as the kernel places it, the eraser's
+       link dropped and a kept port renamed, as fans were marked linear:
+       the derived rules are the same, link for link, and the kernel
+       too. The derivation's fuel raised to 64 steps. Both laws hold
+       still; mutated, they now fail for the reason alone: the call's
+       event restored, 2 cases, against a function (10 before, 8 of
+       them calls the old normalizer left); the co-control's event
+       gone from `R.event`, 2, a control against a function; a linear
+       copy's sides swapped, 50. A pattern of several nodes can now be
+       checked: a call feeding a dead call (a call with its output
+       erased), against a dead call, is the same against a function
+       (both stuck), data and an error value, and against a
+       superposition, a co-control or a linear merge leaves the same
+       pattern again: equal up to itself. Once dead calls are a kind and
+       that chain an event of `R.event`, the normalizer runs it, and
+       `events_as_components` covers it (`heap-strategies.erasure.deadcall`).
+     - `heap-strategies.fusions.payloads` — tentative — the comparison
+       to include each payload's provenance (which node's payload goes
+       where, copied, moved or dropped: no value observed, beyond
+       whether it is immediate) and each level update (a fan's level
+       raised by a control, on the fused form and on the expanded).
+     - `heap-strategies.fusions.controls` — tentative — control fusion
+       at the level of rules: a run, against each partner, as its unit
+       controls, stuck where they are, its levels as theirs (the levels
+       themselves already: `units_are_run`, `run_splits`,
+       `peel_pairs_units`).
+     - `heap-strategies.fusions.assume` — tentative — what the
+       normalizer takes for granted, stated as laws, each found true over
+       the table (2026-10-30, a scratch check): no eraser's rule depends
+       on the payload test (`erasers_untested`); no rule or event links
+       two ports of one new node (`rules_no_self_links`); every event
+       makes one node (`events_one_node`), so the in-place application is
+       the only one needed and the general one, untested and taking a
+       fan's identity from the wrong slot for a second node, can go, the
+       law failing first should an event of two nodes be wanted, as the
+       law builder (`fz.result`) builds one node too.
+     - `heap-strategies.fusions.loops` — tentative — a node with a port
+       facing its own other port (the maintainer, 2026-10-30): principal
+       to auxiliary, a vicious circle on any node, never interacting;
+       auxiliary to auxiliary, by polarity only a function's (body to
+       variable, the identity) or an application's (argument to result),
+       a fan's a polarity violation, an operator's (payload to result)
+       stuck, the payload waiting on its own result. An application so
+       looped is unobservable only where no variable leaves its
+       function's body: `ap-self-extruded` reads it, 5 in every strategy,
+       through a variable the root reads; `fn-self-identity` checks the
+       identity. Fused nodes keep their components' polarities at the
+       ports they keep, so their loops classify as the components' do (a
+       law, `fused_polarity`). Wanted: the classification as laws over
+       the table, and the graph rewriting of the law checks (`lf.tr`)
+       resolving a peer that is the redex's own port, as the kernel's
+       interpreter does, since multi-node patterns can meet one.
+     - `heap-strategies.fusions.upto` — tentative — the argument the laws
+       lean on, stated as laws where it can be: equal up to the events
+       means equal (events end, one step observes all, rules with
+       events are confluent).
+     - `heap-strategies.fusions.operators` — contingent on
+       `spike-operators` — each fused form of an operator against the
+       general two-stage operator, the operation left uninterpreted.
    - `heap-strategies.fresh` — tentative — a future experiment, apart
      from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
      on a fan that has never commuted, which has no residuals anywhere,

@@ -7116,7 +7116,51 @@ def Laws.events_exact(a, b, p):
         case R.KMergeR{}:
           {==}
     case R.KLiftC{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
     case R.KCopyL{}:
       match b:
         case R.KFree{}:
@@ -7547,7 +7591,51 @@ def Laws.events_polarized(a, b, p):
         case R.KMergeR{}:
           {==}
     case R.KLiftC{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
     case R.KCopyL{}:
       match b:
         case R.KFree{}:
@@ -7978,7 +8066,51 @@ def Laws.events_shrink(a, b, p):
         case R.KMergeR{}:
           {==}
     case R.KLiftC{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
     case R.KCopyL{}:
       match b:
         case R.KFree{}:
@@ -8409,7 +8541,51 @@ def Laws.events_kinds_live(a, b, p):
         case R.KMergeR{}:
           {==}
     case R.KLiftC{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
     case R.KCopyL{}:
       match b:
         case R.KFree{}:
@@ -8840,7 +9016,51 @@ def Laws.events_side(a, b, p):
         case R.KMergeR{}:
           {==}
     case R.KLiftC{}:
-      {==}
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
     case R.KCopyL{}:
       match b:
         case R.KFree{}:
@@ -9025,6 +9245,2567 @@ def Laws.events_side(a, b, p):
           {==}
         case R.KMergeR{}:
           {==}
+
+def Laws.events_erase_last(a, b, p):
+  match a:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KCopy{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KMerge{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KCall{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KLift{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KLiftC{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KCopyL{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KCopyR{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KMergeL{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KMergeR{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+
+def Laws.linear_as_components(f, v, t):
+  match f:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KCall{}:
+      {==}
+    case R.KLift{}:
+      {==}
+    case R.KLiftC{}:
+      {==}
+    case R.KCopyL{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KCopyR{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KMergeL{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KMergeR{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+
+def Laws.events_as_components(a, p, v, t):
+  match a:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KMerge{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KCall{}:
+      {==}
+    case R.KLift{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KLiftC{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KCopyL{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KCopyR{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KMergeL{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
+    case R.KMergeR{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              match v:
+                case R.KFree{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KFn{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KAp{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopy{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMerge{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KData{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraN{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KEraP{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KRoot{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCall{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLift{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KLiftC{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KCopyR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeL{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+                case R.KMergeR{}:
+                  match t:
+                    case True{}:
+                      {==}
+                    case False{}:
+                      {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  match v:
+                    case R.KFree{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KFn{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KAp{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopy{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMerge{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KData{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraN{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KEraP{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KRoot{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCall{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLift{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KLiftC{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KCopyR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeL{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                    case R.KMergeR{}:
+                      match t:
+                        case True{}:
+                          {==}
+                        case False{}:
+                          {==}
+                case 1n+s:
+                  {==}
 
 def Laws.events_keep_wired_in(ks, a, b, es, c, q, p, hv, hw):
   kw.r(R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), ks, a, b, es, c, p, hw,

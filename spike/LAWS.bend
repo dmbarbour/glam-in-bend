@@ -580,6 +580,46 @@ law events_side:
   for +p: Nat
   {R.ev_side(a, b, p) == True{} : Bool}
 
+# LAW: an event that makes its node an eraser erased the node's last
+# auxiliary port. Demand's walk reached each node on its path through an
+# auxiliary port facing the principal of the node below, never an
+# eraser's, so no event frees a node on the path, and the walk needs no
+# exception (knet.bend's Events).
+# Record: net-demand-whnf
+law events_erase_last:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_last(a, b, p) == True{} : Bool}
+
+# LAW: a fused node behaves as its components: a linear fan, whatever its
+# principal meets, is stuck where its full fan with the dead side erased
+# is, and otherwise leaves the same graph, both normalized by the
+# derivation's normalizer and compared in a canonical order
+# (R.fz_linear). A fused rule wrong, or a stuck pair that a fused one
+# would reduce, fails it.
+# Record: net-nodes-double
+law linear_as_components:
+  for +f: R.NodeKind
+  for +v: R.NodeKind
+  for +t: Bool
+  {R.fz_linear(f, v, t) == True{} : Bool}
+
+# LAW: and so does an event's pattern: the node and the eraser at the port
+# it erases behave, against whatever the node's principal meets, as the
+# node the event makes (R.fz_event). It fails for an application whose
+# result is erased, a variable used outside its function's body seeing
+# the difference, and for a call whose output is, its rule stuck against
+# a function where an eraser's is not: neither makes an event. It implies
+# events_side: a linear fan keeping the wrong side fails it.
+# Record: net-nodes-double
+law events_as_components:
+  for +a: R.NodeKind
+  for +p: Nat
+  for +v: R.NodeKind
+  for +t: Bool
+  {R.fz_event(a, p, v, t) == True{} : Bool}
+
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
 # Record: net-nodes-double
