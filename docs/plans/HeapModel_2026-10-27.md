@@ -669,8 +669,9 @@ takes from it:
        caller (looking in two places split it into a function of its own
        and lost most of the gain): 1.5 steps per interaction. And the
        state is seven words, not nine: the handle a need waits on and the
-       data node holding it, rare, are kept in the path array's words 1
-       and 2 (`KS.need`), the nodes from word 3. Against ffb4eee, four
+       data node holding it, rare, left it, first for the path array's
+       words 1 and 2, then for nothing (`heap-strategies.demand.need`).
+       Against ffb4eee, four
        builds at k 18 (store runs 63, 64): demand 4.9% to 6.6% fewer
        instructions, the same interactions; the full reduction the same
        within 300 instructions. Then the pushes looped (`wk.down`):
@@ -685,6 +686,18 @@ takes from it:
        against 27% of the full reduction, demand's share the path, which
        there grows to about the node store's size (Bend #1890,
        `docs/BendIssues.md`).
+     - `heap-strategies.demand.need` — built 2026-10-30 — waiting on a
+       lazy value as one shape for any task, not a record each kind keeps
+       its own way (the maintainer, 2026-10-30): a task reports that it
+       is done, or waits and on what handle; the scheduler holds the
+       handle while the task is parked, and the task's kind says only how
+       to resume with the value. Demand keeps nothing for its need.
+       Stopped (state 2), its top is the application or strict call,
+       unchanged, facing the data node whose table entry is the handle:
+       `KS.need` reads the handle from the net, 0 in any other state, and
+       `KS.resume` finds the node again the same way (`d.at`), puts the
+       value there and goes on. The path array's header is its capacity
+       alone again, the nodes from word 1.
    - `heap-strategies.header` — built 2026-10-29 — the net's own words
      in slots of the node array, not fields of the record Bend passes through
      every function (the maintainer, 2026-10-29): the free list's head,

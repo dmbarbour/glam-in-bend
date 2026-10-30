@@ -382,16 +382,15 @@ def pf_str(pf: Pf) -> String:
 # unneeded work is better found by analysing nets ahead of time than by
 # erasing eagerly), so dropped values stay in the net. Done when the
 # interface faces a principal port but a control's: the value there (an
-# error value or a superposition reads as none). A pair on the path stuck by its rule stops
-# the walk; so does one needing another cell, an application or a strict
-# call meeting a table entry that is a handle, the need recorded.
+# error value or a superposition reads as none). A pair on the path stuck
+# by its rule stops the walk; so does one needing another cell, an
+# application or a strict call meeting a table entry that is a handle,
+# the need left in the net for `need` to read.
 
-# the path below its last node, top, in an array; interactions; the
-# state, 0 going, 1 done, 2 needing a lazy value, 3 stuck, 4 out of fuel,
-# 5 a cycle. The array holds its capacity at word 0, for a need the handle
-# at word 1 and the data node holding it at word 2 (rare, kept out of the
-# state every step passes on), and the nodes from the interface on from
-# word 3, depth of them.
+# the path below its last node, top, in an array, its capacity at word 0
+# and the nodes from the interface on from word 1, depth of them;
+# interactions; the state, 0 going, 1 done, 2 needing a lazy value (need),
+# 3 stuck, 4 out of fuel, 5 a cycle
 type D is Type:
   D{h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32}
 
@@ -410,7 +409,7 @@ def wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case 0:
       d.go(h, path, P.iface(), 0, n)
     case _:
-      wk.pop.r(KM.m_get(path, (depth + 2 : U32)), h, depth, n)
+      wk.pop.r(KM.m_get(path, depth), h, depth, n)
 
 def wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   match gone:
@@ -438,7 +437,7 @@ def wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case 0:
       d.go(h, path, P.iface(), 0, n)
     case _:
-      wk.back.r(KM.m_get(path, (depth + 2 : U32)), h, depth, n)
+      wk.back.r(KM.m_get(path, depth), h, depth, n)
 
 def wk.hb.go(gone: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   match gone:
@@ -471,7 +470,7 @@ def nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32
     case P.Lz{h, +lazy, +k}:
       match lazy:
         case True{}:
-          D{h, KM.m_set(KM.m_set(path, 1, k), 2, b), top, depth, n, 2}
+          D{h, path, top, depth, n, 2}
         case False{}:
           wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
@@ -558,7 +557,7 @@ def sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
 def wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
   match ok:
     case True{}:
-      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 3 : U32), top), x, (depth + 1 : U32), n)
+      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
     case False{}:
       d.stop(P.h_err(h), path, top, depth, n, 3)
 
@@ -579,13 +578,13 @@ def wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) 
 def wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
   match full:
     case True{}:
-      wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 3, top), h, top, depth, n, x, cap)
+      wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
     case False{}:
-      d.go(h, KM.m_set(path, (depth + 3 : U32), top), x, (depth + 1 : U32), n)
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
 def wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
   (path, +cap) = r
-  wk.full.go(U32.is_ge((depth + 3 : U32), cap), path, h, top, depth, n, x, cap)
+  wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
 
 # top pushed, the walk going on at x
 def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
@@ -593,7 +592,7 @@ def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U
     case True{}:
       wk.full(KM.m_get(path, 0), h, top, depth, n, x)
     case False{}:
-      d.go(h, KM.m_set(path, (depth + 3 : U32), top), x, (depth + 1 : U32), n)
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
 def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match nil pr:
@@ -602,7 +601,7 @@ def wk.q.go(nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n
     case False{} True{}:
       wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
-      wk.push(U32.is_eq(((depth + 3 : U32) .&. (depth + 2 : U32) : U32), 0), h, path, top, depth, n, P.base(q))
+      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
 # Pushes and what follows them in one step: most pushes find a pair at
 # once, and a step costs the walk a round through demand's loop. While
@@ -618,14 +617,14 @@ type Dn is Type:
 # whether the walk can push past a node facing q, at depth: an auxiliary
 # port, and room in the array
 def dn.can(+q: U32, +depth: U32) -> Bool:
-  U32.is_ne(q, P.nil()) && U32.is_ne(P.port(q), 0) && U32.is_ne(((depth + 3 : U32) .&. (depth + 2 : U32) : U32), 0)
+  U32.is_ne(q, P.nil()) && U32.is_ne(P.port(q), 0) && U32.is_ne(((depth + 1 : U32) .&. depth : U32), 0)
 
 def dn.r(r: P.H & U32, path: KM.M, +x: U32, +depth: U32) -> Dn:
   (h, +q) = r
   Dn{dn.can(q, depth), h, path, x, depth, q}
 
 def dn.step(h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Dn:
-  dn.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 3 : U32), top), P.base(q), (depth + 1 : U32))
+  dn.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 1 : U32), top), P.base(q), (depth + 1 : U32))
 
 def wk.down(f: Nat, s: Dn) -> Dn:
   match f:
@@ -683,6 +682,33 @@ def d.path(r: KM.M & U32) -> KM.M:
 def d.start(h: P.H) -> D:
   d.go(h, d.path(KM.m_new(6n, P.w_maxd())), P.iface(), 0, 0)
 
+# A demand waiting on a lazy value keeps nothing for it. Stopped (state
+# 2), its top is the application or strict call, unchanged, its principal
+# port facing the data node that holds the handle: the need is read from
+# the net when asked (need), the node found again when the value comes
+# (resume). A task reports that it waits and on what; the scheduler holds
+# the handle while it does (the maintainer, 2026-10-30).
+
+def at.ori(neg: Bool, +top: U32, +y: U32) -> U32:
+  match neg:
+    case True{}:
+      y
+    case False{}:
+      top
+
+def at.hx(r: P.H & U32, +top: U32, +y: U32) -> P.H & U32:
+  (h, +hx) = r
+  (h, at.ori(KR.kind_neg(P.rk(hx)), top, y))
+
+def at.q(r: P.H & U32, +top: U32) -> P.H & U32:
+  (h, +q) = r
+  at.hx(P.rd(h, top), top, P.base(q))
+
+# the data node a stopped demand waits on: of top and its principal
+# partner, the one whose principal port is positive
+def d.at(h: P.H, +top: U32) -> P.H & U32:
+  at.q(P.rd(h, (top + 1 : U32)), top)
+
 def resume.put(r: P.H & P.PW, +at: U32) -> P.H:
   (h, pw) = r
   match pw:
@@ -697,24 +723,45 @@ def resume.hb(r: P.H & U32, +at: U32, v: V.Val) -> P.H:
   (h, +hb) = r
   resume.pb(P.rd(h, (at + 2 : U32)), at, hb, v)
 
+def resume.b(r: P.H & U32, v: V.Val) -> P.H:
+  (h, +at) = r
+  resume.hb(P.rd(h, at), at, v)
+
 # a need met: the data node holding the handle holds v instead, and the
 # walk goes on where it stopped
-def resume.at(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, v: V.Val) -> D:
-  (path, +at) = r
-  d.go(resume.hb(P.rd(h, at), at, v), KM.m_set(KM.m_set(path, 1, 0), 2, 0), top, depth, n)
-
 def resume(d: D, v: V.Val) -> D:
   match d:
     case D{h, path, +top, +depth, +n, +st}:
-      resume.at(KM.m_get(path, 2), h, top, depth, n, v)
+      d.go(resume.b(d.at(h, top), v), path, top, depth, n)
 
-def need.r(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +st: U32) -> D & U32:
-  (path, +lz) = r
-  (D{h, path, top, depth, n, st}, lz)
+def need.z(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D & U32:
+  match z:
+    case P.Lz{h, +lazy, +k}:
+      (D{h, path, top, depth, n, st}, k)
 
-# the handle a demand stopped needing (state 2), 0 in any other state
+def need.pb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +hb: U32) -> D & U32:
+  (h, +pb) = r
+  need.z(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, st)
+
+def need.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +b: U32) -> D & U32:
+  (h, +hb) = r
+  need.pb(P.rd(h, (b + 2 : U32)), path, top, depth, n, st, hb)
+
+def need.b(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D & U32:
+  (h, +b) = r
+  need.hb(P.rd(h, b), path, top, depth, n, st, b)
+
+def need.go(w: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D & U32:
+  match w:
+    case True{}:
+      need.b(d.at(h, top), path, top, depth, n, st)
+    case False{}:
+      (D{h, path, top, depth, n, st}, 0)
+
+# the handle a demand stopped needing (state 2), read from the net; 0 in
+# any other state
 def need(d: D) -> D & U32:
   match d:
     case D{h, path, +top, +depth, +n, +st}:
-      need.r(KM.m_get(path, 1), h, top, depth, n, st)
+      need.go(U32.is_eq(st, 2), h, path, top, depth, n, st)
 
