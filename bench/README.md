@@ -24,6 +24,9 @@ Results on an i7-6700 (4 cores, 2 hyperthreads each), Bend 2.0.39,
   on 8 threads, 11 µs on 4, 7.6 µs on 2.
 - `zero_fill 20` .. `23`: 8.7M, 17.1M, 33.9M, 67.4M instructions, 8.0 a
   word (about 3 cycles), 2026-10-27.
+  With Bend #1928's change to the runtime's fill loop applied to the C
+  2.0.39 emits: 1.27M, 2.19M, 4.02M, 7.70M instructions, 0.88 a word,
+  and 1.3 cycles a word against 4.4 the same day, 2026-10-30.
 - `const_flag 0` and `const_flag 1` at 1M, 2M and 4M steps, the flag
   False: 7,099,547, 13,849,620 and 27,349,550 instructions both ways,
   within 3, 6.75 a step: the guard folds away across files. The flag True

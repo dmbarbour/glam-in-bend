@@ -150,7 +150,12 @@ of 2026-10-26, Bend 2.0.39.
   every compiled Bend function forced inline, and given training runs,
   profile-guided too (which alone recovers most of the loss), to measure
   the work itself; the kernel still ships as `bend` builds it.
-- **Revisit:** at whole-system tuning.
+- **Revisit:** at whole-system tuning. Then a build script making the
+  profile-guided build, trained on a workload kept realistic as glam
+  grows, once glam has regular testing and performance checks across
+  machines and GPGPUs (the maintainer, 2026-10-30): profile-guided, the
+  full reduction runs 16% under the default build on `succ` and demand
+  13% (store run 66).
 
 ### Array creation fills word by word
 
@@ -158,12 +163,22 @@ of 2026-10-26, Bend 2.0.39.
   new array.
 - **Upstream:** #1890. The maintainer's preference over a faster fill:
   no initialization at all, with a proof that each slot is written before
-  it is read. A merge request for array allocation's cost is up (the
-  maintainer, 2026-10-29).
+  it is read. Half of it merged as #1928 (b576d5f, 2026-10-29): the fill
+  loop in the runtime's `blk_new` written so that clang vectorizes it,
+  the larger part for us; it leaves the doubling of the net's data table
+  alone (the maintainer, 2026-10-30). In no release yet: 2.0.39, the
+  pinned one, predates it.
 - **Evidence:** `bench/bend/zero_fill.bend`: 8 instructions (3 cycles) a
   word; growing the kernel's stores is 14 to 18% of a run at k 18,
-  most of it this fill (EvalSpike, `spike-node-layout`).
+  most of it this fill (EvalSpike, `spike-node-layout`). With #1928's
+  change applied to the C 2.0.39 emits: 0.88 instructions and 1.3
+  cycles a word, and the kernel at k 18, four builds, 4.0% to 10.5%
+  fewer instructions in every workload, the full reduction and demand
+  alike, the same interactions (store runs 66, 67). What growth costs
+  then is mostly the copy into each doubled array, word by word in Bend
+  (`kmem_grow.bend`): 20% of the full reduction on `succ`.
 - **Workaround:** none yet; larger first sizes would trade memory for it.
+  Take #1928 with the release that carries it.
   Under the proof the issue asks for, the kernel's scans that read
   never-used nodes (the root's search, the table audit) would stop at a
   high-water mark instead of the capacity.
