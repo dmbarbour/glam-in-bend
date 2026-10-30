@@ -4,6 +4,7 @@
 import Base
 import ./store.bend as S
 import ./rules.bend as R
+import ./net.bend as N
 import ./val.bend as V
 import ./ctl.bend as CT
 import ./kprim.bend as P
@@ -637,6 +638,18 @@ law events_base_sources:
   for +p: Nat
   {R.ev_base_sources(a, b, p) == True{} : Bool}
 
+# LAW: a test comparing two payloads (R.test_eq: two fans' identities, an
+# application's level and a function's, two controls' indexes) passes
+# for a payload met by itself, as the reference interpreter tests it:
+# the law checks' normalizer runs such a pair where both payloads have
+# one source.
+# Record: fusions-as-components
+law tests_reflexive:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: V.Pay
+  {N.test_refl(a, b, p) == True{} : Bool}
+
 # LAW: a loop from a node's auxiliary port to its other one joins ports of
 # opposite polarity, which only a function has (body to variable, the
 # identity) and an application (argument to result); a fan's two outputs,
@@ -663,6 +676,13 @@ law fused_polarity:
 # Record: net-nodes-double
 law beta_loops:
   {R.beta_loops() == True{} : Bool}
+
+# LAW: the identity function copied is two identities: the copy and the
+# merge its rule makes meet, of one fan's identity, and annihilate, as
+# the law checks' normalizer now knows (R.copy_identity).
+# Record: fusions-as-components
+law copy_identity:
+  {R.copy_identity() == True{} : Bool}
 
 # LAW: a fused node behaves as its components: a linear fan, whatever its
 # principal meets, is stuck where its full fan with the dead side erased

@@ -4,6 +4,7 @@ import Base
 import ./LAWS.bend as Laws
 import ./store.bend as S
 import ./rules.bend as R
+import ./net.bend as N
 import ./val.bend as V
 import ./ctl.bend as CT
 import ./kprim.bend as P
@@ -13847,6 +13848,185 @@ def Laws.events_base_sources(a, b, p):
           {==}
         case R.KMergeR{}:
           {==}
+
+# U32 equality reflexive, through the hub's lemma that it tests the
+# values as Nats
+def nis_refl(+n: Nat) -> {Nat.is_eq(n, n) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      nis_refl(p)
+
+def u32_refl(+x: U32) -> {U32.is_eq(x, x) == True{} : Bool}:
+  %Equal.sym(Bool, U32.is_eq(x, x), Nat.is_eq(U32.to_nat(x), U32.to_nat(x)), MU.u32_is_eq_to_nat(x, x)) : {_ == True{} : Bool}
+  nis_refl(U32.to_nat(x))
+
+# by cases on the kinds; where the test compares, on the payload, each
+# comparison of a value with itself rewritten to true
+def Laws.tests_reflexive(a, b, p):
+  match a:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          u32_refl(V.pay_lvl(p))
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KCopy{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          match p:
+            case V.PFan{f}:
+              match f:
+                case V.FanId{+s, +i, +l}:
+                  %Equal.sym(Bool, U32.is_eq(s, s), True{}, u32_refl(s)) : {((_ && U32.is_eq(i, i)) && U32.is_eq(l, l)) == True{} : Bool}
+                  %Equal.sym(Bool, U32.is_eq(i, i), True{}, u32_refl(i)) : {(_ && U32.is_eq(l, l)) == True{} : Bool}
+                  u32_refl(l)
+            case V.PNone{}:
+              {==}
+            case V.PVal{v}:
+              {==}
+            case V.PLvl{+n}:
+              {==}
+            case V.PLift{+n, up, +by}:
+              {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KCall{}:
+      {==}
+    case R.KLift{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KCall{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          match p:
+            case V.PLift{+n, up, +by}:
+              match up:
+                case True{}:
+                  %Equal.sym(Bool, U32.is_eq(n, n), True{}, u32_refl(n)) : {((_ && V.bool_eq(True{}, True{})) && U32.is_eq(by, by)) == True{} : Bool}
+                  u32_refl(by)
+                case False{}:
+                  %Equal.sym(Bool, U32.is_eq(n, n), True{}, u32_refl(n)) : {((_ && V.bool_eq(False{}, False{})) && U32.is_eq(by, by)) == True{} : Bool}
+                  u32_refl(by)
+            case V.PNone{}:
+              {==}
+            case V.PVal{v}:
+              {==}
+            case V.PFan{f}:
+              {==}
+            case V.PLvl{+n}:
+              {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+    case R.KLiftC{}:
+      {==}
+    case R.KCopyL{}:
+      {==}
+    case R.KCopyR{}:
+      {==}
+    case R.KMergeL{}:
+      {==}
+    case R.KMergeR{}:
+      {==}
+
+def Laws.copy_identity():
+  {==}
 
 def Laws.aux_loops(k):
   match k:

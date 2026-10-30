@@ -561,7 +561,12 @@ Sharing:
      annotations would give it (the maintainer, 2026-10-30): an await,
      meant as an identity or application operator, which had no way to
      be described before `spike-operators` (the maintainer, 2026-10-30),
-     a design quite unlike the one tried. Tried 2026-10-30 as a node
+     a design quite unlike the one tried. Perhaps still a kind of its
+     own that looks like an operator: its payload fused with its result,
+     its principal delaying a computation between result and payload
+     until data reaches it (the maintainer, 2026-10-30: the first design
+     not convincing; eager fixpoints again once the model is more
+     mature). Tried 2026-10-30 as a node
      kind of its own, `Await`, of three ports: its principal waiting for
      data, port 1 taking in what it guards and port 2 giving it out.
      Data reaching it is dropped and the guarded value passes on; a
