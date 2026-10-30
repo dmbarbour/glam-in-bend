@@ -1191,7 +1191,7 @@ takes from it:
      the counters, the data table's head, so that a live net is an
      array of words paired with an array of values. A first measurement
      moved the free list's head alone into node 1, which the free list
-     never holds (branch `heap-header`, 93bccb2): demand 2.9% to 5.3%
+     never holds (branch `heap-header`, 93bccb2, deleted 2026-10-30): demand 2.9% to 5.3%
      fewer instructions in all four builds at k 18, the full reduction
      3.8% to 4.9% fewer by default and -2.7% to +0.8% inlined or
      profile-guided, the same interactions (store run 49 against 48).
@@ -1246,7 +1246,7 @@ takes from it:
      as the net's free list is (`heap-strategies.header`). To measure:
      the bits' cost to demand, sweeps on families at n, 2n and 4n, how
      often hints overflow, against the stack as it is. Measured
-     2026-10-29 on branch `heap-pages` (d6841f9): pages of 128 nodes,
+     2026-10-29 on branch `heap-pages` (d6841f9, deleted 2026-10-30): pages of 128 nodes,
      each with its bit node, the bits kept by both rewrite families, the
      interpreter and the loader, cleared as `fresh2` frees a pair, every
      bit checked against the links after each test run; the library's
@@ -1334,7 +1334,7 @@ takes from it:
      rewrite. To measure: demand's peak capacity and live nodes on the
      library's costly entries, and its instructions.
      - `heap-strategies.cascade.collect` — built 2026-10-29 on branch
-       `heap-collect` (7719115), not merged: as above, a collection that
+       `heap-collect` (7719115), not merged, the branch deleted 2026-10-30: as above, a collection that
        erases less than a quarter of the capacity doubling the net too,
        so the scans stay linear. Demand's result now reports the
        capacity it grew to (merged). On the library it frees 2 to 27

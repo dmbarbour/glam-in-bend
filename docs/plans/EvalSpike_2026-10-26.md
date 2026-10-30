@@ -556,6 +556,43 @@ Sharing:
    against the library's mixins tied by `Y` and `Z`, which demand reads
    at a cost superlinear in the chain's depth where call-by-need is
    linear (`pairing-library.programs`).
+   - `spike-fixpoints.await` — contingent on `spike-operators` —
+     evaluator guidance for knots under eager reduction, as glam's
+     annotations would give it (the maintainer, 2026-10-30): an await,
+     meant as an identity or application operator, which had no way to
+     be described before `spike-operators` (the maintainer, 2026-10-30),
+     a design quite unlike the one tried. Tried 2026-10-30 as a node
+     kind of its own, `Await`, of three ports: its principal waiting for
+     data, port 1 taking in what it guards and port 2 giving it out.
+     Data reaching it is dropped and the guarded value passes on; a
+     superposed value copies the await, the guarded value copied in and
+     the results merged; an error value drops the guarded one; a control
+     facing it is dropped, as an eraser drops it. `terms.py`'s saturated
+     `await v x` lowered to it, and `Zg` guarded Z's self-application
+     with it. On a side branch (fa511bb), every law over the rule table
+     holding with the kind; the branch deleted unmerged, its findings,
+     about that kind, kept here:
+     - A knot tied by `Zg` whose self is never applied leaves every full
+       reduction finishing (library entry `fix-guarded-unused`, with
+       the branch), where under `Y` or `Z` one with levels unfolds it
+       for ever.
+     - Awaiting a function too, as Church-encoded selectors need, is the
+       first rule linking two of the pair's outside ends that also makes
+       nodes: a chain then runs through the pair from one new node to
+       another, which the kernel's joining, one step deep, drops as a
+       closed loop, and `rules_pairs_exact` fails for it. So await data
+       alone (glam's keys are data), or join along chains.
+     - Awaiting functions, probed outside the branch: labels finish the
+       mixins eagerly; levels count errors, a copy meeting a function at
+       a level not below its own, since `Await >< Merge` copies the
+       guarded value at the merge's level where an application's
+       argument would sit a box deeper, and past the value keep moving
+       controls for ever. Await's level discipline is open: its guarded
+       value boxed, likely, and a croissant on the way out.
+     - Recursion needs each recursive call guarded too, by its branch's
+       trigger, as a strict language's conditional is lazy: a full
+       reduction reduces both branches of a Church conditional, and the
+       untaken one's call gets its value.
 8. `spike-lazy-data` — the split heap with a stop-the-world collector
    (the sketch's "Collection"), against lazy fields as ports, on workloads
    that share a field many times, copy a large mostly unread dict, keep
@@ -628,7 +665,9 @@ Speed:
     later stages fused into kinds with the payload immediate; an
     operator of one stage, `succ`, a single word to allocate. About two
     kinds a hot operator, some 40 for 20 primops: room past 16 kinds
-    first (`heap-strategies.kinds.layout`).
+    first (`heap-strategies.kinds.layout`). An await is one of them, an
+    identity or application operator (the maintainer, 2026-10-30:
+    `spike-fixpoints.await`).
 15. `spike-templates` — tentative — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families
