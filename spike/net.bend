@@ -242,6 +242,8 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
     # no rule makes a composed source (law rules_base_sources)
     case R.SAp{f, x}:
       V.PNone{}
+    case R.SLft{x, c}:
+      V.PNone{}
 
 type Made is Type:
   Made{q: Q, refs: List<&2, U32>}
@@ -637,6 +639,28 @@ def rule_test(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
       V.ctl_eq(pa, pb)
     case _ _:
       False{}
+
+def is_lift(p: V.Pay) -> Bool:
+  match p:
+    case V.PLift{+n, +up, +by}:
+      True{}
+    case _:
+      False{}
+
+# a payload as a node of kind k carries it in a well-formed net, as far
+# as its test needs: a co-control's an index and offset
+def pay_fits(k: R.NodeKind, p: V.Pay) -> Bool:
+  match k:
+    case R.KLiftC{}:
+      is_lift(p)
+    case _:
+      True{}
+
+# a test comparing the two payloads (R.test_eq) passes for a payload met
+# by itself, as the law checks' normalizer takes it to for a pair of one
+# source (law tests_reflexive)
+def test_refl(+a: R.NodeKind, +b: R.NodeKind, +p: V.Pay) -> Bool:
+  Bool.not(R.test_eq(a, b) && pay_fits(b, p)) || rule_test(a, b, p, p)
 
 # Level checks: assertions counted as errors, the rewrite proceeding
 # (docs/plans/NetPairing_2026-10-26.md, "Compared with the earlier

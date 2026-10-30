@@ -306,7 +306,7 @@ takes from it:
    Waypoints (2026-10-30), in the order intended:
    `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume` (built),
    `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads.data` (built),
-   `heap-strategies.fusions.payloads.levels`,
+   `heap-strategies.fusions.payloads.levels` (built),
    `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`,
@@ -1088,7 +1088,7 @@ takes from it:
        pattern again: equal up to itself. Once dead calls are a kind and
        that chain an event of `R.event`, the normalizer runs it, and
        `events_as_components` covers it (`heap-strategies.erasure.deadcall`).
-     - `heap-strategies.fusions.payloads` — active — the comparison to
+     - `heap-strategies.fusions.payloads` — built 2026-10-30 — the comparison to
        include what payloads and fields go where, in two parts, data the
        easier (the maintainer, 2026-10-30).
        - `heap-strategies.fusions.payloads.data` — built 2026-10-30 —
@@ -1117,10 +1117,38 @@ takes from it:
          derived through it. No fused pattern yet combines two payloads,
          a call and its data in one: that waits for operators
          (`heap-strategies.fusions.operators`).
-       - `heap-strategies.fusions.payloads.levels` — tentative — each
-         field's: a fan's identity and level, a control's raise, the
+       - `heap-strategies.fusions.payloads.levels` — built 2026-10-30 —
+         each field's: a fan's identity and level, a control's raise, the
          fused form's update against the expanded form's; and with them
          a fan meeting a fan of one source reduced, its label known.
+         Built: every node that carries something, a level, a fan's
+         identity, a control's index, data or a call's function, has its
+         source followed, erasers and the root none; a fan's identity
+         resolves to its node's source, and what one node carries passed
+         through a control to a term of the two (`SLft`, a source only
+         the laws' graphs compose, as `SAp`). An event's node takes its
+         source as a rule's does, and the law on events now builds the
+         event's result with the source the event gives, not one
+         assumed. The normalizer runs a pair whose test compares its two
+         payloads (two fans, an application and a function, two
+         controls: `R.test_eq`) where both have one source, the test
+         passing; the reference interpreter's test passes for a payload
+         met by itself (law `tests_reflexive`, through the hub's lemma
+         that `U32` equality tests the values). So the identity function
+         copied normalizes to two identities (law `copy_identity`), the
+         case `heap-strategies.fusions.loops` left open. Different
+         sources tell nothing: such a pair stays. Derived rules and the
+         generated rewrites unchanged; all laws hold. Mutated, each
+         fails: derived rules dropping a control's raise or swapping its
+         two terms, `linear_as_components` at 8 cases (linear copies
+         against a co-control, linear merges against a control); a fan's
+         identity dropped, 16, A's and B's swapped, 24 (data with them,
+         24, B's dropped, 12); a linear copy's event without its fan's
+         identity, `events_as_components` at 2, which the law missed
+         before taking the event's source; a composed source in a rule
+         or event, `rules_base_sources`, `events_base_sources`; no
+         equal-source decision, `copy_identity`; an application meeting
+         data counted an equality test, `tests_reflexive`.
      - `heap-strategies.fusions.controls` — tentative — control fusion
        at the level of rules: a run, against each partner, as its unit
        controls, stuck where they are, its levels as theirs (the levels

@@ -25,9 +25,10 @@ applied to a fusion gives what it gives the expanded form.
   scope is known, and a dead call is a fused node of its own, stuck where
   a call is (`heap-strategies.erasure.deadcall`).
 - An optimization without such a law is an experiment, not a feature.
-- The laws compare kinds, wiring and data payloads' provenance; level
-  updates are to be compared too, and control runs stated as their unit
-  controls at the level of rules, not only of levels.
+- The laws compare kinds, wiring and every payload's provenance, levels,
+  fans' identities and controls' indexes included; control runs are to
+  be stated as their unit controls at the level of rules, not only of
+  levels.
 
 **Rule lives in:** `spike/LAWS.bend`, laws `linear_as_components` and
 `events_as_components` (controls: `units_are_run`, `run_splits`,
