@@ -46,6 +46,14 @@ def kname(k: R.NodeKind) -> String:
       "Lift"
     case R.KLiftC{}:
       "LiftC"
+    case R.KCopyL{}:
+      "CopyL"
+    case R.KCopyR{}:
+      "CopyR"
+    case R.KMergeL{}:
+      "MergeL"
+    case R.KMergeR{}:
+      "MergeR"
 
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))

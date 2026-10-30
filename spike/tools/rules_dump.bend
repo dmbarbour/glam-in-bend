@@ -33,9 +33,17 @@ def kname(k: R.NodeKind) -> String:
       "KLift"
     case R.KLiftC{}:
       "KLiftC"
+    case R.KCopyL{}:
+      "KCopyL"
+    case R.KCopyR{}:
+      "KCopyR"
+    case R.KMergeL{}:
+      "KMergeL"
+    case R.KMergeR{}:
+      "KMergeR"
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}]
 
 def nshow(n: Nat) -> String:
   U32.show(U32.from_nat(n))
