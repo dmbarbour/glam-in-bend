@@ -883,38 +883,6 @@ def lf.other(p: Nat) -> Nat:
     case _:
       1n
 
-# eraser e of kind ke facing end x: an erasure where x is a principal
-# port, an event where it is an auxiliary one
-# an end of an event at port p of node a, the eraser b: external peer 0
-# the peer of a's principal, 1 of its other auxiliary port; new node 0
-# in a's slot, 1 in b's, any more from n0
-def lf.tr.ev.n(+a: Nat, +b: Nat, +n0: Nat, +j: Nat) -> Nat:
-  match j:
-    case 0n:
-      a
-    case 1n:
-      b
-    case 2n+k:
-      Nat.add(n0, k)
-
-def lf.tr.ev(+ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat, +n0: Nat, e: End) -> End:
-  match e:
-    case Ext{i}:
-      match i:
-        case 0n:
-          lf.or_end(lf.peer(ls, New{a, 0n}))
-        case _:
-          lf.or_end(lf.peer(ls, New{a, lf.other(p)}))
-    case New{+j, +q}:
-      New{lf.tr.ev.n(a, b, n0, j), q}
-
-def lf.trs.ev(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat, +n0: Nat) -> List<&2, Link>:
-  match ms:
-    case Nil{}:
-      Nil{}
-    case Con{Link{x, y}, t}:
-      Con{Link{lf.tr.ev(ls, a, b, p, n0, x), lf.tr.ev(ls, a, b, p, n0, y)}, lf.trs.ev(t, ls, a, b, p, n0)}
-
 # a new node's spec in an old one's slot: a fan's identity (SFanA) the
 # old node's own source
 def lf.put.s(s: Src, +old: Src) -> Src:
@@ -929,18 +897,13 @@ def lf.put(+xs: List<&2, Spec>, +j: Nat, sp: Spec) -> List<&2, Spec>:
     case Spec{+k, s}:
       set_src(set_kind(xs, j, k), j, lf.put.s(s, spec_src(xs, j)))
 
-# the event's new nodes placed: 0 in a's slot, 1 in b's (b freed where
-# there is none), the rest appended
-def lf.place.ev(ys: List<&2, Spec>, +xs: List<&2, Spec>, +a: Nat, +b: Nat) -> List<&2, Spec>:
+# the event's one new node placed in a's slot, b freed
+def lf.place.one(ys: List<&2, Spec>, +xs: List<&2, Spec>, +a: Nat, +b: Nat) -> List<&2, Spec>:
   match ys:
+    case Con{y0, t}:
+      lf.put(set_kind(xs, b, KFree{}), a, y0)
     case Nil{}:
       set_kind(set_kind(xs, a, KFree{}), b, KFree{})
-    case Con{y0, t}:
-      match t:
-        case Nil{}:
-          lf.put(set_kind(xs, b, KFree{}), a, y0)
-        case Con{y1, rest}:
-          List.append(&2, Spec, lf.put(lf.put(xs, a, y0), b, y1), rest)
 
 def lf.ev.end1(x: End, y: End) -> Bool:
   match x y:
@@ -995,22 +958,23 @@ def lf.ev.ren(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +p: Nat) -> List
     case Con{Link{x, y}, t}:
       lf.ev.ren(t, lf.ev.ren1(x, y, ls, a, p), a, p)
 
-def lf.apply.ev.go(one: Bool, ys: List<&2, Spec>, ms: List<&2, Link>, +xs: List<&2, Spec>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat) -> G:
+def lf.apply.ev.go(one: Bool, ys: List<&2, Spec>, ms: List<&2, Link>, +xs: List<&2, Spec>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat) -> Maybe<&2, G>:
   match one:
     case True{}:
-      G{lf.place.ev(ys, xs, a, b), lf.ev.ren(ms, lf.unlink(ls, b), a, p)}
+      Some{G{lf.place.one(ys, xs, a, b), lf.ev.ren(ms, lf.unlink(ls, b), a, p)}}
     case False{}:
-      G{lf.place.ev(ys, xs, a, b),
-        List.append(&2, Link, lf.unlink(lf.unlink(ls, a), b), lf.trs.ev(ms, ls, a, b, p, List.length(&2, Spec, xs)))}
+      None{}
 
-# event r at port p of node a, eraser b, its node in a's slot as the
-# kernel places it (law kernel_events_in_step): an event of one node in
-# place, the eraser's link gone and a's ports renamed, as fans were marked
-# linear; any other, a's links remade
+# event r at port p of node a, eraser b, in place, its node in a's slot
+# as the kernel places it (law kernel_events_in_step): the eraser's link
+# gone, a's ports renamed where the node keeps them at others, as fans
+# were marked linear. Every event is of one node linked only to external
+# peers (law events_one_node); one of more would make no step here, the
+# law failing first.
 def lf.apply.ev(r: Rule, g: G, +a: Nat, +b: Nat, +p: Nat) -> Maybe<&2, G>:
   match r g:
     case RWire{+ys, +ms} G{+xs, +ls}:
-      Some{lf.apply.ev.go(lf.ev.one(ys, ms), ys, ms, xs, ls, a, b, p)}
+      lf.apply.ev.go(lf.ev.one(ys, ms), ys, ms, xs, ls, a, b, p)
     case RStuck{} G{xs, ls}:
       None{}
 
@@ -1057,6 +1021,8 @@ def lf.at_j(p: Nat, ke: NodeKind, kj: NodeKind, +g: G, +e: Nat, +j: Nat) -> Mayb
     case 1n+q:
       lf.at_j.ev(1n+q, ke, kj, g, e, j)
 
+# eraser e of kind ke facing end x: an erasure where x is a principal
+# port, an event where it is an auxiliary one
 def lf.at_e(ke: NodeKind, +g: G, +e: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
   match x:
     case Some{y}:
@@ -1490,6 +1456,52 @@ def made(r: Rule) -> Nat:
       List.length(&2, Spec, xs)
     case RStuck{}:
       0n
+
+# What the normalizer takes for granted (heap-strategies.fusions.assume)
+
+# no eraser's rule depends on the payload test, so the normalizer, which
+# knows no payload, applies every erasure (law erasers_untested)
+def erasers_untested(+k: NodeKind) -> Bool:
+  rule_eq(rule.full(KEraN{}, k, True{}), rule.full(KEraN{}, k, False{})) &&
+    rule_eq(rule.full(k, KEraP{}, True{}), rule.full(k, KEraP{}, False{}))
+
+def self.end(x: End, y: End) -> Bool:
+  match x y:
+    case New{+i, p} New{+j, q}:
+      nat_eq(i, j)
+    case _ _:
+      False{}
+
+def self.links(ls: List<&2, Link>) -> Bool:
+  match ls:
+    case Nil{}:
+      False{}
+    case Con{Link{x, y}, t}:
+      self.end(x, y) || self.links(t)
+
+def no_self.r(r: Rule) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      Bool.not(self.links(ls))
+    case RStuck{}:
+      True{}
+
+# no rule links two ports of one of its new nodes: rewriting never makes a
+# node face itself of its own (law rules_no_self_links)
+def no_self_links(+a: NodeKind, +b: NodeKind, +t: Bool) -> Bool:
+  no_self.r(rule(a, b, t))
+
+def ev_one.r(r: Rule) -> Bool:
+  match r:
+    case RWire{ys, ms}:
+      lf.ev.one(ys, ms)
+    case RStuck{}:
+      True{}
+
+# every event makes one node, linked only to external peers, which the
+# normalizer applies in place (law events_one_node)
+def ev_one_node(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
+  ev_one.r(event(a, b, p))
 
 # a linear fan rewrites exactly where its full fan does (law
 # rules_linear_rewrites)

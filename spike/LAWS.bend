@@ -592,6 +592,32 @@ law events_erase_last:
   for +p: Nat
   {R.ev_last(a, b, p) == True{} : Bool}
 
+# LAW: no eraser's rule depends on the payload test, so the derivation's
+# normalizer, which knows no payload, applies every erasure.
+# Record: net-nodes-double
+law erasers_untested:
+  for +k: R.NodeKind
+  {R.erasers_untested(k) == True{} : Bool}
+
+# LAW: no rule links two ports of one of its new nodes: rewriting never
+# makes a node face itself of its own.
+# Record: net-nodes-double
+law rules_no_self_links:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  {R.no_self_links(a, b, t) == True{} : Bool}
+
+# LAW: every event makes one node, linked only to external peers: the
+# normalizer applies events in place, as the kernel places them, and an
+# event of more nodes, should one be wanted, fails here first.
+# Record: net-nodes-double
+law events_one_node:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_one_node(a, b, p) == True{} : Bool}
+
 # LAW: a fused node behaves as its components: a linear fan, whatever its
 # principal meets, is stuck where its full fan with the dead side erased
 # is, and otherwise leaves the same graph, both normalized by the

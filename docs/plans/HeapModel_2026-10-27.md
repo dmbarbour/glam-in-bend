@@ -304,7 +304,7 @@ takes from it:
    measured: eager pairs last in first out, demand toward the interface,
    parallel rounds; profiling and tracing as strategies wrapping another.
    Waypoints (2026-10-30), in the order intended:
-   `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume`,
+   `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume` (built),
    `heap-strategies.fusions.loops`, `heap-strategies.fusions.payloads`,
    `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
@@ -1097,16 +1097,22 @@ takes from it:
        controls, stuck where they are, its levels as theirs (the levels
        themselves already: `units_are_run`, `run_splits`,
        `peel_pairs_units`).
-     - `heap-strategies.fusions.assume` — tentative — what the
-       normalizer takes for granted, stated as laws, each found true over
-       the table (2026-10-30, a scratch check): no eraser's rule depends
-       on the payload test (`erasers_untested`); no rule or event links
-       two ports of one new node (`rules_no_self_links`); every event
-       makes one node (`events_one_node`), so the in-place application is
-       the only one needed and the general one, untested and taking a
-       fan's identity from the wrong slot for a second node, can go, the
-       law failing first should an event of two nodes be wanted, as the
-       law builder (`fz.result`) builds one node too.
+     - `heap-strategies.fusions.assume` — built 2026-10-30 — what the
+       normalizer takes for granted, as laws: no eraser's rule depends on
+       the payload test (`erasers_untested`; the negative eraser's rules
+       take no test at all, the positive's go through rules that do); no
+       rule links two ports of one new node (`rules_no_self_links`);
+       every event makes one node, linked only to external peers
+       (`events_one_node`), so the normalizer applies events in place
+       alone, the general application gone (untested, and taking a fan's
+       identity from the wrong slot for a second node): an event of more
+       nodes makes no step there, the law failing first (the maintainer,
+       2026-10-30: a law's failure the signal to generalize). Each law
+       fails on its mutation alone: the dead application's event of two
+       nodes restored, `events_one_node` at that event; a negative
+       eraser's rule stuck when the test fails, `erasers_untested` at 6
+       kinds; a self-link in erasing a function, `rules_no_self_links` at
+       6 rules (that one and the linear ones derived through it).
      - `heap-strategies.fusions.loops` — tentative — a node with a port
        facing its own other port (the maintainer, 2026-10-30): principal
        to auxiliary, a vicious circle on any node, never interacting;
