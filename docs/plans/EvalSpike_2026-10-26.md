@@ -551,7 +551,11 @@ Sharing:
    demand is a dependency cycle, found also across tasks' waits.
    Workloads: deep mixin chains, repeated `with` and `extend`, recursive
    functions, recursive do over assembly labels. Law: unfolding a knot
-   once changes no observation.
+   once changes no observation. To try (the maintainer, 2026-10-30): knots as
+   promises, lazies filled by mutation, as the Rust bootstrap favoured,
+   against the library's mixins tied by `Y` and `Z`, which demand reads
+   at a cost superlinear in the chain's depth where call-by-need is
+   linear (`pairing-library.programs`).
 8. `spike-lazy-data` — the split heap with a stop-the-world collector
    (the sketch's "Collection"), against lazy fields as ports, on workloads
    that share a field many times, copy a large mostly unread dict, keep

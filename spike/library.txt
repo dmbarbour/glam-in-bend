@@ -197,6 +197,95 @@ levels: 6 logical 120330 peels 0
 labels: 6 logical 23561 peels 0
 unfused: 6 logical 332058 peels 0
 
+# The list monad (terms.py's nil, cons, lret, lbind, lguard): every
+# solution in order, as a fold; the first alone drops the rest
+
+name: list-sum
+why: the pairs x, y in 0..5 with x + y = 5, every one, summed as 3x + y:
+  the list monad's whole cost
+term: sum (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret (add (mul x #3) y))))) succ 0
+levels: 60 logical 146750 peels 0
+labels: 60 logical 25882 peels 0
+unfused: 60 logical 396428 peels 0
+
+name: list-head
+why: the same list, its head alone: the rest, a fold never taken, left
+  to demand as garbage
+term: head (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret (add (mul x #3) y))))) #0 succ 0
+levels: 5 logical 135703 peels 0
+labels: 5 logical 25021 peels 0
+unfused: 5 logical 352489 peels 0
+
+name: list-length
+why: the same pairs counted, their values never read
+term: length (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret x)))) succ 0
+levels: 6 logical 123556 peels 0
+labels: 6 logical 23863 peels 0
+unfused: 6 logical 308346 peels 0
+
+# A state threaded through backtracking (terms.py's sret, sbind, salt,
+# sonce, srun): a branch begins from the state where its choice was made,
+# so failing back restores it. A parser, its state the input left (item,
+# sat, many, eof over a Scott list)
+
+name: parse-greedy
+why: as many 1s as there are, at most 5, then a 2: three
+term: srun (sbind (many #5 (sat (eq #1))) (\n. sbind (sat (eq #2)) (\x. sret n))) (scons #1 (scons #1 (scons #1 (scons #2 snil)))) #9 succ 0
+levels: 3 logical 39136 peels 0
+labels: 3 logical 3418 peels 0
+unfused: 3 logical 144516 peels 0
+
+name: parse-backtrack
+why: 1s, then a 1, then the end: many takes all three, the next 1 fails,
+  and many gives one back, the input restored with it: two
+term: srun (sbind (many #5 (sat (eq #1))) (\n. sbind (sat (eq #1)) (\x. sbind eof (\u. sret n)))) (scons #1 (scons #1 (scons #1 snil))) #9 succ 0
+levels: 2 logical 36801 peels 0
+labels: 2 logical 3249 peels 0
+unfused: 2 logical 140481 peels 0
+
+name: parse-cut
+why: the same with many under a cut (sonce): committed to all three 1s,
+  the next 1 fails with nothing to go back to, and the parse gives the
+  default, 9
+term: srun (sbind (sonce (many #5 (sat (eq #1)))) (\n. sbind (sat (eq #1)) (\x. sbind eof (\u. sret n)))) (scons #1 (scons #1 (scons #1 snil))) #9 succ 0
+levels: 9 logical 45387 peels 0
+labels: 9 logical 3782 peels 0
+unfused: 9 logical 160081 peels 0
+
+# Objects as fixpoints of mixins (terms.py's ext, new): records a
+# selector picks from, mixins taking super and self, self tied by Y.
+# Reading a field unfolds the fixpoint as far as it needs, which demand
+# does; a full reduction with levels unfolds it for ever, as it reduces
+# K 2 Ω's Ω, and with labels finishes, Y reduced to a cyclic net
+
+name: mixin-late
+why: x is self's y plus 1, and a later mixin sets y to 10: late binding
+  through self gives 11, not 4
+term: new (ext (\super self sel. sel (super T) #10) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 11
+labels: 11 logical 1274 peels 0
+unfused: demand 11
+
+name: mixin-late-z
+why: mixin-late tied by Z, the fixpoint whose self-application waits under
+  a lambda: on demand the same interactions as Y with levels and labels,
+  the full reductions with levels unfolding for ever all the same; a net
+  has no order of evaluation for the eta-expansion to delay
+term: Z (ext (\super self sel. sel (super T) #10) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 11
+labels: 11 logical 1275 peels 0
+unfused: demand 11
+
+name: mixin-super
+why: a mixin doubling super's y under x as self's y plus 1: 7
+term: new (ext (\super self sel. sel (S (self F)) (super F)) (ext (\super self sel. sel (super T) (add (super F) (super F))) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 7
+labels: 7 logical 952 peels 0
+unfused: demand 7
+
 # Families at n, 2n and 4n, for fitting cost to a + b n^k
 
 name: pow-2-3
@@ -254,3 +343,78 @@ why: 4^4
 term: self #4 succ 0
 levels: 256 logical 2135 peels 0
 unfused: 256 logical 3335 peels 0
+
+name: list-bind-8
+why: each of 0..n-1 through lret and lbind, counted: the list monad's
+  cost per element, a family with list-bind-16 and list-bind-32
+term: length (lbind (range #8) (\x. lret x)) succ 0
+levels: 8 logical 3781 peels 0
+labels: 8 logical 846 peels 0
+unfused: 8 logical 30087 peels 0
+
+name: list-bind-16
+why: 16 elements
+term: length (lbind (range #16) (\x. lret x)) succ 0
+levels: 16 logical 10677 peels 0
+labels: 16 logical 2046 peels 0
+unfused: 16 logical 163359 peels 0
+
+name: list-bind-32
+why: 32 elements
+term: length (lbind (range #32) (\x. lret x)) succ 0
+levels: 32 logical 33685 peels 0
+labels: 32 logical 5598 peels 0
+unfused: 32 logical 1051087 peels 0
+
+name: mixin-chain-4
+why: n mixins each adding 1 to super's y, under x as self's y plus 1:
+  reading x unfolds every one, a family with mixin-chain-8 and
+  mixin-chain-16
+term: new (#4 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 8
+labels: 8 logical 2798 peels 0
+unfused: demand 8
+
+name: mixin-chain-8
+why: 8 mixins
+term: new (#8 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 12
+labels: 12 logical 7062 peels 0
+unfused: demand 12
+
+name: mixin-chain-16
+why: 16 mixins
+term: new (#16 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 20
+labels: 20 logical 21062 peels 0
+unfused: demand 20
+
+name: mixin-once-4
+why: mixin-chain with super used once, both fields taken by one
+  continuation: no record copied per mixin, yet the fixpoint's self,
+  copied at each, is pulled through every copy to be read; a family with
+  mixin-once-8 and mixin-once-16
+term: new (#4 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 8
+labels: 8 logical 2033 peels 0
+unfused: demand 8
+
+name: mixin-once-8
+why: 8 mixins
+term: new (#8 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 12
+labels: 12 logical 4853 peels 0
+unfused: demand 12
+
+name: mixin-once-16
+why: 16 mixins
+term: new (#16 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
+fuel: 100000
+levels: demand 20
+labels: 20 logical 13949 peels 0
+unfused: demand 20

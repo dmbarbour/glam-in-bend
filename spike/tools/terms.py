@@ -74,6 +74,43 @@ PRELUDE = {
     "upto": r"\k. k (\acc i. alt (ret i) (acc (S i))) (\i. fail) #0",
     "first": r"\m d. m (\x fk. x) d",
     "count": r"\m. m (\x fk. S fk) #0",
+    # Lists as their own folds, and the list monad: every solution, in
+    # order; head takes the first and drops the rest
+    "nil": r"\c n. n",
+    "cons": r"\h t c n. c h (t c n)",
+    "append": r"\xs ys c n. xs c (ys c n)",
+    "lret": r"\x c n. c x n",
+    "lbind": r"\m f. m (\x acc. append (f x) acc) nil",
+    "lguard": r"\b xs. b xs nil",
+    "range": r"\k. k (\acc i. cons i (acc (S i))) (\i. nil) #0",
+    "sum": r"\l. l add #0",
+    "length": r"\l. l (\h t. S t) #0",
+    "head": r"\l d. l (\h t. h) d",
+    # A state threaded through backtracking: m s sk fk, success sk x s fk.
+    # A branch begins from the state where the choice was made, so failing
+    # back restores it; sonce cuts.
+    "sret": r"\x s sk fk. sk x s fk",
+    "sfail": r"\s sk fk. fk",
+    "salt": r"\m1 m2 s sk fk. m1 s sk (m2 s sk fk)",
+    "sbind": r"\m f s sk fk. m s (\x s2 fk2. f x s2 sk fk2) fk",
+    "sguard": r"\b m. b m sfail",
+    "sonce": r"\m s sk fk. m s (\x s2 fk2. sk x s2 fk) fk",
+    "srun": r"\m s d. m s (\x s2 fk. x) d",
+    # A parser in it, the state the input left, a Scott list: item takes
+    # one element, many at most k, longest first
+    "snil": r"\c n. n",
+    "scons": r"\h t c n. c h t",
+    "item": r"\s sk fk. s (\h t. sk h t fk) fk",
+    "sat": r"\p. sbind item (\x. sguard (p x) (sret x))",
+    "many": r"\k p. k (\r. salt (sbind p (\x. sbind r (\n. sret (S n)))) (sret #0)) (sret #0)",
+    "eof": r"\s sk fk. s (\h t. fk) (sk I s fk)",
+    # Objects as fixpoints of mixins: a record is what a selector picks
+    # (T its x, F its y); a mixin takes super and self; ext applies one
+    # over a generator of records from self; new ties self
+    "Y": r"\f. (\x. f (x x)) (\x. f (x x))",
+    "Z": r"\f. (\x. f (\v. x x v)) (\x. f (\v. x x v))",
+    "ext": r"\m g self. m (g self) self",
+    "new": r"\g. Y g",
 }
 
 TOKEN = re.compile(r"\s*(?:(\\)|(\.)|(\()|(\))|#(\d+)|(\d+)|([A-Za-z_][A-Za-z0-9_']*))")

@@ -316,7 +316,7 @@ derivation made here first.
      interactions, demand far cheaper. Then the same over a simplified
      subset of glam's own net construction (`pairing-nets`: copy, data,
      bind, wire).
-   - `pairing-library.programs` — active — families from small programs
+   - `pairing-library.programs` — built 2026-10-30 — families from small programs
      nearer glam's own, Church-encoded (the maintainer, 2026-10-28): a
      list monad, a state monad with alternation and cut for
      backtracking, mixin object models. First, 2026-10-29: a
@@ -326,7 +326,45 @@ derivation made here first.
      in the library, three of which drop their untried alternatives:
      demand does a sixth of the full reduction's work on
      `search-first` and leaves the rest as garbage. 24 entries, 56
-     cases.
+     cases. Then, 2026-10-30, in the prelude: lists as their own folds
+     and the list monad (`lret`, `lbind`, `lguard`, `range`, `sum`,
+     `length`, `head`); a state threaded through the two-continuation
+     monad, each branch beginning from the state where its choice was
+     made (`sret`, `sbind`, `salt`, `sonce`, `srun`), and a parser in it
+     over a Scott list (`item`, `sat`, `many`, `eof`); objects as
+     fixpoints of mixins (`ext`, `new` over `Y`, and `Z`). 42 entries,
+     114 cases, store run 68. What they show:
+     - Demand does a fraction of the full reduction's work: a ninth on
+       `list-head`, the list's tail never taken, a sixth on `parse-cut`,
+       half on `list-sum`, which reads every element. On demand the
+       list monad grows linearly (`list-bind` at 8, 16, 32: 1,380,
+       2,804, 5,652 with levels); the full reductions grow faster (about
+       n^1.7 with levels, n^2.7 with unit brackets).
+     - Backtracking restores the parser's state (`parse-backtrack`),
+       and a cut leaves nothing to go back to (`parse-cut`, the
+       default).
+     - Mixins: demand reads every field right; a full reduction with
+       levels unfolds the fixpoint for ever, as it does `K 2 Ω`'s `Ω`,
+       and with labels finishes, Y reduced to a cyclic net. `Z` (the
+       maintainer, 2026-10-30) takes the same interactions as `Y` on
+       demand: a net has no order of evaluation for its eta-expansion to
+       delay.
+     - A field read through n mixins costs demand superlinearly where
+       call-by-need is linear (`terms.py`'s evaluator: 621, 1,117, 2,109
+       and 4,093 steps at 8 to 64): `mixin-chain` at 4, 8, 16, 32 takes
+       585, 1,335, 3,555, 10,875 interactions with labels, each doubling
+       costing more than the last. Probes separate three causes. A
+       record, a function, used twice is copied, and demand, which
+       erases nothing eagerly, pulls the unused copy's fans through the
+       levels below: with `super` used once and no fixpoint, labels are
+       linear (255, 503, 999, 1,991 at 8 to 64). Levels' bookkeeping
+       grows with depth: the same with levels, 1,452 to 29,340. And the
+       fixpoint's `self`, copied at each mixin, is pulled through every
+       copy to be read (`mixin-once`, labels: 364, 744, 1,792 and, in a
+       probe, 5,040 at 4 to 32). Call-by-need shares each by pointer.
+       These are what `spike-fixpoints`' knots as cells and the store's
+       shared values would avoid, and these entries what to measure them
+       against.
    - `pairing-library.circles` — built 2026-10-29 — nets checked for
      vicious circles beside polarity (the maintainer, 2026-10-29): a
      closed principal path, each cell's principal port linked to an
