@@ -421,6 +421,16 @@ def set_kind(xs: List<&2, Spec>, j: Nat, +k: NodeKind) -> List<&2, Spec>:
     case Con{h, t} 1n+i:
       Con{h, set_kind(t, i, k)}
 
+# node j's source s
+def set_src(xs: List<&2, Spec>, j: Nat, +s: Src) -> List<&2, Spec>:
+  match xs j:
+    case Nil{} _:
+      Nil{}
+    case Con{Spec{k0, s0}, t} 0n:
+      Con{Spec{k0, s}, t}
+    case Con{h, t} 1n+i:
+      Con{h, set_src(t, i, s)}
+
 def lf.one_if(b: Bool) -> Nat:
   match b:
     case True{}:
@@ -522,6 +532,290 @@ def lf.size(g: G) -> Nat:
     case G{xs, ls}:
       List.length(&2, Spec, xs)
 
+# Events (heap-strategies.erasure.events), above the normalizer that runs
+# them: the table itself, with its laws below in "Events"
+
+# a co-control's input an error value
+def ev.in(b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraP{}:
+      match p:
+        case 1n:
+          RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
+# a control's output erased
+def ev.out(b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraN{}:
+      match p:
+        case 1n:
+          RWire{[Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
+def ev.copy(b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraN{}:
+      match p:
+        case 1n:
+          RWire{[Spec{KCopyR{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+        case 2n:
+          RWire{[Spec{KCopyL{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
+def ev.merge(b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraP{}:
+      match p:
+        case 1n:
+          RWire{[Spec{KMergeR{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+        case 2n:
+          RWire{[Spec{KMergeL{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
+# a linear fan's one side erased too: an eraser of what the copy took in,
+# or an error value where the merge's output goes
+def ev.lin(+e: NodeKind, b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraN{}:
+      match p:
+        case 1n:
+          RWire{[Spec{e, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+        case _:
+          RStuck{}
+    case KEraP{}:
+      match p:
+        case 1n:
+          RWire{[Spec{e, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
+def ev.fans(+copy: Bool, b: NodeKind, p: Nat) -> Rule:
+  match copy:
+    case True{}:
+      match b:
+        case KEraN{}:
+          ev.lin(KEraN{}, KEraN{}, p)
+        case _:
+          RStuck{}
+    case False{}:
+      match b:
+        case KEraP{}:
+          ev.lin(KEraP{}, KEraP{}, p)
+        case _:
+          RStuck{}
+
+# the event at port p of a node of kind a, an eraser of kind b facing it
+def event(a: NodeKind, b: NodeKind, p: Nat) -> Rule:
+  match a:
+    case KLift{}:
+      ev.out(b, p)
+    case KLiftC{}:
+      ev.in(b, p)
+    case KCopy{}:
+      ev.copy(b, p)
+    case KCopyL{}:
+      ev.fans(True{}, b, p)
+    case KCopyR{}:
+      ev.fans(True{}, b, p)
+    case KMerge{}:
+      ev.merge(b, p)
+    case KMergeL{}:
+      ev.fans(False{}, b, p)
+    case KMergeR{}:
+      ev.fans(False{}, b, p)
+    case _:
+      RStuck{}
+
+def kind_n(k: NodeKind) -> Nat:
+  match k:
+    case KFree{}:
+      0n
+    case KFn{}:
+      1n
+    case KAp{}:
+      2n
+    case KCopy{}:
+      3n
+    case KMerge{}:
+      4n
+    case KData{}:
+      5n
+    case KEraN{}:
+      6n
+    case KEraP{}:
+      7n
+    case KRoot{}:
+      8n
+    case KCall{}:
+      9n
+    case KLift{}:
+      10n
+    case KLiftC{}:
+      11n
+    case KCopyL{}:
+      12n
+    case KCopyR{}:
+      13n
+    case KMergeL{}:
+      14n
+    case KMergeR{}:
+      15n
+
+# a source as a number
+def src_n(s: Src) -> Nat:
+  match s:
+    case SNone{}:
+      0n
+    case SPayA{}:
+      1n
+    case SPayB{}:
+      2n
+    case SApply{}:
+      3n
+    case SFanA{}:
+      4n
+    case SFanB{}:
+      5n
+    case SLiftA{}:
+      6n
+    case SLiftB{}:
+      7n
+
+def specs_eq(xs: List<&2, Spec>, ys: List<&2, Spec>) -> Bool:
+  match xs ys:
+    case Nil{} Nil{}:
+      True{}
+    case Con{Spec{k, s}, xt} Con{Spec{l, u}, yt}:
+      nat_eq(kind_n(k), kind_n(l)) && nat_eq(src_n(s), src_n(u)) && specs_eq(xt, yt)
+    case _ _:
+      False{}
+
+def links_eq(xs: List<&2, Link>, ys: List<&2, Link>) -> Bool:
+  match xs ys:
+    case Nil{} Nil{}:
+      True{}
+    case Con{Link{a, b}, xt} Con{Link{c, d}, yt}:
+      end_eq(a, c) && end_eq(b, d) && links_eq(xt, yt)
+    case _ _:
+      False{}
+
+# two rules the same, node for node and link for link
+def rule_eq(r: Rule, u: Rule) -> Bool:
+  match r u:
+    case RWire{xs, ls} RWire{ys, ms}:
+      specs_eq(xs, ys) && links_eq(ls, ms)
+    case RStuck{} RStuck{}:
+      True{}
+    case _ _:
+      False{}
+
+# a linear fan's full kind
+def lf.full(+k: NodeKind) -> NodeKind:
+  match k:
+    case KCopyL{}:
+      KCopy{}
+    case KCopyR{}:
+      KCopy{}
+    case KMergeL{}:
+      KMerge{}
+    case KMergeR{}:
+      KMerge{}
+    case _:
+      k
+
+# Linear fans as their components (heap-strategies.fusions), for the
+# normalizer, which applies the full fans' rules, and the laws
+
+# a linear fan's dead port in its full kind's numbering (0 for none); the
+# eraser of a node of kind k's side; the full port a linear fan keeps
+def ex.dead(+k: NodeKind) -> Nat:
+  match k:
+    case KCopyL{}:
+      2n
+    case KCopyR{}:
+      1n
+    case KMergeL{}:
+      2n
+    case KMergeR{}:
+      1n
+    case _:
+      0n
+
+def ex.eraser(+k: NodeKind) -> NodeKind:
+  match k:
+    case KMergeL{}:
+      KEraP{}
+    case KMergeR{}:
+      KEraP{}
+    case KMerge{}:
+      KEraP{}
+    case KLiftC{}:
+      KEraP{}
+    case _:
+      KEraN{}
+
+def ex.kept(+k: NodeKind) -> Nat:
+  match k:
+    case KCopyR{}:
+      2n
+    case KMergeR{}:
+      2n
+    case _:
+      1n
+
+def fz.exp.mv(right: Bool, +ls: List<&2, Link>, +j: Nat) -> List<&2, Link>:
+  match right:
+    case True{}:
+      lf.rename(ls, New{j, 1n}, New{j, 2n})
+    case False{}:
+      ls
+
+# a linear fan in g as its components: node j's kind its full fan's, a
+# kept port 1 moved to port 2 where the fan keeps its full port 2, an
+# eraser at its dead port
+def fz.exp.j(+d: Nat, +g: G, +j: Nat, +k: NodeKind) -> G:
+  match g:
+    case G{+xs, +ls}:
+      G{List.append(&2, Spec, set_kind(xs, j, lf.full(k)), [Spec{ex.eraser(k), SNone{}}]),
+        Con{Link{New{j, d}, New{List.length(&2, Spec, xs), 0n}}, fz.exp.mv(Nat.is_eq(d, 1n), ls, j)}}
+
+def fz.exp.at(none: Bool, +g: G, +j: Nat, +k: NodeKind) -> G:
+  match none:
+    case True{}:
+      g
+    case False{}:
+      fz.exp.j(ex.dead(k), g, j, k)
+
+def fz.exp.go(m: Nat, +g: G, +j: Nat) -> G:
+  match m:
+    case 0n:
+      g
+    case 1n+r:
+      fz.exp.go(r, fz.exp.at(Nat.is_eq(ex.dead(lf.kind(g, j)), 0n), g, j, lf.kind(g, j)), Nat.add(j, 1n))
+
+# node j as its components, if a linear fan
+def lf.expand.j(+g: G, +j: Nat) -> G:
+  fz.exp.at(Nat.is_eq(ex.dead(lf.kind(g, j)), 0n), g, j, lf.kind(g, j))
+
+# every linear fan of g as its components
+def fz.expand(+g: G) -> G:
+  fz.exp.go(lf.size(g), g, 0n)
+
 # Rewriting within a rule's new nodes
 
 # an end of rule applied to nodes a (A) and b (B), its new nodes numbered
@@ -557,20 +851,6 @@ def lf.apply(r: Rule, g: G, +a: Nat, +b: Nat) -> Maybe<&2, G>:
     case RStuck{} G{xs, ls}:
       None{}
 
-# eraser e gone, node j become an eraser of kind k
-def lf.become(g: G, +e: Nat, +j: Nat, +k: NodeKind) -> G:
-  match g:
-    case G{xs, ls}:
-      G{set_kind(set_kind(xs, j, k), e, KFree{}), lf.unlink(ls, e)}
-
-# an application whose result eraser e takes: an eraser facing its
-# function, and a new one for its argument
-def lf.ap_dead(g: G, +e: Nat, +j: Nat) -> G:
-  match g:
-    case G{+xs, +ls}:
-      G{List.append(&2, Spec, set_kind(set_kind(xs, j, KEraN{}), e, KFree{}), [Spec{KEraN{}, SNone{}}]),
-        Con{Link{lf.or_end(lf.peer(ls, New{j, 1n})), New{List.length(&2, Spec, xs), 0n}}, lf.cut(lf.unlink(ls, e), New{j, 1n})}}
-
 # the eraser at end x, of kind k, if there is one
 def lf.er.k(k: NodeKind, +want: NodeKind, +f: Nat) -> Maybe<&2, Nat>:
   match k want:
@@ -596,14 +876,6 @@ def lf.er(+g: G, x: Maybe<&2, End>, +want: NodeKind) -> Maybe<&2, Nat>:
     case None{}:
       None{}
 
-# a fan whose other side eraser f takes as well: an eraser itself
-def lf.both(f: Maybe<&2, Nat>, g: G, +e: Nat, +j: Nat, +k: NodeKind) -> Maybe<&2, G>:
-  match f:
-    case Some{+f2}:
-      Some{lf.become(lf.become(g, e, j, k), f2, j, k)}
-    case None{}:
-      None{}
-
 def lf.other(p: Nat) -> Nat:
   match p:
     case 1n:
@@ -611,45 +883,179 @@ def lf.other(p: Nat) -> Nat:
     case _:
       1n
 
-def lf.ev.ap(ok: Bool, g: G, +e: Nat, +j: Nat) -> Maybe<&2, G>:
-  match ok:
+# eraser e of kind ke facing end x: an erasure where x is a principal
+# port, an event where it is an auxiliary one
+# an end of an event at port p of node a, the eraser b: external peer 0
+# the peer of a's principal, 1 of its other auxiliary port; new node 0
+# in a's slot, 1 in b's, any more from n0
+def lf.tr.ev.n(+a: Nat, +b: Nat, +n0: Nat, +j: Nat) -> Nat:
+  match j:
+    case 0n:
+      a
+    case 1n:
+      b
+    case 2n+k:
+      Nat.add(n0, k)
+
+def lf.tr.ev(+ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat, +n0: Nat, e: End) -> End:
+  match e:
+    case Ext{i}:
+      match i:
+        case 0n:
+          lf.or_end(lf.peer(ls, New{a, 0n}))
+        case _:
+          lf.or_end(lf.peer(ls, New{a, lf.other(p)}))
+    case New{+j, +q}:
+      New{lf.tr.ev.n(a, b, n0, j), q}
+
+def lf.trs.ev(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat, +n0: Nat) -> List<&2, Link>:
+  match ms:
+    case Nil{}:
+      Nil{}
+    case Con{Link{x, y}, t}:
+      Con{Link{lf.tr.ev(ls, a, b, p, n0, x), lf.tr.ev(ls, a, b, p, n0, y)}, lf.trs.ev(t, ls, a, b, p, n0)}
+
+# a new node's spec in an old one's slot: a fan's identity (SFanA) the
+# old node's own source
+def lf.put.s(s: Src, +old: Src) -> Src:
+  match s:
+    case SFanA{}:
+      old
+    case _:
+      s
+
+def lf.put(+xs: List<&2, Spec>, +j: Nat, sp: Spec) -> List<&2, Spec>:
+  match sp:
+    case Spec{+k, s}:
+      set_src(set_kind(xs, j, k), j, lf.put.s(s, spec_src(xs, j)))
+
+# the event's new nodes placed: 0 in a's slot, 1 in b's (b freed where
+# there is none), the rest appended
+def lf.place.ev(ys: List<&2, Spec>, +xs: List<&2, Spec>, +a: Nat, +b: Nat) -> List<&2, Spec>:
+  match ys:
+    case Nil{}:
+      set_kind(set_kind(xs, a, KFree{}), b, KFree{})
+    case Con{y0, t}:
+      match t:
+        case Nil{}:
+          lf.put(set_kind(xs, b, KFree{}), a, y0)
+        case Con{y1, rest}:
+          List.append(&2, Spec, lf.put(lf.put(xs, a, y0), b, y1), rest)
+
+def lf.ev.end1(x: End, y: End) -> Bool:
+  match x y:
+    case New{j, q} Ext{i}:
+      nat_eq(j, 0n)
+    case Ext{i} New{j, q}:
+      nat_eq(j, 0n)
+    case _ _:
+      False{}
+
+def lf.ev.ext(ms: List<&2, Link>) -> Bool:
+  match ms:
+    case Nil{}:
+      True{}
+    case Con{Link{x, y}, t}:
+      lf.ev.end1(x, y) && lf.ev.ext(t)
+
+# an event of one new node, linked only to external peers: in place, its
+# links a's own, a port renamed where the node keeps it at another
+def lf.ev.one(ys: List<&2, Spec>, ms: List<&2, Link>) -> Bool:
+  match ys:
+    case Con{y, t}:
+      match t:
+        case Nil{}:
+          lf.ev.ext(ms)
+        case _:
+          False{}
+    case Nil{}:
+      False{}
+
+# a's port that external peer i was the peer of
+def lf.ev.port(+i: Nat, +p: Nat) -> Nat:
+  match i:
+    case 0n:
+      0n
+    case _:
+      lf.other(p)
+
+def lf.ev.ren1(x: End, y: End, +ls: List<&2, Link>, +a: Nat, +p: Nat) -> List<&2, Link>:
+  match x y:
+    case New{j, +q} Ext{+i}:
+      lf.rename(ls, New{a, lf.ev.port(i, p)}, New{a, q})
+    case Ext{+i} New{j, +q}:
+      lf.rename(ls, New{a, lf.ev.port(i, p)}, New{a, q})
+    case _ _:
+      ls
+
+def lf.ev.ren(ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +p: Nat) -> List<&2, Link>:
+  match ms:
+    case Nil{}:
+      ls
+    case Con{Link{x, y}, t}:
+      lf.ev.ren(t, lf.ev.ren1(x, y, ls, a, p), a, p)
+
+def lf.apply.ev.go(one: Bool, ys: List<&2, Spec>, ms: List<&2, Link>, +xs: List<&2, Spec>, +ls: List<&2, Link>, +a: Nat, +b: Nat, +p: Nat) -> G:
+  match one:
     case True{}:
-      Some{lf.ap_dead(g, e, j)}
+      G{lf.place.ev(ys, xs, a, b), lf.ev.ren(ms, lf.unlink(ls, b), a, p)}
+    case False{}:
+      G{lf.place.ev(ys, xs, a, b),
+        List.append(&2, Link, lf.unlink(lf.unlink(ls, a), b), lf.trs.ev(ms, ls, a, b, p, List.length(&2, Spec, xs)))}
+
+# event r at port p of node a, eraser b, its node in a's slot as the
+# kernel places it (law kernel_events_in_step): an event of one node in
+# place, the eraser's link gone and a's ports renamed, as fans were marked
+# linear; any other, a's links remade
+def lf.apply.ev(r: Rule, g: G, +a: Nat, +b: Nat, +p: Nat) -> Maybe<&2, G>:
+  match r g:
+    case RWire{+ys, +ms} G{+xs, +ls}:
+      Some{lf.apply.ev.go(lf.ev.one(ys, ms), ys, ms, xs, ls, a, b, p)}
+    case RStuck{} G{xs, ls}:
+      None{}
+
+def lf.rule.t.go(same: Bool, r: Rule) -> Maybe<&2, Rule>:
+  match same:
+    case True{}:
+      Some{r}
     case False{}:
       None{}
 
-# an event: eraser e of kind ke facing port p of node j, of kind kj
-def lf.ev(ke: NodeKind, kj: NodeKind, +g: G, +e: Nat, +j: Nat, +p: Nat) -> Maybe<&2, G>:
-  match ke kj:
-    case KEraN{} KAp{}:
-      lf.ev.ap(nat_eq(p, 2n), g, e, j)
-    case KEraN{} KCall{}:
-      Some{lf.become(g, e, j, KEraN{})}
-    case KEraN{} KLift{}:
-      Some{lf.become(g, e, j, KEraN{})}
-    case KEraN{} KCopy{}:
-      match g:
-        case G{+xs, +ls}:
-          lf.both(lf.er(G{xs, ls}, lf.peer(ls, New{j, lf.other(p)}), KEraN{}), G{xs, ls}, e, j, KEraN{})
-    case KEraP{} KMerge{}:
-      match g:
-        case G{+xs, +ls}:
-          lf.both(lf.er(G{xs, ls}, lf.peer(ls, New{j, lf.other(p)}), KEraP{}), G{xs, ls}, e, j, KEraP{})
-    case _ _:
+# the rule for a pair of full kinds, where the payload test cannot change
+# it: the normalizer knows no payload
+def lf.rule.t(+x: NodeKind, +y: NodeKind) -> Maybe<&2, Rule>:
+  lf.rule.t.go(rule_eq(rule.full(x, y, True{}), rule.full(x, y, False{})), rule.full(x, y, True{}))
+
+def lf.pair.r(m: Maybe<&2, Rule>, +g: G, +x: Nat, +y: Nat) -> Maybe<&2, G>:
+  match m:
+    case Some{r}:
+      lf.apply(r, g, x, y)
+    case None{}:
       None{}
 
-# eraser e of kind ke facing end x: an erasure where x is a principal
-# port, an event where it is an auxiliary one
+def lf.pair.o(neg: Bool, +g: G, +x: Nat, +y: Nat) -> Maybe<&2, G>:
+  match neg:
+    case True{}:
+      lf.pair.r(lf.rule.t(lf.kind(g, x), lf.kind(g, y)), g, x, y)
+    case False{}:
+      lf.pair.r(lf.rule.t(lf.kind(g, y), lf.kind(g, x)), g, y, x)
+
+# nodes x and y, their principals facing, rewritten by the full fans'
+# table, linear fans expanded first, x's principal negative or y's
+def lf.pair(+g: G, +x: Nat, +y: Nat) -> Maybe<&2, G>:
+  lf.pair.o(pol_eq(port_pol(lf.kind(lf.expand.j(lf.expand.j(g, x), y), x), 0n), Neg{}), lf.expand.j(lf.expand.j(g, x), y), x, y)
+
+# an eraser e facing port p of node j: a rule where p is the principal,
+# an event of the table's (R.event) where it is an auxiliary one
+def lf.at_j.ev(+p: Nat, ke: NodeKind, kj: NodeKind, +g: G, +e: Nat, +j: Nat) -> Maybe<&2, G>:
+  lf.apply.ev(event(kj, ke, p), g, j, e, p)
+
 def lf.at_j(p: Nat, ke: NodeKind, kj: NodeKind, +g: G, +e: Nat, +j: Nat) -> Maybe<&2, G>:
   match p:
     case 0n:
-      match ke:
-        case KEraN{}:
-          lf.apply(rule.full(KEraN{}, kj, True{}), g, e, j)
-        case _:
-          lf.apply(rule.full(kj, KEraP{}, True{}), g, j, e)
+      lf.pair(g, e, j)
     case 1n+q:
-      lf.ev(ke, kj, g, e, j, 1n+q)
+      lf.at_j.ev(1n+q, ke, kj, g, e, j)
 
 def lf.at_e(ke: NodeKind, +g: G, +e: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
   match x:
@@ -662,16 +1068,35 @@ def lf.at_e(ke: NodeKind, +g: G, +e: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
     case None{}:
       None{}
 
+# node j's principal facing another node's: their rule
+def lf.at_p(+g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
+  match x:
+    case Some{e}:
+      match e:
+        case New{+k, p}:
+          match p:
+            case 0n:
+              lf.pair(g, j, k)
+            case _:
+              None{}
+        case Ext{i}:
+          None{}
+    case None{}:
+      None{}
+
 def lf.try.k(k: NodeKind, +g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
   match k:
     case KEraN{}:
       lf.at_e(KEraN{}, g, j, x)
     case KEraP{}:
       lf.at_e(KEraP{}, g, j, x)
-    case _:
+    case KFree{}:
       None{}
+    case _:
+      lf.at_p(g, j, x)
 
-# what node j, if an eraser, can run
+# what node j can run: an eraser, its erasure or event; another node
+# whose principal faces a principal, their rule
 def lf.try(+g: G, +j: Nat) -> Maybe<&2, G>:
   match g:
     case G{+xs, +ls}:
@@ -810,20 +1235,6 @@ def lf.fin(m: Maybe<&2, G>, +sa: Bool, +sb: Bool) -> Rule:
     case Some{+g}:
       lf.out(lf.mark(lf.size(g), g, 0n), sa, sb)
 
-# a linear fan's full kind
-def lf.full(+k: NodeKind) -> NodeKind:
-  match k:
-    case KCopyL{}:
-      KCopy{}
-    case KCopyR{}:
-      KCopy{}
-    case KMergeL{}:
-      KMerge{}
-    case KMergeR{}:
-      KMerge{}
-    case _:
-      k
-
 # where the dead side was, as the full rule numbers its external peers:
 # A's, a copy's erased output; B's, a merge's erased input
 def lf.dead_a(k: NodeKind) -> Maybe<&2, Nat>:
@@ -867,7 +1278,7 @@ def lf.attach(m: Maybe<&2, Nat>, g: G, +k: NodeKind) -> G:
       G{xs, ls}
 
 def lf.derive.g(+g: G, +a: NodeKind, +b: NodeKind) -> Rule:
-  lf.fin(lf.norm(16n, lf.scan(lf.size(g), lf.try(g, 0n), g, 0n), g), lf.right_a(a), lf.right_b(b))
+  lf.fin(lf.norm(64n, lf.scan(lf.size(g), lf.try(g, 0n), g, 0n), g), lf.right_a(a), lf.right_b(b))
 
 def lf.derive.r(r: Rule, +a: NodeKind, +b: NodeKind) -> Rule:
   match r:
@@ -1420,120 +1831,20 @@ def total_pairs(+a: NodeKind, +b: NodeKind, +r: Rule) -> Bool:
 # fusion does, and runs an event. As a rule, A is the node and B the
 # eraser facing A's port p, A's other ports, in order, external peers 0
 # and 1; the kernel puts the first new node in A's slot, so the node
-# changes its kind in place. An application whose result is erased
-# becomes an eraser facing its function, the eraser moving to its
-# argument; a call or control whose output is erased, an eraser facing
-# what it took in; a copy one of whose outputs is erased, a linear copy
-# keeping the other, and a linear copy whose output is erased, an eraser;
-# a merge one of whose inputs is an error value, a linear merge keeping
-# the other, and a linear merge whose input is one, an error value.
-
-def ev.ap(b: NodeKind, p: Nat) -> Rule:
-  match b:
-    case KEraN{}:
-      match p:
-        case 2n:
-          RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
-        case _:
-          RStuck{}
-    case _:
-      RStuck{}
-
-# a call's or a control's output erased
-def ev.out(b: NodeKind, p: Nat) -> Rule:
-  match b:
-    case KEraN{}:
-      match p:
-        case 1n:
-          RWire{[Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
-        case _:
-          RStuck{}
-    case _:
-      RStuck{}
-
-def ev.copy(b: NodeKind, p: Nat) -> Rule:
-  match b:
-    case KEraN{}:
-      match p:
-        case 1n:
-          RWire{[Spec{KCopyR{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
-        case 2n:
-          RWire{[Spec{KCopyL{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
-        case _:
-          RStuck{}
-    case _:
-      RStuck{}
-
-def ev.merge(b: NodeKind, p: Nat) -> Rule:
-  match b:
-    case KEraP{}:
-      match p:
-        case 1n:
-          RWire{[Spec{KMergeR{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
-        case 2n:
-          RWire{[Spec{KMergeL{}, SFanA{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
-        case _:
-          RStuck{}
-    case _:
-      RStuck{}
-
-# a linear fan's one side erased too: an eraser of what the copy took in,
-# or an error value where the merge's output goes
-def ev.lin(+e: NodeKind, b: NodeKind, p: Nat) -> Rule:
-  match b:
-    case KEraN{}:
-      match p:
-        case 1n:
-          RWire{[Spec{e, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
-        case _:
-          RStuck{}
-    case KEraP{}:
-      match p:
-        case 1n:
-          RWire{[Spec{e, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
-        case _:
-          RStuck{}
-    case _:
-      RStuck{}
-
-def ev.fans(+copy: Bool, b: NodeKind, p: Nat) -> Rule:
-  match copy:
-    case True{}:
-      match b:
-        case KEraN{}:
-          ev.lin(KEraN{}, KEraN{}, p)
-        case _:
-          RStuck{}
-    case False{}:
-      match b:
-        case KEraP{}:
-          ev.lin(KEraP{}, KEraP{}, p)
-        case _:
-          RStuck{}
-
-# the event at port p of a node of kind a, an eraser of kind b facing it
-def event(a: NodeKind, b: NodeKind, p: Nat) -> Rule:
-  match a:
-    case KAp{}:
-      ev.ap(b, p)
-    case KCall{}:
-      ev.out(b, p)
-    case KLift{}:
-      ev.out(b, p)
-    case KCopy{}:
-      ev.copy(b, p)
-    case KCopyL{}:
-      ev.fans(True{}, b, p)
-    case KCopyR{}:
-      ev.fans(True{}, b, p)
-    case KMerge{}:
-      ev.merge(b, p)
-    case KMergeL{}:
-      ev.fans(False{}, b, p)
-    case KMergeR{}:
-      ev.fans(False{}, b, p)
-    case _:
-      RStuck{}
+# changes its kind in place. A control whose output is erased becomes an
+# eraser facing what it took in, and a co-control whose input is an error
+# value, an error value where its output goes; a copy one of whose
+# outputs is erased, a linear copy keeping the other, and a linear copy
+# whose output is erased, an eraser; a merge one of whose inputs is an
+# error value, a linear merge keeping the other, and a linear merge whose
+# input is one, an error value. Each preserves meaning exactly
+# (heap-strategies.erasure.kernel.exact; law events_erase_exact). No
+# event for an application whose result is erased: erasing its function
+# would not apply it, and applying it binds the function's variable,
+# which a net may use outside the function's body (the maintainer,
+# 2026-10-30: dropped, the rule kept for where it is exact). None for a
+# call whose output is erased: against a function its rule is stuck, and
+# stuck is not erased (the maintainer, 2026-10-30).
 
 # A's port numbered i among its ports other than p
 def ev.port(+p: Nat, i: Nat) -> Nat:
@@ -1623,3 +1934,386 @@ def ev.side.r(r: Rule, +a: NodeKind, +p: Nat) -> Bool:
 # side erased that the event erased (law events_side)
 def ev_side(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
   ev.side.r(event(a, b, p), a, p)
+
+def ev.last.k(k: NodeKind, +a: NodeKind) -> Bool:
+  match k:
+    case KEraN{}:
+      nat_eq(arity(a), 2n)
+    case KEraP{}:
+      nat_eq(arity(a), 2n)
+    case _:
+      True{}
+
+def ev.last.r(r: Rule, +a: NodeKind) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      match xs:
+        case Con{Spec{+k, s}, t}:
+          ev.last.k(k, a)
+        case Nil{}:
+          True{}
+    case RStuck{}:
+      True{}
+
+# an event that makes its node an eraser erased the node's last auxiliary
+# port: the node had two ports (law events_erase_last)
+def ev_last(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
+  ev.last.r(event(a, b, p), a)
+
+# Fusions behave as their components
+# ----------------------------------
+#
+# heap-strategies.erasure.kernel.exact (the maintainer, 2026-10-30): a
+# fused node, or a pattern an event rewrites into one node, behaves as
+# its components against whatever its principal meets. Both are stuck
+# there, or neither, and then what they leave is the same graph: linear
+# fans expanded into their components, both normalized by the
+# derivation's normalizer (lf.norm: erasures and the events, each itself
+# checked here, so equal up to them), compared in a canonical order. A
+# linear fan's components are its full fan and an eraser at its dead
+# side (law linear_as_components); an event's, its node and the eraser at
+# the port it erases, against the node the event makes (law
+# events_as_components). The interface is no partner: no rule rewrites
+# it, and a superposition and an error value read alike there.
+
+# a graph built up, node by node
+type XB is Data:
+  XB{xs: List<&2, Spec>, ls: List<&2, Link>}
+
+def xb.add(+b: XB, +k: NodeKind) -> XB:
+  match b:
+    case XB{+xs, +ls}:
+      XB{List.append(&2, Spec, xs, [Spec{k, SNone{}}]), ls}
+
+def xb.link(+b: XB, +u: End, +v: End) -> XB:
+  match b:
+    case XB{+xs, +ls}:
+      XB{xs, Con{Link{u, v}, ls}}
+
+def xb.size(+b: XB) -> Nat:
+  match b:
+    case XB{+xs, +ls}:
+      List.length(&2, Spec, xs)
+
+def xb.g(+b: XB) -> G:
+  match b:
+    case XB{+xs, +ls}:
+      G{xs, ls}
+
+# node n's auxiliary port q, its full kind's numbering, linked: an eraser
+# at a dead port (components), else external peer base + q - 1
+def xb.port(dead: Bool, +b: XB, +n: Nat, +k: NodeKind, +q: Nat, +base: Nat) -> XB:
+  match dead:
+    case True{}:
+      xb.link(xb.add(b, ex.eraser(k)), New{n, q}, New{xb.size(b), 0n})
+    case False{}:
+      xb.link(b, New{n, q}, Ext{Nat.sub(Nat.add(base, q), 1n)})
+
+def xb.ports(m: Nat, +b: XB, +n: Nat, +k: NodeKind, +q: Nat, +base: Nat) -> XB:
+  match m:
+    case 0n:
+      b
+    case 1n+r:
+      xb.ports(r, xb.port(Nat.is_eq(q, ex.dead(k)), b, n, k, q, base), n, k, Nat.add(q, 1n), base)
+
+# node n of kind k as its components: its full kind's auxiliary ports,
+# the dead one erased, the rest external peers from base
+def xb.comp(+b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
+  xb.ports(Nat.sub(arity(lf.full(k)), 1n), b, n, k, 1n, base)
+
+def xb.fused.lin(lin: Bool, +b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
+  match lin:
+    case True{}:
+      xb.link(b, New{n, 1n}, Ext{Nat.sub(Nat.add(base, ex.kept(k)), 1n)})
+    case False{}:
+      xb.comp(b, n, k, base)
+
+# node n of kind k as it is, a linear fan's one auxiliary port the external
+# peer its full kind's kept port would have
+def xb.fused(+b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
+  xb.fused.lin(Bool.not(Nat.is_eq(ex.dead(k), 0n)), b, n, k, base)
+
+# Canonical order: the nodes reached from external peers 0 to 3, breadth
+# first, each node's ports in order; a node's place in the order names it
+
+def fz.idx.hit(hit: Bool, +i: Nat, rest: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match hit:
+    case True{}:
+      Some{i}
+    case False{}:
+      rest
+
+# j's place in ns, counting from i
+def fz.idx(ns: List<&2, Nat>, +j: Nat, +i: Nat) -> Maybe<&2, Nat>:
+  match ns:
+    case Nil{}:
+      None{}
+    case Con{+n, t}:
+      fz.idx.hit(Nat.is_eq(n, j), i, fz.idx(t, j, Nat.add(i, 1n)))
+
+def fz.seen(+ns: List<&2, Nat>, +j: Nat) -> Bool:
+  Maybe.is_some(&2, Nat, fz.idx(ns, j, 0n))
+
+def fz.see.j(seen: Bool, +ns: List<&2, Nat>, +j: Nat) -> List<&2, Nat>:
+  match seen:
+    case True{}:
+      ns
+    case False{}:
+      List.append(&2, Nat, ns, [j])
+
+# the node at end m, if new to ns, added
+def fz.see(m: Maybe<&2, End>, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match m:
+    case Some{e}:
+      match e:
+        case New{+j, p}:
+          fz.see.j(fz.seen(ns, j), ns, j)
+        case Ext{i}:
+          ns
+    case None{}:
+      ns
+
+# node j's ports from q, m of them, their nodes seen
+def fz.ports(m: Nat, +ls: List<&2, Link>, +j: Nat, +q: Nat, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match m:
+    case 0n:
+      ns
+    case 1n+r:
+      fz.ports(r, ls, j, Nat.add(q, 1n), fz.see(lf.peer(ls, New{j, q}), ns))
+
+def fz.nth(ns: List<&2, Nat>, i: Nat) -> Nat:
+  match ns i:
+    case Con{+n, t} 0n:
+      n
+    case Con{n, t} 1n+r:
+      fz.nth(t, r)
+    case Nil{} _:
+      0n
+
+# the node at place i's ports, their nodes seen, if there is one
+def fz.order.go(more: Bool, +g: G, +i: Nat, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match more:
+    case False{}:
+      ns
+    case True{}:
+      match g:
+        case G{+xs, +ls}:
+          fz.ports(arity(lf.kind(G{xs, ls}, fz.nth(ns, i))), ls, fz.nth(ns, i), 0n, ns)
+
+# the order: from the node at place i on, k steps of fuel
+def fz.order(k: Nat, +g: G, +i: Nat, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match k:
+    case 0n:
+      ns
+    case 1n+r:
+      fz.order(r, g, Nat.add(i, 1n), fz.order.go(Nat.is_lt(i, List.length(&2, Nat, ns)), g, i, ns))
+
+# an end as a number: none 0, external peer i 1 + i, port p of the node at
+# place i 10 + 4i + p
+def fz.end(m: Maybe<&2, End>, +ns: List<&2, Nat>) -> Nat:
+  match m:
+    case None{}:
+      0n
+    case Some{e}:
+      match e:
+        case Ext{+i}:
+          Nat.add(1n, i)
+        case New{+j, +p}:
+          Nat.add(Nat.add(10n, Nat.mul(4n, Maybe.default(&2, Nat, fz.idx(ns, j, 0n), 0n))), p)
+
+def fz.ends(m: Nat, +ls: List<&2, Link>, +j: Nat, +q: Nat, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match m:
+    case 0n:
+      Nil{}
+    case 1n+r:
+      Con{fz.end(lf.peer(ls, New{j, q}), ns), fz.ends(r, ls, j, Nat.add(q, 1n), ns)}
+
+# each node in order: its kind, then its ports' peers
+def fz.nodes(rest: List<&2, Nat>, +g: G, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match rest:
+    case Nil{}:
+      Nil{}
+    case Con{+j, t}:
+      match g:
+        case G{+xs, +ls}:
+          Con{kind_n(lf.kind(G{xs, ls}, j)), List.append(&2, Nat, fz.ends(arity(lf.kind(G{xs, ls}, j)), ls, j, 0n, ns), fz.nodes(t, G{xs, ls}, ns))}
+
+def fz.live(xs: List<&2, Spec>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{Spec{k, s}, t}:
+      match k:
+        case KFree{}:
+          fz.live(t)
+        case _:
+          Nat.add(1n, fz.live(t))
+
+def fz.canon.o(+g: G, +ns: List<&2, Nat>) -> List<&2, Nat>:
+  match g:
+    case G{+xs, +ls}:
+      List.append(&2, Nat, [fz.end(lf.peer(ls, Ext{0n}), ns), fz.end(lf.peer(ls, Ext{1n}), ns),
+          fz.end(lf.peer(ls, Ext{2n}), ns), fz.end(lf.peer(ls, Ext{3n}), ns), Nat.sub(fz.live(xs), List.length(&2, Nat, ns))],
+        fz.nodes(ns, G{xs, ls}, ns))
+
+# g in canonical order: what external peers 0 to 3 face, how many live
+# nodes no external peer reaches, then each node reached, in order
+def fz.canon(+g: G) -> List<&2, Nat>:
+  match g:
+    case G{+xs, +ls}:
+      fz.canon.o(G{xs, ls}, fz.order(lf.size(G{xs, ls}), G{xs, ls}, 0n,
+        fz.see(lf.peer(ls, Ext{3n}), fz.see(lf.peer(ls, Ext{2n}), fz.see(lf.peer(ls, Ext{1n}), fz.see(lf.peer(ls, Ext{0n}), Nil{}))))))
+
+def fz.after.n(m: Maybe<&2, G>) -> List<&2, Nat>:
+  match m:
+    case Some{g}:
+      fz.canon(g)
+    case None{}:
+      [999n]
+
+# what a rewrite leaves: none where the rule is stuck, else the graph
+# expanded, normalized, in canonical order
+def fz.after(m: Maybe<&2, G>) -> Maybe<&2, List<&2, Nat>>:
+  match m:
+    case None{}:
+      None{}
+    case Some{+g}:
+      Some{fz.after.n(lf.norm(64n, Some{fz.expand(g)}, fz.expand(g)))}
+
+def ex.eq(xs: List<&2, Nat>, ys: List<&2, Nat>) -> Bool:
+  match xs ys:
+    case Nil{} Nil{}:
+      True{}
+    case Con{+x, xt} Con{+y, yt}:
+      Nat.is_eq(x, y) && ex.eq(xt, yt)
+    case _ _:
+      False{}
+
+def fz.same(a: Maybe<&2, List<&2, Nat>>, b: Maybe<&2, List<&2, Nat>>) -> Bool:
+  match a b:
+    case None{} None{}:
+      True{}
+    case Some{x} Some{y}:
+      ex.eq(x, y)
+    case _ _:
+      False{}
+
+# the rule table, or its full fans' (rule.full) for components
+def fz.rule(full: Bool, +a: NodeKind, +b: NodeKind, +t: Bool) -> Rule:
+  match full:
+    case True{}:
+      rule.full(a, b, t)
+    case False{}:
+      rule(a, b, t)
+
+# nodes 0 (kind x) and 1 (kind y) of g rewritten, oriented by x's
+# principal
+def ex.apply.r(neg: Bool, +g: G, +x: NodeKind, +y: NodeKind, +t: Bool, +full: Bool) -> Maybe<&2, G>:
+  match neg:
+    case True{}:
+      lf.apply(fz.rule(full, x, y, t), g, 0n, 1n)
+    case False{}:
+      lf.apply(fz.rule(full, y, x, t), g, 1n, 0n)
+
+def fz.run(+x: NodeKind, +y: NodeKind, +t: Bool, +full: Bool, +g: G) -> Maybe<&2, List<&2, Nat>>:
+  fz.after(ex.apply.r(pol_eq(port_pol(x, 0n), Neg{}), g, x, y, t, full))
+
+def ex.partner(v: NodeKind) -> Bool:
+  match v:
+    case KRoot{}:
+      False{}
+    case KFree{}:
+      False{}
+    case _:
+      True{}
+
+def fz.meets(+a: NodeKind, +v: NodeKind) -> Bool:
+  Bool.not(pol_eq(port_pol(a, 0n), port_pol(v, 0n))) && ex.partner(v)
+
+def fz.go(go: Bool, +r: Bool) -> Bool:
+  match go:
+    case True{}:
+      r
+    case False{}:
+      True{}
+
+# a linear fan f facing v (as it is) against f's components facing v's
+def fz_linear.cmp(+f: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
+  fz.same(
+    fz.run(f, v, t, False{}, xb.g(xb.fused(xb.fused(xb.link(xb.add(xb.add(XB{[], []}, f), v), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))),
+    fz.run(lf.full(f), lf.full(v), t, True{}, xb.g(xb.comp(xb.comp(xb.link(xb.add(xb.add(XB{[], []}, lf.full(f)), lf.full(v)), New{0n, 0n}, New{1n, 0n}), 0n, f, 0n), 1n, v, 2n))))
+
+# a linear fan behaves as its components against any partner (law
+# linear_as_components)
+def fz_linear(+f: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
+  fz.go(Bool.not(Nat.is_eq(ex.dead(f), 0n)) && fz.meets(f, v), fz_linear.cmp(f, v, t))
+
+def ex.first(r: Rule) -> NodeKind:
+  match r:
+    case RWire{xs, ls}:
+      match xs:
+        case Con{Spec{+k, s}, t}:
+          k
+        case Nil{}:
+          KFree{}
+    case RStuck{}:
+      KFree{}
+
+def fz.evport.go(full: Bool, +a: NodeKind, +p: Nat) -> Nat:
+  match full:
+    case True{}:
+      p
+    case False{}:
+      ex.kept(a)
+
+# the full port an event at port p of a node of kind a erases: a linear
+# fan's kept one
+def fz.evport(+a: NodeKind, +p: Nat) -> Nat:
+  fz.evport.go(Nat.is_eq(ex.dead(a), 0n), a, p)
+
+def fz.pat.at(here: Bool, +b: XB, +a: NodeKind, +q: Nat) -> XB:
+  match here:
+    case True{}:
+      xb.link(b, New{0n, q}, New{2n, 0n})
+    case False{}:
+      xb.port(Nat.is_eq(q, ex.dead(a)), b, 0n, a, q, 0n)
+
+# a's ports from q: its dead one erased, port p to the eraser at node 2,
+# the rest external peers
+def fz.pat.q(m: Nat, +b: XB, +a: NodeKind, +p: Nat, +q: Nat) -> XB:
+  match m:
+    case 0n:
+      b
+    case 1n+r:
+      fz.pat.q(r, fz.pat.at(Nat.is_eq(q, p), b, a, q), a, p, Nat.add(q, 1n))
+
+def fz.pat.a(+b: XB, +a: NodeKind, +p: Nat) -> XB:
+  fz.pat.q(Nat.sub(arity(lf.full(a)), 1n), b, a, p, 1n)
+
+# the pattern: a's components facing v's, a's port p (full numbering)
+# erased by an eraser of kind b at node 2
+def fz.pattern(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind) -> G:
+  xb.g(xb.comp(fz.pat.a(xb.link(xb.add(xb.add(xb.add(XB{[], []}, lf.full(a)), lf.full(v)), b), New{0n, 0n}, New{1n, 0n}), a, p), 1n, v, 2n))
+
+def fz.res.go(none: Bool, +b: XB, +e: NodeKind) -> XB:
+  match none:
+    case True{}:
+      b
+    case False{}:
+      xb.comp(b, 0n, e, 0n)
+
+# the event's result, its node of kind e as its components: a linear fan
+# its kept port the pattern's port not erased, an eraser none
+def fz.result(+e: NodeKind, +v: NodeKind) -> G:
+  xb.g(xb.comp(fz.res.go(Nat.is_eq(ex.dead(e), 0n), xb.link(xb.add(xb.add(XB{[], []}, lf.full(e)), lf.full(v)), New{0n, 0n}, New{1n, 0n}), e), 1n, v, 2n))
+
+def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
+  fz.same(fz.run(lf.full(a), lf.full(v), t, True{}, fz.pattern(a, b, fz.evport(a, p), v)),
+    fz.run(lf.full(e), lf.full(v), t, True{}, fz.result(e, v)))
+
+# an event's pattern behaves as the node it makes, against any partner
+# (law events_as_components): the event at port p of a node of kind a,
+# by its kind's eraser
+def fz_event(+a: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
+  fz.go(Bool.not(is_stuck(event(a, ex.eraser(a), p))) && fz.meets(a, v),
+    fz_event.cmp(a, ex.eraser(a), p, ex.first(event(a, ex.eraser(a), p)), v, t))

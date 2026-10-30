@@ -80,11 +80,12 @@ Lessons carried over from the Rust bootstrap:
   exercise.
 - Run the full gate every time. A check once run only periodically let a
   regression go unnoticed for weeks.
-- Code needed in several variants is generated, by a Bend program where
-  possible, into files of its own that nobody edits; list each in
-  `scripts/check_generated.sh`, which the gate and the pre-commit hook run.
-  Python is a development tool, never the source; no macro processors, no
-  scripts that rewrite sources (`generated-sources`).
+- Code needed in several variants is written once as a template (`~`
+  parameters) where Bend's templates serve; otherwise it is generated, by
+  a Bend program where possible, into files of its own that nobody edits;
+  list each in `scripts/check_generated.sh`, which the gate and the
+  pre-commit hook run. Python is a development tool, never the source; no
+  macro processors, no scripts that rewrite sources (`generated-sources`).
 
 ## Measuring
 

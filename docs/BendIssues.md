@@ -57,7 +57,11 @@ of 2026-10-26, Bend 2.0.39.
 - **Workaround:** a generator, itself a Bend program reading the table,
   writes the rewrites out; the gate regenerates them and fails on any
   difference, and the test corpora run through both the table and the
-  generated code (planned in `spike-node-layout`).
+  generated code (planned in `spike-node-layout`). Templates (`~`
+  parameters, a copy compiled for each distinct argument) now specialize
+  a chain on a constant step (the erasure modes, `heap-strategies.erasure.
+  kernel`); whether they can specialize the interpreter on a constant
+  rule is EvalSpike's `spike-templates`.
 - **Revisit:** at whole-system tuning.
 
 ### Reasoning about U32 in proofs
@@ -156,6 +160,27 @@ of 2026-10-26, Bend 2.0.39.
   machines and GPGPUs (the maintainer, 2026-10-30): profile-guided, the
   full reduction runs 16% under the default build on `succ` and demand
   13% (store run 66).
+
+### Dispatch on numbers
+
+- **Need:** the kernel's rewrites dispatched on the pair of kinds, past
+  16 kinds (`heap-strategies.kinds` in `docs/plans/HeapModel_2026-10-27.md`).
+- **Upstream:** none known; a suggestion to raise later, a `switch` for
+  a match on a number whose arms are code.
+- **Evidence:** Bend 2.0.39 compiles a match on a `U32` into a chain of
+  tests of its bits, and a match on a type's constructors into a chain
+  of equality tests that clang left a chain; only a match whose arms are
+  constants becomes a lookup table. A match on two kinds costs, per
+  dispatch, 39 instructions with hot pairs and 57 with uniform ones at 16
+  kinds and 100 pairs, 90 and 153 at 64 kinds and 400 pairs; one match on
+  a dense rule number with 100 arms, about 190; a table of closures is
+  refused, closures being linear (store run 80, i7-6700).
+- **Workaround:** keep each match small: Bend's lookup table from the
+  pair to a rule number, then a balanced tree of comparisons (28 to 33
+  instructions at either size, the hottest pairs tested first: 17), or
+  the high nibbles of the pair first, then the low (31 to 50).
+- **Revisit:** when the kernel's kinds pass 16, or Bend emits jump
+  tables.
 
 ### Array creation fills word by word
 
