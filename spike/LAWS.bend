@@ -533,6 +533,88 @@ law rules_linear_fewer:
   for +s: Bool
   {R.lin_fewer(a, b, s) == True{} : Bool}
 
+# LAW: an eraser facing an auxiliary port runs an event (rules.bend's
+# Events; heap-strategies.erasure.events), a rewrite of the node and the
+# eraser that links exactly the ends left, under every pattern of peers
+# inside the pair the arities allow, or none runs.
+# Record: net-nodes-double
+law events_exact:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.exact_pairs(a, b, R.event(a, b, p)) == True{} : Bool}
+
+# LAW: an event's eraser faces a port of the other polarity, and every
+# link the event makes joins a positive port to a negative one.
+# Record: net-nodes-double
+law events_polarized:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_polarized(a, b, p) == True{} : Bool}
+
+# LAW: an event leaves fewer ports than the node and the eraser had, so
+# events end.
+# Record: net-nodes-double
+law events_shrink:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_shrinks(a, b, p) == True{} : Bool}
+
+# LAW: an event's new nodes have live kinds.
+# Record: net-nodes-double
+law events_kinds_live:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {KP.rule_live(R.event(a, b, p)) == True{} : Bool}
+
+# LAW: a copy or merge an event makes linear is the kind whose derived
+# rules have erased the side the event erased, so that it annihilates its
+# duals position for position.
+# Record: net-nodes-double
+law events_side:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_side(a, b, p) == True{} : Bool}
+
+# LAW: so an event keeps a wired net wired, the node's peers inside the
+# pair or not.
+# Record: net-nodes-double
+law events_keep_wired_in:
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +es: W.Peers
+  for +c: List<&2, W.Ln>
+  for +q: Nat
+  for +p: R.Pat
+  for hv: {R.pat_ok(W.kind_at(ks, a), W.kind_at(ks, b), p) == True{} : Bool}
+  for hw: {W.wired(ks, W.fends_in(W.Foc{ks, a, b, es, c}, p)) == True{} : Bool}
+  {W.keeps_wired(ks, a, b, es, c, R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), p) == True{} : Bool}
+
+# LAW: and at the kernel's placement, the node's own slot first, an event
+# leaves the free list and the kinds agreeing, given an exact free list,
+# kinds in step with it, and the node and the eraser distinct and live.
+# Record: net-nodes-double
+law kernel_events_in_step:
+  for +s: List<&2, FL.Slot>
+  for +fh: Nat
+  for +l: List<&2, Nat>
+  for +ks: List<&2, R.NodeKind>
+  for +a: Nat
+  for +b: Nat
+  for +q: Nat
+  for hf: {FL.ok(FL.FL{s, fh, l}) == True{} : Bool}
+  for hs: {KP.in_step(s, ks) == True{} : Bool}
+  for hab: {R.nat_eq(a, b) == False{} : Bool}
+  for hla: {W.is_free_kind(W.kind_at(ks, a)) == False{} : Bool}
+  for hlb: {W.is_free_kind(W.kind_at(ks, b)) == False{} : Bool}
+  for hen: {KP.step_has(R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), l) == True{} : Bool}
+  {KP.in_step(KP.slots_of(KP.step_free(a, b, R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), FL.FL{s, fh, l})), KP.step_kinds(ks, a, b, R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), FL.FL{s, fh, l})) == True{} : Bool}
+
 # To do
 # =====
 #

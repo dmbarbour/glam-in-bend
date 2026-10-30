@@ -782,13 +782,29 @@ takes from it:
        generated rewrites leave the new kinds out until
        `heap-strategies.erasure.kernel`. Drafted with dual pairs dropped,
        which the derivation no longer does (above).
-     - `heap-strategies.erasure.events` — tentative — the events in the
-       wiring model, with laws that each keeps a net wired and
-       polarized, and the free list exact; then in the kernel, at the
-       links rules make, with the kinds changed in place.
-     - `heap-strategies.erasure.kernel` — contingent on
-       `heap-strategies.erasure.events` — the linear kinds' generated
-       rewrites; every strategy measured on the library's families
+     - `heap-strategies.erasure.events` — built 2026-10-30 — the events
+       as rules (`R.event` in `spike/rules.bend`): A the node, B the
+       eraser facing its port p, A's other ports the external peers in
+       order, so that the kernel's placement, A's slot first, changes the
+       node's kind in place. An application whose result is erased
+       becomes two erasers, its function's in its own slot and its
+       argument's in the eraser's; a call or control, an eraser; a copy,
+       a linear copy keeping the other output, and a linear copy, an
+       eraser; a merge, a linear merge, and a linear merge, an error
+       value. Laws computed over every kind, eraser and port:
+       `events_exact`, exact under every pattern of peers inside;
+       `events_polarized`; `events_shrink`, fewer ports after, so events
+       end; `events_kinds_live`; `events_side`, the side an event erases
+       the side the derived rules erase. Composed: `events_keep_wired_in`,
+       from the wiring proofs, and `kernel_events_in_step`, the kernel's
+       placement keeping the free list and the kinds agreeing, the free
+       list exact by `kernel_free_ok`, which holds for any count of new
+       nodes. An event marking the wrong side fails `events_side`; one
+       leaving the result's eraser where it was, `events_exact`.
+     - `heap-strategies.erasure.kernel` — tentative — the events in the
+       kernel, at the links rules make, as control fusion looks at them,
+       and the linear kinds' generated rewrites; every strategy measured
+       on the library's families
        (`mixin-chain` against `mixin-once`, `list-head`, `search-first`,
        `parse-cut`, `K 2 Ω`, the mixins' full reductions), and the
        standard workloads in four builds, for what the checks cost nets
