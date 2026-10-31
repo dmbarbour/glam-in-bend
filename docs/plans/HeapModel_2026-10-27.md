@@ -308,13 +308,16 @@ takes from it:
    `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads.data` (built),
    `heap-strategies.fusions.payloads.levels` (built),
    `heap-strategies.fusions.fits` (built),
-   `heap-strategies.fusions.controls` (built), `heap-strategies.kinds.dispatch`,
+   `heap-strategies.fusions.controls` (built),
+   `heap-strategies.erasure.kernel.parity`
+   with `heap-strategies.erasure.kernel.sites` (templates; and
+   `spike-templates`), `heap-strategies.erasure.merge`, then
+   `heap-strategies.kinds.dispatch` on the merged kernel, so that the
+   generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
-   `heap-strategies.erasure.deadcall`, `heap-strategies.erasure.kernel.parity`
-   with `heap-strategies.erasure.kernel.sites` (templates; and
-   `spike-templates`), `heap-strategies.erasure.merge`,
+   `heap-strategies.erasure.deadcall`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
