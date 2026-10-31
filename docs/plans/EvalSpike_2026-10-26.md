@@ -698,12 +698,25 @@ Speed:
       builds (the profile-guided ones with events, trained without
       them, 5% to 6% fewer): the rule table is 21 classes square
       rather than 18, its dispatch a level deeper.
-    - `spike-operators.call` — active — the call a fusion of the general
-      form: a call behaving as an operator with its `OpData` on the
-      payload port, proven as the linear fans and the dead call are
-      (`fusions-as-components`); then an application meeting data that
-      holds a builtin rewrites, in the table, to the operator and its
-      materialized `OpData`, the call that rewrite fused.
+    - `spike-operators.call` — built 2026-10-31 — the call, an
+      application's builtin held in the node, shown to behave as an
+      operator whose payload port faces that builtin as an operator's
+      data: law `call_as_components`, against every partner, both sides
+      normalized and read with calls as their operators. The reading
+      comes after normalizing, so that a call's events, which operators
+      lack until `heap-strategies.erasure.deadcall.eraser`, still run,
+      and belongs to this law alone (`fz.after.c`). Made to apply the
+      payload's function the wrong way round, the law fails against data.
+      Its proof splits the test as well as the partner: left symbolic,
+      the verdict's kernel ran out of fuel where Bend's checker passed.
+      So the call may be replaced by its operator and data.
+    - `spike-operators.retire` — tentative — the replacement: an
+      application meeting data that holds a builtin rewrites, in the
+      table, to the operator and its data materialized, and the call and
+      the dead call retire, their events with them, the dead call's work
+      to the dead operator. Until `.immediate`, a builtin applied takes
+      three interactions where the call takes two; whether to retire
+      before or after it is the maintainer's to say.
     - `spike-operators.immediate` — tentative — the operator holding a
       full 32-bit opcode in place of its payload port
       (`heap-strategies.fusions.immediate`), a unary one finishing on

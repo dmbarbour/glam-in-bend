@@ -2659,10 +2659,50 @@ def fz.canon(+g: G) -> List<&2, Nat>:
       fz.canon.o(G{xs, ls}, fz.order(lf.size(G{xs, ls}), G{xs, ls}, 0n,
         fz.see(lf.peer(ls, Ext{3n}), fz.see(lf.peer(ls, Ext{2n}), fz.see(lf.peer(ls, Ext{1n}), fz.see(lf.peer(ls, Ext{0n}), Nil{}))))))
 
+# a call as its components (spike-operators.call): an operator, its
+# payload port on an operator's data holding the call's function, the
+# call's result its result
+def fz.call.j(+g: G, +j: Nat) -> G:
+  match g:
+    case G{+xs, +ls}:
+      G{List.append(&2, Spec, set_src(set_kind(xs, j, KOp{}), j, SNone{}), [Spec{KOpData{}, spec_src(xs, j)}]),
+        Con{Link{New{j, 1n}, New{List.length(&2, Spec, xs), 0n}}, lf.rename(ls, New{j, 1n}, New{j, 2n})}}
+
+# node j as an operator if a call, or a dead call, whose eraser goes on to
+# the operator's result
+def fz.call.at(k: NodeKind, +g: G, +j: Nat) -> G:
+  match k:
+    case KCall{}:
+      fz.call.j(g, j)
+    case KDCall{}:
+      fz.call.j(fz.exp.j(1n, g, j, KDCall{}), j)
+    case _:
+      g
+
+def fz.calls.go(m: Nat, +g: G, +j: Nat) -> G:
+  match m:
+    case 0n:
+      g
+    case 1n+r:
+      fz.calls.go(r, fz.call.at(lf.kind(g, j), g, j), Nat.add(j, 1n))
+
+# every call and dead call of g as its operator and data: after
+# normalizing, so that the events of calls, which operators do not have
+# yet, still run (heap-strategies.erasure.deadcall)
+def fz.calls(+g: G) -> G:
+  fz.calls.go(lf.size(g), g, 0n)
+
 def fz.after.n(m: Maybe<&2, G>) -> List<&2, Nat>:
   match m:
     case Some{g}:
       fz.canon(g)
+    case None{}:
+      [999n]
+
+def fz.after.cn(m: Maybe<&2, G>) -> List<&2, Nat>:
+  match m:
+    case Some{g}:
+      fz.canon(fz.calls(g))
     case None{}:
       [999n]
 
@@ -2674,6 +2714,14 @@ def fz.after(m: Maybe<&2, G>) -> Maybe<&2, List<&2, Nat>>:
       None{}
     case Some{+g}:
       Some{fz.after.n(lf.norm(64n, Some{fz.expand(g)}, fz.expand(g)))}
+
+# the same, its calls read as their operators (law call_as_components)
+def fz.after.c(m: Maybe<&2, G>) -> Maybe<&2, List<&2, Nat>>:
+  match m:
+    case None{}:
+      None{}
+    case Some{+g}:
+      Some{fz.after.cn(lf.norm(64n, Some{fz.expand(g)}, fz.expand(g)))}
 
 def ex.eq(xs: List<&2, Nat>, ys: List<&2, Nat>) -> Bool:
   match xs ys:
@@ -2838,6 +2886,34 @@ def fz_event.b(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> B
 # B may be (heap-strategies.erasure.deadcall.chain)
 def fz_event(+a: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
   fz_event.b(a, ex.eraser(a), p, v, t) && fz_event.b(a, KDCall{}, p, v, t)
+
+# Calls as operators
+# ------------------
+#
+# spike-operators.call. A call, which holds the function an application
+# found in data, behaves as an operator whose payload port faces that
+# function as an operator's data: the call replaced by the two, the
+# reduction is the same against any partner. The comparison reads calls
+# as their operators (fz.calls), after normalizing.
+
+def fz.run.c(+x: NodeKind, +y: NodeKind, +t: Bool, +g: G) -> Maybe<&2, List<&2, Nat>>:
+  fz.after.c(ex.apply.r(pol_eq(port_pol(x, 0n), Neg{}), g, x, y, t, False{}))
+
+# the call facing v; the operator facing v, its payload port on the
+# operator's data
+def fz_call.pc(+v: NodeKind) -> G:
+  xb.g(xb.fused(xb.fused(xb.link(xb.add.p(xb.add.p(XB{[], []}, KCall{}, SPayA{}), v, SPayB{}), New{0n, 0n}, New{1n, 0n}), 0n, KCall{}, 0n), 1n, v, 2n))
+
+def fz_call.po(+v: NodeKind) -> G:
+  xb.g(xb.fused(xb.link(xb.link(xb.link(xb.add.p(xb.add.p(xb.add.p(XB{[], []}, KOp{}, SNone{}), v, SPayB{}), KOpData{}, SPayA{}), New{0n, 0n}, New{1n, 0n}), New{0n, 1n}, New{2n, 0n}), New{0n, 2n}, Ext{0n}), 1n, v, 2n))
+
+def fz_call.cmp(+v: NodeKind, +t: Bool) -> Bool:
+  fz.same(fz.run.c(KCall{}, v, t, fz_call.pc(v)), fz.run.c(KOp{}, v, t, fz_call.po(v)))
+
+# a call behaves as its operator and data against any partner (law
+# call_as_components)
+def fz_call(+v: NodeKind, +t: Bool) -> Bool:
+  fz.go(fz.meets(KCall{}, v), fz_call.cmp(v, t))
 
 # Control runs: a run as its units
 # --------------------------------
