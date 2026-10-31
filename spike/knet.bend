@@ -30,11 +30,10 @@ import ./kmem_grow.bend as KM
 
 # Payloads
 # ========
-
-# a kind whose payload is a value: data, and a call's or a dead call's
-# function
-def is_data(+k: U32) -> Bool:
-  U32.is_eq(k, 5) || U32.is_eq(k, 9) || U32.is_eq(k, 16)
+#
+# Which kinds hold a value (KR.is_data) and in which word a payload is
+# (KR.payload.k) the generator writes, from its kinds and kprim.bend's
+# node.word (heap-strategies.kinds.payloads).
 
 type Mk is Type:
   Mk{h: P.H, refs: List<&2, U32>, +ua: Bool, +ub: Bool}
@@ -59,9 +58,9 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
     case R.SNone{}:
       (h, P.PW{0, 0, 0})
     case R.SPayA{}:
-      pay.use(ua && is_data(P.rk(ha)), h, ha, pa)
+      pay.use(ua && KR.is_data(P.rk(ha)), h, ha, pa)
     case R.SPayB{}:
-      pay.use(ub && is_data(P.rk(hb)), h, hb, pb)
+      pay.use(ub && KR.is_data(P.rk(hb)), h, hb, pb)
     case R.SFanA{}:
       (h, P.PW{0, P.fld(ha), 0})
     case R.SFanB{}:
@@ -135,7 +134,7 @@ def drop_if(d: Bool, h: P.H, +hx: U32, +px: U32) -> P.H:
 def drop_unused(m: Mk, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> Mk:
   match m:
     case Mk{h, refs, +ua, +ub}:
-      Mk{drop_if(is_data(P.rk(hb)) && Bool.not(ub), drop_if(is_data(P.rk(ha)) && Bool.not(ua), h, ha, pa), hb, pb), refs, ua, ub}
+      Mk{drop_if(KR.is_data(P.rk(hb)) && Bool.not(ub), drop_if(KR.is_data(P.rk(ha)) && Bool.not(ua), h, ha, pa), hb, pb), refs, ua, ub}
 
 def new_ref(+n: U32, +p: Nat, +k: R.NodeKind) -> U32:
   (n + U32.from_nat(p) : U32)
@@ -357,25 +356,9 @@ def aux_or_nil(b: Bool, +l: U32) -> U32:
     case False{}:
       P.nil()
 
-def payload.k(+k: U32, +w1: U32, +w3: U32) -> U32:
-  match k:
-    case 5:
-      w1
-    case 9:
-      w3
-    case 10:
-      w3
-    case 11:
-      w3
-    case 16:
-      w3
-    case _:
-      0
-
-# a node's payload word: a data node's word 2, a call's, a dead call's or
-# a control's 3
-def payload(+h: U32, +w1: U32, +w3: U32) -> U32:
-  payload.k(P.rk(h), w1, w3)
+# a node's payload word, of its words 2 and 3
+def payload(+h: U32, +w2: U32, +w3: U32) -> U32:
+  KR.payload.k(P.rk(h), w2, w3)
 
 # is e a port of the redex itself? (net.bend's partner, without the index)
 def mine(+e: U32, +a: U32, +b: U32) -> Bool:
@@ -918,7 +901,7 @@ def audit.one(+tab: Bool, +n: U32) -> U32:
 
 def audit.hit(r: P.H & U32, +n: U32) -> Au:
   (h, +hdr) = r
-  Au{h, audit.one(is_data(P.rk(hdr)) && U32.is_eq(P.form(hdr), 0) && U32.is_ne(hdr, 0), n)}
+  Au{h, audit.one(KR.is_data(P.rk(hdr)) && U32.is_eq(P.form(hdr), 0) && U32.is_ne(hdr, 0), n)}
 
 def audit(k: Nat, +i: U32, au: Au) -> Au:
   match k:
@@ -1201,21 +1184,17 @@ def sw.pd(r: P.H & U32, +hd: U32) -> P.H:
   (h, +w) = r
   P.drop(h, P.form(hd), w)
 
-def sw.payload(+k: U32, h: P.H, +i: U32, +hd: U32) -> P.H:
-  match k:
-    case 5:
-      sw.pd(P.rd(h, ((i << 2n : U32) + 2 : U32)), hd)
-    case 9:
-      sw.pd(P.rd(h, ((i << 2n : U32) + 3 : U32)), hd)
-    case 16:
-      sw.pd(P.rd(h, ((i << 2n : U32) + 3 : U32)), hd)
-    case _:
+def sw.payload(data: Bool, h: P.H, +i: U32, +hd: U32) -> P.H:
+  match data:
+    case True{}:
+      sw.pd(P.rd(h, ((i << 2n : U32) + P.node.word(hd) : U32)), hd)
+    case False{}:
       h
 
 def sw.free(dead: Bool, h: P.H, mk: KM.M, +f: U32, +i: U32, +hd: U32) -> Sw:
   match dead:
     case True{}:
-      Sw{P.free(sw.payload(P.rk(hd), h, i, hd), (i << 2n : U32)), mk, (f + 1 : U32)}
+      Sw{P.free(sw.payload(KR.is_data(P.rk(hd)), h, i, hd), (i << 2n : U32)), mk, (f + 1 : U32)}
     case False{}:
       Sw{h, mk, f}
 

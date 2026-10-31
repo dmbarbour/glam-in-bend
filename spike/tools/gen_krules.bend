@@ -1,6 +1,7 @@
 import Base
 import ../rules.bend as R
 import ../net.bend as N
+import ../kprim.bend as P
 
 # Writes spike/krules.bend: the kernel's rewrites, generated from the rule
 # table (R.rule), so the rules that run are the rules the laws are proved
@@ -60,16 +61,72 @@ def kname(k: R.NodeKind) -> String:
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))
 
-def is_data(k: R.NodeKind) -> Bool:
+# What a kind's payload word holds (heap-strategies.kinds.payloads): a
+# value, data or a call's or a dead call's function, its table entry the
+# node's to drop; a control's index and offset; or nothing, a fan's
+# identity and a level being in the header. Every kind is named, so that
+# a new one must be placed.
+type Holds is Data:
+  HNone{}
+  HValue{}
+  HCtl{}
+
+def holds(k: R.NodeKind) -> Holds:
   match k:
+    case R.KFree{}:
+      HNone{}
+    case R.KFn{}:
+      HNone{}
+    case R.KAp{}:
+      HNone{}
+    case R.KCopy{}:
+      HNone{}
+    case R.KMerge{}:
+      HNone{}
     case R.KData{}:
-      True{}
+      HValue{}
+    case R.KEraN{}:
+      HNone{}
+    case R.KEraP{}:
+      HNone{}
+    case R.KRoot{}:
+      HNone{}
     case R.KCall{}:
-      True{}
+      HValue{}
+    case R.KLift{}:
+      HCtl{}
+    case R.KLiftC{}:
+      HCtl{}
+    case R.KCopyL{}:
+      HNone{}
+    case R.KCopyR{}:
+      HNone{}
+    case R.KMergeL{}:
+      HNone{}
+    case R.KMergeR{}:
+      HNone{}
     case R.KDCall{}:
+      HValue{}
+
+def is_value(h: Holds) -> Bool:
+  match h:
+    case HValue{}:
       True{}
     case _:
       False{}
+
+def is_some_pay(h: Holds) -> Bool:
+  match h:
+    case HNone{}:
+      False{}
+    case _:
+      True{}
+
+def is_data(k: R.NodeKind) -> Bool:
+  is_value(holds(k))
+
+def has_pay(k: R.NodeKind) -> Bool:
+  is_some_pay(holds(k))
 
 # a new node's header and payload word, by source; a payload carries its
 # value form with it (SApply's value is made by a step of its own), and a
@@ -924,6 +981,34 @@ def tables() -> String:
   "def kind_neg.n(+k: U32) -> U32:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      0\n\n" ++
   "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n"
 
+def payloads.d(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(is_data(k), "    case " ++ code(k) ++ ":\n      True{}\n", "") ++ payloads.d(t)
+
+# the word, of a node's 2 and 3, kprim.bend's node.word puts a payload in
+def payload.w(+k: R.NodeKind) -> String:
+  pick(U32.is_eq(P.node.word.k(N.kcode(k)), 2), "w2", "w3")
+
+def payloads.w(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(has_pay(k), "    case " ++ code(k) ++ ":\n      " ++ payload.w(k) ++ "\n", "") ++ payloads.w(t)
+
+# which kinds hold a value, and where each kind with a payload word holds
+# it, for the kernel's rewrites, interpreter, audit and sweep
+def payloads() -> String:
+  "# a kind whose payload is a value, data or a call's or a dead call's\n" ++
+  "# function: a table entry the node's to drop\n" ++
+  "def is_data(+k: U32) -> Bool:\n  match k:\n" ++ payloads.d(kinds()) ++ "    case _:\n      False{}\n\n" ++
+  "# a node's payload, of w2 and w3, its words 2 and 3, where kprim.bend's\n" ++
+  "# node.word puts it: a value or a control's index and offset; 0 for none\n" ++
+  "def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:\n  match k:\n" ++ payloads.w(kinds()) ++ "    case _:\n      0\n\n"
+
 def stuck_v(+t: Bool, +f: Bool) -> String:
   match t f:
     case True{} True{}:
@@ -1537,6 +1622,7 @@ def file() -> String:
   "# stack, on which each link a rewrite makes between two principal ports\n" ++
   "# is noted, or nothing.\n\n" ++
   tables() ++
+  payloads() ++
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++

@@ -93,6 +93,36 @@ def kind_neg.n(+k: U32) -> U32:
 def kind_neg(+k: U32) -> Bool:
   U32.is_eq(kind_neg.n(k), 1)
 
+# a kind whose payload is a value, data or a call's or a dead call's
+# function: a table entry the node's to drop
+def is_data(+k: U32) -> Bool:
+  match k:
+    case 5:
+      True{}
+    case 9:
+      True{}
+    case 16:
+      True{}
+    case _:
+      False{}
+
+# a node's payload, of w2 and w3, its words 2 and 3, where kprim.bend's
+# node.word puts it: a value or a control's index and offset; 0 for none
+def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:
+  match k:
+    case 5:
+      w2
+    case 9:
+      w3
+    case 10:
+      w3
+    case 11:
+      w3
+    case 16:
+      w3
+    case _:
+      0
+
 # the level checks the rewrites below make, for the kernel's interpreter
 def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:
   match ka kb:

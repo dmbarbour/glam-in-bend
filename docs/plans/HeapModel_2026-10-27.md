@@ -318,8 +318,8 @@ takes from it:
    `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class` (built),
    `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
    `heap-strategies.erasure.deadcall` (built) before the operators (the
-   maintainer, 2026-10-31), `heap-strategies.erasure.deadcall.chain`,
-   `heap-strategies.kinds.payloads`,
+   maintainer, 2026-10-31), `heap-strategies.kinds.payloads` (built),
+   `heap-strategies.erasure.deadcall.chain`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
@@ -1101,12 +1101,20 @@ takes from it:
        function held in the data table shows: the library's
        `dead-call-table`, a copied `fma 1` whose dead side freed the
        live side's entry, now kept.
-       - `heap-strategies.kinds.payloads` — tentative — which kinds hold
-         a value and in which word, written by hand in the kernel
-         (`knet.bend`'s `is_data`, `payload.k`, `sw.payload`;
-         `kprim.bend`'s `node.word`), three places a new kind can be
-         missed in, as the dead call was: emitted by the generator from
-         the model's kinds, one owner, before the operators add more.
+       - `heap-strategies.kinds.payloads` — built 2026-10-31 — which
+         kinds hold a value and in which word, written by hand in the
+         kernel (`knet.bend`'s `is_data`, `payload.k`, `sw.payload`),
+         three places a new kind can be missed in, as the dead call
+         was. Now the generator's `holds` says what each kind's payload
+         word holds, a value, a control's index and offset or nothing,
+         every kind named, so that Bend refuses a new kind left out
+         (tried); it writes `is_data` and `payload.k`, the word where
+         `kprim.bend`'s `node.word` puts it, and the sweep reads that
+         word. The generated maps are the hand-written ones case for
+         case. Spot check (store run 96 against 95): the default build
+         0.8% to 1.4% more, forced inline -0.4% to +1.7%, all of it the
+         dead call's arm added by the fix before (main alone, run 97,
+         the same counts); the move costs nothing.
        - `heap-strategies.erasure.deadcall.chain` — active — a call whose
          output faces a dead call's principal dies too: the dead call
          met is an eraser to the event, dropped with its builtin, whose
