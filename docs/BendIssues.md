@@ -205,7 +205,13 @@ of 2026-10-26, Bend 2.0.39.
 - **Workaround:** keep each match small: Bend's lookup table from the
   pair to a rule number, then a balanced tree of comparisons (28 to 33
   instructions at either size, the hottest pairs tested first: 17), or
-  the high nibbles of the pair first, then the low (31 to 50).
+  the high nibbles of the pair first, then the low (31 to 50). A match
+  becomes a table only when its arms cover every number from 0: one over
+  the 50 pairs that have rules, among 256 indices, compiled to a chain
+  of equality tests, and the kernel's dispatch built on it cost 4% to
+  10% more than the match on two kinds; with an arm for every index, 7%
+  to 16% less (store run 86, `heap-strategies.kinds.dispatch`). The
+  generator writes every index.
 - **Revisit:** when the kernel's kinds pass 16, or Bend emits jump
   tables.
 

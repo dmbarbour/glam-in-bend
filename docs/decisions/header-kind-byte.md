@@ -21,10 +21,15 @@ fans whether their net was built without levels. Options were 6/2/24,
   16M; the field's laws (`fld_bits` and those built on it) and the level
   cap change with it.
 - Dispatch can no longer be a match on the pair of kinds: it goes in
-  tiers, kind to class by a lookup table, the class pair to a rule
-  (`heap-strategies.kinds.dispatch`).
+  tiers, kind to class, the class pair to a rule
+  (`heap-strategies.kinds.dispatch`). The class is the code's minimum
+  with the count of base kinds: each base kind its own class, every code
+  from the first operator's up one class, the operators', whose rule
+  picks the operation by the code inside its step (the maintainer,
+  2026-10-31, over a lookup table, which cost 2.3% where the minimum
+  costs next to nothing; `heap-strategies.kinds.class`).
 - The model's kinds widen with the header.
 
-**Rule lives in:** `docs/plans/HeapModel_2026-10-27.md`,
-`heap-strategies.kinds.layout`, until the header changes in
-`spike/kprim.bend`.
+**Rule lives in:** `spike/kprim.bend` ("Headers, levels, values");
+the class tier in `spike/tools/gen_krules.bend` ("Dispatch"); the
+field's laws in `spike/LAWS.bend` (`fld_bits`, `lift_fits`).
