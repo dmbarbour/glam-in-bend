@@ -673,7 +673,7 @@ Speed:
     first (`heap-strategies.kinds.layout`). An await is one of them, an
     identity or application operator (the maintainer, 2026-10-30:
     `spike-fixpoints.await`).
-15. `spike-templates` — tentative — a task of its own (the maintainer,
+15. `spike-templates` — active — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families
     (`spike/tools/gen_krules.bend`), written once as templates where they
@@ -681,6 +681,39 @@ Speed:
     and whether a template can specialize the rule table's interpreter on
     a constant pair of kinds, which `docs/BendIssues.md`'s
     "Compile-time specialization" wanted, the generator then retired.
+    On branch `spike-templates`, 2026-10-31: one family, the generated
+    rule and event rewrites, the payload test and the dispatches, and
+    `knet.bend`'s interaction and events chains templates over the state
+    a strategy threads beside the net (a stack, or `Unit`), how a link's
+    pair is noted on it, the result made of the net and it, and what
+    follows each rewrite (`krules.bend` 2,104 lines to 1,210); the
+    strategies' calls unchanged. A loop cannot be a template, nor close a
+    recursion through a template's argument (BendIssues, "Recursion
+    through templates"), so the events' drain stays one per family. The
+    library passes. Four builds at k 18 (store run 84 against 82): the
+    eager strategies, with events and without, the same within 260
+    instructions; demand 1.3% to 2.4% more in every build. The cost is
+    the plain family's state, carried through every node step of the
+    generated rewrites, each a continuation saving it (demand's own chain
+    without the state, put back by hand, counts the same; a `U32` state
+    in place of `Unit` costs more). Not merged until demand counts as it
+    did. A template does not specialize the interpreter: a match cannot
+    take a template's argument, and a constant handed on folds as a
+    def's does, a flat constructor fully, a list not at all
+    (`bench/bend/template_const/`; BendIssues, "Compile-time
+    specialization"); the generator stays.
+    - `spike-templates.state` — tentative — the generated node steps
+      without the family's state: a rule's first function holding it
+      across the chain of steps, the last returning the ends whose links
+      are to be noted, so that demand threads nothing through the steps,
+      as before, and the eager family holds its stack once a rewrite
+      rather than at each step; measured in the four builds before
+      merging.
+    - `spike-templates.flat` — tentative — rules as records of fixed
+      width (four node slots, eight link slots, each a flat
+      constructor), read by an interpreter unrolled by hand, no
+      recursion: each constant rule might fold into what the generator
+      writes, and the generator retire, if the four builds agree.
 16. `spike-verdict` — decide the representation, record it in
     `docs/decisions/`, and retire this plan.
 

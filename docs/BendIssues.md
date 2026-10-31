@@ -58,10 +58,18 @@ of 2026-10-26, Bend 2.0.39.
   writes the rewrites out; the gate regenerates them and fails on any
   difference, and the test corpora run through both the table and the
   generated code (planned in `spike-node-layout`). Templates (`~`
-  parameters, a copy compiled for each distinct argument) now specialize
-  a chain on a constant step (the erasure modes, `heap-strategies.erasure.
-  kernel`); whether they can specialize the interpreter on a constant
-  rule is EvalSpike's `spike-templates`.
+  parameters, a copy compiled for each distinct argument) specialize a
+  chain on a constant step (the erasure modes, `heap-strategies.erasure.
+  kernel`) and on a family of state (`spike-templates`), but not on
+  constant data: a match cannot take a template's argument (it takes a
+  variable), and handed to a helper, a constant folds as a def's does.
+  A flat constructor folds, from a template or a def alike: 7.25
+  instructions a step, as written by hand; a list does not, 36 read to
+  a fixed depth and 102 through a recursive interpreter
+  (`bench/bend/template_const/`, 2026-10-31). A rule is lists of nodes
+  and links, so its interpreter stays unspecialized; rules as records of
+  fixed width, read by an interpreter unrolled by hand, might fold
+  (EvalSpike's `spike-templates.flat`).
 - **Revisit:** at whole-system tuning.
 
 ### Recursion through templates
