@@ -648,9 +648,11 @@ def is_lift(p: V.Pay) -> Bool:
       False{}
 
 # a payload as a node of kind k carries it in a well-formed net, as far
-# as its test needs: a co-control's an index and offset
+# as its test needs: a control's or co-control's an index and offset
 def pay_fits(k: R.NodeKind, p: V.Pay) -> Bool:
   match k:
+    case R.KLift{}:
+      is_lift(p)
     case R.KLiftC{}:
       is_lift(p)
     case _:
@@ -661,6 +663,31 @@ def pay_fits(k: R.NodeKind, p: V.Pay) -> Bool:
 # source (law tests_reflexive)
 def test_refl(+a: R.NodeKind, +b: R.NodeKind, +p: V.Pay) -> Bool:
   Bool.not(R.test_eq(a, b) && pay_fits(b, p)) || rule_test(a, b, p, p)
+
+def fits_specs(xs: List<&2, R.Spec>, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{R.Spec{k, s}, t}:
+      pay_fits(k, src_pay(s, pa, pb)) && fits_specs(t, pa, pb)
+
+def fits_r(r: R.Rule, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  match r:
+    case R.RWire{xs, ls}:
+      fits_specs(xs, pa, pb)
+    case R.RStuck{}:
+      True{}
+
+# a rule keeps payloads fitting: A's and B's fitting their kinds, every
+# new node's fits its own; a control is made only from a control's
+# payload (law rules_keep_fits)
+def keeps_fits(+a: R.NodeKind, +b: R.NodeKind, +t: Bool, +pa: V.Pay, +pb: V.Pay) -> Bool:
+  fits_r(R.rule(a, b, t), pa, pb) || Bool.not(pay_fits(a, pa) && pay_fits(b, pb))
+
+# and every event's node, the eraser carrying none: no event makes a
+# control (law events_keep_fits)
+def ev_keeps_fits(+a: R.NodeKind, +b: R.NodeKind, +p: Nat, +pa: V.Pay) -> Bool:
+  fits_r(R.event(a, b, p), pa, V.PNone{}) || Bool.not(pay_fits(a, pa))
 
 # Level checks: assertions counted as errors, the rewrite proceeding
 # (docs/plans/NetPairing_2026-10-26.md, "Compared with the earlier

@@ -307,15 +307,19 @@ takes from it:
    `heap-strategies.fusions.norm` (built), `heap-strategies.fusions.assume` (built),
    `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads.data` (built),
    `heap-strategies.fusions.payloads.levels` (built),
+   `heap-strategies.fusions.fits` (built),
    `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
-   `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`,
+   `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
+   with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.deadcall`, `heap-strategies.erasure.kernel.parity`
    with `heap-strategies.erasure.kernel.sites` (templates; and
    `spike-templates`), `heap-strategies.erasure.merge`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
-   `heap-strategies.fresh`. Each step's state is in its line below.
+   `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
+   `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`.
+   Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
      and the tests' entry points in `spike/kernel.bend`; demand without
@@ -1205,7 +1209,40 @@ takes from it:
        events are confluent).
      - `heap-strategies.fusions.operators` — contingent on
        `spike-operators` — each fused form of an operator against the
-       general two-stage operator, the operation left uninterpreted.
+       general two-stage operator, the operation left uninterpreted; a
+       function applied to data, composed (`SAp`), first met there.
+     - `heap-strategies.fusions.immediate` — contingent on
+       `heap-strategies.kinds.layout` — a fusion may observe whether a
+       payload is immediate and nothing more (`fusions-as-components`):
+       immediacy modeled in the laws' graphs once the model has
+       immediates, and a law that no fused rule's choice depends on
+       more.
+     - `heap-strategies.fusions.fits` — built 2026-10-31 — the condition
+       `tests_reflexive` takes, kept by rewriting: every control or
+       co-control a rule makes carries a control's index and offset
+       whenever the pair's own payloads fit their kinds
+       (`rules_keep_fits`, by cases on the kinds, the test and, where a
+       rule makes a control, the payload it is made from: controls come
+       only from controls), and no event makes a control
+       (`events_keep_fits`). Mutated, a co-control made from a
+       function's level fails it.
+       - `heap-strategies.fusions.fits.load` — tentative — the same of a
+         loaded net: a template's control carries a control's payload by
+         its shape, as a fan's identity has `T.TF`, or the loader
+         reports a template whose control carries another, never
+         reducing it.
+     - `heap-strategies.fusions.ktests` — tentative — the kernel's own
+       payload tests pass for one source, as `tests_reflexive` says of
+       the reference's: `P.same_lvl` on two headers built from one form
+       and field with different kinds, `P.peel_ctl` on one control's
+       offset met by itself, peeling nothing. Wants `U32` lemmas for
+       shifts and masks, a header's kind in its low bits, which the hub
+       lacks.
+     - `heap-strategies.fusions.distinct` — tentative — the normalizer
+       knows two payloads equal by one source, never unequal; fans of
+       different sources the rules make fresh could be known distinct
+       (`heap-strategies.fresh` marks a related property), should a law
+       need such a pair reduced.
    - `heap-strategies.fresh` — tentative — a future experiment, apart
      from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
      on a fan that has never commuted, which has no residuals anywhere,
