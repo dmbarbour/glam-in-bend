@@ -11,9 +11,8 @@ import ./kprim.bend as P
 import ./freelist.bend as FL
 import ./wiring.bend as W
 import ./kplace.bend as KP
-import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
-import 0x78e347bf8d0582a322c01b02c727566f/u32.bend as MU
-import ../vendor/wilderness-labs-stt/u32.bend as UD
+import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
+import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -1822,7 +1821,7 @@ def lt_32(+h: U32) -> MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 22n), 1024n)):
   MU.u32_to_nat_lt(h)
 
 def fld_bits.go(+h: U32, +x: Nat, l: MNat.lt(Nat.div(U32.to_nat(h), 1n+1023n), x)) -> MNat.lt(U32.to_nat(P.fld(h)), x):
-  %Equal.sym(Nat, U32.to_nat(U32.div(h, 1024)), Nat.div(U32.to_nat(h), 1n+1023n), UD.U32.to_nat_div(h, 1024)) : MNat.lt(_, x)
+  %Equal.sym(Nat, U32.to_nat(U32.div(h, 1024)), Nat.div(U32.to_nat(h), 1n+1023n), MU.u32_div_to_nat(h, 1024)) : MNat.lt(_, x)
   l
 
 def Laws.fld_bits(h):
@@ -1854,19 +1853,30 @@ def one_at_nat(+w: Nat, +n: Nat, h: MNat.lt(n, w)) -> {Word.to_nat(w, one_at(w, 
       %one_at_nat(q, p, h) : {Nat.double(Word.to_nat(q, one_at(q, p))) == Nat.double(_) : Nat}
       {==}
 
-def one_31() -> {one_at(32n, 31n) == UD.U32.word(2147483648) : Word(32n)}:
+# a U32's word, and its value read through it
+def u32_word(a: U32) -> Word(32n):
+  match a:
+    case U32{w}:
+      w
+
+def u32_word_nat(a: U32) -> {Word.to_nat(32n, u32_word(a)) == U32.to_nat(a) : Nat}:
+  match a:
+    case U32{w}:
+      {==}
+
+def one_31() -> {one_at(32n, 31n) == u32_word(2147483648) : Word(32n)}:
   {==}
 
-def one_22() -> {one_at(32n, 22n) == UD.U32.word(P.lvl_cap()) : Word(32n)}:
+def one_22() -> {one_at(32n, 22n) == u32_word(P.lvl_cap()) : Word(32n)}:
   {==}
 
 def u32_31() -> {U32.to_nat(2147483648) == Nat.pow(2n, 31n) : Nat}:
-  %UD.U32.word_nat(2147483648) : {_ == Nat.pow(2n, 31n) : Nat}
+  %u32_word_nat(2147483648) : {_ == Nat.pow(2n, 31n) : Nat}
   %one_31() : {Word.to_nat(32n, _) == Nat.pow(2n, 31n) : Nat}
   one_at_nat(32n, 31n, {==})
 
 def u32_22() -> {U32.to_nat(P.lvl_cap()) == Nat.pow(2n, 22n) : Nat}:
-  %UD.U32.word_nat(P.lvl_cap()) : {_ == Nat.pow(2n, 22n) : Nat}
+  %u32_word_nat(P.lvl_cap()) : {_ == Nat.pow(2n, 22n) : Nat}
   %one_22() : {Word.to_nat(32n, _) == Nat.pow(2n, 22n) : Nat}
   one_at_nat(32n, 22n, {==})
 
@@ -1875,27 +1885,30 @@ def lt0(+x: Nat, e: {x == 0n : Nat}, pos: MNat.lt(0n, x)) -> MNat.lt(0n, 0n):
   %e : MNat.lt(0n, _)
   pos
 
-def mod_lt.fin(+a: Word(32n), +b: U32, qr: Word(32n) & U32, v: UD.U32.DivSpec(32n, a, b, qr)) ->
+# the remainder's bound, from bend-mathlib's invariant of U32.divmod.go:
+# no public law of the release states it, so this reads its internal one,
+# which the release's hash pins
+def mod_lt.fin(+a: Word(32n), +b: U32, qr: Word(32n) & U32, v: MU.internal_dm_inv(32n, U32.to_nat(b), Word.to_nat(32n, a), qr)) ->
   MNat.lt(U32.to_nat(U32.mod.fin(qr)), U32.to_nat(b)):
   (+q, +r) = qr
   (e, hr) = v
   hr
 
 def mod_lt.if(z: Bool, +a: U32, +b: U32, e: {U32.is_zero(b) == z : Bool}, pos: MNat.lt(0n, U32.to_nat(b))) ->
-  MNat.lt(U32.to_nat(U32.mod.if(UD.U32.word(a), b, z)), U32.to_nat(b)):
+  MNat.lt(U32.to_nat(U32.mod.if(u32_word(a), b, z)), U32.to_nat(b)):
   match z:
     case True{}:
       +zero = MNat.eq_of_is_eq(U32.to_nat(b), 0n,
         Equal.trans(Bool, Nat.is_eq(U32.to_nat(b), 0n), U32.is_zero(b), True{},
-          Equal.sym(Bool, U32.is_zero(b), Nat.is_eq(U32.to_nat(b), 0n), UD.U32.zero_nat(b)), e))
-      Empty.absurd(MNat.lt(U32.to_nat(U32.mod.if(UD.U32.word(a), b, True{})), U32.to_nat(b)),
+          Equal.sym(Bool, U32.is_zero(b), Nat.is_eq(U32.to_nat(b), 0n), MU.u32_is_eq_to_nat(b, 0)), e))
+      Empty.absurd(MNat.lt(U32.to_nat(U32.mod.if(u32_word(a), b, True{})), U32.to_nat(b)),
         MNat.internal_false_ne_true(lt0(U32.to_nat(b), zero, pos)))
     case False{}:
       +pos = pos
-      mod_lt.fin(UD.U32.word(a), b, U32.divmod.go(32n, UD.U32.word(a), b),
-        UD.U32.divmod_spec(32n, UD.U32.word(a), b, MNat.le_refl(32n), pos))
+      mod_lt.fin(u32_word(a), b, U32.divmod.go(32n, u32_word(a), b),
+        MU.internal_dm_go(32n, u32_word(a), b, pos, Nat.pow(2n, 32n), {==}))
 
-def mod_word(a: U32, b: U32) -> {U32.mod.if(UD.U32.word(a), b, U32.is_zero(b)) == U32.mod(a, b) : U32}:
+def mod_word(a: U32, b: U32) -> {U32.mod.if(u32_word(a), b, U32.is_zero(b)) == U32.mod(a, b) : U32}:
   match a b:
     case U32{x} U32{y}:
       {==}

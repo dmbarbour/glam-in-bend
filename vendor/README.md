@@ -8,4 +8,8 @@ pins it as well as a copy would.
 
 | Directory | Source | License | Used by |
 |---|---|---|---|
-| [`wilderness-labs-stt/`](wilderness-labs-stt/SOURCE.md) | ajbarryiii/wilderness-labs-stt, `u32.bend` at f3603a0e14b8: laws relating `U32` to `Nat` | MIT | `spike/PROOF.bend` |
+| (none) | | | |
+
+The last source, ajbarryiii/wilderness-labs-stt's `u32.bend` (MIT, laws
+relating `U32` division to `Nat`), went once bend-mathlib 0.8.1.0
+carried its laws (2026-10-31); git history keeps the copy.
