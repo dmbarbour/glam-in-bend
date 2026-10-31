@@ -11,7 +11,7 @@ import ./kprim.bend as P
 import ./freelist.bend as FL
 import ./wiring.bend as W
 import ./kplace.bend as KP
-import 0x78e347bf8d0582a322c01b02c727566f/nat.bend as MNat
+import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
 # still sum to the page's capacity.

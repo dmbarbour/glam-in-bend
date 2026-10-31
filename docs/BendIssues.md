@@ -111,19 +111,20 @@ of 2026-10-26, Bend 2.0.39.
 - **Workaround:** small counts encoded as constructors; `U32` tests routed
   through a `Bool` helper whose lemma is proved over the `Bool`; models in
   `Nat` with laws, the kernel tested against them; audits in tests. The
-  hub's `bend-mathlib` 0.8.0.0 (`0x78e347bf8d0582a322c01b02c727566f`, its
-  `u32.bend`) already proves `U32` comparison, addition, subtraction and
-  increment against `Nat`, exact or wrapping; with it the spike proves
+  hub's `bend-mathlib` 0.8.1.0 (`0x8ae61ec3a6615abd35f196c07232ad28`, its
+  `u32.bend`) proves `U32` comparison, addition, subtraction, increment
+  and division against `Nat`, exact or wrapping; with it the spike proves
   the kernel's own `U32` raise equal to its `Nat` model (law
   `lift_raise`, 2026-10-29), Bend caching the package under
   `~/.bend/lib` by its hash. Neither covers `.&.`, `.|.` or shifts, so
   the kernel decodes a header's field and an offset's amount by division
   and remainder instead, at no cost in instructions (store runs 58 and
   59: each of 20 counts, 3 to 13 x 10^8, within 37 of the shifts' and
-  masks'), and the file #1850 points to, vendored as
-  `vendor/wilderness-labs-stt/u32.bend` (MIT), proves `U32` division
-  against `Nat`.
-  With both, the laws bound a decoded field to 24 bits and an amount to
+  masks'). The file #1850 points to proved division and was vendored
+  until bend-mathlib 0.8.1.0 carried it (2026-10-31); the remainder's
+  bound comes from that release's invariant of `U32.divmod.go`, an
+  internal name its hash pins, since no public law of it states one.
+  With these, the laws bound a decoded field to 24 bits and an amount to
   31 (`fld_bits`, `off_by_bits`), so the kernel's raise of a decoded
   level is the model's without hypothesis (`lift_decoded`) and fits its
   field whenever the kernel's check passes it (`lift_fits`). The encoders
