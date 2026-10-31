@@ -735,6 +735,21 @@ law events_as_components:
   for +t: Bool
   {R.fz_event(a, p, v, t) == True{} : Bool}
 
+# LAW: and so does a run of controls: a control standing for a run of
+# unit brackets, against whatever its principal meets but a control
+# facing it, is stuck where its units in series are, and otherwise leaves
+# what they leave, both normalized with controls fused where segments of
+# one run meet in order (R.fz_runs). A run of two units stands for any
+# split, the normalizer reading the bounds only to join them;
+# run_splits holds their arithmetic. A control facing it is peeling's
+# case.
+# Record: fuse-control-runs
+law runs_as_units:
+  for +k: R.NodeKind
+  for +v: R.NodeKind
+  for +t: Bool
+  {R.fz_runs(k, v, t) == True{} : Bool}
+
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
 # Record: net-nodes-double

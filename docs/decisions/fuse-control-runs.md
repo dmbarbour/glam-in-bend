@@ -46,11 +46,15 @@ safety criterion licenses it.
   25.8 times its old count. Recovering it is the safe operators' work: a
   safety bit set where a control's box is closed for good.
 - The laws `units_are_run`, `run_splits` and `peel_pairs_units` hold the
-  arithmetic of runs to their units; that the unit system is confluent,
-  and that runs simulate it wherever they meet other nodes, rests on the
-  model's enumeration and the differential tests.
+  arithmetic of runs to their units; `runs_as_units`, that a run facing
+  any partner but a control leaves what its units leave. That the unit
+  system is confluent, and that runs simulate it where controls face
+  each other, rests on the model's enumeration and the differential
+  tests (HeapModel's `heap-strategies.fusions.controls.peel` and
+  `.cross`).
 
-**Rule lives in:** `spike/val.bend` (`V.compose`), `spike/kprim.bend`
+**Rule lives in:** `spike/val.bend` (`V.compose`), `spike/LAWS.bend`
+(`runs_as_units`), `spike/kprim.bend`
 ("Fusing controls", "Peeling"), `spike/tools/gen_krules.bend` (the
 pair's peeled rewrite), `spike/net.bend` ("Peeling"); `pairing-fusion` in
 `docs/plans/NetPairing_2026-10-26.md`.

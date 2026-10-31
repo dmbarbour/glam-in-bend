@@ -308,7 +308,7 @@ takes from it:
    `heap-strategies.fusions.loops` (built), `heap-strategies.fusions.payloads.data` (built),
    `heap-strategies.fusions.payloads.levels` (built),
    `heap-strategies.fusions.fits` (built),
-   `heap-strategies.fusions.controls`, `heap-strategies.kinds.dispatch`,
+   `heap-strategies.fusions.controls` (built), `heap-strategies.kinds.dispatch`,
    `heap-strategies.kinds.layout`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
@@ -318,7 +318,9 @@ takes from it:
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
-   `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`.
+   `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`,
+   `heap-strategies.fusions.controls.peel`,
+   `heap-strategies.fusions.controls.cross`.
    Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
@@ -1153,11 +1155,39 @@ takes from it:
          or event, `rules_base_sources`, `events_base_sources`; no
          equal-source decision, `copy_identity`; an application meeting
          data counted an equality test, `tests_reflexive`.
-     - `heap-strategies.fusions.controls` — tentative — control fusion
-       at the level of rules: a run, against each partner, as its unit
-       controls, stuck where they are, its levels as theirs (the levels
-       themselves already: `units_are_run`, `run_splits`,
-       `peel_pairs_units`).
+     - `heap-strategies.fusions.controls` — built 2026-10-31 — control
+       fusion at the level of rules: a run, against each partner, as its
+       unit controls, stuck where they are, its levels as theirs (the
+       levels themselves already: `units_are_run`, `run_splits`,
+       `peel_pairs_units`). Built: in the laws' graphs a run's units are
+       segments of it (`SSeg`, units i to j - 1 of the run whose payload
+       is c, a source only the laws compose); a value passed through two
+       segments of one run in order is passed through their join, the
+       rule-level form of `run_splits`; and the normalizer fuses two
+       controls of one kind where the first's auxiliary feeds the
+       second's principal and their segments join, as `V.compose` does
+       after each rewrite. Law `runs_as_units`: a control of either kind
+       standing for a run of two units, facing any partner but a
+       control, is stuck where its units in series are and otherwise
+       leaves what they leave (both kinds alike: the first unit at the
+       principal, each one's auxiliary feeding the next one's
+       principal). Two units stand for any split, the normalizer
+       reading segment bounds only to join them. Derived rules and the
+       generated rewrites unchanged. Mutated, each fails: no fusion, 18
+       cases (every partner a control is copied onto: functions,
+       merges, linear merges, applications, copies, linear copies,
+       calls); no joining of a value's segments, 16 (all but calls,
+       which carry no level); fusion in the wrong order, 18; a
+       control's copies laid backwards on a merge's inputs, 6.
+       - `heap-strategies.fusions.controls.peel` — tentative — facing
+         controls at one index, a run peeled against the units both
+         stand for: the laws' graphs to read two runs' units at one
+         index as one value each, and the normalizer to peel the longer
+         where they meet, as `net.bend` and the kernel do.
+       - `heap-strategies.fusions.controls.cross` — tentative — facing
+         controls at different indices, crossing, the higher adjusted by
+         the lower: the laws' graphs to know which index is lower, so
+         that a value passed through a control above it is itself.
      - `heap-strategies.fusions.assume` — built 2026-10-30 — what the
        normalizer takes for granted, as laws: no eraser's rule depends on
        the payload test (`erasers_untested`; the negative eraser's rules
