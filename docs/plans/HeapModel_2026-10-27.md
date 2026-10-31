@@ -1421,7 +1421,10 @@ takes from it:
        The counts stay one after another, 40 taking about 12 s. 94 s
        for the four builds with events, its 40 counts run 90's within
        579 instructions (run 92); the GCC builds had taken most of the
-       half hour.
+       half hour. Bend's flags are captured at every build, whatever its
+       version (`scripts/bend-cc.sh`: a one-line program built through a
+       logging `clang`, under a second; the maintainer, 2026-10-31); the
+       spot check the same within 30 instructions (run 93).
      - `heap-strategies.measure.pgo` — tentative — profile-guided
        builds trained with events on too: today they train without
        them, so their events loops are cold and their counts with
