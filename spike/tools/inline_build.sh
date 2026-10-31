@@ -11,11 +11,13 @@
 # (docs/BendIssues.md, "Inlining left to the C compiler"); the other
 # builds measure the work itself.
 #
-# The C is emitted once and compiled as `bend` compiles it (clang -std=c11
-# -O3, which `bend -o` runs on its C in a temporary directory whose name
-# the binary keeps, so that two of its builds of one program differ by a
-# few hundred instructions); the builds that do not depend on each other
-# compile side by side (heap-strategies.measure.builds).
+# The C is emitted once and compiled as `bend` compiles it, its flags
+# captured from the installed Bend (scripts/bend-cc.sh; for 2.0.39,
+# clang -std=c11 -O3 ... -lpthread -lm, which `bend -o` runs on its C in a
+# temporary directory whose name the binary keeps, so that two of its
+# builds of one program differ by a few hundred instructions); the builds
+# that do not depend on each other compile side by side
+# (heap-strategies.measure.builds).
 #
 #   [GCC_BUILDS=1] spike/tools/inline_build.sh PROGRAM.bend OUT ["TRAIN ARGS" ...]
 #   e.g. spike/tools/inline_build.sh spike/kernel.bend /tmp/k/kernel "14" "14 fma" "14 lvl"
@@ -26,13 +28,17 @@ mkdir -p "$(dirname "$2")"
 OUT=$(cd "$(dirname "$2")" && pwd)/$(basename "$2")
 shift 2
 DIR=$(cd "$(dirname "$SRC")" && pwd); NAME=$(basename "$SRC")
+ROOT=$(cd "$(dirname "$0")/../.." && pwd)
+FLAGS=$("$ROOT/scripts/bend-cc.sh" "$OUT.cc")
+PRE=$(echo "$FLAGS" | sed -n 1p)
+POST=$(echo "$FLAGS" | sed -n 2p)
 (cd "$DIR" && bend "$NAME" -o "$OUT.c" >/dev/null)
 python3 -I -c '
 import re, sys
 s = open(sys.argv[1]).read()
 open(sys.argv[2], "w").write(re.sub(r"^INLINE Term (spin_\d+)\(", r"static inline __attribute__((always_inline)) Term \1(", s, flags=re.M))
 ' "$OUT.c" "${OUT}_ai.c"
-CC="clang -std=c11 -O3"
+CC="clang $PRE"
 # compile the jobs given as "SOURCE TARGET [FLAGS]" side by side, failing
 # if any fails
 together() {
@@ -42,7 +48,7 @@ together() {
     set -- $job
     src=$1; dst=$2; shift 2
     # shellcheck disable=SC2086
-    $CC "$@" "$src" -o "$dst" -lpthread -lm 2>/dev/null &
+    $CC "$@" "$src" -o "$dst" $POST 2>/dev/null &
     pids="$pids $!"
   done
   ok=0
