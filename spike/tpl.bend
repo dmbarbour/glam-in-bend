@@ -157,7 +157,7 @@ def seed.live(live: Bool, q: N.Q, rq: List<&2, N.Redex>, +ref: U32) -> Seed:
 
 def seed.hit(rr: N.Q & U32, rq: List<&2, N.Redex>, +ref: U32) -> Seed:
   (q, +h) = rr
-  seed.live(U32.is_ne((h .&. 15 : U32), 0), q, rq, ref)
+  seed.live(U32.is_ne((h .&. 255 : U32), 0), q, rq, ref)
 
 def seed.slots(n: Nat, +page: U32, +slot: U32, s: Seed) -> Seed:
   match n:
@@ -227,7 +227,7 @@ def result.pay(r: N.Q & V.Pay, +isdata: Bool) -> N.Q & Maybe<&2, V.Val>:
 
 def result.hdr(r: N.Q & U32, +peer: U32) -> N.Q & Maybe<&2, V.Val>:
   (q, +h) = r
-  result.pay(N.q_pay(q, peer), U32.is_eq((h .&. 15 : U32), 5))
+  result.pay(N.q_pay(q, peer), U32.is_eq((h .&. 255 : U32), 5))
 
 def result.peer(r: N.Q & U32) -> N.Q & Maybe<&2, V.Val>:
   (q, +peer) = r
@@ -239,7 +239,7 @@ type Find is Type:
 
 def find.hit(rr: N.Q & U32, +ref: U32, +at: U32) -> Find:
   (q, +h) = rr
-  Find{q, pick_u32(U32.is_eq(at, S.nil()) && U32.is_eq((h .&. 15 : U32), 8), ref, at)}
+  Find{q, pick_u32(U32.is_eq(at, S.nil()) && U32.is_eq((h .&. 255 : U32), 8), ref, at)}
 
 def find.slots(n: Nat, +page: U32, +slot: U32, f: Find) -> Find:
   match n:

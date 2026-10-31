@@ -312,10 +312,11 @@ takes from it:
    `heap-strategies.erasure.kernel.parity` (built)
    with `heap-strategies.erasure.kernel.sites` (built),
    `heap-strategies.erasure.kernel.sites.random` (built),
-   `heap-strategies.erasure.merge` (built), then `spike-templates` and
-   `heap-strategies.kinds.dispatch` on the merged kernel, so that the
-   generator is rebuilt once (the maintainer, 2026-10-31),
-   `heap-strategies.kinds.layout`,
+   `heap-strategies.erasure.merge` (built), then `spike-templates` (built) and
+   `heap-strategies.kinds.dispatch` (built) on the merged kernel, so
+   that the generator is rebuilt once (the maintainer, 2026-10-31),
+   `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class`,
+   `heap-strategies.measure.spot` and `heap-strategies.measure.builds`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.deadcall`,
@@ -327,7 +328,8 @@ takes from it:
    `heap-strategies.fusions.controls.kpeel`,
    `heap-strategies.fusions.controls.cross`,
    `heap-strategies.erasure.kernel.sites.law`,
-   `heap-strategies.erasure.kernel.sites.fuse`.
+   `heap-strategies.erasure.kernel.sites.fuse`,
+   `heap-strategies.measure.pgo`.
    Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
@@ -1096,7 +1098,7 @@ takes from it:
        logical interactions those of the interactions made, its events
        counted by the kind of node each acts on. Over the library, with
        events: 9.0% fewer logical interactions (9,303,412 to 8,461,554).
-   - `heap-strategies.kinds` — tentative — room past the 16 kinds a
+   - `heap-strategies.kinds` — active — room past the 16 kinds a
      header's four bits hold, for dead calls first and builtins'
      kinds later: options set out for the maintainer, 2026-10-30. The
      maintainer: 4 bits of kind and 4 of form too tight for builtin
@@ -1109,20 +1111,70 @@ takes from it:
      pairs tested first 17; the high nibbles then the low, 31 to 50.
      Next, the kernel's dispatch rebuilt that way at 16 kinds, in the
      four builds.
-     - `heap-strategies.kinds.dispatch` — tentative — next: the
+     - `heap-strategies.kinds.dispatch` — built 2026-10-31 — the
        kernel's dispatch rebuilt as measured best: a rule number from
        Bend's own lookup table for the pair of kinds, the hottest rules
        (by the profiling strategy's pair counts) tested first, then a
        balanced tree of comparisons; and every table of kinds' facts
        (arity, polarity, stuck, grows) a lookup table. Measured at 16
        kinds, in the four builds and on the library, before any kind
-       is added; generated, as the rewrites are.
-     - `heap-strategies.kinds.layout` — tentative — the header widened
-       to 8 bits of kind, 2 of form and a 22-bit field, levels and sites
-       to 4M (the maintainer, 2026-10-30: `header-kind-byte`); the
-       model's kinds widened with it; dispatch in tiers, kind to class by a lookup table, the class
-       pair to a rule, an operator's own code chosen only inside its
-       step.
+       is added; generated, as the rewrites are. Built: `KR.rule_no`
+       numbers a pair's rule from a table over A's code times 16 plus
+       B's, an arm for every index (a match over the 50 pairs alone
+       compiled to a chain, and the dispatch on it cost 4% to 10% more
+       than the match on two kinds); `KR.rewrite` tests four hot rules
+       first (a call meeting a merge, data or a co-control; a control
+       meeting a co-control: the standard workloads' and the random
+       terms' hottest), then a balanced tree of comparisons, each
+       rule's arm a function called once; the payload test, the stuck
+       states demand reads and the growth the two stacks read are
+       tables by rule number, the principal's polarity by kind; the
+       number is read once a rewrite. The library passes. Four builds
+       at k 18 (store run 86 against 85): 4.8% to 15.6% fewer
+       instructions throughout, but for the profile-guided build of
+       eager `lvl` with events, 2.2% more, its events loop cold in
+       training.
+     - `heap-strategies.kinds.layout` — built 2026-10-31 — the header
+       widened to 8 bits of kind, 2 of form and a 22-bit field, levels
+       and sites to 4M (the maintainer, 2026-10-30: `header-kind-byte`);
+       the model's kinds widened with it; dispatch in tiers, kind to
+       class by a lookup table, the class pair to a rule, an operator's
+       own code chosen only inside its step. Built: `kprim.bend`'s
+       header and the reference interpreter's kind mask at 8 bits; the
+       value forms, 0 to 3, in 2; the field's laws restated for 22 bits
+       (`fld_bits`, `lift_fits`; `lift_decoded` over the narrower
+       field); the class tier, the rule table indexed by the pair of
+       classes. The library passes, and the random terms give run 83's
+       results term for term (store run 87). Four builds with the class
+       a table over the 256 codes (run 88 against 86): 0.6% to 4.9%
+       more, about half the table's two lookups a rewrite and half the
+       header's (the default build without the tier, 1.8% more). The
+       class now the code's minimum with the count of base kinds
+       (`.class`, below). Still at 16 kinds: the
+       profile's table by pair of kinds and the events' counters by
+       kind in the header nodes, which widen with the first kind past
+       15 (`heap-strategies.erasure.deadcall`).
+       - `heap-strategies.kinds.class` — built 2026-10-31 — the class
+         tier's cost, the table's 2.3% on eager `lvl` in the default
+         build. Every code from some constant up is an operator (the
+         maintainer, 2026-10-31): so a kind's class is `U32.min` of its
+         code and the count of base kinds, each base kind its own class,
+         the operators one, whose rule picks the operation by the code
+         inside its step; the rule table (count + 1) squared, 289
+         entries now; the minimum by a native comparison, Base's
+         `U32.min` being defined over the word's bits. Default build:
+         within 0.3% of no tier, where the table cost 2.3%. Four builds
+         (store run 90 against 88, the table): 2.2% fewer in the default
+         build and 0.9% in the profile-guided on eager `lvl`, 1.3% and
+         0.8% more in the forced-inline ones; a minimum by arithmetic
+         alone, no comparison, traded places again (default `lvl` 694
+         million, forced inline 629, against the table's 696 and 631 and
+         the comparison's 680 and 639). Differences of 2% that change
+         sign with the build are clang's inlining, not the class's
+         cost; the minimum stays, as the maintainer chose. The two
+         steps with it against run 85: 0.1% to 12.8% fewer throughout,
+         but for the profile-guided build of eager `lvl` with events,
+         4.2% more (`heap-strategies.measure.pgo`).
    - `heap-strategies.fusions` — active — every fusion behaving as its
      components, proven (`fusions-as-components`); built so far in
      `heap-strategies.erasure.kernel.exact` (laws `linear_as_components`,
@@ -1336,6 +1388,34 @@ takes from it:
        different sources the rules make fresh could be known distinct
        (`heap-strategies.fresh` marks a related property), should a law
        need such a pair reduced.
+   - `heap-strategies.measure` — tentative — measuring that keeps pace
+     with development (the maintainer, 2026-10-31). Today a four-build
+     count (`spike/tools/count_builds.sh`) takes about half an hour:
+     `inline_build.sh` runs `bend` twice on one program, then compiles
+     its 3 MB of C some eight times in turn at `-O3` (two GCC builds no
+     count reads among them, an instrumented build, training runs, two
+     profile-guided builds), and 40 counts at k 18 run one after another
+     on an 8-core machine.
+     - `heap-strategies.measure.spot` — tentative — a spot check in a
+       few minutes, for development: the C emitted once, the default
+       and forced-inline builds compiled side by side, the standard
+       workloads at a smaller k, or two sizes apart so that start-up
+       cancels in the difference, the counts run side by side
+       (instruction counts are a process's own); the profile-guided
+       builds and k 18 kept for merges.
+     - `heap-strategies.measure.builds` — tentative — the full count
+       faster: one `bend` emission, the GCC builds only on request, the
+       compiles and the counts in parallel.
+     - `heap-strategies.measure.pgo` — tentative — profile-guided
+       builds trained with events on too: today they train without
+       them, so their events loops are cold and their counts with
+       events say little (+2.2% to +4.6% where the other builds fall).
+       Trained on both modes, a mode's count reads a profile shaped by
+       the other, which makes comparisons across modes hard to call
+       fair; a profile per mode keeps each fair, at a build each. Train
+       too on programs that behave like real ones (the library's
+       mixins, searches, parsers): random terms and the standard
+       workloads never make the best profiles.
    - `heap-strategies.fresh` — tentative — a future experiment, apart
      from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
      on a fan that has never commuted, which has no residuals anywhere,

@@ -897,9 +897,9 @@ def over_a(as: List<&2, R.NodeKind>, +fns: Bool) -> String:
 def neg_str.b(b: Bool) -> String:
   match b:
     case True{}:
-      "True{}"
+      "1"
     case False{}:
-      "False{}"
+      "0"
 
 def neg_str(+k: R.NodeKind) -> String:
   neg_str.b(R.pol_eq(R.port_pol(k, 0n), R.Neg{}))
@@ -915,8 +915,10 @@ def tables.k(ks: List<&2, R.NodeKind>, +neg: Bool) -> String:
 def tables() -> String:
   "# ports by kind code (R.arity)\n" ++
   "def kind_arity(+k: U32) -> U32:\n  match k:\n" ++ tables.k(kinds(), False{}) ++ "    case _:\n      0\n\n" ++
-  "# is the principal port negative? (R.port_pol)\n" ++
-  "def kind_neg(+k: U32) -> Bool:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      False{}\n\n"
+  "# 1 where the principal port is negative (R.port_pol): a table, where a\n" ++
+  "# match whose arms are constructors would be a chain\n" ++
+  "def kind_neg.n(+k: U32) -> U32:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      0\n\n" ++
+  "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n"
 
 def stuck_v(+t: Bool, +f: Bool) -> String:
   match t f:
@@ -1190,6 +1192,336 @@ def events() -> String:
   "def event(" ++ tparam(False{}) ++ "+ka: U32, +p: U32, h: P.H, " ++ common() ++ ") -> P.H & S:\n" ++
   "  match ka p:\n" ++ ev_over(1, kinds()) ++ "    case _ _:\n      (P.h_err(h), st)\n\n"
 
+# Dispatch
+# --------
+#
+# heap-strategies.kinds.dispatch: Bend makes a match on numbers whose arms
+# are code a chain of tests of their bits, and one whose arms are
+# constants a lookup table (docs/BendIssues.md, "Dispatch on numbers").
+# So a pair's rule is numbered by a lookup table on its kinds (rule_no),
+# and the number dispatched: the hottest rules tested first, by the
+# profiling strategy's pair counts on the standard workloads and the
+# random terms (a call meeting a merge, data or a co-control; a control
+# meeting a co-control), then a balanced tree of comparisons over the
+# rest, 0 for a pair no rule rewrites. Each rule's arm is a function of
+# its own, called once. The payload test reads the number too.
+
+type Pr is Data:
+  Pr{a: R.NodeKind, b: R.NodeKind}
+
+def hot() -> List<&2, Pr>:
+  [Pr{R.KCall{}, R.KMerge{}}, Pr{R.KCall{}, R.KData{}}, Pr{R.KCall{}, R.KLiftC{}}, Pr{R.KLift{}, R.KLiftC{}}]
+
+def pr_eq(+x: Pr, +y: Pr) -> Bool:
+  match x y:
+    case Pr{+a, +b} Pr{+c, +d}:
+      Nat.is_eq(R.kind_n(a), R.kind_n(c)) && Nat.is_eq(R.kind_n(b), R.kind_n(d))
+
+def is_hot(hs: List<&2, Pr>, +p: Pr) -> Bool:
+  match hs:
+    case Nil{}:
+      False{}
+    case Con{+h, t}:
+      pr_eq(h, p) || is_hot(t, p)
+
+def keep_pr(c: Bool, +p: Pr, rest: List<&2, Pr>) -> List<&2, Pr>:
+  match c:
+    case True{}:
+      Con{p, rest}
+    case False{}:
+      rest
+
+def cold_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind) -> List<&2, Pr>:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{+b, t}:
+      keep_pr(Bool.not(both_stuck(a, b)) && Bool.not(is_hot(hot(), Pr{a, b})), Pr{a, b}, cold_b(t, a))
+
+def cold_a(as: List<&2, R.NodeKind>) -> List<&2, Pr>:
+  match as:
+    case Nil{}:
+      Nil{}
+    case Con{+a, t}:
+      List.append(&2, Pr, cold_b(kinds(), a), cold_a(t))
+
+# the rules by number from 1: the rest in the kinds' order, then the hot
+def numbered() -> List<&2, Pr>:
+  List.append(&2, Pr, cold_a(kinds()), hot())
+
+def n_cold() -> Nat:
+  List.length(&2, Pr, cold_a(kinds()))
+
+def n_rules() -> Nat:
+  List.length(&2, Pr, numbered())
+
+# the base kinds, each its own class; every code from here up one class,
+# the operators' (header-kind-byte)
+def n_base() -> Nat:
+  List.length(&2, R.NodeKind, kinds())
+
+def pr_ix(+a: R.NodeKind, +b: R.NodeKind) -> Nat:
+  Nat.add(Nat.mul(R.kind_n(a), Nat.add(n_base(), 1n)), R.kind_n(b))
+
+def no_at.go(hit: Bool, +n: Nat, +rest: Nat) -> Nat:
+  match hit:
+    case True{}:
+      n
+    case False{}:
+      rest
+
+def no_at(ps: List<&2, Pr>, +i: Nat, +n: Nat) -> Nat:
+  match ps:
+    case Nil{}:
+      0n
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          no_at.go(Nat.is_eq(pr_ix(a, b), i), n, no_at(t, i, 1n+n))
+
+# every index from i, k of them, its rule's number or 0: dense, so that
+# Bend makes the match a lookup table (a sparse one it makes a chain)
+def at_cases(k: Nat, +i: Nat) -> String:
+  match k:
+    case 0n:
+      ""
+    case 1n+r:
+      "    case " ++ Nat.show(i) ++ ":\n      " ++ Nat.show(no_at(numbered(), i, 1n)) ++ "\n" ++ at_cases(r, 1n+i)
+
+# a rule's arm: the payload test picking a variant, peeling, or the rule
+def arm.d(d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match d:
+    case True{}:
+      "  match t:\n    case True{}:\n      " ++ call(R.rule(a, b, True{}), pname(a, b) ++ ".yes", checked(a, b)) ++
+        "\n    case False{}:\n      " ++ call(R.rule(a, b, False{}), pname(a, b) ++ ".no", checked(a, b)) ++ "\n"
+    case False{}:
+      "  " ++ call(R.rule(a, b, False{}), pname(a, b), checked(a, b)) ++ "\n"
+
+def arm.p(c: Bool, +d: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match c:
+    case True{}:
+      "  " ++ pname(a, b) ++ ".peeled(" ++ targ(True{}) ++ "P.peel_ctl(" ++ checked(a, b) ++ ", a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)\n"
+    case False{}:
+      arm.d(d, a, b)
+
+def arm_params() -> String:
+  tparam(True{}) ++ "+ka: U32, +t: Bool, h: P.H, " ++ common()
+
+def arm_args() -> String:
+  targ(True{}) ++ "ka, t, h, " ++ common_args()
+
+def arms(ps: List<&2, Pr>, +n: Nat) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          "def rw.arm.r" ++ Nat.show(n) ++ "(" ++ arm_params() ++ ") -> R:\n" ++ arm.p(is_ctl_pair(a, b), differs(a, b), a, b) ++ "\n" ++
+            arms(t, 1n+n)
+
+def d_params() -> String:
+  tparam(True{}) ++ "+ka: U32, +r: U32, +t: Bool, h: P.H, " ++ common()
+
+def d_args() -> String:
+  targ(True{}) ++ "ka, r, t, h, " ++ common_args()
+
+def half(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+p:
+      match p:
+        case 0n:
+          0n
+        case 1n+q:
+          1n+half(q)
+
+def sub.one(one: Bool, +lo: Nat, +hi: Nat) -> String:
+  match one:
+    case True{}:
+      "rw.arm.r" ++ Nat.show(lo) ++ "(" ++ arm_args() ++ ")"
+    case False{}:
+      "rw.t.r" ++ Nat.show(lo) ++ ".r" ++ Nat.show(hi) ++ "(" ++ d_args() ++ ")"
+
+# the call reaching rules lo to hi - 1
+def sub(+lo: Nat, +hi: Nat) -> String:
+  sub.one(Nat.is_eq(Nat.sub(hi, lo), 1n), lo, hi)
+
+# one node of the tree: rules lo to hi - 1, split at mid
+def tree.node(+lo: Nat, +mid: Nat, +hi: Nat) -> String:
+  "def rw.t.r" ++ Nat.show(lo) ++ ".r" ++ Nat.show(hi) ++ ".go(" ++ tparam(True{}) ++ "lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, " ++ common() ++ ") -> R:\n" ++
+  "  match lt:\n    case True{}:\n      " ++ sub(lo, mid) ++ "\n    case False{}:\n      " ++ sub(mid, hi) ++ "\n\n" ++
+  "def rw.t.r" ++ Nat.show(lo) ++ ".r" ++ Nat.show(hi) ++ "(" ++ d_params() ++ ") -> R:\n" ++
+  "  rw.t.r" ++ Nat.show(lo) ++ ".r" ++ Nat.show(hi) ++ ".go(" ++ targ(True{}) ++ "U32.is_lt(r, " ++ Nat.show(mid) ++ "), ka, r, t, h, " ++ common_args() ++ ")\n\n"
+
+type Rg is Data:
+  Rg{+lo: Nat, +hi: Nat}
+
+def tree.push(two: Bool, +lo: Nat, +mid: Nat, +hi: Nat, rest: List<&2, Rg>) -> List<&2, Rg>:
+  match two:
+    case True{}:
+      Con{Rg{lo, mid}, Con{Rg{mid, hi}, rest}}
+    case False{}:
+      rest
+
+def tree.text(two: Bool, +lo: Nat, +mid: Nat, +hi: Nat, +acc: String) -> String:
+  match two:
+    case True{}:
+      tree.node(lo, mid, hi) ++ acc
+    case False{}:
+      acc
+
+# a balanced tree of comparisons, its ranges on a worklist, each node's
+# text put before those of the nodes taken before it, so callees come
+# first; the fuel, twice the rules, bounds the steps
+def tree(fuel: Nat, work: List<&2, Rg>, +acc: String) -> String:
+  match fuel:
+    case 0n:
+      acc
+    case 1n+f:
+      match work:
+        case Nil{}:
+          acc
+        case Con{r, t}:
+          match r:
+            case Rg{+lo, +hi}:
+              tree(f, tree.push(Nat.is_ge(Nat.sub(hi, lo), 2n), lo, Nat.add(lo, half(Nat.sub(hi, lo))), hi, t),
+                tree.text(Nat.is_ge(Nat.sub(hi, lo), 2n), lo, Nat.add(lo, half(Nat.sub(hi, lo))), hi, acc))
+
+def hot.next(last: Bool, +m: Nat) -> String:
+  match last:
+    case True{}:
+      sub(0n, Nat.add(n_cold(), 1n))
+    case False{}:
+      "rw.d.r" ++ Nat.show(1n+m) ++ "(" ++ targ(True{}) ++ "U32.is_eq(r, " ++ Nat.show(1n+m) ++ "), ka, r, t, h, " ++ common_args() ++ ")"
+
+# the hot rules' tests, m down to the first, callees first
+def hots(k: Nat, +m: Nat) -> String:
+  match k:
+    case 0n:
+      ""
+    case 1n+r:
+      hots(r, 1n+m) ++
+      "def rw.d.r" ++ Nat.show(m) ++ "(" ++ tparam(True{}) ++ "hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, " ++ common() ++ ") -> R:\n" ++
+      "  match hit:\n    case True{}:\n      rw.arm.r" ++ Nat.show(m) ++ "(" ++ arm_args() ++ ")\n    case False{}:\n      " ++
+        hot.next(Nat.is_eq(m, n_rules()), m) ++ "\n\n"
+
+def first_hot(+nh: Nat) -> String:
+  match nh:
+    case 0n:
+      sub(0n, Nat.add(n_cold(), 1n))
+    case 1n+r:
+      "rw.d.r" ++ Nat.show(Nat.add(n_cold(), 1n)) ++ "(" ++ targ(True{}) ++ "U32.is_eq(r, " ++ Nat.show(Nat.add(n_cold(), 1n)) ++ "), ka, r, t, h, " ++ common_args() ++ ")"
+
+def test_code.go(sl: Bool, vf: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match sl vf:
+    case True{} _:
+      "1"
+    case False{} True{}:
+      "2"
+    case False{} False{}:
+      "missing_payload_test_" ++ kname(a) ++ "_" ++ kname(b)
+
+def test_code(+e: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  test_code.go(String.eq(e, "(h, P.same_lvl(ha, hb))"), String.eq(e, "P.val_is_fn(h, P.form(hb), P.fld(hb), pb)"), a, b)
+
+def test_by.c(c: Bool, +n: Nat, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match c:
+    case True{}:
+      "    case " ++ Nat.show(n) ++ ":\n      " ++ test_code(test_expr(a, b), a, b) ++ "\n"
+    case False{}:
+      "    case " ++ Nat.show(n) ++ ":\n      0\n"
+
+def test_cases(ps: List<&2, Pr>, +n: Nat) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          test_by.c(differs(a, b) && Bool.not(is_ctl_pair(a, b)), n, a, b) ++ test_cases(t, 1n+n)
+
+def dispatch() -> String:
+  "# a kind's class, its row and column in the rule table: each base kind\n" ++
+  "# its own, every code from the first operator's up one class, the\n" ++
+  "# operators', whose rule picks the operation by the code inside its step\n" ++
+  "# (header-kind-byte): a compare, where a table cost 2.3%; U32.is_lt, a\n" ++
+  "# native comparison, where Base's U32.min splits the word into its bits\n" ++
+  "def class.lt(lt: Bool, +k: U32) -> U32:\n  match lt:\n    case True{}:\n      k\n    case False{}:\n      " ++ Nat.show(n_base()) ++ "\n\n" ++
+  "def class(+k: U32) -> U32:\n  class.lt(U32.is_lt(k, " ++ Nat.show(n_base()) ++ "), k)\n\n" ++
+  "# the rule's number for A, negative principal, of class ca meeting B of\n" ++
+  "# class cb, at ca times " ++ Nat.show(Nat.add(n_base(), 1n)) ++ " plus cb: 0 for a pair no rule rewrites\n" ++
+  "def rule_at(+i: U32) -> U32:\n  match i:\n" ++ at_cases(Nat.mul(Nat.add(n_base(), 1n), Nat.add(n_base(), 1n)), 0n) ++ "    case _:\n      0\n\n" ++
+  "def rule_no(+ka: U32, +kb: U32) -> U32:\n  rule_at(((class(ka) * " ++ Nat.show(Nat.add(n_base(), 1n)) ++ " : U32) + class(kb) : U32))\n\n" ++
+  "# which payload test a rule's variants take: 0 none, 1 the levels' or the\n" ++
+  "# fans' sites, 2 whether B's data is a builtin function\n" ++
+  "def test_by(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ test_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
+  "# the payload test that picks a rule's variant where the two differ (R.rule's\n" ++
+  "# t; net.bend's rule_test), a template over the family and what follows\n" ++
+  "# the rewrite, for a copy in each strategy's chain: shared, it has two\n" ++
+  "# callers, and the compiler folds it into neither, which cost the eager\n" ++
+  "# chain 5% to 12% (heap-strategies.stack). A Lift facing a LiftC is tested\n" ++
+  "# after peeling instead (P.peel_ctl).\n" ++
+  "def test.k(" ++ tparam(True{}) ++ "+k: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:\n" ++
+  "  match k:\n    case 1:\n      (h, P.same_lvl(ha, hb))\n    case 2:\n      P.val_is_fn(h, P.form(hb), P.fld(hb), pb)\n    case _:\n      (h, False{})\n\n" ++
+  "def test(" ++ tparam(True{}) ++ "+r: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H & Bool:\n" ++
+  "  test.k(" ++ targ(True{}) ++ "test_by(r), h, ha, hb, pa, pb)\n\n"
+
+def rewrites() -> String:
+  "# the stuck pairs' arm, and each rule's\n" ++
+  "def rw.arm.r0(" ++ arm_params() ++ ") -> R:\n  fin(P.err_if(U32.is_ne(ka, 8), h), st)\n\n" ++
+  arms(numbered(), 1n) ++
+  tree(Nat.mul(2n, Nat.add(n_cold(), 1n)), [Rg{0n, Nat.add(n_cold(), 1n)}], "") ++
+  hots(List.length(&2, Pr, hot()), Nat.add(n_cold(), 1n)) ++
+  "# the rewrite for A, negative principal, of kind ka, meeting B by rule r\n" ++
+  "# (rule_no); t is the payload test; then `after`, at the external peers\n" ++
+  "# where the rule may make an event\n" ++
+  "def rewrite(" ++ d_params() ++ ") -> R:\n  " ++ first_hot(List.length(&2, Pr, hot())) ++ "\n"
+
+def stuck_cases(ps: List<&2, Pr>, +n: Nat) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          "    case " ++ Nat.show(n) ++ ":\n      " ++ stuck_v(is_stuck(R.rule(a, b, True{})), is_stuck(R.rule(a, b, False{}))) ++ "\n" ++
+            stuck_cases(t, 1n+n)
+
+# a growth expression (grow_expr) as its table's code
+def grow_code.go(t: Bool, ns: Bool, s: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match t ns s:
+    case True{} _ _:
+      "1"
+    case False{} True{} _:
+      "3"
+    case False{} False{} True{}:
+      "2"
+    case False{} False{} False{}:
+      x
+
+def grow_code(+x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  grow_code.go(String.eq(x, "True{}"), String.eq(x, "Bool.not(P.same_lvl(ha, hb))"), String.eq(x, "P.same_lvl(ha, hb)"), x, a, b)
+
+def grow_code.e(none: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match none:
+    case True{}:
+      "0"
+    case False{}:
+      grow_code(x, a, b)
+
+def grow_cases(ps: List<&2, Pr>, +n: Nat) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          "    case " ++ Nat.show(n) ++ ":\n      " ++
+            grow_code.e(String.eq(grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), ""),
+              grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), a, b) ++ "\n" ++ grow_cases(t, 1n+n)
+
 def file() -> String:
   "import Base\n" ++
   "import ./kprim.bend as P\n" ++
@@ -1201,35 +1533,29 @@ def file() -> String:
   "# stack, on which each link a rewrite makes between two principal ports\n" ++
   "# is noted, or nothing.\n\n" ++
   tables() ++
-  "# when the rule leaves A, negative principal, meeting B as it is (R.rule):\n" ++
-  "# 0 never, 1 always, 2 when the payload test fails, 3 when it passes\n" ++
-  "def stuck_by(+ka: U32, +kb: U32) -> U32:\n  match ka kb:\n" ++ stuck_a(kinds()) ++ "    case _ _:\n      1\n\n" ++
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++
   "# the most active pairs one rewrite makes (R.pairs_made, over the table):\n" ++
   "# a strategy's stack keeps room for that many before each rewrite (P.pop)\n" ++
   "def most_pairs() -> U32:\n  " ++ Nat.show(most_a(kinds(), 0n)) ++ "\n\n" ++
-  "# the payload test that picks a rule's variant where the two differ (R.rule's\n" ++
-  "# t; net.bend's rule_test), a template over the family and what follows\n" ++
-  "# the rewrite, for a copy in each strategy's chain: shared, it has two\n" ++
-  "# callers, and the compiler folds it into neither, which cost the eager\n" ++
-  "# chain 5% to 12% (heap-strategies.stack). A Lift facing a LiftC is tested\n" ++
-  "# after peeling instead (P.peel_ctl).\n" ++
-  tests() ++
+  dispatch() ++
+  "# when the rule leaves A, negative principal, meeting B as it is (R.rule):\n" ++
+  "# 0 never, 1 always, 2 when the payload test fails, 3 when it passes; by\n" ++
+  "# the pair's rule (rule_no), a table, a pair no rule rewrites always\n" ++
+  "def stuck_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      1\n" ++ stuck_cases(numbered(), 1n) ++ "    case _:\n      1\n\n" ++
+  "def stuck_by(+ka: U32, +kb: U32) -> U32:\n  stuck_of(rule_no(ka, kb))\n\n" ++
   "# does A, negative principal, meeting B make more nodes than the two it\n" ++
-  "# frees? (R.rule; the pairs a two-stack strategy defers)\n" ++
-  "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  match ka kb:\n" ++ grows_a(kinds()) ++
-  "    case _ _:\n      False{}\n\n" ++
+  "# frees? (R.rule; the pairs a two-stack strategy defers) By the pair's\n" ++
+  "# rule, a table: 0 never, 1 always, 2 when the fans' levels agree, 3 when\n" ++
+  "# they do not\n" ++
+  "def grow_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ grow_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
+  "def grows.k(+k: U32, +ha: U32, +hb: U32) -> Bool:\n  match k:\n    case 1:\n      True{}\n    case 2:\n      P.same_lvl(ha, hb)\n" ++
+  "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
+  "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  grows.k(grow_of(rule_no(ka, kb)), ha, hb)\n\n" ++
   over_a(kinds(), True{}) ++
   events() ++
-  "# the rewrite for A, negative principal, meeting B; t is the payload test;\n" ++
-  "# then `after`, at the external peers where the rule may make an event\n" ++
-  "def rewrite(" ++ tparam(True{}) ++ "+ka: U32, +kb: U32, +t: Bool, h: P.H, " ++ common() ++ ") -> R:\n" ++
-  "  match ka kb:\n" ++
-  over_a(kinds(), False{}) ++
-  "    case _ _:\n" ++
-  "      fin(P.err_if(U32.is_ne(ka, 8), h), st)\n"
+  rewrites()
 
 def main() -> IO(Unit):
   IO.print(file())

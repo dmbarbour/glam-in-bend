@@ -1641,7 +1641,7 @@ def Laws.lift_raise(n, b, j, h):
 #
 # The checker compares two Nats that differ in form by expanding both in
 # unary, and overflows its stack at 2^16 (docs/BendIssues.md, "Reasoning
-# about U32 in proofs"). So a closed power such as Nat.pow(2n, 24n) only
+# about U32 in proofs"). So a closed power such as Nat.pow(2n, 22n) only
 # ever meets itself: each lemma reasons under a variable bound, and is
 # instantiated with the power where the forms match exactly.
 
@@ -1652,25 +1652,25 @@ def div_lt(+a: Nat, +x: Nat, +b: Nat, h: MNat.lt(a, Nat.mul(x, 1n+b))) -> MNat.l
       MNat.le_div_iff_mul_le(x, a, b),
       MNat.not_le_of_lt(a, Nat.mul(x, 1n+b), h)))
 
-def pow_8() -> {Nat.pow(2n, 8n) == 256n : Nat}:
+def pow_10() -> {Nat.pow(2n, 10n) == 1024n : Nat}:
   {==}
 
-def sum_32() -> {32n == Nat.add(24n, 8n) : Nat}:
+def sum_32() -> {32n == Nat.add(22n, 10n) : Nat}:
   {==}
 
-# a U32 lies below 2^24 * 256
-def lt_32(+h: U32) -> MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 24n), 256n)):
-  %pow_8() : MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 24n), _))
-  %MNat.pow_add(2n, 24n, 8n) : MNat.lt(U32.to_nat(h), _)
+# a U32 lies below 2^22 * 1024
+def lt_32(+h: U32) -> MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 22n), 1024n)):
+  %pow_10() : MNat.lt(U32.to_nat(h), Nat.mul(Nat.pow(2n, 22n), _))
+  %MNat.pow_add(2n, 22n, 10n) : MNat.lt(U32.to_nat(h), _)
   %sum_32() : MNat.lt(U32.to_nat(h), Nat.pow(2n, _))
   MU.u32_to_nat_lt(h)
 
-def fld_bits.go(+h: U32, +x: Nat, l: MNat.lt(Nat.div(U32.to_nat(h), 1n+255n), x)) -> MNat.lt(U32.to_nat(P.fld(h)), x):
-  %Equal.sym(Nat, U32.to_nat(U32.div(h, 256)), Nat.div(U32.to_nat(h), 1n+255n), UD.U32.to_nat_div(h, 256)) : MNat.lt(_, x)
+def fld_bits.go(+h: U32, +x: Nat, l: MNat.lt(Nat.div(U32.to_nat(h), 1n+1023n), x)) -> MNat.lt(U32.to_nat(P.fld(h)), x):
+  %Equal.sym(Nat, U32.to_nat(U32.div(h, 1024)), Nat.div(U32.to_nat(h), 1n+1023n), UD.U32.to_nat_div(h, 1024)) : MNat.lt(_, x)
   l
 
 def Laws.fld_bits(h):
-  fld_bits.go(h, Nat.pow(2n, 24n), div_lt(U32.to_nat(h), Nat.pow(2n, 24n), 255n, lt_32(h)))
+  fld_bits.go(h, Nat.pow(2n, 22n), div_lt(U32.to_nat(h), Nat.pow(2n, 22n), 1023n, lt_32(h)))
 
 # the w-bit word with one bit set, at n
 def one_at(w: Nat, n: Nat) -> Word(w):
@@ -1701,7 +1701,7 @@ def one_at_nat(+w: Nat, +n: Nat, h: MNat.lt(n, w)) -> {Word.to_nat(w, one_at(w, 
 def one_31() -> {one_at(32n, 31n) == UD.U32.word(2147483648) : Word(32n)}:
   {==}
 
-def one_24() -> {one_at(32n, 24n) == UD.U32.word(P.lvl_cap()) : Word(32n)}:
+def one_22() -> {one_at(32n, 22n) == UD.U32.word(P.lvl_cap()) : Word(32n)}:
   {==}
 
 def u32_31() -> {U32.to_nat(2147483648) == Nat.pow(2n, 31n) : Nat}:
@@ -1709,10 +1709,10 @@ def u32_31() -> {U32.to_nat(2147483648) == Nat.pow(2n, 31n) : Nat}:
   %one_31() : {Word.to_nat(32n, _) == Nat.pow(2n, 31n) : Nat}
   one_at_nat(32n, 31n, {==})
 
-def u32_24() -> {U32.to_nat(P.lvl_cap()) == Nat.pow(2n, 24n) : Nat}:
-  %UD.U32.word_nat(P.lvl_cap()) : {_ == Nat.pow(2n, 24n) : Nat}
-  %one_24() : {Word.to_nat(32n, _) == Nat.pow(2n, 24n) : Nat}
-  one_at_nat(32n, 24n, {==})
+def u32_22() -> {U32.to_nat(P.lvl_cap()) == Nat.pow(2n, 22n) : Nat}:
+  %UD.U32.word_nat(P.lvl_cap()) : {_ == Nat.pow(2n, 22n) : Nat}
+  %one_22() : {Word.to_nat(32n, _) == Nat.pow(2n, 22n) : Nat}
+  one_at_nat(32n, 22n, {==})
 
 # zero is not below zero
 def lt0(+x: Nat, e: {x == 0n : Nat}, pos: MNat.lt(0n, x)) -> MNat.lt(0n, 0n):
@@ -1769,12 +1769,12 @@ def sum_lt(+a: Nat, +b: Nat, +x: Nat, +y: Nat, ha: MNat.lt(a, x), hb: MNat.lt(b,
   MNat.lt_of_lt_of_le(Nat.add(a, b), Nat.add(x, y), Nat.add(y, y), MNat.add_lt_add(a, b, x, y, ha, hb),
     MNat.add_le_add(x, y, y, y, xy, MNat.le_refl(y)))
 
-# a 24-bit level and a 31-bit amount sum within a U32
-def fits_32(+a: Nat, +b: Nat, ha: MNat.lt(a, Nat.pow(2n, 24n)), hb: MNat.lt(b, Nat.pow(2n, 31n))) ->
+# a 22-bit level and a 31-bit amount sum within a U32
+def fits_32(+a: Nat, +b: Nat, ha: MNat.lt(a, Nat.pow(2n, 22n)), hb: MNat.lt(b, Nat.pow(2n, 31n))) ->
   MNat.lt(Nat.add(a, b), Nat.pow(2n, 32n)):
   %MNat.two_pow_succ_sym(31n) : MNat.lt(Nat.add(a, b), _)
   %MNat.double_eq_add_sym(Nat.pow(2n, 31n)) : MNat.lt(Nat.add(a, b), _)
-  sum_lt(a, b, Nat.pow(2n, 24n), Nat.pow(2n, 31n), ha, hb, MNat.pow_le_pow_right(1n, 24n, 31n, {==}))
+  sum_lt(a, b, Nat.pow(2n, 22n), Nat.pow(2n, 31n), ha, hb, MNat.pow_le_pow_right(1n, 22n, 31n, {==}))
 
 # off_up(o) rewritten to True, then lift_raise with its fit discharged
 def Laws.lift_decoded(n, o, h, up):
@@ -1810,7 +1810,7 @@ def lift_fits.at(+n: U32, +o: U32, +j: U32, +x: Nat, up: {P.off_up(o) == True{} 
   lift_fits.go(U32.is_gt(j, n), P.off_up(o), P.off_by(o), j, P.lvl_cap(), x, up, ok, hj, ecap)
 
 def Laws.lift_fits(n, o, h, up, ok):
-  lift_fits.at(n, o, P.fld(h), Nat.pow(2n, 24n), up, ok, Laws.fld_bits(h), u32_24())
+  lift_fits.at(n, o, P.fld(h), Nat.pow(2n, 22n), up, ok, Laws.fld_bits(h), u32_22())
 
 # The free list
 # =============
