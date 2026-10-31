@@ -316,6 +316,7 @@ takes from it:
    `heap-strategies.kinds.dispatch` (built) on the merged kernel, so
    that the generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class`,
+   `heap-strategies.measure.spot` and `heap-strategies.measure.builds`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.deadcall`,
@@ -327,7 +328,8 @@ takes from it:
    `heap-strategies.fusions.controls.kpeel`,
    `heap-strategies.fusions.controls.cross`,
    `heap-strategies.erasure.kernel.sites.law`,
-   `heap-strategies.erasure.kernel.sites.fuse`.
+   `heap-strategies.erasure.kernel.sites.fuse`,
+   `heap-strategies.measure.pgo`.
    Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
@@ -1159,8 +1161,20 @@ takes from it:
          code and the count of base kinds, each base kind its own class,
          the operators one, whose rule picks the operation by the code
          inside its step; the rule table (count + 1) squared, 289
-         entries now. Default build: within 0.3% of no tier, where the
-         table cost 2.3%.
+         entries now; the minimum by a native comparison, Base's
+         `U32.min` being defined over the word's bits. Default build:
+         within 0.3% of no tier, where the table cost 2.3%. Four builds
+         (store run 90 against 88, the table): 2.2% fewer in the default
+         build and 0.9% in the profile-guided on eager `lvl`, 1.3% and
+         0.8% more in the forced-inline ones; a minimum by arithmetic
+         alone, no comparison, traded places again (default `lvl` 694
+         million, forced inline 629, against the table's 696 and 631 and
+         the comparison's 680 and 639). Differences of 2% that change
+         sign with the build are clang's inlining, not the class's
+         cost; the minimum stays, as the maintainer chose. The two
+         steps with it against run 85: 0.1% to 12.8% fewer throughout,
+         but for the profile-guided build of eager `lvl` with events,
+         4.2% more (`heap-strategies.measure.pgo`).
    - `heap-strategies.fusions` — active — every fusion behaving as its
      components, proven (`fusions-as-components`); built so far in
      `heap-strategies.erasure.kernel.exact` (laws `linear_as_components`,
@@ -1374,6 +1388,34 @@ takes from it:
        different sources the rules make fresh could be known distinct
        (`heap-strategies.fresh` marks a related property), should a law
        need such a pair reduced.
+   - `heap-strategies.measure` — tentative — measuring that keeps pace
+     with development (the maintainer, 2026-10-31). Today a four-build
+     count (`spike/tools/count_builds.sh`) takes about half an hour:
+     `inline_build.sh` runs `bend` twice on one program, then compiles
+     its 3 MB of C some eight times in turn at `-O3` (two GCC builds no
+     count reads among them, an instrumented build, training runs, two
+     profile-guided builds), and 40 counts at k 18 run one after another
+     on an 8-core machine.
+     - `heap-strategies.measure.spot` — tentative — a spot check in a
+       few minutes, for development: the C emitted once, the default
+       and forced-inline builds compiled side by side, the standard
+       workloads at a smaller k, or two sizes apart so that start-up
+       cancels in the difference, the counts run side by side
+       (instruction counts are a process's own); the profile-guided
+       builds and k 18 kept for merges.
+     - `heap-strategies.measure.builds` — tentative — the full count
+       faster: one `bend` emission, the GCC builds only on request, the
+       compiles and the counts in parallel.
+     - `heap-strategies.measure.pgo` — tentative — profile-guided
+       builds trained with events on too: today they train without
+       them, so their events loops are cold and their counts with
+       events say little (+2.2% to +4.6% where the other builds fall).
+       Trained on both modes, a mode's count reads a profile shaped by
+       the other, which makes comparisons across modes hard to call
+       fair; a profile per mode keeps each fair, at a build each. Train
+       too on programs that behave like real ones (the library's
+       mixins, searches, parsers): random terms and the standard
+       workloads never make the best profiles.
    - `heap-strategies.fresh` — tentative — a future experiment, apart
      from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
      on a fan that has never commuted, which has no residuals anywhere,
