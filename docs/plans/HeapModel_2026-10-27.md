@@ -309,9 +309,10 @@ takes from it:
    `heap-strategies.fusions.payloads.levels` (built),
    `heap-strategies.fusions.fits` (built),
    `heap-strategies.fusions.controls` (built),
-   `heap-strategies.erasure.kernel.parity`
-   with `heap-strategies.erasure.kernel.sites` (templates; and
-   `spike-templates`), `heap-strategies.erasure.merge`, then
+   `heap-strategies.erasure.kernel.parity` (built)
+   with `heap-strategies.erasure.kernel.sites` (built),
+   `heap-strategies.erasure.kernel.sites.random` (built),
+   `heap-strategies.erasure.merge` (built), then `spike-templates` and
    `heap-strategies.kinds.dispatch` on the merged kernel, so that the
    generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout`,
@@ -323,7 +324,10 @@ takes from it:
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
    `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`,
    `heap-strategies.fusions.controls.peel`,
-   `heap-strategies.fusions.controls.cross`.
+   `heap-strategies.fusions.controls.kpeel`,
+   `heap-strategies.fusions.controls.cross`,
+   `heap-strategies.erasure.kernel.sites.law`,
+   `heap-strategies.erasure.kernel.sites.fuse`.
    Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
@@ -892,13 +896,25 @@ takes from it:
          eager family's own copy of the payload test once avoided, 5% to
          12%). With events and nothing dead, 15% to 33% more than events
          off (packed tables for the checks: 5% of that recovered, run 75).
-       - `heap-strategies.erasure.kernel.parity` — tentative — events off
+       - `heap-strategies.erasure.kernel.parity` — built 2026-10-31, on
+         branch `erasure-kernel` — events off
          costing nothing, by the templates carried down through the
          generated rewrites, so that neither copy shares a function Bend
          would fold (the maintainer, 2026-10-30, over a build-time
          constant), with `.sites` the template's argument, the check at
-         each site.
-       - `heap-strategies.erasure.kernel.sites` — tentative — the checks
+         each site. Built: the template over `after` now reaches from
+         `interact` through `go.which`, the payload test and every
+         generated rule rewrite, each strategy's copy calling its own;
+         each rewrite calls `after` itself at its sites, the interpreter
+         at all four peers (a Lift facing a LiftC at the peers peeling
+         leaves). Events off, four builds at k 18 (store run 82 against
+         69, from before the modes): the same instructions within about
+         2,100 in the default and forced-inline builds and their
+         profile-guided one; the profile-guided build alone +0.6% to
+         +0.8% on three eager workloads. The library's interactions and
+         events the same as run 79's, case for case (run 81).
+       - `heap-strategies.erasure.kernel.sites` — built 2026-10-31, on
+         branch `erasure-kernel` — the checks
          after a rewrite only where its rule can make an event, known
          from the rule as fusion's ends are: an external peer linked to a
          new eraser's principal; one linked to a new node's auxiliary port
@@ -908,7 +924,48 @@ takes from it:
          first may be in an event. The rest are skipped: today all four
          are read after every rewrite, each call spilling registers,
          which costs the erasure modes 15% to 33% more instructions where
-         nothing is dead.
+         nothing is dead. Built: the generator reads each rule's sites
+         from its links (`gen_krules.bend`'s Sites), the others passed as
+         none, and a rule with no site, 74 of the 118 rewrites, calls no
+         `after`; the library's check that the generated and interpreted
+         eager modes make the same events, the interpreter looking at all
+         four peers, passes. With events and nothing dead (run 82): 0.0%
+         to 1.0% over events off in the default and forced-inline builds
+         and their profile-guided one, 20% to 34% fewer instructions
+         than run 71; the profile-guided build alone 30% to 47% over,
+         trained without the events, so its events loops cold. That the
+         sites miss no event rests on the library's 117 nets and on
+         reasoning; what would make it complete:
+         - `heap-strategies.erasure.kernel.sites.random` — built
+           2026-10-31 — the random-term differential test
+           (`differential.sh`, `terms.py --kernel`) in the erasure modes
+           too: the generated rewrites, looking at sites, against the
+           interpreted table, looking at all four peers, events and
+           interactions term by term, peeled pairs among them, as the
+           library checks its nets. Evidence where the library's
+           coverage ends. Built: each term also runs with events, eagerly
+           and with two stacks, both ways; the store keeps both (store
+           run 83). On the 3,600 terms, both ways agree on every term in
+           value, interactions, errors and events (8,418 events eager,
+           11,964 with two stacks), and no value the full reduction gets
+           right changes with events. The terms' other results are run
+           37's, term for term (its wrong values, static labels' and
+           three leveled terms', as they were).
+         - `heap-strategies.erasure.kernel.sites.law` — tentative — the
+           sites read from the model, one owner for the generator and a
+           law: whether a port may be in an event with some peer (an
+           eraser's principal, or an auxiliary port an eraser makes an
+           event at) exact against the event table for every peer, and no
+           rule linking two of its own new nodes into an event (a law in
+           place of `KR.inner_events`, now a check the generated file
+           fails to compile without); each rule's sites then cover every
+           link it makes by construction.
+         - `heap-strategies.erasure.kernel.sites.fuse` — tentative —
+           fusion and peeling make no event: each link they make gives
+           its far end a port of the kind and number it faced before, a
+           control's, so its events are as they were; stated with
+           `fusion_polarized`, among the kernel's claims `spike/LAWS.bend`
+           lists, once the kernel's operations have a model to refine.
        - `heap-strategies.erasure.kernel.exact` — built 2026-10-30 — the
          model's part on main, the kernel's on branch `erasure-kernel` —
          each event
@@ -1026,16 +1083,11 @@ takes from it:
        a dead application is exact where the function is known to keep
        its variable inside its body, a dead call's input erasable where
        it is known to be data (the maintainer, 2026-10-30).
-     - `heap-strategies.erasure.merge` — contingent on
-       `heap-strategies.erasure.kernel.parity` and the maintainer's
-       approval — branch `erasure-kernel` onto main: the events in their
-       own strategies, costing nothing where they are off, and the law
-       changes named in its trailers (added: `events_erase_last`,
-       `linear_as_components`, `events_as_components`; scope changed by
-       the events dropped and added: `events_exact`, `events_polarized`,
-       `events_shrink`, `events_kinds_live`, `events_side`,
-       `events_keep_wired_in`, `kernel_events_in_step`,
-       `rules_linear_rewrites`, `rules_linear_fewer`).
+     - `heap-strategies.erasure.merge` — built 2026-10-31 (the
+       maintainer's approval, 2026-10-31) — branch `erasure-kernel` onto main: the events in their
+       own strategies, costing nothing where they are off. It changes no
+       law: the law changes went to main with the model's half
+       (bca342c), the kernel's half alone left here.
      - Logical interactions count no event: events are patterns that a
        graph language recognizes and names for performance, each meant to
        preserve meaning exactly (the maintainer, 2026-10-30). Events are
@@ -1187,6 +1239,14 @@ takes from it:
          stand for: the laws' graphs to read two runs' units at one
          index as one value each, and the normalizer to peel the longer
          where they meet, as `net.bend` and the kernel do.
+       - `heap-strategies.fusions.controls.kpeel` — tentative — the
+         kernel's peeling arithmetic (`kprim.bend`'s `peel.amt` and
+         `pe.do`: the units kept, the rest's index and offset) proved
+         against `CT.peel`, as `lift_raise` proves the kernel's raise;
+         the drop case, a raise run facing a croissant and keeping one
+         unit, modeled in `ctl.bend` first, which knows raises only.
+         With `.peel` at the level of rules, peeling would rest on laws
+         from the kernel's words to the units.
        - `heap-strategies.fusions.controls.cross` — tentative — facing
          controls at different indices, crossing, the higher adjusted by
          the lower: the laws' graphs to know which index is lower, so

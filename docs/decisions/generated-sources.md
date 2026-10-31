@@ -43,7 +43,10 @@ the main code is not to be written this way.
   templates with its argument.
 - A variant is free only if the templates reach down to whatever its
   copies would otherwise share and Bend would fold, the generated
-  rewrites included.
+  rewrites included. So carried (HeapModel's
+  `heap-strategies.erasure.kernel.parity`), the chain without events
+  counts what it did before the modes existed (store run 82 against
+  69).
 - A string builder such as the hub's `bend-kit-fmt` suits a generator; its
   `{}` holes clash with Bend's own braces (`True{}`), so templates there
   would escape every pair.

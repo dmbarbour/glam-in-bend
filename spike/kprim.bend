@@ -147,7 +147,7 @@ def dt_dup(t: DT, +i: U32) -> DT & U32:
 # every workload, the data table no longer behind a record that
 # allocated when opened).
 
-# the net: its words, nodes after a header of two, and the data table's
+# the net: its words, nodes after a header of seven, and the data table's
 # values. Every node not in use is on the free list: growing the store
 # threads the new nodes onto it, so making a node is a pop. Which pairs
 # are active the net does not record; a strategy that wants them keeps
@@ -155,11 +155,12 @@ def dt_dup(t: DT, +i: U32) -> DT & U32:
 type H is Type:
   H{w: KM.M, a: Array<V.Val>}
 
-# The header, nodes 0 and 1, which the free list never holds: the free
+# The header, nodes 0 to 6, which the free list never holds: the free
 # list's head (a node's index plus one, 0 for none), errors, interactions
 # (counted by the run's fuel, set when it ends), how many nodes fit; the
 # data table's free head, its high-water mark, its capacity and the depth
-# of its array (DT)
+# of its array (DT); four words spare; then the events, by the kind of
+# the node each acts on (heap-strategies.erasure.kernel), a word a kind
 def at_fh() -> U32:
   0
 
@@ -184,12 +185,16 @@ def at_tcap() -> U32:
 def at_td() -> U32:
   7
 
+# events at a node of kind code k
+def at_evk(+k: U32) -> U32:
+  (12 + k : U32)
+
 # the first node after the header, the interface, and its reference
 def first() -> U32:
-  2
+  7
 
 def iface() -> U32:
-  8
+  28
 
 # A net starts at 128 nodes, 2 KB (net-nodes-double); node words up to
 # 2^23 (2^21 nodes); a strategy's stack of pairs up to 2^22 words
@@ -274,6 +279,16 @@ def count(h: H, +n: U32) -> H:
 # Words
 # =====
 
+def ev_count.n(r: KM.M & U32, a: Array<V.Val>, +k: U32) -> H:
+  (w, +n) = r
+  H{KM.m_set(w, at_evk(k), (n + 1 : U32)), a}
+
+# one more event, at a node of kind code k (heap-strategies.erasure.kernel)
+def ev_count(h: H, +k: U32) -> H:
+  match h:
+    case H{w, a}:
+      ev_count.n(KM.m_get(w, at_evk(k)), a, k)
+
 def rd.fin(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
   (w, +v) = r
   (H{w, a}, v)
@@ -287,6 +302,29 @@ def wr(h: H, +i: U32, +v: U32) -> H:
   match h:
     case H{w, a}:
       H{KM.m_set(w, i, v), a}
+
+# the events at nodes of kind code k
+def evk(h: H, +k: U32) -> H & U32:
+  rd(h, at_evk(k))
+
+def evs.add(r: H & U32, +n: U32) -> H & U32:
+  (h, +m) = r
+  (h, (n + m : U32))
+
+def evs.r(r: H & U32, +i: U32) -> H & U32:
+  (h, +n) = r
+  evs.add(evk(h, i), n)
+
+def evs.go(k: Nat, r: H & U32, +i: U32) -> H & U32:
+  match k:
+    case 0n:
+      r
+    case 1n+p:
+      evs.go(p, evs.r(r, i), (i + 1 : U32))
+
+# the events counted, of every kind
+def evs(h: H) -> H & U32:
+  evs.go(16n, (h, 0), 0)
 
 def port(+r: U32) -> U32:
   (r .&. 3 : U32)
@@ -400,7 +438,7 @@ def free(h: H, +r: U32) -> H:
       free.fh(KM.m_get(w, at_fh()), a, r)
 
 # free a redex's two nodes, b first, so that a's slot heads the free list
-# and the rule's first new node takes it: the interface, node 2, keeps its
+# and the rule's first new node takes it: the interface, node 3, keeps its
 # slot when a rule replaces it
 def fresh2(h: H, +a: U32, +b: U32) -> H:
   free(free(h, b), a)
@@ -1198,6 +1236,41 @@ def pop2(e: E, +most: U32, +k: U32) -> Pop2:
       match st:
         case Stk{s}:
           p2.n(KM.m_get(s, 0), h, most, k)
+
+# Room for an event's notes (heap-strategies.erasure.kernel): a cascade of
+# events notes more pairs than a pop leaves room for, so each event is
+# given room first, the array grown as pop2 grows it, its far end moved to
+# the new top (none for the stack alone, whose mark is its capacity).
+
+def room.grown(r: KM.M & U32, +m: U32, +cap0: U32) -> Stk:
+  (s, +cap) = r
+  Stk{KM.m_set(KM.m_set(relocate(U32.to_nat((cap0 - m : U32)), s, (cap0 - 1 : U32), (cap - 1 : U32)),
+    1, ((m + cap : U32) - cap0 : U32)), 2, cap)}
+
+def room.c(r: KM.M & U32, +m: U32) -> Stk:
+  (s, +cap) = r
+  room.grown(KM.m_ensure(s, (cap * 2 : U32), cap, rs_maxd()), m, cap)
+
+def room.go(full: Bool, s: KM.M, +m: U32) -> Stk:
+  match full:
+    case True{}:
+      room.c(KM.m_get(s, 2), m)
+    case False{}:
+      Stk{s}
+
+def room.m(r: KM.M & U32, +n: U32, +most: U32) -> Stk:
+  (s, +m) = r
+  room.go(U32.is_lt(m, ((n + most : U32) + 4 : U32)), s, m)
+
+def room.n(r: KM.M & U32, +most: U32) -> Stk:
+  (s, +n) = r
+  room.m(KM.m_get(s, 1), n, most)
+
+# st with room for most more pairs at its near end
+def room(st: Stk, +most: U32) -> Stk:
+  match st:
+    case Stk{s}:
+      room.n(KM.m_get(s, 0), most)
 
 # a two-stack run's end: the net, its interactions counted
 def unpop2(q: Pop2) -> H:

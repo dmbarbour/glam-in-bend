@@ -381,162 +381,428 @@ def any_partner(+x: N.Ext, +a: U32, +b: U32) -> Bool:
     case N.Ext4{+e0, +e1, +e2, +e3}:
       mine(e0, a, b) || mine(e1, a, b) || mine(e2, a, b) || mine(e3, a, b)
 
-def go.gen(+t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+# Events
+# ======
+#
+# heap-strategies.erasure.kernel in docs/plans/HeapModel_2026-10-27.md. In
+# the erasure modes, each external peer of a rewrite is looked at after
+# it: where an eraser's principal faces an auxiliary port
+# its kind erases (KR.ev_by, from R.event), the event runs (KR.event),
+# and the node's external peers are looked at in turn. Every link a rule makes
+# has an external end but those joining its new nodes, which make no event
+# (KR.inner_events), so these are all the events a rewrite makes. An event
+# allocates nothing and frees only the eraser, whose principal faces an
+# auxiliary port and so is in no active pair; the node keeps its slot and
+# its principal's link, its kind changing, and a pair it is in keeps its
+# place on a strategy's stack. The ends left to look at wait on a list, so
+# that a cascade of any length takes no stack; one may be stale by then, a
+# port of a node freed (header 0) or changed meanwhile, and is looked at as
+# it now is.
+#
+# No event frees a node on demand's path, so demand needs no exception:
+# the walk reached each node there through an auxiliary port facing the
+# principal of the node below, never an eraser's, and an event making its
+# node an eraser erased its last auxiliary port (law events_erase_last).
+#
+# Unlike a rule's, an event's rewrite needs no interpreter where a peer is
+# the redex's own: the eraser's one port faces the node, so only the node
+# can be its own peer, and polarity allows only a copy's or a merge's
+# principal facing its other auxiliary port. Then the rewrite links the
+# linear fan's port 1 to its principal, and the link it leaves out, from
+# the principal to the port erased, is the one that no longer exists; the
+# interpreted table would read the node's ports as a rule's (A's ports 1
+# and 2 its external peers 0 and 1), which an event's are not.
+#
+type Ew is Type:
+  Ew{h: P.H, ws: List<&2, U32>}
+
+def ws.add.go(none: Bool, +e: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  match none:
+    case True{}:
+      ws
+    case False{}:
+      Con{e, ws}
+
+def ws.add(+e: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  ws.add.go(U32.is_eq(e, P.nil()), e, ws)
+
+def ev.x1.k(one: Bool, +w2: U32, +w3: U32) -> U32:
+  match one:
+    case True{}:
+      w3
+    case False{}:
+      w2
+
+# the peer of a node's auxiliary port other than p, words 2 and 3 its
+# ports' links: none for a node of two ports
+def ev.x1(+ha: U32, +p: U32, +w2: U32, +w3: U32) -> U32:
+  aux_or_nil(U32.is_eq(arity(ha), 3), ev.x1.k(U32.is_eq(p, 1), w2, w3))
+
+# port n of a node with header hn facing the principal of one with header
+# hr, an eraser making an event there
+def ev.is(+hn: U32, +n: U32, +hr: U32) -> Bool:
+  U32.is_ne(P.port(n), 0) && U32.is_eq(KR.ev_by(P.rk(hn), P.port(n)), P.rk(hr)) && U32.is_ne(P.rk(hr), 0)
+
+# the event at port p of node a, the eraser b facing it, x0 the peer of
+# a's principal and x1 of its other auxiliary port, run and counted, its
+# peers to look at
+def ev.run(h: P.H, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ew:
+  Ew{P.ev_count(KR.event(P.rk(ha), p, h, a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), P.rk(ha)), ws.add(x0, ws.add(x1, ws))}
+
+def ev.w3(r: P.H & U32, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ew:
+  (h, +w3) = r
+  ev.run(h, ws, a, b, ha, hb, p, payload(ha, 0, w3), x0, ev.x1(ha, p, w2, w3))
+
+def ev.w3.r(r: P.H & U32, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32) -> Ew:
+  (h, +w2) = r
+  ev.w3(P.rd(h, (a + 3 : U32)), ws, a, b, ha, hb, p, x0, w2)
+
+def ev.w2(r: P.H & U32, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ew:
+  (h, +x0) = r
+  ev.w3.r(P.rd(h, (a + 2 : U32)), ws, a, b, ha, hb, p, x0)
+
+# node a's port p facing eraser b's principal, if ok: its words read
+def ev.at(ok: Bool, h: P.H, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ew:
+  match ok:
+    case True{}:
+      ev.w2(P.rd(h, (a + 1 : U32)), ws, a, b, ha, hb, p)
+    case False{}:
+      Ew{h, ws}
+
+# end e, header hx, and its peer y, header hy: which is the node, which
+# the eraser
+def ev.ori(eprin: Bool, h: P.H, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32, +hy: U32) -> Ew:
+  match eprin:
+    case True{}:
+      ev.at(ev.is(hy, y, hx), h, ws, P.base(y), P.base(e), hy, hx, P.port(y))
+    case False{}:
+      ev.at(ev.is(hx, e, hy) && U32.is_eq(P.port(y), 0), h, ws, P.base(e), P.base(y), hx, hy, P.port(e))
+
+def ev.hy(r: P.H & U32, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ew:
+  (h, +hy) = r
+  ev.ori(U32.is_eq(P.port(e), 0), h, ws, e, y, hx, hy)
+
+def ev.y(r: P.H & U32, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ew:
+  (h, +y) = r
+  ev.hy(P.rd(h, P.base(y)), ws, e, y, hx)
+
+def ev.c(c: Bool, h: P.H, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ew:
+  match c:
+    case True{}:
+      ev.y(P.rd(h, (e + 1 : U32)), ws, e, hx)
+    case False{}:
+      Ew{h, ws}
+
+def ev.hx(r: P.H & U32, ws: List<&2, U32>, +e: U32) -> Ew:
+  (h, +hx) = r
+  ev.c(KR.ev_end(P.rk(hx), P.port(e)), h, ws, e, hx)
+
+# end e looked at: only a port that may be one end of an event (KR.ev_end)
+# has its peer read
+def ev.end(h: P.H, ws: List<&2, U32>, +e: U32) -> Ew:
+  ev.hx(P.rd(h, P.base(e)), ws, e)
+
+def ev.one.go(none: Bool, w: Ew, +e: U32) -> Ew:
+  match none:
+    case True{}:
+      w
+    case False{}:
+      match w:
+        case Ew{h, ws}:
+          ev.end(h, ws, e)
+
+def ev.one(w: Ew, +e: U32) -> Ew:
+  ev.one.go(U32.is_eq(e, P.nil()), w, e)
+
+# the ends left looked at, until none
+def ev.drain(k: Nat, w: Ew) -> P.H:
+  match k:
+    case 0n:
+      match w:
+        case Ew{h, ws}:
+          h
+    case 1n+f:
+      match w:
+        case Ew{h, ws}:
+          match ws:
+            case Nil{}:
+              h
+            case Con{+e, t}:
+              ev.drain(f, ev.end(h, t, e))
+
+# a rewrite's external peers looked at
+def ev.settle(h: P.H, +x: N.Ext) -> P.H:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite(P.rk(ha), P.rk(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      ev.drain(4294967295n, ev.one(ev.one(ev.one(ev.one(Ew{h, Nil{}}, e0), e1), e2), e3))
 
-def go.interp.pl(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
+# The eager family: the same, the strategy's stack beside the net, each
+# event given room on the stack for the pair it may note first
+
+type Ee is Type:
+  Ee{h: P.H, st: P.Stk, ws: List<&2, U32>}
+
+def ev.run.e.fin(r: P.E, ws: List<&2, U32>, +k: U32) -> Ee:
+  match r:
+    case P.E{h, st}:
+      Ee{P.ev_count(h, k), st, ws}
+
+def ev.run.e(h: P.H, st: P.Stk, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ee:
+  ev.run.e.fin(KR.event.e(P.rk(ha), p, h, P.room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
+
+def ev.w3.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ee:
+  (h, +w3) = r
+  ev.run.e(h, st, ws, a, b, ha, hb, p, payload(ha, 0, w3), x0, ev.x1(ha, p, w2, w3))
+
+def ev.w3.r.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32) -> Ee:
+  (h, +w2) = r
+  ev.w3.e(P.rd(h, (a + 3 : U32)), st, ws, a, b, ha, hb, p, x0, w2)
+
+def ev.w2.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ee:
+  (h, +x0) = r
+  ev.w3.r.e(P.rd(h, (a + 2 : U32)), st, ws, a, b, ha, hb, p, x0)
+
+def ev.at.e(ok: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ee:
+  match ok:
+    case True{}:
+      ev.w2.e(P.rd(h, (a + 1 : U32)), st, ws, a, b, ha, hb, p)
+    case False{}:
+      Ee{h, st, ws}
+
+def ev.ori.e(eprin: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32, +hy: U32) -> Ee:
+  match eprin:
+    case True{}:
+      ev.at.e(ev.is(hy, y, hx), h, st, ws, P.base(y), P.base(e), hy, hx, P.port(y))
+    case False{}:
+      ev.at.e(ev.is(hx, e, hy) && U32.is_eq(P.port(y), 0), h, st, ws, P.base(e), P.base(y), hx, hy, P.port(e))
+
+def ev.hy.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ee:
+  (h, +hy) = r
+  ev.ori.e(U32.is_eq(P.port(e), 0), h, st, ws, e, y, hx, hy)
+
+def ev.y.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ee:
+  (h, +y) = r
+  ev.hy.e(P.rd(h, P.base(y)), st, ws, e, y, hx)
+
+def ev.c.e(c: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ee:
+  match c:
+    case True{}:
+      ev.y.e(P.rd(h, (e + 1 : U32)), st, ws, e, hx)
+    case False{}:
+      Ee{h, st, ws}
+
+def ev.hx.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +e: U32) -> Ee:
+  (h, +hx) = r
+  ev.c.e(KR.ev_end(P.rk(hx), P.port(e)), h, st, ws, e, hx)
+
+def ev.end.e(h: P.H, st: P.Stk, ws: List<&2, U32>, +e: U32) -> Ee:
+  ev.hx.e(P.rd(h, P.base(e)), st, ws, e)
+
+def ev.one.go.e(none: Bool, w: Ee, +e: U32) -> Ee:
+  match none:
+    case True{}:
+      w
+    case False{}:
+      match w:
+        case Ee{h, st, ws}:
+          ev.end.e(h, st, ws, e)
+
+def ev.one.e(w: Ee, +e: U32) -> Ee:
+  ev.one.go.e(U32.is_eq(e, P.nil()), w, e)
+
+def ev.drain.e(k: Nat, w: Ee) -> P.E:
+  match k:
+    case 0n:
+      match w:
+        case Ee{h, st, ws}:
+          P.E{h, st}
+    case 1n+f:
+      match w:
+        case Ee{h, st, ws}:
+          match ws:
+            case Nil{}:
+              P.E{h, st}
+            case Con{+e, t}:
+              ev.drain.e(f, ev.end.e(h, st, t, e))
+
+def ev.settle.e(r: P.E, +x: N.Ext) -> P.E:
+  match r:
+    case P.E{h, st}:
+      match x:
+        case N.Ext4{+e0, +e1, +e2, +e3}:
+          ev.drain.e(4294967295n, ev.one.e(ev.one.e(ev.one.e(ev.one.e(Ee{h, st, Nil{}}, e0), e1), e2), e3))
+
+# what follows a rewrite: nothing, or (ev.settle) the events it makes
+def go.none(h: P.H, +x: N.Ext) -> P.H:
+  h
+
+def go.none.e(r: P.E, +x: N.Ext) -> P.E:
+  r
+
+# the generated rewrite, which calls `after` itself at the external peers
+# where its rule may make an event (gen_krules.bend's sites)
+def go.gen(~after: P.H -> @+x:N.Ext -> P.H, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      KR.rewrite(~after, P.rk(ha), P.rk(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def go.interp.pl(~after: P.H -> @+x:N.Ext -> P.H, r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}))
+      after(wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3})), N.Ext4{e0, e1, e2, e3})
 
-# the interpreted table; a Lift facing a LiftC is peeled first, as the
-# generated rewrite for the pair does (kprim.bend's peel_ctl)
-def go.interp(ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+# the interpreted table, then `after` at all its external peers; a Lift
+# facing a LiftC is peeled first, as the generated rewrite for the pair
+# does (kprim.bend's peel_ctl), the peers then those peeling leaves
+def go.interp(~after: P.H -> @+x:N.Ext -> P.H, ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match ctl:
     case True{}:
       match x:
         case N.Ext4{+e0, +e1, +e2, +e3}:
-          go.interp.pl(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
+          go.interp.pl(~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
     case False{}:
-      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x))
+      after(wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)), x)
 
-def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+def go.which(~after: P.H -> @+x:N.Ext -> P.H, gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match gen:
     case True{}:
-      go.gen(t, h, a, b, ha, hb, pa, pb, x)
+      go.gen(~after, t, h, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.interp(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, a, b, ha, hb, pa, pb, x)
+      go.interp(~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, a, b, ha, hb, pa, pb, x)
 
 # the generated rewrite, or the interpreted table: for a redex whose
-# external peers include its own ports, or when `fast` is off
-def go.rule(r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+# external peers include its own ports, or when `fast` is off; each then
+# `after`. The chain from interact down through the generated rewrites
+# is a template: `after` substituted where a strategy calls it, nothing
+# (go.none) or the events (ev.settle), each strategy compiles a chain of
+# its own, every function beneath called from one copy only, which Bend
+# folds (heap-strategies.erasure.kernel.parity).
+def go.rule(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   (h, +t) = r
-  go.which(fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
+  go.which(~after, fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
 
-def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
-  go.rule(KR.test(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+def go.ext(~after: P.H -> @+x:N.Ext -> P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
+  go.rule(~after, KR.test(~after, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
-def go.b2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.H:
+def go.b2(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.H:
   (h, +b2) = r
-  go.ext(fast, a, b, ha, hb, a1, a2, b1, b2, h)
+  go.ext(~after, fast, a, b, ha, hb, a1, a2, b1, b2, h)
 
-def go.b1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.H:
+def go.b1(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.H:
   (h, +b1) = r
-  go.b2(P.rd(h, (b + 3 : U32)), fast, a, b, ha, hb, a1, a2, b1)
+  go.b2(~after, P.rd(h, (b + 3 : U32)), fast, a, b, ha, hb, a1, a2, b1)
 
-def go.a2(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.H:
+def go.a2(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.H:
   (h, +a2) = r
-  go.b1(P.rd(h, (b + 2 : U32)), fast, a, b, ha, hb, a1, a2)
+  go.b1(~after, P.rd(h, (b + 2 : U32)), fast, a, b, ha, hb, a1, a2)
 
-def go.a1(r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
+def go.a1(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
   (h, +a1) = r
-  go.a2(P.rd(h, (a + 3 : U32)), fast, a, b, ha, hb, a1)
+  go.a2(~after, P.rd(h, (a + 3 : U32)), fast, a, b, ha, hb, a1)
 
 # a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
 # a node's payload: a data node's word 2, a call's or a control's word 3.
-def go(h: P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
-  go.a1(P.rd(h, (a + 2 : U32)), fast, a, b, ha, hb)
+def go(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
+  go.a1(~after, P.rd(h, (a + 2 : U32)), fast, a, b, ha, hb)
 
-def ori(neg: Bool, h: P.H, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.H:
+def ori(~after: P.H -> @+x:N.Ext -> P.H, neg: Bool, h: P.H, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.H:
   match neg:
     case True{}:
-      go(h, fast, x, y, hx, hy)
+      go(~after, h, fast, x, y, hx, hy)
     case False{}:
-      go(h, fast, y, x, hy, hx)
+      go(~after, h, fast, y, x, hy, hx)
 
-def int.y(r: P.H & U32, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.H:
+def int.y(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.H:
   (h, +hy) = r
-  ori(KR.kind_neg(P.rk(hx)), h, fast, x, y, hx, hy)
+  ori(~after, KR.kind_neg(P.rk(hx)), h, fast, x, y, hx, hy)
 
-def int.x(r: P.H & U32, +fast: Bool, +x: U32, +y: U32) -> P.H:
+def int.x(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, +fast: Bool, +x: U32, +y: U32) -> P.H:
   (h, +hx) = r
-  int.y(P.rd(h, y), fast, x, y, hx)
+  int.y(~after, P.rd(h, y), fast, x, y, hx)
 
 # rewrite the active pair x >< y
-def interact(h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
-  int.x(P.rd(h, x), fast, x, y)
+def interact(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
+  int.x(~after, P.rd(h, x), fast, x, y)
 
 # The eager chain: the same steps with a strategy's stack beside the net,
 # on which each rewrite notes the pairs it makes, in the order it makes
 # them (heap-strategies.stack): the generated eager rewrites, or the
 # interpreter's notes (Wd)
 
-def go.gen.e(+t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.gen.e(~after: P.E -> @+x:N.Ext -> P.E, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite.e(P.rk(ha), P.rk(hb), t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      KR.rewrite.e(~after, P.rk(ha), P.rk(hb), t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def go.interp.pl.e(r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
+def go.interp.pl.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
+      after(wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st), N.Ext4{e0, e1, e2, e3})
 
-def go.interp.e(ctl: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.interp.e(~after: P.E -> @+x:N.Ext -> P.E, ctl: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match ctl:
     case True{}:
       match x:
         case N.Ext4{+e0, +e1, +e2, +e3}:
-          go.interp.pl.e(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+          go.interp.pl.e(~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
     case False{}:
-      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
+      after(wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st), x)
 
-def go.which.e(gen: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.which.e(~after: P.E -> @+x:N.Ext -> P.E, gen: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match gen:
     case True{}:
-      go.gen.e(t, h, st, a, b, ha, hb, pa, pb, x)
+      go.gen.e(~after, t, h, st, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.interp.e(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+      go.interp.e(~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
 
-def go.rule.e(r: P.H & Bool, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.rule.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & Bool, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   (h, +t) = r
-  go.which.e(fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x)
+  go.which.e(~after, fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x)
 
-def go.ext.e(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: P.Stk) -> P.E:
-  go.rule.e(KR.test.e(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+def go.ext.e(~after: P.E -> @+x:N.Ext -> P.E, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: P.Stk) -> P.E:
+  go.rule.e(~after, KR.test.e(~after, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
-def go.b2.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.E:
+def go.b2.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> P.E:
   (h, +b2) = r
-  go.ext.e(fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+  go.ext.e(~after, fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
 
-def go.b1.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.E:
+def go.b1.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> P.E:
   (h, +b1) = r
-  go.b2.e(P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
+  go.b2.e(~after, P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
 
-def go.a2.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.E:
+def go.a2.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> P.E:
   (h, +a2) = r
-  go.b1.e(P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
+  go.b1.e(~after, P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
 
-def go.a1.e(r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
+def go.a1.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
   (h, +a1) = r
-  go.a2.e(P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
+  go.a2.e(~after, P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
 
-def go.e(h: P.H, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
-  go.a1.e(P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
+def go.e(~after: P.E -> @+x:N.Ext -> P.E, h: P.H, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.E:
+  go.a1.e(~after, P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
 
-def ori.e(neg: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.E:
+def ori.e(~after: P.E -> @+x:N.Ext -> P.E, neg: Bool, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> P.E:
   match neg:
     case True{}:
-      go.e(h, st, fast, x, y, hx, hy)
+      go.e(~after, h, st, fast, x, y, hx, hy)
     case False{}:
-      go.e(h, st, fast, y, x, hy, hx)
+      go.e(~after, h, st, fast, y, x, hy, hx)
 
-def int.y.e(r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.E:
+def int.y.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> P.E:
   (h, +hy) = r
-  ori.e(KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
+  ori.e(~after, KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
 
-def int.x.e(r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
+def int.x.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & U32, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
   (h, +hx) = r
-  int.y.e(P.rd(h, y), st, fast, x, y, hx)
+  int.y.e(~after, P.rd(h, y), st, fast, x, y, hx)
 
 # rewrite the active pair x >< y, noting on st the pairs the rewrite makes
-def interact.e(h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
-  int.x.e(P.rd(h, x), st, fast, x, y)
+def interact.e(~after: P.E -> @+x:N.Ext -> P.E, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
+  int.x.e(~after, P.rd(h, x), st, fast, x, y)
 
 # Loading a template
 # ==================
@@ -616,12 +882,12 @@ def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
     case Con{t, rest}:
       load.nodes(rest, load.node(h, t))
 
-# a template's node n is the net's node n + 3, after the header and the
+# a template's node n is the net's node n + 4, after the header and the
 # interface (kprim.bend's first)
 def tref(e: T.TEnd) -> U32:
   match e:
     case T.TE{+n, +p}:
-      (((n + 3 : U32) << 2n : U32) + p : U32)
+      (((n + (P.first() + 1 : U32) : U32) << 2n : U32) + p : U32)
 
 def load.links(ls: List<&2, T.TLink>, h: P.H) -> P.H:
   match ls:
@@ -634,7 +900,7 @@ def load.root(r: P.H & U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, 
   (h, +root) = r
   P.link(load.links(links, load.nodes(nodes, h)), root, x)
 
-# the template's net, its exposed port linked to the interface: node 2,
+# the template's net, its exposed port linked to the interface: node 3,
 # the first after the header, which keeps its slot for good (HeapModel's
 # "Nets")
 def load(t: T.Tpl) -> P.H:
