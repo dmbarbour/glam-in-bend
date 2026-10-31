@@ -14,11 +14,12 @@ that tests every term, or traces one through tracelib.bend.
 --labels lowers without levels or control nodes, fans told apart by
 their site alone; --unfused emits a bracket per box boundary and a
 croissant per use, rather than one fused control per edge. --kernel
-writes a differential test instead: each term through the spike, the
-kernel's interpreted rule table and its generated rewrites (knet.bend),
-flagging any difference between the last two, or in value with the
-spike, and on demand (kstrat.bend's Demand), flagging a table mismatch
-or more interactions than the full reduction. --profile writes each term
+writes OUT/nets.txt instead, the nets for the kernel's differential test
+(spike/runterms.bend, built once, run as `runterms OUT/nets.txt`): each
+term through the spike, the kernel's interpreted rule table and its
+generated rewrites (knet.bend), flagging any difference between the last
+two, or in value with the spike, and on demand (kstrat.bend's Demand),
+flagging a table mismatch or more interactions than the full reduction. --profile writes each term
 through the kernel's profiling strategy instead (kstrat.bend's
 Profiling): value, counts, the logical interactions, peels, interactions by
 pair of kinds (spike/tools/profile.sh). --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
@@ -507,6 +508,40 @@ def bend_tpl(net, root):
     return (f"T.Tpl{{[{nodes}],\n    [{links}],\n    T.TE{{{root[0]}, {root[1]}}}, {len(net.nodes)}}}")
 
 
+# a node as load.bend reads it: its tag, then its fields, as bend_node
+# builds it
+def net_node(kind, args, levels=True):
+    if kind == "fn": return [1, args[0]] if levels else [0]
+    if kind == "ap": return [3, args[0]] if levels else [2]
+    if kind == "cp": return [5, args[0], args[1]] if levels else [4, args[0]]
+    if kind == "br": return [6, args[0], 1, 1]
+    if kind == "cr": return [6, args[0], 0, 1]
+    if kind in ("ctl", "ctlc"):
+        n, off = args
+        return [6 if kind == "ctl" else 7, n, 1 if off > 0 else 0, abs(off)]
+    if kind == "num": return [9, args[0]]
+    return {"era": [8], "succ": [10], "plus": [11], "fma": [12]}[kind]
+
+
+# the nets for spike/runterms.bend, a row a term (load.bend's format)
+def write_nets(out, rows):
+    lines = [str(len(rows))]
+    for text, want, net, root in rows:
+        toks = [4294967295 if want is None else want, len(text)] + [ord(c) for c in text]
+        toks.append(len(net.nodes))
+        for k, a in net.nodes:
+            toks += net_node(k, a, net.levels)
+        toks.append(len(net.links))
+        for (a, pa), (b, pb) in net.links:
+            toks += [a, pa, b, pb]
+        toks += [root[0], root[1]]
+        lines.append(" ".join(map(str, toks)))
+    path = os.path.join(out, "nets.txt")
+    with open(path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    print(f"wrote {path}: {len(rows)} terms, {sum(len(r[2].nodes) for r in rows)} nodes")
+
+
 def bend_str(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
@@ -520,6 +555,9 @@ def emit(out, terms, spike, levels=True, fused=True, kernel=False, profile=False
         want = evaluate(t)
         net, root = to_tpl(t, levels, fused)
         rows.append((text, want, net, root))
+    if kernel:
+        write_nets(out, rows)
+        return
     lines = ["import Base"]
     for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("tracelib", "L"), ("kernel", "K")]:
         lines.append(f"import {rel}/{mod}.bend as {alias}")
@@ -539,7 +577,7 @@ def emit(out, terms, spike, levels=True, fused=True, kernel=False, profile=False
     lines.append(dispatch("tpl_of", "T.Tpl", lambda i, r: f"t{i}()"))
     lines.append(dispatch("name_of", "String", lambda i, r: bend_str(r[0])))
     lines.append(dispatch("want_of", "U32", lambda i, r: str(r[1] if r[1] is not None else 4294967295)))
-    main = PROFILE_MAIN if profile else KERNEL_MAIN if kernel else TEST_MAIN
+    main = PROFILE_MAIN if profile else TEST_MAIN
     lines.append(main.replace("COUNT", f"{len(rows)}n"))
     path = os.path.join(out, "terms.bend")
     with open(path, "w") as f:
@@ -617,110 +655,6 @@ def main() -> IO(Unit):
 '''
 
 
-KERNEL_MAIN = r'''
-def show_m(m: Maybe<&2, V.Val>) -> String:
-  match m:
-    case Some{v}:
-      match v:
-        case V.VNum{+n}:
-          U32.show(n)
-        case _:
-          "fn"
-    case None{}:
-      "none"
-
-def spike_res(r: N.Q & Maybe<&2, V.Val>) -> K.KRes:
-  (q, v) = r
-  match q:
-    case N.Q{st, rq, +itrs, +errs, +ser}:
-      K.KRes{v, itrs, errs, True{}}
-
-def res_str(r: K.KRes) -> String:
-  match r:
-    case K.KRes{v, +itrs, +errs, +ok}:
-      show_m(v) ++ " (" ++ U32.show(itrs) ++ ", " ++ U32.show(errs) ++ ")"
-
-def res_val(r: K.KRes) -> String:
-  match r:
-    case K.KRes{v, +itrs, +errs, +ok}:
-      show_m(v)
-
-def res_tab(r: K.KRes) -> Bool:
-  match r:
-    case K.KRes{v, +itrs, +errs, +ok}:
-      ok
-
-def verdict(+tab: Bool, +same: Bool, +agree: Bool, +counts: Bool) -> String:
-  match tab same agree counts:
-    case False{} _ _ _:
-      "TABLE MISMATCH"
-    case True{} False{} _ _:
-      "DIFFER ref/fast"
-    case True{} True{} False{} _:
-      "DIFFER value"
-    case True{} True{} True{} True{}:
-      "same, counts equal"
-    case True{} True{} True{} False{}:
-      "same, counts differ"
-
-def lazy_res(r: K.DRes) -> K.KRes:
-  match r:
-    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
-      k
-
-# on demand: the state it ended in, the nodes it left
-def lazy_st(r: K.DRes) -> String:
-  match r:
-    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
-      K.st_name(st) ++ ", " ++ U32.show(live) ++ " live"
-
-def lazy_more.s(more: Bool) -> String:
-  match more:
-    case True{}:
-      "  LAZY MORE"
-    case False{}:
-      ""
-
-def lazy_more(+lz: K.KRes, +fs: K.KRes) -> String:
-  match lz fs:
-    case K.KRes{v, +i, +e, +ok} K.KRes{v2, +i2, +e2, +ok2}:
-      lazy_more.s(U32.is_gt(i, i2))
-
-# with events: the result and the events made
-def ev_str(r: K.ERes) -> String:
-  match r:
-    case K.ERes{r, +evs}:
-      res_str(r) ++ " " ++ U32.show(evs)
-
-# with events, eager and with two stacks: the generated rewrites, which
-# look at their rules' sites, and the interpreted table, at all four peers
-def evs_str(+e: K.ERes, +er: K.ERes, +t: K.ERes, +tr: K.ERes) -> String:
-  " | ev " ++ ev_str(e) ++ " / " ++ ev_str(er) ++ " | evtwo " ++ ev_str(t) ++ " / " ++ ev_str(tr)
-
-def cmp.go(+k: U32, +sp: K.KRes, +rf: K.KRes, +fs: K.KRes, +lz: K.DRes) -> String:
-  "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": spike " ++ res_str(sp) ++ " | ref " ++ res_str(rf) ++
-    " | fast " ++ res_str(fs) ++ " | lazy " ++ res_str(lazy_res(lz)) ++ " " ++ lazy_st(lz) ++
-    evs_str(K.run_ev(tpl_of(k), 320000n, True{}), K.run_ev(tpl_of(k), 320000n, False{}),
-      K.run_two_ev(tpl_of(k), 320000n, True{}), K.run_two_ev(tpl_of(k), 320000n, False{})) ++ "  " ++
-    verdict(res_tab(rf) && res_tab(fs) && res_tab(lazy_res(lz)), String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
-    lazy_more(lazy_res(lz), fs) ++ "  " ++ name_of(k)
-
-# demand's fuel counts the walk's steps too
-def cmp_one(+k: U32) -> String:
-  cmp.go(k, spike_res(T.result(T.run(tpl_of(k), 5000n))), K.run_t(tpl_of(k), 320000n, False{}), K.run_t(tpl_of(k), 320000n, True{}),
-    K.run_d(tpl_of(k), 1280000n, []))
-
-def cmp_all(n: Nat, +k: U32) -> String:
-  match n:
-    case 0n:
-      ""
-    case 1n+p:
-      cmp_one(k) ++ "\n" ++ cmp_all(p, (k + 1 : U32))
-
-# every term through the spike, the kernel's table, its generated rewrites
-def main() -> IO(Unit):
-  IO.print(cmp_all(COUNT, 0))
-'''
 
 
 PROFILE_MAIN = r'''

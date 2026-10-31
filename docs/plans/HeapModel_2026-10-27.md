@@ -321,6 +321,7 @@ takes from it:
    maintainer, 2026-10-31), `heap-strategies.kinds.payloads` (built),
    `heap-strategies.erasure.deadcall.chain` (built),
    `heap-strategies.measure.differential` (built),
+   `heap-strategies.measure.loader` (built),
    `spike-operators` (EvalSpike) with
    `heap-strategies.erasure.deadcall.eraser`, `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
@@ -1537,13 +1538,26 @@ takes from it:
        once all are done: 12.3 minutes, the store's 3,600 rows run
        98's exactly (run 101). Three at once take two minutes each
        rather than one, so the builds contend for more than memory.
-       - `heap-strategies.measure.loader` — tentative — one build for
-         every set: a one-term set still takes 39 s to build (1.4 GB),
-         two thirds of a set's build being the spike itself, compiled
-         18 times over. Bend has files (`bend guide`, IO), so a program
-         built once could read its nets from a file that `terms.py`
-         writes, and run each set in seconds; the library
-         (`spike/tools/library.py`), rebuilt at every gate, the same.
+       - `heap-strategies.measure.loader` — built 2026-10-31 — one
+         build for every set: a one-term set still took 39 s to build
+         (1.4 GB), two thirds of a set's build being the spike itself,
+         compiled 18 times over (the maintainer, 2026-10-31: try it).
+         `spike/runterms.bend`, the test program `terms.py` had written
+         for each set, is now a source built once, which reads a set's
+         nets from a file at run time (`spike/load.bend`: decimal
+         numbers, the nodes by `nets.bend`'s constructors, so that a
+         loaded net is the compiled one); `terms.py --kernel` writes the
+         file. A set's output is the compiled program's byte for byte;
+         the 18 sets, written and run on every core, take 4 minutes
+         with the build (store run 102, its 3,600 rows run 101's
+         exactly), against 12.3 and 27: writing a set's nets takes
+         Python 4 to 8 s, and its run from 2 s up.
+         - `heap-strategies.measure.loader.profile` — tentative — the
+           profiling script (`spike/tools/profile.sh`) builds a program
+           per family too (`terms.py --profile`): the same loader would
+           serve it. The library is built once a gate either way; a
+           build kept while the spike's sources are unchanged would
+           spare a gate that changes no source.
      - `heap-strategies.measure.pgo` — tentative — profile-guided
        builds trained with events on too: today they train without
        them, so their events loops are cold and their counts with
