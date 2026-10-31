@@ -62,6 +62,17 @@ def plus() -> T.TNode:
 def fma() -> T.TNode:
   T.TN{R.KData{}, V.PVal{V.VFun{3, 3, Nil{}}}}
 
+# the builtins as an operator's data, which an application meeting it
+# makes an operator (spike-operators)
+def opsucc() -> T.TNode:
+  T.TN{R.KOpData{}, V.PVal{V.VFun{1, 1, Nil{}}}}
+
+def opplus() -> T.TNode:
+  T.TN{R.KOpData{}, V.PVal{V.VFun{2, 2, Nil{}}}}
+
+def opfma() -> T.TNode:
+  T.TN{R.KOpData{}, V.PVal{V.VFun{3, 3, Nil{}}}}
+
 def sel(b: Bool, +x: U32, +y: U32) -> U32:
   match b:
     case True{}:

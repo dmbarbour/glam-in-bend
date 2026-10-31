@@ -19,7 +19,7 @@ import ../kprim.bend as P
 # interpreter of the table instead.
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDCall{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDCall{}, R.KOp{}, R.KOpStep{}, R.KOpData{}]
 
 def kname(k: R.NodeKind) -> String:
   match k:
@@ -57,6 +57,12 @@ def kname(k: R.NodeKind) -> String:
       "MergeR"
     case R.KDCall{}:
       "DCall"
+    case R.KOp{}:
+      "Op"
+    case R.KOpStep{}:
+      "OpStep"
+    case R.KOpData{}:
+      "OpData"
 
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))
@@ -106,6 +112,12 @@ def holds(k: R.NodeKind) -> Holds:
     case R.KMergeR{}:
       HNone{}
     case R.KDCall{}:
+      HValue{}
+    case R.KOp{}:
+      HNone{}
+    case R.KOpStep{}:
+      HValue{}
+    case R.KOpData{}:
       HValue{}
 
 def is_value(h: Holds) -> Bool:
@@ -164,6 +176,8 @@ def pword(s: R.Src) -> String:
 def is_apply(s: R.Src) -> Bool:
   match s:
     case R.SApply{}:
+      True{}
+    case R.SApplyB{}:
       True{}
     case _:
       False{}
@@ -334,11 +348,20 @@ def has_apply(xs: List<&2, R.Spec>) -> Bool:
     case Con{R.Spec{k, s}, t}:
       is_apply(s) || has_apply(t)
 
-# kinds of step before making a node: none, computing, duplicating
+# kinds of step before making a node: none, computing (A's function
+# applied to B's data, or with swap B's to A's), duplicating
 type Pre is Data:
   PNo{}
-  PAp{}
+  PAp{+swap: Bool}
   PDup{+isa: Bool}
+
+# P.apply's arguments, the function's header and payload first
+def apply_args(swap: Bool) -> String:
+  match swap:
+    case True{}:
+      ", hb, pb, ha, pa), "
+    case False{}:
+      ", ha, pa, hb, pb), "
 
 def pre_x(+dup: Bool, +isa: Bool) -> Pre:
   match dup:
@@ -352,7 +375,9 @@ def pre_of(sp: R.Spec, +xs: List<&2, R.Spec>, +j: Nat, +a: R.NodeKind, +b: R.Nod
     case R.Spec{k, s}:
       match s:
         case R.SApply{}:
-          PAp{}
+          PAp{False{}}
+        case R.SApplyB{}:
+          PAp{True{}}
         case R.SPayA{}:
           pre_x(is_data(a) && Nat.is_gt(uses(xs, True{}, j), 0n), True{})
         case R.SPayB{}:
@@ -407,8 +432,8 @@ def make_call(+w: Bool, +name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pr
       match pre:
         case PNo{}:
           stepname(name, 1n+j) ++ "(" ++ targ(w) ++ node_call(j, st) ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
-        case PAp{}:
-          stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args() ++ made_args(j, 0n) ++ ")"
+        case PAp{+swap}:
+          stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.apply(" ++ st ++ apply_args(swap) ++ common_args() ++ made_args(j, 0n) ++ ")"
         case PDup{+isa}:
           stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.dup(" ++ st ++ ", P.form(h" ++ side(isa) ++ "), p" ++ side(isa) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
 
@@ -419,7 +444,7 @@ def pre_fn(+w: Bool, +name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
       match pre:
         case PNo{}:
           ""
-        case PAp{}:
+        case PAp{+swap}:
           "def " ++ stepname(name, 1n+j) ++ ".pre(" ++ tparam(w) ++ "r: P.H & P.PW, " ++ common() ++ made_params(j, 0n) ++ ") -> " ++ ret(w) ++ ":\n" ++
             "  (h, pw) = r\n" ++
             "  " ++ stepname(name, 1n+j) ++ "(" ++ targ(w) ++ node_pw_call(j) ++ code(k) ++ ", pw), " ++ common_args() ++ made_args(j, 0n) ++ ")\n\n"

@@ -67,6 +67,8 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
       (h, P.PW{0, P.fld(hb), 0})
     case R.SApply{}:
       P.apply(h, ha, pa, hb, pb)
+    case R.SApplyB{}:
+      P.apply(h, hb, pb, ha, pa)
     case R.SLiftA{}:
       (h, P.PW{0, P.lift(P.fld(hb), pb, P.fld(ha)), pa})
     case R.SLiftB{}:
@@ -85,6 +87,8 @@ def takes_a(s: R.Src) -> Bool:
       True{}
     case R.SApply{}:
       True{}
+    case R.SApplyB{}:
+      True{}
     case _:
       False{}
 
@@ -93,6 +97,8 @@ def takes_b(s: R.Src) -> Bool:
     case R.SPayB{}:
       True{}
     case R.SApply{}:
+      True{}
+    case R.SApplyB{}:
       True{}
     case _:
       False{}

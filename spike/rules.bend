@@ -45,6 +45,9 @@ type NodeKind is Data:
   KMergeL{}
   KMergeR{}
   KDCall{}
+  KOp{}
+  KOpStep{}
+  KOpData{}
 
 type Pol is Data:
   Pos{}
@@ -90,6 +93,10 @@ def arity(k: NodeKind) -> Nat:
       2n
     case KMergeR{}:
       2n
+    case KOp{}:
+      3n
+    case KOpStep{}:
+      2n
     case KFree{}:
       0n
     case _:
@@ -131,6 +138,12 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
       Neg{}
     case KDCall{} 0n:
       Neg{}
+    case KOp{} 0n:
+      Neg{}
+    case KOp{} 1n:
+      Neg{}
+    case KOpStep{} 0n:
+      Neg{}
     case _ _:
       Pos{}
 
@@ -149,7 +162,8 @@ type Link is Data:
 
 # where a new node's payload comes from: nothing; A's or B's payload
 # (data, a call's function, a control node); A's function applied to B's
-# data; A's or B's fan identity; A's or B's payload (a level, a fan's, a
+# data, or B's to A's (an operator's payload met, spike-operators); A's or
+# B's fan identity; A's or B's payload (a level, a fan's, a
 # control's index) passed through the other, a control node. The laws'
 # graphs compose them, each a source resolved against the nodes a rewrite
 # took: SAp, a function applied to data; SLft, what x carries passed
@@ -161,6 +175,7 @@ type Src is Data:
   SPayA{}
   SPayB{}
   SApply{}
+  SApplyB{}
   SFanA{}
   SFanB{}
   SLiftA{}
@@ -231,6 +246,12 @@ def rule.ap(b: NodeKind, t: Bool) -> Rule:
     # applying an error value: drop the argument, the result is an error
     case KEraP{}:
       RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
+    # applying an operator's data: the application becomes the operator,
+    # in place, its principal turned to the argument, the data on its
+    # payload port, its result as it was (spike-operators)
+    case KOpData{}:
+      RWire{[Spec{KOp{}, SNone{}}, Spec{KOpData{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), nw(1n, 0n)), lk(nw(0n, 2n), ex(1n))]}
     case _:
       RStuck{}
 
@@ -245,9 +266,11 @@ def rule.copy(b: NodeKind, same: Bool) -> Rule:
          lk(ex(3n), nw(3n, 0n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
     case KMerge{}:
       rule.fans(same)
-    # duplicating data shares it
+    # duplicating data shares it, an operator's data too
     case KData{}:
       RWire{[Spec{KData{}, SPayB{}}, Spec{KData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
+    case KOpData{}:
+      RWire{[Spec{KOpData{}, SPayB{}}, Spec{KOpData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
     case KEraP{}:
       RWire{[Spec{KEraP{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
     # a copy meeting a control facing it moves up past it, its level
@@ -280,6 +303,50 @@ def rule.call(b: NodeKind) -> Rule:
     case _:
       RStuck{}
 
+# Operators (spike-operators). An operator awaits its argument's data on
+# its principal, its payload on port 1, its result on port 2: an
+# application meeting an operator's data becomes one. The argument's data
+# arriving, it turns to its payload, a step holding the argument; the
+# payload's data arriving, two data meet and one is written to the
+# result, the payload's function applied to the argument. Neither carries
+# a level: a control facing an operator goes onto its payload and result,
+# as onto an application's argument and result, and a step passes one as
+# a call does. A superposed argument or payload copies them, an error
+# value makes the result one.
+def rule.op(b: NodeKind) -> Rule:
+  match b:
+    case KData{}:
+      RWire{[Spec{KOpStep{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(0n, 1n), ex(1n))]}
+    case KMerge{}:
+      RWire{[Spec{KOp{}, SNone{}}, Spec{KOp{}, SNone{}}, Spec{KCopy{}, SFanB{}}, Spec{KMerge{}, SFanB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n)),
+         lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n)),
+         lk(nw(3n, 0n), ex(1n)), lk(nw(3n, 1n), nw(0n, 2n)), lk(nw(3n, 2n), nw(1n, 2n))]}
+    case KEraP{}:
+      RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n)), lk(nw(1n, 0n), ex(1n))]}
+    case KLiftC{}:
+      RWire{[Spec{KOp{}, SNone{}}, Spec{KLift{}, SPayB{}}, Spec{KLiftC{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(0n)), lk(nw(1n, 1n), nw(0n, 1n)),
+         lk(nw(2n, 0n), ex(1n)), lk(nw(2n, 1n), nw(0n, 2n))]}
+    case _:
+      RStuck{}
+
+def rule.opstep(b: NodeKind) -> Rule:
+  match b:
+    case KOpData{}:
+      RWire{[Spec{KData{}, SApplyB{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case KMerge{}:
+      RWire{[Spec{KOpStep{}, SPayA{}}, Spec{KOpStep{}, SPayA{}}, Spec{KMerge{}, SFanB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n)),
+         lk(nw(2n, 0n), ex(0n)), lk(nw(2n, 1n), nw(0n, 1n)), lk(nw(2n, 2n), nw(1n, 1n))]}
+    case KEraP{}:
+      RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case KLiftC{}:
+      RWire{[Spec{KOpStep{}, SPayA{}}, Spec{KLiftC{}, SPayB{}}],
+        [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(0n)), lk(nw(1n, 1n), nw(0n, 1n))]}
+    case _:
+      RStuck{}
+
 # a control node facing the source meets what flows down its wire: data
 # pass unchanged; a merge or function passes with its level adjusted, the
 # control copied onto each wire behind it: facing the source on a wire it
@@ -289,6 +356,8 @@ def rule.lift(b: NodeKind, t: Bool) -> Rule:
   match b:
     case KData{}:
       RWire{[Spec{KData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case KOpData{}:
+      RWire{[Spec{KOpData{}, SPayB{}}], [lk(nw(0n, 0n), ex(0n))]}
     case KEraP{}:
       RWire{[Spec{KEraP{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
     case KMerge{}:
@@ -331,6 +400,8 @@ def rule.era(b: NodeKind) -> Rule:
       RWire{[Spec{KEraN{}, SNone{}}, Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(2n)), lk(nw(1n, 0n), ex(3n))]}
     case KData{}:
       RWire{[], []}
+    case KOpData{}:
+      RWire{[], []}
     case KEraP{}:
       RWire{[], []}
     # erasing past a control: the eraser takes its place
@@ -358,6 +429,10 @@ def rule.full(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.lift(b, t)
     case KRoot{}:
       rule.root(b)
+    case KOp{}:
+      rule.op(b)
+    case KOpStep{}:
+      rule.opstep(b)
     case _:
       RStuck{}
 
@@ -714,6 +789,12 @@ def kind_n(k: NodeKind) -> Nat:
       15n
     case KDCall{}:
       16n
+    case KOp{}:
+      17n
+    case KOpStep{}:
+      18n
+    case KOpData{}:
+      19n
 
 # two sources the same, composed ones term by term
 def src_eq(s: Src, u: Src) -> Bool:
@@ -725,6 +806,8 @@ def src_eq(s: Src, u: Src) -> Bool:
     case SPayB{} SPayB{}:
       True{}
     case SApply{} SApply{}:
+      True{}
+    case SApplyB{} SApplyB{}:
       True{}
     case SFanA{} SFanA{}:
       True{}
@@ -1019,6 +1102,8 @@ def lf.res(s: Src, +sa: Src, +sb: Src) -> Src:
       sb
     case SApply{}:
       SAp{sa, sb}
+    case SApplyB{}:
+      SAp{sb, sa}
     case SLiftA{}:
       lf.lft(sa, sb)
     case SLiftB{}:
@@ -1600,6 +1685,10 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.b(KLift{}, b, t)
     case KRoot{}:
       rule.b(KRoot{}, b, t)
+    case KOp{}:
+      rule.b(KOp{}, b, t)
+    case KOpStep{}:
+      rule.b(KOpStep{}, b, t)
     case _:
       RStuck{}
 
@@ -2532,6 +2621,8 @@ def fz.src(s: Src) -> List<&2, Nat>:
       [8n]
     case SLiftB{}:
       [9n]
+    case SApplyB{}:
+      [11n]
 
 def fz.nodes(rest: List<&2, Nat>, +g: G, +ns: List<&2, Nat>) -> List<&2, Nat>:
   match rest:
@@ -2808,10 +2899,18 @@ def is_bind(k: NodeKind) -> Bool:
     case _:
       False{}
 
+def is_op(k: NodeKind) -> Bool:
+  match k:
+    case KOp{}:
+      True{}
+    case _:
+      False{}
+
 # auxiliary ports of opposite polarity, which a loop may join, only on a
-# function or an application (law aux_loops)
+# function, an application or an operator, whose payload so looped waits
+# on its own result, stuck (law aux_loops)
 def loops_aux(+k: NodeKind) -> Bool:
-  Bool.not(nat_eq(arity(k), 3n) && Bool.not(pol_eq(port_pol(k, 1n), port_pol(k, 2n)))) || is_bind(k)
+  Bool.not(nat_eq(arity(k), 3n) && Bool.not(pol_eq(port_pol(k, 1n), port_pol(k, 2n)))) || is_bind(k) || is_op(k)
 
 def fused_pol.aux(full: Bool, +k: NodeKind) -> Bool:
   match full:

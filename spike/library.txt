@@ -262,6 +262,49 @@ term: (\f. plus (f 1) (f 2)) (\x. (\u. 7) (succ x))
 levels: 14 logical 21 peels 0
 unfused: 14 logical 55 peels 0
 
+# Operators (spike-operators): an application meeting an operator's data
+# becomes the operator, which takes its argument's data, turns to its
+# payload, and writes the two data's result
+
+name: op-succ
+why: succ 5 with succ an operator's data: the application becomes the
+  operator, 5 turns it to its payload, succ, and 6 is written
+nodes: ap(0) opsucc num(5)
+links: 0.0-1.0 0.1-2.0
+root: 0.2
+net: 6 logical 4 peels 0
+
+name: op-partial
+why: plus 2 3, plus an operator's data: its first result is the partial
+  application, data, which the next application meets as a call
+nodes: ap(0) ap(0) opplus num(2) num(3)
+links: 0.0-2.0 0.1-3.0 0.2-1.0 1.1-4.0
+root: 1.2
+net: 5 logical 6 peels 0
+
+name: op-shared
+why: a copied function whose body applies an operator's data: the data
+  copied with the body, the argument superposed when the operator meets
+  it
+term: (\f. plus (f 1) (f 2)) (\x. succ x)
+levels: 5 logical 14 peels 0
+ops: 5 logical 18 peels 0
+
+name: op-twice
+why: succ, an operator's data, shared by a variable used twice, the
+  applications nested across levels
+term: (\g. g (g 1)) succ
+levels: 3 logical 8 peels 0
+ops: 3 logical 10 peels 0
+
+name: op-control
+why: an operator's data in a function applied twice, nested: the
+  operator meets a control facing it, which it takes onto its payload and
+  result, and a superposed argument
+term: (\f. f (f 1)) (\x. succ x)
+levels: 3 logical 13 peels 0
+ops: 3 logical 17 peels 0
+
 # Backtracking with two continuations (terms.py's ret, fail, alt, bind,
 # guard, once): a first solution drops the failure continuation, every
 # alternative not tried, which demand leaves as garbage

@@ -21,10 +21,12 @@ spike/library.txt holds the entries, separated by blank lines, each a few
   name     a unique slug
   why      why the entry is kept
   term     a lambda term in terms.py's syntax, lowered once per mode:
-  levels, labels, unfused    what must hold, lowered that way; or
+  levels, labels, unfused, ops    what must hold, lowered that way (ops:
+           with levels, the builtins as an operator's data); or
   nodes, links, root         a net written out: nodes as terms.py makes
            them (fn(n) ap(n) cp(site,n) br(n) cr(n) ctl(n,+by) ctl(n,-1)
-           ctlc(n,+by) num(v) succ plus fma era), links `a.p-b.p`, the
+           ctlc(n,+by) num(v) succ plus fma era, and the builtins as an
+           operator's data, opsucc opplus opfma), links `a.p-b.p`, the
            exposed port `a.p`, and
   net      what must hold
   fuel     the full reductions' fuel, 1280000 if not given (demand has
@@ -69,7 +71,7 @@ import terms  # noqa: E402
 SPIKE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(SPIKE)
 LIBRARY = os.path.join(SPIKE, "library.txt")
-MODES = ("levels", "labels", "unfused")
+MODES = ("levels", "labels", "unfused", "ops")
 FUEL = 1280000
 
 NODE = re.compile(r"([a-z]+)(?:\(([^)]*)\))?$")
@@ -141,7 +143,7 @@ def cases(es, only):
             for mode in MODES:
                 if mode in e:
                     c = Case(name, mode, *e[mode], fuel)
-                    c.net, c.root = terms.to_tpl(t, mode != "labels", mode != "unfused")
+                    c.net, c.root = terms.to_tpl(t, mode != "labels", mode != "unfused", mode == "ops")
                     c.value = terms.evaluate(t)
                     out.append(c)
         else:
