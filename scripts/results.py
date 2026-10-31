@@ -86,12 +86,16 @@ create table if not exists library_ev (
 """
 
 # columns added to a table after a store was made: (table, column, type)
-LATER = [("library_ev", "evprof_logical", "integer"), ("library_ev", "ev_kinds", "text")]
+LATER = [("library_ev", "evprof_logical", "integer"), ("library_ev", "ev_kinds", "text")] + [
+    ("terms", f"{m}_{c}", t) for m in ("ev", "evref", "evtwo", "evtworef")
+    for c, t in (("v", "text"), ("i", "integer"), ("e", "integer"), ("n", "integer"))]
 
 # one line of terms.py --kernel's output
 TERM = re.compile(
     r"#(\d+) want (\S+): spike (\S+) \((\d+), (\d+)\) \| ref (\S+) \((\d+), (\d+)\) \| fast (\S+) \((\d+), (\d+)\)"
-    r"(?: \| lazy (\S+) \((\d+), (\d+)\) (.+?), (\d+) live)?  "
+    r"(?: \| lazy (\S+) \((\d+), (\d+)\) (.+?), (\d+) live)?"
+    r"(?: \| ev (\S+) \((\d+), (\d+)\) (\d+) / (\S+) \((\d+), (\d+)\) (\d+)"
+    r" \| evtwo (\S+) \((\d+), (\d+)\) (\d+) / (\S+) \((\d+), (\d+)\) (\d+))?  "
     r"(TABLE MISMATCH|DIFFER ref/fast|DIFFER value|same, counts equal|same, counts differ)(  LAZY MORE)?  (.*)$")
 
 # one line of terms.py --profile's output
@@ -148,6 +152,11 @@ def num(s):
     return None if s is None else int(s)
 
 
+TERM_COLS = ["run_id", "ending", "mode", "seed", "term", "name", "want", "spike_v", "spike_i", "spike_e",
+             "ref_v", "ref_i", "ref_e", "fast_v", "fast_i", "fast_e", "lazy_v", "lazy_i", "lazy_e", "lazy_state",
+             "lazy_live", "verdict", "lazy_more"]
+
+
 def cmd_terms(run, ending, mode, seed, path):
     rows = []
     for line in open(path):
@@ -155,11 +164,15 @@ def cmd_terms(run, ending, mode, seed, path):
         if not m:
             continue
         g = m.groups()
-        rows.append((int(run), ending, mode, int(seed), int(g[0]), g[18], g[1],
+        ev = []
+        for j in range(16, 32, 4):
+            ev += [g[j], num(g[j + 1]), num(g[j + 2]), num(g[j + 3])]
+        rows.append((int(run), ending, mode, int(seed), int(g[0]), g[34], g[1],
                      g[2], num(g[3]), num(g[4]), g[5], num(g[6]), num(g[7]), g[8], num(g[9]), num(g[10]),
-                     g[11], num(g[12]), num(g[13]), g[14], num(g[15]), g[16], 1 if g[17] else 0))
+                     g[11], num(g[12]), num(g[13]), g[14], num(g[15]), g[32], 1 if g[33] else 0, *ev))
+    cols = TERM_COLS + [f"{m}_{c}" for m in ("ev", "evref", "evtwo", "evtworef") for c in "vien"]
     with db() as c:
-        c.executemany("insert or replace into terms values (" + ",".join("?" * 23) + ")", rows)
+        c.executemany(f"insert or replace into terms ({', '.join(cols)}) values ({','.join('?' * len(cols))})", rows)
     print(len(rows), "terms from", path)
 
 
@@ -229,7 +242,12 @@ select ending, mode, seed, count(*) as terms,
   sum(verdict = 'same, counts equal') as equal, sum(verdict = 'same, counts differ') as other_counts,
   sum(verdict = 'DIFFER ref/fast') as ref_fast, sum(verdict = 'DIFFER value') as value,
   sum(verdict = 'TABLE MISMATCH') as tab, sum(lazy_more) as lazy_more,
-  sum(fast_v != want) as full_wrong, sum(lazy_v is not null and lazy_v != want) as lazy_wrong
+  sum(fast_v != want) as full_wrong, sum(lazy_v is not null and lazy_v != want) as lazy_wrong,
+  sum(ev_v is not null and (ev_v != evref_v or ev_i != evref_i or ev_e != evref_e or ev_n != evref_n)) as ev_vs_ref,
+  sum(evtwo_v is not null and (evtwo_v != evtworef_v or evtwo_i != evtworef_i or evtwo_e != evtworef_e
+    or evtwo_n != evtworef_n)) as evtwo_vs_ref,
+  sum(ev_v is not null and fast_v = want and (ev_v != want or evtwo_v != want)) as ev_wrong,
+  sum(ev_n) as events, sum(evtwo_n) as events_two
 from terms where run_id = {run} group by ending, mode, seed
 order by case ending when 'succ' then 0 when 'plus' then 1 else 2 end, mode desc, seed
 """

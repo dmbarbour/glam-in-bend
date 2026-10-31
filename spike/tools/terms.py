@@ -686,9 +686,22 @@ def lazy_more(+lz: K.KRes, +fs: K.KRes) -> String:
     case K.KRes{v, +i, +e, +ok} K.KRes{v2, +i2, +e2, +ok2}:
       lazy_more.s(U32.is_gt(i, i2))
 
+# with events: the result and the events made
+def ev_str(r: K.ERes) -> String:
+  match r:
+    case K.ERes{r, +evs}:
+      res_str(r) ++ " " ++ U32.show(evs)
+
+# with events, eager and with two stacks: the generated rewrites, which
+# look at their rules' sites, and the interpreted table, at all four peers
+def evs_str(+e: K.ERes, +er: K.ERes, +t: K.ERes, +tr: K.ERes) -> String:
+  " | ev " ++ ev_str(e) ++ " / " ++ ev_str(er) ++ " | evtwo " ++ ev_str(t) ++ " / " ++ ev_str(tr)
+
 def cmp.go(+k: U32, +sp: K.KRes, +rf: K.KRes, +fs: K.KRes, +lz: K.DRes) -> String:
   "#" ++ U32.show(k) ++ " want " ++ U32.show(want_of(k)) ++ ": spike " ++ res_str(sp) ++ " | ref " ++ res_str(rf) ++
-    " | fast " ++ res_str(fs) ++ " | lazy " ++ res_str(lazy_res(lz)) ++ " " ++ lazy_st(lz) ++ "  " ++
+    " | fast " ++ res_str(fs) ++ " | lazy " ++ res_str(lazy_res(lz)) ++ " " ++ lazy_st(lz) ++
+    evs_str(K.run_ev(tpl_of(k), 320000n, True{}), K.run_ev(tpl_of(k), 320000n, False{}),
+      K.run_two_ev(tpl_of(k), 320000n, True{}), K.run_two_ev(tpl_of(k), 320000n, False{})) ++ "  " ++
     verdict(res_tab(rf) && res_tab(fs) && res_tab(lazy_res(lz)), String.eq(res_str(rf), res_str(fs)), String.eq(res_val(rf), res_val(sp)), String.eq(res_str(rf), res_str(sp))) ++
     lazy_more(lazy_res(lz), fs) ++ "  " ++ name_of(k)
 
