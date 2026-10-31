@@ -16318,6 +16318,235 @@ def Laws.events_keep_fits(a, b, p, pa):
         case R.KMergeR{}:
           {==}
 
+# by cases on the control's kind, the partner and the test, each a closed
+# graph normalized
+def Laws.runs_as_units(k, v, t):
+  match k:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KCall{}:
+      {==}
+    case R.KLift{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KLiftC{}:
+      match v:
+        case R.KFree{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KFn{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KAp{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopy{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMerge{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KData{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraN{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KEraP{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KRoot{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCall{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLift{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KLiftC{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KCopyR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeL{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case R.KMergeR{}:
+          match t:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KCopyL{}:
+      {==}
+    case R.KCopyR{}:
+      {==}
+    case R.KMergeL{}:
+      {==}
+    case R.KMergeR{}:
+      {==}
+
 def Laws.copy_identity():
   {==}
 

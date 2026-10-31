@@ -244,6 +244,8 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
       V.PNone{}
     case R.SLft{x, c}:
       V.PNone{}
+    case R.SSeg{c, i, j}:
+      V.PNone{}
 
 type Made is Type:
   Made{q: Q, refs: List<&2, U32>}

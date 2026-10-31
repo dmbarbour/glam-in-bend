@@ -150,7 +150,9 @@ type Link is Data:
 # control's index) passed through the other, a control node. The laws'
 # graphs compose them, each a source resolved against the nodes a rewrite
 # took: SAp, a function applied to data; SLft, what x carries passed
-# through control c. No rule makes one (law rules_base_sources)
+# through control c; SSeg, units i to j - 1 of the run whose payload is
+# c, unit brackets crossed in turn. No rule makes one (law
+# rules_base_sources)
 type Src is Data:
   SNone{}
   SPayA{}
@@ -162,6 +164,7 @@ type Src is Data:
   SLiftB{}
   SAp{f: Src, x: Src}
   SLft{x: Src, c: Src}
+  SSeg{c: Src, i: Nat, j: Nat}
 
 type Spec is Data:
   Spec{k: NodeKind, src: Src}
@@ -704,6 +707,8 @@ def src_eq(s: Src, u: Src) -> Bool:
       src_eq(f, g) && src_eq(x, y)
     case SLft{x, c} SLft{y, d}:
       src_eq(x, y) && src_eq(c, d)
+    case SSeg{c, i, j} SSeg{d, k, l}:
+      src_eq(c, d) && nat_eq(i, k) && nat_eq(j, l)
     case _ _:
       False{}
 
@@ -926,6 +931,41 @@ def lf.pairs(k: Nat, +ms: List<&2, Link>, +ls: List<&2, Link>, +a: Nat, +b: Nat,
     case 1n+r:
       List.append(&2, Link, lf.pair.i(lf.partner(ls, a, b, i), ms, ls, a, b, n0, i), lf.pairs(r, ms, ls, a, b, n0, Nat.add(i, 1n)))
 
+# Control runs (heap-strategies.fusions.controls): a run of unit brackets
+# stands for its units crossed in turn, so segments of one run, the first
+# ending where the second begins, act as one (CT.run_splits)
+
+def seg_join.ok(ok: Bool, +c: Src, +i: Nat, +l: Nat) -> Maybe<&2, Src>:
+  match ok:
+    case True{}:
+      Some{SSeg{c, i, l}}
+    case False{}:
+      None{}
+
+# segments d then c of one run, d ending where c begins: their join
+def seg_join(d: Src, c: Src) -> Maybe<&2, Src>:
+  match d c:
+    case SSeg{+e, +i, +j} SSeg{+f, +k, +l}:
+      seg_join.ok(src_eq(e, f) && nat_eq(j, k), e, i, l)
+    case _ _:
+      None{}
+
+def lft.join(m: Maybe<&2, Src>, +y: Src, +d: Src, +c: Src) -> Src:
+  match m:
+    case Some{s}:
+      SLft{y, s}
+    case None{}:
+      SLft{SLft{y, d}, c}
+
+# x passed through control c: through consecutive segments of one run,
+# through their join
+def lf.lft(x: Src, +c: Src) -> Src:
+  match x:
+    case SLft{+y, +d}:
+      lft.join(seg_join(d, c), y, d, c)
+    case _:
+      SLft{x, c}
+
 # a new node's payload source, A's and B's those of the nodes taken (sa,
 # sb): a payload or a fan's identity theirs, a function applied to data
 # the term of the two, what one carries passed through the other, a
@@ -943,9 +983,9 @@ def lf.res(s: Src, +sa: Src, +sb: Src) -> Src:
     case SApply{}:
       SAp{sa, sb}
     case SLiftA{}:
-      SLft{sa, sb}
+      lf.lft(sa, sb)
     case SLiftB{}:
-      SLft{sb, sa}
+      lf.lft(sb, sa)
     case _:
       s
 
@@ -1207,6 +1247,58 @@ def lf.at_p(+g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
     case None{}:
       None{}
 
+def lf.fuse.ls(m: Maybe<&2, End>, ls: List<&2, Link>, +j: Nat) -> List<&2, Link>:
+  match m:
+    case Some{e}:
+      Con{Link{New{j, 1n}, e}, ls}
+    case None{}:
+      ls
+
+def lf.fuse.s(m: Maybe<&2, Src>, +g: G, +j: Nat, +y: Nat) -> Maybe<&2, G>:
+  match m g:
+    case Some{s} G{+xs, +ls}:
+      Some{G{set_kind(set_src(xs, j, s), y, KFree{}), lf.fuse.ls(lf.peer(ls, New{y, 1n}), lf.unlink(ls, y), j)}}
+    case None{} G{xs, ls}:
+      None{}
+
+def lf.fuse.k(same: Bool, +g: G, +j: Nat, +y: Nat) -> Maybe<&2, G>:
+  match same g:
+    case True{} G{+xs, +ls}:
+      lf.fuse.s(seg_join(spec_src(xs, j), spec_src(xs, y)), G{xs, ls}, j, y)
+    case False{} G{xs, ls}:
+      None{}
+
+def lf.fuse.y(e: Maybe<&2, End>, +g: G, +j: Nat) -> Maybe<&2, G>:
+  match e:
+    case Some{x}:
+      match x:
+        case New{+y, p}:
+          match p:
+            case 0n:
+              lf.fuse.k(nat_eq(kind_n(lf.kind(g, j)), kind_n(lf.kind(g, y))) && Bool.not(nat_eq(j, y)), g, j, y)
+            case _:
+              None{}
+        case Ext{i}:
+          None{}
+    case None{}:
+      None{}
+
+# control j and a control of its kind whose principal its auxiliary
+# feeds, segments of one run, the first ending where the second begins:
+# one control in j's slot, its auxiliary facing the second's peer there
+# (V.compose's rule, which the interpreters apply after each rewrite)
+def lf.fuse(+g: G, +j: Nat) -> Maybe<&2, G>:
+  match g:
+    case G{+xs, +ls}:
+      lf.fuse.y(lf.peer(ls, New{j, 1n}), G{xs, ls}, j)
+
+def lf.at_c(m: Maybe<&2, G>, +g: G, +j: Nat) -> Maybe<&2, G>:
+  match m:
+    case Some{h}:
+      Some{h}
+    case None{}:
+      lf.fuse(g, j)
+
 def lf.try.k(k: NodeKind, +g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
   match k:
     case KEraN{}:
@@ -1215,6 +1307,10 @@ def lf.try.k(k: NodeKind, +g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
       lf.at_e(KEraP{}, g, j, x)
     case KFree{}:
       None{}
+    case KLift{}:
+      lf.at_c(lf.at_p(g, j, x), g, j)
+    case KLiftC{}:
+      lf.at_c(lf.at_p(g, j, x), g, j)
     case _:
       lf.at_p(g, j, x)
 
@@ -1653,6 +1749,8 @@ def base.src(s: Src) -> Bool:
     case SAp{f, x}:
       False{}
     case SLft{x, c}:
+      False{}
+    case SSeg{c, i, j}:
       False{}
     case _:
       True{}
@@ -2367,6 +2465,8 @@ def fz.src(s: Src) -> List<&2, Nat>:
       [4n]
     case SLft{x, c}:
       Con{5n, List.append(&2, Nat, fz.src(x), fz.src(c))}
+    case SSeg{c, i, j}:
+      Con{10n, Con{i, Con{j, fz.src(c)}}}
     case SFanA{}:
       [6n]
     case SFanB{}:
@@ -2577,6 +2677,43 @@ def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +s: Src, +v:
 def fz_event(+a: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
   fz.go(Bool.not(is_stuck(event(a, ex.eraser(a), p))) && fz.meets(a, v),
     fz_event.cmp(a, ex.eraser(a), p, ex.first(event(a, ex.eraser(a), p)), ex.first.s(event(a, ex.eraser(a), p)), v, t))
+
+# Control runs: a run as its units
+# --------------------------------
+#
+# heap-strategies.fusions.controls. A control facing a partner, as one
+# run of two units, and as the units in series, the first at the
+# principal, each one's auxiliary feeding the next one's principal, both
+# kinds alike (V.compose: the first is the one whose auxiliary feeds the
+# other). Two units stand for any split, the normalizer reading segment
+# bounds only to join them (CT.run_splits holds the arithmetic). A
+# partner that is itself a control facing it is peeling's case, its
+# test on the two payloads' values.
+
+def fz.ctl(k: NodeKind) -> Bool:
+  match k:
+    case KLift{}:
+      True{}
+    case KLiftC{}:
+      True{}
+    case _:
+      False{}
+
+def fz.run.g(+k: NodeKind, +v: NodeKind) -> G:
+  xb.g(xb.fused(xb.link(xb.link(xb.add.p(xb.add.s(XB{[], []}, k, SSeg{SPayA{}, 0n, 2n}), v, SPayB{}), New{0n, 0n}, New{1n, 0n}), New{0n, 1n}, Ext{0n}), 1n, v, 2n))
+
+def fz.units.g(+k: NodeKind, +v: NodeKind) -> G:
+  xb.g(xb.fused(xb.link(xb.link(xb.link(xb.add.s(xb.add.p(xb.add.s(XB{[], []}, k, SSeg{SPayA{}, 0n, 1n}), v, SPayB{}), k, SSeg{SPayA{}, 1n, 2n}),
+    New{0n, 0n}, New{1n, 0n}), New{0n, 1n}, New{2n, 0n}), New{2n, 1n}, Ext{0n}), 1n, v, 2n))
+
+def fz_run.cmp(+k: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
+  fz.same(fz.run(k, v, t, False{}, fz.run.g(k, v)), fz.run(k, v, t, False{}, fz.units.g(k, v)))
+
+# a run facing any partner but a control is stuck where its units are,
+# and otherwise leaves what they leave, both normalized, controls fused
+# (law runs_as_units)
+def fz_runs(+k: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
+  fz.go(fz.ctl(k) && Bool.not(pol_eq(port_pol(k, 0n), port_pol(v, 0n))) && Bool.not(fz.ctl(v)) && Bool.not(is_free_k(v)), fz_run.cmp(k, v, t))
 
 # Loops: a node's port facing its own other port
 # -----------------------------------------------

@@ -75,6 +75,8 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
       (h, P.PW{0, 0, 0})
     case R.SLft{x, c}:
       (h, P.PW{0, 0, 0})
+    case R.SSeg{c, i, j}:
+      (h, P.PW{0, 0, 0})
 
 def takes_a(s: R.Src) -> Bool:
   match s:
