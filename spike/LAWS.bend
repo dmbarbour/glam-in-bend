@@ -687,7 +687,9 @@ law events_keep_fits:
 
 # LAW: a loop from a node's auxiliary port to its other one joins ports of
 # opposite polarity, which only a function has (body to variable, the
-# identity) and an application (argument to result); a fan's two outputs,
+# identity), an application (argument to result) and an operator
+# (payload to result, stuck: the payload waits on its own result,
+# heap-strategies.fusions.loops); a fan's two outputs,
 # or two inputs, share a polarity, and a node of two ports has one
 # auxiliary port. A loop from a principal port to an auxiliary one is a
 # vicious circle on any node.

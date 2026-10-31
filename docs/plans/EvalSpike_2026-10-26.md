@@ -650,8 +650,9 @@ Speed:
     verdict keeps. It needs laws relating `U32` to `Nat`, a path to which
     is vendored (`vendored-sources`) and not gone deep into yet. Its
     laws, drafted, close `spike/LAWS.bend`.
-14. `spike-operators` — tentative — builtin operators, which the spike
-    must account for at least abstractly (the maintainer, 2026-10-30).
+14. `spike-operators` — active — builtin operators, which the spike
+    must account for at least abstractly (the maintainer, 2026-10-30);
+    the design settled as `operator-nodes` (the maintainer, 2026-10-31).
     The general form is the specification: an operator awaits data on
     its principal, its first auxiliary port leading to its payload, its
     second to its result; data arriving, it rotates, its principal now
@@ -673,6 +674,51 @@ Speed:
     first (`heap-strategies.kinds.layout`). An await is one of them, an
     identity or application operator (the maintainer, 2026-10-30:
     `spike-fixpoints.await`).
+    - `spike-operators.model` — built 2026-10-31 — the general form in
+      the model and the kernel: the kinds `Op`, `OpStep` and `OpData`
+      (codes 17 to 19), an application meeting `OpData` becoming the
+      operator in place, the operator meeting data, the step meeting
+      `OpData` (B's function applied to A's data, `SApplyB`); against a
+      superposition each is copied, its payload by a copy; a control
+      facing an operator goes onto its payload and result, as onto an
+      application's argument and result; `OpData` copied, erased and
+      passed by a control as data is. The accumulator is a value, the
+      builtin's own (`V.VFun` and its flat forms). Every law over kinds
+      covers the three, and `aux_loops` admits an operator's payload
+      looped to its result, stuck (`heap-strategies.fusions.loops` had
+      foreseen it). `terms.py --ops` lowers the builtins as an
+      operator's data, so that the first application of each takes the
+      general path, its partial application data a call takes up; five
+      library entries (`op-succ` to `op-control`), the pairs each rule
+      makes counted. The random terms so lowered (store run 103):
+      spike, table and rewrites agree on all 3,600, every value right
+      but the labels' known misses, the event modes too. Four builds of
+      the standard workloads, which make no operator (run 104 against
+      100): the same interactions, 0% to 2.4% more instructions in most
+      builds (the profile-guided ones with events, trained without
+      them, 5% to 6% fewer): the rule table is 21 classes square
+      rather than 18, its dispatch a level deeper.
+    - `spike-operators.call` — active — the call a fusion of the general
+      form: a call behaving as an operator with its `OpData` on the
+      payload port, proven as the linear fans and the dead call are
+      (`fusions-as-components`); then an application meeting data that
+      holds a builtin rewrites, in the table, to the operator and its
+      materialized `OpData`, the call that rewrite fused.
+    - `spike-operators.immediate` — tentative — the operator holding a
+      full 32-bit opcode in place of its payload port
+      (`heap-strategies.fusions.immediate`), a unary one finishing on
+      its argument; then opcodes in kinds, few.
+    - `spike-operators.lazy` — tentative — a step holding a handle: an
+      operator takes its argument unforced, so a lazy cell's handle may
+      reach the step, where demand's need, which reads and resumes B's
+      data, would read the step's held value instead; until then a step
+      computes on the handle. No workload makes one.
+    - `spike-operators.port` — tentative — an accumulator behind a port,
+      a computation rather than a value, and the levels it brings: a
+      control meeting `OpData` copied onto the accumulator's wire.
+    - `spike-operators.class` — tentative — the three base kinds' cost
+      to the dispatch (run 104): the general kinds sharing the
+      operators' class, as the opcodes in kinds will.
 15. `spike-templates` — built 2026-10-31 — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families

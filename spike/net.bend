@@ -47,6 +47,12 @@ def kcode(k: R.NodeKind) -> U32:
       15
     case R.KDCall{}:
       16
+    case R.KOp{}:
+      17
+    case R.KOpStep{}:
+      18
+    case R.KOpData{}:
+      19
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -82,6 +88,12 @@ def kof(c: U32) -> R.NodeKind:
       R.KMergeR{}
     case 16:
       R.KDCall{}
+    case 17:
+      R.KOp{}
+    case 18:
+      R.KOpStep{}
+    case 19:
+      R.KOpData{}
     case _:
       R.KFree{}
 
@@ -235,6 +247,8 @@ def src_pay(s: R.Src, +pa: V.Pay, +pb: V.Pay) -> V.Pay:
       pb
     case R.SApply{}:
       V.PVal{V.apply_fn(pay_val(pa), pay_val(pb))}
+    case R.SApplyB{}:
+      V.PVal{V.apply_fn(pay_val(pb), pay_val(pa))}
     case R.SLiftA{}:
       V.lift_pay(pb, pa)
     case R.SLiftB{}:

@@ -125,6 +125,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`fusions-as-components`](decisions/fusions-as-components.md): a fused
   op behaves as its components, stuck where they are, observing no data
   value, and a law proves it; at lowering too.
+- [`operator-nodes`](decisions/operator-nodes.md): an application
+  meeting an operator's data becomes the operator, which takes its
+  argument's data, turns to its payload and writes the result.
 - [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
