@@ -671,15 +671,15 @@ def go.a1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
 
 # a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
 # a node's payload: a data node's word 2, a call's or a control's word 3.
-def go.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
+def go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
   go.a1(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
 
 def ori(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, neg: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> R:
   match neg:
     case True{}:
-      go.f(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, x, y, hx, hy)
+      go(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, x, y, hx, hy)
     case False{}:
-      go.f(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, y, x, hy, hx)
+      go(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, y, x, hy, hx)
 
 def int.y(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> R:
   (h, +hy) = r
@@ -693,12 +693,12 @@ def int.x(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
 def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
   int.x(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, x), st, fast, x, y)
 
-# The families' chains: the net alone (demand's), and with a strategy's
-# stack, on which each rewrite notes the pairs it makes, in the order it
-# makes them (heap-strategies.stack)
-
-def go(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> P.H:
-  go.f(~Unit, ~P.H, ~note.u, ~fin.h, ~wd.u, ~after, h, Unit{}, fast, a, b, ha, hb)
+# The families' chains: the net alone, and with a strategy's stack, on
+# which each rewrite notes the pairs it makes, in the order it makes them
+# (heap-strategies.stack). Demand's walk calls `go` itself, with the plain
+# family's arguments: a wrapper there, called from two places, would stay
+# a function of its own, a call more for every rewrite on demand (1.3% to
+# 2.4% of its instructions, store run 84).
 
 def interact(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
   interact.f(~Unit, ~P.H, ~note.u, ~fin.h, ~wd.u, ~after, h, Unit{}, fast, x, y)
