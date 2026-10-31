@@ -537,11 +537,11 @@ def wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
 def wk.rw(~after: P.H -> @+x:N.Ext -> P.H, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
-      wk.back(KN.go(~after, h, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
+      wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~after, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
     case 1:
       d.stop(h, path, top, depth, n, 3)
     case _:
-      wk.hb(P.rd(KN.go(~after, h, True{}, a, b, ha, hb), b), path, top, depth, n)
+      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~after, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
 
 def nd.lz(~after: P.H -> @+x:N.Ext -> P.H, z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:

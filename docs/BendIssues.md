@@ -58,11 +58,38 @@ of 2026-10-26, Bend 2.0.39.
   writes the rewrites out; the gate regenerates them and fails on any
   difference, and the test corpora run through both the table and the
   generated code (planned in `spike-node-layout`). Templates (`~`
-  parameters, a copy compiled for each distinct argument) now specialize
-  a chain on a constant step (the erasure modes, `heap-strategies.erasure.
-  kernel`); whether they can specialize the interpreter on a constant
-  rule is EvalSpike's `spike-templates`.
+  parameters, a copy compiled for each distinct argument) specialize a
+  chain on a constant step (the erasure modes, `heap-strategies.erasure.
+  kernel`) and on a family of state (`spike-templates`), but not on
+  constant data: a match cannot take a template's argument (it takes a
+  variable), and handed to a helper, a constant folds as a def's does.
+  A flat constructor folds, from a template or a def alike: 7.25
+  instructions a step, as written by hand; a list does not, 36 read to
+  a fixed depth and 102 through a recursive interpreter
+  (`bench/bend/template_const/`, 2026-10-31). A rule is lists of nodes
+  and links, so its interpreter stays unspecialized; rules as records of
+  fixed width, read by an interpreter unrolled by hand, might fold
+  (EvalSpike's `spike-templates.flat`).
 - **Revisit:** at whole-system tuning.
+
+### Recursion through templates
+
+- **Need:** code written once over a family of strategies
+  (`spike-templates`) includes loops: the events' drain, a strategy's run.
+  A template that recursed, or closed a recursion through its argument,
+  would let a loop be written once too.
+- **Upstream:** none known; a suggestion to raise later.
+- **Evidence:** a template may call only templates declared above it, so
+  never itself. Closing the knot through an argument fails too: a def
+  `loop.u` calling a template `step(~loop.u, ...)` whose body calls that
+  argument is rejected, the template's copy checked before `loop.u` is
+  filled ("an unfilled law is a dead claim: live code cannot use it";
+  Bend 2.0.39, 2026-10-31; `bench/bend/template_knot/knot.bend.txt`).
+- **Workaround:** the loop's body a template, its few lines of recursion
+  one per family, each calling the body with the family's arguments
+  (`spike/knet.bend`'s `ev.drain` and `ev.drain.e`; `spike/kstrat.bend`'s
+  run loops).
+- **Revisit:** when a later Bend accepts either form.
 
 ### Reasoning about U32 in proofs
 
