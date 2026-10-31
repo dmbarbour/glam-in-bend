@@ -1050,13 +1050,9 @@ takes from it:
      - `heap-strategies.erasure.merge` — tentative — awaiting the
        maintainer's approval, `heap-strategies.erasure.kernel.parity`
        built — branch `erasure-kernel` onto main: the events in their
-       own strategies, costing nothing where they are off, and the law
-       changes named in its trailers (added: `events_erase_last`,
-       `linear_as_components`, `events_as_components`; scope changed by
-       the events dropped and added: `events_exact`, `events_polarized`,
-       `events_shrink`, `events_kinds_live`, `events_side`,
-       `events_keep_wired_in`, `kernel_events_in_step`,
-       `rules_linear_rewrites`, `rules_linear_fewer`).
+       own strategies, costing nothing where they are off. It changes no
+       law: the law changes went to main with the model's half
+       (bca342c), the kernel's half alone left here.
      - Logical interactions count no event: events are patterns that a
        graph language recognizes and names for performance, each meant to
        preserve meaning exactly (the maintainer, 2026-10-30). Events are
