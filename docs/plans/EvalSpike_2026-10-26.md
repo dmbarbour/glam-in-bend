@@ -673,7 +673,7 @@ Speed:
     first (`heap-strategies.kinds.layout`). An await is one of them, an
     identity or application operator (the maintainer, 2026-10-30:
     `spike-fixpoints.await`).
-15. `spike-templates` — active — a task of its own (the maintainer,
+15. `spike-templates` — built 2026-10-31 — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families
     (`spike/tools/gen_krules.bend`), written once as templates where they
@@ -692,23 +692,30 @@ Speed:
     through templates"), so the events' drain stays one per family. The
     library passes. Four builds at k 18 (store run 84 against 82): the
     eager strategies, with events and without, the same within 260
-    instructions; demand 1.3% to 2.4% more in every build. The cost is
-    the plain family's state, carried through every node step of the
-    generated rewrites, each a continuation saving it (demand's own chain
-    without the state, put back by hand, counts the same; a `U32` state
-    in place of `Unit` costs more). Not merged until demand counts as it
-    did. A template does not specialize the interpreter: a match cannot
+    instructions; demand 1.3% to 2.4% more in every build. Not the state
+    the plain family carries, as first thought (`.state`, below), but a
+    wrapper: demand's walk called `KN.go`, a thin template over the
+    generic chain, from two places, so it stayed a C function of its own,
+    and the chain, called from elsewhere too, folded into neither: a call
+    more for every rewrite on demand (the C Bend emits shows it). The walk
+    now calls the chain's head itself with the plain family's arguments.
+    Four builds (run 85 against 82): every count the same within 530
+    instructions in the default and profile-guided builds; in the two
+    forced-inline builds the same but for demand with events, 0.48% to
+    0.80% more, the plain family's events chain carrying `Unit` in its
+    records, which the default build compiles away. A template does not
+    specialize the interpreter: a match cannot
     take a template's argument, and a constant handed on folds as a
     def's does, a flat constructor fully, a list not at all
     (`bench/bend/template_const/`; BendIssues, "Compile-time
     specialization"); the generator stays.
-    - `spike-templates.state` — tentative — the generated node steps
-      without the family's state: a rule's first function holding it
-      across the chain of steps, the last returning the ends whose links
-      are to be noted, so that demand threads nothing through the steps,
-      as before, and the eager family holds its stack once a rewrite
-      rather than at each step; measured in the four builds before
-      merging.
+    - `spike-templates.state` — dropped 2026-10-31 — the generated node
+      steps without the family's state: a rule's first function holding
+      it across the chain of steps, the last returning the ends whose
+      links are to be noted (records `Lk1` to `Lk4`). Built and counted:
+      demand where it was, eager `lvl` 0.05% worse; the state carried
+      through the steps was never the cost. A wrapper called from more
+      than one place is a call that does not fold.
     - `spike-templates.flat` — tentative — rules as records of fixed
       width (four node slots, eight link slots, each a flat
       constructor), read by an interpreter unrolled by hand, no
