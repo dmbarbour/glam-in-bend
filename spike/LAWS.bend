@@ -764,6 +764,19 @@ law runs_as_units:
   for +t: Bool
   {R.fz_runs(k, v, t) == True{} : Bool}
 
+# LAW: a call behaves as an operator whose payload port faces the call's
+# function as an operator's data: against whatever its principal meets,
+# the call is stuck where the two are, and otherwise leaves what they
+# leave, both normalized and read with calls as their operators
+# (R.fz_call). So a call may be replaced by its operator and data, the
+# transition operator-nodes makes (spike-operators.call).
+# Record: operator-nodes
+# Record: fusions-as-components
+law call_as_components:
+  for +v: R.NodeKind
+  for +t: Bool
+  {R.fz_call(v, t) == True{} : Bool}
+
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
 # Record: net-nodes-double

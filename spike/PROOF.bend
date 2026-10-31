@@ -23651,6 +23651,130 @@ def Laws.runs_as_units(k, v, t):
 def Laws.copy_identity():
   {==}
 
+# by cases on the partner and the test, each computed
+def Laws.call_as_components(v, t):
+  match v:
+    case R.KFree{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KFn{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KAp{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopy{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMerge{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KData{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KEraN{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KEraP{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KRoot{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCall{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KLift{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KLiftC{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopyL{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopyR{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMergeL{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMergeR{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KDCall{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KOp{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KOpStep{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KOpData{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+
 def Laws.events_fit_header(a, b, p):
   match a:
     case R.KFree{}:
