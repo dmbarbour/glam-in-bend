@@ -639,48 +639,50 @@ def go.none(h: P.H, +x: N.Ext) -> P.H:
 def go.none.e(r: P.E, +x: N.Ext) -> P.E:
   r
 
-def go.gen(+t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+# the generated rewrite, which calls `after` itself at the external peers
+# where its rule may make an event (gen_krules.bend's sites)
+def go.gen(~after: P.H -> @+x:N.Ext -> P.H, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite(P.rk(ha), P.rk(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      KR.rewrite(~after, P.rk(ha), P.rk(hb), t, h, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def go.interp.pl(r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
+def go.interp.pl(~after: P.H -> @+x:N.Ext -> P.H, r: P.Pl, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.H:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}))
+      after(wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3})), N.Ext4{e0, e1, e2, e3})
 
-# the interpreted table; a Lift facing a LiftC is peeled first, as the
-# generated rewrite for the pair does (kprim.bend's peel_ctl)
-def go.interp(ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+# the interpreted table, then `after` at all its external peers; a Lift
+# facing a LiftC is peeled first, as the generated rewrite for the pair
+# does (kprim.bend's peel_ctl), the peers then those peeling leaves
+def go.interp(~after: P.H -> @+x:N.Ext -> P.H, ctl: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match ctl:
     case True{}:
       match x:
         case N.Ext4{+e0, +e1, +e2, +e3}:
-          go.interp.pl(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
+          go.interp.pl(~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), a, b, ha, hb, e1, e3)
     case False{}:
-      wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x))
+      after(wd.h(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x)), x)
 
-def go.which(gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
+def go.which(~after: P.H -> @+x:N.Ext -> P.H, gen: Bool, +t: Bool, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   match gen:
     case True{}:
-      go.gen(t, h, a, b, ha, hb, pa, pb, x)
+      go.gen(~after, t, h, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.interp(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, a, b, ha, hb, pa, pb, x)
+      go.interp(~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, a, b, ha, hb, pa, pb, x)
 
 # the generated rewrite, or the interpreted table: for a redex whose
-# external peers include its own ports, or when `fast` is off; then
-# `after`, at the rewrite's external peers. The chain from here to
-# interact is a template: `after` substituted where a strategy calls it,
-# nothing (go.none) or the events (ev.settle), each strategy compiles a
-# chain of its own. Not yet free: what the copies share beneath, go.which
-# and the generated rewrites, then has two callers, which Bend folds into
-# neither (heap-strategies.erasure.kernel.parity).
+# external peers include its own ports, or when `fast` is off; each then
+# `after`. The chain from interact down through the generated rewrites
+# is a template: `after` substituted where a strategy calls it, nothing
+# (go.none) or the events (ev.settle), each strategy compiles a chain of
+# its own, every function beneath called from one copy only, which Bend
+# folds (heap-strategies.erasure.kernel.parity).
 def go.rule(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.H:
   (h, +t) = r
-  after(go.which(fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x), x)
+  go.which(~after, fast && Bool.not(any_partner(x, a, b)), t, h, a, b, ha, hb, pa, pb, x)
 
 def go.ext(~after: P.H -> @+x:N.Ext -> P.H, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H) -> P.H:
-  go.rule(~after, KR.test(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+  go.rule(~after, KR.test(~after, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
@@ -729,38 +731,38 @@ def interact(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +x: U32, +y: 
 # them (heap-strategies.stack): the generated eager rewrites, or the
 # interpreter's notes (Wd)
 
-def go.gen.e(+t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.gen.e(~after: P.E -> @+x:N.Ext -> P.E, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite.e(P.rk(ha), P.rk(hb), t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      KR.rewrite.e(~after, P.rk(ha), P.rk(hb), t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def go.interp.pl.e(r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
+def go.interp.pl.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.Pl, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> P.E:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
+      after(wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st), N.Ext4{e0, e1, e2, e3})
 
-def go.interp.e(ctl: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.interp.e(~after: P.E -> @+x:N.Ext -> P.E, ctl: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match ctl:
     case True{}:
       match x:
         case N.Ext4{+e0, +e1, +e2, +e3}:
-          go.interp.pl.e(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+          go.interp.pl.e(~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
     case False{}:
-      wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
+      after(wd.e(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st), x)
 
-def go.which.e(gen: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
+def go.which.e(~after: P.E -> @+x:N.Ext -> P.E, gen: Bool, +t: Bool, h: P.H, st: P.Stk, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   match gen:
     case True{}:
-      go.gen.e(t, h, st, a, b, ha, hb, pa, pb, x)
+      go.gen.e(~after, t, h, st, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.interp.e(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+      go.interp.e(~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
 
 def go.rule.e(~after: P.E -> @+x:N.Ext -> P.E, r: P.H & Bool, st: P.Stk, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> P.E:
   (h, +t) = r
-  after(go.which.e(fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x), x)
+  go.which.e(~after, fast && Bool.not(any_partner(x, a, b)), t, h, st, a, b, ha, hb, pa, pb, x)
 
 def go.ext.e(~after: P.E -> @+x:N.Ext -> P.E, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: P.Stk) -> P.E:
-  go.rule.e(~after, KR.test.e(h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+  go.rule.e(~after, KR.test.e(~after, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
