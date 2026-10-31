@@ -375,11 +375,14 @@ def any_partner(+x: N.Ext, +a: U32, +b: U32) -> Bool:
 # heap-strategies.erasure.kernel in docs/plans/HeapModel_2026-10-27.md. In
 # the erasure modes, each external peer of a rewrite is looked at after
 # it: where an eraser's principal faces an auxiliary port
-# its kind erases (KR.ev_by, from R.event), the event runs (KR.event),
-# and the node's external peers are looked at in turn. Every link a rule makes
+# its kind erases (KR.ev_by, from R.event), or a dead call's faces a
+# call's output (KR.ev_also; heap-strategies.erasure.deadcall.chain), the
+# event runs (KR.event), and the node's external peers are looked at in
+# turn. Every link a rule makes
 # has an external end but those joining its new nodes, which make no event
 # (KR.inner_events), so these are all the events a rewrite makes. An event
-# allocates nothing and frees only the eraser, whose principal faces an
+# allocates nothing and frees only B, the eraser or dead call, a dead
+# call's function dropped, whose principal faces an
 # auxiliary port and so is in no active pair; the node keeps its slot and
 # its principal's link, its kind changing, and a pair it is in keeps its
 # place on a strategy's stack. The ends left to look at wait on a list, so
@@ -429,20 +432,25 @@ def ev.x1(+ha: U32, +p: U32, +w2: U32, +w3: U32) -> U32:
   aux_or_nil(U32.is_eq(arity(ha), 3), ev.x1.k(U32.is_eq(p, 1), w2, w3))
 
 # port n of a node with header hn facing the principal of one with header
-# hr, an eraser making an event there
+# hr, an eraser or a dead call making an event there
 def ev.is(+hn: U32, +n: U32, +hr: U32) -> Bool:
-  U32.is_ne(P.port(n), 0) && U32.is_eq(KR.ev_by(P.rk(hn), P.port(n)), P.rk(hr)) && U32.is_ne(P.rk(hr), 0)
+  U32.is_ne(P.port(n), 0) && ((U32.is_eq(KR.ev_by(P.rk(hn), P.port(n)), P.rk(hr)) && U32.is_ne(P.rk(hr), 0)) || KR.ev_also(P.rk(hn), P.port(n), P.rk(hr)))
 
 def ev.run.fin(~S: Type, r: P.H & S, ws: List<&2, U32>, +k: U32) -> Ev<S>:
   (h, st) = r
   Ev{P.ev_count(h, k), st, ws}
 
-# the event at port p of node a, the eraser b facing it, x0 the peer of
-# a's principal and x1 of its other auxiliary port, run and counted, its
-# peers to look at; the family's state given room first for the pair the
-# event may note
+def ev.run.b(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
+  (h, +b3) = r
+  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, payload(hb, 0, b3), x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
+
+# the event at port p of node a, the eraser or dead call b facing it, x0
+# the peer of a's principal and x1 of its other auxiliary port, run and
+# counted, its peers to look at; b's payload read, a dead call's function
+# to drop; the family's state given room first for the pair the event may
+# note
 def ev.run(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
+  ev.run.b(~S, ~note, ~room, P.rd(h, (b + 3 : U32)), st, ws, a, b, ha, hb, p, pa, x0, x1)
 
 def ev.w3(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ev<S>:
   (h, +w3) = r

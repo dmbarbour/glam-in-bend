@@ -433,8 +433,8 @@ def pre_fn(+w: Bool, +name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
 #
 # Where a rule's rewrite may make an event, the external peers looked at
 # after it (heap-strategies.erasure.kernel.sites): one facing a new
-# eraser's principal; one facing a new node's auxiliary port at which an
-# eraser makes an event; one end of each wire joining two external peers,
+# eraser's principal, or a new dead call's (is_ev_b); one facing a new
+# node's auxiliary port at which such a node makes an event; one end of each wire joining two external peers,
 # the other end read through it. A peer facing a new node's principal is
 # an active pair if anything, and the links between new nodes make no
 # event (inner_events). The rest are passed as none.
@@ -473,15 +473,60 @@ def ev_eraser(es: List<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> Maybe<&2, R.
     case Con{+b, t}:
       ev_eraser.hit(is_stuck(R.event(a, b, p)), b, ev_eraser(t, a, p))
 
+def ev_ports() -> List<&2, Nat>:
+  [1n, 2n]
+
+def is_ev_b.p(ps: List<&2, Nat>, +a: R.NodeKind, +b: R.NodeKind) -> Bool:
+  match ps:
+    case Nil{}:
+      False{}
+    case Con{+p, t}:
+      Bool.not(is_stuck(R.event(a, b, p))) || is_ev_b.p(t, a, b)
+
+def is_ev_b.a(as: List<&2, R.NodeKind>, +b: R.NodeKind) -> Bool:
+  match as:
+    case Nil{}:
+      False{}
+    case Con{+a, t}:
+      is_ev_b.p(ev_ports(), a, b) || is_ev_b.a(t, b)
+
+# may a node of kind b be B, its principal facing A's auxiliary port, in
+# some event: an eraser, or one R.event names besides, a dead call
+# (heap-strategies.erasure.deadcall.chain)
+def is_ev_b(+b: R.NodeKind) -> Bool:
+  is_eraser(b) || is_ev_b.a(kinds(), b)
+
+def ev_bs.hit(hit: Bool, +k: R.NodeKind, rest: List<&2, R.NodeKind>) -> List<&2, R.NodeKind>:
+  match hit:
+    case True{}:
+      Con{k, rest}
+    case False{}:
+      rest
+
+# the kinds B may be, the erasers among them or not
+def ev_bs.go(+erasers: Bool, ks: List<&2, R.NodeKind>) -> List<&2, R.NodeKind>:
+  match ks:
+    case Nil{}:
+      Nil{}
+    case Con{+k, t}:
+      ev_bs.hit(is_ev_b(k) && (erasers || Bool.not(is_eraser(k))), k, ev_bs.go(erasers, t))
+
+def ev_bs() -> List<&2, R.NodeKind>:
+  ev_bs.go(True{}, kinds())
+
+# the kinds besides the erasers B may be
+def ev_others() -> List<&2, R.NodeKind>:
+  ev_bs.go(False{}, kinds())
+
 def ev_port(+k: R.NodeKind, +p: Nat) -> Bool:
-  Maybe.is_some(&2, R.NodeKind, ev_eraser(eraser_codes(), k, p))
+  Maybe.is_some(&2, R.NodeKind, ev_eraser(ev_bs(), k, p))
 
 def site.end(+xs: List<&2, R.Spec>, e: R.End, +i: Nat) -> Bool:
   match e:
     case R.New{+j, +p}:
       match p:
         case 0n:
-          is_eraser(spec_kind(spec_at(xs, j)))
+          is_ev_b(spec_kind(spec_at(xs, j)))
         case _:
           ev_port(spec_kind(spec_at(xs, j)), p)
     case R.Ext{+k}:
@@ -1097,8 +1142,9 @@ def ev_rule(r: R.Rule) -> R.Rule:
 def ev_name(+a: R.NodeKind, +p: Nat) -> String:
   "ev." ++ kname(a) ++ ".p" ++ Nat.show(p)
 
-def ev_ports() -> List<&2, Nat>:
-  [1n, 2n]
+# an event whose B is no eraser, named for it too
+def ev_name.b(+a: R.NodeKind, +p: Nat, +b: R.NodeKind) -> String:
+  ev_name(a, p) ++ "." ++ kname(b)
 
 def first_kind(xs: List<&2, R.Spec>) -> R.NodeKind:
   match xs:
@@ -1107,18 +1153,43 @@ def first_kind(xs: List<&2, R.Spec>) -> R.NodeKind:
     case Con{R.Spec{+k, s}, t}:
       k
 
-def ev_case(+a: R.NodeKind, +p: Nat, +body: String) -> String:
-  "    case " ++ code(a) ++ " " ++ Nat.show(p) ++ ":\n      " ++ body ++ "\n"
+# a dispatch case: B's kind kb, for an eraser any
+def ev_case(+a: R.NodeKind, +p: Nat, +kb: String, +body: String) -> String:
+  "    case " ++ code(a) ++ " " ++ Nat.show(p) ++ " " ++ kb ++ ":\n      " ++ body ++ "\n"
 
 def ev_one.f(+f: U32, r: R.Rule, +a: R.NodeKind, +b: R.NodeKind, +p: Nat) -> String:
   match f:
     case 0:
       rule_fns(False{}, ev_rule(r), ev_name(a, p), a, b)
     case _:
-      ev_case(a, p, ev_name(a, p) ++ "(" ++ targ(False{}) ++ "h, " ++ common_args() ++ ")")
+      ev_case(a, p, "_", ev_name(a, p) ++ "(" ++ targ(False{}) ++ "h, " ++ common_args() ++ ")")
 
-# over kinds and ports with an event: f 0 the rewrites, 1 the dispatch's
-# cases
+def ev_other.f(+f: U32, r: R.Rule, +a: R.NodeKind, +b: R.NodeKind, +p: Nat) -> String:
+  match f:
+    case 0:
+      rule_fns(False{}, ev_rule(r), ev_name.b(a, p, b), a, b)
+    case 1:
+      ev_case(a, p, code(b), ev_name.b(a, p, b) ++ "(" ++ targ(False{}) ++ "h, " ++ common_args() ++ ")")
+    case _:
+      ev_case(a, p, code(b), "True{}")
+
+def ev_other.hit(stuck: Bool, +f: U32, r: R.Rule, +a: R.NodeKind, +b: R.NodeKind, +p: Nat) -> String:
+  match stuck:
+    case True{}:
+      ""
+    case False{}:
+      ev_other.f(f, r, a, b, p)
+
+# the events at port p of kind a whose B is no eraser: f 0 the rewrites,
+# 1 the dispatch's cases, 2 ev_also's; before the eraser's, whose case
+# takes any B
+def ev_others_one(+f: U32, bs: List<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      ev_other.hit(is_stuck(R.event(a, b, p)), f, R.event(a, b, p), a, b, p) ++ ev_others_one(f, t, a, p)
+
 def ev_one(+f: U32, m: Maybe<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> String:
   match m:
     case None{}:
@@ -1126,12 +1197,21 @@ def ev_one(+f: U32, m: Maybe<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> String
     case Some{+b}:
       ev_one.f(f, R.event(a, b, p), a, b, p)
 
+# over kinds and ports with an event: f 0 the rewrites, 1 the dispatch's
+# cases, 2 ev_also's (the erasers' none)
+def ev_one.e(+f: U32, m: Maybe<&2, R.NodeKind>, +a: R.NodeKind, +p: Nat) -> String:
+  match f:
+    case 2:
+      ""
+    case _:
+      ev_one(f, m, a, p)
+
 def ev_over_p(+f: U32, ps: List<&2, Nat>, +a: R.NodeKind) -> String:
   match ps:
     case Nil{}:
       ""
     case Con{+p, t}:
-      ev_one(f, ev_eraser(eraser_codes(), a, p), a, p) ++ ev_over_p(f, t, a)
+      ev_others_one(f, ev_others(), a, p) ++ ev_one.e(f, ev_eraser(eraser_codes(), a, p), a, p) ++ ev_over_p(f, t, a)
 
 def ev_over(+f: U32, as: List<&2, R.NodeKind>) -> String:
   match as:
@@ -1192,7 +1272,7 @@ def ev_most_p(ps: List<&2, Nat>, +a: R.NodeKind, +m: Nat) -> Nat:
     case Nil{}:
       m
     case Con{+p, t}:
-      ev_most_p(t, a, ev_most_b(eraser_codes(), a, p, m))
+      ev_most_p(t, a, ev_most_b(ev_bs(), a, p, m))
 
 # the most active pairs one event makes
 def ev_most(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
@@ -1205,10 +1285,10 @@ def ev_most(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
 def spec_k(xs: List<&2, R.Spec>, +j: Nat) -> R.NodeKind:
   spec_kind(spec_at(xs, j))
 
-# an eraser's principal, new node j port p, facing an auxiliary port of
-# new node k, port q, that it erases
+# an eraser's principal, or a dead call's, new node j port p, facing an
+# auxiliary port of new node k, port q, at which it makes an event
 def inner_ev.dir(+xs: List<&2, R.Spec>, +j: Nat, +p: Nat, +k: Nat, +q: Nat) -> Bool:
-  is_eraser(spec_k(xs, j)) && Nat.is_eq(p, 0n) && Nat.is_ne(q, 0n) && Bool.not(is_stuck(R.event(spec_k(xs, k), spec_k(xs, j), q)))
+  is_ev_b(spec_k(xs, j)) && Nat.is_eq(p, 0n) && Nat.is_ne(q, 0n) && Bool.not(is_stuck(R.event(spec_k(xs, k), spec_k(xs, j), q)))
 
 def inner_ev.link(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> Bool:
   match u v:
@@ -1252,6 +1332,36 @@ def inner_ev_a(as: List<&2, R.NodeKind>) -> String:
     case Con{+a, t}:
       inner_ev_b(kinds(), a) ++ inner_ev_a(t)
 
+def ev_end.os(bs: List<&2, R.NodeKind>) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      " || U32.is_eq(k, " ++ code(b) ++ ")" ++ ev_end.os(t)
+
+def ev_only.hit(bad: Bool, +a: R.NodeKind, +p: Nat) -> String:
+  match bad:
+    case True{}:
+      " || ev_only_" ++ kname(a) ++ "_p" ++ Nat.show(p)
+    case False{}:
+      ""
+
+def ev_only.p(ps: List<&2, Nat>, +a: R.NodeKind) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{+p, t}:
+      ev_only.hit(Bool.not(Maybe.is_some(&2, R.NodeKind, ev_eraser(eraser_codes(), a, p))) && Maybe.is_some(&2, R.NodeKind, ev_eraser(ev_others(), a, p)), a, p) ++ ev_only.p(t, a)
+
+# an auxiliary port at which some kind besides the erasers makes an event
+# and no eraser does: ev_end would not look at it
+def ev_only(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      ev_only.p(ev_ports(), a) ++ ev_only(t)
+
 def events() -> String:
   "# Events (R.event)\n\n" ++
   "# rules linking two of their own new nodes into an event: none, or this\n" ++
@@ -1267,19 +1377,24 @@ def events() -> String:
   "def ev_by.c(+c: U32) -> U32:\n  match c:\n    case 0:\n      0\n    case _:\n      (c + 5 : U32)\n\n" ++
   "def ev_by(+k: U32, +p: U32) -> U32:\n" ++
   "  ev_by.c(((ev_word((k >> 2n : U32)) >> U32.to_nat((((k .&. 3 : U32) * 8 : U32) + (p * 2 : U32) : U32)) : U32) .&. 3 : U32))\n\n" ++
-  "# may port p of kind k be one end of an event: an eraser's principal, or\n" ++
-  "# an auxiliary port some eraser makes an event at\n" ++
+  "# whether B, of kind kb, no eraser, makes the event at port p of kind\n" ++
+  "# k: a dead call, a call's output feeding it (deadcall.chain)\n" ++
+  "def ev_also(+k: U32, +p: U32, +kb: U32) -> Bool:\n  match k p kb:\n" ++ ev_over(2, kinds()) ++ "    case _ _ _:\n      False{}\n\n" ++
+  "# may port p of kind k be one end of an event: an eraser's principal or a\n" ++
+  "# dead call's, or an auxiliary port some eraser makes an event at; one\n" ++
+  "# where only another kind makes one names what does not exist\n" ++
   "def ev_end(+k: U32, +p: U32) -> Bool:\n" ++
-  "  (U32.is_eq(p, 0) && U32.is_eq((k .|. 1 : U32), 7)) || U32.is_ne(ev_by(k, p), 0)\n\n" ++
+  "  (U32.is_eq(p, 0) && (U32.is_eq((k .|. 1 : U32), 7)" ++ ev_end.os(ev_others()) ++ ")) || U32.is_ne(ev_by(k, p), 0)" ++ ev_only(kinds()) ++ "\n\n" ++
 
   "# the most active pairs one event makes\n" ++
   "def ev_most() -> U32:\n  " ++ Nat.show(ev_most(kinds(), 0n)) ++ "\n\n" ++
   ev_over(0, kinds()) ++
-  "# the event at port p of a node of kind ka, A, the eraser facing it B;\n" ++
-  "# e0 the peer of A's principal, e1 of its other auxiliary port; the net\n" ++
-  "# and the family's state, the pairs it makes noted\n" ++
-  "def event(" ++ tparam(False{}) ++ "+ka: U32, +p: U32, h: P.H, " ++ common() ++ ") -> P.H & S:\n" ++
-  "  match ka p:\n" ++ ev_over(1, kinds()) ++ "    case _ _:\n      (P.h_err(h), st)\n\n"
+  "# the event at port p of a node of kind ka, A, B of kind kb facing it,\n" ++
+  "# an eraser or a dead call; e0 the peer of A's principal, e1 of its other\n" ++
+  "# auxiliary port; the net and the family's state, the pairs it makes\n" ++
+  "# noted\n" ++
+  "def event(" ++ tparam(False{}) ++ "+ka: U32, +p: U32, +kb: U32, h: P.H, " ++ common() ++ ") -> P.H & S:\n" ++
+  "  match ka p kb:\n" ++ ev_over(1, kinds()) ++ "    case _ _ _:\n      (P.h_err(h), st)\n\n"
 
 # Dispatch
 # --------

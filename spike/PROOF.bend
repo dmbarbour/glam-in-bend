@@ -7547,7 +7547,19 @@ def Laws.events_exact(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -8090,7 +8102,19 @@ def Laws.events_polarized(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -8633,7 +8657,19 @@ def Laws.events_shrink(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -9176,7 +9212,19 @@ def Laws.events_kinds_live(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -9719,7 +9767,19 @@ def Laws.events_side(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -10262,7 +10322,19 @@ def Laws.events_erase_last(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -12613,7 +12685,19 @@ def Laws.events_one_node(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -14927,7 +15011,19 @@ def Laws.events_base_sources(a, b, p):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:
@@ -17692,7 +17788,19 @@ def Laws.events_keep_fits(a, b, p, pa):
         case R.KMergeR{}:
           {==}
         case R.KDCall{}:
-          {==}
+          match p:
+            case 0n:
+              {==}
+            case 1n+q:
+              match q:
+                case 0n:
+                  {==}
+                case 1n+r:
+                  match r:
+                    case 0n:
+                      {==}
+                    case 1n+t:
+                      {==}
     case R.KLift{}:
       match b:
         case R.KFree{}:

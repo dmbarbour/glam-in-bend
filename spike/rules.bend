@@ -573,14 +573,22 @@ def ev.out(b: NodeKind, p: Nat) -> Rule:
 # a call's result erased: a dead call, its function kept, stuck where a
 # call is, so exact where the old event, an eraser of the input, was not
 # (heap-strategies.erasure.deadcall)
+def ev.call.p(p: Nat) -> Rule:
+  match p:
+    case 1n:
+      RWire{[Spec{KDCall{}, SPayA{}}], [lk(nw(0n, 0n), ex(0n))]}
+    case _:
+      RStuck{}
+
+# by an eraser, or by a dead call: a call's result is data, which a dead
+# call erases whatever it is, so the call dies too and the dead call met
+# goes, its function dropped (heap-strategies.erasure.deadcall.chain)
 def ev.call(b: NodeKind, p: Nat) -> Rule:
   match b:
     case KEraN{}:
-      match p:
-        case 1n:
-          RWire{[Spec{KDCall{}, SPayA{}}], [lk(nw(0n, 0n), ex(0n))]}
-        case _:
-          RStuck{}
+      ev.call.p(p)
+    case KDCall{}:
+      ev.call.p(p)
     case _:
       RStuck{}
 
@@ -1332,6 +1340,8 @@ def lf.try.k(k: NodeKind, +g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
       lf.at_e(KEraN{}, g, j, x)
     case KEraP{}:
       lf.at_e(KEraP{}, g, j, x)
+    case KDCall{}:
+      lf.at_e(KDCall{}, g, j, x)
     case KFree{}:
       None{}
     case KLift{}:
@@ -1341,8 +1351,8 @@ def lf.try.k(k: NodeKind, +g: G, +j: Nat, x: Maybe<&2, End>) -> Maybe<&2, G>:
     case _:
       lf.at_p(g, j, x)
 
-# what node j can run: an eraser, its erasure or event; another node
-# whose principal faces a principal, their rule
+# what node j can run: an eraser or a dead call, its rule or event;
+# another node whose principal faces a principal, their rule
 def lf.try(+g: G, +j: Nat) -> Maybe<&2, G>:
   match g:
     case G{+xs, +ls}:
@@ -2694,10 +2704,19 @@ def fz.pat.q(m: Nat, +b: XB, +a: NodeKind, +p: Nat, +q: Nat) -> XB:
 def fz.pat.a(+b: XB, +a: NodeKind, +p: Nat) -> XB:
   fz.pat.q(Nat.sub(arity(lf.full(a)), 1n), b, a, p, 1n)
 
+# B at node 2 as its components: a dead call a call, its function no
+# source of the pattern's, its output erased; an eraser as it is
+def fz.pat.b(fused: Bool, +x: XB, +b: NodeKind) -> XB:
+  match fused:
+    case True{}:
+      xb.comp(x, 2n, b, 0n)
+    case False{}:
+      x
+
 # the pattern: a's components facing v's, a's port p (full numbering)
-# erased by an eraser of kind b at node 2
+# erased by B, of kind b, at node 2
 def fz.pattern(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind) -> G:
-  xb.g(xb.comp(fz.pat.a(xb.link(xb.add(xb.add.p(xb.add.p(XB{[], []}, lf.full(a), SPayA{}), lf.full(v), SPayB{}), b), New{0n, 0n}, New{1n, 0n}), a, p), 1n, v, 2n))
+  xb.g(xb.comp(fz.pat.a(fz.pat.b(Bool.not(Nat.is_eq(ex.dead(b), 0n)), xb.link(xb.add.p(xb.add.p(xb.add.p(XB{[], []}, lf.full(a), SPayA{}), lf.full(v), SPayB{}), lf.full(b), SNone{}), New{0n, 0n}, New{1n, 0n}), b), a, p), 1n, v, 2n))
 
 def fz.res.go(none: Bool, +b: XB, +e: NodeKind) -> XB:
   match none:
@@ -2716,12 +2735,16 @@ def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +s: Src, +v:
   fz.same(fz.run(lf.full(a), lf.full(v), t, True{}, fz.pattern(a, b, fz.evport(a, p), v)),
     fz.run(lf.full(e), lf.full(v), t, True{}, fz.result(e, s, v)))
 
+def fz_event.b(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
+  fz.go(Bool.not(is_stuck(event(a, b, p))) && fz.meets(a, v),
+    fz_event.cmp(a, b, p, ex.first(event(a, b, p)), ex.first.s(event(a, b, p)), v, t))
+
 # an event's pattern behaves as the node it makes, against any partner
 # (law events_as_components): the event at port p of a node of kind a,
-# by its kind's eraser
+# by its kind's eraser, and by a dead call, the one other kind an event's
+# B may be (heap-strategies.erasure.deadcall.chain)
 def fz_event(+a: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
-  fz.go(Bool.not(is_stuck(event(a, ex.eraser(a), p))) && fz.meets(a, v),
-    fz_event.cmp(a, ex.eraser(a), p, ex.first(event(a, ex.eraser(a), p)), ex.first.s(event(a, ex.eraser(a), p)), v, t))
+  fz_event.b(a, ex.eraser(a), p, v, t) && fz_event.b(a, KDCall{}, p, v, t)
 
 # Control runs: a run as its units
 # --------------------------------
