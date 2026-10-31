@@ -320,7 +320,9 @@ takes from it:
    `heap-strategies.erasure.deadcall` (built) before the operators (the
    maintainer, 2026-10-31), `heap-strategies.kinds.payloads` (built),
    `heap-strategies.erasure.deadcall.chain` (built),
-   `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
+   `heap-strategies.measure.differential` (built),
+   `spike-operators` (EvalSpike) with
+   `heap-strategies.erasure.deadcall.eraser`, `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
@@ -1120,7 +1122,15 @@ takes from it:
          dead call met is B to the event, freed with its builtin, whose
          payload the events path then drops (an eraser has none). Exact
          since a call's output is data, which a dead call always
-         erases; a copy's output facing one makes no event, since what
+         erases. A call here is a builtin's alone: an application
+         meeting data that is a builtin function (`net.bend`'s
+         `rule_test`, `is_builtin`), which waits for its argument to be
+         data and makes data of it (`rules.bend`'s `rule.call`). The
+         Rust bootstrap's call, applying a function or net value held
+         as data, lowered a closed net whose output need not be data
+         (the maintainer, 2026-10-31); a rewrite like that is no call in
+         this sense, and neither the dead call nor the chain is exact
+         for it; a copy's output facing one makes no event, since what
          it carries may be a function, against which a dead call is
          stuck. `R.event` gives the call's event for both B;
          `events_as_components` checks it for both, a dead call in the
@@ -1151,6 +1161,18 @@ takes from it:
          chain). Four builds at k 18 (run 100 against main, run 99):
          without events the same instructions; with them -0.8% to
          +0.3%.
+     - `heap-strategies.erasure.deadcall.eraser` — contingent on
+       `spike-operators` — a dead operator is a data-only eraser (the
+       maintainer, 2026-10-31): an operator's input and output are
+       always data, so once its output is erased nothing it holds, its
+       function, opcode or collected arguments, is ever observed. The
+       dead call keeps its function until its argument arrives, to
+       copy it against a superposition and drop it at the end; dropped
+       at the event instead, its table entry freed then, one
+       payload-free kind serves every dead operator, and the chain
+       reads no payload of B's. Its law as components holds if the
+       eraser's event drops the payload too, so that the components
+       end in the same payload-free nodes.
      - `heap-strategies.erasure.load` — tentative — patterns recognized
        only when lowering or loading a fresh net, perhaps after a GC
        cycle (the maintainer, 2026-10-30), against after every rewrite:
@@ -1503,6 +1525,25 @@ takes from it:
        version (`scripts/bend-cc.sh`: a one-line program built through a
        logging `clang`, under a second; the maintainer, 2026-10-31); the
        spot check the same within 30 instructions (run 93).
+     - `heap-strategies.measure.differential` — built 2026-10-31 — the
+       random-term differential faster (the maintainer, 2026-10-31): 27
+       minutes for its 18 sets (store run 98), built one after another.
+       A set's build is nearly all its time, about a minute at 200
+       terms: half Bend emitting the C, at 2.3 GB, half clang at `-O3`;
+       its run takes 2 s. `-O1` saves 5 s of the 31; `-O0` compiles in
+       12 s but runs in 25, every level giving the same output. So the
+       sets are built and run in a pool, three by default (`JOBS`) so
+       that their builds fit in memory together, and recorded in order
+       once all are done: 12.3 minutes, the store's 3,600 rows run
+       98's exactly (run 101). Three at once take two minutes each
+       rather than one, so the builds contend for more than memory.
+       - `heap-strategies.measure.loader` — tentative — one build for
+         every set: a one-term set still takes 39 s to build (1.4 GB),
+         two thirds of a set's build being the spike itself, compiled
+         18 times over. Bend has files (`bend guide`, IO), so a program
+         built once could read its nets from a file that `terms.py`
+         writes, and run each set in seconds; the library
+         (`spike/tools/library.py`), rebuilt at every gate, the same.
      - `heap-strategies.measure.pgo` — tentative — profile-guided
        builds trained with events on too: today they train without
        them, so their events loops are cold and their counts with

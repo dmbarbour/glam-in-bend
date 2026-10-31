@@ -582,7 +582,9 @@ def ev.call.p(p: Nat) -> Rule:
 
 # by an eraser, or by a dead call: a call's result is data, which a dead
 # call erases whatever it is, so the call dies too and the dead call met
-# goes, its function dropped (heap-strategies.erasure.deadcall.chain)
+# goes, its function dropped (heap-strategies.erasure.deadcall.chain). A
+# call is a builtin's alone (rule.ap against data, rule.call); applying
+# a net value, whose output need not be data, would be no call here
 def ev.call(b: NodeKind, p: Nat) -> Rule:
   match b:
     case KEraN{}:
