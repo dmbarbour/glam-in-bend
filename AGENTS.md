@@ -103,7 +103,10 @@ Lessons carried over from the Rust bootstrap:
   Bend leaves inlining to clang, which a small change can flip by 15%:
   before crediting or blaming a change, compare builds with every Bend
   function forced inline and profile-guided
-  (`spike/tools/inline_build.sh`).
+  (`spike/tools/inline_build.sh`). For development, a spot check of the
+  default and forced-inline builds takes about a minute
+  (`spike/tools/spot.sh`); a merge takes the four builds
+  (`spike/tools/count_builds.sh`, under two minutes).
 - Baselines live in the plan or review that uses them; reusable workloads
   live in `bench/`.
 - Bulk results go in the analysis store with the parameters that produced

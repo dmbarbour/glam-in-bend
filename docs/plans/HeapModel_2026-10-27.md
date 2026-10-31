@@ -316,7 +316,7 @@ takes from it:
    `heap-strategies.kinds.dispatch` (built) on the merged kernel, so
    that the generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class`,
-   `heap-strategies.measure.spot` and `heap-strategies.measure.builds`,
+   `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.deadcall`,
@@ -1396,16 +1396,32 @@ takes from it:
      count reads among them, an instrumented build, training runs, two
      profile-guided builds), and 40 counts at k 18 run one after another
      on an 8-core machine.
-     - `heap-strategies.measure.spot` — tentative — a spot check in a
-       few minutes, for development: the C emitted once, the default
-       and forced-inline builds compiled side by side, the standard
-       workloads at a smaller k, or two sizes apart so that start-up
-       cancels in the difference, the counts run side by side
+     - `heap-strategies.measure.spot` — built 2026-10-31 — a spot check
+       in a few minutes, for development: the C emitted once, the
+       default and forced-inline builds compiled side by side, the
+       standard workloads at a smaller k, or two sizes apart so that
+       start-up cancels in the difference, the counts run side by side
        (instruction counts are a process's own); the profile-guided
-       builds and k 18 kept for merges.
-     - `heap-strategies.measure.builds` — tentative — the full count
-       faster: one `bend` emission, the GCC builds only on request, the
-       compiles and the counts in parallel.
+       builds and k 18 kept for merges. Built: `spike/tools/spot.sh`,
+       `count_builds.sh` with the default and forced-inline builds
+       alone (its new `BUILDS`), nothing trained, the erasure modes
+       counted too, at k 18 after all: a count there takes 0.3 s, so
+       the builds were the whole cost, and k 18 compares with every
+       count in the store. 54 s; its 20 counts are run 90's within 300
+       instructions (store run 91).
+     - `heap-strategies.measure.builds` — built 2026-10-31 — the full
+       count faster: one `bend` emission, the GCC builds only on
+       request, the compiles and the counts in parallel. Built: the C
+       emitted once and compiled as `bend -o` compiles it (`clang
+       -std=c11 -O3`, which `bend` runs on its C in a temporary
+       directory whose name the binary keeps, so that its own builds of
+       one program already differ by a few hundred instructions); the
+       default, forced-inline and instrumented builds compiled side by
+       side, then the two profile-guided ones; GCC with `GCC_BUILDS=1`.
+       The counts stay one after another, 40 taking about 12 s. 94 s
+       for the four builds with events, its 40 counts run 90's within
+       579 instructions (run 92); the GCC builds had taken most of the
+       half hour.
      - `heap-strategies.measure.pgo` — tentative — profile-guided
        builds trained with events on too: today they train without
        them, so their events loops are cold and their counts with

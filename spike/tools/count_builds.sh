@@ -9,9 +9,11 @@
 # erasure modes too (spike/kernel.bend's ev and evlazy: succ, fma and lvl
 # eagerly, succ and lvl on demand), recorded as workloads `succ.ev` and
 # so on, demand's lazy; the profile-guided builds are trained without
-# them.
+# them. BUILDS names the builds to count, all four by default; without a
+# profile-guided one, nothing is trained (spike/tools/spot.sh, the default
+# and forced-inline builds alone, for development).
 #
-#   [BASE=RUN] [EV=1] spike/tools/count_builds.sh OUT [K [NOTE]]
+#   [BASE=RUN] [EV=1] [BUILDS="default ai"] spike/tools/count_builds.sh OUT [K [NOTE]]
 #
 # OUT holds the builds.
 set -eu
@@ -22,11 +24,20 @@ OUT=$(cd "$1" && pwd)
 K=${2:-18}
 NOTE=${3:-}
 R="python3 -I $ROOT/scripts/results.py"
-"$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" \
-  "14 succ" "14 succ lazy" "14 fma" "14 lvl" "14 lvl lazy" >/dev/null
-RUN=$($R run count_builds "{\"k\": $K, \"builds\": [\"default\", \"ai\", \"pgo\", \"ai_pgo\"], \"train\": [\"14 succ\", \"14 succ lazy\", \"14 fma\", \"14 lvl\", \"14 lvl lazy\"], \"ev\": ${EV:-0}, \"tool\": \"spike/tools/count_builds.sh\"}" "$NOTE")
+BUILDS=${BUILDS:-default ai pgo ai_pgo}
+case " $BUILDS " in
+  *pgo*)
+    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" \
+      "14 succ" "14 succ lazy" "14 fma" "14 lvl" "14 lvl lazy" >/dev/null
+    TRAIN='["14 succ", "14 succ lazy", "14 fma", "14 lvl", "14 lvl lazy"]' ;;
+  *)
+    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" >/dev/null
+    TRAIN='[]' ;;
+esac
+BLIST=$(echo "$BUILDS" | sed 's/\([a-z_]*\)/"\1"/g; s/ /, /g')
+RUN=$($R run count_builds "{\"k\": $K, \"builds\": [$BLIST], \"train\": $TRAIN, \"ev\": ${EV:-0}, \"tool\": \"spike/tools/count_builds.sh\"}" "$NOTE")
 echo "run $RUN"
-for b in default ai pgo ai_pgo; do
+for b in $BUILDS; do
   bin=$OUT/kernel
   [ "$b" = default ] || bin=$OUT/kernel_$b
   set -- "succ" "succ lazy" "fma" "lvl" "lvl lazy"
