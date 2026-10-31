@@ -309,9 +309,9 @@ takes from it:
    `heap-strategies.fusions.payloads.levels` (built),
    `heap-strategies.fusions.fits` (built),
    `heap-strategies.fusions.controls` (built),
-   `heap-strategies.erasure.kernel.parity`
-   with `heap-strategies.erasure.kernel.sites` (templates; and
-   `spike-templates`), `heap-strategies.erasure.merge`, then
+   `heap-strategies.erasure.kernel.parity` (built)
+   with `heap-strategies.erasure.kernel.sites` (built),
+   `heap-strategies.erasure.merge`, then `spike-templates` and
    `heap-strategies.kinds.dispatch` on the merged kernel, so that the
    generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout`,
@@ -892,13 +892,25 @@ takes from it:
          eager family's own copy of the payload test once avoided, 5% to
          12%). With events and nothing dead, 15% to 33% more than events
          off (packed tables for the checks: 5% of that recovered, run 75).
-       - `heap-strategies.erasure.kernel.parity` — tentative — events off
+       - `heap-strategies.erasure.kernel.parity` — built 2026-10-31, on
+         branch `erasure-kernel` — events off
          costing nothing, by the templates carried down through the
          generated rewrites, so that neither copy shares a function Bend
          would fold (the maintainer, 2026-10-30, over a build-time
          constant), with `.sites` the template's argument, the check at
-         each site.
-       - `heap-strategies.erasure.kernel.sites` — tentative — the checks
+         each site. Built: the template over `after` now reaches from
+         `interact` through `go.which`, the payload test and every
+         generated rule rewrite, each strategy's copy calling its own;
+         each rewrite calls `after` itself at its sites, the interpreter
+         at all four peers (a Lift facing a LiftC at the peers peeling
+         leaves). Events off, four builds at k 18 (store run 82 against
+         69, from before the modes): the same instructions within about
+         2,100 in the default and forced-inline builds and their
+         profile-guided one; the profile-guided build alone +0.6% to
+         +0.8% on three eager workloads. The library's interactions and
+         events the same as run 79's, case for case (run 81).
+       - `heap-strategies.erasure.kernel.sites` — built 2026-10-31, on
+         branch `erasure-kernel` — the checks
          after a rewrite only where its rule can make an event, known
          from the rule as fusion's ends are: an external peer linked to a
          new eraser's principal; one linked to a new node's auxiliary port
@@ -908,7 +920,16 @@ takes from it:
          first may be in an event. The rest are skipped: today all four
          are read after every rewrite, each call spilling registers,
          which costs the erasure modes 15% to 33% more instructions where
-         nothing is dead.
+         nothing is dead. Built: the generator reads each rule's sites
+         from its links (`gen_krules.bend`'s Sites), the others passed as
+         none, and a rule with no site, 74 of the 118 rewrites, calls no
+         `after`; the library's check that the generated and interpreted
+         eager modes make the same events, the interpreter looking at all
+         four peers, passes. With events and nothing dead (run 82): 0.0%
+         to 1.0% over events off in the default and forced-inline builds
+         and their profile-guided one, 20% to 34% fewer instructions
+         than run 71; the profile-guided build alone 30% to 47% over,
+         trained without the events, so its events loops cold.
        - `heap-strategies.erasure.kernel.exact` — built 2026-10-30 — the
          model's part on main, the kernel's on branch `erasure-kernel` —
          each event
@@ -1026,9 +1047,9 @@ takes from it:
        a dead application is exact where the function is known to keep
        its variable inside its body, a dead call's input erasable where
        it is known to be data (the maintainer, 2026-10-30).
-     - `heap-strategies.erasure.merge` — contingent on
-       `heap-strategies.erasure.kernel.parity` and the maintainer's
-       approval — branch `erasure-kernel` onto main: the events in their
+     - `heap-strategies.erasure.merge` — tentative — awaiting the
+       maintainer's approval, `heap-strategies.erasure.kernel.parity`
+       built — branch `erasure-kernel` onto main: the events in their
        own strategies, costing nothing where they are off, and the law
        changes named in its trailers (added: `events_erase_last`,
        `linear_as_components`, `events_as_components`; scope changed by
