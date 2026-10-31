@@ -763,7 +763,7 @@ def fan_too_big(none: Bool, +site: U32, +lvl: U32) -> Bool:
     case False{}:
       too_big(lvl)
 
-# a node from its template; a level, site or index past the field's 24
+# a node from its template; a level, site or index past the field's 22
 # bits, or an offset past 31, would be cut short: an error
 def load.node(h: P.H, t: T.TNode) -> P.H:
   match t:

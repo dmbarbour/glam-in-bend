@@ -124,8 +124,528 @@ def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) ->
 def most_pairs() -> U32:
   4
 
-# the rule's number for A, negative principal, of kind ka meeting B of kind
-# kb, by A's code times 16 plus B's: 0 for a pair no rule rewrites
+# a kind's class: its row and column in the rule table, by kind code, a
+# table over the header's 256 codes (header-kind-byte); a code no kind
+# has, class 0, which no rule rewrites. Each kind its own class so far.
+def class(+k: U32) -> U32:
+  match k:
+    case 0:
+      0
+    case 1:
+      1
+    case 2:
+      2
+    case 3:
+      3
+    case 4:
+      4
+    case 5:
+      5
+    case 6:
+      6
+    case 7:
+      7
+    case 8:
+      8
+    case 9:
+      9
+    case 10:
+      10
+    case 11:
+      11
+    case 12:
+      12
+    case 13:
+      13
+    case 14:
+      14
+    case 15:
+      15
+    case 16:
+      0
+    case 17:
+      0
+    case 18:
+      0
+    case 19:
+      0
+    case 20:
+      0
+    case 21:
+      0
+    case 22:
+      0
+    case 23:
+      0
+    case 24:
+      0
+    case 25:
+      0
+    case 26:
+      0
+    case 27:
+      0
+    case 28:
+      0
+    case 29:
+      0
+    case 30:
+      0
+    case 31:
+      0
+    case 32:
+      0
+    case 33:
+      0
+    case 34:
+      0
+    case 35:
+      0
+    case 36:
+      0
+    case 37:
+      0
+    case 38:
+      0
+    case 39:
+      0
+    case 40:
+      0
+    case 41:
+      0
+    case 42:
+      0
+    case 43:
+      0
+    case 44:
+      0
+    case 45:
+      0
+    case 46:
+      0
+    case 47:
+      0
+    case 48:
+      0
+    case 49:
+      0
+    case 50:
+      0
+    case 51:
+      0
+    case 52:
+      0
+    case 53:
+      0
+    case 54:
+      0
+    case 55:
+      0
+    case 56:
+      0
+    case 57:
+      0
+    case 58:
+      0
+    case 59:
+      0
+    case 60:
+      0
+    case 61:
+      0
+    case 62:
+      0
+    case 63:
+      0
+    case 64:
+      0
+    case 65:
+      0
+    case 66:
+      0
+    case 67:
+      0
+    case 68:
+      0
+    case 69:
+      0
+    case 70:
+      0
+    case 71:
+      0
+    case 72:
+      0
+    case 73:
+      0
+    case 74:
+      0
+    case 75:
+      0
+    case 76:
+      0
+    case 77:
+      0
+    case 78:
+      0
+    case 79:
+      0
+    case 80:
+      0
+    case 81:
+      0
+    case 82:
+      0
+    case 83:
+      0
+    case 84:
+      0
+    case 85:
+      0
+    case 86:
+      0
+    case 87:
+      0
+    case 88:
+      0
+    case 89:
+      0
+    case 90:
+      0
+    case 91:
+      0
+    case 92:
+      0
+    case 93:
+      0
+    case 94:
+      0
+    case 95:
+      0
+    case 96:
+      0
+    case 97:
+      0
+    case 98:
+      0
+    case 99:
+      0
+    case 100:
+      0
+    case 101:
+      0
+    case 102:
+      0
+    case 103:
+      0
+    case 104:
+      0
+    case 105:
+      0
+    case 106:
+      0
+    case 107:
+      0
+    case 108:
+      0
+    case 109:
+      0
+    case 110:
+      0
+    case 111:
+      0
+    case 112:
+      0
+    case 113:
+      0
+    case 114:
+      0
+    case 115:
+      0
+    case 116:
+      0
+    case 117:
+      0
+    case 118:
+      0
+    case 119:
+      0
+    case 120:
+      0
+    case 121:
+      0
+    case 122:
+      0
+    case 123:
+      0
+    case 124:
+      0
+    case 125:
+      0
+    case 126:
+      0
+    case 127:
+      0
+    case 128:
+      0
+    case 129:
+      0
+    case 130:
+      0
+    case 131:
+      0
+    case 132:
+      0
+    case 133:
+      0
+    case 134:
+      0
+    case 135:
+      0
+    case 136:
+      0
+    case 137:
+      0
+    case 138:
+      0
+    case 139:
+      0
+    case 140:
+      0
+    case 141:
+      0
+    case 142:
+      0
+    case 143:
+      0
+    case 144:
+      0
+    case 145:
+      0
+    case 146:
+      0
+    case 147:
+      0
+    case 148:
+      0
+    case 149:
+      0
+    case 150:
+      0
+    case 151:
+      0
+    case 152:
+      0
+    case 153:
+      0
+    case 154:
+      0
+    case 155:
+      0
+    case 156:
+      0
+    case 157:
+      0
+    case 158:
+      0
+    case 159:
+      0
+    case 160:
+      0
+    case 161:
+      0
+    case 162:
+      0
+    case 163:
+      0
+    case 164:
+      0
+    case 165:
+      0
+    case 166:
+      0
+    case 167:
+      0
+    case 168:
+      0
+    case 169:
+      0
+    case 170:
+      0
+    case 171:
+      0
+    case 172:
+      0
+    case 173:
+      0
+    case 174:
+      0
+    case 175:
+      0
+    case 176:
+      0
+    case 177:
+      0
+    case 178:
+      0
+    case 179:
+      0
+    case 180:
+      0
+    case 181:
+      0
+    case 182:
+      0
+    case 183:
+      0
+    case 184:
+      0
+    case 185:
+      0
+    case 186:
+      0
+    case 187:
+      0
+    case 188:
+      0
+    case 189:
+      0
+    case 190:
+      0
+    case 191:
+      0
+    case 192:
+      0
+    case 193:
+      0
+    case 194:
+      0
+    case 195:
+      0
+    case 196:
+      0
+    case 197:
+      0
+    case 198:
+      0
+    case 199:
+      0
+    case 200:
+      0
+    case 201:
+      0
+    case 202:
+      0
+    case 203:
+      0
+    case 204:
+      0
+    case 205:
+      0
+    case 206:
+      0
+    case 207:
+      0
+    case 208:
+      0
+    case 209:
+      0
+    case 210:
+      0
+    case 211:
+      0
+    case 212:
+      0
+    case 213:
+      0
+    case 214:
+      0
+    case 215:
+      0
+    case 216:
+      0
+    case 217:
+      0
+    case 218:
+      0
+    case 219:
+      0
+    case 220:
+      0
+    case 221:
+      0
+    case 222:
+      0
+    case 223:
+      0
+    case 224:
+      0
+    case 225:
+      0
+    case 226:
+      0
+    case 227:
+      0
+    case 228:
+      0
+    case 229:
+      0
+    case 230:
+      0
+    case 231:
+      0
+    case 232:
+      0
+    case 233:
+      0
+    case 234:
+      0
+    case 235:
+      0
+    case 236:
+      0
+    case 237:
+      0
+    case 238:
+      0
+    case 239:
+      0
+    case 240:
+      0
+    case 241:
+      0
+    case 242:
+      0
+    case 243:
+      0
+    case 244:
+      0
+    case 245:
+      0
+    case 246:
+      0
+    case 247:
+      0
+    case 248:
+      0
+    case 249:
+      0
+    case 250:
+      0
+    case 251:
+      0
+    case 252:
+      0
+    case 253:
+      0
+    case 254:
+      0
+    case 255:
+      0
+    case _:
+      0
+
+# the rule's number for A, negative principal, of class ca meeting B of
+# class cb, by ca times 16 plus cb: 0 for a pair no rule rewrites
 def rule_at(+i: U32) -> U32:
   match i:
     case 0:
@@ -644,7 +1164,7 @@ def rule_at(+i: U32) -> U32:
       0
 
 def rule_no(+ka: U32, +kb: U32) -> U32:
-  rule_at(((ka * 16 : U32) + kb : U32))
+  rule_at(((class(ka) * 16 : U32) + class(kb) : U32))
 
 # which payload test a rule's variants take: 0 none, 1 the levels' or the
 # fans' sites, 2 whether B's data is a builtin function

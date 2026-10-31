@@ -139,7 +139,7 @@ def link(q: Q, +x: U32, +y: U32) -> Q:
 
 def node.fin(r: S.Store & U32, +k: U32, p: V.Pay, rq: List<&2, Redex>, +itrs: U32, +errs: U32, +ser: U32) -> Q & U32:
   (st, +ref) = r
-  (Q{S.st_set_pay(S.st_set(st, ref, 0, (k .|. (ser << 4n : U32) : U32)), ref, p), rq, itrs, errs, (ser + 1 : U32)}, ref)
+  (Q{S.st_set_pay(S.st_set(st, ref, 0, (k .|. (ser << 8n : U32) : U32)), ref, p), rq, itrs, errs, (ser + 1 : U32)}, ref)
 
 # a new node of kind k with payload p: its port 0
 def node(q: Q, k: R.NodeKind, p: V.Pay) -> Q & U32:
@@ -457,7 +457,7 @@ def fa.k(ok: Bool, +k: U32, q: Q, +x: U32, +y: U32) -> Q:
 
 def fa.hy(r: Q & U32, +k: U32, +x: U32, +y: U32) -> Q:
   (q, +hy) = r
-  fa.k(U32.is_eq((hy .&. 15 : U32), k) && U32.is_ne(node_of(x), node_of(y)), k, q, x, y)
+  fa.k(U32.is_eq((hy .&. 255 : U32), k) && U32.is_ne(node_of(x), node_of(y)), k, q, x, y)
 
 def fa.y.go(none: Bool, q: Q, +k: U32, +x: U32, +y: U32) -> Q:
   match none:
@@ -479,7 +479,7 @@ def fa.ctl(ctl: Bool, q: Q, +k: U32, +x: U32) -> Q:
 
 def fa.hx(r: Q & U32, +x: U32) -> Q:
   (q, +hx) = r
-  fa.ctl(U32.is_eq((hx .&. 15 : U32), 10) || U32.is_eq((hx .&. 15 : U32), 11), q, (hx .&. 15 : U32), x)
+  fa.ctl(U32.is_eq((hx .&. 255 : U32), 10) || U32.is_eq((hx .&. 255 : U32), 11), q, (hx .&. 255 : U32), x)
 
 def fa.go0(none: Bool, q: Q, +x: U32) -> Q:
   match none:
@@ -602,7 +602,7 @@ def rd3(q: Q, +ref: U32) -> Q & Node3:
 def n3_kind(n: Node3) -> R.NodeKind:
   match n:
     case N3{+h, l1, l2}:
-      kof((h .&. 15 : U32))
+      kof((h .&. 255 : U32))
 
 def aux_or_nil(b: Bool, +l: U32) -> U32:
   match b:
@@ -898,11 +898,11 @@ def peel.k(+ka: U32, +kb: U32, q: Q, +a: U32, +b: U32) -> Q:
 
 def peel.hb(r: Q & U32, +ka: U32, +a: U32, +b: U32) -> Q:
   (q, +hb) = r
-  peel.k(ka, (hb .&. 15 : U32), q, a, b)
+  peel.k(ka, (hb .&. 255 : U32), q, a, b)
 
 def peel.ha(r: Q & U32, +a: U32, +b: U32) -> Q:
   (q, +ha) = r
-  peel.hb(q_word(q, b, 0), (ha .&. 15 : U32), a, b)
+  peel.hb(q_word(q, b, 0), (ha .&. 255 : U32), a, b)
 
 # rewrite the active pair a >< b, a fused control facing a partner peeled
 # first
@@ -1003,7 +1003,7 @@ def obs.ori(neg: Bool, q: Q, +i: U32, +a: U32, +b: U32) -> Q & Ev:
 
 def obs.h(r: Q & U32, +i: U32, +a: U32, +b: U32) -> Q & Ev:
   (q, +h) = r
-  obs.ori(R.pol_eq(R.port_pol(kof((h .&. 15 : U32)), 0n), R.Neg{}), q, i, a, b)
+  obs.ori(R.pol_eq(R.port_pol(kof((h .&. 255 : U32)), 0n), R.Neg{}), q, i, a, b)
 
 # read the redex a >< b without changing it. Reads only move the store's
 # focus, and interact makes its own reads after these, so allocation, and

@@ -7,9 +7,9 @@ import ./kmem_grow.bend as KM
 # word nodes in storage that doubles, its free list and active pairs, and a
 # data table of its own, kept linear.
 #
-# A node n is words 4n .. 4n + 3. Word 0, the header: the kind code (8
-# bits: the rule kind, as net.bend's kcode, in the low 4, the value form in
-# the high 4) and a 24-bit field: a function's or an application's level,
+# A node n is words 4n .. 4n + 3. Word 0, the header (header-kind-byte):
+# the rule kind, as net.bend's kcode, in the low 8 bits, the value form in
+# the next 2, and a 22-bit field: a function's or an application's level,
 # a fan's level (its site, in nets built without levels), a control's
 # index, a builtin's op. Words 1 .. 3: the links of ports 0 .. 2, a
 # reference being n * 4 + port. A data node, with one port, holds its value
@@ -28,10 +28,10 @@ import ./kmem_grow.bend as KM
 def nil() -> U32:
   4294967295
 
-# Capacity: 2^21 nodes, 2^21 active pairs, 2^20 data entries, 2^24 levels;
+# Capacity: 2^21 nodes, 2^21 active pairs, 2^20 data entries, 2^22 levels;
 # passing any is an error.
 def lvl_cap() -> U32:
-  16777216
+  4194304
 
 # The data table
 # ==============
@@ -405,7 +405,7 @@ def node.word.k(+k: U32) -> U32:
       3
 
 def node.word(+hd: U32) -> U32:
-  node.word.k((hd .&. 15 : U32))
+  node.word.k((hd .&. 255 : U32))
 
 def node.fin(r: H & U32, +hd: U32, +p: U32) -> H & U32:
   (h, +n) = r
@@ -447,20 +447,21 @@ def fresh2(h: H, +a: U32, +b: U32) -> H:
 # =======================
 
 def hd(+k: U32, +f: U32) -> U32:
-  (k .|. (f << 8n : U32) : U32)
+  (k .|. (f << 10n : U32) : U32)
 
 # a header from rule kind k, value form m and field f
 def hd2(+k: U32, +m: U32, +f: U32) -> U32:
-  ((k .|. (m << 4n : U32) : U32) .|. (f << 8n : U32) : U32)
+  ((k .|. (m << 8n : U32) : U32) .|. (f << 10n : U32) : U32)
 
+# the kind and the form
 def kind(+h: U32) -> U32:
-  (h .&. 255 : U32)
+  (h .&. 1023 : U32)
 
 def rk(+h: U32) -> U32:
-  (h .&. 15 : U32)
+  (h .&. 255 : U32)
 
 def form(+h: U32) -> U32:
-  ((h >> 4n : U32) .&. 15 : U32)
+  ((h >> 8n : U32) .&. 3 : U32)
 
 # the field, offsets' up flag and amount decode by division, remainder
 # and comparison, which have laws relating U32 to Nat (LAWS.bend's
@@ -468,12 +469,12 @@ def form(+h: U32) -> U32:
 # same instructions (docs/BendIssues.md, "Reasoning about U32 in
 # proofs")
 def fld(+h: U32) -> U32:
-  (h / 256 : U32)
+  (h / 1024 : U32)
 
 # fans pair, and an application meets its function, when level and
 # marker agree (a net without levels: equal sites)
 def same_lvl(+ha: U32, +hb: U32) -> Bool:
-  U32.is_eq((ha >> 4n : U32), (hb >> 4n : U32))
+  U32.is_eq((ha >> 8n : U32), (hb >> 8n : U32))
 
 def off_up(+o: U32) -> Bool:
   U32.is_ge(o, 2147483648)
@@ -494,7 +495,7 @@ def lift.go(+above: Bool, +up: Bool, +by: U32, +j: U32) -> U32:
 def lift(+n: U32, +o: U32, +j: U32) -> U32:
   lift.go(U32.is_gt(j, n), off_up(o), off_by(o), j)
 
-# raising j through the control would pass the field's 24 bits
+# raising j through the control would pass the field's 22 bits
 def lift_wraps(+n: U32, +o: U32, +j: U32) -> Bool:
   off_up(o) && U32.is_gt(j, n) && U32.is_ge((j + off_by(o) : U32), lvl_cap())
 

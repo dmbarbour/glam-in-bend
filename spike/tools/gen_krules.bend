@@ -1274,6 +1274,22 @@ def no_at(ps: List<&2, Pr>, +i: Nat, +n: Nat) -> Nat:
         case Pr{+a, +b}:
           no_at.go(Nat.is_eq(pr_ix(a, b), i), n, no_at(t, i, 1n+n))
 
+def class.k(lt: Bool, +i: Nat) -> Nat:
+  match lt:
+    case True{}:
+      i
+    case False{}:
+      0n
+
+# every kind code from i, k of them, its class: the code itself below 16,
+# the kinds there are, else 0
+def class_cases(k: Nat, +i: Nat) -> String:
+  match k:
+    case 0n:
+      ""
+    case 1n+r:
+      "    case " ++ Nat.show(i) ++ ":\n      " ++ Nat.show(class.k(Nat.is_lt(i, 16n), i)) ++ "\n" ++ class_cases(r, 1n+i)
+
 # every index from i, k of them, its rule's number or 0: dense, so that
 # Bend makes the match a lookup table (a sparse one it makes a chain)
 def at_cases(k: Nat, +i: Nat) -> String:
@@ -1438,10 +1454,14 @@ def test_cases(ps: List<&2, Pr>, +n: Nat) -> String:
           test_by.c(differs(a, b) && Bool.not(is_ctl_pair(a, b)), n, a, b) ++ test_cases(t, 1n+n)
 
 def dispatch() -> String:
-  "# the rule's number for A, negative principal, of kind ka meeting B of kind\n" ++
-  "# kb, by A's code times 16 plus B's: 0 for a pair no rule rewrites\n" ++
+  "# a kind's class: its row and column in the rule table, by kind code, a\n" ++
+  "# table over the header's 256 codes (header-kind-byte); a code no kind\n" ++
+  "# has, class 0, which no rule rewrites. Each kind its own class so far.\n" ++
+  "def class(+k: U32) -> U32:\n  match k:\n" ++ class_cases(256n, 0n) ++ "    case _:\n      0\n\n" ++
+  "# the rule's number for A, negative principal, of class ca meeting B of\n" ++
+  "# class cb, by ca times 16 plus cb: 0 for a pair no rule rewrites\n" ++
   "def rule_at(+i: U32) -> U32:\n  match i:\n" ++ at_cases(256n, 0n) ++ "    case _:\n      0\n\n" ++
-  "def rule_no(+ka: U32, +kb: U32) -> U32:\n  rule_at(((ka * 16 : U32) + kb : U32))\n\n" ++
+  "def rule_no(+ka: U32, +kb: U32) -> U32:\n  rule_at(((class(ka) * 16 : U32) + class(kb) : U32))\n\n" ++
   "# which payload test a rule's variants take: 0 none, 1 the levels' or the\n" ++
   "# fans' sites, 2 whether B's data is a builtin function\n" ++
   "def test_by(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ test_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
