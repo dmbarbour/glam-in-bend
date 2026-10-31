@@ -367,10 +367,13 @@ def payload.k(+k: U32, +w1: U32, +w3: U32) -> U32:
       w3
     case 11:
       w3
+    case 16:
+      w3
     case _:
       0
 
-# a node's payload word: a data node's word 2, a call's or a control's 3
+# a node's payload word: a data node's word 2, a call's, a dead call's or
+# a control's 3
 def payload(+h: U32, +w1: U32, +w3: U32) -> U32:
   payload.k(P.rk(h), w1, w3)
 
@@ -1188,8 +1191,8 @@ def reach(h: P.H) -> P.H & U32:
   reach.st(P.stats(h))
 
 # Sweeping (heap-strategies.cascade): every live node the walk from the
-# interface does not reach freed, a data node's or a call's table entry
-# released with it. Nothing reached links to what is freed, so nothing
+# interface does not reach freed, a data node's, a call's or a dead
+# call's table entry released with it. Nothing reached links to what is freed, so nothing
 # dangles; what is freed could never be observed.
 type Sw is Type:
   Sw{h: P.H, mk: KM.M, +f: U32}
@@ -1203,6 +1206,8 @@ def sw.payload(+k: U32, h: P.H, +i: U32, +hd: U32) -> P.H:
     case 5:
       sw.pd(P.rd(h, ((i << 2n : U32) + 2 : U32)), hd)
     case 9:
+      sw.pd(P.rd(h, ((i << 2n : U32) + 3 : U32)), hd)
+    case 16:
       sw.pd(P.rd(h, ((i << 2n : U32) + 3 : U32)), hd)
     case _:
       h

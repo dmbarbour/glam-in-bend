@@ -319,6 +319,7 @@ takes from it:
    `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
    `heap-strategies.erasure.deadcall` (built) before the operators (the
    maintainer, 2026-10-31), `heap-strategies.erasure.deadcall.chain`,
+   `heap-strategies.kinds.payloads`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
@@ -1094,7 +1095,18 @@ takes from it:
        events against 2,174, the eager reduction unchanged: the calls of `k 2 succ 0` still run,
        each feeding the next, which is the chain's work. Four builds at
        k 18 (run 95 against 92): -2.2% to +1.1%, the interactions
-       unchanged; the seventeenth kind costs nothing measured.
+       unchanged; the seventeenth kind costs nothing measured. Merged,
+       the dead call's payload read as none by the rewrites and the
+       sweep (`knet.bend`'s `payload.k`, `sw.payload`), which only a
+       function held in the data table shows: the library's
+       `dead-call-table`, a copied `fma 1` whose dead side freed the
+       live side's entry, now kept.
+       - `heap-strategies.kinds.payloads` — tentative — which kinds hold
+         a value and in which word, written by hand in the kernel
+         (`knet.bend`'s `is_data`, `payload.k`, `sw.payload`;
+         `kprim.bend`'s `node.word`), three places a new kind can be
+         missed in, as the dead call was: emitted by the generator from
+         the model's kinds, one owner, before the operators add more.
        - `heap-strategies.erasure.deadcall.chain` — active — a call whose
          output faces a dead call's principal dies too: the dead call
          met is an eraser to the event, dropped with its builtin, whose

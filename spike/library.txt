@@ -214,6 +214,18 @@ links: 0.0-1.0 0.1-2.2 0.2-5.0 2.0-3.0 2.1-4.0
 root: 6.0
 net: 7 logical 6 peels 0
 
+name: dead-call-table
+why: `f = fma 1`, copied: `f 1 1` the root, `f 2 3` erased. The dead
+  call's function `fma 1 2` an entry in the data table, the copy's
+  duplicate, which the dead call must release, not entry 0 (its payload
+  once read as none), which the other side's function took over
+nodes: ap(0) fma num(1) cp(0,0) ap(0) num(1) ap(0) num(1) ap(0) num(2)
+  ap(0) num(3) era
+links: 0.0-1.0 0.1-2.0 0.2-3.0 3.1-4.0 3.2-8.0 4.1-5.0 4.2-6.0 6.1-7.0
+  8.1-9.0 8.2-10.0 10.1-11.0 10.2-12.0
+root: 6.2
+net: 2 logical 13 peels 0
+
 name: dead-call-late
 why: `(\u. 7) (succ 5)`: whether the call dies depends on order, since
   its result meets the eraser only once beta has joined them; the full
