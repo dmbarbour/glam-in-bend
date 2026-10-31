@@ -64,6 +64,25 @@ of 2026-10-26, Bend 2.0.39.
   rule is EvalSpike's `spike-templates`.
 - **Revisit:** at whole-system tuning.
 
+### Recursion through templates
+
+- **Need:** code written once over a family of strategies
+  (`spike-templates`) includes loops: the events' drain, a strategy's run.
+  A template that recursed, or closed a recursion through its argument,
+  would let a loop be written once too.
+- **Upstream:** none known; a suggestion to raise later.
+- **Evidence:** a template may call only templates declared above it, so
+  never itself. Closing the knot through an argument fails too: a def
+  `loop.u` calling a template `step(~loop.u, ...)` whose body calls that
+  argument is rejected, the template's copy checked before `loop.u` is
+  filled ("an unfilled law is a dead claim: live code cannot use it";
+  Bend 2.0.39, 2026-10-31; `bench/bend/template_knot/knot.bend.txt`).
+- **Workaround:** the loop's body a template, its few lines of recursion
+  one per family, each calling the body with the family's arguments
+  (`spike/knet.bend`'s `ev.drain` and `ev.drain.e`; `spike/kstrat.bend`'s
+  run loops).
+- **Revisit:** when a later Bend accepts either form.
+
 ### Reasoning about U32 in proofs
 
 - **Need:** the kernel's invariants live in `U32` words (the free list,

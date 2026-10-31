@@ -1,0 +1,40 @@
+# Closing a recursion through a template argument (docs/BendIssues.md,
+# "Recursion through templates"): rejected by Bend 2.0.39, the template's
+# copy checked before the def it calls is filled. Kept as text, since the
+# gate checks every .bend file: copy it to a .bend file to run it.
+#
+#   cp bench/bend/template_knot/knot.bend.txt knot.bend && bend knot.bend
+
+import Base
+
+# one step of a loop, its recursion through ~self
+def step(~S: Type, ~note: S -> @+x:U32 -> S, ~self: Nat -> @+a:U32 -> S -> U32 & S, n: Nat, +acc: U32, st: S) -> U32 & S:
+  match n:
+    case 0n:
+      (acc, st)
+    case 1n+p:
+      self(p, (acc + 1 : U32), note(st, acc))
+
+def note.u(u: Unit, +x: U32) -> Unit:
+  u
+
+def note.n(m: U32, +x: U32) -> U32:
+  (m + x : U32)
+
+# the knots, one line each
+def loop.u(n: Nat, +acc: U32, st: Unit) -> U32 & Unit:
+  step(~Unit, ~note.u, ~loop.u, n, acc, st)
+
+def loop.n(n: Nat, +acc: U32, st: U32) -> U32 & U32:
+  step(~U32, ~note.n, ~loop.n, n, acc, st)
+
+def fst.u(r: U32 & Unit) -> U32:
+  (a, u) = r
+  a
+
+def show.n(r: U32 & U32) -> String:
+  (a, b) = r
+  U32.show(a) ++ " " ++ U32.show(b)
+
+def main() -> IO(Unit):
+  IO.print(U32.show(fst.u(loop.u(10n, 0, Unit{}))) ++ " / " ++ show.n(loop.n(10n, 0, 0)))
