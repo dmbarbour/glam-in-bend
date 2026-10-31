@@ -1446,8 +1446,10 @@ def dispatch() -> String:
   "# a kind's class, its row and column in the rule table: each base kind\n" ++
   "# its own, every code from the first operator's up one class, the\n" ++
   "# operators', whose rule picks the operation by the code inside its step\n" ++
-  "# (header-kind-byte): a compare, where a table cost 2.3%\n" ++
-  "def class(+k: U32) -> U32:\n  U32.min(k, " ++ Nat.show(n_base()) ++ ")\n\n" ++
+  "# (header-kind-byte): a compare, where a table cost 2.3%; U32.is_lt, a\n" ++
+  "# native comparison, where Base's U32.min splits the word into its bits\n" ++
+  "def class.lt(lt: Bool, +k: U32) -> U32:\n  match lt:\n    case True{}:\n      k\n    case False{}:\n      " ++ Nat.show(n_base()) ++ "\n\n" ++
+  "def class(+k: U32) -> U32:\n  class.lt(U32.is_lt(k, " ++ Nat.show(n_base()) ++ "), k)\n\n" ++
   "# the rule's number for A, negative principal, of class ca meeting B of\n" ++
   "# class cb, at ca times " ++ Nat.show(Nat.add(n_base(), 1n)) ++ " plus cb: 0 for a pair no rule rewrites\n" ++
   "def rule_at(+i: U32) -> U32:\n  match i:\n" ++ at_cases(Nat.mul(Nat.add(n_base(), 1n), Nat.add(n_base(), 1n)), 0n) ++ "    case _:\n      0\n\n" ++

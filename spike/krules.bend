@@ -127,9 +127,17 @@ def most_pairs() -> U32:
 # a kind's class, its row and column in the rule table: each base kind
 # its own, every code from the first operator's up one class, the
 # operators', whose rule picks the operation by the code inside its step
-# (header-kind-byte): a compare, where a table cost 2.3%
+# (header-kind-byte): a compare, where a table cost 2.3%; U32.is_lt, a
+# native comparison, where Base's U32.min splits the word into its bits
+def class.lt(lt: Bool, +k: U32) -> U32:
+  match lt:
+    case True{}:
+      k
+    case False{}:
+      16
+
 def class(+k: U32) -> U32:
-  U32.min(k, 16)
+  class.lt(U32.is_lt(k, 16), k)
 
 # the rule's number for A, negative principal, of class ca meeting B of
 # class cb, at ca times 17 plus cb: 0 for a pair no rule rewrites
