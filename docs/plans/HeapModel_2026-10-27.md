@@ -311,6 +311,7 @@ takes from it:
    `heap-strategies.fusions.controls` (built),
    `heap-strategies.erasure.kernel.parity` (built)
    with `heap-strategies.erasure.kernel.sites` (built),
+   `heap-strategies.erasure.kernel.sites.random`,
    `heap-strategies.erasure.merge`, then `spike-templates` and
    `heap-strategies.kinds.dispatch` on the merged kernel, so that the
    generator is rebuilt once (the maintainer, 2026-10-31),
@@ -323,7 +324,10 @@ takes from it:
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
    `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`,
    `heap-strategies.fusions.controls.peel`,
-   `heap-strategies.fusions.controls.cross`.
+   `heap-strategies.fusions.controls.kpeel`,
+   `heap-strategies.fusions.controls.cross`,
+   `heap-strategies.erasure.kernel.sites.law`,
+   `heap-strategies.erasure.kernel.sites.fuse`.
    Each step's state is in its line below.
    - `heap-strategies.net` — built 2026-10-28 — the net's operations in
      `spike/knet.bend`, strategies in `spike/kstrat.bend`, the program
@@ -929,7 +933,31 @@ takes from it:
          to 1.0% over events off in the default and forced-inline builds
          and their profile-guided one, 20% to 34% fewer instructions
          than run 71; the profile-guided build alone 30% to 47% over,
-         trained without the events, so its events loops cold.
+         trained without the events, so its events loops cold. That the
+         sites miss no event rests on the library's 117 nets and on
+         reasoning; what would make it complete:
+         - `heap-strategies.erasure.kernel.sites.random` — tentative —
+           the random-term differential test (`differential.sh`,
+           `terms.py --kernel`) in the erasure modes too: the generated
+           rewrites, looking at sites, against the interpreted table,
+           looking at all four peers, events and interactions term by
+           term, peeled pairs among them, as the library checks its nets.
+           Evidence where the library's coverage ends.
+         - `heap-strategies.erasure.kernel.sites.law` — tentative — the
+           sites read from the model, one owner for the generator and a
+           law: whether a port may be in an event with some peer (an
+           eraser's principal, or an auxiliary port an eraser makes an
+           event at) exact against the event table for every peer, and no
+           rule linking two of its own new nodes into an event (a law in
+           place of `KR.inner_events`, now a check the generated file
+           fails to compile without); each rule's sites then cover every
+           link it makes by construction.
+         - `heap-strategies.erasure.kernel.sites.fuse` — tentative —
+           fusion and peeling make no event: each link they make gives
+           its far end a port of the kind and number it faced before, a
+           control's, so its events are as they were; stated with
+           `fusion_polarized`, among the kernel's claims `spike/LAWS.bend`
+           lists, once the kernel's operations have a model to refine.
        - `heap-strategies.erasure.kernel.exact` — built 2026-10-30 — the
          model's part on main, the kernel's on branch `erasure-kernel` —
          each event
@@ -1204,6 +1232,14 @@ takes from it:
          stand for: the laws' graphs to read two runs' units at one
          index as one value each, and the normalizer to peel the longer
          where they meet, as `net.bend` and the kernel do.
+       - `heap-strategies.fusions.controls.kpeel` — tentative — the
+         kernel's peeling arithmetic (`kprim.bend`'s `peel.amt` and
+         `pe.do`: the units kept, the rest's index and offset) proved
+         against `CT.peel`, as `lift_raise` proves the kernel's raise;
+         the drop case, a raise run facing a croissant and keeping one
+         unit, modeled in `ctl.bend` first, which knows raises only.
+         With `.peel` at the level of rules, peeling would rest on laws
+         from the kernel's words to the units.
        - `heap-strategies.fusions.controls.cross` — tentative — facing
          controls at different indices, crossing, the higher adjusted by
          the lower: the laws' graphs to know which index is lower, so
