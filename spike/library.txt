@@ -206,9 +206,29 @@ root: 4.0
 net: 7 logical 4 peels 0
 
 name: dead-call-chain
-why: succ applied to succ 5, the outer result erased: the outer call
-  dies, but the inner, its result facing the dead call's principal
-  rather than an eraser, still calls (deadcall.chain would kill it too)
+why: succ applied to succ 5, the outer result erased, the outer made
+  first: the outer call dies, then the inner, made facing the dead call,
+  dies too (deadcall.chain), and the dead call it met goes; no builtin
+  runs
+nodes: ap(0) succ num(5) ap(0) succ era num(7)
+links: 0.0-1.0 0.1-2.0 0.2-3.1 3.0-4.0 3.2-5.0
+root: 6.0
+net: 7 logical 6 peels 0
+
+name: dead-call-chain-table
+why: the chain where the dead call met holds `fma 1 2`, an entry in the
+  data table: `fma 1 2 (succ 5)`, its result erased, the outer made
+  first; the event that kills the inner call drops the entry with the
+  dead call it frees
+nodes: ap(0) succ num(5) ap(0) fma num(1) ap(0) num(2) ap(0) era num(7)
+links: 0.0-1.0 0.1-2.0 0.2-8.1 3.0-4.0 3.1-5.0 3.2-6.0 6.1-7.0 6.2-8.0
+  8.2-9.0
+root: 10.0
+net: 7 logical 10 peels 0
+
+name: dead-call-chain-late
+why: the same, the inner made first: it calls, and its value reaches
+  the dead call, which erases it; nothing to chain
 nodes: ap(0) succ ap(0) succ num(5) era num(7)
 links: 0.0-1.0 0.1-2.2 0.2-5.0 2.0-3.0 2.1-4.0
 root: 6.0

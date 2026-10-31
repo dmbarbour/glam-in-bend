@@ -319,7 +319,7 @@ takes from it:
    `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
    `heap-strategies.erasure.deadcall` (built) before the operators (the
    maintainer, 2026-10-31), `heap-strategies.kinds.payloads` (built),
-   `heap-strategies.erasure.deadcall.chain`,
+   `heap-strategies.erasure.deadcall.chain` (built),
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
@@ -1115,14 +1115,42 @@ takes from it:
          0.8% to 1.4% more, forced inline -0.4% to +1.7%, all of it the
          dead call's arm added by the fix before (main alone, run 97,
          the same counts); the move costs nothing.
-       - `heap-strategies.erasure.deadcall.chain` — active — a call whose
-         output faces a dead call's principal dies too: the dead call
-         met is an eraser to the event, dropped with its builtin, whose
-         payload the events path must then free (an eraser has none);
-         the sites widen to a new dead call's principal and to a new
-         call's output facing one. Exact since a call's output is data,
-         which a dead call always erases. The library's
-         `dead-call-chain` shows the inner call still calling.
+       - `heap-strategies.erasure.deadcall.chain` — built 2026-10-31 — a
+         call whose output faces a dead call's principal dies too: the
+         dead call met is B to the event, freed with its builtin, whose
+         payload the events path then drops (an eraser has none). Exact
+         since a call's output is data, which a dead call always
+         erases; a copy's output facing one makes no event, since what
+         it carries may be a function, against which a dead call is
+         stuck. `R.event` gives the call's event for both B;
+         `events_as_components` checks it for both, a dead call in the
+         pattern as its components, and the derivation's normalizer runs
+         a dead call's events as it runs an eraser's, so that a call
+         feeding one dies. Against data, the components compute and
+         erase what the dead call erases unread; against a
+         superposition, both sides end in two dead calls, the result's
+         by the eraser's event alone. The chain event erasing the call's
+         input instead, the law fails. The generator finds the kinds B
+         may be from `R.event` (`is_ev_b`: the erasers and the dead
+         call), widens the sites to a new dead call's principal (the
+         dead call's four rules), and dispatches an event by B's kind
+         too; `ev_also` answers for B besides the erasers, and a port
+         where only such a B makes an event would not compile
+         (`ev_only`), since `ev_end` would not look at it. The kernel
+         reads B's payload word for every event. Library: the chain
+         (`dead-call-chain`, the outer call made first: 2 events, 4
+         interactions, no builtin run), the inner call made first
+         (`dead-call-chain-late`: it calls, nothing to chain), and B's
+         function in the data table (`dead-call-chain-table`; without
+         the drop, the audit fails in every erasure mode).
+         `K 0 (k 2 succ 0)` at k 10, with two stacks and events: 1,661
+         interactions and 515 events, against 2,174; the eager
+         reduction, which calls before the eraser reaches it, unchanged.
+         The random terms (store run 98) give run 83's values and
+         counts term for term, the events more (the dead calls and the
+         chain). Four builds at k 18 (run 100 against main, run 99):
+         without events the same instructions; with them -0.8% to
+         +0.3%.
      - `heap-strategies.erasure.load` — tentative — patterns recognized
        only when lowering or loading a fresh net, perhaps after a GC
        cycle (the maintainer, 2026-10-30), against after every rewrite:

@@ -1850,7 +1850,7 @@ def rw.CopyR.MergeR.no(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, 
 
 def rw.DCall.Merge.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
-  fin(P.link(P.link(h, n0, e2), n1, e3), note(note(st, n0, e2), n1, e3))
+  after(fin(P.link(P.link(h, n0, e2), n1, e3), note(note(st, n0, e2), n1, e3)), N.Ext4{P.nil(), P.nil(), e2, e3})
 
 def rw.DCall.Merge.k2.pre(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +dw) = r
@@ -1871,21 +1871,21 @@ def rw.DCall.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin:
 
 def rw.DCall.LiftC.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   (h, +n0) = r
-  fin(P.link(h, n0, e2), note(st, n0, e2))
+  after(fin(P.link(h, n0, e2), note(st, n0, e2)), N.Ext4{P.nil(), P.nil(), e2, P.nil()})
 
 def rw.DCall.LiftC(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.DCall.LiftC.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.DCall.MergeL.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   (h, +n0) = r
-  fin(P.link(h, n0, e2), note(st, n0, e2))
+  after(fin(P.link(h, n0, e2), note(st, n0, e2)), N.Ext4{P.nil(), P.nil(), e2, P.nil()})
 
 def rw.DCall.MergeL(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.DCall.MergeL.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.DCall.MergeR.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   (h, +n0) = r
-  fin(P.link(h, n0, e2), note(st, n0, e2))
+  after(fin(P.link(h, n0, e2), note(st, n0, e2)), N.Ext4{P.nil(), P.nil(), e2, P.nil()})
 
 def rw.DCall.MergeR(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.DCall.MergeR.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
@@ -1920,10 +1920,20 @@ def ev_by.c(+c: U32) -> U32:
 def ev_by(+k: U32, +p: U32) -> U32:
   ev_by.c(((ev_word((k >> 2n : U32)) >> U32.to_nat((((k .&. 3 : U32) * 8 : U32) + (p * 2 : U32) : U32)) : U32) .&. 3 : U32))
 
-# may port p of kind k be one end of an event: an eraser's principal, or
-# an auxiliary port some eraser makes an event at
+# whether B, of kind kb, no eraser, makes the event at port p of kind
+# k: a dead call, a call's output feeding it (deadcall.chain)
+def ev_also(+k: U32, +p: U32, +kb: U32) -> Bool:
+  match k p kb:
+    case 9 1 16:
+      True{}
+    case _ _ _:
+      False{}
+
+# may port p of kind k be one end of an event: an eraser's principal or a
+# dead call's, or an auxiliary port some eraser makes an event at; one
+# where only another kind makes one names what does not exist
 def ev_end(+k: U32, +p: U32) -> Bool:
-  (U32.is_eq(p, 0) && U32.is_eq((k .|. 1 : U32), 7)) || U32.is_ne(ev_by(k, p), 0)
+  (U32.is_eq(p, 0) && (U32.is_eq((k .|. 1 : U32), 7) || U32.is_eq(k, 16))) || U32.is_ne(ev_by(k, p), 0)
 
 # the most active pairs one event makes
 def ev_most() -> U32:
@@ -1956,6 +1966,13 @@ def ev.Merge.p2.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, 
 
 def ev.Merge.p2(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
   ev.Merge.p2.k1(~S, ~note, P.renode(P.free(h, b), a, P.hd2(14, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def ev.Call.p1.DCall.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
+  (h, +n0) = r
+  (h, st)
+
+def ev.Call.p1.DCall(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
+  ev.Call.p1.DCall.k1(~S, ~note, P.renode(P.drop(P.free(h, b), P.form(hb), pb), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def ev.Call.p1.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
   (h, +n0) = r
@@ -2006,34 +2023,37 @@ def ev.MergeR.p1.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32,
 def ev.MergeR.p1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
   ev.MergeR.p1.k1(~S, ~note, P.renode(P.free(h, b), a, P.hd(7, 0), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-# the event at port p of a node of kind ka, A, the eraser facing it B;
-# e0 the peer of A's principal, e1 of its other auxiliary port; the net
-# and the family's state, the pairs it makes noted
-def event(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +ka: U32, +p: U32, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
-  match ka p:
-    case 3 1:
+# the event at port p of a node of kind ka, A, B of kind kb facing it,
+# an eraser or a dead call; e0 the peer of A's principal, e1 of its other
+# auxiliary port; the net and the family's state, the pairs it makes
+# noted
+def event(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +ka: U32, +p: U32, +kb: U32, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
+  match ka p kb:
+    case 3 1 _:
       ev.Copy.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 3 2:
+    case 3 2 _:
       ev.Copy.p2(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 4 1:
+    case 4 1 _:
       ev.Merge.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 4 2:
+    case 4 2 _:
       ev.Merge.p2(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 9 1:
+    case 9 1 16:
+      ev.Call.p1.DCall(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 1 _:
       ev.Call.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 10 1:
+    case 10 1 _:
       ev.Lift.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 11 1:
+    case 11 1 _:
       ev.LiftC.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 12 1:
+    case 12 1 _:
       ev.CopyL.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 13 1:
+    case 13 1 _:
       ev.CopyR.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 14 1:
+    case 14 1 _:
       ev.MergeL.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case 15 1:
+    case 15 1 _:
       ev.MergeR.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case _ _:
+    case _ _ _:
       (P.h_err(h), st)
 
 # the stuck pairs' arm, and each rule's
