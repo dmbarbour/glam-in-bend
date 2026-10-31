@@ -49,6 +49,8 @@ and demand's where demand must; events change the interactions, which are
 measured, the generated rewrites and the interpreted table making the
 same interactions and events, and the profile with events as many as the
 generated rewrites.
+An entry lowered both with levels and as operators must count the same
+logical interactions, each call two (spike-operators.logical).
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -432,6 +434,16 @@ def main(argv):
                   f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels;"
                   f" events: eager {r.ev[1]}+{r.ev[4]} (logical {r.evlogical}), demand {r.evlazy[1]}+{r.evlazy[4]}"
                   f" ({r.evlive} live), two {r.evtwo[1]}+{r.evtwo[4]}")
+    # a term counts the same logical interactions lowered with levels and
+    # as an operator's data, a call standing for its operator's and its
+    # payload's (spike-operators.logical)
+    by = {}
+    for c, r in runs:
+        by.setdefault(c.entry, {})[c.mode] = r
+    for name, modes in by.items():
+        if "levels" in modes and "ops" in modes and modes["levels"].logical != modes["ops"].logical:
+            failing += 1
+            print(f"FAIL {name}: logical {modes['levels'].logical} with levels, {modes['ops'].logical} as operators")
     if update:
         with open(LIBRARY, "w") as f:
             f.write("\n".join(lines))

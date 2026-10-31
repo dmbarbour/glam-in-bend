@@ -710,17 +710,33 @@ Speed:
       Its proof splits the test as well as the partner: left symbolic,
       the verdict's kernel ran out of fuel where Bend's checker passed.
       So the call may be replaced by its operator and data.
-    - `spike-operators.retire` — tentative — the replacement: an
-      application meeting data that holds a builtin rewrites, in the
-      table, to the operator and its data materialized, and the call and
-      the dead call retire, their events with them, the dead call's work
-      to the dead operator. Until `.immediate`, a builtin applied takes
-      three interactions where the call takes two; whether to retire
-      before or after it is the maintainer's to say.
-    - `spike-operators.immediate` — tentative — the operator holding a
+    - `spike-operators.logical` — built 2026-10-31 — a call counted
+      as the operator and data it stands for (the maintainer,
+      2026-10-31): the profile counts each of a call's interactions,
+      and a dead call's, as two logical ones, the operator's and then
+      its payload's (`KR.logical_w`, which the generator writes from the
+      model's kinds), so that a term counts alike whether its builtins
+      are lowered as data or as an operator's data, and the count stays
+      put when the call retires. The library now checks it: an entry
+      lowered both ways counts the same (`op-shared` 19, `op-twice` 10,
+      `op-control` 17). Every library entry that calls a builtin counts
+      more, 96 lines, their values and peels unchanged; the profiles in
+      the store before this count calls once.
+    - `spike-operators.retire` — contingent on `spike-operators.immediate`
+      and `spike-operators.inkind` — the replacement: an application
+      meeting data that holds a builtin rewrites, in the table, to the
+      operator and its data materialized, and the call and the dead call
+      retire, their events with them, the dead call's work to the dead
+      operator. Deferred until the two fused forms replace it smoothly
+      (the maintainer, 2026-10-31): a bare builtin's call then the
+      immediate-opcode operator, a call holding collected arguments an
+      opcode in a kind.
+    - `spike-operators.immediate` — active — the operator holding a
       full 32-bit opcode in place of its payload port
       (`heap-strategies.fusions.immediate`), a unary one finishing on
-      its argument; then opcodes in kinds, few.
+      its argument.
+    - `spike-operators.inkind` — tentative — opcodes in kinds, the
+      payload immediate in the operator: few, spent where profiles say.
     - `spike-operators.lazy` — tentative — a step holding a handle: an
       operator takes its argument unforced, so a lazy cell's handle may
       reach the step, where demand's need, which reads and resumes B's

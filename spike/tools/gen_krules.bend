@@ -1079,6 +1079,28 @@ def payloads() -> String:
   "# node.word puts it: a value or a control's index and offset; 0 for none\n" ++
   "def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:\n  match k:\n" ++ payloads.w(kinds()) ++ "    case _:\n      0\n\n"
 
+def is_call(k: R.NodeKind) -> Bool:
+  match k:
+    case R.KCall{}:
+      True{}
+    case _:
+      False{}
+
+def logical_w.k(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(is_call(R.lf.full(k)), "    case " ++ code(k) ++ ":\n      2\n", "") ++ logical_w.k(t)
+
+# how many logical interactions each of a kind's interactions stands for,
+# as A: a call, or a dead call as its call, an operator's and then its
+# payload's (law call_as_components; spike-operators.logical); others one
+def logical_w() -> String:
+  "# the logical interactions each interaction of A, of kind k, stands\n" ++
+  "# for: a call's, or a dead call's, its operator's and its payload's\n" ++
+  "def logical_w(+k: U32) -> U32:\n  match k:\n" ++ logical_w.k(kinds()) ++ "    case _:\n      1\n\n"
+
 def stuck_v(+t: Bool, +f: Bool) -> String:
   match t f:
     case True{} True{}:
@@ -1763,6 +1785,7 @@ def file() -> String:
   "# is noted, or nothing.\n\n" ++
   tables() ++
   payloads() ++
+  logical_w() ++
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++

@@ -143,6 +143,17 @@ def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:
     case _:
       0
 
+# the logical interactions each interaction of A, of kind k, stands
+# for: a call's, or a dead call's, its operator's and its payload's
+def logical_w(+k: U32) -> U32:
+  match k:
+    case 9:
+      2
+    case 16:
+      2
+    case _:
+      1
+
 # the level checks the rewrites below make, for the kernel's interpreter
 def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:
   match ka kb:

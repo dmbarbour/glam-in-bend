@@ -228,6 +228,11 @@ def reduce2_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 # interactions are the unit brackets' interactions, as many in every
 # order of a complete reduction whether controls fuse or not; fusion's
 # savings are they less the interactions made, and may depend on order.
+# A call stands for an operator and its data (law call_as_components):
+# each of its interactions counts twice, the operator's and then its
+# payload's (KR.logical_w; spike-operators.logical), a dead call's as
+# its call's, so that a term counts alike whether its builtins are
+# lowered as data or as an operator's data.
 
 # interactions by pair of classes (A's class times 32 plus B's: KR.class,
 # each base kind its own, the operators one), the logical
@@ -282,9 +287,15 @@ def logical.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32
     case False{} False{}:
       (1, False{})
 
-# the unit interactions A (header ha, word 3 oa) meeting B stands for
+def logical.w(r: U32 & Bool, +w: U32) -> U32 & Bool:
+  (+n, +wd) = r
+  ((n * w : U32), wd)
+
+# the unit interactions A (header ha, word 3 oa) meeting B stands for: a
+# call never meets a control facing it but as a run of 31 bits at most,
+# so its double fits
 def logical(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
-  logical.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob)
+  logical.w(logical.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob), KR.logical_w(P.rk(ha)))
 
 # does peeling split either control? (kprim.bend's peel_ctl)
 def peeled(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Bool:
