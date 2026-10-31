@@ -642,13 +642,36 @@ law events_base_sources:
 # application's level and a function's, two controls' indexes) passes
 # for a payload met by itself, as the reference interpreter tests it:
 # the law checks' normalizer runs such a pair where both payloads have
-# one source.
+# one source. A co-control's payload is a control's, as every rewrite
+# keeps it (rules_keep_fits, events_keep_fits).
 # Record: fusions-as-components
 law tests_reflexive:
   for +a: R.NodeKind
   for +b: R.NodeKind
   for +p: V.Pay
   {N.test_refl(a, b, p) == True{} : Bool}
+
+# LAW: rewriting keeps payloads fitting their kinds, as tests_reflexive
+# takes them to: every control or co-control a rule makes carries a
+# control's index and offset when the pair's own did, a control being
+# made only from a control's payload.
+# Record: fusions-as-components
+law rules_keep_fits:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  for +pa: V.Pay
+  for +pb: V.Pay
+  {N.keeps_fits(a, b, t, pa, pb) == True{} : Bool}
+
+# LAW: and so does every event, none making a control.
+# Record: fusions-as-components
+law events_keep_fits:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  for +pa: V.Pay
+  {N.ev_keeps_fits(a, b, p, pa) == True{} : Bool}
 
 # LAW: a loop from a node's auxiliary port to its other one joins ports of
 # opposite polarity, which only a function has (body to variable, the
