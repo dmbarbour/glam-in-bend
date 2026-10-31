@@ -640,6 +640,16 @@ law events_base_sources:
   for +p: Nat
   {R.ev_base_sources(a, b, p) == True{} : Bool}
 
+# LAW: only a kind coded below 16 makes an event, since the net's header
+# counts them a word a kind (kprim.bend's at_evk): a kind past them that
+# makes one widens the header first.
+# Record: header-kind-byte
+law events_fit_header:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_header(a, b, p) == True{} : Bool}
+
 # LAW: a test comparing two payloads (R.test_eq: two fans' identities, an
 # application's level and a function's, two controls' indexes) passes
 # for a payload met by itself, as the reference interpreter tests it:

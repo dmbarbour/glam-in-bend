@@ -45,6 +45,8 @@ def kcode(k: R.NodeKind) -> U32:
       14
     case R.KMergeR{}:
       15
+    case R.KDCall{}:
+      16
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -78,6 +80,8 @@ def kof(c: U32) -> R.NodeKind:
       R.KMergeL{}
     case 15:
       R.KMergeR{}
+    case 16:
+      R.KDCall{}
     case _:
       R.KFree{}
 

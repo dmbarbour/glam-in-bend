@@ -229,7 +229,8 @@ def reduce2_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 # order of a complete reduction whether controls fuse or not; fusion's
 # savings are they less the interactions made, and may depend on order.
 
-# interactions by pair of kinds (A's kind times 16 plus B's), the logical
+# interactions by pair of classes (A's class times 32 plus B's: KR.class,
+# each base kind its own, the operators one), the logical
 # interactions in two words, the pairs peeled, and the interactions whose
 # logical count would pass 2^32, left out of it
 type Pf is Type:
@@ -240,7 +241,7 @@ def pf_new.go(r: KM.M & U32) -> Pf:
   Pf{kp, 0, 0, 0, 0}
 
 def pf_new() -> Pf:
-  pf_new.go(KM.m_new(8n, 8n))
+  pf_new.go(KM.m_new(10n, 10n))
 
 def is_ctl(+k: U32) -> Bool:
   U32.is_eq(k, 10) || U32.is_eq(k, 11)
@@ -306,7 +307,7 @@ def pf.w(r: U32 & Bool, pf: Pf, +i: U32, +pl: Bool) -> Pf:
 
 # A (header ha, word 3 oa) meeting B, counted
 def pf.add(pf: Pf, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Pf:
-  pf.w(logical(ha, hb, oa, ob), pf, ((P.rk(ha) << 4n : U32) + P.rk(hb) : U32), peeled(ha, hb, oa, ob))
+  pf.w(logical(ha, hb, oa, ob), pf, ((KR.class(P.rk(ha)) << 5n : U32) + KR.class(P.rk(hb)) : U32), peeled(ha, hb, oa, ob))
 
 def pr.or(neg: Bool, pf: Pf, +hx: U32, +hy: U32, +ox: U32, +oy: U32) -> Pf:
   match neg:
@@ -416,7 +417,7 @@ def pf.one(+i: U32, +n: U32) -> String:
     case 0:
       ""
     case _:
-      " " ++ U32.show((i >> 4n : U32)) ++ "." ++ U32.show((i .&. 15 : U32)) ++ ":" ++ U32.show(n)
+      " " ++ U32.show((i >> 5n : U32)) ++ "." ++ U32.show((i .&. 31 : U32)) ++ ":" ++ U32.show(n)
 
 def pf.pairs(k: Nat, r: KM.M & U32, +i: U32) -> String:
   match k:
@@ -442,7 +443,7 @@ def pf_str(pf: Pf) -> String:
   match pf:
     case Pf{kp, +lo, +hi, +peels, +wide}:
       "logical " ++ pf.big(U32.is_lt(hi, 65536), lo, hi) ++ ", " ++ U32.show(peels) ++ " peels, " ++
-        U32.show(wide) ++ " wide; pairs" ++ pf.pairs(255n, KM.m_get(kp, 0), 0)
+        U32.show(wide) ++ " wide; pairs" ++ pf.pairs(1023n, KM.m_get(kp, 0), 0)
 
 # Demand
 # ======

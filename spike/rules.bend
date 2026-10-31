@@ -44,6 +44,7 @@ type NodeKind is Data:
   KCopyR{}
   KMergeL{}
   KMergeR{}
+  KDCall{}
 
 type Pol is Data:
   Pos{}
@@ -127,6 +128,8 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
     case KMergeL{} 1n:
       Neg{}
     case KMergeR{} 1n:
+      Neg{}
+    case KDCall{} 0n:
       Neg{}
     case _ _:
       Pos{}
@@ -567,6 +570,20 @@ def ev.out(b: NodeKind, p: Nat) -> Rule:
     case _:
       RStuck{}
 
+# a call's result erased: a dead call, its function kept, stuck where a
+# call is, so exact where the old event, an eraser of the input, was not
+# (heap-strategies.erasure.deadcall)
+def ev.call(b: NodeKind, p: Nat) -> Rule:
+  match b:
+    case KEraN{}:
+      match p:
+        case 1n:
+          RWire{[Spec{KDCall{}, SPayA{}}], [lk(nw(0n, 0n), ex(0n))]}
+        case _:
+          RStuck{}
+    case _:
+      RStuck{}
+
 def ev.copy(b: NodeKind, p: Nat) -> Rule:
   match b:
     case KEraN{}:
@@ -630,6 +647,8 @@ def ev.fans(+copy: Bool, b: NodeKind, p: Nat) -> Rule:
 # the event at port p of a node of kind a, an eraser of kind b facing it
 def event(a: NodeKind, b: NodeKind, p: Nat) -> Rule:
   match a:
+    case KCall{}:
+      ev.call(b, p)
     case KLift{}:
       ev.out(b, p)
     case KLiftC{}:
@@ -683,6 +702,8 @@ def kind_n(k: NodeKind) -> Nat:
       14n
     case KMergeR{}:
       15n
+    case KDCall{}:
+      16n
 
 # two sources the same, composed ones term by term
 def src_eq(s: Src, u: Src) -> Bool:
@@ -740,7 +761,7 @@ def rule_eq(r: Rule, u: Rule) -> Bool:
     case _ _:
       False{}
 
-# a linear fan's full kind
+# a fused kind's full kind: a linear fan's fan, a dead call's call
 def lf.full(+k: NodeKind) -> NodeKind:
   match k:
     case KCopyL{}:
@@ -751,14 +772,18 @@ def lf.full(+k: NodeKind) -> NodeKind:
       KMerge{}
     case KMergeR{}:
       KMerge{}
+    case KDCall{}:
+      KCall{}
     case _:
       k
 
 # Linear fans as their components (heap-strategies.fusions), for the
 # normalizer, which applies the full fans' rules, and the laws
 
-# a linear fan's dead port in its full kind's numbering (0 for none); the
-# eraser of a node of kind k's side; the full port a linear fan keeps
+# a fused kind's dead port in its full kind's numbering (0 for none): a
+# linear fan's erased side, a dead call's result (heap-strategies.erasure.
+# deadcall); the eraser of a node of kind k's side; the full port a linear
+# fan keeps, a dead call keeping none
 def ex.dead(+k: NodeKind) -> Nat:
   match k:
     case KCopyL{}:
@@ -768,6 +793,8 @@ def ex.dead(+k: NodeKind) -> Nat:
     case KMergeL{}:
       2n
     case KMergeR{}:
+      1n
+    case KDCall{}:
       1n
     case _:
       0n
@@ -1455,12 +1482,15 @@ def lf.fin(m: Maybe<&2, G>, +sa: Bool, +sb: Bool) -> Rule:
       lf.out(lf.mark(lf.size(g), g, 0n), sa, sb)
 
 # where the dead side was, as the full rule numbers its external peers:
-# A's, a copy's erased output; B's, a merge's erased input
+# A's, a copy's erased output or a dead call's result; B's, a merge's
+# erased input
 def lf.dead_a(k: NodeKind) -> Maybe<&2, Nat>:
   match k:
     case KCopyL{}:
       Some{1n}
     case KCopyR{}:
+      Some{0n}
+    case KDCall{}:
       Some{0n}
     case _:
       None{}
@@ -1535,10 +1565,13 @@ def rule.b(+a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.full(a, b, t)
 
 # the rule for A meeting B, A's principal negative, t testing the payloads
-# as rule.full says: a full fan's rule, or a linear one's derived from it;
+# as rule.full says: a full kind's rule, or a fused one's derived from it
+# (a linear fan's, a dead call's);
 # a kind whose principal is positive is never A, and stuck as one
 def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
   match a:
+    case KDCall{}:
+      lf.derive(KDCall{}, b, t)
     case KCopyL{}:
       lf.derive(KCopyL{}, b, t)
     case KCopyR{}:
@@ -1651,6 +1684,11 @@ def is_stuck(r: Rule) -> Bool:
       True{}
     case _:
       False{}
+
+# the net's header counts events a word a kind, for the codes below 16
+# (kprim.bend's at_evk): a kind coded past them makes none
+def ev_header(+a: NodeKind, b: NodeKind, p: Nat) -> Bool:
+  Nat.is_lt(kind_n(a), 16n) || is_stuck(event(a, b, p))
 
 def made_at_most_one(r: Rule) -> Bool:
   match r:
@@ -2340,15 +2378,22 @@ def xb.ports(m: Nat, +b: XB, +n: Nat, +k: NodeKind, +q: Nat, +base: Nat) -> XB:
 def xb.comp(+b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
   xb.ports(Nat.sub(arity(lf.full(k)), 1n), b, n, k, 1n, base)
 
+def xb.fused.kept(kept: Bool, +b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
+  match kept:
+    case True{}:
+      xb.link(b, New{n, 1n}, Ext{Nat.sub(Nat.add(base, ex.kept(k)), 1n)})
+    case False{}:
+      b
+
 def xb.fused.lin(lin: Bool, +b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
   match lin:
     case True{}:
-      xb.link(b, New{n, 1n}, Ext{Nat.sub(Nat.add(base, ex.kept(k)), 1n)})
+      xb.fused.kept(Nat.is_gt(arity(k), 1n), b, n, k, base)
     case False{}:
       xb.comp(b, n, k, base)
 
 # node n of kind k as it is, a linear fan's one auxiliary port the external
-# peer its full kind's kept port would have
+# peer its full kind's kept port would have, a dead call's none
 def xb.fused(+b: XB, +n: Nat, +k: NodeKind, +base: Nat) -> XB:
   xb.fused.lin(Bool.not(Nat.is_eq(ex.dead(k), 0n)), b, n, k, base)
 

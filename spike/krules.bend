@@ -44,6 +44,8 @@ def kind_arity(+k: U32) -> U32:
       2
     case 15:
       2
+    case 16:
+      1
     case _:
       0
 
@@ -83,6 +85,8 @@ def kind_neg.n(+k: U32) -> U32:
       0
     case 15:
       0
+    case 16:
+      1
     case _:
       0
 
@@ -134,13 +138,13 @@ def class.lt(lt: Bool, +k: U32) -> U32:
     case True{}:
       k
     case False{}:
-      16
+      17
 
 def class(+k: U32) -> U32:
-  class.lt(U32.is_lt(k, 16), k)
+  class.lt(U32.is_lt(k, 17), k)
 
 # the rule's number for A, negative principal, of class ca meeting B of
-# class cb, at ca times 17 plus cb: 0 for a pair no rule rewrites
+# class cb, at ca times 18 plus cb: 0 for a pair no rule rewrites
 def rule_at(+i: U32) -> U32:
   match i:
     case 0:
@@ -214,75 +218,75 @@ def rule_at(+i: U32) -> U32:
     case 34:
       0
     case 35:
-      1
+      0
     case 36:
       0
     case 37:
-      0
+      1
     case 38:
-      2
-    case 39:
-      3
-    case 40:
       0
+    case 39:
+      0
+    case 40:
+      2
     case 41:
-      4
+      3
     case 42:
       0
     case 43:
-      0
+      4
     case 44:
       0
     case 45:
-      5
+      0
     case 46:
       0
     case 47:
-      0
+      5
     case 48:
-      6
+      0
     case 49:
-      7
+      0
     case 50:
-      0
+      6
     case 51:
-      0
+      7
     case 52:
-      8
+      0
     case 53:
       0
     case 54:
       0
     case 55:
-      9
+      8
     case 56:
-      10
+      0
     case 57:
       0
     case 58:
-      11
+      9
     case 59:
-      0
+      10
     case 60:
       0
     case 61:
-      0
+      11
     case 62:
-      12
+      0
     case 63:
       0
     case 64:
       0
     case 65:
-      13
+      12
     case 66:
-      14
+      0
     case 67:
       0
     case 68:
-      0
+      13
     case 69:
-      0
+      14
     case 70:
       0
     case 71:
@@ -350,47 +354,47 @@ def rule_at(+i: U32) -> U32:
     case 102:
       0
     case 103:
-      15
+      0
     case 104:
       0
     case 105:
       0
     case 106:
-      16
+      0
     case 107:
-      17
+      0
     case 108:
       0
     case 109:
-      18
+      15
     case 110:
       0
     case 111:
       0
     case 112:
-      0
+      16
     case 113:
-      19
+      17
     case 114:
       0
     case 115:
-      0
+      18
     case 116:
-      20
+      0
     case 117:
-      21
+      0
     case 118:
       0
     case 119:
-      0
+      19
     case 120:
       0
     case 121:
       0
     case 122:
-      0
+      20
     case 123:
-      0
+      21
     case 124:
       0
     case 125:
@@ -438,7 +442,7 @@ def rule_at(+i: U32) -> U32:
     case 146:
       0
     case 147:
-      22
+      0
     case 148:
       0
     case 149:
@@ -454,17 +458,17 @@ def rule_at(+i: U32) -> U32:
     case 154:
       0
     case 155:
-      0
+      22
     case 156:
       0
     case 157:
-      46
+      0
     case 158:
-      47
+      0
     case 159:
       0
     case 160:
-      23
+      0
     case 161:
       0
     case 162:
@@ -472,33 +476,33 @@ def rule_at(+i: U32) -> U32:
     case 163:
       0
     case 164:
-      48
+      0
     case 165:
       0
     case 166:
-      0
+      52
     case 167:
-      24
+      53
     case 168:
-      25
-    case 169:
       0
+    case 169:
+      23
     case 170:
       0
     case 171:
-      26
+      0
     case 172:
       0
     case 173:
-      0
+      54
     case 174:
-      27
-    case 175:
-      28
-    case 176:
       0
+    case 175:
+      0
+    case 176:
+      24
     case 177:
-      29
+      25
     case 178:
       0
     case 179:
@@ -506,19 +510,19 @@ def rule_at(+i: U32) -> U32:
     case 180:
       0
     case 181:
-      49
+      26
     case 182:
       0
     case 183:
       0
     case 184:
-      30
+      27
     case 185:
-      31
+      28
     case 186:
       0
     case 187:
-      0
+      29
     case 188:
       0
     case 189:
@@ -526,15 +530,15 @@ def rule_at(+i: U32) -> U32:
     case 190:
       0
     case 191:
-      0
+      55
     case 192:
       0
     case 193:
       0
     case 194:
-      0
+      30
     case 195:
-      0
+      31
     case 196:
       0
     case 197:
@@ -554,19 +558,19 @@ def rule_at(+i: U32) -> U32:
     case 204:
       0
     case 205:
-      32
+      0
     case 206:
       0
     case 207:
       0
     case 208:
-      33
+      0
     case 209:
-      34
+      0
     case 210:
       0
     case 211:
-      35
+      0
     case 212:
       0
     case 213:
@@ -574,59 +578,59 @@ def rule_at(+i: U32) -> U32:
     case 214:
       0
     case 215:
-      36
+      0
     case 216:
       0
     case 217:
-      0
+      32
     case 218:
-      37
+      0
     case 219:
-      38
+      0
     case 220:
-      0
+      33
     case 221:
-      0
+      34
     case 222:
-      39
-    case 223:
       0
+    case 223:
+      35
     case 224:
       0
     case 225:
-      40
-    case 226:
-      41
-    case 227:
       0
+    case 226:
+      0
+    case 227:
+      36
     case 228:
-      42
+      0
     case 229:
       0
     case 230:
-      0
+      37
     case 231:
-      0
+      38
     case 232:
-      43
+      0
     case 233:
       0
     case 234:
       0
     case 235:
-      44
+      39
     case 236:
-      45
+      0
     case 237:
       0
     case 238:
-      0
+      40
     case 239:
-      0
+      41
     case 240:
       0
     case 241:
-      0
+      42
     case 242:
       0
     case 243:
@@ -634,15 +638,15 @@ def rule_at(+i: U32) -> U32:
     case 244:
       0
     case 245:
-      0
+      43
     case 246:
       0
     case 247:
       0
     case 248:
-      0
+      44
     case 249:
-      0
+      45
     case 250:
       0
     case 251:
@@ -721,11 +725,81 @@ def rule_at(+i: U32) -> U32:
       0
     case 288:
       0
+    case 289:
+      0
+    case 290:
+      0
+    case 291:
+      0
+    case 292:
+      46
+    case 293:
+      47
+    case 294:
+      0
+    case 295:
+      48
+    case 296:
+      0
+    case 297:
+      0
+    case 298:
+      0
+    case 299:
+      49
+    case 300:
+      0
+    case 301:
+      0
+    case 302:
+      50
+    case 303:
+      51
+    case 304:
+      0
+    case 305:
+      0
+    case 306:
+      0
+    case 307:
+      0
+    case 308:
+      0
+    case 309:
+      0
+    case 310:
+      0
+    case 311:
+      0
+    case 312:
+      0
+    case 313:
+      0
+    case 314:
+      0
+    case 315:
+      0
+    case 316:
+      0
+    case 317:
+      0
+    case 318:
+      0
+    case 319:
+      0
+    case 320:
+      0
+    case 321:
+      0
+    case 322:
+      0
+    case 323:
+      0
     case _:
       0
 
 def rule_no(+ka: U32, +kb: U32) -> U32:
-  rule_at(((class(ka) * 17 : U32) + class(kb) : U32))
+  rule_at(((class(ka) * 18 : U32) + class(kb) : U32))
 
 # which payload test a rule's variants take: 0 none, 1 the levels' or the
 # fans' sites, 2 whether B's data is a builtin function
@@ -830,6 +904,18 @@ def test_by(+r: U32) -> U32:
     case 48:
       0
     case 49:
+      0
+    case 50:
+      0
+    case 51:
+      0
+    case 52:
+      0
+    case 53:
+      0
+    case 54:
+      0
+    case 55:
       0
     case _:
       0
@@ -957,6 +1043,18 @@ def stuck_of(+r: U32) -> U32:
       0
     case 49:
       0
+    case 50:
+      0
+    case 51:
+      0
+    case 52:
+      0
+    case 53:
+      0
+    case 54:
+      0
+    case 55:
+      0
     case _:
       1
 
@@ -1062,12 +1160,24 @@ def grow_of(+r: U32) -> U32:
     case 45:
       0
     case 46:
-      1
+      0
     case 47:
       0
     case 48:
       0
     case 49:
+      0
+    case 50:
+      0
+    case 51:
+      0
+    case 52:
+      1
+    case 53:
+      0
+    case 54:
+      0
+    case 55:
       0
     case _:
       0
@@ -1110,7 +1220,7 @@ def rw.Ap.Merge(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P
 
 def rw.Ap.Data.yes.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   (h, +n0) = r
-  fin(P.link(P.link(h, n0, e0), (n0 + 1 : U32), e1), note(st, n0, e0))
+  after(fin(P.link(P.link(h, n0, e0), (n0 + 1 : U32), e1), note(st, n0, e0)), N.Ext4{P.nil(), e1, P.nil(), P.nil()})
 
 def rw.Ap.Data.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.Ap.Data.yes.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(9, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
@@ -1708,6 +1818,48 @@ def rw.CopyR.MergeR.no.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> 
 def rw.CopyR.MergeR.no(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.CopyR.MergeR.no.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(15, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
+def rw.DCall.Merge.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
+  (h, +n1) = r
+  fin(P.link(P.link(h, n0, e2), n1, e3), note(note(st, n0, e2), n1, e3))
+
+def rw.DCall.Merge.k2.pre(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
+  (h, +dw) = r
+  rw.DCall.Merge.k2(~S, ~R, ~note, ~fin, ~after, P.renode(h, b, P.hd2(16, P.form(ha), P.fld(ha)), dw), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.DCall.Merge.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  (h, +n0) = r
+  rw.DCall.Merge.k2.pre(~S, ~R, ~note, ~fin, ~after, P.dup(h, P.form(ha), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3, n0)
+
+def rw.DCall.Merge(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.Merge.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.DCall.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  fin(P.drop(P.drop(P.fresh2(h, a, b), P.form(ha), pa), P.form(hb), pb), st)
+
+def rw.DCall.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  fin(P.drop(P.fresh2(h, a, b), P.form(ha), pa), st)
+
+def rw.DCall.LiftC.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  (h, +n0) = r
+  fin(P.link(h, n0, e2), note(st, n0, e2))
+
+def rw.DCall.LiftC(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.LiftC.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.DCall.MergeL.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  (h, +n0) = r
+  fin(P.link(h, n0, e2), note(st, n0, e2))
+
+def rw.DCall.MergeL(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.MergeL.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.DCall.MergeR.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  (h, +n0) = r
+  fin(P.link(h, n0, e2), note(st, n0, e2))
+
+def rw.DCall.MergeR(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.MergeR.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
 # Events (R.event)
 
 # rules linking two of their own new nodes into an event: none, or this
@@ -1724,7 +1876,7 @@ def ev_word(+w: U32) -> U32:
     case 1:
       40
     case 2:
-      134479872
+      134480896
     case _:
       134743044
 
@@ -1774,6 +1926,13 @@ def ev.Merge.p2.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, 
 
 def ev.Merge.p2(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
   ev.Merge.p2.k1(~S, ~note, P.renode(P.free(h, b), a, P.hd2(14, P.form(ha), P.fld(ha)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def ev.Call.p1.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
+  (h, +n0) = r
+  (h, st)
+
+def ev.Call.p1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
+  ev.Call.p1.k1(~S, ~note, P.renode(P.free(h, b), a, P.hd2(16, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def ev.Lift.p1.k1(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> P.H & S:
   (h, +n0) = r
@@ -1830,6 +1989,8 @@ def event(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +ka: U32, +p: U32, h: P
       ev.Merge.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 4 2:
       ev.Merge.p2(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case 9 1:
+      ev.Call.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 10 1:
       ev.Lift.p1(~S, ~note, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case 11 1:
@@ -2029,86 +2190,164 @@ def rw.arm.r45(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.
       rw.CopyR.MergeR.no(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.arm.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.Call.Merge(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.DCall.Merge(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.arm.r47(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.Call.Data(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.DCall.Data(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.arm.r48(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.Call.LiftC(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.DCall.EraP(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.arm.r49(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.LiftC(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r50(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.MergeL(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r51(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.DCall.MergeR(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.Call.Merge(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r53(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.Call.Data(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r54(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.Call.LiftC(~S, ~R, ~note, ~fin, ~after, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.arm.r55(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.Lift.LiftC.peeled(~S, ~R, ~note, ~fin, ~after, P.peel_ctl(P.err_if(P.lift_wraps(P.fld(ha), pa, P.fld(hb)) || P.lift_wraps(P.fld(hb), pb, P.fld(ha)), h), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
 
-def rw.t.r44.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r50.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r44(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r50(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
+      rw.arm.r51(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r50.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r50.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 51), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r48.r50.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.arm.r48(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r49(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r48.r50(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r48.r50.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 49), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r48.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r48.r50(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r50.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r48.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r48.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 50), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r46.r48.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.arm.r46(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r47(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r46.r48(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r46.r48.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 47), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r45.r48.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
       rw.arm.r45(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r46.r48(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r44.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r44.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 45), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r45.r48(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r45.r48.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 46), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r43.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r45.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r45.r48(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r48.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r45.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r45.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 48), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r43.r45.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r43(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r44.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r44(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r43.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r43.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 44), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r43.r45(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r43.r45.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 44), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r41.r43.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r42.r45.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r41(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r42(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r43.r45(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r41.r43(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r41.r43.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 42), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r42.r45(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r42.r45.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 43), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r40.r43.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r40.r42.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r40(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r41.r43(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r41(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r40.r43(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r40.r43.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 41), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r40.r42(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r40.r42.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 41), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r40.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r39.r42.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r40.r43(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r43.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r40.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r40.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 43), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r38.r40.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.arm.r38(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r39(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r40.r42(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r38.r40(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r38.r40.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 39), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r39.r42(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r39.r42.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 40), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r37.r40.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r39.r45.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r39.r42(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r42.r45(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r39.r45(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r39.r45.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 42), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r39.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r39.r45(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r45.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r39.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r39.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 45), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r37.r39.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r37(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r38.r40(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r38(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r37.r40(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r37.r40.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 38), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r37.r39(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r37.r39.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 38), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.t.r35.r37.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
@@ -2120,255 +2359,245 @@ def rw.t.r35.r37.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fi
 def rw.t.r35.r37(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.t.r35.r37.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 36), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r34.r37.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r35.r39.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r34(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.t.r35.r37(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r37.r39(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r34.r37(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r34.r37.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 35), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r35.r39(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r35.r39.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 37), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r34.r40.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r33.r35.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r34.r37(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r33(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r37.r40(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r34(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r34.r40(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r34.r40.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 37), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r33.r35(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r33.r35.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 34), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r34.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r34.r40(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r40.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r34.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r34.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 40), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r32.r34.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r32.r35.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r32(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r33(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r33.r35(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r32.r34(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r32.r34.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 33), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r32.r35(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r32.r35.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 33), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r31.r34.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r32.r39.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r31(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r32.r35(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r32.r34(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r35.r39(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r31.r34(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r31.r34.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 32), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r32.r39(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r32.r39.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 35), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r29.r31.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r30.r32.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.arm.r30(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r31(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r30.r32(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r30.r32.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 31), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r29.r32.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r29(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r30(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r30.r32(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r29.r31(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r29.r31.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 30), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r29.r32(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r29.r32.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 30), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r28.r31.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r27.r29.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
+      rw.arm.r27(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
       rw.arm.r28(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r29.r31(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r28.r31(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r28.r31.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 29), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r27.r29(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r27.r29.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 28), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r28.r34.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r28.r31(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r31.r34(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r28.r34(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r28.r34.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 31), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r26.r28.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r26.r29.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r26(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r27(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r27.r29(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r26.r28(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r26.r28.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 27), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r26.r29(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r26.r29.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 27), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r25.r28.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r26.r32.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r25(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r26.r29(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r26.r28(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r29.r32(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r25.r28(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r25.r28.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 26), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r26.r32(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r26.r32.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 29), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r23.r25.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r26.r39.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r23(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r26.r32(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
+      rw.t.r32.r39(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r26.r39(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r26.r39.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 32), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r26.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r26.r39(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r39.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r26.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r26.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 39), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r24.r26.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
       rw.arm.r24(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r25(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r23.r25(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r23.r25.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 24), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r24.r26(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r24.r26.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 25), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r23.r28.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r22.r24.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r23.r25(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r25.r28(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r23.r28(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r23.r28.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 25), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r23.r34.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r23.r28(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r28.r34(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r23.r34(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r23.r34.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 28), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r23.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r23.r34(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r34.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r23.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r23.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 34), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r21.r23.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.arm.r21(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r22(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r23(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r21.r23(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r21.r23.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 22), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r22.r24(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r22.r24.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 23), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r20.r23.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r22.r26.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r22.r24(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r24.r26(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r22.r26(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r22.r26.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 24), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r20.r22.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r20(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r21.r23(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r21(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r20.r23(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r20.r23.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 21), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r20.r22(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r20.r22.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 21), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r18.r20.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r19.r22.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r18(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r19(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r20.r22(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r18.r20(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r18.r20.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 19), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r19.r22(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r19.r22.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 20), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r17.r20.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r19.r26.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r19.r22(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r22.r26(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r19.r26(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r19.r26.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 22), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r17.r19.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r17(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r18.r20(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r18(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r17.r20(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r17.r20.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 18), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r17.r19(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r17.r19.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 18), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r17.r23.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r16.r19.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r17.r20(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r20.r23(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r17.r23(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r17.r23.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 20), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r15.r17.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.arm.r15(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r16(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r17.r19(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r15.r17(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r15.r17.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 16), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r16.r19(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r16.r19.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 17), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r14.r17.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r14.r16.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r14(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r15.r17(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r15(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r14.r17(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r14.r17.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 15), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r14.r16(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r14.r16.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 15), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r12.r14.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r13.r16.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r12(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.arm.r13(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r14.r16(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r12.r14(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r12.r14.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 13), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r13.r16(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r13.r16.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 14), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r11.r14.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r13.r19.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r13.r16(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r16.r19(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r13.r19(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r13.r19.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 16), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r13.r26.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.t.r13.r19(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r19.r26(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r13.r26(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r13.r26.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 19), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r11.r13.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r11(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r12.r14(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r12(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r11.r14(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r11.r14.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 12), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r11.r17.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r11.r14(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r14.r17(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r11.r17(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r11.r17.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 14), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r11.r23.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r11.r17(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r17.r23(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r11.r23(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r11.r23.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 17), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r11.r13(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r11.r13.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 12), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.t.r9.r11.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
@@ -2380,147 +2609,157 @@ def rw.t.r9.r11.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin
 def rw.t.r9.r11(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   rw.t.r9.r11.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 10), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r8.r11.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r9.r13.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r8(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
       rw.t.r9.r11(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r11.r13(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r8.r11(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r8.r11.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 9), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r9.r13(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r9.r13.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 11), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r6.r8.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r7.r9.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.arm.r7(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.arm.r8(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r7.r9(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r7.r9.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 8), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r6.r9.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r6(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r7(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r7.r9(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r6.r8(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r6.r8.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 7), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r6.r9(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r6.r9.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 7), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r5.r8.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r6.r13.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
+      rw.t.r6.r9(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
+      rw.t.r9.r13(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r6.r13(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r6.r13.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 9), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+def rw.t.r4.r6.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  match lt:
+    case True{}:
+      rw.arm.r4(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+    case False{}:
       rw.arm.r5(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r6.r8(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r5.r8(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r5.r8.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 6), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r4.r6(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r4.r6.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 5), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r5.r11.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  match lt:
-    case True{}:
-      rw.t.r5.r8(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-    case False{}:
-      rw.t.r8.r11(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r5.r11(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r5.r11.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 8), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
-
-def rw.t.r3.r5.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r3.r6.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r3(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r4(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r4.r6(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r3.r5(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r3.r5.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 4), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r3.r6(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r3.r6.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 4), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r2.r5.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r1.r3.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.arm.r2(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r1(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r3.r5(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r2(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r2.r5(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r2.r5.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 3), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r1.r3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r1.r3.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 2), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r2.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r0.r3.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
       rw.arm.r0(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.arm.r1(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r1.r3(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r0.r2.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 1), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r0.r3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r0.r3.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 1), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r5.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r0.r6.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r0.r2(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r0.r3(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r2.r5(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r3.r6(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r5(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r0.r5.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 2), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r0.r6(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r0.r6.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 3), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r11.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r0.r13.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r0.r5(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r0.r6(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r5.r11(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r6.r13(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r11(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r0.r11.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 5), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r0.r13(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r0.r13.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 6), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r23.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r0.r26.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r0.r11(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r0.r13(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r11.r23(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r13.r26(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r23(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r0.r23.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 11), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r0.r26(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r0.r26.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 13), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r46.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.t.r0.r52.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, lt: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match lt:
     case True{}:
-      rw.t.r0.r23(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r0.r26(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r23.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r26.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.t.r0.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.t.r0.r46.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 23), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+def rw.t.r0.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+  rw.t.r0.r52.go(~S, ~R, ~note, ~fin, ~after, U32.is_lt(r, 26), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.d.r49(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.d.r55(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match hit:
     case True{}:
-      rw.arm.r49(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r55(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.t.r0.r46(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.t.r0.r52(~S, ~R, ~note, ~fin, ~after, ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.d.r48(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.d.r54(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match hit:
     case True{}:
-      rw.arm.r48(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r54(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.d.r49(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 49), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.d.r55(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 55), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.d.r47(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.d.r53(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match hit:
     case True{}:
-      rw.arm.r47(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r53(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.d.r48(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 48), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.d.r54(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 54), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
-def rw.d.r46(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
+def rw.d.r52(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, hit: Bool, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   match hit:
     case True{}:
-      rw.arm.r46(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.arm.r52(~S, ~R, ~note, ~fin, ~after, ka, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
     case False{}:
-      rw.d.r47(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 47), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      rw.d.r53(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 53), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 # the rewrite for A, negative principal, of kind ka, meeting B by rule r
 # (rule_no); t is the payload test; then `after`, at the external peers
 # where the rule may make an event
 def rewrite(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +r: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  rw.d.r46(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 46), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+  rw.d.r52(~S, ~R, ~note, ~fin, ~after, U32.is_eq(r, 52), ka, r, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 

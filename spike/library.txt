@@ -193,6 +193,43 @@ fuel: 100000
 levels: demand 0
 unfused: demand 0
 
+# Dead calls (heap-strategies.erasure.deadcall): a strict call whose
+# result faces an eraser is marked dead by an event, and erases its
+# argument when the argument arrives instead of calling
+
+name: dead-call-data
+why: succ applied to 5, its result erased, the root reading 7: the call
+  made faces the eraser and dies, then erases the 5 instead of calling
+nodes: ap(0) succ num(5) era num(7)
+links: 0.0-1.0 0.1-2.0 0.2-3.0
+root: 4.0
+net: 7 logical 4 peels 0
+
+name: dead-call-chain
+why: succ applied to succ 5, the outer result erased: the outer call
+  dies, but the inner, its result facing the dead call's principal
+  rather than an eraser, still calls (deadcall.chain would kill it too)
+nodes: ap(0) succ ap(0) succ num(5) era num(7)
+links: 0.0-1.0 0.1-2.2 0.2-5.0 2.0-3.0 2.1-4.0
+root: 6.0
+net: 7 logical 6 peels 0
+
+name: dead-call-late
+why: `(\u. 7) (succ 5)`: whether the call dies depends on order, since
+  its result meets the eraser only once beta has joined them; the full
+  reductions call first
+term: (\u. 7) (succ 5)
+levels: 7 logical 5 peels 0
+unfused: 7 logical 5 peels 0
+
+name: dead-call-superposed
+why: a function copied with a dead call in its body, the call's argument
+  its variable, superposed where the copy crosses the binder: the dead
+  call meets the superposition, and unfused the controls facing it
+term: (\f. plus (f 1) (f 2)) (\x. (\u. 7) (succ x))
+levels: 14 logical 21 peels 0
+unfused: 14 logical 55 peels 0
+
 # Backtracking with two continuations (terms.py's ret, fail, alt, bind,
 # guard, once): a first solution drops the failure continuation, every
 # alternative not tried, which demand leaves as garbage

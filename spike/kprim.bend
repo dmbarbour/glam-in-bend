@@ -185,7 +185,8 @@ def at_tcap() -> U32:
 def at_td() -> U32:
   7
 
-# events at a node of kind code k
+# events at a node of kind code k, below 16: no kind past them makes one
+# (law events_fit_header)
 def at_evk(+k: U32) -> U32:
   (12 + k : U32)
 

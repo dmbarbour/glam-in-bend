@@ -18,7 +18,7 @@ import ../net.bend as N
 # interpreter of the table instead.
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDCall{}]
 
 def kname(k: R.NodeKind) -> String:
   match k:
@@ -54,6 +54,8 @@ def kname(k: R.NodeKind) -> String:
       "MergeL"
     case R.KMergeR{}:
       "MergeR"
+    case R.KDCall{}:
+      "DCall"
 
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))
@@ -63,6 +65,8 @@ def is_data(k: R.NodeKind) -> Bool:
     case R.KData{}:
       True{}
     case R.KCall{}:
+      True{}
+    case R.KDCall{}:
       True{}
     case _:
       False{}

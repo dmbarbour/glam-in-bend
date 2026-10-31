@@ -31,8 +31,10 @@ import ./kmem_grow.bend as KM
 # Payloads
 # ========
 
+# a kind whose payload is a value: data, and a call's or a dead call's
+# function
 def is_data(+k: U32) -> Bool:
-  U32.is_eq(k, 5) || U32.is_eq(k, 9)
+  U32.is_eq(k, 5) || U32.is_eq(k, 9) || U32.is_eq(k, 16)
 
 type Mk is Type:
   Mk{h: P.H, refs: List<&2, U32>, +ua: Bool, +ub: Bool}

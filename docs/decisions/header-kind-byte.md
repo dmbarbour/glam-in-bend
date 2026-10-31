@@ -1,6 +1,6 @@
 # A node's header: a kind byte, two bits of form, a 22-bit field
 
-`header-kind-byte` · maintainer · rev 25710ad
+`header-kind-byte` · maintainer · rev 1b31125
 
 **Context.** A node's header word held a 4-bit rule kind, a 4-bit value
 form and a 24-bit field (`spike/kprim.bend`). All 16 kinds are in use,
@@ -28,7 +28,10 @@ fans whether their net was built without levels. Options were 6/2/24,
   picks the operation by the code inside its step (the maintainer,
   2026-10-31, over a lookup table, which cost 2.3% where the minimum
   costs next to nothing; `heap-strategies.kinds.class`).
-- The model's kinds widen with the header.
+- The model's kinds widen with the header. The net's header still
+  counts events a word a kind for codes below 16 alone: the first kind
+  past them to make an event, a dead operator perhaps, widens it first
+  (law `events_fit_header`).
 
 **Rule lives in:** `spike/kprim.bend` ("Headers, levels, values");
 the class tier in `spike/tools/gen_krules.bend` ("Dispatch"); the

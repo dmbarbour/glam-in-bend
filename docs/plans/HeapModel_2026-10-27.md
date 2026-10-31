@@ -315,11 +315,12 @@ takes from it:
    `heap-strategies.erasure.merge` (built), then `spike-templates` (built) and
    `heap-strategies.kinds.dispatch` (built) on the merged kernel, so
    that the generator is rebuilt once (the maintainer, 2026-10-31),
-   `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class`,
+   `heap-strategies.kinds.layout` (built), `heap-strategies.kinds.class` (built),
    `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
+   `heap-strategies.erasure.deadcall` (built) before the operators (the
+   maintainer, 2026-10-31), `heap-strategies.erasure.deadcall.chain`,
    `spike-operators` (EvalSpike), `heap-strategies.fusions.operators`
    with `heap-strategies.fusions.immediate`,
-   `heap-strategies.erasure.deadcall`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
@@ -1058,8 +1059,7 @@ takes from it:
      - `heap-strategies.erasure.trees` — tentative — chains of linear
        fans, if they come to dominate, compressed into one node holding
        the tree's identity and the path, as runs of controls fuse.
-     - `heap-strategies.erasure.deadcall` — contingent on
-       `heap-strategies.kinds.layout` — a dead call, a
+     - `heap-strategies.erasure.deadcall` — built 2026-10-31 — a dead call, a
        call fused with the eraser at its output, under the same law
        (the maintainer, 2026-10-30). Its components against each
        partner, derived as the linear fans' rules are: stuck against a
@@ -1074,6 +1074,35 @@ takes from it:
        code past the 16 the header's four bits hold, so the kind field
        widened first (the maintainer, 2026-10-30: 64 or 128 kinds
        expected for builtins).
+       Built as the kind `KDCall`, code 16, its rules derived as the
+       linear fans' are (`lf.derive`) and generated with the rest, and
+       one event, a call's output facing an eraser making the call dead
+       (`R.event`'s `ev.call`), found where a rewrite makes a call (the
+       sites). Every law over kinds widens to it, the proofs a case more
+       each; a new law, `events_fit_header`, holds that only kinds coded
+       below 16 make events, since the net's header counts them a word a
+       kind. The profile counts pairs of classes, 32 to a row, not
+       pairs of kinds. Four library entries: a dead call meeting data,
+       one whose argument is computed by a live call, one that dies too
+       late since beta joins its output to the eraser after the call is
+       made (the full reductions call first), and one copied with its
+       function, meeting a superposition and, unfused, co-controls.
+       Against store run 81, the library (run 94) makes 1 to 4
+       interactions fewer and an event more in `costly-107`,
+       `costly-124`, `list-head` and `list-sum`; `K 0 (k 2 succ 0)`
+       at k 10, with two stacks and events, 2,173 interactions and 3
+       events against 2,174, the eager reduction unchanged: the calls of `k 2 succ 0` still run,
+       each feeding the next, which is the chain's work. Four builds at
+       k 18 (run 95 against 92): -2.2% to +1.1%, the interactions
+       unchanged; the seventeenth kind costs nothing measured.
+       - `heap-strategies.erasure.deadcall.chain` — active — a call whose
+         output faces a dead call's principal dies too: the dead call
+         met is an eraser to the event, dropped with its builtin, whose
+         payload the events path must then free (an eraser has none);
+         the sites widen to a new dead call's principal and to a new
+         call's output facing one. Exact since a call's output is data,
+         which a dead call always erases. The library's
+         `dead-call-chain` shows the inner call still calling.
      - `heap-strategies.erasure.load` — tentative — patterns recognized
        only when lowering or loading a fresh net, perhaps after a GC
        cycle (the maintainer, 2026-10-30), against after every rewrite:
@@ -1153,7 +1182,8 @@ takes from it:
        (`.class`, below). Still at 16 kinds: the
        profile's table by pair of kinds and the events' counters by
        kind in the header nodes, which widen with the first kind past
-       15 (`heap-strategies.erasure.deadcall`).
+       15: the profile's now by pair of classes, the events' kept to
+       codes below 16 by law (`heap-strategies.erasure.deadcall`).
        - `heap-strategies.kinds.class` — built 2026-10-31 — the class
          tier's cost, the table's 2.3% on eager `lvl` in the default
          build. Every code from some constant up is an operator (the
@@ -1200,7 +1230,7 @@ takes from it:
        superposition, a co-control or a linear merge leaves the same
        pattern again: equal up to itself. Once dead calls are a kind and
        that chain an event of `R.event`, the normalizer runs it, and
-       `events_as_components` covers it (`heap-strategies.erasure.deadcall`).
+       `events_as_components` covers it (`heap-strategies.erasure.deadcall.chain`).
      - `heap-strategies.fusions.payloads` — built 2026-10-30 — the comparison to
        include what payloads and fields go where, in two parts, data the
        easier (the maintainer, 2026-10-30).
