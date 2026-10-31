@@ -311,8 +311,8 @@ takes from it:
    `heap-strategies.fusions.controls` (built),
    `heap-strategies.erasure.kernel.parity` (built)
    with `heap-strategies.erasure.kernel.sites` (built),
-   `heap-strategies.erasure.kernel.sites.random`,
-   `heap-strategies.erasure.merge`, then `spike-templates` and
+   `heap-strategies.erasure.kernel.sites.random` (built),
+   `heap-strategies.erasure.merge` (built), then `spike-templates` and
    `heap-strategies.kinds.dispatch` on the merged kernel, so that the
    generator is rebuilt once (the maintainer, 2026-10-31),
    `heap-strategies.kinds.layout`,
@@ -936,13 +936,21 @@ takes from it:
          trained without the events, so its events loops cold. That the
          sites miss no event rests on the library's 117 nets and on
          reasoning; what would make it complete:
-         - `heap-strategies.erasure.kernel.sites.random` — tentative —
-           the random-term differential test (`differential.sh`,
-           `terms.py --kernel`) in the erasure modes too: the generated
-           rewrites, looking at sites, against the interpreted table,
-           looking at all four peers, events and interactions term by
-           term, peeled pairs among them, as the library checks its nets.
-           Evidence where the library's coverage ends.
+         - `heap-strategies.erasure.kernel.sites.random` — built
+           2026-10-31 — the random-term differential test
+           (`differential.sh`, `terms.py --kernel`) in the erasure modes
+           too: the generated rewrites, looking at sites, against the
+           interpreted table, looking at all four peers, events and
+           interactions term by term, peeled pairs among them, as the
+           library checks its nets. Evidence where the library's
+           coverage ends. Built: each term also runs with events, eagerly
+           and with two stacks, both ways; the store keeps both (store
+           run 83). On the 3,600 terms, both ways agree on every term in
+           value, interactions, errors and events (8,418 events eager,
+           11,964 with two stacks), and no value the full reduction gets
+           right changes with events. The terms' other results are run
+           37's, term for term (its wrong values, static labels' and
+           three leveled terms', as they were).
          - `heap-strategies.erasure.kernel.sites.law` — tentative — the
            sites read from the model, one owner for the generator and a
            law: whether a port may be in an event with some peer (an
@@ -1075,9 +1083,8 @@ takes from it:
        a dead application is exact where the function is known to keep
        its variable inside its body, a dead call's input erasable where
        it is known to be data (the maintainer, 2026-10-30).
-     - `heap-strategies.erasure.merge` — tentative — awaiting the
-       maintainer's approval, `heap-strategies.erasure.kernel.parity`
-       built — branch `erasure-kernel` onto main: the events in their
+     - `heap-strategies.erasure.merge` — built 2026-10-31 (the
+       maintainer's approval, 2026-10-31) — branch `erasure-kernel` onto main: the events in their
        own strategies, costing nothing where they are off. It changes no
        law: the law changes went to main with the model's half
        (bca342c), the kernel's half alone left here.
