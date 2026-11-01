@@ -342,10 +342,12 @@ takes from it:
    `heap-strategies.erasure.load.cycle.perf` (built),
    `heap-strategies.erasure.load.cycle.third`,
    `heap-strategies.erasure.load.cycle.dispatch`,
-   `heap-strategies.erasure.load.cycle.leaves`,
-   `heap-strategies.erasure.load.cycle.entry`,
+   `heap-strategies.erasure.load.cycle.leaves` (dropped),
+   `heap-strategies.erasure.load.cycle.entry` (dropped),
+   `heap-strategies.erasure.load.cycle.walk` (planned),
+   `heap-strategies.erasure.load.cycle.reserve`,
    `heap-strategies.erasure.load.cycle.adaptive`,
-   `heap-strategies.erasure.load.cycle.lazy-sweep`,
+   `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
    `heap-strategies.erasure.load.cycle.loops.levels`,
    `heap-strategies.generate`,
    `heap-strategies.erasure.typed`,
@@ -1509,40 +1511,85 @@ takes from it:
        - `heap-strategies.erasure.load.cycle.third` — tentative — two
          thirds free before no growth, its bound worth having for loops
          that keep a steady live set (half the collections at worst), at
-         no cost measured here; for the maintainer to decide.
+         no cost measured here. Half for now (the maintainer,
+         2026-11-01).
        - `heap-strategies.erasure.load.cycle.dispatch` — tentative — the
          collecting walk's own cost, 3.5% on dropping terms with no
          check made: the rules that take nodes reach their rewrite
          through two more calls (`wk.room`, `wk.room.go`); a path as
          short as plain demand's, the free-list test made where the
          rewrite is written out.
-       - `heap-strategies.erasure.load.cycle.leaves` — tentative — nodes
-         of one port (data, erasers, dead operators) marked without a
-         visit: what their port faces is the node that reached them;
-         an event's B noted as it is marked.
-       - `heap-strategies.erasure.load.cycle.entry` — tentative — the
-         worklist holding the reference each node was reached by, so
-         that its visit skips that port, already marked: a third of the
-         links of a node of three ports.
-       - `heap-strategies.erasure.load.cycle.adaptive` — tentative — a
-         collection that frees little (an eighth, say) makes the next
-         growth four times rather than twice, or lets the net grow once
-         without collecting: growth with no garbage, as `succ`'s, pays
-         half the collections, the space bounded.
-       - `heap-strategies.erasure.load.cycle.lazy-sweep` — tentative —
-         growth decided from the walk's count of marked nodes, and the
-         unmarked freed as the allocator needs them, a block of marks at
-         a time; small here (the pass costs a few instructions a node),
-         larger where much is garbage.
+       - `heap-strategies.erasure.load.cycle.leaves` — dropped
+         2026-11-01, for `.walk`, where it is implicit — nodes of one
+         port (data, erasers, dead operators) marked without a visit.
+       - `heap-strategies.erasure.load.cycle.entry` — dropped
+         2026-11-01, for `.walk`, where it is implicit — the worklist
+         holding the reference each node was reached by, its visit
+         skipping that port.
+       - `heap-strategies.erasure.load.cycle.walk` — planned — the
+         marking walk the maintainer envisions (2026-11-01): its state a
+         mark bitmap and a visit stack, one array; a node marked before
+         it goes on the stack; the walk follows links, a node of two
+         ports passing it on through its other port, a node of three
+         pushing one of its other two (if the node behind is unmarked,
+         marked as it is pushed) and following the other, a node of one
+         port, or one marked already, ending the run, the stack popped
+         then. The port a node is entered by is known (the reference
+         followed or pushed carries it), so it is never looked at again,
+         and leaves cost a mark. A pair is noted where the walk crosses
+         its principals' link into an unmarked node (that node, entered
+         by its principal, looks no further), or, both ends marked, by
+         the lower; an event's B where the walk enters it from an
+         auxiliary port. The notes grow from the array's other end and
+         become the eval's queue. Against the present walk, a pop, a
+         push and a look back saved a node, fewer calls; the walk is
+         some 110 of `succ`'s 158 instructions a node.
+         - `heap-strategies.erasure.load.cycle.buffers` — contingent
+           on `heap-strategies.erasure.load.cycle.walk` — its one array
+           kept with the net from one collection to the next.
+       - `heap-strategies.erasure.load.cycle.adaptive` — tentative —
+         growth by four where it is likely to be wanted: the first few
+         growths, many functions growing fast at first, then reluctant
+         growth by two (the maintainer, 2026-11-01); or by the evidence,
+         four after a collection that freed little (an eighth, say), two
+         once collections pay, which covers a fast start and a later
+         phase of growth alike. While a net only grows, its collections
+         scan about its final capacity growing by two, a third of it by
+         four, for up to twice the space at the end; growing by four the
+         first few times alone saves the small early collections, much
+         to a small program, little to a large one.
+       - `heap-strategies.erasure.load.cycle.lazy-sweep` — dropped
+         2026-11-01 (the maintainer: a little saved on the free list's
+         building, for much state and complexity) — growth decided from
+         the walk's count of marked nodes, the unmarked freed as the
+         allocator needs them.
+       - `heap-strategies.erasure.load.cycle.reserve` — tentative — the
+         maintainer's batching (2026-11-01: K nodes seen free, then K/2
+         interactions run without asking, K wanted before growing),
+         refined. A demand step makes one interaction at most, and an
+         interaction takes two free nodes at most, so S steps take 2S
+         at most. Plain demand runs in chunks of S steps, its own walk
+         asking nothing; a reserve of 2S free nodes is kept off the free
+         list, and where the allocator finds its list empty it takes the
+         reserve, rather than growing, and raises a flag in the net's
+         header; at the chunk's end the flag calls a collection, the walk
+         starts again from the interface, the reserve is set aside again
+         and the net grows unless half is free. No count of the free
+         list kept (each allocation and free in every strategy would pay
+         for it, and reading it is a call where a check is made), no
+         room asked a rewrite, no walk of the collecting demand's own
+         (4.5% on dropping terms), no pair left out (a collection comes
+         between steps); the plain modes pay a header read where their
+         list runs dry, which is growth. It would retire `.room` and
+         `.dispatch`, the room tables and the hand-written rewrites
+         (`heap-strategies.generate`'s case): the walk back to one
+         template over its `after`.
      - `heap-strategies.erasure.load.cycle.room` — planned — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
        by the allocator (the maintainer, 2026-11-01); the generated
        rewrites would take nodes as arguments.
-     - `heap-strategies.erasure.load.cycle.buffers` — tentative — the
-       collection's arrays (the queue and the worklist, a word a node;
-       the marks, a bit a node) kept with the net from one collection to
-       the next, where each is made and zeroed anew.
+
      - `heap-strategies.generate` — planned — the rewrite written out
        by hand in `kstrat.bend` (`wk.rw.p`, `wk.rw.v`, `wk.rw.c`,
        `wk.room.go`), since a wrapper over the templated one cost a call
