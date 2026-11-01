@@ -794,6 +794,27 @@ law ops_pass_controls:
   for +v: R.NodeKind
   {R.fz_opctl(v) == True{} : Bool}
 
+# LAW: no rule takes a payload from a kind that holds none (R.bare: the
+# free slot, the erasers, the root, the dead operator), so that the kernel
+# never reads a word such a node does not hold: a dead operator drops its
+# builtin when it dies (heap-strategies.erasure.deadcall.eraser).
+# Record: operator-nodes
+# Record: fusions-as-components
+law rules_take_held:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  {R.takes_held(a, b, t) == True{} : Bool}
+
+# LAW: and no event does, so that the kernel reads no word of B's.
+# Record: operator-nodes
+# Record: fusions-as-components
+law events_take_held:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_takes_held(a, b, p) == True{} : Bool}
+
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
 # Record: net-nodes-double

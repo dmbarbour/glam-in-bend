@@ -543,17 +543,13 @@ def ev.run.fin(~S: Type, r: P.H & S, ws: List<&2, U32>, +k: U32) -> Ev<S>:
   (h, st) = r
   Ev{P.ev_count(h, k), st, ws}
 
-def ev.run.b(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  (h, +b3) = r
-  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, payload(hb, 0, b3), x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
-
-# the event at port p of node a, the eraser or dead call b facing it, x0
-# the peer of a's principal and x1 of its other auxiliary port, run and
-# counted, its peers to look at; b's payload read, a dead call's function
-# to drop; the family's state given room first for the pair the event may
-# note
+# the event at port p of node a, the eraser or dead operator b facing
+# it, x0 the peer of a's principal and x1 of its other auxiliary port,
+# run and counted, its peers to look at; the family's state given room
+# first for the pair the event may note. B holds no payload (law
+# events_take_held, and the generator's inner_events), so none is read
 def ev.run(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  ev.run.b(~S, ~note, ~room, P.rd(h, (b + 3 : U32)), st, ws, a, b, ha, hb, p, pa, x0, x1)
+  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
 
 def ev.w3(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ev<S>:
   (h, +w3) = r

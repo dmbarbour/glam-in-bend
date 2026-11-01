@@ -106,7 +106,7 @@ def holds(k: R.NodeKind) -> Holds:
     case R.KMergeR{}:
       HNone{}
     case R.KDOp{}:
-      HValue{}
+      HNone{}
 
 def is_value(h: Holds) -> Bool:
   match h:
@@ -1382,11 +1382,27 @@ def ev_only(as: List<&2, R.NodeKind>) -> String:
     case Con{+a, t}:
       ev_only.p(ev_ports(), a) ++ ev_only(t)
 
+def ev_b_held.hit(held: Bool, +b: R.NodeKind) -> String:
+  match held:
+    case True{}:
+      " + event_b_holds_" ++ kname(b)
+    case False{}:
+      ""
+
+# a kind B may be that holds a payload: the kernel reads no word of B's
+# (knet.bend's ev.run), so this names what does not exist
+def ev_b_held(bs: List<&2, R.NodeKind>) -> String:
+  match bs:
+    case Nil{}:
+      ""
+    case Con{+b, t}:
+      ev_b_held.hit(has_pay(b), b) ++ ev_b_held(t)
+
 def events() -> String:
   "# Events (R.event)\n\n" ++
   "# rules linking two of their own new nodes into an event: none, or this\n" ++
   "# names what does not exist\n" ++
-  "def inner_events() -> U32:\n  0" ++ inner_ev_a(kinds()) ++ "\n\n" ++
+  "def inner_events() -> U32:\n  0" ++ inner_ev_a(kinds()) ++ ev_b_held(ev_bs()) ++ "\n\n" ++
   "# the eraser kind making an event at port p of kind k, 0 for none: two\n" ++
   "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word;\n" ++
   "# a kind past 15 makes none (law events_fit_header)\n" ++

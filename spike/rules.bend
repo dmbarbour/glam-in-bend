@@ -572,13 +572,17 @@ def ev.out(b: NodeKind, p: Nat) -> Rule:
     case _:
       RStuck{}
 
-# an operator's result erased: a dead operator, its builtin kept, stuck
-# where an operator is, so exact where the old event, an eraser of the
-# input, was not (heap-strategies.erasure.deadcall)
+# an operator's result erased: a dead operator, stuck where an operator
+# is, so exact where the old event, an eraser of the input, was not
+# (heap-strategies.erasure.deadcall). It holds nothing: an operator's
+# input and output are data, so once its output is erased nothing it
+# holds is observed, and its builtin is dropped here, an entry freed now
+# rather than when the argument comes; a data-only eraser, one kind for
+# every dead operator (heap-strategies.erasure.deadcall.eraser)
 def ev.op.p(p: Nat) -> Rule:
   match p:
     case 1n:
-      RWire{[Spec{KDOp{}, SPayA{}}], [lk(nw(0n, 0n), ex(0n))]}
+      RWire{[Spec{KDOp{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
     case _:
       RStuck{}
 
@@ -1605,6 +1609,104 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       rule.b(KRoot{}, b, t)
     case _:
       RStuck{}
+
+# Payloads held
+# -------------
+#
+# A kind holding no payload: the free slot, the erasers, the root, the
+# dead operator (heap-strategies.erasure.deadcall.eraser). No rule or
+# event takes a payload from one, so that the kernel never reads a word
+# such a node does not hold. Every kind is named, so that a new one must
+# be placed.
+def bare(k: NodeKind) -> Bool:
+  match k:
+    case KFree{}:
+      True{}
+    case KFn{}:
+      False{}
+    case KAp{}:
+      False{}
+    case KCopy{}:
+      False{}
+    case KMerge{}:
+      False{}
+    case KData{}:
+      False{}
+    case KEraN{}:
+      True{}
+    case KEraP{}:
+      True{}
+    case KRoot{}:
+      True{}
+    case KOp{}:
+      False{}
+    case KLift{}:
+      False{}
+    case KLiftC{}:
+      False{}
+    case KCopyL{}:
+      False{}
+    case KCopyR{}:
+      False{}
+    case KMergeL{}:
+      False{}
+    case KMergeR{}:
+      False{}
+    case KDOp{}:
+      True{}
+
+def takes_a(s: Src) -> Bool:
+  match s:
+    case SPayA{}:
+      True{}
+    case SFanA{}:
+      True{}
+    case SLiftA{}:
+      True{}
+    case SApply{}:
+      True{}
+    case _:
+      False{}
+
+def takes_b(s: Src) -> Bool:
+  match s:
+    case SPayB{}:
+      True{}
+    case SFanB{}:
+      True{}
+    case SLiftB{}:
+      True{}
+    case SApply{}:
+      True{}
+    case _:
+      False{}
+
+def spec_held(+a: NodeKind, +b: NodeKind, sp: Spec) -> Bool:
+  match sp:
+    case Spec{k, +s}:
+      Bool.not(takes_a(s) && bare(a)) && Bool.not(takes_b(s) && bare(b))
+
+def specs_held(+a: NodeKind, +b: NodeKind, xs: List<&2, Spec>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{sp, t}:
+      spec_held(a, b, sp) && specs_held(a, b, t)
+
+def rule_held(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      specs_held(a, b, xs)
+    case RStuck{}:
+      True{}
+
+# a rule takes payloads only from kinds holding them (law rules_take_held)
+def takes_held(+a: NodeKind, +b: NodeKind, +t: Bool) -> Bool:
+  rule_held(a, b, rule(a, b, t))
+
+# and so does every event (law events_take_held)
+def ev_takes_held(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
+  rule_held(a, b, event(a, b, p))
 
 # Levels (spike-operators.levels)
 # ------
