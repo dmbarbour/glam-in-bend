@@ -27,8 +27,8 @@ def kname(k: R.NodeKind) -> String:
       "KEraP"
     case R.KRoot{}:
       "KRoot"
-    case R.KCall{}:
-      "KCall"
+    case R.KOp{}:
+      "KOp"
     case R.KLift{}:
       "KLift"
     case R.KLiftC{}:
@@ -41,17 +41,11 @@ def kname(k: R.NodeKind) -> String:
       "KMergeL"
     case R.KMergeR{}:
       "KMergeR"
-    case R.KDCall{}:
-      "KDCall"
-    case R.KOp{}:
-      "KOp"
-    case R.KOpStep{}:
-      "KOpStep"
-    case R.KOpData{}:
-      "KOpData"
+    case R.KDOp{}:
+      "KDOp"
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDCall{}, R.KOp{}, R.KOpStep{}, R.KOpData{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KOp{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDOp{}]
 
 def nshow(n: Nat) -> String:
   U32.show(U32.from_nat(n))

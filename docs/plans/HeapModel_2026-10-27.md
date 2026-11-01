@@ -323,8 +323,8 @@ takes from it:
    `heap-strategies.measure.differential` (built),
    `heap-strategies.measure.loader` (built),
    `spike-operators` (EvalSpike) with
-   `heap-strategies.erasure.deadcall.eraser`, `heap-strategies.fusions.operators`
-   with `heap-strategies.fusions.immediate`,
+   `heap-strategies.erasure.deadcall.eraser`,
+   `heap-strategies.fusions.immediate`,
    `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
@@ -1453,10 +1453,10 @@ takes from it:
        lean on, stated as laws where it can be: equal up to the events
        means equal (events end, one step observes all, rules with
        events are confluent).
-     - `heap-strategies.fusions.operators` — contingent on
-       `spike-operators` — each fused form of an operator against the
-       general two-stage operator, the operation left uninterpreted; a
-       function applied to data, composed (`SAp`), first met there.
+     - `heap-strategies.fusions.operators` — dropped 2026-11-01 — each
+       fused form of an operator against the general two-stage operator:
+       one operator kind, holding its opcode and accumulator, has no
+       general form to answer to (`operator-nodes`, revised).
      - `heap-strategies.fusions.immediate` — contingent on
        `heap-strategies.kinds.layout` — a fusion may observe whether a
        payload is immediate and nothing more (`fusions-as-components`):

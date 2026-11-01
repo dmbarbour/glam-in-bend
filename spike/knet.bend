@@ -67,8 +67,6 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
       (h, P.PW{0, P.fld(hb), 0})
     case R.SApply{}:
       P.apply(h, ha, pa, hb, pb)
-    case R.SApplyB{}:
-      P.apply(h, hb, pb, ha, pa)
     case R.SLiftA{}:
       (h, P.PW{0, P.lift(P.fld(hb), pb, P.fld(ha)), pa})
     case R.SLiftB{}:
@@ -87,8 +85,6 @@ def takes_a(s: R.Src) -> Bool:
       True{}
     case R.SApply{}:
       True{}
-    case R.SApplyB{}:
-      True{}
     case _:
       False{}
 
@@ -97,8 +93,6 @@ def takes_b(s: R.Src) -> Bool:
     case R.SPayB{}:
       True{}
     case R.SApply{}:
-      True{}
-    case R.SApplyB{}:
       True{}
     case _:
       False{}
@@ -437,6 +431,79 @@ def ev.x1.k(one: Bool, +w2: U32, +w3: U32) -> U32:
 def ev.x1(+ha: U32, +p: U32, +w2: U32, +w3: U32) -> U32:
   aux_or_nil(U32.is_eq(arity(ha), 3), ev.x1.k(U32.is_eq(p, 1), w2, w3))
 
+# The events' tables against the model: for every kind code a header
+# holds (6 bits, so below 64) and each auxiliary port, which kinds of B
+# make an event there (KR.ev_by, KR.ev_also) and whether the port may be
+# one end of one (KR.ev_end), as R.event says; and whether a principal
+# port may be B's. A table written wrong, as the last word once stood for
+# every kind from 12 up, is named here; the library checks it at every
+# gate (ev_tables).
+
+def evt.has(+k: U32, +p: U32, +kb: U32) -> Bool:
+  Bool.not(R.is_stuck(R.event(N.kof(k), N.kof(kb), U32.to_nat(p))))
+
+def evt.kernel(+k: U32, +p: U32, +kb: U32) -> Bool:
+  (U32.is_ne(kb, 0) && U32.is_eq(KR.ev_by(k, p), kb)) || KR.ev_also(k, p, kb)
+
+def evt.same(+a: Bool, +b: Bool) -> Bool:
+  (a && b) || (Bool.not(a) && Bool.not(b))
+
+def evt.say(ok: Bool, +k: U32, +p: U32, +kb: U32) -> String:
+  match ok:
+    case True{}:
+      ""
+    case False{}:
+      " " ++ U32.show(k) ++ "." ++ U32.show(p) ++ "/" ++ U32.show(kb)
+
+# any B, from code kb, n codes on, making an event at port p of kind k
+def evt.any_b(n: Nat, +k: U32, +p: U32, +kb: U32) -> Bool:
+  match n:
+    case 0n:
+      False{}
+    case 1n+r:
+      evt.has(k, p, kb) || evt.any_b(r, k, p, (kb + 1 : U32))
+
+# any A, from code a, n codes on, at either auxiliary port, kind kb its B
+def evt.any_a(n: Nat, +kb: U32, +a: U32) -> Bool:
+  match n:
+    case 0n:
+      False{}
+    case 1n+r:
+      evt.has(a, 1, kb) || evt.has(a, 2, kb) || evt.any_a(r, kb, (a + 1 : U32))
+
+def evt.bs(n: Nat, +k: U32, +p: U32, +kb: U32, acc: String) -> String:
+  match n:
+    case 0n:
+      acc
+    case 1n+r:
+      evt.bs(r, k, p, (kb + 1 : U32), acc ++ evt.say(evt.same(evt.has(k, p, kb), evt.kernel(k, p, kb)), k, p, kb))
+
+# kind k's ports: B at each auxiliary one, and whether each port may be an
+# end (64 for B's code, ev_end's mismatches named with it)
+def evt.k(+k: U32) -> String:
+  evt.bs(64n, k, 1, 0, "") ++ evt.bs(64n, k, 2, 0, "") ++
+    evt.say(evt.same(KR.ev_end(k, 0), evt.any_a(64n, k, 0)), k, 0, 64) ++
+    evt.say(evt.same(KR.ev_end(k, 1), evt.any_b(64n, k, 1, 0)), k, 1, 64) ++
+    evt.say(evt.same(KR.ev_end(k, 2), evt.any_b(64n, k, 2, 0)), k, 2, 64)
+
+def evt.ks(n: Nat, +k: U32, acc: String) -> String:
+  match n:
+    case 0n:
+      acc
+    case 1n+r:
+      evt.ks(r, (k + 1 : U32), acc ++ evt.k(k))
+
+def evt.ok(s: String) -> String:
+  match s:
+    case SNil{}:
+      "ok"
+    case SCon{c, t}:
+      "mismatches" ++ SCon{c, t}
+
+# the tables' disagreements with the model, as kind.port/B; none, ok
+def ev_tables() -> String:
+  evt.ok(evt.ks(64n, 0, ""))
+
 # port n of a node with header hn facing the principal of one with header
 # hr, an eraser or a dead call making an event there
 def ev.is(+hn: U32, +n: U32, +hr: U32) -> Bool:
@@ -765,7 +832,7 @@ def fan_too_big(none: Bool, +site: U32, +lvl: U32) -> Bool:
     case False{}:
       too_big(lvl)
 
-# a node from its template; a level, site or index past the field's 22
+# a node from its template; a level, site or index past the field's 24
 # bits, or an offset past 31, would be cut short: an error
 def load.node(h: P.H, t: T.TNode) -> P.H:
   match t:

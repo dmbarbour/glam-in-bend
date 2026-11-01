@@ -22,8 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import terms  # noqa: E402
 
 POL = {"fn": "+-+", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+", "ctlc": "+-",
-       "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-",
-       "opsucc": "+", "opplus": "+", "opfma": "+"}
+       "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-"}
 
 
 def check(net, root):

@@ -35,7 +35,7 @@ def kname.k(+k: U32) -> String:
     case 8:
       "Root"
     case 9:
-      "Call"
+      "Op"
     case 10:
       "Lift"
     case 11:
@@ -158,11 +158,11 @@ def rule_name(ka: R.NodeKind, kb: R.NodeKind, t: Bool) -> String:
       "copy error"
     case R.KEraN{} _:
       "erase"
-    case R.KCall{} R.KData{}:
+    case R.KOp{} R.KData{}:
       "compute"
-    case R.KCall{} R.KMerge{}:
+    case R.KOp{} R.KMerge{}:
       "distribute"
-    case R.KCall{} R.KEraP{}:
+    case R.KOp{} R.KEraP{}:
       "error"
     case R.KRoot{} _:
       "result"
@@ -180,7 +180,7 @@ def rule_name(ka: R.NodeKind, kb: R.NodeKind, t: Bool) -> String:
       "copy past control"
     case R.KAp{} R.KLiftC{}:
       "apply past control"
-    case R.KCall{} R.KLiftC{}:
+    case R.KOp{} R.KLiftC{}:
       "call past control"
     case _ _:
       "stuck"

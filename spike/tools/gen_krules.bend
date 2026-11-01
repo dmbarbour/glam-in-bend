@@ -19,7 +19,7 @@ import ../kprim.bend as P
 # interpreter of the table instead.
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KCall{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDCall{}, R.KOp{}, R.KOpStep{}, R.KOpData{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KOp{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDOp{}]
 
 def kname(k: R.NodeKind) -> String:
   match k:
@@ -41,8 +41,8 @@ def kname(k: R.NodeKind) -> String:
       "EraP"
     case R.KRoot{}:
       "Root"
-    case R.KCall{}:
-      "Call"
+    case R.KOp{}:
+      "Op"
     case R.KLift{}:
       "Lift"
     case R.KLiftC{}:
@@ -55,14 +55,8 @@ def kname(k: R.NodeKind) -> String:
       "MergeL"
     case R.KMergeR{}:
       "MergeR"
-    case R.KDCall{}:
-      "DCall"
-    case R.KOp{}:
-      "Op"
-    case R.KOpStep{}:
-      "OpStep"
-    case R.KOpData{}:
-      "OpData"
+    case R.KDOp{}:
+      "DOp"
 
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))
@@ -97,7 +91,7 @@ def holds(k: R.NodeKind) -> Holds:
       HNone{}
     case R.KRoot{}:
       HNone{}
-    case R.KCall{}:
+    case R.KOp{}:
       HValue{}
     case R.KLift{}:
       HCtl{}
@@ -111,13 +105,7 @@ def holds(k: R.NodeKind) -> Holds:
       HNone{}
     case R.KMergeR{}:
       HNone{}
-    case R.KDCall{}:
-      HValue{}
-    case R.KOp{}:
-      HNone{}
-    case R.KOpStep{}:
-      HValue{}
-    case R.KOpData{}:
+    case R.KDOp{}:
       HValue{}
 
 def is_value(h: Holds) -> Bool:
@@ -176,8 +164,6 @@ def pword(s: R.Src) -> String:
 def is_apply(s: R.Src) -> Bool:
   match s:
     case R.SApply{}:
-      True{}
-    case R.SApplyB{}:
       True{}
     case _:
       False{}
@@ -348,20 +334,11 @@ def has_apply(xs: List<&2, R.Spec>) -> Bool:
     case Con{R.Spec{k, s}, t}:
       is_apply(s) || has_apply(t)
 
-# kinds of step before making a node: none, computing (A's function
-# applied to B's data, or with swap B's to A's), duplicating
+# kinds of step before making a node: none, computing, duplicating
 type Pre is Data:
   PNo{}
-  PAp{+swap: Bool}
+  PAp{}
   PDup{+isa: Bool}
-
-# P.apply's arguments, the function's header and payload first
-def apply_args(swap: Bool) -> String:
-  match swap:
-    case True{}:
-      ", hb, pb, ha, pa), "
-    case False{}:
-      ", ha, pa, hb, pb), "
 
 def pre_x(+dup: Bool, +isa: Bool) -> Pre:
   match dup:
@@ -375,9 +352,7 @@ def pre_of(sp: R.Spec, +xs: List<&2, R.Spec>, +j: Nat, +a: R.NodeKind, +b: R.Nod
     case R.Spec{k, s}:
       match s:
         case R.SApply{}:
-          PAp{False{}}
-        case R.SApplyB{}:
-          PAp{True{}}
+          PAp{}
         case R.SPayA{}:
           pre_x(is_data(a) && Nat.is_gt(uses(xs, True{}, j), 0n), True{})
         case R.SPayB{}:
@@ -432,8 +407,8 @@ def make_call(+w: Bool, +name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pr
       match pre:
         case PNo{}:
           stepname(name, 1n+j) ++ "(" ++ targ(w) ++ node_call(j, st) ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
-        case PAp{+swap}:
-          stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.apply(" ++ st ++ apply_args(swap) ++ common_args() ++ made_args(j, 0n) ++ ")"
+        case PAp{}:
+          stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args() ++ made_args(j, 0n) ++ ")"
         case PDup{+isa}:
           stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.dup(" ++ st ++ ", P.form(h" ++ side(isa) ++ "), p" ++ side(isa) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
 
@@ -444,7 +419,7 @@ def pre_fn(+w: Bool, +name: String, +j: Nat, sp: R.Spec, pre: Pre) -> String:
       match pre:
         case PNo{}:
           ""
-        case PAp{+swap}:
+        case PAp{}:
           "def " ++ stepname(name, 1n+j) ++ ".pre(" ++ tparam(w) ++ "r: P.H & P.PW, " ++ common() ++ made_params(j, 0n) ++ ") -> " ++ ret(w) ++ ":\n" ++
             "  (h, pw) = r\n" ++
             "  " ++ stepname(name, 1n+j) ++ "(" ++ targ(w) ++ node_pw_call(j) ++ code(k) ++ ", pw), " ++ common_args() ++ made_args(j, 0n) ++ ")\n\n"
@@ -1079,28 +1054,6 @@ def payloads() -> String:
   "# node.word puts it: a value or a control's index and offset; 0 for none\n" ++
   "def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:\n  match k:\n" ++ payloads.w(kinds()) ++ "    case _:\n      0\n\n"
 
-def is_call(k: R.NodeKind) -> Bool:
-  match k:
-    case R.KCall{}:
-      True{}
-    case _:
-      False{}
-
-def logical_w.k(ks: List<&2, R.NodeKind>) -> String:
-  match ks:
-    case Nil{}:
-      ""
-    case Con{+k, t}:
-      pick(is_call(R.lf.full(k)), "    case " ++ code(k) ++ ":\n      2\n", "") ++ logical_w.k(t)
-
-# how many logical interactions each of a kind's interactions stands for,
-# as A: a call, or a dead call as its call, an operator's and then its
-# payload's (law call_as_components; spike-operators.logical); others one
-def logical_w() -> String:
-  "# the logical interactions each interaction of A, of kind k, stands\n" ++
-  "# for: a call's, or a dead call's, its operator's and its payload's\n" ++
-  "def logical_w(+k: U32) -> U32:\n  match k:\n" ++ logical_w.k(kinds()) ++ "    case _:\n      1\n\n"
-
 def stuck_v(+t: Bool, +f: Bool) -> String:
   match t f:
     case True{} True{}:
@@ -1415,12 +1368,14 @@ def events() -> String:
   "# names what does not exist\n" ++
   "def inner_events() -> U32:\n  0" ++ inner_ev_a(kinds()) ++ "\n\n" ++
   "# the eraser kind making an event at port p of kind k, 0 for none: two\n" ++
-  "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word\n" ++
+  "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word;\n" ++
+  "# a kind past 15 makes none (law events_fit_header)\n" ++
   "def ev_word(+w: U32) -> U32:\n  match w:\n" ++
   "    case 0:\n      " ++ U32.show(ev_word_k(kinds(), 0, 0)) ++ "\n" ++
   "    case 1:\n      " ++ U32.show(ev_word_k(kinds(), 1, 0)) ++ "\n" ++
   "    case 2:\n      " ++ U32.show(ev_word_k(kinds(), 2, 0)) ++ "\n" ++
-  "    case _:\n      " ++ U32.show(ev_word_k(kinds(), 3, 0)) ++ "\n\n" ++
+  "    case 3:\n      " ++ U32.show(ev_word_k(kinds(), 3, 0)) ++ "\n" ++
+  "    case _:\n      0\n\n" ++
   "def ev_by.c(+c: U32) -> U32:\n  match c:\n    case 0:\n      0\n    case _:\n      (c + 5 : U32)\n\n" ++
   "def ev_by(+k: U32, +p: U32) -> U32:\n" ++
   "  ev_by.c(((ev_word((k >> 2n : U32)) >> U32.to_nat((((k .&. 3 : U32) * 8 : U32) + (p * 2 : U32) : U32)) : U32) .&. 3 : U32))\n\n" ++
@@ -1461,7 +1416,7 @@ type Pr is Data:
   Pr{a: R.NodeKind, b: R.NodeKind}
 
 def hot() -> List<&2, Pr>:
-  [Pr{R.KCall{}, R.KMerge{}}, Pr{R.KCall{}, R.KData{}}, Pr{R.KCall{}, R.KLiftC{}}, Pr{R.KLift{}, R.KLiftC{}}]
+  [Pr{R.KOp{}, R.KMerge{}}, Pr{R.KOp{}, R.KData{}}, Pr{R.KOp{}, R.KLiftC{}}, Pr{R.KLift{}, R.KLiftC{}}]
 
 def pr_eq(+x: Pr, +y: Pr) -> Bool:
   match x y:
@@ -1785,7 +1740,6 @@ def file() -> String:
   "# is noted, or nothing.\n\n" ++
   tables() ++
   payloads() ++
-  logical_w() ++
   "# the level checks the rewrites below make, for the kernel's interpreter\n" ++
   "def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) -> P.H:\n" ++
   "  match ka kb:\n" ++ checks_a(kinds()) ++ "    case _ _:\n      h\n\n" ++
