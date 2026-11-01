@@ -762,6 +762,46 @@ law runs_as_units:
   for +t: Bool
   {R.fz_runs(k, v, t) == True{} : Bool}
 
+# LAW: a field is read as a level only where it is one: a rule lifts A's
+# or B's field through a control only where that kind is leveled (the
+# binds, the fans, the controls), and into a field of a leveled kind, so
+# that data, operators, erasers and the root may keep anything in theirs
+# (R.leveled; spike-operators.levels).
+# Record: operator-nodes
+# Record: header-kind-byte
+law rules_lift_leveled:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  {R.lifts_leveled(a, b, t) == True{} : Bool}
+
+# LAW: and so does every event.
+# Record: operator-nodes
+# Record: header-kind-byte
+law events_lift_leveled:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_lifts_leveled(a, b, p) == True{} : Bool}
+
+# LAW: the payload tests (R.test_eq) and the kernel's level checks
+# (R.checks_levels, which the generator's must match) compare fields of
+# leveled kinds alone.
+# Record: operator-nodes
+# Record: header-kind-byte
+law reads_leveled:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  {R.reads_leveled(a, b) == True{} : Bool}
+
+# LAW: an operator carries no level: a co-control facing it goes on to its
+# result and leaves what it would have left there from the first, whatever
+# comes in, a single control or a run alike (R.fz_opctl).
+# Record: operator-nodes
+law ops_pass_controls:
+  for +v: R.NodeKind
+  {R.fz_opctl(v) == True{} : Bool}
+
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
 # Record: net-nodes-double

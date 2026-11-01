@@ -1606,6 +1606,111 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
     case _:
       RStuck{}
 
+# Levels (spike-operators.levels)
+# ------
+#
+# A kind whose field is a level, or a control's index: the binds, the
+# fans and the controls. Data, operators, erasers and the root carry
+# none, and may keep anything in the field (header-kind-byte;
+# operator-nodes). Every kind is named, so that a new one must be placed.
+def leveled(k: NodeKind) -> Bool:
+  match k:
+    case KFree{}:
+      False{}
+    case KFn{}:
+      True{}
+    case KAp{}:
+      True{}
+    case KCopy{}:
+      True{}
+    case KMerge{}:
+      True{}
+    case KData{}:
+      False{}
+    case KEraN{}:
+      False{}
+    case KEraP{}:
+      False{}
+    case KRoot{}:
+      False{}
+    case KOp{}:
+      False{}
+    case KLift{}:
+      True{}
+    case KLiftC{}:
+      True{}
+    case KCopyL{}:
+      True{}
+    case KCopyR{}:
+      True{}
+    case KMergeL{}:
+      True{}
+    case KMergeR{}:
+      True{}
+    case KDOp{}:
+      False{}
+
+# a spec reads a field as a level only through a lift: A's for SLiftA, B's
+# for SLiftB, into a field of its own kind
+def spec_levels(+a: NodeKind, +b: NodeKind, sp: Spec) -> Bool:
+  match sp:
+    case Spec{+k, s}:
+      match s:
+        case SLiftA{}:
+          leveled(a) && leveled(k)
+        case SLiftB{}:
+          leveled(b) && leveled(k)
+        case _:
+          True{}
+
+def specs_levels(+a: NodeKind, +b: NodeKind, xs: List<&2, Spec>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{sp, t}:
+      spec_levels(a, b, sp) && specs_levels(a, b, t)
+
+def rule_levels(+a: NodeKind, +b: NodeKind, r: Rule) -> Bool:
+  match r:
+    case RWire{xs, ls}:
+      specs_levels(a, b, xs)
+    case RStuck{}:
+      True{}
+
+# a rule lifts a field only of a leveled kind, into one (law
+# rules_lift_leveled)
+def lifts_leveled(+a: NodeKind, +b: NodeKind, +t: Bool) -> Bool:
+  rule_levels(a, b, rule(a, b, t))
+
+# and so does every event (law events_lift_leveled)
+def ev_lifts_leveled(+a: NodeKind, +b: NodeKind, +p: Nat) -> Bool:
+  rule_levels(a, b, event(a, b, p))
+
+# the pairs whose rewrite the kernel checks against a copy's level or the
+# field's range (gen_krules.bend's check_expr, which must agree): each
+# reads both fields as levels
+def checks_levels(a: NodeKind, b: NodeKind) -> Bool:
+  match a b:
+    case KCopy{} KFn{}:
+      True{}
+    case KLift{} KFn{}:
+      True{}
+    case KLift{} KMerge{}:
+      True{}
+    case KLift{} KLiftC{}:
+      True{}
+    case KAp{} KLiftC{}:
+      True{}
+    case KCopy{} KLiftC{}:
+      True{}
+    case _ _:
+      False{}
+
+# the payload tests and the level checks compare fields of leveled kinds
+# alone (law reads_leveled)
+def reads_leveled(+a: NodeKind, +b: NodeKind) -> Bool:
+  (Bool.not(test_eq(a, b)) || (leveled(a) && leveled(b))) && (Bool.not(checks_levels(a, b)) || (leveled(a) && leveled(b)))
+
 # the polarity of an end: an external peer's is the opposite of the
 # auxiliary port it was linked to
 def end_pol(+a: NodeKind, +b: NodeKind, +xs: List<&2, Spec>, e: End) -> Pol:
@@ -2787,6 +2892,29 @@ def fz_run.cmp(+k: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
 # (law runs_as_units)
 def fz_runs(+k: NodeKind, +v: NodeKind, +t: Bool) -> Bool:
   fz.go(fz.ctl(k) && Bool.not(pol_eq(port_pol(k, 0n), port_pol(v, 0n))) && Bool.not(fz.ctl(v)) && Bool.not(is_free_k(v)), fz_run.cmp(k, v, t))
+
+# Operators and controls
+# -----------------------
+#
+# spike-operators.levels. An operator carries no level: a co-control
+# facing it goes on to its result (rule.op), and leaves what it would
+# have left there from the first, whatever comes in. The control's
+# payload stays a source, so a run is a single control alike. Each side
+# is a whole graph normalized: v coming in to the control and then the
+# operator, and v coming in to the operator, the control after it.
+
+def fz_opctl.pre(+v: NodeKind) -> G:
+  xb.g(xb.fused(xb.link(xb.link(xb.link(xb.add.p(xb.add.p(xb.add.p(XB{[], []}, KOp{}, SPayA{}), KLiftC{}, SPayB{}), v, SNone{}),
+    New{0n, 0n}, New{1n, 0n}), New{1n, 1n}, New{2n, 0n}), New{0n, 1n}, Ext{0n}), 2n, v, 2n))
+
+def fz_opctl.post(+v: NodeKind) -> G:
+  xb.g(xb.fused(xb.link(xb.link(xb.link(xb.add.p(xb.add.p(xb.add.p(XB{[], []}, KOp{}, SPayA{}), v, SNone{}), KLiftC{}, SPayB{}),
+    New{0n, 0n}, New{1n, 0n}), New{0n, 1n}, New{2n, 1n}), New{2n, 0n}, Ext{0n}), 1n, v, 2n))
+
+# an operator passes a control as though the control stood on its result
+# from the first (law ops_pass_controls)
+def fz_opctl(+v: NodeKind) -> Bool:
+  fz.go(fz.meets(KOp{}, v), fz.same(fz.after(Some{fz_opctl.pre(v)}), fz.after(Some{fz_opctl.post(v)})))
 
 # Loops: a node's port facing its own other port
 # -----------------------------------------------

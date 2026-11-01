@@ -680,7 +680,7 @@ def lift_a() -> String:
 def lift_b() -> String:
   "P.lift_wraps(P.fld(hb), pb, P.fld(ha))"
 
-def check_expr.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
+def check_expr.raw(+a: R.NodeKind, +b: R.NodeKind) -> String:
   match a b:
     case R.KCopy{} R.KFn{}:
       "P.copy_fn_bad(ha, hb)"
@@ -696,6 +696,26 @@ def check_expr.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
       lift_b()
     case _ _:
       ""
+
+def check_expr.sel(b: Bool, +x: String, +y: String) -> String:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
+def check_expr.go(listed: Bool, +raw: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match listed:
+    case True{}:
+      check_expr.sel(String.eq(raw, ""), "level_check_missing_" ++ kname(a) ++ "_" ++ kname(b), raw)
+    case False{}:
+      check_expr.sel(String.eq(raw, ""), "", "level_check_unlisted_" ++ kname(a) ++ "_" ++ kname(b))
+
+# the pair's level check, where the model lists one (R.checks_levels, whose
+# kinds law reads_leveled holds leveled): a check written here and not
+# listed there, or listed and not written, names what does not exist
+def check_expr.full(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  check_expr.go(R.checks_levels(a, b), check_expr.raw(a, b), a, b)
 
 # a linear fan's pairs are checked as its full fan's
 def check_expr(+a: R.NodeKind, +b: R.NodeKind) -> String:
