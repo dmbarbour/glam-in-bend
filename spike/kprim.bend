@@ -162,7 +162,8 @@ type H is Type:
 # list's head (a node's index plus one, 0 for none), errors, interactions
 # (counted by the run's fuel, set when it ends), how many nodes fit; the
 # data table's free head, its high-water mark, its capacity and the depth
-# of its array (DT); four words spare; then the events, by the kind of
+# of its array (DT); the collections run under demand (heap-strategies.
+# erasure.load.cycle); three words spare; then the events, by the kind of
 # the node each acts on (heap-strategies.erasure.kernel), a word a kind
 def at_fh() -> U32:
   0
@@ -187,6 +188,9 @@ def at_tcap() -> U32:
 
 def at_td() -> U32:
   7
+
+def at_cyc() -> U32:
+  8
 
 # events at a node of kind code k, below 16: no kind past them makes one
 # (law events_fit_header)
@@ -316,6 +320,14 @@ def bump.r(r: H & U32) -> H:
 # one more interaction counted
 def bump(h: H) -> H:
   bump.r(rd(h, at_itrs()))
+
+def cycle.r(r: H & U32) -> H:
+  (h, +n) = r
+  wr(h, at_cyc(), (n + 1 : U32))
+
+# one more collection run under demand
+def cycle(h: H) -> H:
+  cycle.r(rd(h, at_cyc()))
 def evk(h: H, +k: U32) -> H & U32:
   rd(h, at_evk(k))
 
@@ -448,6 +460,59 @@ def free(h: H, +r: U32) -> H:
   match h:
     case H{w, a}:
       free.fh(KM.m_get(w, at_fh()), a, r)
+
+def gm.link(r: H & U32, +fh0: U32, +n: U32) -> H:
+  (h, +wcap) = r
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
+
+def grow_more.r(+ok: Bool, h: H, +r: U32, +fh0: U32) -> H:
+  match ok:
+    case True{}:
+      gm.link(rd(h, at_wcap()), fh0, r)
+    case False{}:
+      h
+
+def grow_more.n(r: H & U32, +fh0: U32) -> H:
+  (h, +n) = r
+  grow_more.r(U32.is_ne(n, iface()), h, n, fh0)
+
+def grow_more.fh(r: H & U32) -> H:
+  (h, +fh0) = r
+  grow_more.n(alloc.grow(h), fh0)
+
+# the store doubled now, its new nodes all on the free list, the nodes
+# free before after them (alloc.grow, run on an empty list, ends its new
+# nodes' list); as it was, its error counted, if it cannot grow
+# (alloc.grow then answers the interface, which stays)
+def grow_more(h: H) -> H:
+  grow_more.fh(rd(h, at_fh()))
+
+def fl.step(+go: Bool, h: H, +fh: U32) -> H & U32:
+  match go:
+    case True{}:
+      rd(h, (((fh - 1 : U32) << 2n : U32) + 1 : U32))
+    case False{}:
+      (h, 0)
+
+def fl.walk(k: Nat, r: H & U32) -> H & U32:
+  match k:
+    case 0n:
+      r
+    case 1n+p:
+      (h, +fh) = r
+      fl.walk(p, fl.step(U32.is_ne(fh, 0), h, fh))
+
+def fl.fin(r: H & U32) -> H & Bool:
+  (h, +fh) = r
+  (h, U32.is_ne(fh, 0))
+
+# whether the free list holds k nodes at least, walked k - 1 at most
+def frees(k: Nat, h: H) -> H & Bool:
+  match k:
+    case 0n:
+      (h, True{})
+    case 1n+p:
+      fl.fin(fl.walk(p, rd(h, at_fh())))
 
 # free a redex's two nodes, b first, so that a's slot heads the free list
 # and the rule's first new node takes it: the interface, node 3, keeps its
@@ -1320,6 +1385,80 @@ def unpop2(q: Pop2) -> H:
 def unpop(pp: Pop) -> H:
   match pp:
     case Pop{h, st, +x, +y, +ok}:
+      h
+
+# The queue (heap-strategies.erasure.load.cycle): the stack's array taken
+# first in first out, so that a collection spreads over the net rather
+# than following one cascade down. Notes append at the count, as the
+# stack's do; a pop takes the pair at the head, which the run carries.
+# Before each pop the array keeps room for the most pairs a rewrite makes:
+# where it is full and half or more of it is taken, the pairs left slide
+# down to its start, else it doubles, so its size stays within twice the
+# most pairs waiting at once.
+
+# the oldest pair waiting, the head past it
+type PopQ is Type:
+  PopQ{h: H, st: Stk, +x: U32, +y: U32, +ok: Bool, +hd: U32}
+
+def pq.y(r: KM.M & U32, s: KM.M, a: Array<V.Val>, +x: U32, +hd: U32) -> PopQ:
+  (w, +y) = r
+  PopQ{H{w, a}, Stk{s}, x, y, True{}, (hd + 1 : U32)}
+
+def pq.x(r: KM.M & U32, w: KM.M, a: Array<V.Val>, +hd: U32) -> PopQ:
+  (s, +x) = r
+  pq.y(KM.m_get(w, (x + 1 : U32)), s, a, x, hd)
+
+def pq.k(more: Bool, h: H, s: KM.M, +hd: U32) -> PopQ:
+  match more:
+    case True{}:
+      match h:
+        case H{w, a}:
+          pq.x(KM.m_get(s, (hd + 3 : U32)), w, a, hd)
+    case False{}:
+      PopQ{h, Stk{s}, 0, 0, False{}, hd}
+
+def pq.room(r: KM.M & U32, h: H, +n: U32, +hd: U32) -> PopQ:
+  (s, +cap) = r
+  pq.k(U32.is_lt(hd, n), h, KM.m_set(KM.m_set(s, 1, cap), 2, cap), hd)
+
+# the j pairs from the head slid down to the array's start
+def pq.slide(h: H, s: KM.M, +j: U32, +hd: U32) -> PopQ:
+  pq.k(U32.is_ne(j, 0), h, KM.m_set(relocate(U32.to_nat(j), s, ((hd + j : U32) + 2 : U32), (j + 2 : U32)), 0, j), 0)
+
+def pq.full(slide: Bool, h: H, s: KM.M, +n: U32, +cap: U32, +hd: U32) -> PopQ:
+  match slide:
+    case True{}:
+      pq.slide(h, s, (n - hd : U32), hd)
+    case False{}:
+      pq.room(KM.m_ensure(s, (cap * 2 : U32), cap, rs_maxd()), h, n, hd)
+
+def pq.grow(full: Bool, h: H, s: KM.M, +n: U32, +cap: U32, +hd: U32) -> PopQ:
+  match full:
+    case True{}:
+      pq.full(U32.is_ge((hd * 2 : U32), n), h, s, n, cap, hd)
+    case False{}:
+      pq.k(U32.is_lt(hd, n), h, s, hd)
+
+def pq.cap(r: KM.M & U32, h: H, +n: U32, +most: U32, +hd: U32) -> PopQ:
+  (s, +cap) = r
+  pq.grow(U32.is_lt(cap, ((n + most : U32) + 3 : U32)), h, s, n, cap, hd)
+
+def pq.n(r: KM.M & U32, h: H, +most: U32, +hd: U32) -> PopQ:
+  (s, +n) = r
+  pq.cap(KM.m_get(s, 1), h, n, most, hd)
+
+# the oldest pair waiting in e's queue from head hd, the array given room
+# for most more pairs first
+def popq(e: E, +most: U32, +hd: U32) -> PopQ:
+  match e:
+    case E{h, st}:
+      match st:
+        case Stk{s}:
+          pq.n(KM.m_get(s, 0), h, most, hd)
+
+def unpopq(q: PopQ) -> H:
+  match q:
+    case PopQ{h, st, +x, +y, +ok, +hd}:
       h
 
 # a node of rule kind k holding the value pw

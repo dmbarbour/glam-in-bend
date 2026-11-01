@@ -1013,6 +1013,28 @@ def most_a(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
     case Con{+a, t}:
       most_a(t, most_b(kinds(), a, m))
 
+def made(r: R.Rule) -> Nat:
+  match r:
+    case R.RWire{xs, ls}:
+      List.length(&2, R.Spec, xs)
+    case R.RStuck{}:
+      0n
+
+def most_made_b(bs: List<&2, R.NodeKind>, +a: R.NodeKind, +m: Nat) -> Nat:
+  match bs:
+    case Nil{}:
+      m
+    case Con{+b, t}:
+      most_made_b(t, a, nat_max(m, nat_max(made(R.rule(a, b, True{})), made(R.rule(a, b, False{})))))
+
+# the most nodes any rewrite in the table makes
+def most_made(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
+  match as:
+    case Nil{}:
+      m
+    case Con{+a, t}:
+      most_made(t, most_made_b(kinds(), a, m))
+
 def over_a(as: List<&2, R.NodeKind>, +fns: Bool) -> String:
   match as:
     case Nil{}:
@@ -1733,10 +1755,12 @@ def stuck_cases(ps: List<&2, Pr>, +n: Nat) -> String:
 
 # Collecting (heap-strategies.cascade.nongrow; heap-strategies.erasure.
 # load): may a collection reduce A meeting B? Where the rule is never
-# stuck, makes at most the two nodes it frees, applies no builtin and
-# copies no data, and the pair is no need for a lazy value: erasures,
-# annihilations, beta at one level, controls passing data or each other,
-# the events with them. Where the variants differ, the header test the
+# stuck, makes at most the two nodes it frees and applies no builtin, and
+# the pair is no need for a lazy value: erasures, annihilations, beta at
+# one level, copies of data, controls passing data or each other, the
+# events with them. A copy of a table entry adds one to the table, which
+# the copy node it consumes bounds (the maintainer, 2026-11-01;
+# heap-strategies.erasure.load.cycle). Where the variants differ, the header test the
 # pair's payload test is (P.same_lvl) decides; a differing pair with none
 # names what does not exist.
 
@@ -1751,17 +1775,15 @@ def may_need_k(a: R.NodeKind, b: R.NodeKind) -> Bool:
     case _ _:
       False{}
 
-def collect_r.r(r: R.Rule, +a: R.NodeKind, +b: R.NodeKind) -> Bool:
+def collect_r.r(r: R.Rule) -> Bool:
   match r:
     case R.RWire{+xs, ls}:
-      Nat.is_le(List.length(&2, R.Spec, xs), 2n) && Bool.not(has_apply(xs)) &&
-        Bool.not(is_data(a) && Nat.is_lt(1n, uses(xs, True{}, List.length(&2, R.Spec, xs)))) &&
-        Bool.not(is_data(b) && Nat.is_lt(1n, uses(xs, False{}, List.length(&2, R.Spec, xs))))
+      Nat.is_le(List.length(&2, R.Spec, xs), 2n) && Bool.not(has_apply(xs))
     case R.RStuck{}:
       False{}
 
 def collect_r(+a: R.NodeKind, +b: R.NodeKind, r: R.Rule) -> Bool:
-  Bool.not(may_need_k(a, b)) && collect_r.r(r, a, b)
+  Bool.not(may_need_k(a, b)) && collect_r.r(r)
 
 # the pairs whose payload test is the header test P.same_lvl
 def collect_test.full(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
@@ -1850,6 +1872,9 @@ def file() -> String:
   "# the most active pairs one rewrite makes (R.pairs_made, over the table):\n" ++
   "# a strategy's stack keeps room for that many before each rewrite (P.pop)\n" ++
   "def most_pairs() -> U32:\n  " ++ Nat.show(most_a(kinds(), 0n)) ++ "\n\n" ++
+  "# the most nodes one rewrite takes from the free list: those it makes\n" ++
+  "# past the two slots its redex gives (heap-strategies.reuse)\n" ++
+  "def most_alloc() -> U32:\n  " ++ Nat.show(Nat.sub(most_made(kinds(), 0n), 2n)) ++ "\n\n" ++
   dispatch() ++
   "# when the rule leaves A, negative principal, meeting B as it is (R.rule):\n" ++
   "# 0 never, 1 always, 2 when the payload test fails, 3 when it passes; by\n" ++
@@ -1865,10 +1890,10 @@ def file() -> String:
   "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
   "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  grows.k(grow_of(rule_no(ka, kb)), ha, hb)\n\n" ++
   "# may a collection reduce A, negative principal, meeting B? Never stuck,\n" ++
-  "# no more nodes made than freed, no builtin applied, no data copied, no\n" ++
-  "# need for a lazy value touched (heap-strategies.cascade.nongrow). By the\n" ++
-  "# pair's rule, a table: 0 never, 1 always, 2 when the levels agree, 3\n" ++
-  "# when they do not\n" ++
+  "# no more nodes made than freed, no builtin applied, no need for a lazy\n" ++
+  "# value touched (heap-strategies.cascade.nongrow). By the pair's rule,\n" ++
+  "# a table: 0 never, 1 always, 2 when the levels agree, 3 when they do\n" ++
+  "# not\n" ++
   "def collect_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ collect_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
   "def collects.k(+k: U32, +ha: U32, +hb: U32) -> Bool:\n  match k:\n    case 1:\n      True{}\n    case 2:\n      P.same_lvl(ha, hb)\n" ++
   "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++

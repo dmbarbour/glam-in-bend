@@ -50,9 +50,10 @@ generated rewrites.
 The kernel's events tables are checked against the model's events for
 every kind code a header holds (knet.bend's ev_tables), and a builtin's
 field read back for every op and need it holds (builtin_fields).
-A collection (events, the pairs that do not grow the net, the sweep)
-after demand, and one at load before demand, must keep demand's value
-and state, the audits passing after.
+Demand collecting where its net would grow (events, the pairs that do
+not grow the net, the sweep; heap-strategies.erasure.load.cycle), and
+demand after a collection at load, must keep demand's value and state,
+the audits passing after.
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -207,10 +208,10 @@ def ld_str(r: K.LDRes) -> String:
     case K.LDRes{k, +litrs, +levs, +llive}:
       lazy_str(k) ++ " load " ++ U32.show(litrs) ++ " ev " ++ U32.show(levs) ++ " live " ++ U32.show(llive)
 
-def gc_str(r: K.GRes) -> String:
+def dc_str(r: K.CRes) -> String:
   match r:
-    case K.GRes{k, +live0, +live1, +citrs, +cevs}:
-      lazy_str(k) ++ " live " ++ U32.show(live0) ++ " " ++ U32.show(live1) ++ " ev " ++ U32.show(cevs) ++ " itrs " ++ U32.show(citrs)
+    case K.CRes{k, +cyc, +citrs, +cevs}:
+      lazy_str(k) ++ " cyc " ++ U32.show(cyc) ++ " itrs " ++ U32.show(citrs) ++ " ev " ++ U32.show(cevs)
 
 # a case through every strategy
 def one(+k: U32) -> String:
@@ -225,7 +226,7 @@ def one(+k: U32) -> String:
     " | evtwo " ++ ev_str(K.run_two_ev(tpl_of(k), fuel_of(k, 0n), True{})) ++
     " | evprof " ++ K.profile_ev(tpl_of(k), fuel_of(k, 0n), True{}) ++
     " | prof " ++ K.profile_t(tpl_of(k), fuel_of(k, 0n), True{}) ++
-    " | gc " ++ gc_str(K.run_dgc(tpl_of(k), fuel_of(k, 2n), [])) ++
+    " | dc " ++ dc_str(K.run_dc(tpl_of(k), fuel_of(k, 2n), [])) ++
     " | ld " ++ ld_str(K.run_dl(tpl_of(k), fuel_of(k, 2n), []))
 
 def all(n: Nat, +k: U32) -> String:
@@ -274,7 +275,7 @@ LINE = re.compile(rf"#(\d+): spike (\S+) \((\d+), (\d+)\) \| ref {RES} \| fast {
                   r" \| evprof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs[^|;]*;"
                   r" events (\d+) by kind([^|]*)"
                   r" \| prof (.+?) \((\d+), (\d+)\); logical (\d+|past 2\^48), (\d+) peels, (\d+) wide; pairs([^|]*)"
-                  rf" \| gc {RES} {LAZY} live (\d+) (\d+) ev (\d+) itrs (\d+)"
+                  rf" \| dc {RES} {LAZY} cyc (\d+) itrs (\d+) ev (\d+)"
                   rf" \| ld {RES} {LAZY} load (\d+) ev (\d+) live (\d+)$")
 
 
@@ -301,13 +302,12 @@ class Run:
         self.prof = (g[56], int(g[57]), int(g[58]))
         self.logical = None if g[59].startswith("past") else int(g[59])
         self.peels, self.wide = int(g[60]), int(g[61])
-        # demand, then a load's collection (heap-strategies.erasure.load):
-        # the value after it, the live nodes after demand, after the
-        # erasure and after the sweep, the erasure's events and interactions
-        self.gc = (g[-23], int(g[-22]), int(g[-21]), g[-20])
-        self.gcstate, self.gclive = g[-19], int(g[-18])
-        self.gclive0, self.gclive1 = int(g[-15]), int(g[-14])
-        self.gcev, self.gcitrs = int(g[-13]), int(g[-12])
+        # demand collecting where its net would grow (heap-strategies.
+        # erasure.load.cycle): its result, the collections, their
+        # interactions and events
+        self.dc = (g[-22], int(g[-21]), int(g[-20]), g[-19])
+        self.dcstate, self.dclive, self.dccap = g[-18], int(g[-17]), int(g[-16])
+        self.dccyc, self.dcitrs, self.dcev = int(g[-14]), int(g[-13]), int(g[-12])
         # a load's collection, then demand: demand's result, the load's
         # interactions and events, the nodes live after it
         self.ld = (g[-11], int(g[-10]), int(g[-9]), g[-8])
@@ -364,15 +364,15 @@ def check(c, r):
             bad.append(f"demand makes {r.lazy[1]} interactions, the full reduction {r.fast[1]}")
     for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("lazy", r.lazy), ("two", r.two),
                        ("profile", r.prof), ("ev", r.ev), ("evref", r.evref), ("evlazy", r.evlazy),
-                       ("evtwo", r.evtwo), ("evprofile", r.evprof), ("collected", r.gc), ("loaded", r.ld)):
+                       ("evtwo", r.evtwo), ("evprofile", r.evprof), ("collecting", r.dc), ("loaded", r.ld)):
         if res[2]:
             bad.append(f"{label} counts {res[2]} errors")
         if len(res) > 3 and res[3]:
             bad.append(f"{label}'s data table or free list out of step")
-    # a load's collection after demand keeps its value and its state
-    # (heap-strategies.erasure.load)
-    if r.gc[0] != r.lazy[0] or r.gcstate != r.state:
-        bad.append(f"collected after demand: {r.gc[0]}, {r.gcstate}, where demand gave {r.lazy[0]}, {r.state}")
+    # demand collecting keeps demand's value and its state
+    # (heap-strategies.erasure.load.cycle)
+    if r.dc[0] != r.lazy[0] or r.dcstate != r.state:
+        bad.append(f"demand collecting: {r.dc[0]}, {r.dcstate}, where demand gave {r.lazy[0]}, {r.state}")
     if r.ld[0] != r.lazy[0] or r.ldstate != r.state:
         bad.append(f"demand after a load's collection: {r.ld[0]}, {r.ldstate}, where demand gave {r.lazy[0]}, {r.state}")
     if r.ref[1] != r.fast[1] or r.prof[1] != r.fast[1]:
@@ -401,7 +401,8 @@ def store(note, out, runs):
         for c, r in runs:
             f.write("\t".join(str(x) for x in (
                 c.entry, c.mode, r.ev[1], r.ev[4], r.evlazy[1], r.evlazy[4], r.evlive, r.evtwo[1], r.evtwo[4],
-                r.live, "" if r.evlogical is None else r.evlogical, r.evkinds)) + "\n")
+                r.live, "" if r.evlogical is None else r.evlogical, r.evkinds, r.cap, r.dc[1], r.dccap, r.dclive,
+                r.dccyc, r.dcitrs, r.dcev)) + "\n")
     subprocess.run(R + ["library_ev", run, evrows], check=True)
     return run
 
@@ -481,8 +482,8 @@ def main(argv):
                   f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels;"
                   f" events: eager {r.ev[1]}+{r.ev[4]} (logical {r.evlogical}), demand {r.evlazy[1]}+{r.evlazy[4]}"
                   f" ({r.evlive} live), two {r.evtwo[1]}+{r.evtwo[4]};"
-                  f" collected after demand: {r.gclive0} live, {r.gclive1} erased"
-                  f" ({r.gcev} events, {r.gcitrs} interactions), {r.gclive} swept;"
+                  f" collecting: {r.dccyc} collections ({r.dcitrs} interactions, {r.dcev} events),"
+                  f" demand {r.dc[1]}, {r.dclive} live of {r.dccap};"
                   f" a load's collection: {r.ldload} interactions, {r.ldev} events, {r.ldllive} live,"
                   f" then demand {r.ld[1]}")
     if update:

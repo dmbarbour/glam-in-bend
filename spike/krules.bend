@@ -154,6 +154,11 @@ def check(+ka: U32, +kb: U32, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32) ->
 def most_pairs() -> U32:
   4
 
+# the most nodes one rewrite takes from the free list: those it makes
+# past the two slots its redex gives (heap-strategies.reuse)
+def most_alloc() -> U32:
+  2
+
 # a kind's class, its row and column in the rule table: each base kind
 # its own, every code from the first operator's up one class, the
 # operators', whose rule picks the operation by the code inside its step
@@ -1223,10 +1228,10 @@ def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:
   grows.k(grow_of(rule_no(ka, kb)), ha, hb)
 
 # may a collection reduce A, negative principal, meeting B? Never stuck,
-# no more nodes made than freed, no builtin applied, no data copied, no
-# need for a lazy value touched (heap-strategies.cascade.nongrow). By the
-# pair's rule, a table: 0 never, 1 always, 2 when the levels agree, 3
-# when they do not
+# no more nodes made than freed, no builtin applied, no need for a lazy
+# value touched (heap-strategies.cascade.nongrow). By the pair's rule,
+# a table: 0 never, 1 always, 2 when the levels agree, 3 when they do
+# not
 def collect_of(+r: U32) -> U32:
   match r:
     case 0:
@@ -1250,7 +1255,7 @@ def collect_of(+r: U32) -> U32:
     case 9:
       2
     case 10:
-      0
+      1
     case 11:
       1
     case 12:

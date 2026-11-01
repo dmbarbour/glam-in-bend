@@ -16,7 +16,11 @@ note. Results hang off runs:
   library_ev  the same in the erasure modes: interactions and events
            eager, on demand (and its nodes live after, and demand's
            without events) and with two stacks; eager profiled, its
-           logical interactions and its events by kind (` k:n`)
+           logical interactions and its events by kind (` k:n`); demand's
+           capacity, and demand collecting where its net would grow
+           (heap-strategies.erasure.load.cycle): its interactions,
+           capacity and nodes live, its collections, their interactions
+           and events
   counts   instructions and interactions per build and workload
   metrics  any named number
 
@@ -87,6 +91,7 @@ create table if not exists library_ev (
 
 # columns added to a table after a store was made: (table, column, type)
 LATER = [("library_ev", "evprof_logical", "integer"), ("library_ev", "ev_kinds", "text")] + [
+    ("library_ev", c, "integer") for c in ("lazy_cap", "dc_i", "dc_cap", "dc_live", "dc_cyc", "dc_itrs", "dc_ev")] + [
     ("terms", f"{m}_{c}", t) for m in ("ev", "evref", "evtwo", "evtworef")
     for c, t in (("v", "text"), ("i", "integer"), ("e", "integer"), ("n", "integer"))]
 
@@ -211,9 +216,12 @@ def cmd_library_ev(run, path):
     rows = []
     for line in open(path):
         f = line.rstrip("\n").split("\t")
-        rows.append((int(run), f[0], f[1]) + tuple(int(x) for x in f[2:10]) + (None if f[10] == "" else int(f[10]), f[11]))
+        rows.append((int(run), f[0], f[1]) + tuple(int(x) for x in f[2:10]) + (None if f[10] == "" else int(f[10]), f[11])
+                    + tuple(int(x) for x in f[12:19]) + (None,) * (19 - max(12, len(f))))
     with db() as c:
-        c.executemany("insert or replace into library_ev values (" + ",".join("?" * 13) + ")", rows)
+        c.executemany("insert or replace into library_ev (run_id, name, mode, ev_i, ev_n, evlazy_i, evlazy_n, evlazy_live,"
+                      " evtwo_i, evtwo_n, lazy_live, evprof_logical, ev_kinds, lazy_cap, dc_i, dc_cap, dc_live, dc_cyc,"
+                      " dc_itrs, dc_ev) values (" + ",".join("?" * 20) + ")", rows)
     print(len(rows), "library cases in the erasure modes from", path)
 
 

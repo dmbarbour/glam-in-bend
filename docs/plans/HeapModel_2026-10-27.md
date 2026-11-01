@@ -324,9 +324,13 @@ takes from it:
    `heap-strategies.measure.loader` (built),
    `spike-operators` (EvalSpike, built) with
    `heap-strategies.erasure.deadcall.eraser` (built),
-   `heap-strategies.erasure.load` (built), `heap-strategies.fusions.immediate`,
+   `heap-strategies.erasure.load` (built),
+   `heap-strategies.erasure.load.cycle` (built),
+   `heap-strategies.fusions.immediate`,
    `heap-strategies.fusions.upto`; later
-   `heap-strategies.erasure.load.cycle`, `heap-strategies.erasure.typed`,
+   `heap-strategies.erasure.load.cycle.cost`,
+   `heap-strategies.erasure.load.cycle.library`,
+   `heap-strategies.erasure.typed`,
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
    `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`,
@@ -1055,7 +1059,9 @@ takes from it:
        demand as a strategy of its own; or demand with eager collection
        on a second stack, as the two-stack strategy keeps its deferred
        pairs; and the two-stack strategy with only collection on its
-       priority stack (the maintainer, 2026-10-30).
+       priority stack (the maintainer, 2026-10-30), the rules a
+       collection admits (`KR.collects`) on its second stack (the
+       maintainer, 2026-11-01).
      - `heap-strategies.erasure.aot` — tentative — the simple case ahead
        of time (the maintainer, 2026-10-30): a fan that has no remote
        dual yet, as a variable's tree of fans before it commutes with
@@ -1211,7 +1217,8 @@ takes from it:
        `heap-strategies.cascade.nongrow`: the eager loop, events on,
        from every active pair, rewriting those `KR.collects` admits,
        never stuck, no more nodes made than freed, no builtin applied,
-       no data copied, no need for a lazy value touched, which the
+       no data copied (admitted since `.load.cycle`), no need for a lazy
+       value touched, which the
        generator writes from the rule table, a header test deciding where
        the variants differ: erasure, annihilation, beta at one level,
        controls passing data or each other); then the sweep by
@@ -1226,12 +1233,54 @@ takes from it:
        pairs alone left 126,346), 317 after the sweep, which reduces
        nothing. A fresh net offers little cheap work; a net reduced
        offers much, and the sweep takes what the cheap work cuts off.
-       - `heap-strategies.erasure.load.cycle` — tentative — a collection
-         in the middle of a run, where work still lives: demand
-         collecting before it grows its net, by the sweep and by
-         erasure, against its peak capacity and live nodes on the
-         costly entries; what a reload after freezing would find
-         (`heap-freeze`).
+       - `heap-strategies.erasure.load.cycle` — built 2026-11-01 — a
+         collection in the middle of a run, where work still lives. At
+         demand's end it is no use: a net is collected there by freezing
+         it, which copies only what is reached (the maintainer,
+         2026-11-01), so the library's collection after demand (`gc`)
+         is retired. It pays before demand grows its net, its fuel
+         proportional to the net's capacity, amortized a constant per
+         node, its pairs taken as a queue so that it spreads over the net
+         rather than following one part down, data copies admitted, the
+         table's growth bounded by the copy nodes they consume (the
+         maintainer, 2026-11-01). Built: before each step `kstrat.bend`'s
+         `demand.c` checks that the free list holds the most nodes a
+         rewrite takes (`KR.most_alloc`, 2, generated from the rule
+         table); where it does not, `collect_cycle` runs the events at
+         load, the pairs `KR.collects` admits first in first out
+         (`P.popq`: the stack's array as a queue, its pairs sliding down
+         where half of it is taken), at most twice the capacity of them
+         looked at, then the sweep, and doubles the net unless a quarter
+         of it is then free (`P.frees`; `P.grow_more` keeps the free
+         list it finds, which the library's free-list audit caught); the
+         walk restarts at the interface. Copy meeting data joins
+         `KR.collects`, the only rule that changes. The library runs it
+         on every case (mode `dc`), value and state kept and the audits
+         passing (store run 113): 79 of 126 cases collect, 1 to 7 times;
+         their capacities sum to 216,448 nodes against demand's 411,264
+         (`costly-133` with levels 65,536 to 4,096; `list-sum` with
+         levels 16,384 to 4,096, unfused 32,768 to 8,192; `mixin-once-16`
+         with levels 4,096 to 1,024); demand makes 2,631,396 interactions
+         against 2,671,168 and the collections 103,272 (13,759 events),
+         2.4% more in all, the collections doing some of demand's work.
+         A net that keeps all it makes pays and gets nothing back: `succ`
+         on demand at k 14, 15 and 16 collects 8 to 10 times, doubling
+         each time, for 29% more instructions (7.9M, 15.7M, 31.4M more:
+         linear, about 240 a node of the capacities scanned; the
+         default build). Every other mode is unchanged: the spot check's
+         interactions the same, its instructions within 0.4% (run 114
+         against 112).
+         - `heap-strategies.erasure.load.cycle.cost` — tentative — a
+           collection that frees nothing costs four passes over the net
+           (the events' scan, the pairs' scan, the sweep's marking and
+           sweep) and a walk of the free list: one pass for both scans,
+           and a policy that learns (a collection freeing little making
+           the next growth larger, or the next collection later), against
+           `succ`'s 29%.
+         - `heap-strategies.erasure.load.cycle.library` — tentative — the
+           threshold and the fuel decided on programs that drop more as
+           they run (`pairing-library.programs`), and on what a reload
+           after freezing finds (`heap-freeze`).
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
