@@ -54,8 +54,7 @@ to be written this way.
 - Where a template's copies are too thin to pay for a call (a wrapper
   over a templated hot function costs its caller a call, which Bend's
   runtime makes dear: 4% of plain demand's instructions), the variants
-  are written out; until a preprocessor generates them, by hand, as
-  `kstrat.bend`'s rewrites for demand are (HeapModel's
+  are to be generated, not copied by hand (HeapModel's
   `heap-strategies.generate`).
 - A string builder such as the hub's `bend-kit-fmt` suits a generator; its
   `{}` holes clash with Bend's own braces (`True{}`), so templates there

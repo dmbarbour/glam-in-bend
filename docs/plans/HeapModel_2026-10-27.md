@@ -338,14 +338,14 @@ takes from it:
    `heap-strategies.erasure.load.cycle.trace` (dropped),
    `heap-strategies.erasure.load.cycle.trace.lean` (built),
    `heap-strategies.erasure.load.cycle.buffers`,
-   `heap-strategies.erasure.load.cycle.room`,
+   `heap-strategies.erasure.load.cycle.room` (dropped),
    `heap-strategies.erasure.load.cycle.perf` (built),
    `heap-strategies.erasure.load.cycle.third`,
-   `heap-strategies.erasure.load.cycle.dispatch`,
+   `heap-strategies.erasure.load.cycle.dispatch` (dropped),
    `heap-strategies.erasure.load.cycle.leaves` (dropped),
    `heap-strategies.erasure.load.cycle.entry` (dropped),
    `heap-strategies.erasure.load.cycle.walk` (planned),
-   `heap-strategies.erasure.load.cycle.reserve`,
+   `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive`,
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
    `heap-strategies.erasure.load.cycle.loops.levels`,
@@ -1382,7 +1382,12 @@ takes from it:
            header, so as not to collect for it again). 162,002 collections
            over 123 cases, every value and state kept. It finds nothing
            with the boundary removed either: no library net has events
-           make the walk's pair collectable.
+           make the walk's pair collectable. Since `.reserve`, whose
+           collections come between steps, it collects a net of 1024
+           nodes or fewer every 16 steps instead (11,229 collections over
+           132 cases, every value and state kept); chunks of 4 steps made
+           no progress, the walk starting again from the interface each
+           time, a step for each power of two in its depth.
            - `heap-strategies.erasure.load.cycle.stress.events` —
              tentative — a net where they do: a copy meeting a merge at
              two levels, erasers on an auxiliary port of each; it needs
@@ -1513,7 +1518,8 @@ takes from it:
          that keep a steady live set (half the collections at worst), at
          no cost measured here. Half for now (the maintainer,
          2026-11-01).
-       - `heap-strategies.erasure.load.cycle.dispatch` — tentative — the
+       - `heap-strategies.erasure.load.cycle.dispatch` — dropped
+         2026-11-01, retired by `.reserve`, which asks no room — the
          collecting walk's own cost, 3.5% on dropping terms with no
          check made: the rules that take nodes reach their rewrite
          through two more calls (`wk.room`, `wk.room.go`); a path as
@@ -1563,7 +1569,8 @@ takes from it:
          building, for much state and complexity) — growth decided from
          the walk's count of marked nodes, the unmarked freed as the
          allocator needs them.
-       - `heap-strategies.erasure.load.cycle.reserve` — tentative — the
+       - `heap-strategies.erasure.load.cycle.reserve` — built 2026-11-01
+         — the
          maintainer's batching (2026-11-01: K nodes seen free, then K/2
          interactions run without asking, K wanted before growing),
          refined. A demand step makes one interaction at most, and an
@@ -1580,25 +1587,42 @@ takes from it:
          room asked a rewrite, no walk of the collecting demand's own
          (4.5% on dropping terms), no pair left out (a collection comes
          between steps); the plain modes pay a header read where their
-         list runs dry, which is growth. It would retire `.room` and
+         list runs dry, which is growth. It retires `.room` and
          `.dispatch`, the room tables and the hand-written rewrites
          (`heap-strategies.generate`'s case): the walk back to one
-         template over its `after`.
-     - `heap-strategies.erasure.load.cycle.room` — planned — the
+         template over its `after`. Built: `P.reserve` sets aside the
+         first nodes of the free list on a list of their own (header
+         words `at_rsv`, `at_tap`), the allocator's growth path
+         (`alloc.grow`) taking it before doubling; plain demand's loop is
+         `demand.go`, plain demand `d.end` of it, so that the walk keeps
+         one caller; `demand.c` runs it a chunk at a time, S a 64th of
+         the capacity, the reserve a 32nd, and fuel kept exact; the
+         audit walks the reserve after the free list. Every library case
+         kept (store run 131), capacities 649,984 against 645,760,
+         interactions 2.29% past demand's against 2.37%. On `succ`, 116
+         to 122 instructions a node of final capacity against 158 (run
+         130); on the 16 dropping terms, 4.3% over plain demand against
+         7.6%. Plain demand the same in the default build; the
+         forced-inline builds move by half a percent either way, the
+         eager modes too, which share nothing changed but the smaller
+         generated rule table (spot run 129 against 124).
+     - `heap-strategies.erasure.load.cycle.room` — dropped 2026-11-01,
+       retired by `.reserve`, which asks no room — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
        by the allocator (the maintainer, 2026-11-01); the generated
        rewrites would take nodes as arguments.
 
-     - `heap-strategies.generate` — planned — the rewrite written out
-       by hand in `kstrat.bend` (`wk.rw.p`, `wk.rw.v`, `wk.rw.c`,
-       `wk.room.go`), since a wrapper over the templated one cost a call
-       a rewrite: generated instead (the maintainer, 2026-11-01:
-       templates where they serve, else generation, not hand copies), and
-       generation made easier first, by a preprocessor of our own written
-       in Bend, with keywords of our own (the maintainer, 2026-11-01:
-       M4 was ruled out for its external dependency and logistics;
-       `generated-sources` revised).
+     - `heap-strategies.generate` — planned — code wanted in variants
+       that templates serve badly generated, not copied by hand (the
+       maintainer, 2026-11-01: templates where they serve, else
+       generation), and generation made easier first, by a preprocessor
+       of our own written in Bend, with keywords of our own (the
+       maintainer, 2026-11-01: M4 was ruled out for its external
+       dependency and logistics; `generated-sources` revised). The case
+       that raised it, the rewrite written out by hand in `kstrat.bend`
+       for the collecting demand, retired with `.reserve`; the next such
+       case takes it up.
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
