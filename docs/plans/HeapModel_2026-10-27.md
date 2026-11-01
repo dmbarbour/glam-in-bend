@@ -330,13 +330,13 @@ takes from it:
    `heap-strategies.fusions.upto`; later
    `heap-strategies.erasure.load.cycle.cost` (built),
    `heap-strategies.erasure.load.cycle.stress` (built),
-   `heap-strategies.erasure.load.cycle.fuse`,
+   `heap-strategies.erasure.load.cycle.fuse` (dropped),
    `heap-strategies.erasure.load.cycle.stress.events`,
    `heap-strategies.erasure.load.cycle.oom`,
    `heap-strategies.erasure.load.cycle.loops`,
    `heap-strategies.erasure.load.cycle.library`,
    `heap-strategies.erasure.load.cycle.trace` (prototyped),
-   `heap-strategies.erasure.load.cycle.trace.lean`,
+   `heap-strategies.erasure.load.cycle.trace.lean` (built),
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.room`,
    `heap-strategies.erasure.load.cycle.loops.levels`,
@@ -1357,7 +1357,9 @@ takes from it:
            42, the room asked 32. Every other mode unchanged (spot run 122
            against 114: forced-inline builds equal, default builds within
            -0.4% to +1.1% on the event modes alone).
-           - `heap-strategies.erasure.load.cycle.fuse` — tentative — the
+           - `heap-strategies.erasure.load.cycle.fuse` — dropped
+             2026-11-01, for `.trace.lean`, the walk finding what the
+             pass would have — the
              scan folded into the sweep's pass, the pairs run after the
              sweep: what they cut off waits for the next collection.
              Emulated on the library: 447,360 nodes deciding growth on
@@ -1447,14 +1449,22 @@ takes from it:
        but 364 instructions a node of final capacity on `succ`, against
        174, the walk carrying an eight-field state through some ten
        calls a node, each dear in Bend's runtime.
-       - `heap-strategies.erasure.load.cycle.trace.lean` — tentative —
-         the walk as lean as the marking walk alone: it notes the pairs
-         and events it reaches, a compare a node, and they run after the
-         marking, the sweep's pass after them freeing what was unmarked
-         (what they cut off waits for the next collection, as in
-         `.load.cycle.fuse`, emulated at 3% to 4% more capacity); or the
-         trace's state cut to the marking walk's, what only rewrites need
-         kept in the net's header or made when they run.
+       - `heap-strategies.erasure.load.cycle.trace.lean` — built
+         2026-11-01 — the marking walk notes the pairs (from their lower
+         node) and the possible events it reaches; the sweep's pass frees
+         what it did not reach and counts the free nodes; then the noted
+         events and collectable pairs run, first in first out, the walk's
+         own pair excluded there. What they free is free at once; what
+         they cut off, and their part in deciding growth, wait for the
+         next collection: latency traded for simplicity (the maintainer).
+         One walk and one pass where a scan, a walk and a pass were:
+         159 instructions a node of final capacity on `succ` against 174
+         (run 125), 19% more than plain demand, linear; capacities 2.7%
+         greater on the library (650,368 nodes against 633,472, store run
+         126), interactions 2.37% past demand's against 2.50%; every case
+         kept, the stress mode too. Other modes unchanged (spot run 124).
+         This replaces the scan (`.load.cycle.fuse` with discovery in the
+         walk).
      - `heap-strategies.erasure.load.cycle.room` — tentative — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
