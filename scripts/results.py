@@ -104,9 +104,8 @@ PROFILE = re.compile(
     r"pairs((?: \d+\.\d+:\d+)*)  (.*)$")
 
 # rule kinds by code (kprim.bend's header, low four bits)
-KINDS = {1: "Fn", 2: "Ap", 3: "Copy", 4: "Merge", 5: "Data", 6: "EraN", 7: "EraP", 8: "Root", 9: "Call",
-         10: "Lift", 11: "LiftC", 12: "CopyL", 13: "CopyR", 14: "MergeL", 15: "MergeR", 16: "DCall",
-         17: "Op", 18: "OpStep", 19: "OpData"}
+KINDS = {1: "Fn", 2: "Ap", 3: "Copy", 4: "Merge", 5: "Data", 6: "EraN", 7: "EraP", 8: "Root", 9: "Op",
+         10: "Lift", 11: "LiftC", 12: "CopyL", 13: "CopyR", 14: "MergeL", 15: "MergeR", 16: "DOp"}
 
 
 def db():

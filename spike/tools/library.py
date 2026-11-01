@@ -21,12 +21,10 @@ spike/library.txt holds the entries, separated by blank lines, each a few
   name     a unique slug
   why      why the entry is kept
   term     a lambda term in terms.py's syntax, lowered once per mode:
-  levels, labels, unfused, ops    what must hold, lowered that way (ops:
-           with levels, the builtins as an operator's data); or
+  levels, labels, unfused    what must hold, lowered that way; or
   nodes, links, root         a net written out: nodes as terms.py makes
            them (fn(n) ap(n) cp(site,n) br(n) cr(n) ctl(n,+by) ctl(n,-1)
-           ctlc(n,+by) num(v) succ plus fma era, and the builtins as an
-           operator's data, opsucc opplus opfma), links `a.p-b.p`, the
+           ctlc(n,+by) num(v) succ plus fma era), links `a.p-b.p`, the
            exposed port `a.p`, and
   net      what must hold
   fuel     the full reductions' fuel, 1280000 if not given (demand has
@@ -49,8 +47,6 @@ and demand's where demand must; events change the interactions, which are
 measured, the generated rewrites and the interpreted table making the
 same interactions and events, and the profile with events as many as the
 generated rewrites.
-An entry lowered both with levels and as operators must count the same
-logical interactions, each call two (spike-operators.logical).
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -73,7 +69,7 @@ import terms  # noqa: E402
 SPIKE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(SPIKE)
 LIBRARY = os.path.join(SPIKE, "library.txt")
-MODES = ("levels", "labels", "unfused", "ops")
+MODES = ("levels", "labels", "unfused")
 FUEL = 1280000
 
 NODE = re.compile(r"([a-z]+)(?:\(([^)]*)\))?$")
@@ -145,7 +141,7 @@ def cases(es, only):
             for mode in MODES:
                 if mode in e:
                     c = Case(name, mode, *e[mode], fuel)
-                    c.net, c.root = terms.to_tpl(t, mode != "labels", mode != "unfused", mode == "ops")
+                    c.net, c.root = terms.to_tpl(t, mode != "labels", mode != "unfused")
                     c.value = terms.evaluate(t)
                     out.append(c)
         else:
@@ -434,16 +430,6 @@ def main(argv):
                   f" two stacks {r.two[1]}, logical {r.logical}{saved}, {r.peels} peels;"
                   f" events: eager {r.ev[1]}+{r.ev[4]} (logical {r.evlogical}), demand {r.evlazy[1]}+{r.evlazy[4]}"
                   f" ({r.evlive} live), two {r.evtwo[1]}+{r.evtwo[4]}")
-    # a term counts the same logical interactions lowered with levels and
-    # as an operator's data, a call standing for its operator's and its
-    # payload's (spike-operators.logical)
-    by = {}
-    for c, r in runs:
-        by.setdefault(c.entry, {})[c.mode] = r
-    for name, modes in by.items():
-        if "levels" in modes and "ops" in modes and modes["levels"].logical != modes["ops"].logical:
-            failing += 1
-            print(f"FAIL {name}: logical {modes['levels'].logical} with levels, {modes['ops'].logical} as operators")
     if update:
         with open(LIBRARY, "w") as f:
             f.write("\n".join(lines))

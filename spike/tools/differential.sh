@@ -8,11 +8,10 @@
 # analysis store (scripts/results.py) under one run, whose summary is
 # printed at the end.
 #
-#   [JOBS=n] [OPS=1] spike/tools/differential.sh OUT [COUNT [NOTE]]
+#   [JOBS=n] spike/tools/differential.sh OUT [COUNT [NOTE]]
 #
 # OUT holds the nets written and the outputs. TERMS names another
 # terms.py (a variant's copy of the spike); its spike is what is tested.
-# OPS=1 lowers the builtins as an operator's data (terms.py --ops).
 #
 # The test program, spike/runterms.bend, is built once and reads each
 # set's nets from a file (heap-strategies.measure.loader), where a
@@ -30,7 +29,6 @@ if [ "${1:-}" = --one ]; then
   [ "$mode" = labels ] && flags="$flags --labels"
   [ "$tail" = plus ] && flags="$flags --plus"
   [ "$tail" = fma ] && flags="$flags --fma"
-  [ -n "${OPS:-}" ] && flags="$flags --ops"
   D=$OUT/$tail/$mode/s$seed
   mkdir -p "$D"
   echo started > "$D/status"
@@ -51,11 +49,9 @@ NOTE=${3:-}
 T=${TERMS:-$ROOT/spike/tools/terms.py}
 SPIKE=$(cd "$(dirname "$T")/.." && pwd)
 R="python3 -I $ROOT/scripts/results.py"
-OPSJ=false
-[ -n "${OPS:-}" ] && OPSJ=true
 (cd "$SPIKE" && "$ROOT/scripts/capped.sh" 8000 1800 bend runterms.bend -o "$OUT/runterms" >/dev/null) ||
   { echo "differential.sh: runterms.bend failed to build" >&2; exit 1; }
-RUN=$($R run differential "{\"count\": $COUNT, \"seeds\": [7, 11, 23], \"terms\": \"$T\", \"ops\": $OPSJ, \"fuel\": {\"spike\": 5000, \"kernel\": 320000, \"demand\": 1280000}}" "$NOTE") || exit 1
+RUN=$($R run differential "{\"count\": $COUNT, \"seeds\": [7, 11, 23], \"terms\": \"$T\", \"fuel\": {\"spike\": 5000, \"kernel\": 320000, \"demand\": 1280000}}" "$NOTE") || exit 1
 echo "run $RUN"
 sets() {
   for tail in succ plus fma; do

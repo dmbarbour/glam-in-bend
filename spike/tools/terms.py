@@ -19,16 +19,13 @@ writes OUT/nets.txt instead, the nets for the kernel's differential test
 term through the spike, the kernel's interpreted rule table and its
 generated rewrites (knet.bend), flagging any difference between the last
 two, or in value with the spike, and on demand (kstrat.bend's Demand),
-flagging a table mismatch or more interactions than the full reduction.
---profile writes each term through the kernel's profiling strategy
-instead (kstrat.bend's Profiling): value, counts, the logical
-interactions, peels, interactions by pair of kinds
-(spike/tools/profile.sh). --ops lowers the builtins as an operator's
-data, which an application meeting it makes an operator
-(spike-operators), rather than as data, which makes a call. --plus ends
-random terms in `(plus 1) 0` rather than `succ 0`, so the partial
-application is data the copies share; --fma ends them in `(fma 1 1) 0`,
-whose partial application, holding two numbers, is a data table entry.
+flagging a table mismatch or more interactions than the full reduction. --profile writes each term
+through the kernel's profiling strategy instead (kstrat.bend's
+Profiling): value, counts, the logical interactions, peels, interactions by
+pair of kinds (spike/tools/profile.sh). --plus ends random terms in `(plus 1) 0` rather than `succ 0`,
+so the partial application is data the copies share; --fma ends them in
+`(fma 1 1) 0`, whose partial application, holding two numbers, is a data
+table entry.
 
 Then, in OUT:  bend terms.bend -o terms;  ./terms  (test all)  or
 ./terms trace K STEPS [FROM]. Run both under scripts/capped.sh.
@@ -333,9 +330,9 @@ def evaluate(t, fuel=200000, limit=10**6):
 # (--labels), every use hangs off one chain of fans at the binder.
 
 class Net:
-    def __init__(self, levels, fused=True, ops=False):
+    def __init__(self, levels, fused=True):
         self.nodes, self.links, self.site, self.boxes = [], [], 0, 0
-        self.levels, self.fused, self.ops = levels, fused, ops
+        self.levels, self.fused = levels, fused
 
     def node(self, kind, *args):
         self.nodes.append((kind, args))
@@ -371,8 +368,12 @@ def lower(net, t, env, depth, path):
         return Use(env[t[1]], depth, path)
     if k == "int":
         return (net.node("num", t[1]), 0)
-    if k in ("succ", "plus", "fma"):
-        return (net.node(("op" if net.ops else "") + k), 0)
+    if k == "succ":
+        return (net.node("succ"), 0)
+    if k == "plus":
+        return (net.node("plus"), 0)
+    if k == "fma":
+        return (net.node("fma"), 0)
     if k == "app":
         a = net.node("ap", depth if net.levels else 0)
         plug(net, lower(net, t[1], env, depth, path), (a, 0))
@@ -480,8 +481,8 @@ def emit_trie(net, src, trie, k):
             emit_trie(net, (br, 1), item, k + 1)
 
 
-def to_tpl(t, levels=True, fused=True, ops=False):
-    net = Net(levels, fused, ops)
+def to_tpl(t, levels=True, fused=True):
+    net = Net(levels, fused)
     root = lower(net, t, {}, 0, ())
     if isinstance(root, Use):
         raise ValueError("a bare variable")
@@ -498,8 +499,7 @@ def bend_node(kind, args, levels=True):
         n, off = args
         return f"X.{kind}({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
-    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()",
-            "opsucc": "X.opsucc()", "opplus": "X.opplus()", "opfma": "X.opfma()"}[kind]
+    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()"}[kind]
 
 
 def bend_tpl(net, root):
@@ -520,7 +520,7 @@ def net_node(kind, args, levels=True):
         n, off = args
         return [6 if kind == "ctl" else 7, n, 1 if off > 0 else 0, abs(off)]
     if kind == "num": return [9, args[0]]
-    return {"era": [8], "succ": [10], "plus": [11], "fma": [12], "opsucc": [13], "opplus": [14], "opfma": [15]}[kind]
+    return {"era": [8], "succ": [10], "plus": [11], "fma": [12]}[kind]
 
 
 # the nets for spike/runterms.bend, a row a term (load.bend's format)
@@ -546,14 +546,14 @@ def bend_str(s):
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def emit(out, terms, spike, levels=True, fused=True, kernel=False, profile=False, ops=False):
+def emit(out, terms, spike, levels=True, fused=True, kernel=False, profile=False):
     os.makedirs(out, exist_ok=True)
     rel = os.path.relpath(spike, out)
     rows = []
     for text in terms:
         t = parse(text)
         want = evaluate(t)
-        net, root = to_tpl(t, levels, fused, ops)
+        net, root = to_tpl(t, levels, fused)
         rows.append((text, want, net, root))
     if kernel:
         write_nets(out, rows)
@@ -724,14 +724,14 @@ def main(argv):
     sys.setrecursionlimit(100000)
     spike = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     levels, fused, kernel = "--labels" not in argv, "--unfused" not in argv, "--kernel" in argv
-    profile, ops = "--profile" in argv, "--ops" in argv
+    profile = "--profile" in argv
     tail = "(plus 1) 0" if "--plus" in argv else "(fma 1 1) 0" if "--fma" in argv else "succ 0"
-    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--profile", "--plus", "--fma", "--ops")]
+    argv = [a for a in argv if a not in ("--labels", "--unfused", "--kernel", "--profile", "--plus", "--fma")]
     if len(argv) >= 3 and argv[1] == "emit":
-        emit(argv[2], argv[3:], spike, levels, fused, kernel, profile, ops)
+        emit(argv[2], argv[3:], spike, levels, fused, kernel, profile)
     elif len(argv) >= 4 and argv[1] == "gen":
         seed = int(argv[4]) if len(argv) > 4 else 1
-        emit(argv[2], gen(int(argv[3]), seed, tail=tail), spike, levels, fused, kernel, profile, ops)
+        emit(argv[2], gen(int(argv[3]), seed, tail=tail), spike, levels, fused, kernel, profile)
     else:
         print(__doc__)
         return 2

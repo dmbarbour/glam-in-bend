@@ -14,8 +14,7 @@ import ./nets.bend as X
 #
 # Node tags, after nets.bend's constructors: 0 fn, 1 fnl n, 2 ap, 3 apl
 # n, 4 cp site, 5 cpl site n, 6 ctl n up by, 7 ctlc n up by (up 1 for a
-# raise), 8 era, 9 num v, 10 succ, 11 plus, 12 fma, and the builtins as
-# an operator's data, 13 opsucc, 14 opplus, 15 opfma.
+# raise), 8 era, 9 num v, 10 succ, 11 plus, 12 fma.
 
 # Numbers
 # =======
@@ -130,14 +129,8 @@ def node.k(+tag: U32, ts: List<&2, U32>) -> T.TNode & List<&2, U32>:
       (X.succ(), ts)
     case 11:
       (X.plus(), ts)
-    case 12:
-      (X.fma(), ts)
-    case 13:
-      (X.opsucc(), ts)
-    case 14:
-      (X.opplus(), ts)
     case _:
-      (X.opfma(), ts)
+      (X.fma(), ts)
 
 def node(ts: List<&2, U32>) -> T.TNode & List<&2, U32>:
   match ts:

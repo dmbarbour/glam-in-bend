@@ -735,12 +735,16 @@ Speed:
       the header always.
     - `spike-operators.inkind` — dropped 2026-11-01 — likewise.
     - `spike-operators.class` — dropped 2026-11-01 — one operator kind.
-    - `spike-operators.one` — active — the general form retired (the
-      kinds `Op`, `OpStep` and `OpData`, the source `SApplyB`, the law
-      `call_as_components`, the lowering `terms.py --ops` and its
-      entries), the call renamed the operator and the dead call the
-      dead operator; a call no longer stands for more than its own
-      interactions, so the logical weight goes back to one.
+    - `spike-operators.one` — built 2026-11-01 — the general form retired
+      (the kinds `Op`, `OpStep` and `OpData`, the source `SApplyB`, the
+      law `call_as_components`, the lowering `terms.py --ops` and its
+      entries, `aux_loops`' admission of an operator's loop), the call
+      renamed the operator (`KOp`, code 9) and the dead call the dead
+      operator (`KDOp`, code 16); an operator no longer stands for more
+      than its own interactions, so the logical weight is one again. The
+      spike's sources as they were before the general form, then renamed:
+      the library's counts as they were, and the spot check's 20 counts
+      run 100's exactly.
     - `spike-operators.header` — active — the header 6/2/24
       (`header-kind-byte`, revised): levels, sites and indexes back to
       24 bits, the laws on the field with them.
