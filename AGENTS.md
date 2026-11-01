@@ -108,6 +108,11 @@ Lessons carried over from the Rust bootstrap:
   default and forced-inline builds takes about a minute
   (`spike/tools/spot.sh`); a merge takes the four builds
   (`spike/tools/count_builds.sh`, under two minutes).
+- Profile with `perf record -e instructions:u -c 100000` or a longer
+  period, on runs of a tenth of a second or more: the kernel throttles
+  sampling past `perf_event_max_sample_rate` (50,000 a second here), so a
+  shorter period loses most samples. `perf annotate` (6.12) crashes on
+  the large segments Bend inlines everything into; `--asm-raw` works.
 - Baselines live in the plan or review that uses them; reusable workloads
   live in `bench/`.
 - Bulk results go in the analysis store with the parameters that produced

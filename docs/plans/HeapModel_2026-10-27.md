@@ -350,6 +350,11 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.inhead` (dropped),
    `heap-strategies.erasure.load.cycle.walk.nil`,
    `heap-strategies.erasure.load.cycle.buffers` (dropped),
+   `heap-strategies.erasure.load.cycle.parts` (built),
+   `heap-strategies.erasure.load.cycle.sweep-full` (built),
+   `heap-strategies.erasure.load.cycle.chunks` (built),
+   `heap-strategies.erasure.load.cycle.chunks.budget` (dropped),
+   `heap-strategies.erasure.load.cycle.eval-need`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1692,6 +1697,68 @@ takes from it:
            134), and what keeping the array would then save is near 2:
            weigh it against that release, as every comparison of resizing
            (the maintainer, 2026-11-01).
+       - `heap-strategies.erasure.load.cycle.parts` — built 2026-11-01 —
+         a collection's cost by part, each measured by doing it twice and
+         counting the instructions added, which keeps every term's
+         semantics where removing a part would not (store run 142, main
+         at 7a19843, the default build): on `succ`, of 81 to 86
+         instructions a node of final capacity, the walk some 39, its
+         array's fill some 17, the sweep 11, the chunks 2 at k 16 and 7
+         at k 14; on the 16 dropping terms, of their 3.74% over plain
+         demand, the walk 25%, its array 9%, the sweep 6%, the chunks
+         25%, and the rest, mostly the eval's own interactions (some
+         38,500 across them), about 36%. Doing the walk twice changes
+         how clang compiles it, so the forced-inline build's parts come
+         out larger; the default build's are the ones cited. The walk is
+         near what this design allows in Bend: a profile shows each
+         array access masking its index for wrapping, two arrays' bases
+         reloaded from the stack, the arity's table clamped and o1's
+         variable shift. A profile wants a sampling period of 100,000
+         instructions or more on runs of a tenth of a second or longer,
+         and `perf annotate --asm-raw` (AGENTS.md, "Measuring").
+       - `heap-strategies.erasure.load.cycle.sweep-full` — built
+         2026-11-01 — the sweep passes a block of 32 nodes whose marks
+         are all set: every node in it was reached, so none is free or
+         dead. On `succ`, whose nets are nearly all live when collected,
+         the sweep's 11 instructions a node fall to almost none.
+       - `heap-strategies.erasure.load.cycle.chunks` — built 2026-11-01 —
+         chunks a 64th of the capacity are short in small nets (4 steps
+         at 256 nodes): the 16 dropping terms run some 12,700 chunks to
+         66 collections, and a chunk cost some 590 instructions, each of
+         its helpers calling into what may suspend, so that the loop
+         crossed five or six segments a chunk, and its matches on
+         numbers duplicated the chunk's call in every arm. The loop's
+         next move is now planned between moves by helpers that only
+         read the net, and the loop makes one call a move (`demand.go`,
+         or `collect_cycle`): some 240 instructions a chunk. Every
+         library case kept, the same figures as the walk merged (store
+         run 140); the plain workloads unchanged in the four builds (run
+         141 against 137). With `.sweep-full`, on `succ` 68 to 71
+         instructions a node by default and 67 to 70 forced inline,
+         against 80 to 86 and 77 to 83, and 53 to 56 and 52 to 54 with
+         the next Bend's fill; on the dropping terms 3.03% over plain
+         demand (forced inline 2.14%) against 3.74% (3.02%; store run
+         142).
+         - `heap-strategies.erasure.load.cycle.chunks.budget` — dropped
+           2026-11-01, too few collections to pay — a collection's free
+           count as the next chunk's budget: its free list holds at least
+           the nodes it counted free, less the reserve set aside next,
+           which half as many steps cannot exhaust, so the chunk after
+           it may run that many steps besides its S. Exact (a collection
+           takes no node from below the list's old head) and safe either
+           way (a short count only grows the net), but it lengthens one
+           chunk a collection, and collections are rare: 0.12 million
+           instructions on the dropping terms, about one a node on
+           `succ` (store run 142, `nobud` against `dp`).
+       - `heap-strategies.erasure.load.cycle.eval-need` — tentative —
+         the eval's interactions are the largest remaining part of a
+         collection's cost on the dropping terms, about a third. They
+         free what an erasure or annihilation behind a noted pair holds,
+         now rather than at a later collection, work plain demand never
+         does. Whether to run them only where the sweep left less than
+         half the net free, or only those that free nodes, is for
+         discussion: what they cut off is walked by every collection
+         until they run.
        - `heap-strategies.erasure.load.cycle.adaptive` — dropped
          2026-11-01 (the maintainer: doubling, the growth kept) —
          growth by four where it is likely to be wanted: the first few

@@ -1309,7 +1309,8 @@ def reach(h: P.H) -> P.H & U32:
 # freed could never be observed. The pass reads the marks a word at a
 # time, 32 nodes, and counts the nodes free after it, those it frees and
 # those free before, so that a collection needs no walk of the free list
-# (heap-strategies.erasure.load.cycle.cost).
+# (heap-strategies.erasure.load.cycle.cost); a word all set passes its
+# nodes unread (heap-strategies.erasure.load.cycle.sweep-full).
 type Sw is Type:
   Sw{h: P.H, mk: KM.M, +f: U32}
 
