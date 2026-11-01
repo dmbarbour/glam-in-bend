@@ -1731,6 +1731,74 @@ def stuck_cases(ps: List<&2, Pr>, +n: Nat) -> String:
           "    case " ++ Nat.show(n) ++ ":\n      " ++ stuck_v(is_stuck(R.rule(a, b, True{})), is_stuck(R.rule(a, b, False{}))) ++ "\n" ++
             stuck_cases(t, 1n+n)
 
+# Collecting (heap-strategies.cascade.nongrow; heap-strategies.erasure.
+# load): may a collection reduce A meeting B? Where the rule is never
+# stuck, makes at most the two nodes it frees, applies no builtin and
+# copies no data, and the pair is no need for a lazy value: erasures,
+# annihilations, beta at one level, controls passing data or each other,
+# the events with them. Where the variants differ, the header test the
+# pair's payload test is (P.same_lvl) decides; a differing pair with none
+# names what does not exist.
+
+# an application or an operator meeting data, which may be a need for a
+# lazy value only the table tells (kstrat.bend's may_need): never collected
+def may_need_k(a: R.NodeKind, b: R.NodeKind) -> Bool:
+  match a b:
+    case R.KAp{} R.KData{}:
+      True{}
+    case R.KOp{} R.KData{}:
+      True{}
+    case _ _:
+      False{}
+
+def collect_r.r(r: R.Rule, +a: R.NodeKind, +b: R.NodeKind) -> Bool:
+  match r:
+    case R.RWire{+xs, ls}:
+      Nat.is_le(List.length(&2, R.Spec, xs), 2n) && Bool.not(has_apply(xs)) &&
+        Bool.not(is_data(a) && Nat.is_lt(1n, uses(xs, True{}, List.length(&2, R.Spec, xs)))) &&
+        Bool.not(is_data(b) && Nat.is_lt(1n, uses(xs, False{}, List.length(&2, R.Spec, xs))))
+    case R.RStuck{}:
+      False{}
+
+def collect_r(+a: R.NodeKind, +b: R.NodeKind, r: R.Rule) -> Bool:
+  Bool.not(may_need_k(a, b)) && collect_r.r(r, a, b)
+
+# the pairs whose payload test is the header test P.same_lvl
+def collect_test.full(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
+  match a b:
+    case R.KCopy{} R.KMerge{}:
+      True{}
+    case R.KAp{} R.KFn{}:
+      True{}
+    case _ _:
+      False{}
+
+def collect_test(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
+  collect_test.full(R.lf.full(a), R.lf.full(b))
+
+def collect_code.go(+cy: Bool, +cn: Bool, +tested: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match cy cn:
+    case True{} True{}:
+      "1"
+    case False{} False{}:
+      "0"
+    case True{} False{}:
+      pick(tested, "2", "missing_collect_test_" ++ kname(a) ++ "_" ++ kname(b))
+    case False{} True{}:
+      pick(tested, "3", "missing_collect_test_" ++ kname(a) ++ "_" ++ kname(b))
+
+def collect_code(+a: R.NodeKind, +b: R.NodeKind) -> String:
+  collect_code.go(collect_r(a, b, R.rule(a, b, True{})), collect_r(a, b, R.rule(a, b, False{})), collect_test(a, b), a, b)
+
+def collect_cases(ps: List<&2, Pr>, +n: Nat) -> String:
+  match ps:
+    case Nil{}:
+      ""
+    case Con{p, t}:
+      match p:
+        case Pr{+a, +b}:
+          "    case " ++ Nat.show(n) ++ ":\n      " ++ collect_code(a, b) ++ "\n" ++ collect_cases(t, 1n+n)
+
 # a growth expression (grow_expr) as its table's code
 def grow_code.go(t: Bool, ns: Bool, s: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match t ns s:
@@ -1796,6 +1864,15 @@ def file() -> String:
   "def grows.k(+k: U32, +ha: U32, +hb: U32) -> Bool:\n  match k:\n    case 1:\n      True{}\n    case 2:\n      P.same_lvl(ha, hb)\n" ++
   "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
   "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  grows.k(grow_of(rule_no(ka, kb)), ha, hb)\n\n" ++
+  "# may a collection reduce A, negative principal, meeting B? Never stuck,\n" ++
+  "# no more nodes made than freed, no builtin applied, no data copied, no\n" ++
+  "# need for a lazy value touched (heap-strategies.cascade.nongrow). By the\n" ++
+  "# pair's rule, a table: 0 never, 1 always, 2 when the levels agree, 3\n" ++
+  "# when they do not\n" ++
+  "def collect_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ collect_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
+  "def collects.k(+k: U32, +ha: U32, +hb: U32) -> Bool:\n  match k:\n    case 1:\n      True{}\n    case 2:\n      P.same_lvl(ha, hb)\n" ++
+  "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
+  "def collects(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  collects.k(collect_of(rule_no(ka, kb)), ha, hb)\n\n" ++
   over_a(kinds(), True{}) ++
   events() ++
   rewrites()

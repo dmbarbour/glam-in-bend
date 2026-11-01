@@ -1201,22 +1201,31 @@ takes from it:
        a dead application is exact where the function is known to keep
        its variable inside its body, a dead call's input erasable where
        it is known to be data (the maintainer, 2026-10-30).
-       Built: what a load runs, its events once (`knet.bend`'s `ev_load`,
-       every eraser and dead operator's principal on the events'
-       worklist) and its erasure pairs (`kstrat.bend`'s `collect_h`, the
-       eager loop, events on, seeded with the pairs an eraser or dead
-       operator is in, which make only such nodes), then the sweep by
-       reachability (`KN.sweep`). A freshly lowered net gives nothing:
-       lowering puts its erasers on variables, where no event applies, so
-       every library entry made no event and no interaction at load. On
-       what demand leaves, the library's 126 cases (`run_dgc`, every
-       gate: the value and state demand reached kept, the audits passing
-       after): 230,585 nodes live after demand, 126,346 after the events
-       and erasure pairs (15,647 events, 101,196 interactions, about one
-       an erased node; `costly-133` 45,296 to 2), 331 after the sweep,
-       which reduces nothing. So where a net is loaded or collected, the
-       sweep reclaims what is cut off without work, and erasure the dead
-       structure still joined to what lives, at a cost.
+       Built: a net's collection, at load or wherever a net is
+       collected (the maintainer, 2026-11-01: cheap work that carries
+       erasers belongs to a collection; with only the sweep, everything
+       is still joined to the initial lowering). Its events once
+       (`knet.bend`'s `ev_load`: every eraser and dead operator's
+       principal on the events' worklist); the pairs that do not grow
+       the net (`kstrat.bend`'s `collect_h`, after
+       `heap-strategies.cascade.nongrow`: the eager loop, events on,
+       from every active pair, rewriting those `KR.collects` admits,
+       never stuck, no more nodes made than freed, no builtin applied,
+       no data copied, no need for a lazy value touched, which the
+       generator writes from the rule table, a header test deciding where
+       the variants differ: erasure, annihilation, beta at one level,
+       controls passing data or each other); then the sweep by
+       reachability (`KN.sweep`). The library runs both on every case,
+       the value and state demand reaches kept and the audits passing.
+       On a freshly lowered net, before demand: 2,462 interactions and
+       42 events over the 126 cases, demand after them 2,668,962
+       interactions against 2,671,168 alone, 0.01% more in all; a sweep
+       there frees what lowering left unreached (`dead-call-data` 6 nodes
+       to 2). On what demand leaves: 230,585 nodes live, 95,332 after the
+       collection's pairs (20,186 events, 141,837 interactions; erasure
+       pairs alone left 126,346), 317 after the sweep, which reduces
+       nothing. A fresh net offers little cheap work; a net reduced
+       offers much, and the sweep takes what the cheap work cuts off.
        - `heap-strategies.erasure.load.cycle` — tentative — a collection
          in the middle of a run, where work still lives: demand
          collecting before it grows its net, by the sweep and by

@@ -1222,6 +1222,142 @@ def grows.k(+k: U32, +ha: U32, +hb: U32) -> Bool:
 def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:
   grows.k(grow_of(rule_no(ka, kb)), ha, hb)
 
+# may a collection reduce A, negative principal, meeting B? Never stuck,
+# no more nodes made than freed, no builtin applied, no data copied, no
+# need for a lazy value touched (heap-strategies.cascade.nongrow). By the
+# pair's rule, a table: 0 never, 1 always, 2 when the levels agree, 3
+# when they do not
+def collect_of(+r: U32) -> U32:
+  match r:
+    case 0:
+      0
+    case 1:
+      2
+    case 2:
+      0
+    case 3:
+      0
+    case 4:
+      1
+    case 5:
+      0
+    case 6:
+      0
+    case 7:
+      0
+    case 8:
+      0
+    case 9:
+      2
+    case 10:
+      0
+    case 11:
+      1
+    case 12:
+      0
+    case 13:
+      2
+    case 14:
+      2
+    case 15:
+      1
+    case 16:
+      1
+    case 17:
+      1
+    case 18:
+      1
+    case 19:
+      1
+    case 20:
+      1
+    case 21:
+      1
+    case 22:
+      1
+    case 23:
+      1
+    case 24:
+      1
+    case 25:
+      1
+    case 26:
+      0
+    case 27:
+      0
+    case 28:
+      1
+    case 29:
+      1
+    case 30:
+      1
+    case 31:
+      1
+    case 32:
+      0
+    case 33:
+      2
+    case 34:
+      1
+    case 35:
+      1
+    case 36:
+      1
+    case 37:
+      1
+    case 38:
+      1
+    case 39:
+      0
+    case 40:
+      2
+    case 41:
+      1
+    case 42:
+      1
+    case 43:
+      1
+    case 44:
+      1
+    case 45:
+      1
+    case 46:
+      1
+    case 47:
+      1
+    case 48:
+      1
+    case 49:
+      1
+    case 50:
+      1
+    case 51:
+      1
+    case 52:
+      0
+    case 53:
+      0
+    case 54:
+      1
+    case 55:
+      1
+    case _:
+      0
+
+def collects.k(+k: U32, +ha: U32, +hb: U32) -> Bool:
+  match k:
+    case 1:
+      True{}
+    case 2:
+      P.same_lvl(ha, hb)
+    case 3:
+      Bool.not(P.same_lvl(ha, hb))
+    case _:
+      False{}
+
+def collects(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:
+  collects.k(collect_of(rule_no(ka, kb)), ha, hb)
+
 def rw.Ap.Fn.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   after(fin(P.fuse(P.fuse(P.link(P.link(P.fresh2(h, a, b), e0, e3), e1, e2), e0), e1), note(note(st, e0, e3), e1, e2)), N.Ext4{e0, e1, P.nil(), P.nil()})
 

@@ -308,6 +308,14 @@ def wr(h: H, +i: U32, +v: U32) -> H:
       H{KM.m_set(w, i, v), a}
 
 # the events at nodes of kind code k
+
+def bump.r(r: H & U32) -> H:
+  (h, +n) = r
+  wr(h, at_itrs(), (n + 1 : U32))
+
+# one more interaction counted
+def bump(h: H) -> H:
+  bump.r(rd(h, at_itrs()))
 def evk(h: H, +k: U32) -> H & U32:
   rd(h, at_evk(k))
 

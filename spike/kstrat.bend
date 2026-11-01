@@ -110,60 +110,71 @@ def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 def reduce_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
   reduce.st(P.stats(h), fuel, fast, True{})
 
-# Collection at load (heap-strategies.erasure.load): the eager loop,
-# events on, seeded with the pairs one of whose nodes is an eraser or a
-# dead operator (KR.ev_end at its principal). An erasure rewrite makes
-# only such nodes, so the run erases what lowering or a reduction left
-# dead and stops; after it, a strategy starts on what is live. Run when a
-# net is loaded, not per rewrite: the deferred collection demand wants.
+# Collection (heap-strategies.erasure.load, after the maintainer's
+# heap-strategies.cascade.nongrow): the eager loop, events on, from every
+# active pair, rewriting only those a collection may (KR.collects: never
+# stuck, no more nodes made than freed, no builtin applied, no data
+# copied, no need for a lazy value touched) and leaving the rest, which
+# the net does not record: erasures, annihilations, beta at one level,
+# controls passing what they may. Cheap work that carries erasers as far
+# as they go, so that a sweep then finds what is cut off; run when a net
+# is loaded or collected, not per rewrite.
 
-def is_b(+hd: U32) -> Bool:
-  U32.is_ne(hd, 0) && KR.ev_end(P.rk(hd), 0)
-
-def cscan.pair(r: P.H & U32, st: P.Stk, +i: U32, +hi: U32) -> P.E:
-  (h, +hq) = r
-  P.E{h, scan.push(is_b(hi) || is_b(hq), st, i)}
-
-def cscan.q(pair: Bool, h: P.H, st: P.Stk, +i: U32, +q: U32, +hi: U32) -> P.E:
-  match pair:
+def sel_b(c: Bool, +x: Bool, +y: Bool) -> Bool:
+  match c:
     case True{}:
-      cscan.pair(P.rd(h, P.base(q)), st, i, hi)
+      x
+    case False{}:
+      y
+
+def coll.bump(e: P.E) -> P.E:
+  match e:
+    case P.E{h, st}:
+      P.E{P.bump(h), st}
+
+# a pair collected, counted, or left
+def coll.do(go: Bool, h: P.H, st: P.Stk, +x: U32, +y: U32) -> P.E:
+  match go:
+    case True{}:
+      coll.bump(KN.interact.e(~KN.ev.settle.e, h, st, True{}, x, y))
     case False{}:
       P.E{h, st}
 
-def cscan.peer(r: P.H & U32, st: P.Stk, +i: U32, +hi: U32) -> P.E:
-  (h, +q) = r
-  cscan.q(U32.is_eq(P.port(q), 0) && U32.is_gt(q, i), h, st, i, q, hi)
+def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
+  (h, +hy) = r
+  coll.do(U32.is_ne(hx, 0) && U32.is_ne(hy, 0) &&
+    sel_b(KR.kind_neg(P.rk(hx)), KR.collects(P.rk(hx), P.rk(hy), hx, hy), KR.collects(P.rk(hy), P.rk(hx), hy, hx)), h, st, x, y)
 
-def cscan.go(live: Bool, h: P.H, st: P.Stk, +i: U32, +hd: U32) -> P.E:
-  match live:
-    case True{}:
-      cscan.peer(P.rd(h, (i + 1 : U32)), st, i, hd)
-    case False{}:
-      P.E{h, st}
+def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
+  (h, +hx) = r
+  coll.hy(P.rd(h, P.base(y)), st, x, y, hx)
 
-def cscan.hdr(r: P.H & U32, st: P.Stk, +i: U32) -> P.E:
-  (h, +hd) = r
-  cscan.go(U32.is_ne(hd, 0), h, st, i, hd)
-
-# the erasure pairs among k nodes from word i, onto the stack
-def cscan(k: Nat, +i: U32, e: P.E) -> P.E:
-  match k:
+def run.c(n: Nat, pp: P.Pop) -> Ran:
+  match n:
     case 0n:
-      e
+      Ran{P.unpop(pp), 0n}
     case 1n+p:
-      match e:
-        case P.E{h, st}:
-          cscan(p, (i + 4 : U32), cscan.hdr(P.rd(h, i), st, i))
+      match pp:
+        case P.Pop{h, st, +x, +y, +ok}:
+          match ok:
+            case True{}:
+              run.c(p, P.pop(coll.hx(P.rd(h, x), st, x, y), KR.most_pairs()))
+            case False{}:
+              Ran{h, 1n+p}
+
+def collect.fin(r: Ran) -> P.H:
+  match r:
+    case Ran{h, +left}:
+      h
 
 def collect.st(r: P.H & P.HS, +fuel: Nat) -> P.H:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      ran(run.v(fuel, True{}, P.pop(cscan(U32.to_nat((cap - P.first() : U32)), P.iface(), P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs())), fuel)
+      collect.fin(run.c(fuel, reduce.pop(P.stk_new(P.rs_words(cap)), P.count(h, 0), cap)))
 
-# a net's erasure pairs run, events on, at most fuel interactions, which
-# it counts (P.count)
+# a net's collectable pairs run, events on, at most fuel pairs looked at;
+# the interactions it makes counted (P.count, from 0)
 def collect_h(+fuel: Nat, h: P.H) -> P.H:
   collect.st(P.stats(h), fuel)
 

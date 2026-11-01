@@ -356,6 +356,37 @@ def gres.d(r: KS.D & U32, +fuel: Nat) -> GRes:
 def run_dgc(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> GRes:
   gres.d(KS.need(demand_m(t, fuel, False{}, vals)), fuel)
 
+# a load's collection on a freshly lowered net, then demand: the load's
+# interactions and events, the nodes live after its sweep, demand's result
+type LDRes is Data:
+  LDRes{r: DRes, +litrs: U32, +levs: U32, +llive: U32}
+
+def ldres.d(+litrs: U32, +levs: U32, +llive: U32, d: DRes) -> LDRes:
+  LDRes{d, litrs, levs, llive}
+
+def ldres.au(au: KN.Au, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
+  match au:
+    case KN.Au{h, +n}:
+      ldres.d(litrs, levs, n, dres(force(64n, fuel, False{}, vals, demand_ev(False{}, fuel, KS.d.start(P.count(h, 0))))))
+
+def ldres.sw(r: P.H & U32, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
+  (h, +freed) = r
+  ldres.au(live_nodes.st(P.stats(h)), litrs, levs, fuel, vals)
+
+def ldres.ev(r: P.H & U32, +litrs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
+  (h, +levs) = r
+  ldres.sw(KN.sweep(h), litrs, levs, fuel, vals)
+
+def ldres.st(r: P.H & P.HS, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      ldres.ev(P.evs(h), itrs, fuel, vals)
+
+# collected at load, then demand
+def run_dl(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
+  ldres.st(P.stats(KS.collect_h(fuel, KN.ev_load(KN.load(t)))), fuel, vals)
+
 def st_name(+st: U32) -> String:
   match st:
     case 1:
