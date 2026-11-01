@@ -23383,6 +23383,44 @@ def Laws.events_fit_header(a, b, p):
     case R.KDOp{}:
       {==}
 
+# by cases on the kind: each side computes
+def Laws.payload_past_links(k):
+  match k:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KOp{}:
+      {==}
+    case R.KLift{}:
+      {==}
+    case R.KLiftC{}:
+      {==}
+    case R.KCopyL{}:
+      {==}
+    case R.KCopyR{}:
+      {==}
+    case R.KMergeL{}:
+      {==}
+    case R.KMergeR{}:
+      {==}
+    case R.KDOp{}:
+      {==}
+
 def Laws.aux_loops(k):
   match k:
     case R.KFree{}:

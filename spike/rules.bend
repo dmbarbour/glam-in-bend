@@ -97,6 +97,69 @@ def arity(k: NodeKind) -> Nat:
     case _:
       1n
 
+# What a kind's payload word holds (heap-strategies.kinds.payloads): a
+# value, data's or an operator's accumulator, its table entry the node's
+# to drop; a control's index and offset; or nothing, a fan's identity and
+# a level being in the header. Every kind is named, so that a new one must
+# be placed. The kernel keeps the word past the kind's links (law
+# payload_past_links): which of a node's words are links follows from its
+# kind alone.
+type Holds is Data:
+  HNone{}
+  HValue{}
+  HCtl{}
+
+def holds(k: NodeKind) -> Holds:
+  match k:
+    case KFree{}:
+      HNone{}
+    case KFn{}:
+      HNone{}
+    case KAp{}:
+      HNone{}
+    case KCopy{}:
+      HNone{}
+    case KMerge{}:
+      HNone{}
+    case KData{}:
+      HValue{}
+    case KEraN{}:
+      HNone{}
+    case KEraP{}:
+      HNone{}
+    case KRoot{}:
+      HNone{}
+    case KOp{}:
+      HValue{}
+    case KLift{}:
+      HCtl{}
+    case KLiftC{}:
+      HCtl{}
+    case KCopyL{}:
+      HNone{}
+    case KCopyR{}:
+      HNone{}
+    case KMergeL{}:
+      HNone{}
+    case KMergeR{}:
+      HNone{}
+    case KDOp{}:
+      HNone{}
+
+def holds_value(h: Holds) -> Bool:
+  match h:
+    case HValue{}:
+      True{}
+    case _:
+      False{}
+
+def holds_some(h: Holds) -> Bool:
+  match h:
+    case HNone{}:
+      False{}
+    case _:
+      True{}
+
 # the polarity of port p of a node of kind k; ports past its arity are
 # never asked for, and answer Pos
 def port_pol(k: NodeKind, p: Nat) -> Pol:
