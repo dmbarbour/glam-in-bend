@@ -239,7 +239,8 @@ def mq.run(m: Mq, +cap: U32) -> P.H & U32:
 # nodes, fewer than the capacity, so they never meet. Indexes wrap, so a
 # nil link, all ones, finds its mark in the array's last word, set whole
 # from the start: nil reads as marked, never followed, and is never a
-# principal. The state is five words, the net's data table set aside, and
+# principal. The kernel links no port to nil, so this is a net under a
+# fault (`.walk.nil`). The state is five words, the net's data table set aside, and
 # each helper is called from one place, so that clang inlines the step
 # whole: Bend returns a helper's result through an array its caller
 # copies (docs/BendIssues.md, "Records returned through every level,
