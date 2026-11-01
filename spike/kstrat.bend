@@ -357,17 +357,14 @@ def rq.mk(r: KM.M & U32, h: P.H, +cap: U32) -> Rq:
 type Lw is Type:
   Lw{w: KM.M, g: KM.M, +c: U32, +n: U32, +q: U32}
 
-# the walk's array and the stack's lowest word, after a push
-type Gn is Type:
-  Gn{g: KM.M, +n: U32}
+# the net's words, the walk's array and the stack's lowest word, after a
+# push
+type Gw is Type:
+  Gw{w: KM.M, g: KM.M, +n: U32}
 
-# a node's head and the links of its ports o1 and o2
+# a node's head and the link of its port o1
 type Nd is Type:
-  Nd{w: KM.M, +hd: U32, +l1: U32, +l2: U32}
-
-# a link, nil read as 0
-def lw.nn(+l: U32) -> U32:
-  (l .&. ((l >> 31n : U32) - 1 : U32) : U32)
+  Nd{w: KM.M, +hd: U32, +l1: U32}
 
 # the node behind link l marked: the array, and 1 if it was already
 def lw.mk.v(r: KM.M & U32, +j: U32, +s: U32) -> KM.M & U32:
@@ -377,19 +374,16 @@ def lw.mk.v(r: KM.M & U32, +j: U32, +s: U32) -> KM.M & U32:
 def lw.mk(g: KM.M, +l: U32) -> KM.M & U32:
   lw.mk.v(KM.m_get(g, (l >> 7n : U32)), (l >> 7n : U32), ((l >> 2n : U32) .&. 31 : U32))
 
-def nd.l2(r: KM.M & U32, +hd: U32, +l1: U32) -> Nd:
-  (w, +l2) = r
-  Nd{w, hd, l1, l2}
-
-def nd.l1(r: KM.M & U32, +hd: U32, +i2: U32) -> Nd:
+def nd.l1(r: KM.M & U32, +hd: U32) -> Nd:
   (w, +l1) = r
-  nd.l2(KM.m_get(w, i2), hd, lw.nn(l1))
+  Nd{w, hd, l1}
 
-# node b entered by port p: o1 is 1 if p is 0, else 0; o2 is 2 unless p
-# is; for a node of two ports, o1 alone is its other port
+# node b entered by port p: o1 is 1 if p is 0, else 0 (o2, read where
+# there are three ports, is 2 unless p is); for a node of two ports, o1 is
+# its other port
 def nd.hd(r: KM.M & U32, +b: U32, +p: U32) -> Nd:
   (w, +hd) = r
-  nd.l1(KM.m_get(w, ((b + 1 : U32) + (1 >> U32.to_nat(p) : U32) : U32)), hd, ((b + 3 : U32) - (p >> 1n : U32) : U32))
+  nd.l1(KM.m_get(w, ((b + 1 : U32) + (1 >> U32.to_nat(p) : U32) : U32)), hd)
 
 def lw.f1p(pair: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> Lw:
   match pair:
@@ -407,29 +401,33 @@ def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +l1: U32)
   lw.f1p(U32.is_ne(p, 0) && U32.is_eq(P.port(l1), 0) && (U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1))),
     w, g, n, q, b, (l1 .&. (old - 1 : U32) : U32))
 
-def lw.f1(s: Gn, w: KM.M, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
+def lw.f1(s: Gw, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   match s:
-    case Gn{g, +n}:
+    case Gw{w, g, +n}:
       lw.f1m(lw.mk(g, l1), w, n, q, b, p, l1)
 
-def lw.push.o(+old: U32, g: KM.M, +n: U32, +l2: U32) -> Gn:
+def lw.push.o(+old: U32, w: KM.M, g: KM.M, +n: U32, +l2: U32) -> Gw:
   match old:
     case 0:
-      Gn{KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32)}
+      Gw{w, KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32)}
     case _:
-      Gn{g, n}
+      Gw{w, g, n}
 
 # o2's link pushed unless the node behind was marked
-def lw.push(r: KM.M & U32, +n: U32, +l2: U32) -> Gn:
+def lw.push(r: KM.M & U32, w: KM.M, +n: U32, +l2: U32) -> Gw:
   (g, +old) = r
-  lw.push.o(old, g, n, l2)
+  lw.push.o(old, w, g, n, l2)
 
-def lw.p2(three: Bool, g: KM.M, +n: U32, +l2: U32) -> Gn:
+def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32) -> Gw:
+  (w, +l2) = r
+  lw.push(lw.mk(g, l2), w, n, l2)
+
+def lw.p2(three: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +p: U32) -> Gw:
   match three:
     case True{}:
-      lw.push(lw.mk(g, l2), n, l2)
+      lw.p2r(KM.m_get(w, ((b + 3 : U32) - (p >> 1n : U32) : U32)), g, n)
     case False{}:
-      Gn{g, n}
+      Gw{w, g, n}
 
 # an eraser or dead operator noted where its principal faces an auxiliary
 # port, the note tagged by its top bit
@@ -444,19 +442,19 @@ def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
     case False{}:
       Lw{w, g, 0, n, q}
 
-def lw.ar(+a: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32, +l2: U32) -> Lw:
+def lw.ar(+a: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32) -> Lw:
   match a:
     case 0:
       Lw{w, g, 0, n, q}
     case 1:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(U32.is_eq(a, 3), g, n, lw.nn(l2)), w, q, b, p, l1)
+      lw.f1(lw.p2(U32.is_eq(a, 3), w, g, n, b, p), q, b, p, l1)
 
 def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32) -> Lw:
   match d:
-    case Nd{w, +hd, +l1, +l2}:
-      lw.ar(KR.kind_arity(P.rk(hd)), w, g, n, q, b, p, hd, l1, l2)
+    case Nd{w, +hd, +l1}:
+      lw.ar(KR.kind_arity(P.rk(hd)), w, g, n, q, b, p, hd, l1)
 
 def lw.pop(r: KM.M & U32, w: KM.M, +n: U32, +q: U32) -> Lw:
   (g, +c) = r
@@ -534,11 +532,12 @@ def lw.s1(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +l: U32) -> Lw:
 
 def lw.s0(r: KM.M & U32, g: KM.M, +n: U32, +q: U32) -> Lw:
   (w, +l) = r
-  lw.s1(lw.mk(g, lw.nn(l)), w, n, q, lw.nn(l))
+  lw.s1(lw.mk(g, l), w, n, q, l)
 
 def lw.g0(r: KM.M & U32, w: KM.M, +cap: U32) -> Lw:
   (g, +sz) = r
-  lw.s0(KM.m_get(w, (P.iface() + 1 : U32)), KM.m_set(g, 0, (1 .|. KN.rc.bit((P.iface() >> 2n : U32)) : U32)), (sz - 1 : U32), (cap >> 5n : U32))
+  lw.s0(KM.m_get(w, (P.iface() + 1 : U32)),
+    KM.m_set(KM.m_set(g, (sz - 1 : U32), 4294967295), 0, (1 .|. KN.rc.bit((P.iface() >> 2n : U32)) : U32)), (sz - 2 : U32), (cap >> 5n : U32))
 
 def lw.h(h: P.H, +cap: U32) -> Mq:
   match h:
