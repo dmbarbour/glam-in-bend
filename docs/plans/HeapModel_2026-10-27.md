@@ -344,7 +344,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.dispatch` (dropped),
    `heap-strategies.erasure.load.cycle.leaves` (dropped),
    `heap-strategies.erasure.load.cycle.entry` (dropped),
-   `heap-strategies.erasure.load.cycle.walk` (planned),
+   `heap-strategies.erasure.load.cycle.walk` (prototyped),
+   `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive`,
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1532,7 +1533,7 @@ takes from it:
          2026-11-01, for `.walk`, where it is implicit — the worklist
          holding the reference each node was reached by, its visit
          skipping that port.
-       - `heap-strategies.erasure.load.cycle.walk` — planned — the
+       - `heap-strategies.erasure.load.cycle.walk` — tentative — the
          marking walk the maintainer envisions (2026-11-01): its state a
          mark bitmap and a visit stack, one array; a node marked before
          it goes on the stack; the walk follows links, a node of two
@@ -1549,10 +1550,25 @@ takes from it:
          auxiliary port. The notes grow from the array's other end and
          become the eval's queue. Against the present walk, a pop, a
          push and a look back saved a node, fewer calls; the walk is
-         some 110 of `succ`'s 158 instructions a node.
-         - `heap-strategies.erasure.load.cycle.buffers` — contingent
-           on `heap-strategies.erasure.load.cycle.walk` — its one array
-           kept with the net from one collection to the next.
+         some 110 of `succ`'s 158 instructions a node. Prototyped
+         2026-11-01 on branch `gc-walk-proto` (1aaa1da), not merged:
+         every library case kept, the same capacities, but 183 to 188
+         instructions a node of final capacity on `succ` against 116 to
+         122 (store runs 132, 130), 6.0% over plain demand on the
+         dropping terms against 4.3%. Bend returns a helper's result
+         through an array its caller copies, at every level, and the
+         walk passes its nine-word state through some ten levels a node
+         (`docs/BendIssues.md`, "Records returned through every level");
+         the worklist walk's fewer levels pay for its more reads. Back
+         to discussion: a state small enough, or a walk shallow enough,
+         for Bend as it is.
+         - `heap-strategies.erasure.load.cycle.buffers` — tentative —
+           the collection's arrays kept with the net from one collection
+           to the next, whatever the walk: Bend fills a new array at
+           eight instructions a word (`docs/BendIssues.md`, "Array
+           creation fills word by word"), and a collection makes about
+           two words a node of capacity (the worklist, the queue), so
+           perhaps 16 of the 116 instructions a node on `succ`.
        - `heap-strategies.erasure.load.cycle.adaptive` — tentative —
          growth by four where it is likely to be wanted: the first few
          growths, many functions growing fast at first, then reluctant

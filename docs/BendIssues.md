@@ -216,6 +216,28 @@ of 2026-10-26, Bend 2.0.39.
 - **Revisit:** when the kernel's kinds pass 16, or Bend emits jump
   tables.
 
+### Records returned through every level
+
+- **Need:** a loop whose state is a record of several fields (the net,
+  arrays, counts) stepped by helper functions, which Bend asks for: a
+  match takes only a parameter or a field, and a pair returned by a read
+  is taken apart by a function of its own.
+- **Upstream:** none known; a suggestion to raise later, returns written
+  in place, or helpers on the way to a tail call folded into it.
+- **Evidence:** Bend 2.0.39 compiles each helper to a C function
+  returning its result through an array its caller copies word by word,
+  at every level, tail calls too. The maintainer's marking walk
+  (`heap-strategies.erasure.load.cycle.walk`, branch `gc-walk-proto`),
+  which makes fewer reads and writes a node than the worklist walk it
+  would replace, passes its nine-word state through some ten levels a
+  node, and cost 183 to 188 instructions a node of final capacity on
+  `succ` against 116 to 122 (store runs 132, 130); a smaller record (two
+  flags made one number, a level less) changed nothing.
+- **Workaround:** keep the state of a hot loop small and its chain of
+  helpers short, even at more reads and writes an element; count before
+  trusting a design's fewer operations.
+- **Revisit:** at whole-system tuning.
+
 ### Array creation fills word by word
 
 - **Need:** the node store doubles as a net grows; each doubling makes a
