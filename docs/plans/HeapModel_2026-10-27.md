@@ -339,6 +339,13 @@ takes from it:
    `heap-strategies.erasure.load.cycle.trace.lean` (built),
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.room`,
+   `heap-strategies.erasure.load.cycle.perf` (built),
+   `heap-strategies.erasure.load.cycle.third`,
+   `heap-strategies.erasure.load.cycle.dispatch`,
+   `heap-strategies.erasure.load.cycle.leaves`,
+   `heap-strategies.erasure.load.cycle.entry`,
+   `heap-strategies.erasure.load.cycle.adaptive`,
+   `heap-strategies.erasure.load.cycle.lazy-sweep`,
    `heap-strategies.erasure.load.cycle.loops.levels`,
    `heap-strategies.generate`,
    `heap-strategies.erasure.typed`,
@@ -1479,6 +1486,54 @@ takes from it:
            `list-bind-16` and `mixin-once-16` with labels); `search-count`
            and `list-length` stay doubled, what they lack cut off, not
            freed. Instructions unchanged (158 a node on `succ`).
+     - `heap-strategies.erasure.load.cycle.perf` — built 2026-11-01 — the
+       lean trace's costs by part (store run 127), on `succ` at k 14 and
+       16 (no garbage: every collection grows) and on 16 library terms
+       that drop what they make (`costly-133`, `search-count`,
+       `list-sum`, `list-length`, `mixin-once-16`, `loop-junk-1024`, by
+       `spike/runmode.bend` on nets from `tools/library_nets.py`). On
+       `succ`, 158 instructions a node of final capacity over plain
+       demand: some 46 without any collection (the room asked, the
+       growth), the sweep's pass and the eval a few, the marking walk the
+       rest, about 110. On the dropping terms, collecting costs 7.6% over
+       plain demand; 4.5% of it is there with no collection at all, 3.5%
+       with no free-list check either: the collecting walk's own path,
+       some 33 instructions a rewrite, the rules that take nodes passing
+       two more calls. Without the eval it costs more (8.6%): the nets
+       grow, and later collections scan more. Growing unless two thirds
+       are free rather than half (the maintainer: at worst two nodes made
+       for each kept) changes no instruction count here and one capacity
+       on the library (`mixin-once-16` with labels, 256 to 512; 646,272
+       nodes against 645,760): these programs seldom end a collection
+       with between half and two thirds free.
+       - `heap-strategies.erasure.load.cycle.third` — tentative — two
+         thirds free before no growth, its bound worth having for loops
+         that keep a steady live set (half the collections at worst), at
+         no cost measured here; for the maintainer to decide.
+       - `heap-strategies.erasure.load.cycle.dispatch` — tentative — the
+         collecting walk's own cost, 3.5% on dropping terms with no
+         check made: the rules that take nodes reach their rewrite
+         through two more calls (`wk.room`, `wk.room.go`); a path as
+         short as plain demand's, the free-list test made where the
+         rewrite is written out.
+       - `heap-strategies.erasure.load.cycle.leaves` — tentative — nodes
+         of one port (data, erasers, dead operators) marked without a
+         visit: what their port faces is the node that reached them;
+         an event's B noted as it is marked.
+       - `heap-strategies.erasure.load.cycle.entry` — tentative — the
+         worklist holding the reference each node was reached by, so
+         that its visit skips that port, already marked: a third of the
+         links of a node of three ports.
+       - `heap-strategies.erasure.load.cycle.adaptive` — tentative — a
+         collection that frees little (an eighth, say) makes the next
+         growth four times rather than twice, or lets the net grow once
+         without collecting: growth with no garbage, as `succ`'s, pays
+         half the collections, the space bounded.
+       - `heap-strategies.erasure.load.cycle.lazy-sweep` — tentative —
+         growth decided from the walk's count of marked nodes, and the
+         unmarked freed as the allocator needs them, a block of marks at
+         a time; small here (the pass costs a few instructions a node),
+         larger where much is garbage.
      - `heap-strategies.erasure.load.cycle.room` — planned — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
