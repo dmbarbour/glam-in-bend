@@ -1013,13 +1013,6 @@ def most_a(as: List<&2, R.NodeKind>, +m: Nat) -> Nat:
     case Con{+a, t}:
       most_a(t, most_b(kinds(), a, m))
 
-def made(r: R.Rule) -> Nat:
-  match r:
-    case R.RWire{xs, ls}:
-      List.length(&2, R.Spec, xs)
-    case R.RStuck{}:
-      0n
-
 def over_a(as: List<&2, R.NodeKind>, +fns: Bool) -> String:
   match as:
     case Nil{}:
@@ -1080,17 +1073,6 @@ def payloads() -> String:
   "# a node's payload, of w2 and w3, its words 2 and 3, where kprim.bend's\n" ++
   "# node.word puts it: a value or a control's index and offset; 0 for none\n" ++
   "def payload.k(+k: U32, +w2: U32, +w3: U32) -> U32:\n  match k:\n" ++ payloads.w(kinds()) ++ "    case _:\n      0\n\n"
-
-def stuck_n(+t: Bool, +f: Bool) -> Nat:
-  match t f:
-    case True{} True{}:
-      1n
-    case False{} False{}:
-      0n
-    case True{} False{}:
-      3n
-    case False{} True{}:
-      2n
 
 def stuck_v(+t: Bool, +f: Bool) -> String:
   match t f:
@@ -1817,55 +1799,6 @@ def collect_cases(ps: List<&2, Pr>, +n: Nat) -> String:
         case Pr{+a, +b}:
           "    case " ++ Nat.show(n) ++ ":\n      " ++ collect_code(a, b) ++ "\n" ++ collect_cases(t, 1n+n)
 
-# the nodes the rewrite of A meeting B takes from the free list, the more
-# of its variants: those it makes past the two slots its redex gives
-def takes_n(+a: R.NodeKind, +b: R.NodeKind) -> Nat:
-  Nat.sub(nat_max(made(R.rule(a, b, True{})), made(R.rule(a, b, False{}))), 2n)
-
-# the nodes a variant of a rule takes from the free list
-def takes_v(r: R.Rule) -> Nat:
-  Nat.sub(made(r), 2n)
-
-def room_code.go(+same: Bool, +fits: Bool, +sl: Bool, +code: Nat, +a: R.NodeKind, +b: R.NodeKind) -> String:
-  match same fits sl:
-    case _ False{} _:
-      "takes_past_3_" ++ kname(a) ++ "_" ++ kname(b)
-    case True{} True{} _:
-      Nat.show(code)
-    case False{} True{} True{}:
-      Nat.show(code)
-    case False{} True{} False{}:
-      "missing_takes_test_" ++ kname(a) ++ "_" ++ kname(b)
-
-# a rule's stuck code, plus four times the nodes its variant for a passing
-# payload test takes, plus sixteen times its other's; where they differ,
-# the test must be the header test (P.same_lvl), which a collecting demand
-# makes too, else a name that does not compile
-def room_code(+a: R.NodeKind, +b: R.NodeKind) -> String:
-  room_code.go(Nat.is_eq(takes_v(R.rule(a, b, True{})), takes_v(R.rule(a, b, False{}))),
-    Nat.is_lt(nat_max(takes_v(R.rule(a, b, True{})), takes_v(R.rule(a, b, False{}))), 4n),
-    String.eq(test_expr(a, b), "(h, P.same_lvl(ha, hb))"),
-    Nat.add(Nat.add(stuck_n(is_stuck(R.rule(a, b, True{})), is_stuck(R.rule(a, b, False{}))),
-      Nat.mul(4n, takes_v(R.rule(a, b, True{})))), Nat.mul(16n, takes_v(R.rule(a, b, False{})))), a, b)
-
-def room_cases(ps: List<&2, Pr>, +n: Nat) -> String:
-  match ps:
-    case Nil{}:
-      ""
-    case Con{p, t}:
-      match p:
-        case Pr{+a, +b}:
-          "    case " ++ Nat.show(n) ++ ":\n      " ++ room_code(a, b) ++ "\n" ++ room_cases(t, 1n+n)
-
-def take_cases(ps: List<&2, Pr>, +n: Nat) -> String:
-  match ps:
-    case Nil{}:
-      ""
-    case Con{p, t}:
-      match p:
-        case Pr{+a, +b}:
-          "    case " ++ Nat.show(n) ++ ":\n      " ++ Nat.show(takes_n(a, b)) ++ "\n" ++ take_cases(t, 1n+n)
-
 # a growth expression (grow_expr) as its table's code
 def grow_code.go(t: Bool, ns: Bool, s: Bool, +x: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match t ns s:
@@ -1940,27 +1873,6 @@ def file() -> String:
   "def collects.k(+k: U32, +ha: U32, +hb: U32) -> Bool:\n  match k:\n    case 1:\n      True{}\n    case 2:\n      P.same_lvl(ha, hb)\n" ++
   "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
   "def collects(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  collects.k(collect_of(rule_no(ka, kb)), ha, hb)\n\n" ++
-  "# the nodes a rewrite of A, negative principal, meeting B takes from the\n" ++
-  "# free list, the more of the rule's variants: those it makes past the two\n" ++
-  "# slots its redex gives (heap-strategies.reuse). By the pair's rule, a\n" ++
-  "# table; most take none (heap-strategies.erasure.load.cycle)\n" ++
-  "def take_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ take_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++
-  "def takes(+ka: U32, +kb: U32) -> U32:\n  take_of(rule_no(ka, kb))\n\n" ++
-  "# the rule's stuck code (stuck_of) and the nodes each variant takes in\n" ++
-  "# one number: the code, plus four times the nodes its variant for a\n" ++
-  "# passing payload test takes, plus sixteen times its other's, so that a\n" ++
-  "# collecting demand reads them where plain demand reads the code alone\n" ++
-  "# (kstrat.bend's wk.rw.c); where the variants differ, the test is\n" ++
-  "# whether the levels agree (P.same_lvl)\n" ++
-  "def room_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      1\n" ++ room_cases(numbered(), 1n) ++ "    case _:\n      1\n\n" ++
-  "# stuck_by from the headers, as the walk passes them\n" ++
-  "def stuck_hd(+ha: U32, +hb: U32) -> U32:\n  stuck_of(rule_no(P.rk(ha), P.rk(hb)))\n\n" ++
-  "def room.pick(+same: Bool, +c: U32) -> U32:\n  match same:\n    case True{}:\n" ++
-  "      ((c .&. 3 : U32) .|. (c .&. 12 : U32) : U32)\n    case False{}:\n" ++
-  "      ((c .&. 3 : U32) .|. ((c >> 2n : U32) .&. 12 : U32) : U32)\n\n" ++
-  "# the stuck code of A, negative principal, meeting B, plus four times the\n" ++
-  "# nodes the variant its levels pick takes from the free list\n" ++
-  "def room_hd(+ha: U32, +hb: U32) -> U32:\n  room.pick(P.same_lvl(ha, hb), room_of(rule_no(P.rk(ha), P.rk(hb))))\n\n" ++
   over_a(kinds(), True{}) ++
   events() ++
   rewrites()

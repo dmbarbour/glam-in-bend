@@ -140,16 +140,15 @@ def coll.do(go: Bool, h: P.H, st: P.Stk, +x: U32, +y: U32) -> P.E:
     case False{}:
       P.E{h, st}
 
-# the pair x - y collected where a collection may, but where it is node
-# ex's, the walk's own
-def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32, +ex: U32) -> P.E:
+# the pair x - y collected where a collection may
+def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
   (h, +hy) = r
-  coll.do(U32.is_ne(hx, 0) && U32.is_ne(hy, 0) && U32.is_ne(x, ex) && U32.is_ne(P.base(y), ex) &&
+  coll.do(U32.is_ne(hx, 0) && U32.is_ne(hy, 0) &&
     sel_b(KR.kind_neg(P.rk(hx)), KR.collects(P.rk(hx), P.rk(hy), hx, hy), KR.collects(P.rk(hy), P.rk(hx), hy, hx)), h, st, x, y)
 
-def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +ex: U32) -> P.E:
+def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
   (h, +hx) = r
-  coll.hy(P.rd(h, P.base(y)), st, x, y, hx, ex)
+  coll.hy(P.rd(h, P.base(y)), st, x, y, hx)
 
 def collect.fin(r: Ran) -> P.H:
   match r:
@@ -167,7 +166,7 @@ def collect.fin(r: Ran) -> P.H:
 # touched per node made (a quarter would be three, the maintainer: space
 # bought with speed).
 
-def run.q(n: Nat, q: P.PopQ, +ex: U32) -> Ran:
+def run.q(n: Nat, q: P.PopQ) -> Ran:
   match n:
     case 0n:
       Ran{P.unpopq(q), 0n}
@@ -176,7 +175,7 @@ def run.q(n: Nat, q: P.PopQ, +ex: U32) -> Ran:
         case P.PopQ{h, st, +x, +y, +ok, +hd}:
           match ok:
             case True{}:
-              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y, ex), KR.most_pairs(), hd), ex)
+              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y), KR.most_pairs(), hd))
             case False{}:
               Ran{h, 1n+p}
 
@@ -186,8 +185,8 @@ def run.q(n: Nat, q: P.PopQ, +ex: U32) -> Ran:
 # an event's B (KR.ev_end at the principal: an eraser, a dead operator)
 # onto the events' worklist; the sweep's pass frees what it did not reach
 # and counts the nodes free; then the events run, noting the pairs they
-# make, and the queue's collectable pairs after them, first in first out,
-# but the walk's own pair. What they free goes onto the free list at
+# make, and the queue's collectable pairs after them, first in first out.
+# What they free goes onto the free list at
 # once; what they cut off waits for the next collection, as does their
 # part in deciding growth, made on the sweep's count: latency traded for
 # one walk and one pass, where a scan, a walk and a pass were (the
@@ -311,17 +310,17 @@ def mq.cnt(r: P.H & U32, +free: U32) -> P.H & U32:
 def mq.ran(r: Ran, +free: U32, +fh0: U32, +cap: U32) -> P.H & U32:
   mq.cnt(P.freed_since(U32.to_nat(cap), collect.fin(r), fh0), free)
 
-def mq.fh(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +cap: U32, +ex: U32) -> P.H & U32:
+def mq.fh(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +cap: U32) -> P.H & U32:
   (h, +fh0) = r
-  mq.ran(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws}), KR.most_pairs(), 0), ex), free, fh0, cap)
+  mq.ran(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws}), KR.most_pairs(), 0)), free, fh0, cap)
 
 # the noted events, then the noted pairs a collection may rewrite; the
 # nodes free after them, the sweep's count and those they freed, counted
 # down the free list to its head after the sweep (P.freed_since)
-def mq.run(m: Mq, +cap: U32, +ex: U32) -> P.H & U32:
+def mq.run(m: Mq, +cap: U32) -> P.H & U32:
   match m:
     case Mq{h, st, ws, +free}:
-      mq.fh(P.rd(h, P.at_fh()), st, ws, free, cap, ex)
+      mq.fh(P.rd(h, P.at_fh()), st, ws, free, cap)
 
 def rq.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> Rq:
   (wl, +room) = r
@@ -331,16 +330,16 @@ def rq.mk(r: KM.M & U32, h: P.H, +cap: U32) -> Rq:
   (mk, +sz) = r
   rq.wl(KN.rc.at(cap, 0n), h, mk, cap)
 
-def lean.st(r: P.H & P.HS, +ex: U32) -> P.H & U32:
+def lean.st(r: P.H & P.HS) -> P.H & U32:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      mq.run(rq.sweep(rq.go(4294967295n, rq.see(P.iface(), rq.mk(KN.rc.at(cap, 5n), h, cap))), cap), cap, ex)
+      mq.run(rq.sweep(rq.go(4294967295n, rq.see(P.iface(), rq.mk(KN.rc.at(cap, 5n), h, cap))), cap), cap)
 
 # a net collected by the lean trace: marked, swept, then its noted events
 # and collectable pairs run; the net, and its free nodes after the sweep
-def collect_lean(h: P.H, +ex: U32) -> P.H & U32:
-  lean.st(P.stats(h), ex)
+def collect_lean(h: P.H) -> P.H & U32:
+  lean.st(P.stats(h))
 
 def cyc.grow(+ok: Bool, h: P.H) -> P.H & Bool:
   match ok:
@@ -359,12 +358,11 @@ def cyc.sw(r: P.H & U32) -> P.H & Bool:
   (h, +free) = r
   cyc.cap(P.stats(h), free)
 
-# a collection under demand, counted (P.cycle): the lean trace, node ex's
-# pair left, and the net doubled unless half of it was free after the
-# sweep; whether it has room, false only where it had to grow and could
-# not
-def collect_cycle(h: P.H, +ex: U32) -> P.H & Bool:
-  cyc.sw(collect_lean(P.cycle(h), ex))
+# a collection under demand, counted (P.cycle): the lean trace, and the
+# net doubled unless half of it is then free; whether it has room, false
+# only where it had to grow and could not
+def collect_cycle(h: P.H) -> P.H & Bool:
+  cyc.sw(collect_lean(P.cycle(h)))
 
 # Two stacks
 # ==========
@@ -788,162 +786,79 @@ def wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +hb) = r
   wk.hb.go(U32.is_eq(hb, 0), h, path, top, depth, n)
 
-# Rewrite a >< b, unless its rule leaves it as it is (its stuck code, sb,
-# from the walk's ~sbf: KR.stuck_hd). Where the payload test decides that,
-# the rule makes at most one node when it rewrites (law
-# rules_tested_small), which takes a's slot in place while b's is freed
-# (heap-strategies.reuse): b's slot is free after a rewrite and held if
-# stuck. The test itself is left to the rewrite, its only caller. The
-# rewrite is the walk's template (~rw): demand's, demand's running events,
-# or a collecting demand's, so that only the last pays for room; each is
-# written out, since a wrapper over one rewrite templated by its `after`
-# cost plain demand 4% of its instructions (succ at k 14), a call per
-# rewrite.
-
-def wk.rw.p(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+# rewrite a >< b, unless its rule leaves it as it is (KR.stuck_by). Where
+# the payload test decides that, the rule makes at most one node when it
+# rewrites (law rules_tested_small), which takes a's slot in place while
+# b's is freed (heap-strategies.reuse): b's slot is free after a rewrite
+# and held if stuck. The test itself is left to the rewrite, its only
+# caller.
+def wk.rw(~after: P.H -> @+x:N.Ext -> P.H, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
-      wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
+      wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~after, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
     case 1:
       d.stop(h, path, top, depth, n, 3)
     case _:
-      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
+      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~after, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
 
-def wk.rw.v(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match sb:
-    case 0:
-      wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.ev.settle, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
-    case 1:
-      d.stop(h, path, top, depth, n, 3)
-    case _:
-      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.ev.settle, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
-
-# Room for a rewrite (heap-strategies.erasure.load.cycle): a demand that
-# collects asks, before a rewrite that takes nodes from the free list,
-# whether the list holds them; where it does not, the net is collected
-# (collect_cycle) and the walk goes on where it was. The count is the
-# rule's for the variant the levels pick (KR.room_hd, from the rule table,
-# with the header test that KR.collects makes): most take none, and
-# nothing is read for them. The path stands: the pair at its end takes
-# nodes, and a collectable rule makes no more nodes than its redex frees
-# (a copy meeting a merge at one level annihilates, collectable; at two it
-# commutes, taking two nodes, and only then asks); but the collection's
-# events change kinds in place, and may make it collectable (an eraser on
-# a fan's auxiliary port making it linear, two linear fans commuting into
-# two nodes; a dead operator on an operator's output making it dead,
-# which takes data), so the collection leaves it out, a boundary, not a
-# check made twice (the maintainer, 2026-11-01). Every other node on the
-# path faces an auxiliary port, in no pair, and the interface reaches them
-# all, so the sweep keeps them; an event keeps a node's slot, its
-# principal's link and the links of the ports it keeps, and frees only an
-# eraser or dead operator facing an auxiliary port, which has none for
-# the path to pass through. Where the net had to grow and could not, the
-# walk returns out of memory (6), an error of the runtime, said of no net
-# (machine-limits-not-errors).
-
-def wk.gc.ok(+ok: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
-  match ok:
-    case True{}:
-      d.go(h, path, top, depth, n)
-    case False{}:
-      d.stop(h, path, top, depth, n, 6)
-
-def wk.gc(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
-  (h, +ok) = r
-  wk.gc.ok(ok, h, path, top, depth, n)
-
-def wk.room.go(ok: Bool, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match ok:
-    case True{}:
-      match sb:
-        case 0:
-          wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
-        case 1:
-          d.stop(h, path, top, depth, n, 3)
-        case _:
-          wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
-    case False{}:
-      wk.gc(collect_cycle(h, U32.min(a, b)), path, top, depth, n)
-
-def wk.room(r: P.H & Bool, +sb: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  (h, +ok) = r
-  wk.room.go(ok, sb, h, path, top, depth, n, a, b, ha, hb)
-
-# a collecting demand's rewrite, sb its rule's stuck code plus four times
-# the nodes its variant takes (KR.room_hd, the walk's ~sbf): one that takes
-# none rewrites as plain demand's does, nothing read for room; one that
-# takes nodes makes room first
-def wk.rw.c(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match sb:
-    case 0:
-      wk.back(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
-    case 1:
-      d.stop(h, path, top, depth, n, 3)
-    case 2:
-      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
-    case 3:
-      wk.hb(P.rd(KN.go(~Unit, ~P.H, ~KN.note.u, ~KN.fin.h, ~KN.wd.u, ~KN.go.none, h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
-    case _:
-      wk.room(P.frees(U32.to_nat((sb >> 2n : U32)), h), (sb .&. 3 : U32), path, top, depth, n, a, b, ha, hb)
-
-def nd.lz(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.lz(~after: P.H -> @+x:N.Ext -> P.H, z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:
     case P.Lz{h, +lazy, +k}:
       match lazy:
         case True{}:
           D{h, path, top, depth, n, 2}
         case False{}:
-          rw(sbf(ha, hb), h, path, top, depth, n, a, b, ha, hb)
+          wk.rw(~after, KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-def nd.pb(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.pb(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   (h, +pb) = r
-  nd.lz(~after, ~sbf, ~rw, P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
+  nd.lz(~after, P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
 
-def nd.go(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def nd.go(~after: P.H -> @+x:N.Ext -> P.H, chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match chk:
     case True{}:
-      nd.pb(~after, ~sbf, ~rw, P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
+      nd.pb(~after, P.rd(h, (b + 2 : U32)), path, top, depth, n, a, b, ha, hb)
     case False{}:
-      rw(sbf(ha, hb), h, path, top, depth, n, a, b, ha, hb)
+      wk.rw(~after, KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
 # an application or a strict call meeting data in the table
 def may_need(+ha: U32, +hb: U32) -> Bool:
   (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
-def wk.ori(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
+def wk.ori(~after: P.H -> @+x:N.Ext -> P.H, neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
   match neg:
     case True{}:
-      nd.go(~after, ~sbf, ~rw, may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
+      nd.go(~after, may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
     case False{}:
-      nd.go(~after, ~sbf, ~rw, may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
+      nd.go(~after, may_need(hy, hx), h, path, top, depth, n, y, x, hy, hx)
 
-def wk.hy(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
+def wk.hy(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
   (h, +hy) = r
-  wk.ori(~after, ~sbf, ~rw, KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
+  wk.ori(~after, KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
 
-def wk.hx(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.hx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hx) = r
-  wk.hy(~after, ~sbf, ~rw, P.rd(h, y), path, top, depth, n, y, hx)
+  wk.hy(~after, P.rd(h, y), path, top, depth, n, y, hx)
 
 # the interface facing a principal port: a control's moves past it (the
 # root's rule keeps the interface), anything else is the value
-def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
       d.go(KN.interact(~after, h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
       d.stop(h, path, 0, depth, n, 1)
 
-def wk.root(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.root(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
-  wk.root.go(~after, ~sbf, ~rw, U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
+  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
 
-def wk.pair(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
+def wk.pair(~after: P.H -> @+x:N.Ext -> P.H, root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:
     case True{}:
-      wk.root(~after, ~sbf, ~rw, P.rd(h, y), path, depth, n, y)
+      wk.root(~after, P.rd(h, y), path, depth, n, y)
     case False{}:
-      wk.hx(~after, ~sbf, ~rw, P.rd(h, top), path, top, depth, n, y)
+      wk.hx(~after, P.rd(h, top), path, top, depth, n, y)
 
 # The path's nodes are distinct unless the walk has gone round a vicious
 # circle, principal ports each facing an auxiliary one, a deadlock that
@@ -1015,12 +930,12 @@ def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U
     case False{}:
       d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
-def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match nil pr:
     case True{} _:
       d.stop(h, path, top, depth, n, 3)
     case False{} True{}:
-      wk.pair(~after, ~sbf, ~rw, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
+      wk.pair(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
       wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
@@ -1060,15 +975,15 @@ def wk.down(f: Nat, s: Dn) -> Dn:
             case False{}:
               Dn{False{}, h, path, top, depth, q}
 
-def wk.c(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, s: Dn, +n: U32) -> D:
+def wk.c(~after: P.H -> @+x:N.Ext -> P.H, s: Dn, +n: U32) -> D:
   match s:
     case Dn{+go, h, path, +top, +depth, +q}:
-      wk.q.go(~after, ~sbf, ~rw, U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
+      wk.q.go(~after, U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
 
 # what the path's last node's principal port faces
-def wk.q(~after: P.H -> @+x:N.Ext -> P.H, ~sbf: @+ha:U32 -> @+hb:U32 -> U32, ~rw: @+sb:U32 -> P.H -> KM.M -> @+top:U32 -> @+depth:U32 -> @+n:U32 -> @+a:U32 -> @+b:U32 -> @+ha:U32 -> @+hb:U32 -> D, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
+def wk.q(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +q) = r
-  wk.c(~after, ~sbf, ~rw, wk.down(4294967295n, Dn{dn.can(q, depth), h, path, top, depth, q}), n)
+  wk.c(~after, wk.down(4294967295n, Dn{dn.can(q, depth), h, path, top, depth, q}), n)
 
 def d.out(+st: U32) -> U32:
   match st:
@@ -1082,19 +997,25 @@ def d.end(d: D) -> D:
     case D{h, path, +top, +depth, +n, +st}:
       D{h, path, top, depth, n, d.out(st)}
 
-# reduce toward the interface for at most k steps
-def demand(k: Nat, d: D) -> D:
+# demand's loop: toward the interface for at most k steps, ending where
+# it stands, going (0) where the steps ran out; plain demand's, and the
+# collecting demand's a chunk at a time, one caller of the walk for both
+def demand.go(k: Nat, d: D) -> D:
   match k:
     case 0n:
-      d.end(d)
+      d
     case 1n+p:
       match d:
         case D{h, path, +top, +depth, +n, +st}:
           match st:
             case 0:
-              demand(p, wk.q(~KN.go.none, ~KR.stuck_hd, ~wk.rw.p, P.rd(h, (top + 1 : U32)), path, top, depth, n))
+              demand.go(p, wk.q(~KN.go.none, P.rd(h, (top + 1 : U32)), path, top, depth, n))
             case _:
               D{h, path, top, depth, n, st}
+
+# reduce toward the interface for at most k steps
+def demand(k: Nat, d: D) -> D:
+  d.end(demand.go(k, d))
 
 # the same, running events (knet.bend's Events), which free no node on
 # the path (law events_erase_last)
@@ -1107,94 +1028,153 @@ def demand.v(k: Nat, d: D) -> D:
         case D{h, path, +top, +depth, +n, +st}:
           match st:
             case 0:
-              demand.v(p, wk.q(~KN.ev.settle, ~KR.stuck_hd, ~wk.rw.v, P.rd(h, (top + 1 : U32)), path, top, depth, n))
+              demand.v(p, wk.q(~KN.ev.settle, P.rd(h, (top + 1 : U32)), path, top, depth, n))
             case _:
               D{h, path, top, depth, n, st}
 
-# A stress test's rewrite (heap-strategies.erasure.load.cycle.stress): a
-# collecting demand's, but while the net holds 1024 nodes or fewer it is
-# collected before every rewrite that takes nodes, growing only where it
-# lacks the nodes that rewrite takes, so that the library's small nets
-# meet collections, and their events, at every such point. The walk goes
-# on where it was, as after any collection, and the net notes the node it
-# collected for (P.at_stress), so that the pair is rewritten when the walk
-# comes back to it, not collected for again. (Rewriting it at once by a
-# walk's own rewrite, a second caller of that walk, cost the walk 3% to
-# 5% of its instructions.)
+# Collecting by chunks (heap-strategies.erasure.load.cycle.reserve, the
+# maintainer's batching, 2026-11-01): a step makes one interaction at
+# most, and an interaction takes two free nodes at most, so S steps take
+# 2S at most. The collecting demand runs plain demand's loop (demand.go)
+# S steps at a time, asking nothing; before each chunk it sees a reserve
+# of 2S free nodes kept off the free list (P.reserve), which the
+# allocator takes where its list runs dry, rather than growing, noting
+# that it did (P.at_tap). Where a chunk ends with the reserve taken, the
+# net is collected (collect_cycle) and the walk starts again from the
+# interface, its path's array kept: a collection comes between steps, so
+# it may rewrite any pair it may, the path's own among them, and no pair
+# is left out. S is the net's capacity over 64, the reserve a 32nd of it.
+# A net that had to grow and could not: out of memory (6), the runtime's
+# error.
 
-def cyc.want(r: P.H & U32, +want: U32) -> P.H & Bool:
-  (h, +free) = r
-  cyc.grow(U32.is_ge(free, want), h)
+# what a chunk leaves: the walk, its steps left, and whether the next
+# chunk's end collects whatever the reserve (the stress test)
+type Dl is Type:
+  Dl{+left: U32, +force: Bool, d: D}
 
-# a stress test's collection, the net grown only where it lacks want free
-# nodes
-def collect_cycle.s(h: P.H, +ex: U32, +want: U32) -> P.H & Bool:
-  cyc.want(collect_lean(P.cycle(h), ex), want)
-
-def st.again(again: Bool, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match again:
-    case True{}:
-      wk.room(P.frees(U32.to_nat((sb >> 2n : U32)), P.wr(h, P.at_stress(), 0)), (sb .&. 3 : U32), path, top, depth, n, a, b, ha, hb)
-    case False{}:
-      wk.gc(collect_cycle.s(P.wr(h, P.at_stress(), a), U32.min(a, b), (sb >> 2n : U32)), path, top, depth, n)
-
-def st.last(r: P.H & U32, +sb: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  (h, +last) = r
-  st.again(U32.is_eq(last, a), sb, h, path, top, depth, n, a, b, ha, hb)
-
-def st.small(small: Bool, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match small:
-    case True{}:
-      st.last(P.rd(h, P.at_stress()), sb, path, top, depth, n, a, b, ha, hb)
-    case False{}:
-      wk.room(P.frees(U32.to_nat((sb >> 2n : U32)), h), (sb .&. 3 : U32), path, top, depth, n, a, b, ha, hb)
-
-def st.cap(r: P.H & P.HS, +sb: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
+def rs.k(r: P.H & P.HS) -> P.H & Bool:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      st.small(U32.is_le(cap, 1024), sb, h, path, top, depth, n, a, b, ha, hb)
+      P.reserve(U32.to_nat((cap >> 5n : U32)), h)
 
-def wk.rw.s(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
-  match sb:
-    case 0:
-      wk.rw.c(sb, h, path, top, depth, n, a, b, ha, hb)
-    case 1:
-      wk.rw.c(sb, h, path, top, depth, n, a, b, ha, hb)
-    case 2:
-      wk.rw.c(sb, h, path, top, depth, n, a, b, ha, hb)
-    case 3:
-      wk.rw.c(sb, h, path, top, depth, n, a, b, ha, hb)
-    case _:
-      st.cap(P.stats(h), sb, path, top, depth, n, a, b, ha, hb)
+def rs.grown.go(+ok: Bool, h: P.H) -> P.H & Bool:
+  match ok:
+    case True{}:
+      rs.k(P.stats(h))
+    case False{}:
+      (h, False{})
 
-# demand collecting where its net would grow (Room, above)
-def demand.c(k: Nat, d: D) -> D:
-  match k:
-    case 0n:
-      d.end(d)
-    case 1n+p:
+def rs.grown(r: P.H & Bool) -> P.H & Bool:
+  (h, +ok) = r
+  rs.grown.go(ok, h)
+
+def rs.got.go(+ok: Bool, h: P.H) -> P.H & Bool:
+  match ok:
+    case True{}:
+      (h, True{})
+    case False{}:
+      rs.grown(P.grow_more(h))
+
+def rs.got(r: P.H & Bool) -> P.H & Bool:
+  (h, +ok) = r
+  rs.got.go(ok, h)
+
+# a reserve kept, a 32nd of the net, the net doubled first where its free
+# list lacks one; false where it could not grow
+def dc.reserve(h: P.H) -> P.H & Bool:
+  rs.got(rs.k(P.stats(h)))
+
+def dc.steps(+force: Bool, +cap: U32) -> U32:
+  match force:
+    case True{}:
+      16
+    case False{}:
+      U32.max((cap >> 6n : U32), 1)
+
+def dc.run(+ok: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps: U32, +left: U32, +force: Bool) -> Dl:
+  match ok:
+    case True{}:
+      Dl{(left - steps : U32), force, demand.go(U32.to_nat(steps), D{h, path, top, depth, n, 0})}
+    case False{}:
+      Dl{left, force, d.stop(h, path, top, depth, n, 6)}
+
+def dc.rs(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps: U32, +left: U32, +force: Bool) -> Dl:
+  (h, +ok) = r
+  dc.run(ok, h, path, top, depth, n, steps, left, force)
+
+# a chunk: S steps, or those left, from a reserve seen kept; a stress test
+# collects at its end whatever the reserve where the net holds 1024 nodes
+# or fewer, the chunk then 16 steps: the walk starting again from the
+# interface after a collection takes a step for each power of two in its
+# depth (wk.push), at most 11 in such a net, so a chunk of 4 made no
+# progress
+def dc.chunk(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +left: U32, +stress: Bool) -> Dl:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      dc.rs(dc.reserve(h), path, top, depth, n,
+        U32.min(dc.steps(stress && U32.is_le(cap, 1024), cap), left), left, stress && U32.is_le(cap, 1024))
+
+def dc.ok(+ok: Bool, h: P.H, path: KM.M, +n: U32, +left: U32, +force: Bool) -> Dl:
+  match ok:
+    case True{}:
+      Dl{left, force, d.go(h, path, P.iface(), 0, n)}
+    case False{}:
+      Dl{left, force, d.stop(h, path, P.iface(), 0, n, 6)}
+
+def dc.col(r: P.H & Bool, path: KM.M, +n: U32, +left: U32, +force: Bool) -> Dl:
+  (h, +ok) = r
+  dc.ok(ok, h, path, n, left, force)
+
+def dc.tap.go(go: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +left: U32, +force: Bool) -> Dl:
+  match go:
+    case True{}:
+      dc.col(collect_cycle(h), path, n, left, force)
+    case False{}:
+      Dl{left, force, D{h, path, top, depth, n, st}}
+
+def dc.tap(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +left: U32, +force: Bool) -> Dl:
+  (h, +tap) = r
+  dc.tap.go((U32.is_ne(tap, 0) || force) && U32.is_eq(st, 0), h, path, top, depth, n, st, left, force)
+
+# a chunk's end: the net collected where the reserve was taken
+def dc.after(s: Dl) -> Dl:
+  match s:
+    case Dl{+left, +force, d}:
       match d:
         case D{h, path, +top, +depth, +n, +st}:
-          match st:
-            case 0:
-              demand.c(p, wk.q(~KN.go.none, ~KR.room_hd, ~wk.rw.c, P.rd(h, (top + 1 : U32)), path, top, depth, n))
-            case _:
-              D{h, path, top, depth, n, st}
+          dc.tap(P.rd(h, P.at_tap()), path, top, depth, n, st, left, force)
 
-# demand collecting as a stress test (wk.rw.s, above)
-def demand.s(k: Nat, d: D) -> D:
+def dc.loop(k: Nat, s: Dl, +stress: Bool) -> D:
   match k:
     case 0n:
-      d.end(d)
+      match s:
+        case Dl{+left, +force, d}:
+          d.end(d)
     case 1n+p:
-      match d:
-        case D{h, path, +top, +depth, +n, +st}:
-          match st:
+      match s:
+        case Dl{+left, +force, d}:
+          match left:
             case 0:
-              demand.s(p, wk.q(~KN.go.none, ~KR.room_hd, ~wk.rw.s, P.rd(h, (top + 1 : U32)), path, top, depth, n))
+              d.end(d)
             case _:
-              D{h, path, top, depth, n, st}
+              match d:
+                case D{h, path, +top, +depth, +n, +st}:
+                  match st:
+                    case 0:
+                      dc.loop(p, dc.after(dc.chunk(P.stats(h), path, top, depth, n, left, stress)), stress)
+                    case _:
+                      D{h, path, top, depth, n, st}
+
+# demand collecting where its net would grow, for at most k steps
+def demand.c(+k: Nat, d: D) -> D:
+  dc.loop(k, Dl{U32.from_nat(k), False{}, d}, False{})
+
+# the same as a stress test (heap-strategies.erasure.load.cycle.stress):
+# a net of 1024 nodes or fewer collected every 16 steps
+def demand.s(+k: Nat, d: D) -> D:
+  dc.loop(k, Dl{U32.from_nat(k), False{}, d}, True{})
 
 def d.path(r: KM.M & U32) -> KM.M:
   (m, +cap) = r

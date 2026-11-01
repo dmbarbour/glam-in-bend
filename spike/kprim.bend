@@ -163,10 +163,11 @@ type H is Type:
 # (counted by the run's fuel, set when it ends), how many nodes fit; the
 # data table's free head, its high-water mark, its capacity and the depth
 # of its array (DT); the collections run under demand and the capacity
-# they scanned, summed (heap-strategies.erasure.load.cycle); the node a
-# stress test last collected for (heap-strategies.erasure.load.cycle.
-# stress); a word spare; then the events, by the kind of
-# the node each acts on (heap-strategies.erasure.kernel), a word a kind
+# they scanned, summed (heap-strategies.erasure.load.cycle); the reserve's
+# head, free nodes kept off the free list, and whether the allocator has
+# taken it (heap-strategies.erasure.load.cycle.reserve); then the events,
+# by the kind of the node each acts on (heap-strategies.erasure.kernel), a
+# word a kind
 def at_fh() -> U32:
   0
 
@@ -197,8 +198,11 @@ def at_cyc() -> U32:
 def at_scan() -> U32:
   9
 
-def at_stress() -> U32:
+def at_rsv() -> U32:
   10
+
+def at_tap() -> U32:
+  11
 
 # events at a node of kind code k, below 16: no kind past them makes one
 # (law events_fit_header)
@@ -409,15 +413,34 @@ def grow.c(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
   (w, +wcap) = r
   grow.w(KM.m_ensure(w, ((wcap * 2 : U32) * 4 : U32), (wcap * 4 : U32), w_maxd()), a, wcap)
 
-# the free list empty: every node is in use, so the store doubles
-def alloc.grow(h: H) -> H & U32:
-  match h:
-    case H{w, a}:
-      grow.c(KM.m_get(w, at_wcap()), a)
-
 def alloc.pop(r: KM.M & U32, +n: U32, a: Array<V.Val>) -> H & U32:
   (w, +next) = r
   (H{KM.m_set(w, at_fh(), next), a}, n)
+
+def alloc.double(w: KM.M, a: Array<V.Val>) -> H & U32:
+  grow.c(KM.m_get(w, at_wcap()), a)
+
+# the free list empty: the reserve, if one is kept, becomes the list, its
+# taking noted (heap-strategies.erasure.load.cycle.reserve: a demand that
+# collects reads it where a chunk of its steps ends); else every node is
+# in use, and the store doubles. Only where the list runs dry, so a
+# strategy keeping no reserve pays a read where it grows.
+def alloc.tap(+rv: U32, w: KM.M, a: Array<V.Val>) -> H & U32:
+  match rv:
+    case 0:
+      alloc.double(w, a)
+    case _:
+      alloc.pop(KM.m_get(KM.m_set(KM.m_set(w, at_rsv(), 0), at_tap(), 1), (((rv - 1 : U32) << 2n : U32) + 1 : U32)),
+        ((rv - 1 : U32) << 2n : U32), a)
+
+def alloc.rv(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
+  (w, +rv) = r
+  alloc.tap(rv, w, a)
+
+def alloc.grow(h: H) -> H & U32:
+  match h:
+    case H{w, a}:
+      alloc.rv(KM.m_get(w, at_rsv()), a)
 
 def alloc.k(+fh: U32, w: KM.M, a: Array<V.Val>) -> H & U32:
   match fh:
@@ -493,14 +516,19 @@ def grow_more.n(r: H & U32, +fh0: U32) -> H & Bool:
   (h, +n) = r
   grow_more.r(U32.is_ne(n, iface()), h, n, fh0)
 
+def grow_more.d(h: H) -> H & U32:
+  match h:
+    case H{w, a}:
+      alloc.double(w, a)
+
 def grow_more.fh(r: H & U32) -> H & Bool:
   (h, +fh0) = r
-  grow_more.n(alloc.grow(h), fh0)
+  grow_more.n(grow_more.d(h), fh0)
 
 # the store doubled now, its new nodes all on the free list, the nodes
-# free before after them (alloc.grow, run on an empty list, ends its new
+# free before after them (alloc.double, run on an empty list, ends its new
 # nodes' list), and whether it grew: if it cannot, it is as it was, its
-# error counted (alloc.grow then answers the interface, which stays)
+# error counted (alloc.double then answers the interface, which stays)
 def grow_more(h: H) -> H & Bool:
   grow_more.fh(rd(h, at_fh()))
 
@@ -559,6 +587,52 @@ def fs.go(k: Nat, s: Fs, +stop: U32, +c: U32) -> H & U32:
 # their redex frees, in its slots)
 def freed_since(k: Nat, h: H, +stop: U32) -> H & U32:
   fs.go(k, fs.mk(rd(h, at_fh()), stop), stop, 0)
+
+# The reserve (heap-strategies.erasure.load.cycle.reserve): the first k
+# nodes of the free list set aside on a list of their own, the free list
+# going on from the next, the taking cleared; where the list holds fewer,
+# nothing changes and the answer is false. A reserve kept already stays.
+
+def rsv.link(r: H & U32, +fh0: U32, +kth: U32) -> H & Bool:
+  (h, +nx) = r
+  (wr(wr(wr(wr(h, (((kth - 1 : U32) << 2n : U32) + 1 : U32), 0), at_fh(), nx), at_rsv(), fh0), at_tap(), 0), True{})
+
+def rsv.go(ok: Bool, h: H, +fh0: U32, +kth: U32) -> H & Bool:
+  match ok:
+    case True{}:
+      rsv.link(rd(h, (((kth - 1 : U32) << 2n : U32) + 1 : U32)), fh0, kth)
+    case False{}:
+      (h, False{})
+
+def rsv.set(r: H & U32, +fh0: U32) -> H & Bool:
+  (h, +kth) = r
+  rsv.go(U32.is_ne(kth, 0), h, fh0, kth)
+
+def rsv.fh(r: H & U32, +p: Nat) -> H & Bool:
+  (h, +fh0) = r
+  rsv.set(fl.walk(p, (h, fh0)), fh0)
+
+def rsv.new(k: Nat, h: H) -> H & Bool:
+  match k:
+    case 0n:
+      (h, True{})
+    case 1n+p:
+      rsv.fh(rd(h, at_fh()), p)
+
+def rsv.have(+kept: Bool, h: H, +k: Nat) -> H & Bool:
+  match kept:
+    case True{}:
+      (h, True{})
+    case False{}:
+      rsv.new(k, h)
+
+def rsv.rv(r: H & U32, +k: Nat) -> H & Bool:
+  (h, +rv) = r
+  rsv.have(U32.is_ne(rv, 0), h, k)
+
+# a reserve of k nodes kept, set aside from the free list if none is
+def reserve(+k: Nat, h: H) -> H & Bool:
+  rsv.rv(rd(h, at_rsv()), k)
 
 # free a redex's two nodes, b first, so that a's slot heads the free list
 # and the rule's first new node takes it: the interface, node 3, keeps its

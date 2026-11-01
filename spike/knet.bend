@@ -1033,7 +1033,8 @@ def audit(k: Nat, +i: U32, au: Au) -> Au:
           audit(p, (i + 1 : U32), audit.hit(P.rd(h, (i << 2n : U32)), n))
 
 # The free list's audit: a node is free exactly when its header is 0
-# (kprim.bend's free), so the list from its head must hold only nodes past
+# (kprim.bend's free), so the list from its head, then the reserve's
+# (heap-strategies.erasure.load.cycle.reserve), must hold only nodes past
 # the header and within the capacity, each with a zero header, end within
 # as many steps as there are nodes (else it runs round a cycle), and hold
 # as many nodes as have a zero header.
@@ -1097,9 +1098,19 @@ def fo.fl(s: Fl, +cap: U32) -> P.H & Bool:
     case Fl{h, +j, +n, +ok}:
       fo.cmp(fz(U32.to_nat((cap - P.first() : U32)), P.first(), (h, 0)), n, ok)
 
+def fo.rh(r: P.H & U32, +n: U32, +ok: Bool, +cap: U32) -> P.H & Bool:
+  (h, +rv) = r
+  fo.fl(fl.go(U32.to_nat(cap), Fl{h, rv, n, ok}, cap), cap)
+
+# after the free list, the reserve's
+def fo.rs(s: Fl, +cap: U32) -> P.H & Bool:
+  match s:
+    case Fl{h, +j, +n, +ok}:
+      fo.rh(P.rd(h, P.at_rsv()), n, ok, cap)
+
 def fo.fh(r: P.H & U32, +cap: U32) -> P.H & Bool:
   (h, +fh) = r
-  fo.fl(fl.go(U32.to_nat(cap), Fl{h, fh, 0, True{}}, cap), cap)
+  fo.rs(fl.go(U32.to_nat(cap), Fl{h, fh, 0, True{}}, cap), cap)
 
 def fo.st(r: P.H & P.HS) -> P.H & Bool:
   (h, hs) = r

@@ -54,8 +54,8 @@ Demand collecting where its net would grow (events, the pairs that do
 not grow the net, the sweep; heap-strategies.erasure.load.cycle) must
 keep demand's value and state, the audits passing after; its
 interactions are the total, demand's and the collections'. So must its
-stress test, which collects a net of 1024 nodes or fewer before every
-rewrite that takes nodes (heap-strategies.erasure.load.cycle.stress).
+stress test, which collects a net of 1024 nodes or fewer every 16 steps
+(heap-strategies.erasure.load.cycle.stress).
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
