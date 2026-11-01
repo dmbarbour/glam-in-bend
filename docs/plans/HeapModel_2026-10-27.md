@@ -1579,7 +1579,19 @@ takes from it:
          scan about its final capacity growing by two, a third of it by
          four, for up to twice the space at the end; growing by four the
          first few times alone saves the small early collections, much
-         to a small program, little to a large one.
+         to a small program, little to a large one. Measured 2026-11-01
+         (store run 133, the library's capacities summed): (A) by four
+         below 4,096 nodes, by two after, the maintainer's: on `succ` 102
+         and 112 instructions a node of final capacity at k 14 and 16
+         against 122 and 116, on the dropping terms 3.7% over plain
+         demand against 4.3%, capacities 732,160 against 649,984 (12.6%
+         more, small nets at 512 and 2,048 where they stopped at 256 and
+         1,024), the nodes scanned 23% fewer; (B) by four after a
+         collection freeing under an eighth: 186 and 181 on `succ`, its
+         late fourfold growths ending at twice the capacity (262,144
+         against 131,072 at k 16) and each growth copying the store word
+         by word, 4.0% on the dropping terms, capacities 727,296, the
+         nodes scanned 29% fewer. A is the cheaper; neither is merged.
        - `heap-strategies.erasure.load.cycle.lazy-sweep` — dropped
          2026-11-01 (the maintainer: a little saved on the free list's
          building, for much state and complexity) — growth decided from
