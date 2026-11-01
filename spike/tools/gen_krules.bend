@@ -61,72 +61,12 @@ def kname(k: R.NodeKind) -> String:
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))
 
-# What a kind's payload word holds (heap-strategies.kinds.payloads): a
-# value, data or a call's or a dead call's function, its table entry the
-# node's to drop; a control's index and offset; or nothing, a fan's
-# identity and a level being in the header. Every kind is named, so that
-# a new one must be placed.
-type Holds is Data:
-  HNone{}
-  HValue{}
-  HCtl{}
-
-def holds(k: R.NodeKind) -> Holds:
-  match k:
-    case R.KFree{}:
-      HNone{}
-    case R.KFn{}:
-      HNone{}
-    case R.KAp{}:
-      HNone{}
-    case R.KCopy{}:
-      HNone{}
-    case R.KMerge{}:
-      HNone{}
-    case R.KData{}:
-      HValue{}
-    case R.KEraN{}:
-      HNone{}
-    case R.KEraP{}:
-      HNone{}
-    case R.KRoot{}:
-      HNone{}
-    case R.KOp{}:
-      HValue{}
-    case R.KLift{}:
-      HCtl{}
-    case R.KLiftC{}:
-      HCtl{}
-    case R.KCopyL{}:
-      HNone{}
-    case R.KCopyR{}:
-      HNone{}
-    case R.KMergeL{}:
-      HNone{}
-    case R.KMergeR{}:
-      HNone{}
-    case R.KDOp{}:
-      HNone{}
-
-def is_value(h: Holds) -> Bool:
-  match h:
-    case HValue{}:
-      True{}
-    case _:
-      False{}
-
-def is_some_pay(h: Holds) -> Bool:
-  match h:
-    case HNone{}:
-      False{}
-    case _:
-      True{}
-
+# what a kind's payload word holds, by the model's table (R.holds)
 def is_data(k: R.NodeKind) -> Bool:
-  is_value(holds(k))
+  R.holds_value(R.holds(k))
 
 def has_pay(k: R.NodeKind) -> Bool:
-  is_some_pay(holds(k))
+  R.holds_some(R.holds(k))
 
 # a new node's header and payload word, by source; a payload carries its
 # value form with it (SApply's value is made by a step of its own), and a

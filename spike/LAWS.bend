@@ -642,6 +642,19 @@ law events_fit_header:
   for +p: Nat
   {R.ev_header(a, b, p) == True{} : Bool}
 
+# LAW: which of a node's words are links follows from its kind alone: a
+# kind holding a payload (R.holds) keeps it in a word past its links,
+# where kprim.bend's node.word puts it (word 2 of data, 3 of others), so
+# that no form, field or payload makes a link's word hold anything else.
+# The kernel's ports by kind are R.arity's (gen_krules.bend writes
+# kind_arity from it), read from the header's six kind bits alone; a
+# kind of three ports has no word left, and holds no payload.
+# Record: header-kind-byte
+# Record: operator-nodes
+law payload_past_links:
+  for +k: R.NodeKind
+  {(Bool.not(R.holds_some(R.holds(k))) || Nat.is_lt(R.arity(k), U32.to_nat(P.node.word.k(N.kcode(k))))) == True{} : Bool}
+
 # LAW: a test comparing two payloads (R.test_eq: two fans' identities, an
 # application's level and a function's, two controls' indexes) passes
 # for a payload met by itself, as the reference interpreter tests it:
