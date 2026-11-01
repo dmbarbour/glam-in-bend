@@ -281,27 +281,48 @@ def nd.hd(r: KM.M & U32, +b: U32, +p: U32) -> Nd:
   (w, +hd) = r
   nd.l1(KM.m_get(w, ((b + 1 : U32) + (1 >> U32.to_nat(p) : U32) : U32)), hd)
 
-def lw.f1p(pair: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> Lw:
+# a run ended: the stack's top entered next, 0 at its bottom ending the
+# walk
+def lw.pop(r: KM.M & U32, w: KM.M, +n: U32, +q: U32) -> Lw:
+  (g, +c) = r
+  Lw{w, g, c, (n + 1 : U32), q}
+
+# the walk's array and the next note's word, after a note
+type Gq is Type:
+  Gq{g: KM.M, +q: U32}
+
+def lw.np(pair: Bool, g: KM.M, +q: U32, +b: U32) -> Gq:
   match pair:
     case True{}:
-      Lw{w, KM.m_set(g, q, b), c, n, (q + 1 : U32)}
+      Gq{KM.m_set(g, q, b), (q + 1 : U32)}
     case False{}:
-      Lw{w, g, c, n, q}
+      Gq{g, q}
 
-def lw.f1c(cand: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +old: U32, +l1: U32) -> Lw:
+# b noted as a pair's lower node where o1 is the principal (o1, 1 >> p,
+# is 0) and l1 a principal, both at once where l1 | o1 has no port bits,
+# and the node behind was unmarked or is the higher
+def lw.note(cand: Bool, g: KM.M, +q: U32, +b: U32, +old: U32, +l1: U32) -> Gq:
   match cand:
     case True{}:
-      lw.f1p(U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1)), w, g, n, q, b, (l1 .&. (old - 1 : U32) : U32))
+      lw.np(U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1)), g, q, b)
     case False{}:
-      Lw{w, g, (l1 .&. (old - 1 : U32) : U32), n, q}
+      Gq{g, q}
 
-# o1's link l1 followed if the node behind was unmarked, else the stack's
-# top next (0); b noted as a pair's lower node where o1 is the principal
-# (o1, 1 >> p, is 0) and l1 a principal, both at once where l1 | o1 has
-# no port bits, and the node behind was unmarked or is the higher
+# o1's link l1 followed if the node behind was unmarked, else the run ends
+def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
+  match old:
+    case 0:
+      match s:
+        case Gq{g, +q}:
+          Lw{w, g, l1, n, q}
+    case _:
+      match s:
+        case Gq{g, +q}:
+          lw.pop(KM.m_get(g, n), w, n, q)
+
 def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   (g, +old) = r
-  lw.f1c(U32.is_eq(((l1 .|. (1 >> U32.to_nat(p) : U32) : U32) .&. 3 : U32), 0), w, g, n, q, b, old, l1)
+  lw.f1o(old, w, lw.note(U32.is_eq(((l1 .|. (1 >> U32.to_nat(p) : U32) : U32) .&. 3 : U32), 0), g, q, b, old, l1), n, l1)
 
 def lw.f1(s: Gw, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   match s:
@@ -332,47 +353,32 @@ def lw.p2(three: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +p: U32) -> Gw:
       Gw{w, g, n}
 
 # an eraser or dead operator noted where its principal faces an auxiliary
-# port, the note tagged by its top bit (its word written either way)
+# port, the note tagged by its top bit (its word written either way); the
+# run ends
 def lw.lev(r: KM.M & U32, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
   (w, +src) = r
-  Lw{w, KM.m_set(g, q, (b .|. 2147483648 : U32)), 0, n, (q + (((src .&. 3 : U32) + 3 : U32) >> 2n : U32) : U32)}
+  lw.pop(KM.m_get(KM.m_set(g, q, (b .|. 2147483648 : U32)), n), w, n, (q + (((src .&. 3 : U32) + 3 : U32) >> 2n : U32) : U32))
 
 def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
   match ev:
     case True{}:
       lw.lev(KM.m_get(w, (b + 1 : U32)), g, n, q, b)
     case False{}:
-      Lw{w, g, 0, n, q}
+      lw.pop(KM.m_get(g, n), w, n, q)
 
-# by the node's arity: none (a free node, never reached), one, or two or
-# three
-def lw.ar(+a: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32) -> Lw:
-  match a:
+# by the node's arity, halved: a leaf (none is a free node, never
+# reached, and makes no event), or two or three ports
+def lw.ar(+two: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32) -> Lw:
+  match two:
     case 0:
-      Lw{w, g, 0, n, q}
-    case 1:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(U32.is_eq(a, 3), w, g, n, b, p), q, b, p, l1)
+      lw.f1(lw.p2(U32.is_eq((KR.kind_arity(P.rk(hd)) .&. 1 : U32), 1), w, g, n, b, p), q, b, p, l1)
 
 def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32) -> Lw:
   match d:
     case Nd{w, +hd, +l1}:
-      lw.ar(KR.kind_arity(P.rk(hd)), w, g, n, q, b, p, hd, l1)
-
-def lw.pop(r: KM.M & U32, w: KM.M, +n: U32, +q: U32) -> Lw:
-  (g, +c) = r
-  Lw{w, g, c, (n + 1 : U32), q}
-
-# where the step ended its run, the stack's top popped
-def lw.nx(s: Lw) -> Lw:
-  match s:
-    case Lw{w, g, +c, +n, +q}:
-      match c:
-        case 0:
-          lw.pop(KM.m_get(g, n), w, n, q)
-        case _:
-          Lw{w, g, c, n, q}
+      lw.ar((KR.kind_arity(P.rk(hd)) >> 1n : U32), w, g, n, q, b, p, hd, l1)
 
 def lw.go(k: Nat, s: Lw) -> Lw:
   match k:
@@ -385,7 +391,7 @@ def lw.go(k: Nat, s: Lw) -> Lw:
             case 0:
               Lw{w, g, 0, n, q}
             case _:
-              lw.go(p, lw.nx(lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c), P.port(c)), g, n, q, P.base(c), P.port(c))))
+              lw.go(p, lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c), P.port(c)), g, n, q, P.base(c), P.port(c)))
 
 # the notes after the sweep: the pairs slid down to word 3 on, as a stack
 # (P.Stk) holds them, the events onto a list
