@@ -392,14 +392,20 @@ def lw.f1p(pair: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> 
     case False{}:
       Lw{w, g, c, n, q}
 
+def lw.f1c(cand: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +old: U32, +l1: U32) -> Lw:
+  match cand:
+    case True{}:
+      lw.f1p(U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1)), w, g, n, q, b, (l1 .&. (old - 1 : U32) : U32))
+    case False{}:
+      Lw{w, g, (l1 .&. (old - 1 : U32) : U32), n, q}
+
 # o1's link l1 followed if the node behind was unmarked, else the stack's
-# top next (0); b noted as a pair's lower node where p is not 0 (o1 is
-# the principal), l1 is a principal, and the node behind was unmarked or
-# is the higher
+# top next (0); b noted as a pair's lower node where o1 is the principal
+# (o1, 1 >> p, is 0) and l1 a principal, both at once where l1 | o1 has
+# no port bits, and the node behind was unmarked or is the higher
 def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   (g, +old) = r
-  lw.f1p(U32.is_ne(p, 0) && U32.is_eq(P.port(l1), 0) && (U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1))),
-    w, g, n, q, b, (l1 .&. (old - 1 : U32) : U32))
+  lw.f1c(U32.is_eq(((l1 .|. (1 >> U32.to_nat(p) : U32) : U32) .&. 3 : U32), 0), w, g, n, q, b, old, l1)
 
 def lw.f1(s: Gw, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   match s:
