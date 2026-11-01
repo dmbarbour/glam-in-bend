@@ -666,6 +666,48 @@ def ev.settle(h: P.H, +x: N.Ext) -> P.H:
       ev.drain(4294967295n, ev.one(~Unit, ~note.u, ~room.u, ev.one(~Unit, ~note.u, ~room.u, ev.one(~Unit, ~note.u, ~room.u,
         ev.one(~Unit, ~note.u, ~room.u, Ev{h, Unit{}, Nil{}}, e0), e1), e2), e3))
 
+# Events at load (heap-strategies.erasure.load): every node that may be
+# an event's B (KR.ev_end at its principal: an eraser, a dead operator)
+# looked at once, after the net is loaded, its events cascading through
+# the same worklist a rewrite's do; nothing is paid per rewrite after.
+
+def evl.add(b: Bool, +i: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      Con{i, ws}
+    case False{}:
+      ws
+
+def evl.hdr(r: P.H & U32, ws: List<&2, U32>, +i: U32) -> P.H & List<&2, U32>:
+  (h, +hd) = r
+  (h, evl.add(U32.is_ne(hd, 0) && KR.ev_end(P.rk(hd), 0), i, ws))
+
+def evl.step(r: P.H & List<&2, U32>, +i: U32) -> P.H & List<&2, U32>:
+  (h, ws) = r
+  evl.hdr(P.rd(h, i), ws, i)
+
+# k nodes from word i, each B's principal kept
+def evl.scan(k: Nat, +i: U32, r: P.H & List<&2, U32>) -> P.H & List<&2, U32>:
+  match k:
+    case 0n:
+      r
+    case 1n+p:
+      evl.scan(p, (i + 4 : U32), evl.step(r, i))
+
+def evl.go(r: P.H & List<&2, U32>) -> P.H:
+  (h, ws) = r
+  ev.drain(4294967295n, Ev{h, Unit{}, ws})
+
+def evl.st(r: P.H & P.HS) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +wcap}:
+      evl.go(evl.scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), (h, Nil{})))
+
+# a loaded net, its events run: counted, as a rewrite's are (P.evs)
+def ev_load(h: P.H) -> P.H:
+  evl.st(P.stats(h))
+
 def ev.drain.e(k: Nat, w: Ev<P.Stk>) -> P.E:
   match k:
     case 0n:

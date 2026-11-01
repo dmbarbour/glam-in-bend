@@ -653,7 +653,7 @@ Speed:
     verdict keeps. It needs laws relating `U32` to `Nat`, a path to which
     is vendored (`vendored-sources`) and not gone deep into yet. Its
     laws, drafted, close `spike/LAWS.bend`.
-14. `spike-operators` — active — builtin operators, which the spike
+14. `spike-operators` — built 2026-11-01 — builtin operators, which the spike
     must account for at least abstractly (the maintainer, 2026-10-30);
     the design settled as `operator-nodes` (the maintainer, 2026-10-31).
     The general form is the specification: an operator awaits data on
@@ -797,13 +797,10 @@ Speed:
       it fails). The random terms give run 102's values and counts term
       for term (store run 107); four builds at k 18 (run 108 against
       106): the same interactions, -0.85% to +1.07% instructions.
-    - `spike-operators.lazy` — contingent on `heap-cells` — lazies wait
-      for the heap and tasking model (the maintainer, 2026-11-01). An
-      operator takes its argument unforced, so a lazy cell's handle may
-      reach it, where demand's
-      need, which reads and resumes B's data, must read the operator's
-      instead; until then it computes on the handle. No workload makes
-      one.
+    - `spike-operators.lazy` — dropped 2026-11-01 — lazies wait for the
+      heap and tasking model (the maintainer, 2026-11-01): the concern,
+      that a lazy cell's handle may reach an operator, which demand's
+      need does not read, moved to `heap-cells` (HeapModel).
     - `spike-operators.port` — dropped 2026-11-01 — an accumulator behind a
       port: even if one is needed it will not be an operator; the
       operator kind stays simple (the maintainer, 2026-11-01).

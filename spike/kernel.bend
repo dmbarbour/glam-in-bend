@@ -308,6 +308,54 @@ def edres(d: KS.D) -> EDRes:
 def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
   edres(demand_m(t, fuel, True{}, vals))
 
+# Erasure at load (heap-strategies.erasure.load)
+# =================
+#
+# What a load, or a collection cycle, runs on a net: its events once
+# (KN.ev_load), its erasure pairs (KS.collect_h), then every node the
+# interface does not reach freed (KN.sweep). A freshly lowered net has
+# nothing to give; a net demand has left has its garbage, so the passes
+# run on that: demand, then the collection, the value read after it and
+# the audits run, the live nodes counted after demand and after the
+# erasure, the result's after the sweep.
+
+type GRes is Data:
+  GRes{r: DRes, +live0: U32, +live1: U32, +citrs: U32, +cevs: U32}
+
+def gres.sw(r: P.H & U32, +st: U32, +lz: U32, +live0: U32, +live1: U32, +citrs: U32, +cevs: U32) -> GRes:
+  (h, +freed) = r
+  GRes{dres.h(h, st, lz), live0, live1, citrs, cevs}
+
+def gres.l1(au: KN.Au, +st: U32, +lz: U32, +live0: U32, +citrs: U32, +cevs: U32) -> GRes:
+  match au:
+    case KN.Au{h, +n}:
+      gres.sw(KN.sweep(h), st, lz, live0, n, citrs, cevs)
+
+def gres.ev(r: P.H & U32, +st: U32, +lz: U32, +live0: U32, +citrs: U32) -> GRes:
+  (h, +cevs) = r
+  gres.l1(live_nodes.st(P.stats(h)), st, lz, live0, citrs, cevs)
+
+def gres.c(r: P.H & P.HS, +st: U32, +lz: U32, +live0: U32) -> GRes:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      gres.ev(P.evs(h), st, lz, live0, itrs)
+
+def gres.l0(au: KN.Au, +st: U32, +lz: U32, +fuel: Nat) -> GRes:
+  match au:
+    case KN.Au{h, +n}:
+      gres.c(P.stats(KS.collect_h(fuel, KN.ev_load(h))), st, lz, n)
+
+def gres.d(r: KS.D & U32, +fuel: Nat) -> GRes:
+  (d, +lz) = r
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st}:
+      gres.l0(live_nodes.st(P.stats(P.count(h, n))), st, lz, fuel)
+
+# demand, then the collection a load runs
+def run_dgc(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> GRes:
+  gres.d(KS.need(demand_m(t, fuel, False{}, vals)), fuel)
+
 def st_name(+st: U32) -> String:
   match st:
     case 1:

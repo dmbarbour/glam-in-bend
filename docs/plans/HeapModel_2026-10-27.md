@@ -322,10 +322,11 @@ takes from it:
    `heap-strategies.erasure.deadcall.chain` (built),
    `heap-strategies.measure.differential` (built),
    `heap-strategies.measure.loader` (built),
-   `spike-operators` (EvalSpike) with
-   `heap-strategies.erasure.deadcall.eraser`,
-   `heap-strategies.fusions.immediate`,
-   `heap-strategies.erasure.load`, `heap-strategies.fusions.upto`; later
+   `spike-operators` (EvalSpike, built) with
+   `heap-strategies.erasure.deadcall.eraser` (built),
+   `heap-strategies.erasure.load` (built), `heap-strategies.fusions.immediate`,
+   `heap-strategies.fusions.upto`; later
+   `heap-strategies.erasure.load.cycle`, `heap-strategies.erasure.typed`,
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
    `heap-strategies.fusions.ktests`, `heap-strategies.fusions.distinct`,
@@ -1189,7 +1190,7 @@ takes from it:
        terms give run 107's results term for term, events too (store run
        109); four builds at k 18 (run 110 against 108): the same
        interactions, -5.0% to +0.5% instructions, most builds fewer.
-     - `heap-strategies.erasure.load` — tentative — patterns recognized
+     - `heap-strategies.erasure.load` — built 2026-11-01 — patterns recognized
        only when lowering or loading a fresh net, perhaps after a GC
        cycle (the maintainer, 2026-10-30), against after every rewrite:
        nothing paid per rewrite, but the events that arise while
@@ -1200,6 +1201,36 @@ takes from it:
        a dead application is exact where the function is known to keep
        its variable inside its body, a dead call's input erasable where
        it is known to be data (the maintainer, 2026-10-30).
+       Built: what a load runs, its events once (`knet.bend`'s `ev_load`,
+       every eraser and dead operator's principal on the events'
+       worklist) and its erasure pairs (`kstrat.bend`'s `collect_h`, the
+       eager loop, events on, seeded with the pairs an eraser or dead
+       operator is in, which make only such nodes), then the sweep by
+       reachability (`KN.sweep`). A freshly lowered net gives nothing:
+       lowering puts its erasers on variables, where no event applies, so
+       every library entry made no event and no interaction at load. On
+       what demand leaves, the library's 126 cases (`run_dgc`, every
+       gate: the value and state demand reached kept, the audits passing
+       after): 230,585 nodes live after demand, 126,346 after the events
+       and erasure pairs (15,647 events, 101,196 interactions, about one
+       an erased node; `costly-133` 45,296 to 2), 331 after the sweep,
+       which reduces nothing. So where a net is loaded or collected, the
+       sweep reclaims what is cut off without work, and erasure the dead
+       structure still joined to what lives, at a cost.
+       - `heap-strategies.erasure.load.cycle` — tentative — a collection
+         in the middle of a run, where work still lives: demand
+         collecting before it grows its net, by the sweep and by
+         erasure, against its peak capacity and live nodes on the
+         costly entries; what a reload after freezing would find
+         (`heap-freeze`).
+     - `heap-strategies.erasure.typed` — tentative — erasure assuming type
+       safety (the maintainer, 2026-11-01): a dead operator, sure to
+       receive data, becomes an eraser at once, and in general a node
+       whose stuckness only a type error could show may be erased as
+       though the program were typed. Valid reasoning, but it gives up
+       diagnostics (a type error erased rather than reported) and
+       weakens the laws on stuckness; a strategy for later, not
+       particular to operators.
      - `heap-strategies.erasure.merge` — built 2026-10-31 (the
        maintainer's approval, 2026-10-31) — branch `erasure-kernel` onto main: the events in their
        own strategies, costing nothing where they are off. It changes no
@@ -1810,6 +1841,11 @@ takes from it:
    suspension in the cell, resumption, inline forcing within a worker,
    forwarding, values; final and partial data told apart by tag; laws on
    cell states (a cell only moves forward; a value is written once).
+   From `spike-operators.lazy`: an operator takes its argument unforced,
+   only that it is data (`operator-nodes`), so a lazy cell's handle may
+   reach an operator, which today computes on the handle; demand's need
+   reads and resumes B's data, and must read the operator's held value
+   instead, or the operator must ask for the cell.
 6. `heap-apply` — lazy applications of function values, applied to all
    arguments at once where known, partial applications taken over where
    used linearly; interaction-net calls copying raw nets.

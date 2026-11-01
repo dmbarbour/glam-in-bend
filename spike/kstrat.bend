@@ -110,6 +110,63 @@ def reduce_h(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 def reduce_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
   reduce.st(P.stats(h), fuel, fast, True{})
 
+# Collection at load (heap-strategies.erasure.load): the eager loop,
+# events on, seeded with the pairs one of whose nodes is an eraser or a
+# dead operator (KR.ev_end at its principal). An erasure rewrite makes
+# only such nodes, so the run erases what lowering or a reduction left
+# dead and stops; after it, a strategy starts on what is live. Run when a
+# net is loaded, not per rewrite: the deferred collection demand wants.
+
+def is_b(+hd: U32) -> Bool:
+  U32.is_ne(hd, 0) && KR.ev_end(P.rk(hd), 0)
+
+def cscan.pair(r: P.H & U32, st: P.Stk, +i: U32, +hi: U32) -> P.E:
+  (h, +hq) = r
+  P.E{h, scan.push(is_b(hi) || is_b(hq), st, i)}
+
+def cscan.q(pair: Bool, h: P.H, st: P.Stk, +i: U32, +q: U32, +hi: U32) -> P.E:
+  match pair:
+    case True{}:
+      cscan.pair(P.rd(h, P.base(q)), st, i, hi)
+    case False{}:
+      P.E{h, st}
+
+def cscan.peer(r: P.H & U32, st: P.Stk, +i: U32, +hi: U32) -> P.E:
+  (h, +q) = r
+  cscan.q(U32.is_eq(P.port(q), 0) && U32.is_gt(q, i), h, st, i, q, hi)
+
+def cscan.go(live: Bool, h: P.H, st: P.Stk, +i: U32, +hd: U32) -> P.E:
+  match live:
+    case True{}:
+      cscan.peer(P.rd(h, (i + 1 : U32)), st, i, hd)
+    case False{}:
+      P.E{h, st}
+
+def cscan.hdr(r: P.H & U32, st: P.Stk, +i: U32) -> P.E:
+  (h, +hd) = r
+  cscan.go(U32.is_ne(hd, 0), h, st, i, hd)
+
+# the erasure pairs among k nodes from word i, onto the stack
+def cscan(k: Nat, +i: U32, e: P.E) -> P.E:
+  match k:
+    case 0n:
+      e
+    case 1n+p:
+      match e:
+        case P.E{h, st}:
+          cscan(p, (i + 4 : U32), cscan.hdr(P.rd(h, i), st, i))
+
+def collect.st(r: P.H & P.HS, +fuel: Nat) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      ran(run.v(fuel, True{}, P.pop(cscan(U32.to_nat((cap - P.first() : U32)), P.iface(), P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs())), fuel)
+
+# a net's erasure pairs run, events on, at most fuel interactions, which
+# it counts (P.count)
+def collect_h(+fuel: Nat, h: P.H) -> P.H:
+  collect.st(P.stats(h), fuel)
+
 # Two stacks
 # ==========
 
