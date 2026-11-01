@@ -674,6 +674,13 @@ Speed:
     first (`heap-strategies.kinds.layout`). An await is one of them, an
     identity or application operator (the maintainer, 2026-10-30:
     `spike-fixpoints.await`).
+    Revised (the maintainer, 2026-11-01; `operator-nodes`): one operator
+    kind, the opcode and the remaining arity in its header's field, the
+    accumulator in its word, a number or a reference into the data table
+    as the form says; on its argument it writes the result, or the next
+    partial application as data. That is the opcode in the kind all the
+    time, and the call, encoded more plainly. The general form above was
+    built and proven (`.model`, `.call`) and retires (`.one`).
     - `spike-operators.model` — built 2026-10-31 — the general form in
       the model and the kernel: the kinds `Op`, `OpStep` and `OpData`
       (codes 17 to 19), an application meeting `OpData` becoming the
@@ -722,32 +729,42 @@ Speed:
       `op-control` 17). Every library entry that calls a builtin counts
       more, 96 lines, their values and peels unchanged; the profiles in
       the store before this count calls once.
-    - `spike-operators.retire` — contingent on `spike-operators.immediate`
-      and `spike-operators.inkind` — the replacement: an application
-      meeting data that holds a builtin rewrites, in the table, to the
-      operator and its data materialized, and the call and the dead call
-      retire, their events with them, the dead call's work to the dead
-      operator. Deferred until the two fused forms replace it smoothly
-      (the maintainer, 2026-10-31): a bare builtin's call then the
-      immediate-opcode operator, a call holding collected arguments an
-      opcode in a kind.
-    - `spike-operators.immediate` — active — the operator holding a
-      full 32-bit opcode in place of its payload port
-      (`heap-strategies.fusions.immediate`), a unary one finishing on
-      its argument.
-    - `spike-operators.inkind` — tentative — opcodes in kinds, the
-      payload immediate in the operator: few, spent where profiles say.
-    - `spike-operators.lazy` — tentative — a step holding a handle: an
-      operator takes its argument unforced, so a lazy cell's handle may
-      reach the step, where demand's need, which reads and resumes B's
-      data, would read the step's held value instead; until then a step
-      computes on the handle. No workload makes one.
+    - `spike-operators.retire` — dropped 2026-11-01 — the call does not
+      give way to the general form: it becomes the operator (`.one`).
+    - `spike-operators.immediate` — dropped 2026-11-01 — the opcode is in
+      the header always.
+    - `spike-operators.inkind` — dropped 2026-11-01 — likewise.
+    - `spike-operators.class` — dropped 2026-11-01 — one operator kind.
+    - `spike-operators.one` — active — the general form retired (the
+      kinds `Op`, `OpStep` and `OpData`, the source `SApplyB`, the law
+      `call_as_components`, the lowering `terms.py --ops` and its
+      entries), the call renamed the operator and the dead call the
+      dead operator; a call no longer stands for more than its own
+      interactions, so the logical weight goes back to one.
+    - `spike-operators.header` — active — the header 6/2/24
+      (`header-kind-byte`, revised): levels, sites and indexes back to
+      24 bits, the laws on the field with them.
+    - `spike-operators.levels` — tentative — the laws an operator carrying
+      no level rests on: its field is never read or lifted as a level
+      (lifts made only for functions, applications, fans and controls,
+      level checks naming only leveled pairs), and a control facing an
+      operator, moving on to its result, leaves what it would have left
+      before the argument, single controls and runs alike.
+    - `spike-operators.encoding` — tentative — a builtin encoded one way
+      in data and operators alike, so that materializing is a change of
+      kind: the field its op (7 or 8 bits) and the arity remaining (3),
+      the form its accumulator's, none, an immediate number or a table
+      reference, the word the accumulator; the call's encoding replaced
+      (the op in the field, the arity in the word or implied, the rest in
+      the table's flat forms), each step counted.
+    - `spike-operators.lazy` — tentative — an operator takes its argument
+      unforced, so a lazy cell's handle may reach it, where demand's
+      need, which reads and resumes B's data, must read the operator's
+      instead; until then it computes on the handle. No workload makes
+      one.
     - `spike-operators.port` — tentative — an accumulator behind a port,
       a computation rather than a value, and the levels it brings: a
-      control meeting `OpData` copied onto the accumulator's wire.
-    - `spike-operators.class` — tentative — the three base kinds' cost
-      to the dispatch (run 104): the general kinds sharing the
-      operators' class, as the opcodes in kinds will.
+      control facing the operator copied onto the accumulator's wire too.
 15. `spike-templates` — built 2026-10-31 — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families

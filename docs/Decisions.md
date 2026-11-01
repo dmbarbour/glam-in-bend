@@ -121,13 +121,14 @@ where the shared lazy state that Bend cannot hold goes.
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.
 - [`header-kind-byte`](decisions/header-kind-byte.md): a node's header is
-  a kind byte, two bits of form and a 22-bit field.
+  a 6-bit kind, two bits of form and a 24-bit field.
 - [`fusions-as-components`](decisions/fusions-as-components.md): a fused
   op behaves as its components, stuck where they are, observing no data
   value, and a law proves it; at lowering too.
 - [`operator-nodes`](decisions/operator-nodes.md): an application
-  meeting an operator's data becomes the operator, which takes its
-  argument's data, turns to its payload and writes the result.
+  meeting a builtin becomes an operator holding its opcode and arity in
+  the header, its accumulator in its word, which on its argument writes
+  the result.
 - [`diagnostic-order-follows-schedule`](decisions/diagnostic-order-follows-schedule.md):
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
