@@ -1270,6 +1270,23 @@ takes from it:
          default build). Every other mode is unchanged: the spot check's
          interactions the same, its instructions within 0.4% (run 114
          against 112).
+         Ablated on the library, one change at a time, every case passing
+         (capacities summed; interactions, demand's and the collections',
+         against demand's alone): as built 216,448 (+2.38%); a stack
+         rather than a queue 214,144 (+2.35%); no data copies 216,448
+         (+2.38%: copies hardly arise); no events 218,496 (+2.45%);
+         collecting only where the free list is empty 219,520 (+2.46%);
+         doubling unless half is free 263,040 (+1.92%), unless an eighth
+         is 202,752 (+2.22%); the sweep alone 411,264, nothing changed,
+         as `heap-strategies.cascade.reach` found. The pairs a collection
+         rewrites cut the garbage off, and the threshold sets how much is
+         kept; the queue, the copies and the events barely move it here.
+         Where `heap-strategies.cascade.combined` halved three
+         capacities, this halves most: its growth (`P.grow_more` then)
+         dropped the free list it found, as this one's did until the
+         library's audit caught it, and that branch had no free-list
+         audit, so a collection short of its threshold lost what it
+         freed; likely the difference, not rerun.
          - `heap-strategies.erasure.load.cycle.cost` — tentative — a
            collection that frees nothing costs four passes over the net
            (the events' scan, the pairs' scan, the sweep's marking and
@@ -1278,9 +1295,11 @@ takes from it:
            the next growth larger, or the next collection later), against
            `succ`'s 29%.
          - `heap-strategies.erasure.load.cycle.library` — tentative — the
-           threshold and the fuel decided on programs that drop more as
-           they run (`pairing-library.programs`), and on what a reload
-           after freezing finds (`heap-freeze`).
+           threshold (an eighth keeps 6% less than a quarter, its
+           interactions 0.16 points fewer, here) and the fuel decided on
+           programs that drop more as they run
+           (`pairing-library.programs`), the queue against the stack there
+           too, and on what a reload after freezing finds (`heap-freeze`).
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
