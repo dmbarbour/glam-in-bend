@@ -9,11 +9,10 @@ type Val is Data:
   # never a glam value: a freed entry of a net's data table, linking the
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}
-  # never glam values: the kernel's flat forms of a builtin given one or
-  # two numbers, VFun{op, need, [VNum{a}]} and VFun{op, need, [VNum{a},
-  # VNum{b}]}, which a match shared among copies takes without touching a
-  # list (kprim.bend); V.norm turns them back
-  VP1{+op: U32, +need: U32, +a: U32}
+  # never a glam value: the kernel's flat form of a builtin given two
+  # numbers, VFun{op, need, [VNum{a}, VNum{b}]}, which a match shared among
+  # copies takes without touching a list (kprim.bend), one number being
+  # held in the node itself; V.norm turns it back
   VP2{+op: U32, +need: U32, +a: U32, +b: U32}
 
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
@@ -114,7 +113,7 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
     case _:
       VUnit{}
 
-# Placeholders: VFree, VP1 and VP2 are never glam values. A flat form may
+# Placeholders: VFree and VP2 are never glam values. A flat form may
 # stand at the top of a value the kernel holds, never among a function's
 # collected arguments: apply_fn collects each normalized, and the kernel
 # normalizes every value it hands out (laws norm_not_placeholder,
@@ -124,8 +123,6 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
 def is_ph(v: Val) -> Bool:
   match v:
     case VFree{+k}:
-      True{}
-    case VP1{+op, +need, +a}:
       True{}
     case VP2{+op, +need, +a, +b}:
       True{}
@@ -167,8 +164,6 @@ def clean(v: Val) -> Bool:
 # a value as glam sees it: a flat form as the VFun it stands for
 def norm(v: Val) -> Val:
   match v:
-    case VP1{+op, +need, +a}:
-      VFun{op, need, [VNum{a}]}
     case VP2{+op, +need, +a, +b}:
       VFun{op, need, [VNum{a}, VNum{b}]}
     case _:
@@ -181,20 +176,6 @@ def fun.go(+last: Bool, +op: U32, +need: U32, args: List<&2, Val>, x: Val) -> Va
     case False{}:
       VFun{op, (need - 1 : U32), List.append(&2, Val, args, [norm(x)])}
 
-def vp1.more(+op: U32, +need: U32, +a: U32, x: Val) -> Val:
-  match x:
-    case VNum{+b}:
-      VP2{op, need, a, b}
-    case _:
-      VFun{op, need, [VNum{a}, norm(x)]}
-
-def vp1.go(+last: Bool, +op: U32, +need: U32, +a: U32, x: Val) -> Val:
-  match last:
-    case True{}:
-      last.x2(op, a, x)
-    case False{}:
-      vp1.more(op, (need - 1 : U32), a, x)
-
 def vp2.go(+last: Bool, +op: U32, +need: U32, +a: U32, +b: U32, x: Val) -> Val:
   match last:
     case True{}:
@@ -206,8 +187,6 @@ def apply_fn(f: Val, x: Val) -> Val:
   match f:
     case VFun{+op, +need, args}:
       fun.go(U32.is_eq(need, 1), op, need, args, x)
-    case VP1{+op, +need, +a}:
-      vp1.go(U32.is_eq(need, 1), op, need, a, x)
     case VP2{+op, +need, +a, +b}:
       vp2.go(U32.is_eq(need, 1), op, need, a, b, x)
     case _:

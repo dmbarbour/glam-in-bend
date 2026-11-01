@@ -496,10 +496,11 @@ The core:
    b}`, constructors of plain fields that `V.apply_fn` applies directly;
    they are never glam values, and `V.norm` turns them back into the
    `VFun` they stand for, which the kernel does to every value it hands
-   out. Two laws, `flat_one_applies_as_fun` and `flat_two_applies_as_fun`
-   (named `vp1_agrees` and `vp2_agrees` until 2026-11-01), prove that
-   applying a flat form computes what applying its `VFun` does, through
-   `V.norm`. At
+   out. Two laws, `vp1_agrees` and `vp2_agrees`, proved that applying a
+   flat form computes what applying its `VFun` does, through `V.norm`.
+   Since `spike-operators.encoding` one number is held in the node, so
+   `VP1` and its law were retired, and `vp2_agrees` is
+   `flat_two_applies_as_fun` (2026-11-01). At
    k 18, `fma` takes 639M instructions as built, 520M forced inline, 509M
    profile-guided, 493M both (from 712M, 599M, 582M, 571M); a call costs
    about 584 instructions more than a `succ` call, from 870.

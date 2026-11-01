@@ -54,17 +54,9 @@ law builtin_last_agrees:
   for +x: V.Val
   {V.builtin_last(op, args, x) == V.builtin(op, List.append(&2, V.Val, args, [x])) : V.Val}
 
-# LAW: applying the kernel's flat form of a builtin given one number,
-# V.VP1, computes what applying the VFun it stands for computes, seen
-# through V.norm (named vp1_agrees until 2026-11-01).
-law flat_one_applies_as_fun:
-  for +op: U32
-  for +need: U32
-  for +a: U32
-  for +x: V.Val
-  {V.norm(V.apply_fn(V.VP1{op, need, a}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}]}, x)) : V.Val}
-
-# LAW: likewise for two numbers, V.VP2 (named vp2_agrees until 2026-11-01).
+# LAW: applying the kernel's flat form of a builtin given two numbers,
+# V.VP2, computes what applying the VFun it stands for computes, seen
+# through V.norm (named vp2_agrees until 2026-11-01).
 law flat_two_applies_as_fun:
   for +op: U32
   for +need: U32
@@ -73,9 +65,9 @@ law flat_two_applies_as_fun:
   for +x: V.Val
   {V.norm(V.apply_fn(V.VP2{op, need, a, b}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}, V.VNum{b}]}, x)) : V.Val}
 
-# LAW: V.norm leaves no placeholder (VP1, VP2) at the top of a value, only
-# a free slot, which the kernel reports as an error wherever it reads one
-# as a value.
+# LAW: V.norm leaves no placeholder (VP2) at the top of a value, only a
+# free slot, which the kernel reports as an error wherever it reads one as
+# a value.
 law norm_not_placeholder:
   for +v: V.Val
   {V.is_ph(V.norm(v)) == V.is_free(v) : Bool}

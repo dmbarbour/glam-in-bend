@@ -643,8 +643,6 @@ def put(h: H, v: V.Val) -> H & PW:
       (h, PW{1, 0, n})
     case V.VFun{+op, +need, +args}:
       put.fun(bfits(op, need), args, h, op, need, V.VFun{op, need, args})
-    case V.VP1{+op, +need, +a}:
-      put.fun(bfits(op, need), [V.VNum{a}], h, op, need, V.VP1{op, need, a})
     case V.VP2{+op, +need, +a, +b}:
       put.fun(bfits(op, need), [V.VNum{a}, V.VNum{b}], h, op, need, V.VP2{op, need, a, b})
     case _:
@@ -753,8 +751,6 @@ def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
 def is_fn(v: V.Val) -> Bool:
   match v:
     case V.VFun{+op, +need, args}:
-      True{}
-    case V.VP1{+op, +need, +a}:
       True{}
     case V.VP2{+op, +need, +a, +b}:
       True{}
