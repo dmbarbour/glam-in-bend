@@ -1162,8 +1162,8 @@ takes from it:
          chain). Four builds at k 18 (run 100 against main, run 99):
          without events the same instructions; with them -0.8% to
          +0.3%.
-     - `heap-strategies.erasure.deadcall.eraser` — contingent on
-       `spike-operators` — a dead operator is a data-only eraser (the
+     - `heap-strategies.erasure.deadcall.eraser` — built 2026-11-01 — a
+       dead operator is a data-only eraser (the
        maintainer, 2026-10-31): an operator's input and output are
        always data, so once its output is erased nothing it holds, its
        function, opcode or collected arguments, is ever observed. The
@@ -1173,7 +1173,22 @@ takes from it:
        payload-free kind serves every dead operator, and the chain
        reads no payload of B's. Its law as components holds if the
        eraser's event drops the payload too, so that the components
-       end in the same payload-free nodes.
+       end in the same payload-free nodes. Built: the operator's event,
+       by an eraser or a dead operator, makes a dead operator holding
+       nothing, the builtin dropped there; `events_as_components` holds
+       unchanged, and the dead operator's derived rules take nothing of
+       its (against a merge, two dead operators, no entry duplicated).
+       New laws: no rule or event takes a payload from a kind that holds
+       none (`R.bare`, every kind named: the free slot, the erasers, the
+       root, the dead operator; `rules_take_held`, `events_take_held`),
+       so the kernel never reads a word such a node does not hold, nor
+       B's word at an event; the generator names any B that holds a
+       payload (`inner_events`). Mutated, the chain's dead operator
+       taking B's payload fails the second; the dead operator given a
+       payload again names itself in the generated file. The random
+       terms give run 107's results term for term, events too (store run
+       109); four builds at k 18 (run 110 against 108): the same
+       interactions, -5.0% to +0.5% instructions, most builds fewer.
      - `heap-strategies.erasure.load` — tentative — patterns recognized
        only when lowering or loading a fresh net, perhaps after a GC
        cycle (the maintainer, 2026-10-30), against after every rewrite:

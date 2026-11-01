@@ -54,18 +54,10 @@ law builtin_last_agrees:
   for +x: V.Val
   {V.builtin_last(op, args, x) == V.builtin(op, List.append(&2, V.Val, args, [x])) : V.Val}
 
-# LAW: applying the kernel's flat form of a builtin given one number,
-# V.VP1, computes what applying the VFun it stands for computes, seen
-# through V.norm.
-law vp1_agrees:
-  for +op: U32
-  for +need: U32
-  for +a: U32
-  for +x: V.Val
-  {V.norm(V.apply_fn(V.VP1{op, need, a}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}]}, x)) : V.Val}
-
-# LAW: likewise for two numbers, V.VP2.
-law vp2_agrees:
+# LAW: applying the kernel's flat form of a builtin given two numbers,
+# V.VP2, computes what applying the VFun it stands for computes, seen
+# through V.norm (named vp2_agrees until 2026-11-01).
+law flat_two_applies_as_fun:
   for +op: U32
   for +need: U32
   for +a: U32
@@ -73,9 +65,9 @@ law vp2_agrees:
   for +x: V.Val
   {V.norm(V.apply_fn(V.VP2{op, need, a, b}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}, V.VNum{b}]}, x)) : V.Val}
 
-# LAW: V.norm leaves no placeholder (VP1, VP2) at the top of a value, only
-# a free slot, which the kernel reports as an error wherever it reads one
-# as a value.
+# LAW: V.norm leaves no placeholder (VP2) at the top of a value, only a
+# free slot, which the kernel reports as an error wherever it reads one as
+# a value.
 law norm_not_placeholder:
   for +v: V.Val
   {V.is_ph(V.norm(v)) == V.is_free(v) : Bool}
@@ -801,6 +793,27 @@ law reads_leveled:
 law ops_pass_controls:
   for +v: R.NodeKind
   {R.fz_opctl(v) == True{} : Bool}
+
+# LAW: no rule takes a payload from a kind that holds none (R.bare: the
+# free slot, the erasers, the root, the dead operator), so that the kernel
+# never reads a word such a node does not hold: a dead operator drops its
+# builtin when it dies (heap-strategies.erasure.deadcall.eraser).
+# Record: operator-nodes
+# Record: fusions-as-components
+law rules_take_held:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +t: Bool
+  {R.takes_held(a, b, t) == True{} : Bool}
+
+# LAW: and no event does, so that the kernel reads no word of B's.
+# Record: operator-nodes
+# Record: fusions-as-components
+law events_take_held:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  for +p: Nat
+  {R.ev_takes_held(a, b, p) == True{} : Bool}
 
 # LAW: so an event keeps a wired net wired, the node's peers inside the
 # pair or not.
