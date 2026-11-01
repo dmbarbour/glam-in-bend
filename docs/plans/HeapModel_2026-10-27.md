@@ -335,7 +335,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.oom`,
    `heap-strategies.erasure.load.cycle.loops`,
    `heap-strategies.erasure.load.cycle.library`,
-   `heap-strategies.erasure.load.cycle.trace`,
+   `heap-strategies.erasure.load.cycle.trace` (prototyped),
+   `heap-strategies.erasure.load.cycle.trace.lean`,
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.room`,
    `heap-strategies.erasure.load.cycle.loops.levels`,
@@ -1421,8 +1422,11 @@ takes from it:
        representation. Wanted: more bits, levels renumbered where a
        collection traces every live node (only their equalities and the
        lifts' offsets matter, if the window of live levels drifts up), or
-       a stated limit on what one net can represent; first, whether the
-       live levels drift or fill from 0.
+       a stated limit on what one net can represent. The window does not
+       drift: the live levels run from 0 up, nodes at levels 0 to 2
+       growing too (93, 173, 256 at 5,000, 20,000, 80,000 steps), so
+       renumbering from the least live level gains nothing; more bits, or
+       a stated limit, remain.
      - `heap-strategies.erasure.load.cycle.trace` — tentative — more
        phases in one (the maintainer, 2026-11-01: more to squeeze from
        collection, eval as part of tracing; it is heuristic, trading
@@ -1430,7 +1434,27 @@ takes from it:
        and events as it reaches them and rewriting the collectable ones
        there, what they cut off then never marked, the sweep's pass
        after; one walk and one pass where there are two scans, a walk
-       and a pass.
+       and a pass. Prototyped 2026-11-01 on branch `gc-trace-proto`
+       (efa0583), not merged. A rewrite relinks its ends, so it needs a
+       barrier: each marked end sees what its port now faces, and the
+       redex's slots lose their marks; control fusion frees a control and
+       links its far peer across, one step past the ends, so the far
+       peers of ends on controls are barriered too (without that, five
+       levels-mode loop cases broke, caught by the library's audits).
+       Then all 153 cases pass, the stress mode too; capacity within 0.3%
+       of the current cycle, the collections' interactions 6% fewer
+       (114,892 against 122,594: pairs in garbage left to the sweep);
+       but 364 instructions a node of final capacity on `succ`, against
+       174, the walk carrying an eight-field state through some ten
+       calls a node, each dear in Bend's runtime.
+       - `heap-strategies.erasure.load.cycle.trace.lean` — tentative —
+         the walk as lean as the marking walk alone: it notes the pairs
+         and events it reaches, a compare a node, and they run after the
+         marking, the sweep's pass after them freeing what was unmarked
+         (what they cut off waits for the next collection, as in
+         `.load.cycle.fuse`, emulated at 3% to 4% more capacity); or the
+         trace's state cut to the marking walk's, what only rewrites need
+         kept in the net's header or made when they run.
      - `heap-strategies.erasure.load.cycle.room` — tentative — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
