@@ -1368,12 +1368,14 @@ def events() -> String:
   "# names what does not exist\n" ++
   "def inner_events() -> U32:\n  0" ++ inner_ev_a(kinds()) ++ "\n\n" ++
   "# the eraser kind making an event at port p of kind k, 0 for none: two\n" ++
-  "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word\n" ++
+  "# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word;\n" ++
+  "# a kind past 15 makes none (law events_fit_header)\n" ++
   "def ev_word(+w: U32) -> U32:\n  match w:\n" ++
   "    case 0:\n      " ++ U32.show(ev_word_k(kinds(), 0, 0)) ++ "\n" ++
   "    case 1:\n      " ++ U32.show(ev_word_k(kinds(), 1, 0)) ++ "\n" ++
   "    case 2:\n      " ++ U32.show(ev_word_k(kinds(), 2, 0)) ++ "\n" ++
-  "    case _:\n      " ++ U32.show(ev_word_k(kinds(), 3, 0)) ++ "\n\n" ++
+  "    case 3:\n      " ++ U32.show(ev_word_k(kinds(), 3, 0)) ++ "\n" ++
+  "    case _:\n      0\n\n" ++
   "def ev_by.c(+c: U32) -> U32:\n  match c:\n    case 0:\n      0\n    case _:\n      (c + 5 : U32)\n\n" ++
   "def ev_by(+k: U32, +p: U32) -> U32:\n" ++
   "  ev_by.c(((ev_word((k >> 2n : U32)) >> U32.to_nat((((k .&. 3 : U32) * 8 : U32) + (p * 2 : U32) : U32)) : U32) .&. 3 : U32))\n\n" ++

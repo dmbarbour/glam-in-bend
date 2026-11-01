@@ -1898,7 +1898,8 @@ def inner_events() -> U32:
   0
 
 # the eraser kind making an event at port p of kind k, 0 for none: two
-# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word
+# bits a port (0 none, 1 EraN, 2 EraP), eight a kind, four kinds a word;
+# a kind past 15 makes none (law events_fit_header)
 def ev_word(+w: U32) -> U32:
   match w:
     case 0:
@@ -1907,8 +1908,10 @@ def ev_word(+w: U32) -> U32:
       40
     case 2:
       134480896
-    case _:
+    case 3:
       134743044
+    case _:
+      0
 
 def ev_by.c(+c: U32) -> U32:
   match c:

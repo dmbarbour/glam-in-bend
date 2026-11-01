@@ -147,13 +147,13 @@ law lift_raise:
   for h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))
   {U32.to_nat(P.lift.go(U32.is_gt(j, n), True{}, b, j)) == CT.raise(U32.to_nat(n), U32.to_nat(b), U32.to_nat(j)) : Nat}
 
-# LAW: a level decoded from a header has 22 bits: kprim.bend's fld, a U32
-# division by 2^10, read as a Nat, lies below 2^22.
+# LAW: a level decoded from a header has 24 bits: kprim.bend's fld, a U32
+# division by 2^8, read as a Nat, lies below 2^24.
 # Record: net-nodes-double
 # Record: header-kind-byte
 law fld_bits:
   for +h: U32
-  MNat.lt(U32.to_nat(P.fld(h)), Nat.pow(2n, 22n))
+  MNat.lt(U32.to_nat(P.fld(h)), Nat.pow(2n, 24n))
 
 # LAW: an offset's amount has 31 bits: kprim.bend's off_by, a U32
 # remainder by 2^31, read as a Nat, lies below 2^31.
@@ -163,7 +163,7 @@ law off_by_bits:
   MNat.lt(U32.to_nat(P.off_by(o)), Nat.pow(2n, 31n))
 
 # LAW: the kernel raises a decoded level as the model does: lift_raise
-# without its hypothesis, a 22-bit level and a 31-bit amount summing
+# without its hypothesis, a 24-bit level and a 31-bit amount summing
 # within a U32.
 # Record: fuse-control-runs
 law lift_decoded:
@@ -174,7 +174,7 @@ law lift_decoded:
   {U32.to_nat(P.lift(n, o, P.fld(h))) == CT.raise(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(P.fld(h))) : Nat}
 
 # LAW: the kernel's level check suffices: a raise of a decoded level that
-# lift_wraps passes has 22 bits, so it fits the field it is written to.
+# lift_wraps passes has 24 bits, so it fits the field it is written to.
 # Record: fuse-control-runs
 # Record: header-kind-byte
 law lift_fits:
@@ -183,7 +183,7 @@ law lift_fits:
   for +h: U32
   for up: {P.off_up(o) == True{} : Bool}
   for ok: {P.lift_wraps(n, o, P.fld(h)) == False{} : Bool}
-  MNat.lt(U32.to_nat(P.lift(n, o, P.fld(h))), Nat.pow(2n, 22n))
+  MNat.lt(U32.to_nat(P.lift(n, o, P.fld(h))), Nat.pow(2n, 24n))
 
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says

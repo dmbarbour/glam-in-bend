@@ -745,9 +745,16 @@ Speed:
       spike's sources as they were before the general form, then renamed:
       the library's counts as they were, and the spot check's 20 counts
       run 100's exactly.
-    - `spike-operators.header` — active — the header 6/2/24
+    - `spike-operators.header` — built 2026-11-01 — the header 6/2/24
       (`header-kind-byte`, revised): levels, sites and indexes back to
-      24 bits, the laws on the field with them.
+      24 bits, the laws on the field with them (`fld_bits`,
+      `lift_decoded`, `lift_fits`, their proofs as before 8/2/22). The
+      spike's own store keeps its 8-bit kind mask, which kinds below 64
+      fit. The generator's event words now say 0 past kind 15, where the
+      last word had stood for every kind from 12 up, the dead operator
+      (16) reading the linear fans' entries; it has no auxiliary port,
+      so nothing had fired. Four builds at k 18 (store run 106 against
+      100): the same interactions, -2.6% to +1.2% instructions.
     - `spike-operators.levels` — tentative — the laws an operator carrying
       no level rests on: its field is never read or lifted as a level
       (lifts made only for functions, applications, fans and controls,
