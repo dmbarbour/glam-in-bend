@@ -11,6 +11,13 @@
 # (docs/BendIssues.md, "Inlining left to the C compiler"); the other
 # builds measure the work itself.
 #
+# With NEXT_FILL=1, the emitted C takes Bend #1928's change, the one line
+# of it (docs/BendIssues.md, "Array creation fills word by word"): the
+# runtime's fill of a new array bounded by `i != w`, w its length worked
+# out first, which clang vectorizes. The release after 2.0.39 carries it,
+# so these builds are a look at that release for what depends on making
+# arrays; the change is checked to apply.
+#
 # The C is emitted once and compiled as `bend` compiles it, its flags
 # captured from the installed Bend (scripts/bend-cc.sh; for 2.0.39,
 # clang -std=c11 -O3 ... -lpthread -lm, which `bend -o` runs on its C in a
@@ -33,6 +40,18 @@ FLAGS=$("$ROOT/scripts/bend-cc.sh" "$OUT.cc")
 PRE=$(echo "$FLAGS" | sed -n 1p)
 POST=$(echo "$FLAGS" | sed -n 2p)
 (cd "$DIR" && bend "$NAME" -o "$OUT.c" >/dev/null)
+if [ "${NEXT_FILL:-0}" = 1 ]; then
+  python3 -I -c '
+import sys
+p = sys.argv[1]
+s = open(p).read()
+old = "  for (u64 i = 0; i < (1ull << c); i += 1) {\n    blk_write(H, arr, l, (u32)i,"
+new = "  for (u64 i = 0, w = 1ull << c; i != w; i += 1) {\n    blk_write(H, arr, l, (u32)i,"
+if s.count(old) != 1:
+    sys.exit("NEXT_FILL: the fill loop is not as 2.0.39 emits it")
+open(p, "w").write(s.replace(old, new))
+' "$OUT.c" || exit 1
+fi
 python3 -I -c '
 import re, sys
 s = open(sys.argv[1]).read()

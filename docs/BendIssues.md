@@ -216,27 +216,31 @@ of 2026-10-26, Bend 2.0.39.
 - **Revisit:** when the kernel's kinds pass 16, or Bend emits jump
   tables.
 
-### Records returned through every level
+### Records returned through every level, where clang will not inline
 
 - **Need:** a loop whose state is a record of several fields (the net,
   arrays, counts) stepped by helper functions, which Bend asks for: a
   match takes only a parameter or a field, and a pair returned by a read
   is taken apart by a function of its own.
-- **Upstream:** none known; a suggestion to raise later, returns written
-  in place, or helpers on the way to a tail call folded into it.
+- **Upstream:** none known; a case of "Inlining left to the C compiler",
+  which an inlining hint or build option would cover.
 - **Evidence:** Bend 2.0.39 compiles each helper to a C function
   returning its result through an array its caller copies word by word,
-  at every level, tail calls too. The maintainer's marking walk
-  (`heap-strategies.erasure.load.cycle.walk`, branch `gc-walk-proto`),
-  which makes fewer reads and writes a node than the worklist walk it
-  would replace, passes its nine-word state through some ten levels a
-  node, and cost 183 to 188 instructions a node of final capacity on
-  `succ` against 116 to 122 (store runs 132, 130); a smaller record (two
-  flags made one number, a level less) changed nothing.
-- **Workaround:** keep the state of a hot loop small and its chain of
-  helpers short, even at more reads and writes an element; count before
-  trusting a design's fewer operations.
-- **Revisit:** at whole-system tuning.
+  at every level, tail calls too; clang removes the copies where it
+  inlines. The maintainer's marking walk
+  (`heap-strategies.erasure.load.cycle.walk`, branch `gc-walk-proto`)
+  passes a nine-word state through some ten levels a node, where the
+  worklist walk it would replace makes more reads and writes through
+  fewer: clang inlines the worklist walk's chain in the default build
+  and not the new one's, which costs 183 to 188 instructions a node of
+  final capacity on `succ` against 116 to 122; forced inline, the new
+  walk is the cheaper, 86 to 92; profile-guided, both are dearer and
+  the new one still behind, 190 to 193 against 169 to 172 (store run
+  134).
+- **Workaround:** keep a hot loop's state small and its chain of helpers
+  short, so that clang's own heuristics inline it whole; measure a
+  design in the default and the forced-inline builds both.
+- **Revisit:** with "Inlining left to the C compiler".
 
 ### Array creation fills word by word
 
@@ -259,7 +263,13 @@ of 2026-10-26, Bend 2.0.39.
   then is mostly the copy into each doubled array, word by word in Bend
   (`kmem_grow.bend`): 20% of the full reduction on `succ`.
 - **Workaround:** none yet; larger first sizes would trade memory for it.
-  Take #1928 with the release that carries it.
+  Take #1928 with the release that carries it. Meanwhile
+  `spike/tools/inline_build.sh` with `NEXT_FILL=1` puts #1928's one line
+  (the fill bounded by `i != w`) into the emitted C, a look at that
+  release for what depends on making arrays: `zero_fill` 1.27M to 7.70M
+  instructions at 20 to 23, as on 2026-10-30; plain demand on `succ` 8%
+  fewer at k 14 and 16, a collection under demand some 8 instructions a
+  node of capacity cheaper (store run 134).
   Under the proof the issue asks for, the kernel's scans that read
   never-used nodes (the root's search, the table audit) would stop at a
   high-water mark instead of the capacity.

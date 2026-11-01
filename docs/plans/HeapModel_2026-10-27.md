@@ -347,7 +347,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk` (prototyped),
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
-   `heap-strategies.erasure.load.cycle.adaptive`,
+   `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
    `heap-strategies.erasure.load.cycle.loops.levels`,
    `heap-strategies.generate`,
@@ -1558,18 +1558,29 @@ takes from it:
          dropping terms against 4.3%. Bend returns a helper's result
          through an array its caller copies, at every level, and the
          walk passes its nine-word state through some ten levels a node
-         (`docs/BendIssues.md`, "Records returned through every level");
-         the worklist walk's fewer levels pay for its more reads. Back
-         to discussion: a state small enough, or a walk shallow enough,
-         for Bend as it is.
+         (`docs/BendIssues.md`, "Records returned through every level,
+         where clang will not inline"). Forced inline it is the cheaper
+         walk, 86 to 92 against 116 to 122, 74 to 80 against 102 to 108
+         with the next Bend's fill; clang inlines the worklist walk's
+         chain in the default build and not this one's, and a
+         profile-guided build does not help (store run 134). So the
+         walk's design does less work; what is wanted is a state small
+         enough and a chain short enough that clang inlines it by
+         default (the maintainer, 2026-11-01).
          - `heap-strategies.erasure.load.cycle.buffers` — tentative —
            the collection's arrays kept with the net from one collection
            to the next, whatever the walk: Bend fills a new array at
            eight instructions a word (`docs/BendIssues.md`, "Array
            creation fills word by word"), and a collection makes about
            two words a node of capacity (the worklist, the queue), so
-           perhaps 16 of the 116 instructions a node on `succ`.
-       - `heap-strategies.erasure.load.cycle.adaptive` — tentative —
+           perhaps 16 of the 116 instructions a node on `succ`. With the
+           next Bend's fill (#1928, `inline_build.sh` with `NEXT_FILL=1`)
+           a collection costs some 8 a node less (store run 134), and
+           what keeping the arrays would then save is near 2: weigh it
+           against that release, as every comparison of resizing (the
+           maintainer, 2026-11-01).
+       - `heap-strategies.erasure.load.cycle.adaptive` — dropped
+         2026-11-01 (the maintainer: doubling, the growth kept) —
          growth by four where it is likely to be wanted: the first few
          growths, many functions growing fast at first, then reluctant
          growth by two (the maintainer, 2026-11-01); or by the evidence,
