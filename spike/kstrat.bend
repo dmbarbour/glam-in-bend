@@ -304,14 +304,24 @@ def rq.sweep(s: Rq, +cap: U32) -> Mq:
     case Rq{h, st, ws, mk, wl, +n}:
       mq.sw(KN.sw.fin(KN.sw.first(KN.Sw{h, mk, 0}, cap)), st, ws)
 
-def mq.ran(r: Ran, +free: U32) -> P.H & U32:
-  (collect.fin(r), free)
+def mq.cnt(r: P.H & U32, +free: U32) -> P.H & U32:
+  (h, +k) = r
+  (h, (free + k : U32))
 
-# the noted events, then the noted pairs a collection may rewrite
+def mq.ran(r: Ran, +free: U32, +fh0: U32, +cap: U32) -> P.H & U32:
+  mq.cnt(P.freed_since(U32.to_nat(cap), collect.fin(r), fh0), free)
+
+def mq.fh(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +cap: U32, +ex: U32) -> P.H & U32:
+  (h, +fh0) = r
+  mq.ran(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws}), KR.most_pairs(), 0), ex), free, fh0, cap)
+
+# the noted events, then the noted pairs a collection may rewrite; the
+# nodes free after them, the sweep's count and those they freed, counted
+# down the free list to its head after the sweep (P.freed_since)
 def mq.run(m: Mq, +cap: U32, +ex: U32) -> P.H & U32:
   match m:
     case Mq{h, st, ws, +free}:
-      mq.ran(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws}), KR.most_pairs(), 0), ex), free)
+      mq.fh(P.rd(h, P.at_fh()), st, ws, free, cap, ex)
 
 def rq.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> Rq:
   (wl, +room) = r
