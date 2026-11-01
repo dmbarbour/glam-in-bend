@@ -760,12 +760,24 @@ Speed:
       it names kinds 16 to 63 at port 1. Four builds at k 18 (store run
       106 against 100): the same interactions, -2.6% to +1.2%
       instructions.
-    - `spike-operators.levels` — tentative — the laws an operator carrying
-      no level rests on: its field is never read or lifted as a level
-      (lifts made only for functions, applications, fans and controls,
-      level checks naming only leveled pairs), and a control facing an
-      operator, moving on to its result, leaves what it would have left
-      before the argument, single controls and runs alike.
+    - `spike-operators.levels` — built 2026-11-01 — the laws an operator
+      carrying no level rests on. A field is read as a level only where it
+      is one (`R.leveled`, every kind named: the binds, the fans, the
+      controls): a rule or event lifts A's or B's field only of a leveled
+      kind and into one (`rules_lift_leveled`, `events_lift_leveled`),
+      and the payload tests and the kernel's level checks compare leveled
+      fields alone (`reads_leveled`); the level checks' pairs are listed in
+      the model now (`R.checks_levels`), and the generator's checks must
+      match them or name what does not exist. A co-control facing an
+      operator goes on to its result and leaves what it would have left
+      there from the first, whatever comes in, a run as a single control,
+      its payload a source (`ops_pass_controls`). Mutated: the operator
+      dropping the control fails the last against data, merges, functions
+      and controls; the operator lifting its field fails the first, for
+      the operator and the dead one; a check left out of the model's list
+      names itself in the generated file. Whether an operator agrees with
+      the binds it stands for, a superposed argument behind a control
+      above all, rests on the random terms and the library for now.
     - `spike-operators.encoding` — tentative — a builtin encoded one way
       in data and operators alike, so that materializing is a change of
       kind: the field its op (7 or 8 bits) and the arity remaining (3),
