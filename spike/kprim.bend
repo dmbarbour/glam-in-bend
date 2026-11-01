@@ -531,6 +531,35 @@ def frees(k: Nat, h: H) -> H & Bool:
     case 1n+p:
       fl.fin(fl.walk(p, rd(h, at_fh())))
 
+type Fs is Type:
+  Fs{h: H, +fh: U32, +more: Bool}
+
+def fs.mk(r: H & U32, +stop: U32) -> Fs:
+  (h, +fh) = r
+  Fs{h, fh, U32.is_ne(fh, stop) && U32.is_ne(fh, 0)}
+
+def fs.go(k: Nat, s: Fs, +stop: U32, +c: U32) -> H & U32:
+  match k:
+    case 0n:
+      match s:
+        case Fs{h, +fh, +more}:
+          (h, c)
+    case 1n+p:
+      match s:
+        case Fs{h, +fh, +more}:
+          match more:
+            case True{}:
+              fs.go(p, fs.mk(rd(h, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), stop), stop, (c + 1 : U32))
+            case False{}:
+              (h, c)
+
+# the nodes freed onto the list since its head was stop, k at most: the
+# list from its head down to stop, none taken off it meanwhile but those
+# freed after (as in a collection, whose rules make no more nodes than
+# their redex frees, in its slots)
+def freed_since(k: Nat, h: H, +stop: U32) -> H & U32:
+  fs.go(k, fs.mk(rd(h, at_fh()), stop), stop, 0)
+
 # free a redex's two nodes, b first, so that a's slot heads the free list
 # and the rule's first new node takes it: the interface, node 3, keeps its
 # slot when a rule replaces it

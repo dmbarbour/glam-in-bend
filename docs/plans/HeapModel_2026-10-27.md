@@ -1465,6 +1465,18 @@ takes from it:
          kept, the stress mode too. Other modes unchanged (spot run 124).
          This replaces the scan (`.load.cycle.fuse` with discovery in the
          walk).
+         - `heap-strategies.erasure.load.cycle.trace.lean.count` — active
+           — on branch `gc-count`, not merged — the eval's frees counted
+           toward growth (the maintainer): its rules take no node from
+           the free list, so what it frees lies above the list's head as
+           the sweep left it, counted by walking down to that head
+           (`P.freed_since`), a step a node freed. Capacities 645,760
+           against 650,368 (the scan-first cycle 633,472); of the six
+           cases whose capacity differs among the three, it brings
+           three back (`costly-133` with levels, 8,192 to 4,096;
+           `list-bind-16` and `mixin-once-16` with labels); `search-count`
+           and `list-length` stay doubled, what they lack cut off, not
+           freed. Instructions unchanged (158 a node on `succ`).
      - `heap-strategies.erasure.load.cycle.room` — tentative — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
