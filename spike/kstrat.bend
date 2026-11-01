@@ -180,128 +180,22 @@ def run.q(n: Nat, q: P.PopQ) -> Ran:
               Ran{h, 1n+p}
 
 # The lean trace (heap-strategies.erasure.load.cycle.trace.lean): the
-# marking walk from the interface notes, as it reaches them, the active
-# pairs (from their lower node) onto the queue and the nodes that may be
-# an event's B (KR.ev_end at the principal: an eraser, a dead operator)
-# onto the events' worklist; the sweep's pass frees what it did not reach
-# and counts the nodes free; then the events run, noting the pairs they
-# make, and the queue's collectable pairs after them, first in first out.
-# What they free goes onto the free list at
-# once; what they cut off waits for the next collection, as does their
-# part in deciding growth, made on the sweep's count: latency traded for
-# one walk and one pass, where a scan, a walk and a pass were (the
-# maintainer, 2026-11-01). Collecting while tracing, rewriting as the
-# walk reaches pairs, needed a barrier and cost twice as much
-# (`.load.cycle.trace`, branch gc-trace-proto).
-
-type Rq is Type:
-  Rq{h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32}
-
-def rq.push(new: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +j: U32) -> Rq:
-  match new:
-    case True{}:
-      Rq{h, st, ws, mk, KM.m_set(wl, n, j), (n + 1 : U32)}
-    case False{}:
-      Rq{h, st, ws, mk, wl, n}
-
-def rq.mark(r: KM.M & U32, h: P.H, st: P.Stk, ws: List<&2, U32>, wl: KM.M, +n: U32, +j: U32) -> Rq:
-  (mk, +v) = r
-  rq.push(U32.is_eq((v .&. KN.rc.bit(j) : U32), 0), h, st, ws, KM.m_set(mk, (j >> 5n : U32), (v .|. KN.rc.bit(j) : U32)), wl, n, j)
-
-def rq.see.go(ok: Bool, s: Rq, +j: U32) -> Rq:
-  match ok:
-    case True{}:
-      match s:
-        case Rq{h, st, ws, mk, wl, +n}:
-          rq.mark(KM.m_get(mk, (j >> 5n : U32)), h, st, ws, wl, n, j)
-    case False{}:
-      s
-
-# the node behind reference p marked, and put on the worklist if new
-def rq.see(+p: U32, s: Rq) -> Rq:
-  rq.see.go(U32.is_ne(p, P.nil()), s, (p >> 2n : U32))
-
-def rq.port.r(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32) -> Rq:
-  (h, +q) = r
-  rq.see(q, Rq{h, st, ws, mk, wl, n})
-
-def rq.port(s: Rq, +b: U32, +p: U32) -> Rq:
-  match s:
-    case Rq{h, st, ws, mk, wl, +n}:
-      rq.port.r(P.rd(h, ((b + 1 : U32) + p : U32)), st, ws, mk, wl, n)
-
-# the auxiliary ports of a node of arity a at word b, seen
-def rq.aux(+a: U32, s: Rq, +b: U32) -> Rq:
-  match a:
-    case 1:
-      s
-    case 2:
-      rq.port(s, b, 1)
-    case _:
-      rq.port(rq.port(s, b, 1), b, 2)
-
-# 1 a pair, noted from its lower node; 2 a node that may be an event's B;
-# 0 neither
-def rq.k2(pair: Bool, +ev: Bool) -> U32:
-  match pair:
-    case True{}:
-      1
-    case False{}:
-      match ev:
-        case True{}:
-          2
-        case False{}:
-          0
-
-def rq.note(+k: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32) -> Rq:
-  match k:
-    case 1:
-      Rq{h, P.push(st, b), ws, mk, wl, n}
-    case 2:
-      Rq{h, st, Con{b, ws}, mk, wl, n}
-    case _:
-      Rq{h, st, ws, mk, wl, n}
-
-def rq.q(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32, +hd: U32) -> Rq:
-  (h, +q) = r
-  rq.aux(KR.kind_arity(P.rk(hd)), rq.see(q, rq.note(rq.k2(U32.is_eq(P.port(q), 0) && U32.is_gt(q, b), KR.ev_end(P.rk(hd), 0)),
-    h, st, ws, mk, wl, n, b)), b)
-
-# a node reached, at word b: what its principal faces noted and seen, then
-# its auxiliary ports
-def rq.node(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32) -> Rq:
-  (h, +hd) = r
-  rq.q(P.rd(h, (b + 1 : U32)), st, ws, mk, wl, n, b, hd)
-
-def rq.pop(r: KM.M & U32, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, +n: U32) -> Rq:
-  (wl, +j) = r
-  rq.node(P.rd(h, (j << 2n : U32)), st, ws, mk, wl, n, (j << 2n : U32))
-
-def rq.go(k: Nat, s: Rq) -> Rq:
-  match k:
-    case 0n:
-      s
-    case 1n+p:
-      match s:
-        case Rq{h, st, ws, mk, wl, +n}:
-          match n:
-            case 0:
-              Rq{h, st, ws, mk, wl, 0}
-            case _:
-              rq.go(p, rq.pop(KM.m_get(wl, (n - 1 : U32)), h, st, ws, mk, (n - 1 : U32)))
+# marking walk from the interface (below) notes each active pair once and
+# each eraser or dead operator whose principal faces an auxiliary port
+# (an event's B); the sweep's pass frees what it did not reach and counts
+# the nodes free; then the noted events run, noting the pairs they make,
+# and the noted pairs a collection may rewrite after them, first in first
+# out. What they free goes onto the free list at once; what they cut off
+# waits for the next collection, as does their part in deciding growth,
+# made on the sweep's count: latency traded for one walk and one pass,
+# where a scan, a walk and a pass were (the maintainer, 2026-11-01).
+# Collecting while tracing, rewriting as the walk reaches pairs, needed a
+# barrier and cost twice as much (`.load.cycle.trace`, branch
+# gc-trace-proto).
 
 # after the sweep: the net, what the walk noted, and the nodes free
 type Mq is Type:
   Mq{h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32}
-
-def mq.sw(r: P.H & U32, st: P.Stk, ws: List<&2, U32>) -> Mq:
-  (h, +free) = r
-  Mq{h, st, ws, free}
-
-def rq.sweep(s: Rq, +cap: U32) -> Mq:
-  match s:
-    case Rq{h, st, ws, mk, wl, +n}:
-      mq.sw(KN.sw.fin(KN.sw.first(KN.Sw{h, mk, 0}, cap)), st, ws)
 
 def mq.cnt(r: P.H & U32, +free: U32) -> P.H & U32:
   (h, +k) = r
@@ -322,34 +216,36 @@ def mq.run(m: Mq, +cap: U32) -> P.H & U32:
     case Mq{h, st, ws, +free}:
       mq.fh(P.rd(h, P.at_fh()), st, ws, free, cap)
 
-def rq.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> Rq:
-  (wl, +room) = r
-  Rq{h, P.stk_pow(KM.depth(32n, cap, 0n)), Nil{}, mk, wl, 0}
-
-def rq.mk(r: KM.M & U32, h: P.H, +cap: U32) -> Rq:
-  (mk, +sz) = r
-  rq.wl(KN.rc.at(cap, 0n), h, mk, cap)
-
-# The lean walk (heap-strategies.erasure.load.cycle.walk.lean): the
-# maintainer's walk (`.walk`), its state cut to five words and each of its
-# helpers called from one place, so that clang inlines the step whole
-# (docs/BendIssues.md, "Records returned through every level, where clang
-# will not inline"). From a reference to enter, its node marked already,
-# the walk reads the node's head and the links of its two other ports, o1
-# (the principal, unless entered by it) then o2: a node of three ports
-# pushes o2's link, the node behind marked as it is pushed (so that none
-# is pushed twice), and follows o1's if the node behind is unmarked,
-# marking it; a node of two follows o1's alone; a node of one, or one
-# whose o1 leads to a marked node, ends the run, and the stack's top is
-# entered next. A pair is noted where a node looks at its principal and
-# finds a principal: from it where the node behind was unmarked (entered
-# then by its principal, it looks no further), else from the lower; an
-# eraser or dead operator whose principal faces an auxiliary port is
-# noted for its event. One array holds the marks, a word per 32 nodes from
-# word 0, the notes from the word after them, and the stack from its top
-# down, the top word 0 ending it: notes and stack entries are of distinct
-# nodes, fewer than the capacity, in an array of twice it. A nil link
-# reads as node 0, of the header, marked from the start.
+# The walk (the maintainer's, heap-strategies.erasure.load.cycle.walk, in
+# its lean form, `.walk.lean`): from a reference to enter, its node
+# marked already, the walk reads the node's head and the link of o1, the
+# port after the one it was entered by (1 if that was 0, else 0: the
+# principal, unless entered by it). A node of three ports first pushes
+# the link of its third, o2, unless the node behind is marked, marking it
+# (so that none is pushed twice); a node of two or three then follows
+# o1's link if the node behind is unmarked, marking it; a node of one
+# port, or one whose o1 leads to a marked node, ends the run, and the
+# stack's top is entered next. The port a node is entered by is never
+# looked at again, and a leaf costs its mark. A pair is noted where a node
+# looks at its principal and finds a principal there: from it where the
+# node behind was unmarked (entered then by its principal, that node looks
+# no further), else from the lower; an eraser or dead operator whose
+# principal faces an auxiliary port is noted for its event.
+#
+# One array, twice the net's capacity, holds it all: the marks, a word
+# per 32 nodes, from word 0; the notes from the word after them, an
+# event's tagged by its top bit; the stack from the next to last word
+# down, the 0 there ending it. Notes and stack entries are of distinct
+# nodes, fewer than the capacity, so they never meet. Indexes wrap, so a
+# nil link, all ones, finds its mark in the array's last word, set whole
+# from the start: nil reads as marked, never followed, and is never a
+# principal. The state is five words, the net's data table set aside, and
+# each helper is called from one place, so that clang inlines the step
+# whole: Bend returns a helper's result through an array its caller
+# copies (docs/BendIssues.md, "Records returned through every level,
+# where clang will not inline"), and the maintainer's walk first written
+# with a nine-word state and helpers shared cost twice as much in the
+# default build (`.walk`).
 
 # the walk's state: the net's words (its data table set aside), the walk's
 # array, the reference to enter next (its node marked), 0 once done, the
@@ -436,7 +332,7 @@ def lw.p2(three: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +p: U32) -> Gw:
       Gw{w, g, n}
 
 # an eraser or dead operator noted where its principal faces an auxiliary
-# port, the note tagged by its top bit
+# port, the note tagged by its top bit (its word written either way)
 def lw.lev(r: KM.M & U32, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
   (w, +src) = r
   Lw{w, KM.m_set(g, q, (b .|. 2147483648 : U32)), 0, n, (q + (((src .&. 3 : U32) + 3 : U32) >> 2n : U32) : U32)}
@@ -448,6 +344,8 @@ def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
     case False{}:
       Lw{w, g, 0, n, q}
 
+# by the node's arity: none (a free node, never reached), one, or two or
+# three
 def lw.ar(+a: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32) -> Lw:
   match a:
     case 0:
@@ -530,8 +428,9 @@ def lw.fin(s: Lw, a: Array<V.Val>, +cap: U32) -> Mq:
     case Lw{w, g, +c, +n, +q}:
       lw.swd(KN.sw.first(KN.Sw{P.H{w, a}, g, 0}, cap), q, cap)
 
-# the walk's start: nodes 0 and the interface marked, the interface's one
-# link followed; the stack's lowest word the array's last, 0
+# the walk's start: the interface marked, the array's last word set
+# whole, the interface's one link followed; the stack's lowest word the
+# next to last, 0
 def lw.s1(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +l: U32) -> Lw:
   (g, +old) = r
   Lw{w, g, (l .&. (old - 1 : U32) : U32), n, q}
@@ -543,8 +442,9 @@ def lw.s0(r: KM.M & U32, g: KM.M, +n: U32, +q: U32) -> Lw:
 def lw.g0(r: KM.M & U32, w: KM.M, +cap: U32) -> Lw:
   (g, +sz) = r
   lw.s0(KM.m_get(w, (P.iface() + 1 : U32)),
-    KM.m_set(KM.m_set(g, (sz - 1 : U32), 4294967295), 0, (1 .|. KN.rc.bit((P.iface() >> 2n : U32)) : U32)), (sz - 2 : U32), (cap >> 5n : U32))
+    KM.m_set(KM.m_set(g, (sz - 1 : U32), 4294967295), 0, KN.rc.bit((P.iface() >> 2n : U32))), (sz - 2 : U32), (cap >> 5n : U32))
 
+# the net walked and swept, its data table set aside meanwhile
 def lw.h(h: P.H, +cap: U32) -> Mq:
   match h:
     case P.H{w, a}:
