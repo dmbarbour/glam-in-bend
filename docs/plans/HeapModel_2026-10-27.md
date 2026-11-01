@@ -1465,8 +1465,8 @@ takes from it:
          kept, the stress mode too. Other modes unchanged (spot run 124).
          This replaces the scan (`.load.cycle.fuse` with discovery in the
          walk).
-         - `heap-strategies.erasure.load.cycle.trace.lean.count` — active
-           — on branch `gc-count`, not merged — the eval's frees counted
+         - `heap-strategies.erasure.load.cycle.trace.lean.count` — built
+           2026-11-01 — the eval's frees counted
            toward growth (the maintainer): its rules take no node from
            the free list, so what it frees lies above the list's head as
            the sweep left it, counted by walking down to that head
