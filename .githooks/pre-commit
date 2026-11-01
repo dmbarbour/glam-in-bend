@@ -1,7 +1,17 @@
 #!/bin/sh
-# Before git records a commit: every generated file matches what its
-# generator writes now (`generated-sources`), so what was developed and
-# tested is what the generators produce. Checks the work tree; never
-# regenerates. Enable once per clone: git config core.hooksPath .githooks
+# Before git records a commit, the gate's quick checks, a dozen seconds at
+# most, the easily missed first (the maintainer, 2026-11-01): the docs
+# (links, decision records and their index, plan steps and their
+# dispositions), the law history, every generated file matching its
+# generator (`generated-sources`), and the staged Bend files typechecking,
+# with the proofs where they import a staged file (scripts/check_staged.py).
+# Checks the work tree; never regenerates. The full gate, scripts/check.sh,
+# still runs before every commit: the proofs by the proven kernel, the
+# library. Enable once per clone: git config core.hooksPath .githooks
 cd "$(git rev-parse --show-toplevel)" || exit 1
-exec scripts/check_generated.sh
+status=0
+python3 -I scripts/check_docs.py || status=1
+python3 -I scripts/check_laws.py || status=1
+scripts/check_generated.sh || status=1
+python3 -I scripts/check_staged.py || status=1
+exit "$status"

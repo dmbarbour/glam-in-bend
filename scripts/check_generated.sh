@@ -3,7 +3,8 @@
 # (`generated-sources`): generators are Bend programs that print the file,
 # run from the generated file's directory. Checks, never writes: a stale
 # file fails, and regenerating it is the developer's step. Run by
-# scripts/check.sh and by the pre-commit hook in .githooks/.
+# scripts/check.sh and by the pre-commit hook in .githooks/ (with the other
+# quick checks).
 #
 #   scripts/check_generated.sh
 set -u

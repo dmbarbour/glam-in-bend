@@ -131,8 +131,10 @@ must hold. Add an entry for each fault or costly case found, shrunk first;
 random corpora are for finding them, not the main test.
 
 The commit-msg hook in `.githooks/` checks `Plan-Step:` and `Law:` trailers
-before a commit is recorded, and the pre-commit hook that every generated
-file matches its generator. Enable it once per clone with
+before a commit is recorded, and the pre-commit hook runs the gate's quick
+checks, a dozen seconds at most (the docs, the law history, the generated
+files, the staged Bend files and the proofs they touch); the full gate
+still runs before every commit. Enable it once per clone with
 `git config core.hooksPath .githooks`.
 
 ## Laws
