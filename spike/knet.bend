@@ -666,10 +666,11 @@ def ev.settle(h: P.H, +x: N.Ext) -> P.H:
       ev.drain(4294967295n, ev.one(~Unit, ~note.u, ~room.u, ev.one(~Unit, ~note.u, ~room.u, ev.one(~Unit, ~note.u, ~room.u,
         ev.one(~Unit, ~note.u, ~room.u, Ev{h, Unit{}, Nil{}}, e0), e1), e2), e3))
 
-# Events at load (heap-strategies.erasure.load): every node that may be
-# an event's B (KR.ev_end at its principal: an eraser, a dead operator)
-# looked at once, after the net is loaded, its events cascading through
-# the same worklist a rewrite's do; nothing is paid per rewrite after.
+# Events at a collection (heap-strategies.erasure.load.cycle): every node
+# that may be an event's B (KR.ev_end at its principal: an eraser, a dead
+# operator) is put on the events' worklist by the collection's scan
+# (kstrat.bend's scan.q), its events cascading through the same worklist
+# a rewrite's do; nothing is paid per rewrite after.
 
 def evl.add(b: Bool, +i: U32, ws: List<&2, U32>) -> List<&2, U32>:
   match b:
@@ -677,36 +678,6 @@ def evl.add(b: Bool, +i: U32, ws: List<&2, U32>) -> List<&2, U32>:
       Con{i, ws}
     case False{}:
       ws
-
-def evl.hdr(r: P.H & U32, ws: List<&2, U32>, +i: U32) -> P.H & List<&2, U32>:
-  (h, +hd) = r
-  (h, evl.add(U32.is_ne(hd, 0) && KR.ev_end(P.rk(hd), 0), i, ws))
-
-def evl.step(r: P.H & List<&2, U32>, +i: U32) -> P.H & List<&2, U32>:
-  (h, ws) = r
-  evl.hdr(P.rd(h, i), ws, i)
-
-# k nodes from word i, each B's principal kept
-def evl.scan(k: Nat, +i: U32, r: P.H & List<&2, U32>) -> P.H & List<&2, U32>:
-  match k:
-    case 0n:
-      r
-    case 1n+p:
-      evl.scan(p, (i + 4 : U32), evl.step(r, i))
-
-def evl.go(r: P.H & List<&2, U32>) -> P.H:
-  (h, ws) = r
-  ev.drain(4294967295n, Ev{h, Unit{}, ws})
-
-def evl.st(r: P.H & P.HS) -> P.H:
-  (h, hs) = r
-  match hs:
-    case P.HS{+itrs, +errs, +wcap}:
-      evl.go(evl.scan(U32.to_nat((wcap - P.first() : U32)), P.iface(), (h, Nil{})))
-
-# a loaded net, its events run: counted, as a rewrite's are (P.evs)
-def ev_load(h: P.H) -> P.H:
-  evl.st(P.stats(h))
 
 def ev.drain.e(k: Nat, w: Ev<P.Stk>) -> P.E:
   match k:
@@ -1299,23 +1270,22 @@ def rc.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> P.H & U32:
   (wl, +room) = r
   rc.fin(rc.go(U32.to_nat((cap + 1 : U32)), rc.see(P.iface(), h, mk, wl, 0, 0)))
 
-def rc.ensure(r: KM.M & U32, +words: U32) -> KM.M & U32:
-  (m, +cap) = r
-  KM.m_ensure(m, words, cap, P.w_maxd())
-
-# a zeroed array of `words` words at least, and its size
-def rc.new(+words: U32) -> KM.M & U32:
-  rc.ensure(KM.m_new(6n, P.w_maxd()), words)
+# a zeroed array of cap >> s words, cap the net's capacity, a power of two
+# past 2^6: made at its size, where doubling from 64 words copied as many
+# again (heap-strategies.erasure.load.cycle.cost). The marks take cap >> 5
+# words, the worklist cap, a node pushed once at most
+def rc.at(+cap: U32, +s: Nat) -> KM.M & U32:
+  KM.m_new(Nat.sub(KM.depth(32n, cap, 0n), s), P.w_maxd())
 
 def rc.mk(r: KM.M & U32, h: P.H, +cap: U32) -> P.H & U32:
   (mk, +room) = r
-  rc.wl(rc.new((cap + 1 : U32)), h, mk, cap)
+  rc.wl(rc.at(cap, 0n), h, mk, cap)
 
 def reach.st(r: P.H & P.HS) -> P.H & U32:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      rc.mk(rc.new(((cap >> 5n : U32) + 1 : U32)), h, cap)
+      rc.mk(rc.at(cap, 5n), h, cap)
 
 # the nodes reached from the interface along links, the interface's own
 # among them
@@ -1323,9 +1293,12 @@ def reach(h: P.H) -> P.H & U32:
   reach.st(P.stats(h))
 
 # Sweeping (heap-strategies.cascade): every live node the walk from the
-# interface does not reach freed, a data node's, a call's or a dead
-# call's table entry released with it. Nothing reached links to what is freed, so nothing
-# dangles; what is freed could never be observed.
+# interface does not reach freed, a data node's table entry released with
+# it. Nothing reached links to what is freed, so nothing dangles; what is
+# freed could never be observed. The pass reads the marks a word at a
+# time, 32 nodes, and counts the nodes free after it, those it frees and
+# those free before, so that a collection needs no walk of the free list
+# (heap-strategies.erasure.load.cycle.cost).
 type Sw is Type:
   Sw{h: P.H, mk: KM.M, +f: U32}
 
@@ -1347,22 +1320,46 @@ def sw.free(dead: Bool, h: P.H, mk: KM.M, +f: U32, +i: U32, +hd: U32) -> Sw:
     case False{}:
       Sw{h, mk, f}
 
-def sw.m(r: KM.M & U32, h: P.H, +f: U32, +i: U32, +hd: U32) -> Sw:
-  (mk, +v) = r
-  sw.free(U32.is_ne(hd, 0) && U32.is_eq((v .&. rc.bit(i) : U32), 0), h, mk, f, i, hd)
+def sw.hd0(+hd: U32, h: P.H, mk: KM.M, +f: U32, +i: U32, +v: U32) -> Sw:
+  match hd:
+    case 0:
+      Sw{h, mk, (f + 1 : U32)}
+    case _:
+      sw.free(U32.is_eq((v .&. rc.bit(i) : U32), 0), h, mk, f, i, hd)
 
-def sw.hd(r: P.H & U32, mk: KM.M, +f: U32, +i: U32) -> Sw:
+def sw.hd(r: P.H & U32, mk: KM.M, +f: U32, +i: U32, +v: U32) -> Sw:
   (h, +hd) = r
-  sw.m(KM.m_get(mk, (i >> 5n : U32)), h, f, i, hd)
+  sw.hd0(hd, h, mk, f, i, v)
 
-def sw.go(k: Nat, +i: U32, s: Sw) -> Sw:
+# k nodes from node i, all of them in the block whose marks are v
+def sw.blk(k: Nat, s: Sw, +i: U32, +v: U32) -> Sw:
   match k:
     case 0n:
       s
     case 1n+p:
       match s:
         case Sw{h, mk, +f}:
-          sw.go(p, (i + 1 : U32), sw.hd(P.rd(h, (i << 2n : U32)), mk, f, i))
+          sw.blk(p, sw.hd(P.rd(h, (i << 2n : U32)), mk, f, i, v), (i + 1 : U32), v)
+
+def sw.mw(r: KM.M & U32, h: P.H, +f: U32, +k: Nat, +i: U32) -> Sw:
+  (mk, +v) = r
+  sw.blk(k, Sw{h, mk, f}, i, v)
+
+# nb blocks of 32 nodes from block b
+def sw.go(nb: Nat, +b: U32, s: Sw) -> Sw:
+  match nb:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sw{h, mk, +f}:
+          sw.go(p, (b + 1 : U32), sw.mw(KM.m_get(mk, b), h, f, 32n, (b << 5n : U32)))
+
+# the first block's nodes past the header, then the rest
+def sw.first(s: Sw, +cap: U32) -> Sw:
+  match s:
+    case Sw{h, mk, +f}:
+      sw.go(U32.to_nat(((cap >> 5n : U32) - 1 : U32)), 1, sw.mw(KM.m_get(mk, 0), h, f, U32.to_nat((32 - P.first() : U32)), P.first()))
 
 def sw.fin(s: Sw) -> P.H & U32:
   match s:
@@ -1372,7 +1369,7 @@ def sw.fin(s: Sw) -> P.H & U32:
 def sw.start(s: Rc, +cap: U32) -> P.H & U32:
   match s:
     case Rc{h, mk, wl, +n, +c}:
-      sw.fin(sw.go(U32.to_nat((cap - P.first() : U32)), P.first(), Sw{h, mk, 0}))
+      sw.fin(sw.first(Sw{h, mk, 0}, cap))
 
 def sweep.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> P.H & U32:
   (wl, +room) = r
@@ -1380,16 +1377,16 @@ def sweep.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> P.H & U32:
 
 def sweep.mk(r: KM.M & U32, h: P.H, +cap: U32) -> P.H & U32:
   (mk, +room) = r
-  sweep.wl(rc.new((cap + 1 : U32)), h, mk, cap)
+  sweep.wl(rc.at(cap, 0n), h, mk, cap)
 
 def sweep.st(r: P.H & P.HS) -> P.H & U32:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      sweep.mk(rc.new(((cap >> 5n : U32) + 1 : U32)), h, cap)
+      sweep.mk(rc.at(cap, 5n), h, cap)
 
 # every node the interface does not reach freed: the net, and the nodes
-# freed
+# free after
 def sweep(h: P.H) -> P.H & U32:
   sweep.st(P.stats(h))
 

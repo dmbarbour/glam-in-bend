@@ -114,6 +114,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`net-demand-whnf`](decisions/net-demand-whnf.md): a forced net reduces
   to weak head normal form at its root, only the pairs on the way; other
   strategies only where they terminate.
+- [`machine-limits-not-errors`](decisions/machine-limits-not-errors.md):
+  running out of memory is reported apart from the program's outcomes,
+  never as stuck, and never cached as a value.
 - [`copy-reduced-function-nets`](decisions/copy-reduced-function-nets.md):
   a function's net reduces locally, then each application copies it
   whole; cursors wait for measurements.
