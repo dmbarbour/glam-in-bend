@@ -753,8 +753,13 @@ Speed:
       fit. The generator's event words now say 0 past kind 15, where the
       last word had stood for every kind from 12 up, the dead operator
       (16) reading the linear fans' entries; it has no auxiliary port,
-      so nothing had fired. Four builds at k 18 (store run 106 against
-      100): the same interactions, -2.6% to +1.2% instructions.
+      so nothing had fired. Guarded now: the library checks the kernel's
+      events tables (`ev_by`, `ev_also`, `ev_end`) against the model's
+      events for every kind code a header holds, each port and each B
+      (`knet.bend`'s `ev_tables`, every gate); the old table put back,
+      it names kinds 16 to 63 at port 1. Four builds at k 18 (store run
+      106 against 100): the same interactions, -2.6% to +1.2%
+      instructions.
     - `spike-operators.levels` — tentative — the laws an operator carrying
       no level rests on: its field is never read or lifted as a level
       (lifts made only for functions, applications, fans and controls,

@@ -47,6 +47,8 @@ and demand's where demand must; events change the interactions, which are
 measured, the generated rewrites and the interpreted table making the
 same interactions and events, and the profile with events as many as the
 generated rewrites.
+The kernel's events tables are checked against the model's events for
+every kind code a header holds (knet.bend's ev_tables).
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -218,14 +220,14 @@ def all(n: Nat, +k: U32) -> String:
       one(k) ++ "\n" ++ all(p, (k + 1 : U32))
 
 def main() -> IO(Unit):
-  IO.print(all(COUNT, 0))
+  IO.print(all(COUNT, 0) ++ "events tables: " ++ KN.ev_tables())
 '''
 
 
 def program(cs, out):
     rel = os.path.relpath(SPIKE, out)
     lines = ["import Base"]
-    for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("kernel", "K")]:
+    for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("kernel", "K"), ("knet", "KN")]:
         lines.append(f"import {rel}/{mod}.bend as {alias}")
     lines += ["", "# Written by spike/tools/library.py from spike/library.txt; do not edit.", ""]
     for i, c in enumerate(cs):
@@ -407,6 +409,12 @@ def main(argv):
         m = LINE.match(line)
         if m:
             got[int(m.group(1))] = Run(m.groups())
+    # the kernel's events tables against the model, every kind code a
+    # header holds (knet.bend's ev_tables)
+    tables = [l for l in res.stdout.splitlines() if l.startswith("events tables: ")]
+    if tables != ["events tables: ok"]:
+        failing += 1
+        print("FAIL the events tables: " + (tables[0][len("events tables: "):] if tables else "no result"))
     runs = []
     for i, c in enumerate(cs):
         r = got.get(i)
