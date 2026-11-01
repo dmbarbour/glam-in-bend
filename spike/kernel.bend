@@ -212,15 +212,18 @@ def force.met(r: KS.D & U32, +vals: List<&2, V.Val>) -> KS.D:
   KS.resume(d, val_at(vals, lz))
 
 # demand by mode: 0 plain (KS.demand), 1 running events (KS.demand.v), 2
-# collecting where its net would grow (KS.demand.c)
+# collecting where its net would grow (KS.demand.c), 3 collecting as a
+# stress test (KS.demand.s)
 def demand_ev(+ev: U32, +fuel: Nat, d: KS.D) -> KS.D:
   match ev:
     case 0:
       KS.demand(fuel, d)
     case 1:
       KS.demand.v(fuel, d)
-    case _:
+    case 2:
       KS.demand.c(fuel, d)
+    case _:
+      KS.demand.s(fuel, d)
 
 # demand, each need met from vals, at most k times
 def force(k: Nat, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
@@ -311,33 +314,39 @@ def edres(d: KS.D) -> EDRes:
 def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
   edres(demand_m(t, fuel, 1, vals))
 
-# Erasure at load (heap-strategies.erasure.load)
+# Collecting under demand (heap-strategies.erasure.load.cycle)
 # =================
 #
-# What a load, or a collection cycle, runs on a net: its events once
-# (KN.ev_load), its collectable pairs (KS.collect_h, KS.collect_q), then
-# every node the interface does not reach freed (KN.sweep). A freshly
-# lowered net has little to give; a net under demand has its garbage, so
-# demand collects where its net would grow (KS.demand.c,
-# heap-strategies.erasure.load.cycle), its result read as demand's, with
-# the collections run, their interactions and their events.
+# What a collection runs on a net: its events and its collectable pairs,
+# found in one scan (KS.collect_q), then every node the interface does not
+# reach freed (KN.sweep). A freshly lowered net has little to give, so
+# none is run at load (the maintainer, 2026-11-01); a net under demand has
+# its garbage, so demand collects where its net would grow (KS.demand.c).
+# Its result is read as demand's, its interactions the total, demand's
+# and the collections' (the maintainer: they are part of it), with the
+# collections apart: how many ran, their interactions and events, and the
+# capacity they scanned, summed.
 
 type CRes is Data:
-  CRes{r: DRes, +cyc: U32, +citrs: U32, +cevs: U32}
+  CRes{r: DRes, +cyc: U32, +citrs: U32, +cevs: U32, +scan: U32}
 
-def cres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +citrs: U32) -> CRes:
+def cres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +citrs: U32, +scan: U32) -> CRes:
   (h, +cevs) = r
-  CRes{dres(KS.D{h, path, top, depth, n, st}), cyc, citrs, cevs}
+  CRes{dres(KS.D{h, path, top, depth, (n + citrs : U32), st}), cyc, citrs, cevs, scan}
 
-def cres.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32) -> CRes:
+def cres.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +scan: U32) -> CRes:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      cres.e(P.evs(h), path, top, depth, n, st, cyc, itrs)
+      cres.e(P.evs(h), path, top, depth, n, st, cyc, itrs, scan)
+
+def cres.s(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32) -> CRes:
+  (h, +scan) = r
+  cres.i(P.stats(h), path, top, depth, n, st, cyc, scan)
 
 def cres.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> CRes:
   (h, +cyc) = r
-  cres.i(P.stats(h), path, top, depth, n, st, cyc)
+  cres.s(P.rd(h, P.at_scan()), path, top, depth, n, st, cyc)
 
 def cres(d: KS.D) -> CRes:
   match d:
@@ -348,36 +357,9 @@ def cres(d: KS.D) -> CRes:
 def run_dc(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> CRes:
   cres(demand_m(t, fuel, 2, vals))
 
-# a load's collection on a freshly lowered net, then demand: the load's
-# interactions and events, the nodes live after its sweep, demand's result
-type LDRes is Data:
-  LDRes{r: DRes, +litrs: U32, +levs: U32, +llive: U32}
-
-def ldres.d(+litrs: U32, +levs: U32, +llive: U32, d: DRes) -> LDRes:
-  LDRes{d, litrs, levs, llive}
-
-def ldres.au(au: KN.Au, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
-  match au:
-    case KN.Au{h, +n}:
-      ldres.d(litrs, levs, n, dres(force(64n, fuel, 0, vals, demand_ev(0, fuel, KS.d.start(P.count(h, 0))))))
-
-def ldres.sw(r: P.H & U32, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
-  (h, +freed) = r
-  ldres.au(live_nodes.st(P.stats(h)), litrs, levs, fuel, vals)
-
-def ldres.ev(r: P.H & U32, +litrs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
-  (h, +levs) = r
-  ldres.sw(KN.sweep(h), litrs, levs, fuel, vals)
-
-def ldres.st(r: P.H & P.HS, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
-  (h, hs) = r
-  match hs:
-    case P.HS{+itrs, +errs, +cap}:
-      ldres.ev(P.evs(h), itrs, fuel, vals)
-
-# collected at load, then demand
-def run_dl(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
-  ldres.st(P.stats(KS.collect_h(fuel, KN.ev_load(KN.load(t)))), fuel, vals)
+# the same as a stress test, small nets collected far more often
+def run_ds.s(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> CRes:
+  cres(demand_m(t, fuel, 3, vals))
 
 def st_name(+st: U32) -> String:
   match st:
@@ -391,6 +373,8 @@ def st_name(+st: U32) -> String:
       "out of fuel"
     case 5:
       "a cycle"
+    case 6:
+      "out of memory"
     case _:
       "going"
 
@@ -451,10 +435,14 @@ def bench_dev(d: KS.D) -> String:
     case KS.D{h, path, +top, +depth, +n, +st}:
       bench_dev.e(P.evs(h), path, top, depth, n, st)
 
+def bench_dc.s(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +citrs: U32, +cyc: U32) -> String:
+  (h, +scan) = r
+  bench_dev(KS.D{h, path, top, depth, (n + citrs : U32), st}) ++ ", " ++ U32.show(cyc) ++ " collections, " ++
+    U32.show(citrs) ++ " interactions collecting, " ++ U32.show(scan) ++ " nodes scanned"
+
 def bench_dc.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +citrs: U32) -> String:
   (h, +cyc) = r
-  bench_dev(KS.D{h, path, top, depth, n, st}) ++ ", " ++ U32.show(cyc) ++ " collections, " ++ U32.show(citrs) ++
-    " interactions collecting"
+  bench_dc.s(P.rd(h, P.at_scan()), path, top, depth, n, st, citrs, cyc)
 
 def bench_dc.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> String:
   (h, hs) = r
@@ -462,7 +450,8 @@ def bench_dc.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: 
     case P.HS{+itrs, +errs, +cap}:
       bench_dc.c(P.rd(h, P.at_cyc()), path, top, depth, n, st, itrs)
 
-# demand collecting where its net would grow, its collections counted
+# demand collecting where its net would grow, its interactions the total,
+# its collections counted
 def bench_dc(d: KS.D) -> String:
   match d:
     case KS.D{h, path, +top, +depth, +n, +st}:

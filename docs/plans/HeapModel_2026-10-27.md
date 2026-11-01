@@ -328,7 +328,12 @@ takes from it:
    `heap-strategies.erasure.load.cycle` (built),
    `heap-strategies.fusions.immediate`,
    `heap-strategies.fusions.upto`; later
-   `heap-strategies.erasure.load.cycle.cost`,
+   `heap-strategies.erasure.load.cycle.cost` (built),
+   `heap-strategies.erasure.load.cycle.stress` (built),
+   `heap-strategies.erasure.load.cycle.fuse`,
+   `heap-strategies.erasure.load.cycle.stress.events`,
+   `heap-strategies.erasure.load.cycle.oom`,
+   `heap-strategies.erasure.load.cycle.loops`,
    `heap-strategies.erasure.load.cycle.library`,
    `heap-strategies.erasure.typed`,
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
@@ -1222,8 +1227,10 @@ takes from it:
        generator writes from the rule table, a header test deciding where
        the variants differ: erasure, annihilation, beta at one level,
        controls passing data or each other); then the sweep by
-       reachability (`KN.sweep`). The library runs both on every case,
-       the value and state demand reaches kept and the audits passing.
+       reachability (`KN.sweep`). The library ran both on every case,
+       the value and state demand reaches kept and the audits passing;
+       the collection at load, finding nothing worth its pass, is retired
+       (the maintainer, 2026-11-01), its mode and `KS.collect_h` with it.
        On a freshly lowered net, before demand: 2,462 interactions and
        42 events over the 126 cases, demand after them 2,668,962
        interactions against 2,671,168 alone, 0.01% more in all; a sweep
@@ -1287,19 +1294,107 @@ takes from it:
          library's audit caught it, and that branch had no free-list
          audit, so a collection short of its threshold lost what it
          freed; likely the difference, not rerun.
-         - `heap-strategies.erasure.load.cycle.cost` — tentative — a
-           collection that frees nothing costs four passes over the net
-           (the events' scan, the pairs' scan, the sweep's marking and
-           sweep) and a walk of the free list: one pass for both scans,
-           and a policy that learns (a collection freeing little making
-           the next growth larger, or the next collection later), against
-           `succ`'s 29%.
+         Revised the same day, after the maintainer's review: room asked
+         for per rewrite, by what it takes, most rewrites asking nothing;
+         a quarter's margin trades too much speed for space (a collection
+         touches up to three live nodes per node made there, one at half),
+         so the net doubles unless half is free; the collections'
+         interactions and events count in the total, apart for analysis;
+         running out of memory is not being stuck
+         (`machine-limits-not-errors`); the collection at load freed
+         nothing worth its pass and is retired (the library's `ld` mode,
+         `KS.collect_h`). Built: the rule table gives, per rule, its stuck
+         code with the nodes each variant takes from the free list
+         (`KR.room_hd`, the variant picked by the header test that
+         `KR.collects` makes; the generator refuses a rule whose variants
+         differ any other way); demand's walk takes its rewrite and that
+         code as templates (`~rw`, `~sbf`), so plain demand's code is as it
+         was, and the collecting demand reads the free list only for the
+         16 of 56 rules that take nodes. The walk goes on where it was
+         after a collection, not from the interface: the pair it stands on
+         takes nodes, so no collectable rule rewrites it; but the
+         collection's events change kinds in place and could make it
+         collectable (an eraser on a fan's auxiliary port making it
+         linear; two linear fans commute into two nodes), so the
+         collection leaves that pair out, a boundary (the maintainer,
+         2026-11-01). Demand stops in state 6, out of memory, where its
+         path or net cannot grow. With half: the capacities of the 126
+         earlier cases sum to 262,784 nodes, 1.9% more interactions in all
+         (store run 121, 144 cases with the loops, 2.0%); the collections
+         scan 0.14 nodes per interaction.
+         - `heap-strategies.erasure.load.cycle.cost` — built 2026-11-01 —
+           what a collection costs where it frees nothing, measured on
+           `succ` on demand at k 14 to 16, every collection doubling the
+           net, and ablated pass by pass. Room asked per rewrite through
+           calls of its own cost more than the per-step test, about 280
+           instructions a rewrite against about 30 a step: each call
+           between functions is a task boundary in Bend's runtime. So the
+           walk's templates carry the code, and the rewrite is written out
+           where the calls would fall
+           (a wrapper over one templated rewrite cost plain demand 4%;
+           reusing a walk's specialization from the stress test cost it
+           3% to 5%, forced-inline builds too). Then the cycle: arrays
+           made at their size (the sweep's worklist had doubled from 64
+           words, copying, to twice the capacity); the sweep counting the
+           free nodes, read a mark word per 32 nodes, so no walk of the
+           free list decides growth; one scan for the events and the
+           pairs, the walk's pair left out by scanning around its lower
+           node, a pair being noted from that node alone (the maintainer;
+           a test a node had cost no more, the tests stopping at the
+           first that fails). From 240 instructions a node of the
+           capacities scanned to 174 (run 123, the default build): 21% more
+           than plain demand on `succ`, linear, where it was 29% with a
+           quarter's margin.
+           What remains, a node of final capacity: the sweep 86 (the
+           marking walk and the pass), the scan with the events and pairs
+           42, the room asked 32. Every other mode unchanged (spot run 122
+           against 114: forced-inline builds equal, default builds within
+           -0.4% to +1.1% on the event modes alone).
+           - `heap-strategies.erasure.load.cycle.fuse` — tentative — the
+             scan folded into the sweep's pass, the pairs run after the
+             sweep: what they cut off waits for the next collection.
+             Emulated on the library: 447,360 nodes deciding growth on
+             the free list after the pairs, 451,712 on the sweep's own
+             count, against 435,072, for one pass less.
+         - `heap-strategies.erasure.load.cycle.stress` — built 2026-11-01
+           — a stress test (library mode `dcs`): a net of 1024 nodes or
+           fewer collected before every rewrite that takes nodes, grown
+           only where that rewrite lacks room, the walk going on as after
+           any collection (the node it collected for noted in the net's
+           header, so as not to collect for it again). 162,002 collections
+           over 123 cases, every value and state kept. It finds nothing
+           with the boundary removed either: no library net has events
+           make the walk's pair collectable.
+           - `heap-strategies.erasure.load.cycle.stress.events` —
+             tentative — a net where they do: a copy meeting a merge at
+             two levels, erasers on an auxiliary port of each; it needs
+             merges and positive erasers in the library's nets
+             (`terms.py`'s node kinds).
+         - `heap-strategies.erasure.load.cycle.oom` — tentative — a failed
+           growth counted apart from the program's errors (`P.h_err`), in
+           the eager strategies too (`machine-limits-not-errors`).
+         - `heap-strategies.erasure.load.cycle.loops` — tentative — loops
+           in constant space, as functional programs run them (the
+           maintainer): the library's `loop-toggle` and `loop-junk`
+           families, a Church boolean toggled 2^6, 2^8, 2^10 times in
+           continuation-passing style, a branch dropped each step, the
+           continuation shared by both. In the net they are not: demand's
+           live nodes grow with the steps (levels 557, 2,019, 7,801), and
+           collecting keeps the same capacities (16,384 at 1,024 steps);
+           only with labels does it keep half. A census after a collection
+           mid-run finds what lives reached: lifts and lift controls
+           chained on the continuation's path, with copies and merges
+           (unit brackets, 16,000 steps: 4,540 lifts, 1,536 lift
+           controls). No collection by reachability frees them; fusing
+           control chains might (`fuse-control-runs`). The motive for
+           collection wants such loops in constant space first.
          - `heap-strategies.erasure.load.cycle.library` — tentative — the
-           threshold (an eighth keeps 6% less than a quarter, its
-           interactions 0.16 points fewer, here) and the fuel decided on
-           programs that drop more as they run
-           (`pairing-library.programs`), the queue against the stack there
-           too, and on what a reload after freezing finds (`heap-freeze`).
+           threshold and the fuel decided on programs that drop more as
+           they run (`pairing-library.programs`), speed weighed with space
+           (half, or a quarter with a collection that learns: one freeing
+           little making the next growth larger), the queue against the
+           stack there too, and on what a reload after freezing finds
+           (`heap-freeze`).
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node

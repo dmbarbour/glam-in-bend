@@ -162,8 +162,10 @@ type H is Type:
 # list's head (a node's index plus one, 0 for none), errors, interactions
 # (counted by the run's fuel, set when it ends), how many nodes fit; the
 # data table's free head, its high-water mark, its capacity and the depth
-# of its array (DT); the collections run under demand (heap-strategies.
-# erasure.load.cycle); three words spare; then the events, by the kind of
+# of its array (DT); the collections run under demand and the capacity
+# they scanned, summed (heap-strategies.erasure.load.cycle); the node a
+# stress test last collected for (heap-strategies.erasure.load.cycle.
+# stress); a word spare; then the events, by the kind of
 # the node each acts on (heap-strategies.erasure.kernel), a word a kind
 def at_fh() -> U32:
   0
@@ -191,6 +193,12 @@ def at_td() -> U32:
 
 def at_cyc() -> U32:
   8
+
+def at_scan() -> U32:
+  9
+
+def at_stress() -> U32:
+  10
 
 # events at a node of kind code k, below 16: no kind past them makes one
 # (law events_fit_header)
@@ -321,11 +329,20 @@ def bump.r(r: H & U32) -> H:
 def bump(h: H) -> H:
   bump.r(rd(h, at_itrs()))
 
+def cycle.s(r: H & U32, +cap: U32) -> H:
+  (h, +s) = r
+  wr(h, at_scan(), (s + cap : U32))
+
+def cycle.c(r: H & U32) -> H:
+  (h, +cap) = r
+  cycle.s(rd(h, at_scan()), cap)
+
 def cycle.r(r: H & U32) -> H:
   (h, +n) = r
-  wr(h, at_cyc(), (n + 1 : U32))
+  cycle.c(rd(wr(h, at_cyc(), (n + 1 : U32)), at_wcap()))
 
-# one more collection run under demand
+# one more collection run under demand, its capacity added to those
+# scanned
 def cycle(h: H) -> H:
   cycle.r(rd(h, at_cyc()))
 def evk(h: H, +k: U32) -> H & U32:
@@ -465,26 +482,26 @@ def gm.link(r: H & U32, +fh0: U32, +n: U32) -> H:
   (h, +wcap) = r
   free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
 
-def grow_more.r(+ok: Bool, h: H, +r: U32, +fh0: U32) -> H:
+def grow_more.r(+ok: Bool, h: H, +r: U32, +fh0: U32) -> H & Bool:
   match ok:
     case True{}:
-      gm.link(rd(h, at_wcap()), fh0, r)
+      (gm.link(rd(h, at_wcap()), fh0, r), True{})
     case False{}:
-      h
+      (h, False{})
 
-def grow_more.n(r: H & U32, +fh0: U32) -> H:
+def grow_more.n(r: H & U32, +fh0: U32) -> H & Bool:
   (h, +n) = r
   grow_more.r(U32.is_ne(n, iface()), h, n, fh0)
 
-def grow_more.fh(r: H & U32) -> H:
+def grow_more.fh(r: H & U32) -> H & Bool:
   (h, +fh0) = r
   grow_more.n(alloc.grow(h), fh0)
 
 # the store doubled now, its new nodes all on the free list, the nodes
 # free before after them (alloc.grow, run on an empty list, ends its new
-# nodes' list); as it was, its error counted, if it cannot grow
-# (alloc.grow then answers the interface, which stays)
-def grow_more(h: H) -> H:
+# nodes' list), and whether it grew: if it cannot, it is as it was, its
+# error counted (alloc.grow then answers the interface, which stays)
+def grow_more(h: H) -> H & Bool:
   grow_more.fh(rd(h, at_fh()))
 
 def fl.step(+go: Bool, h: H, +fh: U32) -> H & U32:
@@ -1170,6 +1187,10 @@ def stk.ensure(r: KM.M & U32, +words: U32) -> Stk:
 # an empty stack with room for `words` pairs at least
 def stk_new(+words: U32) -> Stk:
   stk.ensure(KM.m_new(6n, rs_maxd()), words)
+
+# an empty stack of 2^d words, made at its size
+def stk_pow(+d: Nat) -> Stk:
+  stk.fin(KM.m_new(d, rs_maxd()))
 
 def note.n(r: KM.M & U32, +x: U32) -> Stk:
   (s, +n) = r

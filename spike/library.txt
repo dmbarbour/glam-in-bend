@@ -518,3 +518,56 @@ fuel: 100000
 levels: demand 20
 labels: 20 logical 13949 peels 0
 unfused: demand 20
+
+name: loop-toggle-64
+why: a loop in constant space (heap-strategies.erasure.load.cycle): a
+  Church boolean toggled 64 times, each step forcing it, taking one branch
+  and dropping the other, its continuation shared by both; what each step
+  drops is garbage that demand alone keeps, and the full reductions run
+  both branches
+term: pow #2 #6 (\c b. b (c F) (c T)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-toggle-256
+why: loop-toggle-64 run 256 times
+term: pow #2 #8 (\c b. b (c F) (c T)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-toggle-1024
+why: loop-toggle-64 run 1024 times
+term: pow #2 #10 (\c b. b (c F) (c T)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-junk-64
+why: loop-toggle-64, each step also dropping a list of four it never
+  looks at
+term: pow #2 #6 (\c b. K (b (c F) (c T)) (range #4)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-junk-256
+why: loop-junk-64 run 256 times
+term: pow #2 #8 (\c b. K (b (c F) (c T)) (range #4)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-junk-1024
+why: loop-junk-64 run 1024 times
+term: pow #2 #10 (\c b. K (b (c F) (c T)) (range #4)) I T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
