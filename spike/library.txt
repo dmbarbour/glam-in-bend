@@ -571,3 +571,32 @@ fuel: 100000
 levels: demand 1
 labels: demand 1
 unfused: demand 1
+
+name: loop-fix-16
+why: a tail-recursive loop by a fixpoint (Y), over a Scott numeral of
+  16 built from a Church one, a boolean toggled and forced each step, the
+  other branch dropped: quadratic here, each step's copy of the loop
+  passing the fans the dropped branches left, and its levels growing with
+  the recursion, about two a step
+  (heap-strategies.erasure.load.cycle.loops.levels)
+term: Y (\loop m b. m b (\m2. b (loop m2 F) (loop m2 T))) (pow #2 #4 (\m z s. s m) (\z s. z)) T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-fix-32
+why: loop-fix-16 run 32 times
+term: Y (\loop m b. m b (\m2. b (loop m2 F) (loop m2 T))) (pow #2 #5 (\m z s. s m) (\z s. z)) T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1
+
+name: loop-fix-64
+why: loop-fix-16 run 64 times
+term: Y (\loop m b. m b (\m2. b (loop m2 F) (loop m2 T))) (pow #2 #6 (\m z s. s m) (\z s. z)) T 1 0
+fuel: 100000
+levels: demand 1
+labels: demand 1
+unfused: demand 1

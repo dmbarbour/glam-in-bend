@@ -619,10 +619,11 @@ def pf_str(pf: Pf) -> String:
 
 # the path below its last node, top, in an array, its capacity at word 0
 # and the nodes from the interface on from word 1, depth of them;
-# interactions; the state, 0 going, 1 done, 2 needing a lazy value (need),
-# 3 stuck, 4 out of fuel, 5 a cycle, 6 out of memory (the path's array or
-# a collecting demand's net could not grow: the machine's limit, not the
-# program's)
+# interactions; how the walk stands: 0 going; the net's outcomes, 1 done,
+# 2 needing a lazy value (need), 3 stuck, 5 a cycle; and the runtime's
+# errors, which say nothing of the net (machine-limits-not-errors), 4 out
+# of fuel, 6 out of memory (the path's array or a collecting demand's net
+# could not grow)
 type D is Type:
   D{h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32}
 
@@ -731,9 +732,9 @@ def wk.rw.v(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U
 # all, so the sweep keeps them; an event keeps a node's slot, its
 # principal's link and the links of the ports it keeps, and frees only an
 # eraser or dead operator facing an auxiliary port, which has none for
-# the path to pass through. A net that had to grow and could not is out of
-# memory (state 6), a limit of the machine and not of the program, unlike
-# being stuck.
+# the path to pass through. Where the net had to grow and could not, the
+# walk returns out of memory (6), an error of the runtime, said of no net
+# (machine-limits-not-errors).
 
 def wk.gc.ok(+ok: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   match ok:

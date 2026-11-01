@@ -335,6 +335,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.oom`,
    `heap-strategies.erasure.load.cycle.loops`,
    `heap-strategies.erasure.load.cycle.library`,
+   `heap-strategies.erasure.load.cycle.trace`,
+   `heap-strategies.erasure.load.cycle.buffers`,
+   `heap-strategies.erasure.load.cycle.loops.levels`,
+   `heap-strategies.generate`,
    `heap-strategies.erasure.typed`,
    `heap-strategies.erasure.strategies`, `.aot`, `.trees`,
    `heap-strategies.fresh`, `heap-strategies.fusions.fits.load`,
@@ -1317,8 +1321,9 @@ takes from it:
          collectable (an eraser on a fan's auxiliary port making it
          linear; two linear fans commute into two nodes), so the
          collection leaves that pair out, a boundary (the maintainer,
-         2026-11-01). Demand stops in state 6, out of memory, where its
-         path or net cannot grow. With half: the capacities of the 126
+         2026-11-01). Where its path or net cannot grow, the walk returns
+         out of memory (6), an error of the runtime and no state of the
+         net (the maintainer). With half: the capacities of the 126
          earlier cases sum to 262,784 nodes, 1.9% more interactions in all
          (store run 121, 144 cases with the loops, 2.0%); the collections
          scan 0.14 nodes per interaction.
@@ -1386,8 +1391,17 @@ takes from it:
            chained on the continuation's path, with copies and merges
            (unit brackets, 16,000 steps: 4,540 lifts, 1,536 lift
            controls). No collection by reachability frees them; fusing
-           control chains might (`fuse-control-runs`). The motive for
-           collection wants such loops in constant space first.
+           control chains might (`fuse-control-runs`); a chain's levels
+           stay bounded here (the largest 12 over the whole run, the
+           largest raise 9: levels as deep as the count was built, 2^10).
+           The motive for collection wants such loops in constant space
+           first. A tail-recursive loop by a fixpoint (`loop-fix`, 16, 32,
+           64 steps, a Scott numeral counted down, the dropped branch
+           sharing the loop) is worse: demand's interactions grow about
+           3.4 times a doubling with levels (8,044, 26,446, 94,440), 2.9
+           with labels, near quadratic, each step's copy of the loop
+           passing the fans the dropped branches left on it; and its
+           levels count the recursion, about two a step (`.loops.levels`).
          - `heap-strategies.erasure.load.cycle.library` — tentative — the
            threshold and the fuel decided on programs that drop more as
            they run (`pairing-library.programs`), speed weighed with space
@@ -1395,6 +1409,39 @@ takes from it:
            little making the next growth larger), the queue against the
            stack there too, and on what a reload after freezing finds
            (`heap-freeze`).
+     - `heap-strategies.erasure.load.cycle.loops.levels` — tentative —
+       levels that count a recursion's depth (the maintainer, 2026-11-01: after fusing, a
+       long-running loop may run out of levels). Measured on `loop-fix`
+       with unit brackets: the largest live level 15, 25, 37, 55, 81, 119
+       at 5,000 to 160,000 steps, about two a step of the loop, so a
+       24-bit field holds some eight million steps of a tail-recursive
+       loop; the quadratic cost hides it for now. A level past the field
+       is caught (`P.lift_wraps`) and an error, a limit of the
+       representation. Wanted: more bits, levels renumbered where a
+       collection traces every live node (only their equalities and the
+       lifts' offsets matter, if the window of live levels drifts up), or
+       a stated limit on what one net can represent; first, whether the
+       live levels drift or fill from 0.
+     - `heap-strategies.erasure.load.cycle.trace` — tentative — more
+       phases in one (the maintainer, 2026-11-01: more to squeeze from
+       collection, eval as part of tracing; it is heuristic, trading
+       completeness, space and speed): the marking walk finding the pairs
+       and events as it reaches them and rewriting the collectable ones
+       there, what they cut off then never marked, the sweep's pass
+       after; one walk and one pass where there are two scans, a walk
+       and a pass.
+     - `heap-strategies.erasure.load.cycle.buffers` — tentative — the
+       collection's arrays (the queue and the worklist, a word a node;
+       the marks, a bit a node) kept with the net from one collection to
+       the next, where each is made and zeroed anew.
+     - `heap-strategies.generate` — tentative — the rewrite written out
+       by hand in `kstrat.bend` (`wk.rw.p`, `wk.rw.v`, `wk.rw.c`,
+       `wk.room.go`), since a wrapper over the templated one cost a call
+       a rewrite: generated instead (the maintainer, 2026-11-01:
+       templates where they serve, else generation, not hand copies), and
+       generation made easier first, perhaps by keywords of our own for
+       a preprocessor of Bend, which `generated-sources` now rules out
+       (no macro processors): a revision of it, the maintainer's to make.
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
