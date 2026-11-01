@@ -345,8 +345,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.entry` (dropped),
    `heap-strategies.erasure.load.cycle.walk` (built),
    `heap-strategies.erasure.load.cycle.walk.lean` (built),
-   `heap-strategies.erasure.load.cycle.walk.inhead`,
-   `heap-strategies.erasure.load.cycle.buffers`,
+   `heap-strategies.erasure.load.cycle.walk.trim` (built),
+   `heap-strategies.erasure.load.cycle.walk.inhead` (dropped),
+   `heap-strategies.erasure.load.cycle.walk.nil`,
+   `heap-strategies.erasure.load.cycle.buffers` (dropped),
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1606,16 +1608,63 @@ takes from it:
            dropping terms, 3.76% over plain demand against the worklist
            walk's 4.38% (forced inline, 3.11% against 3.80%; store run
            136).
-           - `heap-strategies.erasure.load.cycle.walk.inhead` — tentative
-             — the mark kept in a node's head word rather than a bitmap:
-             the walk reads the head of the node behind a link as it
-             marks it, so that its visit finds the head in cache; the
-             sweep, which reads every head, clears the mark. The array
-             would keep the stack and the notes alone. To weigh: the
-             sweep's added write for each live node, and every reader of
-             heads during the walk masking the bit.
-         - `heap-strategies.erasure.load.cycle.buffers` — tentative —
-           the collection's arrays kept with the net from one collection
+           - `heap-strategies.erasure.load.cycle.walk.trim` — built
+             2026-11-01 — two tests a node fewer: the stack popped where
+             a run is known to end (a leaf, or a marked node behind o1)
+             rather than tested for after every step, so that the loop's
+             own test of the reference finds only the walk's end; and
+             the arity split once, by its half (a leaf, or two or three
+             ports), the third port asked for only where there are two
+             or three. On `succ`, 80 to 86 instructions a node of final
+             capacity by default and 77 to 83 forced inline, against 82
+             to 88 and 81 to 87; with the next Bend's fill 64 to 69 and
+             65 to 70; on the 16 dropping terms 3.74% over plain demand
+             (forced inline 3.02%); the plain workloads unchanged in the
+             four builds (store runs 139, 138 against 137). The library's
+             figures are the lean walk's.
+           - `heap-strategies.erasure.load.cycle.walk.inhead` — dropped
+             2026-11-01, no gain once Bend fills arrays fast (the
+             maintainer: to adopt given enough benefit) — the mark kept in
+             the node rather than a bitmap, so that the walk, marking the
+             node behind a link, brings in the line its visit reads. The
+             header word has no bit to spare (`header-kind-byte`: six of
+             kind, two of form, 24 of field); port 0's link word has
+             nine, a link being below 2^23 (2^21 nodes of four ports), and
+             every live kind has a port 0. So the top bit of word 1 was
+             tried (branch `gc-walk-inword`, d674eb4): the walk marks
+             there, masks it from a node's own port 0 link where it reads
+             it, and the sweep, reading word 1 of every node in use, frees
+             the unmarked and clears the rest; the walk's array keeps the
+             notes and the stack alone, half as large. Every library case
+             kept, the same figures. On `succ`, 74 to 79 instructions a
+             node by default and 74 to 80 forced inline against the
+             trimmed bitmap's 80 to 86 and 77 to 83, all of it the
+             array's fill halved: with the next Bend's fill, 66 to 72
+             and 65 to 71 against 64 to 69 and 65 to 70, the sweep's read
+             and write of every live node's word 1 taking back what the
+             cheaper marks save; cycles at k 16 alike, `succ` allocating
+             mostly in order (store run 139). It would also add the bound
+             on links as an invariant to own, and a nil link could no
+             longer be caught for nothing.
+         - `heap-strategies.erasure.load.cycle.walk.nil` — contingent on
+           `spike-refinement` — whether to keep the walk's net under nil
+           links (its array's last word set whole, one write a
+           collection): the maintainer asks whether nil links are used
+           at all (2026-11-01). The kernel makes none: every link it
+           writes joins two ports, a peer read from a live port or a new
+           node's; `P.nil()` is only a sentinel (no partner, a rule's
+           unused external end, the audits' guards). An unlinked port
+           would not hold nil anyway but a stale word, a node fresh from
+           the free list keeping its old ones. What excludes both is the
+           wiring: the models prove every rewrite keeps a wired net wired
+           (`rewrite_wired`, `kernel_rewrite_wired`), and the library
+           audits the kernel's nets for it (`KN.wired_ok`, which a nil
+           link fails); that the kernel's rewrites do what the model's do
+           is a draft (`kernel_rewrite_refines`). Once it is a law, the
+           net goes or stays as the maintainer chooses.
+         - `heap-strategies.erasure.load.cycle.buffers` — dropped
+           2026-11-01 (the maintainer: not worth pursuing) — the
+           collection's arrays kept with the net from one collection
            to the next, whatever the walk: Bend fills a new array at
            eight instructions a word (`docs/BendIssues.md`, "Array
            creation fills word by word"), and a collection makes about
