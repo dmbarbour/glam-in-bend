@@ -140,14 +140,16 @@ def coll.do(go: Bool, h: P.H, st: P.Stk, +x: U32, +y: U32) -> P.E:
     case False{}:
       P.E{h, st}
 
-def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
+# the pair x - y collected where a collection may, but where it is node
+# ex's, the walk's own
+def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32, +ex: U32) -> P.E:
   (h, +hy) = r
-  coll.do(U32.is_ne(hx, 0) && U32.is_ne(hy, 0) &&
+  coll.do(U32.is_ne(hx, 0) && U32.is_ne(hy, 0) && U32.is_ne(x, ex) && U32.is_ne(P.base(y), ex) &&
     sel_b(KR.kind_neg(P.rk(hx)), KR.collects(P.rk(hx), P.rk(hy), hx, hy), KR.collects(P.rk(hy), P.rk(hx), hy, hx)), h, st, x, y)
 
-def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
+def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +ex: U32) -> P.E:
   (h, +hx) = r
-  coll.hy(P.rd(h, P.base(y)), st, x, y, hx)
+  coll.hy(P.rd(h, P.base(y)), st, x, y, hx, ex)
 
 def collect.fin(r: Ran) -> P.H:
   match r:
@@ -155,16 +157,17 @@ def collect.fin(r: Ran) -> P.H:
       h
 
 # Under demand (heap-strategies.erasure.load.cycle, the maintainer,
-# 2026-11-01): a collection is run where the net would otherwise grow, its
-# pairs taken first in first out (P.popq), so that it spreads over the net
-# rather than following one cascade down, at most twice the net's capacity
-# of them looked at; then the sweep. The net doubles unless half of it is
-# then free, so that each collection, linear in the capacity, is paid for
-# by the nodes it frees or by the doubling: amortized, a constant per node
-# made, at most one live node touched per node made (a quarter would be
-# three, the maintainer: space bought with speed).
+# 2026-11-01): a collection is run where the net would otherwise grow:
+# the lean trace below, its pairs taken first in first out (P.popq), so
+# that they spread over the net rather than following one cascade down,
+# at most twice the net's capacity of them looked at. The net doubles
+# unless half of it is free after the sweep, so that each collection,
+# linear in the capacity, is paid for by the nodes it frees or by the
+# doubling: amortized, a constant per node made, at most one live node
+# touched per node made (a quarter would be three, the maintainer: space
+# bought with speed).
 
-def run.q(n: Nat, q: P.PopQ) -> Ran:
+def run.q(n: Nat, q: P.PopQ, +ex: U32) -> Ran:
   match n:
     case 0n:
       Ran{P.unpopq(q), 0n}
@@ -173,68 +176,161 @@ def run.q(n: Nat, q: P.PopQ) -> Ran:
         case P.PopQ{h, st, +x, +y, +ok, +hd}:
           match ok:
             case True{}:
-              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y), KR.most_pairs(), hd))
+              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y, ex), KR.most_pairs(), hd), ex)
             case False{}:
               Ran{h, 1n+p}
 
-# One pass finds both the active pairs, onto the queue in node order, and
-# the nodes that may be an event's B (KR.ev_end at the principal: an
-# eraser, a dead operator), onto the events' worklist (knet.bend's
-# Events at load), where two passes did; the events then run, noting the
-# pairs they make onto the queue, and the queue after them.
+# The lean trace (heap-strategies.erasure.load.cycle.trace.lean): the
+# marking walk from the interface notes, as it reaches them, the active
+# pairs (from their lower node) onto the queue and the nodes that may be
+# an event's B (KR.ev_end at the principal: an eraser, a dead operator)
+# onto the events' worklist; the sweep's pass frees what it did not reach
+# and counts the nodes free; then the events run, noting the pairs they
+# make, and the queue's collectable pairs after them, first in first out,
+# but the walk's own pair. What they free goes onto the free list at
+# once; what they cut off waits for the next collection, as does their
+# part in deciding growth, made on the sweep's count: latency traded for
+# one walk and one pass, where a scan, a walk and a pass were (the
+# maintainer, 2026-11-01). Collecting while tracing, rewriting as the
+# walk reaches pairs, needed a barrier and cost twice as much
+# (`.load.cycle.trace`, branch gc-trace-proto).
 
-type Sq is Type:
-  Sq{h: P.H, st: P.Stk, ws: List<&2, U32>}
+type Rq is Type:
+  Rq{h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32}
 
-def sq.peer(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +i: U32, +hd: U32) -> Sq:
-  (h, +q) = r
-  Sq{h, scan.push(U32.is_eq(P.port(q), 0) && U32.is_gt(q, i), st, i), KN.evl.add(KR.ev_end(P.rk(hd), 0), i, ws)}
-
-def sq.go(live: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +i: U32, +hd: U32) -> Sq:
-  match live:
+def rq.push(new: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +j: U32) -> Rq:
+  match new:
     case True{}:
-      sq.peer(P.rd(h, (i + 1 : U32)), st, ws, i, hd)
+      Rq{h, st, ws, mk, KM.m_set(wl, n, j), (n + 1 : U32)}
     case False{}:
-      Sq{h, st, ws}
+      Rq{h, st, ws, mk, wl, n}
 
-def sq.hdr(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +i: U32) -> Sq:
+def rq.mark(r: KM.M & U32, h: P.H, st: P.Stk, ws: List<&2, U32>, wl: KM.M, +n: U32, +j: U32) -> Rq:
+  (mk, +v) = r
+  rq.push(U32.is_eq((v .&. KN.rc.bit(j) : U32), 0), h, st, ws, KM.m_set(mk, (j >> 5n : U32), (v .|. KN.rc.bit(j) : U32)), wl, n, j)
+
+def rq.see.go(ok: Bool, s: Rq, +j: U32) -> Rq:
+  match ok:
+    case True{}:
+      match s:
+        case Rq{h, st, ws, mk, wl, +n}:
+          rq.mark(KM.m_get(mk, (j >> 5n : U32)), h, st, ws, wl, n, j)
+    case False{}:
+      s
+
+# the node behind reference p marked, and put on the worklist if new
+def rq.see(+p: U32, s: Rq) -> Rq:
+  rq.see.go(U32.is_ne(p, P.nil()), s, (p >> 2n : U32))
+
+def rq.port.r(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32) -> Rq:
+  (h, +q) = r
+  rq.see(q, Rq{h, st, ws, mk, wl, n})
+
+def rq.port(s: Rq, +b: U32, +p: U32) -> Rq:
+  match s:
+    case Rq{h, st, ws, mk, wl, +n}:
+      rq.port.r(P.rd(h, ((b + 1 : U32) + p : U32)), st, ws, mk, wl, n)
+
+# the auxiliary ports of a node of arity a at word b, seen
+def rq.aux(+a: U32, s: Rq, +b: U32) -> Rq:
+  match a:
+    case 1:
+      s
+    case 2:
+      rq.port(s, b, 1)
+    case _:
+      rq.port(rq.port(s, b, 1), b, 2)
+
+# 1 a pair, noted from its lower node; 2 a node that may be an event's B;
+# 0 neither
+def rq.k2(pair: Bool, +ev: Bool) -> U32:
+  match pair:
+    case True{}:
+      1
+    case False{}:
+      match ev:
+        case True{}:
+          2
+        case False{}:
+          0
+
+def rq.note(+k: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32) -> Rq:
+  match k:
+    case 1:
+      Rq{h, P.push(st, b), ws, mk, wl, n}
+    case 2:
+      Rq{h, st, Con{b, ws}, mk, wl, n}
+    case _:
+      Rq{h, st, ws, mk, wl, n}
+
+def rq.q(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32, +hd: U32) -> Rq:
+  (h, +q) = r
+  rq.aux(KR.kind_arity(P.rk(hd)), rq.see(q, rq.note(rq.k2(U32.is_eq(P.port(q), 0) && U32.is_gt(q, b), KR.ev_end(P.rk(hd), 0)),
+    h, st, ws, mk, wl, n, b)), b)
+
+# a node reached, at word b: what its principal faces noted and seen, then
+# its auxiliary ports
+def rq.node(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, mk: KM.M, wl: KM.M, +n: U32, +b: U32) -> Rq:
   (h, +hd) = r
-  sq.go(U32.is_ne(hd, 0), h, st, ws, i, hd)
+  rq.q(P.rd(h, (b + 1 : U32)), st, ws, mk, wl, n, b, hd)
 
-# k nodes from word i
-def scan.q(k: Nat, +i: U32, s: Sq) -> Sq:
+def rq.pop(r: KM.M & U32, h: P.H, st: P.Stk, ws: List<&2, U32>, mk: KM.M, +n: U32) -> Rq:
+  (wl, +j) = r
+  rq.node(P.rd(h, (j << 2n : U32)), st, ws, mk, wl, n, (j << 2n : U32))
+
+def rq.go(k: Nat, s: Rq) -> Rq:
   match k:
     case 0n:
       s
     case 1n+p:
       match s:
-        case Sq{h, st, ws}:
-          scan.q(p, (i + 4 : U32), sq.hdr(P.rd(h, i), st, ws, i))
+        case Rq{h, st, ws, mk, wl, +n}:
+          match n:
+            case 0:
+              Rq{h, st, ws, mk, wl, 0}
+            case _:
+              rq.go(p, rq.pop(KM.m_get(wl, (n - 1 : U32)), h, st, ws, mk, (n - 1 : U32)))
 
-# every node but the one at word lo: a pair is noted from its lower node
-# alone, so leaving that node out leaves the pair out, with no test a
-# node (the maintainer, 2026-11-01); it is in a pair, so no event's B
-def scan.but(+lo: U32, +cap: U32, s: Sq) -> Sq:
-  scan.q(U32.to_nat((cap - ((lo >> 2n : U32) + 1 : U32) : U32)), (lo + 4 : U32),
-    scan.q(U32.to_nat(((lo >> 2n : U32) - P.first() : U32)), P.iface(), s))
+# after the sweep: the net, what the walk noted, and the nodes free
+type Mq is Type:
+  Mq{h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32}
 
-def sq.ev(s: Sq) -> P.E:
+def mq.sw(r: P.H & U32, st: P.Stk, ws: List<&2, U32>) -> Mq:
+  (h, +free) = r
+  Mq{h, st, ws, free}
+
+def rq.sweep(s: Rq, +cap: U32) -> Mq:
   match s:
-    case Sq{h, st, ws}:
-      KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws})
+    case Rq{h, st, ws, mk, wl, +n}:
+      mq.sw(KN.sw.fin(KN.sw.first(KN.Sw{h, mk, 0}, cap)), st, ws)
 
-def collect_q.st(r: P.H & P.HS, +ex: U32) -> P.H:
+def mq.ran(r: Ran, +free: U32) -> P.H & U32:
+  (collect.fin(r), free)
+
+# the noted events, then the noted pairs a collection may rewrite
+def mq.run(m: Mq, +cap: U32, +ex: U32) -> P.H & U32:
+  match m:
+    case Mq{h, st, ws, +free}:
+      mq.ran(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(KN.ev.drain.e(4294967295n, KN.Ev{h, st, ws}), KR.most_pairs(), 0), ex), free)
+
+def rq.wl(r: KM.M & U32, h: P.H, mk: KM.M, +cap: U32) -> Rq:
+  (wl, +room) = r
+  Rq{h, P.stk_pow(KM.depth(32n, cap, 0n)), Nil{}, mk, wl, 0}
+
+def rq.mk(r: KM.M & U32, h: P.H, +cap: U32) -> Rq:
+  (mk, +sz) = r
+  rq.wl(KN.rc.at(cap, 0n), h, mk, cap)
+
+def lean.st(r: P.H & P.HS, +ex: U32) -> P.H & U32:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      collect.fin(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(sq.ev(scan.but(ex, cap,
-        Sq{h, P.stk_pow(KM.depth(32n, cap, 0n)), Nil{}})), KR.most_pairs(), 0)))
+      mq.run(rq.sweep(rq.go(4294967295n, rq.see(P.iface(), rq.mk(KN.rc.at(cap, 5n), h, cap))), cap), cap, ex)
 
-# a net's events and collectable pairs run, the pairs first in first out,
-# but the pair whose lower node is at word ex; their interactions counted
-# on from those before (P.bump)
-def collect_q(h: P.H, +ex: U32) -> P.H:
-  collect_q.st(P.stats(h), ex)
+# a net collected by the lean trace: marked, swept, then its noted events
+# and collectable pairs run; the net, and its free nodes after the sweep
+def collect_lean(h: P.H, +ex: U32) -> P.H & U32:
+  lean.st(P.stats(h), ex)
 
 def cyc.grow(+ok: Bool, h: P.H) -> P.H & Bool:
   match ok:
@@ -253,13 +349,12 @@ def cyc.sw(r: P.H & U32) -> P.H & Bool:
   (h, +free) = r
   cyc.cap(P.stats(h), free)
 
-# a collection under demand, counted (P.cycle): the events, the
-# collectable pairs but the one whose lower node is ex, the sweep, and the
-# net doubled unless
-# half of it is then free (the sweep counts the free nodes); whether it
-# has room, false only where it had to grow and could not
+# a collection under demand, counted (P.cycle): the lean trace, node ex's
+# pair left, and the net doubled unless half of it was free after the
+# sweep; whether it has room, false only where it had to grow and could
+# not
 def collect_cycle(h: P.H, +ex: U32) -> P.H & Bool:
-  cyc.sw(KN.sweep(collect_q(P.cycle(h), ex)))
+  cyc.sw(collect_lean(P.cycle(h), ex))
 
 # Two stacks
 # ==========
@@ -1024,7 +1119,7 @@ def cyc.want(r: P.H & U32, +want: U32) -> P.H & Bool:
 # a stress test's collection, the net grown only where it lacks want free
 # nodes
 def collect_cycle.s(h: P.H, +ex: U32, +want: U32) -> P.H & Bool:
-  cyc.want(KN.sweep(collect_q(P.cycle(h), ex)), want)
+  cyc.want(collect_lean(P.cycle(h), ex), want)
 
 def st.again(again: Bool, +sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match again:

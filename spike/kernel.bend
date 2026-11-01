@@ -317,9 +317,10 @@ def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
 # Collecting under demand (heap-strategies.erasure.load.cycle)
 # =================
 #
-# What a collection runs on a net: its events and its collectable pairs,
-# found in one scan (KS.collect_q), then every node the interface does not
-# reach freed (KN.sweep). A freshly lowered net has little to give, so
+# What a collection runs on a net (KS.collect_lean): a walk from the
+# interface marking what it reaches and noting the pairs and events
+# there, the sweep of what it did not reach, then the noted events and
+# collectable pairs. A freshly lowered net has little to give, so
 # none is run at load (the maintainer, 2026-11-01); a net under demand has
 # its garbage, so demand collects where its net would grow (KS.demand.c).
 # Its result is read as demand's, its interactions the total, demand's
