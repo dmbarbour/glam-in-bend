@@ -211,16 +211,19 @@ def force.met(r: KS.D & U32, +vals: List<&2, V.Val>) -> KS.D:
   (d, +lz) = r
   KS.resume(d, val_at(vals, lz))
 
-# demand, running events if ev (KS.demand.v)
-def demand_ev(+ev: Bool, +fuel: Nat, d: KS.D) -> KS.D:
+# demand by mode: 0 plain (KS.demand), 1 running events (KS.demand.v), 2
+# collecting where its net would grow (KS.demand.c)
+def demand_ev(+ev: U32, +fuel: Nat, d: KS.D) -> KS.D:
   match ev:
-    case True{}:
-      KS.demand.v(fuel, d)
-    case False{}:
+    case 0:
       KS.demand(fuel, d)
+    case 1:
+      KS.demand.v(fuel, d)
+    case _:
+      KS.demand.c(fuel, d)
 
 # demand, each need met from vals, at most k times
-def force(k: Nat, +fuel: Nat, +ev: Bool, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
+def force(k: Nat, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
   match k:
     case 0n:
       d
@@ -279,18 +282,18 @@ def dres.sl(r: KS.D & U32) -> DRes:
 def dres.s(d: KS.D) -> DRes:
   dres.sl(KS.need(d))
 
-# demand, running events if ev, its needs met from vals, at most 64
-def demand_m(t: T.Tpl, +fuel: Nat, +ev: Bool, +vals: List<&2, V.Val>) -> KS.D:
+# demand by mode ev, its needs met from vals, at most 64
+def demand_m(t: T.Tpl, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>) -> KS.D:
   force(64n, fuel, ev, vals, demand_ev(ev, fuel, KS.d.start(KN.load(t))))
 
 # run_d, then every node the interface does not reach freed (KN.sweep)
 def run_ds(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
-  dres.s(demand_m(t, fuel, False{}, vals))
+  dres.s(demand_m(t, fuel, 0, vals))
 
 # reduce t toward weak head normal form for at most fuel steps, its needs
 # met from vals, at most 64
 def run_d(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> DRes:
-  dres(demand_m(t, fuel, False{}, vals))
+  dres(demand_m(t, fuel, 0, vals))
 
 # run_d running events, which are counted
 type EDRes is Data:
@@ -306,55 +309,44 @@ def edres(d: KS.D) -> EDRes:
       edres.e(P.evs(h), path, top, depth, n, st)
 
 def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
-  edres(demand_m(t, fuel, True{}, vals))
+  edres(demand_m(t, fuel, 1, vals))
 
 # Erasure at load (heap-strategies.erasure.load)
 # =================
 #
 # What a load, or a collection cycle, runs on a net: its events once
-# (KN.ev_load), its erasure pairs (KS.collect_h), then every node the
-# interface does not reach freed (KN.sweep). A freshly lowered net has
-# nothing to give; a net demand has left has its garbage, so the passes
-# run on that: demand, then the collection, the value read after it and
-# the audits run, the live nodes counted after demand and after the
-# erasure, the result's after the sweep.
+# (KN.ev_load), its collectable pairs (KS.collect_h, KS.collect_q), then
+# every node the interface does not reach freed (KN.sweep). A freshly
+# lowered net has little to give; a net under demand has its garbage, so
+# demand collects where its net would grow (KS.demand.c,
+# heap-strategies.erasure.load.cycle), its result read as demand's, with
+# the collections run, their interactions and their events.
 
-type GRes is Data:
-  GRes{r: DRes, +live0: U32, +live1: U32, +citrs: U32, +cevs: U32}
+type CRes is Data:
+  CRes{r: DRes, +cyc: U32, +citrs: U32, +cevs: U32}
 
-def gres.sw(r: P.H & U32, +st: U32, +lz: U32, +live0: U32, +live1: U32, +citrs: U32, +cevs: U32) -> GRes:
-  (h, +freed) = r
-  GRes{dres.h(h, st, lz), live0, live1, citrs, cevs}
-
-def gres.l1(au: KN.Au, +st: U32, +lz: U32, +live0: U32, +citrs: U32, +cevs: U32) -> GRes:
-  match au:
-    case KN.Au{h, +n}:
-      gres.sw(KN.sweep(h), st, lz, live0, n, citrs, cevs)
-
-def gres.ev(r: P.H & U32, +st: U32, +lz: U32, +live0: U32, +citrs: U32) -> GRes:
+def cres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +citrs: U32) -> CRes:
   (h, +cevs) = r
-  gres.l1(live_nodes.st(P.stats(h)), st, lz, live0, citrs, cevs)
+  CRes{dres(KS.D{h, path, top, depth, n, st}), cyc, citrs, cevs}
 
-def gres.c(r: P.H & P.HS, +st: U32, +lz: U32, +live0: U32) -> GRes:
+def cres.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32) -> CRes:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      gres.ev(P.evs(h), st, lz, live0, itrs)
+      cres.e(P.evs(h), path, top, depth, n, st, cyc, itrs)
 
-def gres.l0(au: KN.Au, +st: U32, +lz: U32, +fuel: Nat) -> GRes:
-  match au:
-    case KN.Au{h, +n}:
-      gres.c(P.stats(KS.collect_h(fuel, KN.ev_load(h))), st, lz, n)
+def cres.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> CRes:
+  (h, +cyc) = r
+  cres.i(P.stats(h), path, top, depth, n, st, cyc)
 
-def gres.d(r: KS.D & U32, +fuel: Nat) -> GRes:
-  (d, +lz) = r
+def cres(d: KS.D) -> CRes:
   match d:
     case KS.D{h, path, +top, +depth, +n, +st}:
-      gres.l0(live_nodes.st(P.stats(P.count(h, n))), st, lz, fuel)
+      cres.c(P.rd(h, P.at_cyc()), path, top, depth, n, st)
 
-# demand, then the collection a load runs
-def run_dgc(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> GRes:
-  gres.d(KS.need(demand_m(t, fuel, False{}, vals)), fuel)
+# demand collecting where its net would grow
+def run_dc(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> CRes:
+  cres(demand_m(t, fuel, 2, vals))
 
 # a load's collection on a freshly lowered net, then demand: the load's
 # interactions and events, the nodes live after its sweep, demand's result
@@ -367,7 +359,7 @@ def ldres.d(+litrs: U32, +levs: U32, +llive: U32, d: DRes) -> LDRes:
 def ldres.au(au: KN.Au, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
   match au:
     case KN.Au{h, +n}:
-      ldres.d(litrs, levs, n, dres(force(64n, fuel, False{}, vals, demand_ev(False{}, fuel, KS.d.start(P.count(h, 0))))))
+      ldres.d(litrs, levs, n, dres(force(64n, fuel, 0, vals, demand_ev(0, fuel, KS.d.start(P.count(h, 0))))))
 
 def ldres.sw(r: P.H & U32, +litrs: U32, +levs: U32, +fuel: Nat, +vals: List<&2, V.Val>) -> LDRes:
   (h, +freed) = r
@@ -459,13 +451,31 @@ def bench_dev(d: KS.D) -> String:
     case KS.D{h, path, +top, +depth, +n, +st}:
       bench_dev.e(P.evs(h), path, top, depth, n, st)
 
+def bench_dc.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +citrs: U32) -> String:
+  (h, +cyc) = r
+  bench_dev(KS.D{h, path, top, depth, n, st}) ++ ", " ++ U32.show(cyc) ++ " collections, " ++ U32.show(citrs) ++
+    " interactions collecting"
+
+def bench_dc.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> String:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      bench_dc.c(P.rd(h, P.at_cyc()), path, top, depth, n, st, itrs)
+
+# demand collecting where its net would grow, its collections counted
+def bench_dc(d: KS.D) -> String:
+  match d:
+    case KS.D{h, path, +top, +depth, +n, +st}:
+      bench_dc.i(P.stats(h), path, top, depth, n, st)
+
 # reduce the workload fully (how 0), on demand (1), profiled (2) or with
 # two stacks (4), each measured without the audits; or running events,
-# fully (5), on demand (6), with two stacks (7), profiled (8)
+# fully (5), on demand (6), with two stacks (7), profiled (8); or on demand
+# collecting where the net would grow (9)
 def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
   match how:
     case 1:
-      bench_d(demand_m(t, 268435456n, False{}, Nil{}))
+      bench_d(demand_m(t, 268435456n, 0, Nil{}))
     case 2:
       profile_t(t, 268435456n, fast)
     case 4:
@@ -473,11 +483,13 @@ def main.run(+how: U32, t: T.Tpl, +fast: Bool) -> String:
     case 5:
       reduce_ev(t, 268435456n, fast)
     case 6:
-      bench_dev(demand_m(t, 268435456n, True{}, Nil{}))
+      bench_dev(demand_m(t, 268435456n, 1, Nil{}))
     case 7:
       ev_str(P.evs(KS.reduce2_h.v(268435456n, fast, KN.load(t))))
     case 8:
       profile_ev(t, 268435456n, fast)
+    case 9:
+      bench_dc(demand_m(t, 268435456n, 2, Nil{}))
     case _:
       reduce(t, 268435456n, fast)
 
@@ -512,7 +524,7 @@ def mode_of(ms: List<&2, Md>, +m: String) -> Maybe<&2, Md>:
       mode_of.hit(String.eq(name, m), Md{name, w, fast}, mode_of(t, m))
 
 def usage() -> String:
-  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two|ev|evlazy|evtwo|evprofile]"
+  "usage: kernel <k> [succ|ref|plus|plusref|lvl|lvlref|fma|fmaref|kpow|knum|komega|whnf] [lazy|profile|two|ev|evlazy|evtwo|evprofile|dclazy]"
 
 def main.mode(md: Maybe<&2, Md>, +k: U32, +how: U32) -> IO(Unit):
   match md:
@@ -536,15 +548,17 @@ def how.p(+profile: Bool, +two: Bool) -> U32:
       how.t(two)
 
 # the strategy a third argument names: lazy 1, profile 2, two 4, ev 5,
-# evlazy 6, evtwo 7, evprofile 8, else 3 (none)
-def how.evp(+evprofile: Bool) -> U32:
-  match evprofile:
-    case True{}:
+# evlazy 6, evtwo 7, evprofile 8, dclazy 9, else 3 (none)
+def how.evp(+evprofile: Bool, +dclazy: Bool) -> U32:
+  match evprofile dclazy:
+    case True{} _:
       8
-    case False{}:
+    case _ True{}:
+      9
+    case _ _:
       3
 
-def how.ev(+ev: Bool, +evlazy: Bool, +evtwo: Bool, +evprofile: Bool) -> U32:
+def how.ev(+ev: Bool, +evlazy: Bool, +evtwo: Bool, +evprofile: Bool, +dclazy: Bool) -> U32:
   match ev evlazy evtwo:
     case True{} _ _:
       5
@@ -553,12 +567,12 @@ def how.ev(+ev: Bool, +evlazy: Bool, +evtwo: Bool, +evprofile: Bool) -> U32:
     case _ _ True{}:
       7
     case _ _ _:
-      how.evp(evprofile)
+      how.evp(evprofile, dclazy)
 
 def how.e(+how: U32, +l: String) -> U32:
   match how:
     case 3:
-      how.ev(String.eq(l, "ev"), String.eq(l, "evlazy"), String.eq(l, "evtwo"), String.eq(l, "evprofile"))
+      how.ev(String.eq(l, "ev"), String.eq(l, "evlazy"), String.eq(l, "evtwo"), String.eq(l, "evprofile"), String.eq(l, "dclazy"))
     case _:
       how
 

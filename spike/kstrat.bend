@@ -178,6 +178,67 @@ def collect.st(r: P.H & P.HS, +fuel: Nat) -> P.H:
 def collect_h(+fuel: Nat, h: P.H) -> P.H:
   collect.st(P.stats(h), fuel)
 
+# Under demand (heap-strategies.erasure.load.cycle, the maintainer,
+# 2026-11-01): a collection is run where the net would otherwise grow, its
+# pairs taken first in first out (P.popq), so that it spreads over the net
+# rather than following one cascade down, at most twice the net's capacity
+# of them looked at; then the sweep. The net doubles unless a quarter of
+# it is then free, so that each collection, linear in the capacity, is
+# paid for by the nodes it frees or by the doubling: amortized, a constant
+# per node made.
+
+def run.q(n: Nat, q: P.PopQ) -> Ran:
+  match n:
+    case 0n:
+      Ran{P.unpopq(q), 0n}
+    case 1n+p:
+      match q:
+        case P.PopQ{h, st, +x, +y, +ok, +hd}:
+          match ok:
+            case True{}:
+              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y), KR.most_pairs(), hd))
+            case False{}:
+              Ran{h, 1n+p}
+
+def collect_q.st(r: P.H & P.HS) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      collect.fin(run.q(Nat.mul(U32.to_nat(cap), 2n), P.popq(scan(U32.to_nat((cap - P.first() : U32)), P.iface(),
+        P.E{h, P.stk_new(P.rs_words(cap))}), KR.most_pairs(), 0)))
+
+# a net's collectable pairs run first in first out, events on; their
+# interactions counted on from those before (P.bump)
+def collect_q(h: P.H) -> P.H:
+  collect_q.st(P.stats(h))
+
+def cyc.grow(+ok: Bool, h: P.H) -> P.H:
+  match ok:
+    case True{}:
+      h
+    case False{}:
+      P.grow_more(h)
+
+def cyc.room(r: P.H & Bool) -> P.H:
+  (h, +ok) = r
+  cyc.grow(ok, h)
+
+def cyc.cap(r: P.H & P.HS) -> P.H:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      cyc.room(P.frees(U32.to_nat((cap >> 2n : U32)), h))
+
+def cyc.sw(r: P.H & U32) -> P.H:
+  (h, +freed) = r
+  cyc.cap(P.stats(h))
+
+# a collection under demand, counted (P.cycle): the events at load, the
+# collectable pairs, the sweep, and the net doubled unless a quarter of it
+# is then free
+def collect_cycle(h: P.H) -> P.H:
+  cyc.sw(KN.sweep(collect_q(KN.ev_load(P.cycle(h)))))
+
 # Two stacks
 # ==========
 
@@ -834,6 +895,51 @@ def demand.v(k: Nat, d: D) -> D:
           match st:
             case 0:
               demand.v(p, wk.q(~KN.ev.settle, P.rd(h, (top + 1 : U32)), path, top, depth, n))
+            case _:
+              D{h, path, top, depth, n, st}
+
+# Collecting under demand (heap-strategies.erasure.load.cycle): before a
+# step, where the free list holds fewer nodes than one rewrite may take
+# (KR.most_alloc), so that the net would grow, it is collected first
+# (collect_cycle), and the walk starts again from the interface: the
+# collection may have rewritten the pair the path ends at, and the path's
+# array is kept. A net still short after a collection could not grow: the
+# walk stops, stuck, the net's error counted.
+
+def dc.ok(+more: Bool, h: P.H, path: KM.M, +n: U32) -> D:
+  match more:
+    case True{}:
+      d.go(h, path, P.iface(), 0, n)
+    case False{}:
+      d.stop(h, path, P.iface(), 0, n, 3)
+
+def dc.after(r: P.H & Bool, path: KM.M, +n: U32) -> D:
+  (h, +more) = r
+  dc.ok(more, h, path, n)
+
+def dc.go(+low: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
+  match low:
+    case True{}:
+      dc.after(P.frees(U32.to_nat(KR.most_alloc()), collect_cycle(h)), path, n)
+    case False{}:
+      wk.q(~KN.go.none, P.rd(h, (top + 1 : U32)), path, top, depth, n)
+
+def dc.fl(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
+  (h, +more) = r
+  dc.go(Bool.not(more), h, path, top, depth, n)
+
+# demand, collecting where the net would grow, for at most k steps, each
+# collection one
+def demand.c(k: Nat, d: D) -> D:
+  match k:
+    case 0n:
+      d.end(d)
+    case 1n+p:
+      match d:
+        case D{h, path, +top, +depth, +n, +st}:
+          match st:
+            case 0:
+              demand.c(p, dc.fl(P.frees(U32.to_nat(KR.most_alloc()), h), path, top, depth, n))
             case _:
               D{h, path, top, depth, n, st}
 
