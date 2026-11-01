@@ -1309,7 +1309,8 @@ def reach(h: P.H) -> P.H & U32:
 # freed could never be observed. The pass reads the marks a word at a
 # time, 32 nodes, and counts the nodes free after it, those it frees and
 # those free before, so that a collection needs no walk of the free list
-# (heap-strategies.erasure.load.cycle.cost).
+# (heap-strategies.erasure.load.cycle.cost); a word all set passes its
+# nodes unread (heap-strategies.erasure.load.cycle.sweep-full).
 type Sw is Type:
   Sw{h: P.H, mk: KM.M, +f: U32}
 
@@ -1352,9 +1353,17 @@ def sw.blk(k: Nat, s: Sw, +i: U32, +v: U32) -> Sw:
         case Sw{h, mk, +f}:
           sw.blk(p, sw.hd(P.rd(h, (i << 2n : U32)), mk, f, i, v), (i + 1 : U32), v)
 
+# a block whose nodes were all reached holds none free or dead: passed
+def sw.mw.all(+all: Bool, h: P.H, mk: KM.M, +f: U32, +k: Nat, +i: U32, +v: U32) -> Sw:
+  match all:
+    case True{}:
+      Sw{h, mk, f}
+    case False{}:
+      sw.blk(k, Sw{h, mk, f}, i, v)
+
 def sw.mw(r: KM.M & U32, h: P.H, +f: U32, +k: Nat, +i: U32) -> Sw:
   (mk, +v) = r
-  sw.blk(k, Sw{h, mk, f}, i, v)
+  sw.mw.all(U32.is_eq(v, 4294967295), h, mk, f, k, i, v)
 
 # nb blocks of 32 nodes from block b
 def sw.go(nb: Nat, +b: U32, s: Sw) -> Sw:
