@@ -778,13 +778,22 @@ Speed:
       names itself in the generated file. Whether an operator agrees with
       the binds it stands for, a superposed argument behind a control
       above all, rests on the random terms and the library for now.
-    - `spike-operators.encoding` — tentative — a builtin encoded one way
-      in data and operators alike, so that materializing is a change of
-      kind: the field its op (7 or 8 bits) and the arity remaining (3),
-      the form its accumulator's, none, an immediate number or a table
-      reference, the word the accumulator; the call's encoding replaced
-      (the op in the field, the arity in the word or implied, the rest in
-      the table's flat forms), each step counted.
+    - `spike-operators.encoding` — built 2026-11-01 — a builtin encoded
+      one way in data and operators alike, so that materializing is a
+      change of kind (`kprim.bend`'s `benc`, `bop`, `bneed`): the field
+      its op (8 bits) and the arguments it still needs (3), the form its
+      accumulator's, none (2), one number in the word (3) or an entry in
+      the table (0, the field naming the builtin still, so that the
+      application's test reads no entry), other entries' field 0. The
+      call's encoding replaced: the op in the field, the need in the word
+      or implied 1, one number collected only before the last argument,
+      `fma 1` in the table where it is now in the node; the kernel makes
+      no `VP1` now, reading one as form 3 (the model keeps it, and its
+      law). The library checks the field read back for every op and need
+      it holds (`knet.bend`'s `builtin_fields`; the need read a bit off,
+      it fails). The random terms give run 102's values and counts term
+      for term (store run 107); four builds at k 18 (run 108 against
+      106): the same interactions, -0.85% to +1.07% instructions.
     - `spike-operators.lazy` — tentative — an operator takes its argument
       unforced, so a lazy cell's handle may reach it, where demand's
       need, which reads and resumes B's data, must read the operator's

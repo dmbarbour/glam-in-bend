@@ -504,6 +504,36 @@ def evt.ok(s: String) -> String:
 def ev_tables() -> String:
   evt.ok(evt.ks(64n, 0, ""))
 
+# A builtin's field read back (kprim.bend's benc, bop, bneed): every op and
+# need that fit (bfits), within the field's 24 bits; the library checks it
+# at every gate (builtin_fields)
+def bf.one(+op: U32, +need: U32) -> Bool:
+  U32.is_eq(P.bop(P.benc(op, need)), op) && U32.is_eq(P.bneed(P.benc(op, need)), need) && U32.is_lt(P.benc(op, need), P.lvl_cap())
+
+def bf.ops(n: Nat, +op: U32, +need: U32) -> Bool:
+  match n:
+    case 0n:
+      True{}
+    case 1n+r:
+      bf.one(op, need) && bf.ops(r, (op + 1 : U32), need)
+
+def bf.needs(n: Nat, +need: U32) -> Bool:
+  match n:
+    case 0n:
+      True{}
+    case 1n+r:
+      bf.ops(256n, 0, need) && bf.needs(r, (need + 1 : U32))
+
+def bf.say(ok: Bool) -> String:
+  match ok:
+    case True{}:
+      "ok"
+    case False{}:
+      "wrong"
+
+def builtin_fields() -> String:
+  bf.say(bf.needs(8n, 0))
+
 # port n of a node with header hn facing the principal of one with header
 # hr, an eraser or a dead call making an event there
 def ev.is(+hn: U32, +n: U32, +hr: U32) -> Bool:

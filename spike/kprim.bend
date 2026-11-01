@@ -11,17 +11,20 @@ import ./kmem_grow.bend as KM
 # the rule kind, as net.bend's kcode, in the low 6 bits, the value form in
 # the next 2, and a 24-bit field: a function's or an application's level,
 # a fan's level (its site, in nets built without levels), a control's
-# index, a builtin's op. Words 1 .. 3: the links of ports 0 .. 2, a
-# reference being n * 4 + port. A data node, with one port, holds its value
-# in words 2 and 3; a call keeps its function in word 3, a control its
+# index, a builtin's op and need. Words 1 .. 3: the links of ports 0 .. 2,
+# a reference being n * 4 + port. A data node, with one port, holds its
+# value in word 2; an operator keeps its builtin in word 3, a control its
 # offset (bit 31 set to raise, the amount below).
 #
 # Value forms: 0, an entry in the data table (the word its index); 1, a
-# number (the word); 2, a builtin with no argument collected yet (the
-# field its op, the word how many it needs); 3, a builtin needing one more
-# argument, one number collected (the field its op, the word the number).
-# A builtin of forms 2 and 3 meeting a number runs natively, by V.num1 and
-# V.num2, without building the Bend value. The table is linear: an entry
+# number (the word); 2, a builtin with no argument collected yet; 3, a
+# builtin with one number collected (the word). A builtin's field holds its
+# op and the arguments it still needs (benc; operator-nodes), in data and
+# operators alike, so that an application meeting it becomes an operator
+# by a change of kind; an entry holding a builtin names it in the field
+# too, other entries 0. A builtin of forms 2 and 3 meeting a number runs
+# natively, by V.num1 and V.num2, or collects it, without building the
+# Bend value. The table is linear: an entry
 # has one owner, is handed on when its owner's value moves, duplicated
 # when it is copied, freed when it is dropped.
 
@@ -577,62 +580,75 @@ def tab_take(h: H, +i: U32) -> H & V.Val:
 type PW is Data:
   PW{+m: U32, +f: U32, +w: U32}
 
-def pw.tab(r: H & U32) -> H & PW:
-  (h, +i) = r
-  (h, PW{0, 0, i})
+# A builtin's field (operator-nodes): its op in the low 8 bits, the
+# arguments it still needs in the 3 above; 0 for a value that is no
+# builtin, or one that does not fit
+def benc(+op: U32, +need: U32) -> U32:
+  (op .|. (need << 8n : U32) : U32)
 
-def put.one(+need: U32, h: H, +op: U32, +n: U32) -> H & PW:
-  match need:
-    case 1:
-      (h, PW{3, op, n})
-    case _:
-      pw.tab(tab_put(h, V.VP1{op, need, n}))
+def bop(+f: U32) -> U32:
+  (f .&. 255 : U32)
+
+def bneed(+f: U32) -> U32:
+  (f >> 8n : U32)
+
+def bfits(+op: U32, +need: U32) -> Bool:
+  U32.is_lt(op, 256) && U32.is_lt(need, 8)
+
+# an entry, the field f
+def pw.tab(r: H & U32, +f: U32) -> H & PW:
+  (h, +i) = r
+  (h, PW{0, f, i})
 
 def put.two(t: List<&2, V.Val>, h: H, +op: U32, +need: U32, +a: U32, v: V.Val) -> H & PW:
   match t:
     case Con{V.VNum{+b}, u}:
       match u:
         case Nil{}:
-          pw.tab(tab_put(h, V.VP2{op, need, a, b}))
+          pw.tab(tab_put(h, V.VP2{op, need, a, b}), benc(op, need))
         case _:
-          pw.tab(tab_put(h, v))
+          pw.tab(tab_put(h, v), benc(op, need))
     case _:
-      pw.tab(tab_put(h, v))
+      pw.tab(tab_put(h, v), benc(op, need))
 
-# a builtin with no number collected in the node, one or two in a flat
-# form in the table, more as they are
+# a builtin, its op and need in the field: none collected, or one number,
+# in the node; two numbers in a flat form in the table, more as they are
 def put.fun.go(args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
   match args:
     case Nil{}:
-      (h, PW{2, op, need})
+      (h, PW{2, benc(op, need), 0})
     case Con{V.VNum{+n}, t}:
       match t:
         case Nil{}:
-          put.one(need, h, op, n)
+          (h, PW{3, benc(op, need), n})
         case _:
           put.two(t, h, op, need, n, v)
     case _:
-      pw.tab(tab_put(h, v))
+      pw.tab(tab_put(h, v), benc(op, need))
 
-# a builtin in the node when its op fits the field, else an entry
+# a builtin encoded when its op and need fit the field, else an entry
 def put.fun(fits: Bool, args: List<&2, V.Val>, h: H, +op: U32, +need: U32, v: V.Val) -> H & PW:
   match fits:
     case True{}:
       put.fun.go(args, h, op, need, v)
     case False{}:
-      pw.tab(tab_put(h, v))
+      pw.tab(tab_put(h, v), 0)
 
-# a value in the form a node holds it: a number, a bare builtin or one
-# needing a last argument after a number in the node, anything else a new
-# entry
+# a value in the form a node holds it: a number; a builtin, its op and
+# need in the field, none or one number collected in the node, else an
+# entry; anything else a new entry
 def put(h: H, v: V.Val) -> H & PW:
   match v:
     case V.VNum{+n}:
       (h, PW{1, 0, n})
     case V.VFun{+op, +need, +args}:
-      put.fun(U32.is_lt(op, lvl_cap()), args, h, op, need, V.VFun{op, need, args})
+      put.fun(bfits(op, need), args, h, op, need, V.VFun{op, need, args})
+    case V.VP1{+op, +need, +a}:
+      put.fun(bfits(op, need), [V.VNum{a}], h, op, need, V.VP1{op, need, a})
+    case V.VP2{+op, +need, +a, +b}:
+      put.fun(bfits(op, need), [V.VNum{a}, V.VNum{b}], h, op, need, V.VP2{op, need, a, b})
     case _:
-      pw.tab(tab_put(h, v))
+      pw.tab(tab_put(h, v), 0)
 
 def chk.fin(r: V.Val & Bool, h: H) -> H & V.Val:
   (v, +bad) = r
@@ -651,9 +667,9 @@ def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case 1:
       (h, V.VNum{w})
     case 2:
-      (h, V.VFun{f, w, Nil{}})
+      (h, V.VFun{bop(f), bneed(f), Nil{}})
     case 3:
-      (h, V.VFun{f, 1, [V.VNum{w}]})
+      (h, V.VFun{bop(f), bneed(f), [V.VNum{w}]})
     case _:
       chk(tab_take(h, w))
 
@@ -663,9 +679,9 @@ def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case 1:
       (h, V.VNum{w})
     case 2:
-      (h, V.VFun{f, w, Nil{}})
+      (h, V.VFun{bop(f), bneed(f), Nil{}})
     case 3:
-      (h, V.VFun{f, 1, [V.VNum{w}]})
+      (h, V.VFun{bop(f), bneed(f), [V.VNum{w}]})
     case _:
       chk(tab_get(h, w))
 
@@ -702,22 +718,30 @@ def apply.a(r: H & V.Val, +hb: U32, +pb: U32) -> H & PW:
 def apply.gen(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
   apply.a(take(h, form(ha), fld(ha), pa), hb, pb)
 
-# a bare builtin needing `need` meets a number
-def apply.bare(+need: U32, h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
+# a bare builtin of op op, needing `need`, meets a number: the last
+# argument computes, an earlier one is collected in the node
+def apply.bare(+need: U32, +op: U32, h: H, +pb: U32) -> H & PW:
   match need:
     case 1:
-      put(h, V.num1(fld(ha), pb))
-    case 2:
-      (h, PW{3, fld(ha), pb})
+      put(h, V.num1(op, pb))
     case _:
-      apply.gen(h, ha, pa, hb, pb)
+      (h, PW{3, benc(op, (need - 1 : U32)), pb})
+
+# a builtin holding one number a meets another: the last computes, an
+# earlier one makes two collected, in the table
+def apply.one(+need: U32, +op: U32, h: H, +a: U32, +pb: U32) -> H & PW:
+  match need:
+    case 1:
+      put(h, V.num2(op, a, pb))
+    case _:
+      pw.tab(tab_put(h, V.VP2{op, (need - 1 : U32), a, pb}), benc(op, (need - 1 : U32)))
 
 def apply.n(+ma: U32, +mb: U32, h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
   match ma mb:
     case 2 1:
-      apply.bare(pa, h, ha, pa, hb, pb)
+      apply.bare(bneed(fld(ha)), bop(fld(ha)), h, pb)
     case 3 1:
-      put(h, V.num2(fld(ha), pa, pb))
+      apply.one(bneed(fld(ha)), bop(fld(ha)), h, pa, pb)
     case _ _:
       apply.gen(h, ha, pa, hb, pb)
 
@@ -741,7 +765,15 @@ def is_fn.fin(r: H & V.Val) -> H & Bool:
   (h, v) = r
   (h, is_fn(v))
 
-# is the value a function? A builtin is; a number is not.
+def val_is_fn.tab(named: Bool, h: H, +w: U32) -> H & Bool:
+  match named:
+    case True{}:
+      (h, True{})
+    case False{}:
+      is_fn.fin(tab_get(h, w))
+
+# is the value a function? A builtin is, an entry its field names one
+# without the table read; a number is not.
 def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
   match m:
     case 1:
@@ -751,7 +783,7 @@ def val_is_fn(h: H, +m: U32, +f: U32, +w: U32) -> H & Bool:
     case 3:
       (h, True{})
     case _:
-      is_fn.fin(tab_get(h, w))
+      val_is_fn.tab(U32.is_ne(f, 0), h, w)
 
 # a table entry that is a handle, VLazy: a pair meeting it may need
 # another cell's value (HeapModel's "Forcing")

@@ -48,7 +48,8 @@ measured, the generated rewrites and the interpreted table making the
 same interactions and events, and the profile with events as many as the
 generated rewrites.
 The kernel's events tables are checked against the model's events for
-every kind code a header holds (knet.bend's ev_tables).
+every kind code a header holds (knet.bend's ev_tables), and a builtin's
+field read back for every op and need it holds (builtin_fields).
 Checked besides, for every case: no errors, the data table, the free
 list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
@@ -220,7 +221,7 @@ def all(n: Nat, +k: U32) -> String:
       one(k) ++ "\n" ++ all(p, (k + 1 : U32))
 
 def main() -> IO(Unit):
-  IO.print(all(COUNT, 0) ++ "events tables: " ++ KN.ev_tables())
+  IO.print(all(COUNT, 0) ++ "events tables: " ++ KN.ev_tables() ++ "\nbuiltin fields: " ++ KN.builtin_fields())
 '''
 
 
@@ -415,6 +416,10 @@ def main(argv):
     if tables != ["events tables: ok"]:
         failing += 1
         print("FAIL the events tables: " + (tables[0][len("events tables: "):] if tables else "no result"))
+    fields = [l for l in res.stdout.splitlines() if l.startswith("builtin fields: ")]
+    if fields != ["builtin fields: ok"]:
+        failing += 1
+        print("FAIL the builtin fields: " + (fields[0][len("builtin fields: "):] if fields else "no result"))
     runs = []
     for i, c in enumerate(cs):
         r = got.get(i)
