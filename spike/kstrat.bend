@@ -379,7 +379,7 @@ def lw.mk(g: KM.M, +l: U32) -> KM.M & U32:
 
 def nd.l2(r: KM.M & U32, +hd: U32, +l1: U32) -> Nd:
   (w, +l2) = r
-  Nd{w, hd, l1, lw.nn(l2)}
+  Nd{w, hd, l1, l2}
 
 def nd.l1(r: KM.M & U32, +hd: U32, +i2: U32) -> Nd:
   (w, +l1) = r
@@ -391,26 +391,38 @@ def nd.hd(r: KM.M & U32, +b: U32, +p: U32) -> Nd:
   (w, +hd) = r
   nd.l1(KM.m_get(w, ((b + 1 : U32) + (1 >> U32.to_nat(p) : U32) : U32)), hd, ((b + 3 : U32) - (p >> 1n : U32) : U32))
 
+def lw.f1p(pair: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> Lw:
+  match pair:
+    case True{}:
+      Lw{w, KM.m_set(g, q, b), c, n, (q + 1 : U32)}
+    case False{}:
+      Lw{w, g, c, n, q}
+
 # o1's link l1 followed if the node behind was unmarked, else the stack's
 # top next (0); b noted as a pair's lower node where p is not 0 (o1 is
 # the principal), l1 is a principal, and the node behind was unmarked or
-# is the higher. The note's word is written whether or not it is kept.
+# is the higher
 def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   (g, +old) = r
-  Lw{w, KM.m_set(g, q, b), (l1 .&. (old - 1 : U32) : U32), n,
-    (q + ((((p + 3 : U32) >> 2n : U32) .&. (1 - (((l1 .&. 3 : U32) + 3 : U32) >> 2n : U32) : U32) : U32) .&.
-      ((1 - old : U32) .|. ((b - P.base(l1) : U32) >> 31n : U32) : U32) : U32) : U32)}
+  lw.f1p(U32.is_ne(p, 0) && U32.is_eq(P.port(l1), 0) && (U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1))),
+    w, g, n, q, b, (l1 .&. (old - 1 : U32) : U32))
 
 def lw.f1(s: Gn, w: KM.M, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
   match s:
     case Gn{g, +n}:
       lw.f1m(lw.mk(g, l1), w, n, q, b, p, l1)
 
-# o2's link pushed unless the node behind was marked (the word below the
-# stack written either way)
+def lw.push.o(+old: U32, g: KM.M, +n: U32, +l2: U32) -> Gn:
+  match old:
+    case 0:
+      Gn{KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32)}
+    case _:
+      Gn{g, n}
+
+# o2's link pushed unless the node behind was marked
 def lw.push(r: KM.M & U32, +n: U32, +l2: U32) -> Gn:
   (g, +old) = r
-  Gn{KM.m_set(g, (n - 1 : U32), l2), ((n - 1 : U32) + old : U32)}
+  lw.push.o(old, g, n, l2)
 
 def lw.p2(three: Bool, g: KM.M, +n: U32, +l2: U32) -> Gn:
   match three:
@@ -439,24 +451,26 @@ def lw.ar(+a: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U3
     case 1:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(U32.is_eq(a, 3), g, n, l2), w, q, b, p, l1)
+      lw.f1(lw.p2(U32.is_eq(a, 3), g, n, lw.nn(l2)), w, q, b, p, l1)
 
 def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32) -> Lw:
   match d:
     case Nd{w, +hd, +l1, +l2}:
       lw.ar(KR.kind_arity(P.rk(hd)), w, g, n, q, b, p, hd, l1, l2)
 
-# where the step ended its run, the stack's top popped: its word read
-# either way
-def lw.pop(r: KM.M & U32, w: KM.M, +c: U32, +n: U32, +q: U32) -> Lw:
-  (g, +t) = r
-  Lw{w, g, (c .|. (t .&. (0 - (1 - ((c .|. (0 - c : U32) : U32) >> 31n : U32) : U32) : U32) : U32) : U32),
-    (n + (1 - ((c .|. (0 - c : U32) : U32) >> 31n : U32) : U32) : U32), q}
+def lw.pop(r: KM.M & U32, w: KM.M, +n: U32, +q: U32) -> Lw:
+  (g, +c) = r
+  Lw{w, g, c, (n + 1 : U32), q}
 
+# where the step ended its run, the stack's top popped
 def lw.nx(s: Lw) -> Lw:
   match s:
     case Lw{w, g, +c, +n, +q}:
-      lw.pop(KM.m_get(g, n), w, c, n, q)
+      match c:
+        case 0:
+          lw.pop(KM.m_get(g, n), w, n, q)
+        case _:
+          Lw{w, g, c, n, q}
 
 def lw.go(k: Nat, s: Lw) -> Lw:
   match k:
