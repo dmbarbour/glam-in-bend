@@ -34,9 +34,12 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 
       - `parent.sub` — disposition — what it does, and what it found
 
-  where the disposition is `tentative`, `contingent on` one or more steps
-  in backticks, `active`, `built <date>` or `dropped <date>`, the reason
-  after it. A trailer names the deepest step advanced; `git log -F --grep
+  where the disposition is `tentative`, `planned`, `contingent on` one or
+  more steps in backticks, `active`, `built <date>` or `dropped <date>`,
+  the reason after it. `tentative` is an idea, brainstorming that likely
+  wants discussion before work; `planned` is accepted work, the
+  maintainer's or agreed with them, waiting its turn (the maintainer,
+  2026-11-01). A trailer names the deepest step advanced; `git log -F --grep
   'Plan-Step: heap-strategies'` finds a step and its sub-steps.
 
 ## Active Plans

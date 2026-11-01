@@ -19,7 +19,7 @@ INDEX_LINE = re.compile(r"^- \[`([a-z0-9-]+)`\]\(decisions/\1\.md\)")
 RECORD_BODY = re.compile(r"^\*\*(Context|Decision|Consequences)\.\*\*")
 STEP = re.compile(r"^\s*(?:\d+\.|[-*])\s+`([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*)`\s+—(.*)$", re.M)
 # a sub-step's disposition, the first words after its name (docs/plans/README.md)
-DISPOSITION = re.compile(r"^\s*(tentative|active|contingent\s+on\s+`[^`]+`(?:(?:,|\s+and)\s+`[^`]+`)*"
+DISPOSITION = re.compile(r"^\s*(tentative|planned|active|contingent\s+on\s+`[^`]+`(?:(?:,|\s+and)\s+`[^`]+`)*"
                          r"|built\s+\d{4}-\d\d-\d\d|dropped\s+\d{4}-\d\d-\d\d)(?![\w-])")
 # a list item's continuation: an indented line that starts no item
 CONTINUED = re.compile(r"\n[ \t]+(?!(?:\d+\.|[-*])\s)(\S[^\n]*)")
@@ -148,7 +148,7 @@ def check_step_names():
                 fail(path, f"sub-step `{name}` has no parent `{parent}` in its plan")
             d = DISPOSITION.match(rest)
             if not d:
-                fail(path, f"sub-step `{name}` gives no disposition (tentative, contingent on `step`, active, built <date>, dropped <date>)")
+                fail(path, f"sub-step `{name}` gives no disposition (tentative, planned, contingent on `step`, active, built <date>, dropped <date>)")
             elif d.group(1).startswith("contingent"):
                 for dep in re.findall(r"`([^`]+)`", d.group(1)):
                     if dep not in known:

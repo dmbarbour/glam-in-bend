@@ -335,7 +335,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.oom`,
    `heap-strategies.erasure.load.cycle.loops`,
    `heap-strategies.erasure.load.cycle.library`,
-   `heap-strategies.erasure.load.cycle.trace` (prototyped),
+   `heap-strategies.erasure.load.cycle.trace` (dropped),
    `heap-strategies.erasure.load.cycle.trace.lean` (built),
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.room`,
@@ -1379,7 +1379,7 @@ takes from it:
              two levels, erasers on an auxiliary port of each; it needs
              merges and positive erasers in the library's nets
              (`terms.py`'s node kinds).
-         - `heap-strategies.erasure.load.cycle.oom` — tentative — a failed
+         - `heap-strategies.erasure.load.cycle.oom` — planned — a failed
            growth counted apart from the program's errors (`P.h_err`), in
            the eager strategies too (`machine-limits-not-errors`).
          - `heap-strategies.erasure.load.cycle.loops` — tentative — loops
@@ -1429,7 +1429,9 @@ takes from it:
        growing too (93, 173, 256 at 5,000, 20,000, 80,000 steps), so
        renumbering from the least live level gains nothing; more bits, or
        a stated limit, remain.
-     - `heap-strategies.erasure.load.cycle.trace` — tentative — more
+     - `heap-strategies.erasure.load.cycle.trace` — dropped 2026-11-01,
+       for `.trace.lean`, rewriting as the walk reaches pairs costing
+       twice the scan it saved (the prototype below) — more
        phases in one (the maintainer, 2026-11-01: more to squeeze from
        collection, eval as part of tracing; it is heuristic, trading
        completeness, space and speed): the marking walk finding the pairs
@@ -1477,7 +1479,7 @@ takes from it:
            `list-bind-16` and `mixin-once-16` with labels); `search-count`
            and `list-length` stay doubled, what they lack cut off, not
            freed. Instructions unchanged (158 a node on `succ`).
-     - `heap-strategies.erasure.load.cycle.room` — tentative — the
+     - `heap-strategies.erasure.load.cycle.room` — planned — the
        nodes the room check walks to on the free list popped there and
        handed to the rewrite, rather than walked and then popped again
        by the allocator (the maintainer, 2026-11-01); the generated
@@ -1486,7 +1488,7 @@ takes from it:
        collection's arrays (the queue and the worklist, a word a node;
        the marks, a bit a node) kept with the net from one collection to
        the next, where each is made and zeroed anew.
-     - `heap-strategies.generate` — tentative — the rewrite written out
+     - `heap-strategies.generate` — planned — the rewrite written out
        by hand in `kstrat.bend` (`wk.rw.p`, `wk.rw.v`, `wk.rw.c`,
        `wk.room.go`), since a wrapper over the templated one cost a call
        a rewrite: generated instead (the maintainer, 2026-11-01:
