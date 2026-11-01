@@ -319,6 +319,7 @@ takes from it:
    `heap-strategies.measure.spot` (built) and `heap-strategies.measure.builds` (built),
    `heap-strategies.erasure.deadcall` (built) before the operators (the
    maintainer, 2026-10-31), `heap-strategies.kinds.payloads` (built),
+   `heap-strategies.kinds.payloads.links` (built),
    `heap-strategies.erasure.deadcall.chain` (built),
    `heap-strategies.measure.differential` (built),
    `heap-strategies.measure.loader` (built),
@@ -1147,6 +1148,21 @@ takes from it:
          0.8% to 1.4% more, forced inline -0.4% to +1.7%, all of it the
          dead call's arm added by the fix before (main alone, run 97,
          the same counts); the move costs nothing.
+         - `heap-strategies.kinds.payloads.links` — built 2026-11-01 —
+           which of a node's words are links follows from its kind alone,
+           not its form or field (the maintainer, 2026-11-01): the
+           kernel's ports are R.arity's, kind_arity generated from it and
+           read from the header's six kind bits; the payload's word comes
+           from the kind too (`kprim.bend`'s `node.word`). Law
+           `payload_past_links`: a kind holding a payload keeps it past
+           its links, so that a kind of three ports holds none. The
+           generator's `holds` moved to the model (`rules.bend`'s
+           `R.holds`) for the law to read; the generated rewrites are
+           unchanged. The law fails where a kind of three ports is given
+           a payload, or an operator's payload word is moved onto its
+           second port's link (both tried). The operator's rotation,
+           which kept an argument in the word a consumed link freed,
+           retired with `operator-nodes`.
        - `heap-strategies.erasure.deadcall.chain` — built 2026-10-31 — a
          call whose output faces a dead call's principal dies too: the
          dead call met is B to the event, freed with its builtin, whose
