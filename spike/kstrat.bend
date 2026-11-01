@@ -468,28 +468,51 @@ def lean.st(r: P.H & P.HS) -> P.H & U32:
 def collect_lean(h: P.H) -> P.H & U32:
   lean.st(P.stats(h))
 
-def cyc.grow(+ok: Bool, h: P.H) -> P.H & Bool:
+# a collection's end: the net, whether it has room, and the nodes on its
+# free list, for the next chunk's steps (dc.chunk)
+type Cc is Type:
+  Cc{h: P.H, +ok: Bool, +free: U32}
+
+# the store doubled: its old capacity's nodes added to the list
+def cyc.grown(r: P.H & Bool, +free: U32, +cap: U32) -> Cc:
+  (h, +ok) = r
   match ok:
     case True{}:
-      (h, True{})
+      Cc{h, True{}, (free + cap : U32)}
     case False{}:
-      P.grow_more(h)
+      Cc{h, False{}, free}
 
-def cyc.cap(r: P.H & P.HS, +free: U32) -> P.H & Bool:
+def cyc.grow(+ok: Bool, h: P.H, +free: U32, +cap: U32) -> Cc:
+  match ok:
+    case True{}:
+      Cc{h, True{}, free}
+    case False{}:
+      cyc.grown(P.grow_more(h), free, cap)
+
+def cyc.cap(r: P.H & P.HS, +free: U32) -> Cc:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      cyc.grow(U32.is_ge((free * 2 : U32), cap), h)
+      cyc.grow(U32.is_ge((free * 2 : U32), cap), h, free, cap)
 
-def cyc.sw(r: P.H & U32) -> P.H & Bool:
+def cyc.sw(r: P.H & U32) -> Cc:
   (h, +free) = r
   cyc.cap(P.stats(h), free)
 
 # a collection under demand, counted (P.cycle): the lean trace, and the
 # net doubled unless half of it is then free; whether it has room, false
-# only where it had to grow and could not
-def collect_cycle(h: P.H) -> P.H & Bool:
+# only where it had to grow and could not, and the nodes free after
+def collect_cycle.c(h: P.H) -> Cc:
   cyc.sw(collect_lean(P.cycle(h)))
+
+def cc.hb(c: Cc) -> P.H & Bool:
+  match c:
+    case Cc{h, +ok, +free}:
+      (h, ok)
+
+# the same, the net and whether it has room
+def collect_cycle(h: P.H) -> P.H & Bool:
+  cc.hb(collect_cycle.c(h))
 
 # Two stacks
 # ==========
@@ -1171,13 +1194,17 @@ def demand.v(k: Nat, d: D) -> D:
 # interface, its path's array kept: a collection comes between steps, so
 # it may rewrite any pair it may, the path's own among them, and no pair
 # is left out. S is the net's capacity over 64, the reserve a 32nd of it.
+# After a collection, its free list holds at least the nodes the
+# collection counted free (less the reserve, set aside next), which half
+# as many steps cannot exhaust: the chunk after it runs that many steps
+# besides its S, the reserve then covering S as ever.
 # A net that had to grow and could not: out of memory (6), the runtime's
 # error.
 
 # what a chunk leaves: the walk, its steps left, and whether the next
 # chunk's end collects whatever the reserve (the stress test)
 type Dl is Type:
-  Dl{+left: U32, +force: Bool, d: D}
+  Dl{+left: U32, +bud: U32, +force: Bool, d: D}
 
 def rs.k(r: P.H & P.HS) -> P.H & Bool:
   (h, hs) = r
@@ -1222,9 +1249,9 @@ def dc.steps(+force: Bool, +cap: U32) -> U32:
 def dc.run(+ok: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps: U32, +left: U32, +force: Bool) -> Dl:
   match ok:
     case True{}:
-      Dl{(left - steps : U32), force, demand.go(U32.to_nat(steps), D{h, path, top, depth, n, 0})}
+      Dl{(left - steps : U32), 0, force, demand.go(U32.to_nat(steps), D{h, path, top, depth, n, 0})}
     case False{}:
-      Dl{left, force, d.stop(h, path, top, depth, n, 6)}
+      Dl{left, 0, force, d.stop(h, path, top, depth, n, 6)}
 
 def dc.rs(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps: U32, +left: U32, +force: Bool) -> Dl:
   (h, +ok) = r
@@ -1236,30 +1263,41 @@ def dc.rs(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps: U3
 # interface after a collection takes a step for each power of two in its
 # depth (wk.push), at most 11 in such a net, so a chunk of 4 made no
 # progress
-def dc.chunk(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +left: U32, +stress: Bool) -> Dl:
+# the steps a collection's free nodes allow, less the reserve: none under
+# stress
+def dc.bud(+force: Bool, +bud: U32, +cap: U32) -> U32:
+  match force:
+    case True{}:
+      0
+    case False{}:
+      ((U32.max(bud, (cap >> 5n : U32)) - (cap >> 5n : U32) : U32) >> 1n : U32)
+
+def dc.chunk(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +left: U32, +bud: U32, +stress: Bool) -> Dl:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
       dc.rs(dc.reserve(h), path, top, depth, n,
-        U32.min(dc.steps(stress && U32.is_le(cap, 1024), cap), left), left, stress && U32.is_le(cap, 1024))
+        U32.min((dc.steps(stress && U32.is_le(cap, 1024), cap) + dc.bud(stress && U32.is_le(cap, 1024), bud, cap) : U32), left),
+        left, stress && U32.is_le(cap, 1024))
 
-def dc.ok(+ok: Bool, h: P.H, path: KM.M, +n: U32, +left: U32, +force: Bool) -> Dl:
+def dc.ok(+ok: Bool, h: P.H, path: KM.M, +n: U32, +left: U32, +free: U32, +force: Bool) -> Dl:
   match ok:
     case True{}:
-      Dl{left, force, d.go(h, path, P.iface(), 0, n)}
+      Dl{left, free, force, d.go(h, path, P.iface(), 0, n)}
     case False{}:
-      Dl{left, force, d.stop(h, path, P.iface(), 0, n, 6)}
+      Dl{left, 0, force, d.stop(h, path, P.iface(), 0, n, 6)}
 
-def dc.col(r: P.H & Bool, path: KM.M, +n: U32, +left: U32, +force: Bool) -> Dl:
-  (h, +ok) = r
-  dc.ok(ok, h, path, n, left, force)
+def dc.col(c: Cc, path: KM.M, +n: U32, +left: U32, +force: Bool) -> Dl:
+  match c:
+    case Cc{h, +ok, +free}:
+      dc.ok(ok, h, path, n, left, free, force)
 
 def dc.tap.go(go: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +left: U32, +force: Bool) -> Dl:
   match go:
     case True{}:
-      dc.col(collect_cycle(h), path, n, left, force)
+      dc.col(collect_cycle.c(h), path, n, left, force)
     case False{}:
-      Dl{left, force, D{h, path, top, depth, n, st}}
+      Dl{left, 0, force, D{h, path, top, depth, n, st}}
 
 def dc.tap(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +left: U32, +force: Bool) -> Dl:
   (h, +tap) = r
@@ -1268,7 +1306,7 @@ def dc.tap(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, 
 # a chunk's end: the net collected where the reserve was taken
 def dc.after(s: Dl) -> Dl:
   match s:
-    case Dl{+left, +force, d}:
+    case Dl{+left, +bud, +force, d}:
       match d:
         case D{h, path, +top, +depth, +n, +st}:
           dc.tap(P.rd(h, P.at_tap()), path, top, depth, n, st, left, force)
@@ -1277,11 +1315,11 @@ def dc.loop(k: Nat, s: Dl, +stress: Bool) -> D:
   match k:
     case 0n:
       match s:
-        case Dl{+left, +force, d}:
+        case Dl{+left, +bud, +force, d}:
           d.end(d)
     case 1n+p:
       match s:
-        case Dl{+left, +force, d}:
+        case Dl{+left, +bud, +force, d}:
           match left:
             case 0:
               d.end(d)
@@ -1290,18 +1328,18 @@ def dc.loop(k: Nat, s: Dl, +stress: Bool) -> D:
                 case D{h, path, +top, +depth, +n, +st}:
                   match st:
                     case 0:
-                      dc.loop(p, dc.after(dc.chunk(P.stats(h), path, top, depth, n, left, stress)), stress)
+                      dc.loop(p, dc.after(dc.chunk(P.stats(h), path, top, depth, n, left, bud, stress)), stress)
                     case _:
                       D{h, path, top, depth, n, st}
 
 # demand collecting where its net would grow, for at most k steps
 def demand.c(+k: Nat, d: D) -> D:
-  dc.loop(k, Dl{U32.from_nat(k), False{}, d}, False{})
+  dc.loop(k, Dl{U32.from_nat(k), 0, False{}, d}, False{})
 
 # the same as a stress test (heap-strategies.erasure.load.cycle.stress):
 # a net of 1024 nodes or fewer collected every 16 steps
 def demand.s(+k: Nat, d: D) -> D:
-  dc.loop(k, Dl{U32.from_nat(k), False{}, d}, True{})
+  dc.loop(k, Dl{U32.from_nat(k), 0, False{}, d}, True{})
 
 def d.path(r: KM.M & U32) -> KM.M:
   (m, +cap) = r

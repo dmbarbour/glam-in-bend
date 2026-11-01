@@ -1352,9 +1352,17 @@ def sw.blk(k: Nat, s: Sw, +i: U32, +v: U32) -> Sw:
         case Sw{h, mk, +f}:
           sw.blk(p, sw.hd(P.rd(h, (i << 2n : U32)), mk, f, i, v), (i + 1 : U32), v)
 
+# a block whose nodes were all reached holds none free or dead: passed
+def sw.mw.all(+all: Bool, h: P.H, mk: KM.M, +f: U32, +k: Nat, +i: U32, +v: U32) -> Sw:
+  match all:
+    case True{}:
+      Sw{h, mk, f}
+    case False{}:
+      sw.blk(k, Sw{h, mk, f}, i, v)
+
 def sw.mw(r: KM.M & U32, h: P.H, +f: U32, +k: Nat, +i: U32) -> Sw:
   (mk, +v) = r
-  sw.blk(k, Sw{h, mk, f}, i, v)
+  sw.mw.all(U32.is_eq(v, 4294967295), h, mk, f, k, i, v)
 
 # nb blocks of 32 nodes from block b
 def sw.go(nb: Nat, +b: U32, s: Sw) -> Sw:
