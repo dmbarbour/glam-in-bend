@@ -85,7 +85,8 @@ Lessons carried over from the Rust bootstrap:
   a Bend program where possible, into files of its own that nobody edits;
   list each in `scripts/check_generated.sh`, which the gate and the
   pre-commit hook run. Python is a development tool, never the source; no
-  macro processors, no scripts that rewrite sources (`generated-sources`).
+  external macro processors (a preprocessor of our own, in Bend, may
+  come), no scripts that rewrite sources (`generated-sources`).
 
 ## Measuring
 

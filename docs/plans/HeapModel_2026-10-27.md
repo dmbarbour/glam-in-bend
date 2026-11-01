@@ -337,6 +337,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.library`,
    `heap-strategies.erasure.load.cycle.trace`,
    `heap-strategies.erasure.load.cycle.buffers`,
+   `heap-strategies.erasure.load.cycle.room`,
    `heap-strategies.erasure.load.cycle.loops.levels`,
    `heap-strategies.generate`,
    `heap-strategies.erasure.typed`,
@@ -1430,6 +1431,11 @@ takes from it:
        there, what they cut off then never marked, the sweep's pass
        after; one walk and one pass where there are two scans, a walk
        and a pass.
+     - `heap-strategies.erasure.load.cycle.room` — tentative — the
+       nodes the room check walks to on the free list popped there and
+       handed to the rewrite, rather than walked and then popped again
+       by the allocator (the maintainer, 2026-11-01); the generated
+       rewrites would take nodes as arguments.
      - `heap-strategies.erasure.load.cycle.buffers` — tentative — the
        collection's arrays (the queue and the worklist, a word a node;
        the marks, a bit a node) kept with the net from one collection to
@@ -1439,9 +1445,10 @@ takes from it:
        `wk.room.go`), since a wrapper over the templated one cost a call
        a rewrite: generated instead (the maintainer, 2026-11-01:
        templates where they serve, else generation, not hand copies), and
-       generation made easier first, perhaps by keywords of our own for
-       a preprocessor of Bend, which `generated-sources` now rules out
-       (no macro processors): a revision of it, the maintainer's to make.
+       generation made easier first, by a preprocessor of our own written
+       in Bend, with keywords of our own (the maintainer, 2026-11-01:
+       M4 was ruled out for its external dependency and logistics;
+       `generated-sources` revised).
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
