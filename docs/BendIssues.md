@@ -170,8 +170,9 @@ of 2026-10-26, Bend 2.0.39.
 
 - **Need:** the kernel's small steps (`link`, `node`, the reads) inlined
   into its rewrites, whatever else changes.
-- **Upstream:** none known; a suggestion to raise later, with a build
-  option or an inlining hint.
+- **Upstream:** none found, open or closed (searched 2026-11-01; see
+  "Records returned through every level, where clang will not inline");
+  a suggestion to raise later, with a build option or an inlining hint.
 - **Evidence:** removing a word from the kernel's state made the native
   build up to 17% slower when clang stopped inlining `link` or `node`,
   while the same code with every compiled function forced inline got 4%
@@ -222,23 +223,34 @@ of 2026-10-26, Bend 2.0.39.
   arrays, counts) stepped by helper functions, which Bend asks for: a
   match takes only a parameter or a field, and a pair returned by a read
   is taken apart by a function of its own.
-- **Upstream:** none known; a case of "Inlining left to the C compiler",
-  which an inlining hint or build option would cover.
+- **Upstream:** none found: issues and pull requests, open and closed,
+  searched 2026-11-01 for inlining (inline, always_inline, noinline,
+  thresholds). What is there concerns when to force a call, not hints:
+  #1240 (closed 2026-10-29) inlined spins under a line count; #1413
+  (merged 2026-10-08) made every host spin `INLINE`, clang deciding
+  ("a forced call there never saved clang time and cost speed"); #1388
+  (open) has every segment take the widest record's words; #1596
+  (closed unmerged) returned through frame addresses. A case of
+  "Inlining left to the C compiler", which an inlining hint or build
+  option would cover.
 - **Evidence:** Bend 2.0.39 compiles each helper to a C function
   returning its result through an array its caller copies word by word,
   at every level, tail calls too; clang removes the copies where it
   inlines. The maintainer's marking walk
   (`heap-strategies.erasure.load.cycle.walk`, branch `gc-walk-proto`)
   passes a nine-word state through some ten levels a node, where the
-  worklist walk it would replace makes more reads and writes through
+  worklist walk it was to replace makes more reads and writes through
   fewer: clang inlines the worklist walk's chain in the default build
   and not the new one's, which costs 183 to 188 instructions a node of
   final capacity on `succ` against 116 to 122; forced inline, the new
   walk is the cheaper, 86 to 92; profile-guided, both are dearer and
   the new one still behind, 190 to 193 against 169 to 172 (store run
-  134).
-- **Workaround:** keep a hot loop's state small and its chain of helpers
-  short, so that clang's own heuristics inline it whole; measure a
+  134). The same walk in a five-word state, each helper called from one
+  place (`.walk.lean`), is inlined whole in the default build: 82 to 88,
+  the forced-inline build 81 to 87 (store run 136).
+- **Workaround:** keep a hot loop's state small and call each of its
+  helpers from one place (clang favours inlining a static function
+  called once), so that its heuristics inline the step whole; measure a
   design in the default and the forced-inline builds both.
 - **Revisit:** with "Inlining left to the C compiler".
 

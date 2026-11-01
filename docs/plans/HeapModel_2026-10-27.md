@@ -337,14 +337,15 @@ takes from it:
    `heap-strategies.erasure.load.cycle.library`,
    `heap-strategies.erasure.load.cycle.trace` (dropped),
    `heap-strategies.erasure.load.cycle.trace.lean` (built),
-   `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.room` (dropped),
    `heap-strategies.erasure.load.cycle.perf` (built),
    `heap-strategies.erasure.load.cycle.third`,
    `heap-strategies.erasure.load.cycle.dispatch` (dropped),
    `heap-strategies.erasure.load.cycle.leaves` (dropped),
    `heap-strategies.erasure.load.cycle.entry` (dropped),
-   `heap-strategies.erasure.load.cycle.walk` (prototyped),
+   `heap-strategies.erasure.load.cycle.walk` (built),
+   `heap-strategies.erasure.load.cycle.walk.lean` (built),
+   `heap-strategies.erasure.load.cycle.walk.inhead`,
    `heap-strategies.erasure.load.cycle.buffers`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1533,7 +1534,8 @@ takes from it:
          2026-11-01, for `.walk`, where it is implicit — the worklist
          holding the reference each node was reached by, its visit
          skipping that port.
-       - `heap-strategies.erasure.load.cycle.walk` — tentative — the
+       - `heap-strategies.erasure.load.cycle.walk` — built 2026-11-01,
+         in its lean form (`.walk.lean`) — the
          marking walk the maintainer envisions (2026-11-01): its state a
          mark bitmap and a visit stack, one array; a node marked before
          it goes on the stack; the walk follows links, a node of two
@@ -1567,18 +1569,64 @@ takes from it:
          walk's design does less work; what is wanted is a state small
          enough and a chain short enough that clang inlines it by
          default (the maintainer, 2026-11-01).
+         - `heap-strategies.erasure.load.cycle.walk.lean` — built
+           2026-11-01 — the walk in a state clang inlines whole (the
+           lean trace's walk in `spike/kstrat.bend`): five words (the
+           net's words, its data table set aside; the walk's one array;
+           the reference to enter; the stack's top; the next note's
+           word), each helper called from one place. One array of twice
+           the capacity holds the marks, the notes and the stack; a nil
+           link finds its mark in the array's last word, set whole, since
+           Bend's indexes wrap. The worklist walk it replaces is removed.
+           Every library case kept, with the same capacities, collections
+           and nodes scanned as the worklist walk, 27 more interactions
+           collecting and 13 more events in 3.37 million, the queue's
+           order differing (store runs 135, 131). On `succ`,
+           instructions a node of final capacity over plain demand, k 16
+           to 14 (store run 136):
+
+               walk                   default   forced    next Bend  next, forced
+               worklist (main)        116-122   116-122   108-114    102-108
+               maintainer's (proto)   183-188    86-92    168-174     74-80
+               lean, a: branchless    119-125   118-124   103-109    103-109
+               lean, b: branches      105-110    99-104
+               lean, c: o2 lazily      93-99     88-94
+               lean, d (merged)        82-88     81-87     68-74      67-73
+
+           Commits a to d on branch `gc-lean-walk`: 0f45dbc, 4d00ba9,
+           473d2c9, cd86179. (a) The state cut and each helper called
+           once, written without branches (a note's word written whether
+           kept or not, the stack's top read whether popped or not):
+           clang inlines it whole, the default build counting as the
+           forced, but the work grew. (b) Branches back where a word would be read or written
+           for nothing. (c) A node's third link read only where it has
+           three ports, and nil found by the wrapped index rather than
+           masked at every link. (d) A pair's candidacy one test, `(l1 |
+           o1) & 3 == 0`, rather than three, o1 being `1 >> p`. On the 16
+           dropping terms, 3.76% over plain demand against the worklist
+           walk's 4.38% (forced inline, 3.11% against 3.80%; store run
+           136).
+           - `heap-strategies.erasure.load.cycle.walk.inhead` — tentative
+             — the mark kept in a node's head word rather than a bitmap:
+             the walk reads the head of the node behind a link as it
+             marks it, so that its visit finds the head in cache; the
+             sweep, which reads every head, clears the mark. The array
+             would keep the stack and the notes alone. To weigh: the
+             sweep's added write for each live node, and every reader of
+             heads during the walk masking the bit.
          - `heap-strategies.erasure.load.cycle.buffers` — tentative —
            the collection's arrays kept with the net from one collection
            to the next, whatever the walk: Bend fills a new array at
            eight instructions a word (`docs/BendIssues.md`, "Array
            creation fills word by word"), and a collection makes about
-           two words a node of capacity (the worklist, the queue), so
-           perhaps 16 of the 116 instructions a node on `succ`. With the
-           next Bend's fill (#1928, `inline_build.sh` with `NEXT_FILL=1`)
-           a collection costs some 8 a node less (store run 134), and
-           what keeping the arrays would then save is near 2: weigh it
-           against that release, as every comparison of resizing (the
-           maintainer, 2026-11-01).
+           two words a node of capacity (the walk's one array, which the
+           eval's queue takes over), so perhaps 16 of the 82 instructions
+           a node on `succ`. With the next Bend's fill (#1928,
+           `inline_build.sh` with `NEXT_FILL=1`) a collection costs some
+           14 a node less (store run 136; 8 with the worklist walk, run
+           134), and what keeping the array would then save is near 2:
+           weigh it against that release, as every comparison of resizing
+           (the maintainer, 2026-11-01).
        - `heap-strategies.erasure.load.cycle.adaptive` — dropped
          2026-11-01 (the maintainer: doubling, the growth kept) —
          growth by four where it is likely to be wanted: the first few
