@@ -496,8 +496,10 @@ The core:
    b}`, constructors of plain fields that `V.apply_fn` applies directly;
    they are never glam values, and `V.norm` turns them back into the
    `VFun` they stand for, which the kernel does to every value it hands
-   out. Two laws, `vp1_agrees` and `vp2_agrees`, prove that applying a
-   flat form computes what applying its `VFun` does, through `V.norm`. At
+   out. Two laws, `flat_one_applies_as_fun` and `flat_two_applies_as_fun`
+   (named `vp1_agrees` and `vp2_agrees` until 2026-11-01), prove that
+   applying a flat form computes what applying its `VFun` does, through
+   `V.norm`. At
    k 18, `fma` takes 639M instructions as built, 520M forced inline, 509M
    profile-guided, 493M both (from 712M, 599M, 582M, 571M); a call costs
    about 584 instructions more than a `succ` call, from 870.
@@ -794,14 +796,16 @@ Speed:
       it fails). The random terms give run 102's values and counts term
       for term (store run 107); four builds at k 18 (run 108 against
       106): the same interactions, -0.85% to +1.07% instructions.
-    - `spike-operators.lazy` — tentative — an operator takes its argument
-      unforced, so a lazy cell's handle may reach it, where demand's
+    - `spike-operators.lazy` — contingent on `heap-cells` — lazies wait
+      for the heap and tasking model (the maintainer, 2026-11-01). An
+      operator takes its argument unforced, so a lazy cell's handle may
+      reach it, where demand's
       need, which reads and resumes B's data, must read the operator's
       instead; until then it computes on the handle. No workload makes
       one.
-    - `spike-operators.port` — tentative — an accumulator behind a port,
-      a computation rather than a value, and the levels it brings: a
-      control facing the operator copied onto the accumulator's wire too.
+    - `spike-operators.port` — dropped 2026-11-01 — an accumulator behind a
+      port: even if one is needed it will not be an operator; the
+      operator kind stays simple (the maintainer, 2026-11-01).
 15. `spike-templates` — built 2026-10-31 — a task of its own (the maintainer,
     2026-10-30): the variants generated before Bend's templates were
     found to work, such as the rewrites' plain and eager families

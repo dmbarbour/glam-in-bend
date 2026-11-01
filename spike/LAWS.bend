@@ -56,16 +56,16 @@ law builtin_last_agrees:
 
 # LAW: applying the kernel's flat form of a builtin given one number,
 # V.VP1, computes what applying the VFun it stands for computes, seen
-# through V.norm.
-law vp1_agrees:
+# through V.norm (named vp1_agrees until 2026-11-01).
+law flat_one_applies_as_fun:
   for +op: U32
   for +need: U32
   for +a: U32
   for +x: V.Val
   {V.norm(V.apply_fn(V.VP1{op, need, a}, x)) == V.norm(V.apply_fn(V.VFun{op, need, [V.VNum{a}]}, x)) : V.Val}
 
-# LAW: likewise for two numbers, V.VP2.
-law vp2_agrees:
+# LAW: likewise for two numbers, V.VP2 (named vp2_agrees until 2026-11-01).
+law flat_two_applies_as_fun:
   for +op: U32
   for +need: U32
   for +a: U32
