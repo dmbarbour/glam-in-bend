@@ -1803,6 +1803,54 @@ takes from it:
              lowering gives and a net written out by hand need not (the
              library holds some). To measure: the census again without
              principals, and the library's outcomes.
+
+             Measured (the maintainer: is demand's own walk, entering a
+             node by an auxiliary port and leaving by its principal,
+             consistent with the closure? 2026-11-02). Demand's walk
+             ignores polarity. From the interface each step leaves a node
+             by a negative principal for its producer, entering the next
+             by an output; a step forward, from a positive principal to
+             its consumer, first needs a node with a positive principal
+             entered by another output, which only a function has: demand
+             entering a function by its argument, a variable demanded
+             before its binder applies (extrusion), then going on forward
+             through what has its output at its principal. A build of
+             demand stopping there (branch `gc-forward`, aa05f19) stops in
+             3 of the library's 153 cases, the hand-written
+             `ap-dead-extruded`, `ap-self-extruded` and
+             `vicious-circle-live`, written for the extrusion the
+             `interaction_net` escape hatch allows (the first recording a
+             bug of this very kind: an event erasing a dead application's
+             function, so that the extruded variable read an error), and
+             in none of 1,800 random terms (the differential test, 100 a
+             set) nor any term-built case (store run 167). So following
+             only negative ports would free what demand steps onto in
+             those three: inconsistent with the escape hatch. Following
+             principals as well is closed under demand's own step, so
+             consistent with it, and differs from following negative
+             ports only where a walk from the interface reaches a node not
+             by its principal and that principal is positive: a function
+             reached by its argument, and the forward chain from there.
+             Where demand takes no forward step, as in every term-built
+             net measured, its walk stays within the negative ports'
+             closure, in which a dead node stays dead, so that what it
+             leaves unmarked demand never reaches, now or later: pruning
+             it is invisible to demand, its rewrites the same step for
+             step (an eraser at each boundary; or the boundary's kinds
+             rewritten, as the events are, law `events_as_components`).
+             What following principals costs there: the census without
+             principals (branch `gc-census-pd`, b6329dc) marks 454,650
+             nodes against 497,853 and frees some 46,149 more than today
+             (9.0% of what today keeps, in 56 cases) against 13,369 (2.6%,
+             37 cases), the difference in dead appliers of copied
+             functions (`loop-fix-64` with labels 8,866 nodes more,
+             `loop-junk-1024` and `loop-toggle-1024` unfused some 3,200
+             each). The maintainer's to choose: keep extrusion and follow
+             principals; or refuse it, `interaction_net` treating a
+             variable used outside its function's body as an obvious error
+             (`net-obvious-errors`) and demand reporting a forward step as
+             it reports a cycle, and follow only negative ports; or both
+             closures, by whether a net may extrude.
            - `heap-strategies.erasure.load.cycle.walk.directed.lowering` —
              tentative — erasers fused or applied at lowering (the
              maintainer, 2026-11-02): an unused variable lowered to the
