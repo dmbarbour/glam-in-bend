@@ -1851,6 +1851,42 @@ takes from it:
              (`net-obvious-errors`) and demand reporting a forward step as
              it reports a cycle, and follow only negative ports; or both
              closures, by whether a net may extrude.
+
+             The maintainer (2026-11-02): an acceptable structural
+             constraint on valid nets, if (1) easy to analyze statically
+             and explain, and (2) `interaction_net` still bypasses lambda
+             calculus's tree-structured dataflow. (1): a walk back from the
+             exposed port finds only an orphan read, a variable read while
+             its function is never applied; the rule wanted is scoping on
+             the graph, every live use of a function's argument within its
+             body, the part of the net feeding its result: on the graph of
+             ports, an output needing its node's inputs and an input the
+             output it is linked to, the function's result port dominates
+             its argument port from the exposed port, as a definition
+             dominates its uses in SSA. A dominator tree, near linear; a
+             prototype (`spike/tools/scope_check.py` on branch
+             `gc-scope-check`, fea45d8) flags exactly the three extrusion
+             entries of the library's 153 cases and none of 5,400 random
+             nets (200 terms, three endings, three seeds, lowered three
+             ways), as demand's forward steps did. (2): only a function's
+             argument is constrained, since only a function has a positive
+             principal and another output; every static wiring stays,
+             graphs of any shape with copies, results and operators wired
+             to any consumer, a function's body reading any producer in the
+             net (free variables), cycles of data (`r = f r`). What goes is
+             the scopeless binder: a function value used as a write-once
+             channel, its application by opaque code sending the argument
+             to wherever the variable is read, as for a callback reporting
+             to its creator, or an early return. If wanted, it could return
+             as a kind of its own with its own edge for the collection
+             (reading it keeps its writer's flow), the rest following only
+             negative ports. Scoping holds of a net as built; after a
+             function is copied, the copies share a body, and a copy's
+             argument is then dominated by its body only per sharing
+             context, not by structure, so demand would report a forward
+             step as it reports a cycle: a valid net never takes one, and
+             one that did would be reported the same, pruned or not, since
+             demand's walk until then stays within what both keep.
            - `heap-strategies.erasure.load.cycle.walk.directed.lowering` —
              tentative — erasers fused or applied at lowering (the
              maintainer, 2026-11-02): an unused variable lowered to the
