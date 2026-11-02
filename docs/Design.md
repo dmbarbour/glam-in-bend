@@ -417,7 +417,10 @@ The `NetBuilder` Effects API:
     applications. Its two auxiliaries have opposite polarity: an application
     is `[ap, arg, result]`, while a function is `[fn, result, arg]`.
   - `.copy N -> [x0, x1, x2, ..., xN]` - dataflow, distinct logical instances
-    - `.copy 0 -> [e]` - explicitly drops data
+    - `.copy 0 -> [e]` - explicitly drops data; wired to a consumer
+      instead, `e` supplies a void, nothing, and demand finding a void
+      where it wants a value reports a void demanded, an outcome of its
+      own (`net-void-demanded`)
     - `.copy 1 -> [lhs,rhs]` - tunnel for non-local composition 
     - lambda lowering may normalize these to erasers, direct wires, and trees of
       binary sharing fans

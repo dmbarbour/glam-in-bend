@@ -76,6 +76,9 @@ Surface and semantic rules settled for this implementation.
 - [`net-scoped-arguments`](decisions/net-scoped-arguments.md): a
   function's argument is used only within its body, checked as a net is
   built; demand reports a variable demanded outside it.
+- [`net-void-demanded`](decisions/net-void-demanded.md): demand finding
+  a void, nothing supplied as a value, reports that as an outcome of its
+  own.
 
 ## Language, from the Rust bootstrap
 

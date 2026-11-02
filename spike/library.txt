@@ -100,6 +100,24 @@ links: 0.0-1.0 1.1-1.2 0.1-2.0
 root: 0.2
 net: 7 logical 2 peels 0
 
+name: void-demanded
+why: a void supplied directly, as a `.copy 0` port wired to a consumer
+  supplies one, read at the interface: demand reports a void demanded,
+  an outcome of its own (net-void-demanded)
+nodes: void
+links:
+root: 0.0
+net: void
+
+name: void-applied
+why: the identity applied to a void, `(\x. x) void`: beta joins the
+  void to the interface, where demand reports a void demanded, after the
+  rewrite (net-void-demanded)
+nodes: ap(0) fn(0) void
+links: 0.0-1.0 0.1-2.0 1.1-1.2
+root: 0.2
+net: void
+
 name: copy-extruded
 why: a variable copied, one copy the function's body and the other read
   by the root, outside the body, which glam's construction refuses

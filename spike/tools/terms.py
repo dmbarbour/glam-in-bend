@@ -499,7 +499,7 @@ def bend_node(kind, args, levels=True):
         n, off = args
         return f"X.{kind}({n}, {'True{}' if off > 0 else 'False{}'}, {abs(off)})"
     if kind == "num": return f"X.num({args[0]})"
-    return {"era": "X.era()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()"}[kind]
+    return {"era": "X.era()", "void": "X.void()", "succ": "X.succ()", "plus": "X.plus()", "fma": "X.fma()"}[kind]
 
 
 def bend_tpl(net, root):
@@ -520,7 +520,7 @@ def net_node(kind, args, levels=True):
         n, off = args
         return [6 if kind == "ctl" else 7, n, 1 if off > 0 else 0, abs(off)]
     if kind == "num": return [9, args[0]]
-    return {"era": [8], "succ": [10], "plus": [11], "fma": [12]}[kind]
+    return {"era": [8], "void": [13], "succ": [10], "plus": [11], "fma": [12]}[kind]
 
 
 # the nets for spike/runterms.bend, a row a term (load.bend's format)

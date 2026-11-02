@@ -48,6 +48,11 @@ def ctlc(+n: U32, +up: Bool, +by: U32) -> T.TNode:
 def era() -> T.TNode:
   T.TN{R.KEraN{}, V.PNone{}}
 
+# a void, nothing supplied where a value is wanted, as a `.copy 0` port
+# wired to a consumer is (net-void-demanded)
+def void() -> T.TNode:
+  T.TN{R.KEraP{}, V.PNone{}}
+
 def num(+n: U32) -> T.TNode:
   T.TN{R.KData{}, V.PVal{V.VNum{n}}}
 
