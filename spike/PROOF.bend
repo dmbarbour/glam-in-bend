@@ -25365,6 +25365,117 @@ def Laws.fused_polarity(k):
 def Laws.beta_loops():
   {==}
 
+def Laws.identity_resolved(a, t):
+  match a:
+    case R.KFree{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KFn{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KFnD{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KAp{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopy{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMerge{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KData{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KEraN{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KEraP{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KRoot{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KOp{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KLift{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KLiftC{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopyL{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KCopyR{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMergeL{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KMergeR{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case R.KDOp{}:
+      match t:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+
 def Laws.linear_as_components(f, v, t):
   match f:
     case R.KFree{}:

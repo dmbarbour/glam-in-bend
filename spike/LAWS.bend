@@ -737,6 +737,18 @@ law beta_loops:
 law copy_identity:
   {R.copy_identity() == True{} : Bool}
 
+# LAW: a rule against the identity, a function whose body is its variable,
+# with that loop resolved ahead (R.rule_id, which the kernel's generated
+# rewrites take where the interpreted table took the loop) rewrites the
+# looped redex as the full rule does, both applied by the laws'
+# application, which resolves a peer that is the redex's own port as the
+# kernel's interpreter does.
+# Record: fusions-as-components
+law identity_resolved:
+  for +a: R.NodeKind
+  for +t: Bool
+  {R.identity_resolved(a, t) == True{} : Bool}
+
 # LAW: a fused node behaves as its components: a linear fan, whatever its
 # principal meets, is stuck where its full fan with the dead side erased
 # is, and otherwise leaves the same graph, both normalized by the
