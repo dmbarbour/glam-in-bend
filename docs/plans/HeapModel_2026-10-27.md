@@ -370,6 +370,11 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
    `heap-strategies.erasure.load.cycle.walk.directed.lowering`,
    `heap-strategies.erasure.load.cycle.walk.directed.eager`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
@@ -1700,7 +1705,7 @@ takes from it:
            link fails); that the kernel's rewrites do what the model's do
            is a draft (`kernel_rewrite_refines`). Once it is a law, the
            net goes or stays as the maintainer chooses.
-         - `heap-strategies.erasure.load.cycle.walk.directed` — tentative —
+         - `heap-strategies.erasure.load.cycle.walk.directed` — active —
            the maintainer's (2026-11-02): links run both ways, but data
            and demand do not. Data flows from a positive port to a
            negative one, demand back; reaching a fan by one of its
@@ -1783,7 +1788,7 @@ takes from it:
              it derives the linear fans', the laws over every kind then
              covering them.
            - `heap-strategies.erasure.load.cycle.walk.directed.dataflow` —
-             tentative — which closure. Following only negative ports,
+             active — which closure. Following only negative ports,
              data's flow reversed, a dead node stays dead: no rewrite of
              the live part links a dead output into a live input, since a
              live redex's peers in the dead part are dead inputs, and
@@ -1887,6 +1892,88 @@ takes from it:
              step as it reports a cycle: a valid net never takes one, and
              one that did would be reported the same, pruned or not, since
              demand's walk until then stays within what both keep.
+
+             The maintainer (2026-11-02): "Alright, I'm convinced. Let's do
+             this." Scoping is a rule (`net-scoped-arguments`, in
+             `docs/Design.md`, Interaction Nets), and the collection
+             follows only negative ports.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check`
+               — built 2026-11-02 — the check where nets are made until
+               glam's construction exists: `polarity.unscoped` (the
+               prototype's dominators, Cooper, Harvey and Kennedy's
+               iteration), which `library.py` runs on every case, failing
+               one flagged unless it expects `unscoped VALUE`: demand,
+               collecting or not, reports it, and the full reductions,
+               refusing nothing, reach VALUE. The three extrusion entries
+               expect that, their outcomes before in their `why` (the
+               first's bug guarded since by law `events_erase_last`), and
+               `copy-extruded` joins them: the variable copied, one copy
+               the body and one the root's, found by dominance, not at the
+               root, which is all the three exercise. Of the library's 154
+               cases those four are flagged, and none of `polarity.py`'s
+               5,400 random nets. The check is stricter than demand: a
+               variable read outside its body only after its function is
+               applied (the root adding the function's result to the
+               variable, say) is refused, though demand never steps
+               forward there.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report`
+               — built 2026-11-02 — demand stops, in a state of its own
+               (7, `unscoped`, among the net's outcomes beside a cycle),
+               where it would enter a node by an auxiliary port whose
+               principal is positive: before each push, in the descent
+               (`dn.step.go`) and where the array grows (`wk.into`), a
+               read of the node's header and its kind's polarity. It must
+               stop there, before any interaction past the step: a check
+               left to the pairs, where the orientation reads the kind
+               already, would let the walk go on forward through
+               consumers, rewriting what the inputs-only collection frees,
+               so that the two could end differently (stuck against
+               reported). The cost, on plain demand at k 18 (store runs
+               168, main, and 169; the eager workloads unchanged): succ
+               +1.5% in the default build, +2.6% profile-guided, +4.3%
+               forced inline, +4.4% both; lvl +1.6%, +2.7%, +4.9%, +5.0%.
+               The descent's loop goes from 23 instructions a push to 35
+               in the forced-inline build: the header's load, the kind's
+               range check and bit test, and clang computing the loop's
+               condition without branches where it branched on each
+               part. Tried, default and forced inline, succ and lvl (spot
+               runs 171 to 173, branches `gc-scoped-mask`, `-p2`,
+               `-fold`): the kinds as a constant mask, +2.3% to +6.6%;
+               the header read only for an entry by port 2, the only
+               positive auxiliary port a function has, +1.1% to +4.4%;
+               the polarity folded into the descent's condition, the
+               stop reported by `wk.into`, +3.4% to +3.8%. Kept the
+               plain check, generic over kinds.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`
+                 — tentative — recovering the check's cost: a header bit
+                 for a positive principal (`header-kind-byte`), one test
+                 and no range check; or a build of demand without it
+                 where construction's check is trusted, which would let
+                 plain and collecting demand disagree on a net that
+                 escaped it. The maintainer's to weigh.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`
+               — planned — the collection following only negative ports:
+               the lean walk's port table without positive principals
+               (`gc-census-pd`'s); pair notes from the negative principals
+               followed; the sweep, where a freed node faced a marked
+               node's output, putting a consuming eraser there (or the
+               dead kind, `.dead-kinds`), noted as an event; the eval as
+               now. Measured by the benchmark (outcomes kept, cases
+               improved and worsened) and the stress mode, with laws for
+               the structure (dead never feeds live, the boundary's shape)
+               as they prove feasible.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`
+               — tentative — the dead application's event, dropped where a
+               function's scope was unknown
+               (`heap-strategies.erasure.kernel.exact`; the maintainer,
+               2026-10-30: kept as an optimization where it is exact, as at
+               lowering where a function's scope is known). With scoping a
+               rule, every built net's scopes are known, and the event
+               erasing a dead application's function may be exact, per
+               sharing context; to weigh against what the directed walk
+               frees without it (a dead application, and a function only
+               it applies, go unmarked). Restoring it changes law
+               `events_erase_last`, the maintainer's to approve.
            - `heap-strategies.erasure.load.cycle.walk.directed.lowering` —
              tentative — erasers fused or applied at lowering (the
              maintainer, 2026-11-02): an unused variable lowered to the

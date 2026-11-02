@@ -73,6 +73,9 @@ Surface and semantic rules settled for this implementation.
 - [`net-obvious-errors`](decisions/net-obvious-errors.md): net
   construction refuses errors it recognizes cheaply (disconnected
   subnets, vicious circles), and restricts nothing it cannot.
+- [`net-scoped-arguments`](decisions/net-scoped-arguments.md): a
+  function's argument is used only within its body, checked as a net is
+  built; demand reports a variable demanded outside it.
 
 ## Language, from the Rust bootstrap
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Are the nets terms.py lowers polarized, and free of vicious circles?
-Every link must join a positive port to a negative one, every port be
-linked exactly once, and the exposed port be positive (the loader links it
-to the interface's negative principal); no principal path may close
+"""Are the nets terms.py lowers polarized, free of vicious circles, and
+scoped? Every link must join a positive port to a negative one, every port
+be linked exactly once, and the exposed port be positive (the loader links
+it to the interface's negative principal); no principal path may close
 (vicious), an obvious error glam's construction refuses
-(net-obvious-errors). Port polarities are rules.bend's (R.port_pol):
+(net-obvious-errors); and no function's argument may be used outside its
+body (unscoped, net-scoped-arguments). Port polarities are rules.bend's
+(R.port_pol):
 
     Fn [+ fn, - result, + arg]    Ap [- ap, - arg, + result]
     Copy [- in, + left, + right]  Lift [- in, + out]
@@ -78,6 +80,77 @@ def vicious(net, root):
     return circles
 
 
+def unscoped(net, root):
+    """the functions whose argument the exposed port can need other than
+    through their body (net-scoped-arguments): on the graph of ports, an
+    output needing its node's inputs and an input the output linked to it,
+    a function's result port must dominate its argument port from the
+    exposed port, as a definition dominates its uses in SSA. Dominators by
+    Cooper, Harvey and Kennedy's iteration ("A Simple, Fast Dominance
+    Algorithm", 2001), near linear on such graphs. Returns the functions'
+    cells; an argument the exposed port never needs is scoped."""
+    peer = {}
+    for a, b in net.links:
+        peer[tuple(a)] = tuple(b)
+        peer[tuple(b)] = tuple(a)
+
+    def needs(v):
+        i, p = v
+        pol = POL[net.nodes[i][0]]
+        if pol[p] == "+":
+            return [(i, q) for q in range(len(pol)) if pol[q] == "-"]
+        w = peer.get(v)
+        return [w] if w is not None else []
+
+    start = tuple(root)
+    # the ports the exposed port needs, in reverse postorder
+    seen, post, stack = {start}, [], [(start, iter(needs(start)))]
+    while stack:
+        v, it = stack[-1]
+        for w in it:
+            if w not in seen:
+                seen.add(w)
+                stack.append((w, iter(needs(w))))
+                break
+        else:
+            stack.pop()
+            post.append(v)
+    order = post[::-1]
+    index = {v: k for k, v in enumerate(order)}
+    preds = {v: [] for v in order}
+    for v in order:
+        for w in needs(v):
+            preds[w].append(v)
+    idom = {start: start}
+    changed = True
+    while changed:
+        changed = False
+        for v in order[1:]:
+            ps = [p for p in preds[v] if p in idom]
+            new = ps[0]
+            for p in ps[1:]:
+                a, b = new, p
+                while a != b:
+                    while index[a] > index[b]:
+                        a = idom[a]
+                    while index[b] > index[a]:
+                        b = idom[b]
+                new = a
+            if idom.get(v) != new:
+                idom[v] = new
+                changed = True
+    bad = []
+    for i, (kind, _) in enumerate(net.nodes):
+        if kind != "fn" or (i, 2) not in idom:
+            continue
+        v = (i, 2)
+        while v != start and v != (i, 1):
+            v = idom[v]
+        if v != (i, 1):
+            bad.append(i)
+    return bad
+
+
 def main(argv):
     count = int(argv[0]) if argv else 200
     total = failing = 0
@@ -87,12 +160,13 @@ def main(argv):
                 for levels, fused, mode in ((True, True, "levels"), (False, True, "labels"), (True, False, "unfused")):
                     net, root = terms.to_tpl(terms.parse(text), levels, fused)
                     total += 1
-                    bad = check(net, root) + [f"vicious circle through cells {c}" for c in vicious(net, root)]
+                    bad = (check(net, root) + [f"vicious circle through cells {c}" for c in vicious(net, root)]
+                           + [f"function {i}'s argument used outside its body" for i in unscoped(net, root)])
                     if bad:
                         failing += 1
                         if failing <= 5:
                             print(label, seed, mode, text, bad[:3])
-    print(f"{total} nets, {failing} not polarized or with a vicious circle")
+    print(f"{total} nets, {failing} not polarized, with a vicious circle, or unscoped")
     return 1 if failing else 0
 
 
