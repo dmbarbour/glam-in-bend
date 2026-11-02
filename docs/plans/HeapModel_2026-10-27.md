@@ -354,7 +354,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.sweep-full` (built),
    `heap-strategies.erasure.load.cycle.chunks` (built),
    `heap-strategies.erasure.load.cycle.chunks.budget` (dropped),
-   `heap-strategies.erasure.load.cycle.chunks.floor`,
+   `heap-strategies.erasure.load.cycle.chunks.floor` (built),
+   `heap-strategies.erasure.load.cycle.chunks.base`,
    `heap-strategies.erasure.load.cycle.eval-need`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1751,9 +1752,9 @@ takes from it:
            chunk a collection, and collections are rare: 0.12 million
            instructions on the dropping terms, about one a node on
            `succ` (store run 142, `nobud` against `dp`).
-         - `heap-strategies.erasure.load.cycle.chunks.floor` — tentative
-           — a floor on a chunk's steps for small nets, the reserve twice
-           it (the maintainer asks, 2026-11-02): a 256-node net's chunk is
+         - `heap-strategies.erasure.load.cycle.chunks.floor` — built
+           2026-11-02, at 16 steps — a floor on a chunk's steps for small
+           nets, the reserve twice it (the maintainer asks, 2026-11-02): a 256-node net's chunk is
            4 steps, some 60 instructions a step at 240 a chunk. The
            reserve comes off the free list before each chunk, so a floor
            grows a small net that could not spare it, by one doubling at
@@ -1767,8 +1768,36 @@ takes from it:
            315 and 296 against 332; every case kept. A floor of 64 holds
            128 nodes (2 KB) in reserve. Its cost is a live net's: a frozen
            net is compact, copying only what is reached, so the room
-           lasts while a net is reduced or held partial in a cell. Which
-           floor, if any, is the maintainer's trade of space for speed.
+           lasts while a net is reduced or held partial in a cell, and
+           many live nets are expected in cells, most waiting on other
+           cells (the maintainer, 2026-11-02). A floor of 16 (the
+           maintainer's lean: at most 15 instructions a step at 240 a
+           chunk, the formula holding from 1024 nodes, 16 KB) is merged;
+           64 is a bit much for a net of 128 nodes.
+         - `heap-strategies.erasure.load.cycle.chunks.base` — tentative —
+           larger chunks at every size, the maintainer's suggestion
+           (2026-11-02): a 32nd of the capacity with a reserve of a 16th,
+           collecting at 94% full rather than 97%. Measured with the
+           floor of 16 (store run 144): the 16 dropping terms counted one
+           by one gain on 15 (2.24% over plain demand without the one
+           that loses, against 2.82% with the floor alone), but a run
+           that ends or blocks between 94% and 97% full now collects once
+           more, and that collection, finding under half the net free,
+           doubles it: `loop-junk-1024` unfused grows to 65,536 nodes and
+           its collections' interactions go from 191 to 8,393, all 16 at
+           4.25% against 2.96%; the library's capacities 7.6% more (five
+           nets of 1,024 to 32,768 nodes doubled). A net in a cell that
+           blocks is at such an end. A variant keeps the trigger at 97%:
+           the reserve a 32nd too, so that it covers a chunk's steps at
+           one node a step rather than two, a chunk that takes more after
+           the reserve growing the net as plain demand would (safe, only
+           a growth without a collection). On the library it grows no
+           net beyond the floor's nine (capacities 652,288, as the floor
+           alone), with fewer collections and their interactions (316 and
+           109,910 against 318 and 113,412); on the dropping terms 2.36%
+           over plain demand (forced inline 1.61%) against 2.96% (2.09%)
+           with the floor alone. Its guarantee is a typical chunk's, not
+           the worst's: the maintainer's to weigh.
        - `heap-strategies.erasure.load.cycle.eval-need` — tentative —
          the eval's interactions are the largest remaining part of a
          collection's cost on the dropping terms, about a third. They

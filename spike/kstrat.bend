@@ -1170,7 +1170,11 @@ def demand.v(k: Nat, d: D) -> D:
 # net is collected (collect_cycle) and the walk starts again from the
 # interface, its path's array kept: a collection comes between steps, so
 # it may rewrite any pair it may, the path's own among them, and no pair
-# is left out. S is the net's capacity over 64, the reserve a 32nd of it.
+# is left out. S is the net's capacity over 64, and at least 16 steps
+# (heap-strategies.erasure.load.cycle.chunks.floor: a chunk costs some
+# 240 instructions, at most 15 a step so), the reserve twice it: the
+# floor binds below 1024 nodes, where the reserve of 32 nodes is more
+# than a 32nd.
 # A net that had to grow and could not: out of memory (6), the runtime's
 # error.
 
@@ -1183,7 +1187,7 @@ def rs.k(r: P.H & P.HS) -> P.H & Bool:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      P.reserve(U32.to_nat((cap >> 5n : U32)), h)
+      P.reserve(U32.to_nat(U32.max((cap >> 5n : U32), 32)), h)
 
 def rs.grown.go(+ok: Bool, h: P.H) -> P.H & Bool:
   match ok:
@@ -1207,8 +1211,9 @@ def rs.got(r: P.H & Bool) -> P.H & Bool:
   (h, +ok) = r
   rs.got.go(ok, h)
 
-# a reserve kept, a 32nd of the net, the net doubled first where its free
-# list lacks one; false where it could not grow
+# a reserve kept, a 32nd of the net and 32 nodes at least, the net
+# doubled first where its free list lacks one; false where it could not
+# grow
 def dc.reserve(h: P.H) -> P.H & Bool:
   rs.got(rs.k(P.stats(h)))
 
@@ -1217,7 +1222,7 @@ def dc.steps(+force: Bool, +cap: U32) -> U32:
     case True{}:
       16
     case False{}:
-      U32.max((cap >> 6n : U32), 1)
+      U32.max((cap >> 6n : U32), 16)
 
 # the loop's next move, planned between moves: 0 the end, 1 a
 # collection, 2 a chunk of so many steps from a reserve seen kept. The
