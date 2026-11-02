@@ -220,20 +220,22 @@ def mq.run(m: Mq, +cap: U32) -> P.H & U32:
       mq.fh(P.rd(h, P.at_fh()), st, ws, free, cap)
 
 # The walk (the maintainer's, heap-strategies.erasure.load.cycle.walk, in
-# its lean form, `.walk.lean`): from a reference to enter, its node
-# marked already, the walk reads the node's head and the link of o1, the
-# port after the one it was entered by (1 if that was 0, else 0: the
-# principal, unless entered by it). A node of three ports first pushes
-# the link of its third, o2, unless the node behind is marked, marking it
-# (so that none is pushed twice); a node of two or three then follows
-# o1's link if the node behind is unmarked, marking it; a node of one
-# port, or one whose o1 leads to a marked node, ends the run, and the
-# stack's top is entered next. The port a node is entered by is never
-# looked at again, and a leaf costs its mark. A pair is noted where a node
-# looks at its principal and finds a principal there: from it where the
-# node behind was unmarked (entered then by its principal, that node looks
-# no further), else from the lower; an eraser or dead operator whose
-# principal faces an auxiliary port is noted for its event.
+# its lean form, `.walk.lean`, directed, `.walk.directed.dataflow.walk`):
+# from a reference to enter, its node marked already, the walk reads the
+# node's head and the link of o1, its first input, and follows only its
+# inputs, data's flow reversed: what feeds the interface, never what a
+# node provides by another output, which a valid net's demand never
+# steps to (net-scoped-arguments). A node of two inputs first pushes the
+# link of the second, o2, unless the node behind is marked, marking it
+# (so that none is pushed twice); a node with inputs then follows o1's
+# link if the node behind is unmarked, marking it; a node with none (data,
+# a void), or one whose o1 leads to a marked node, ends the run, and the
+# stack's top is entered next. A node is entered by an output, so never
+# by a port it follows, and a leaf costs its mark. A pair is noted by its
+# negative node, the only one of the two that follows its principal; a
+# void whose principal faces an auxiliary port is noted for its event. An
+# eraser, having no output, is never entered: the sweep finds those the
+# collection needs, and the outputs kept whose consumers it frees (below).
 #
 # One array, twice the net's capacity, holds it all: the marks, a word
 # per 32 nodes, from word 0; the notes from the word after them, an
@@ -262,7 +264,7 @@ type Lw is Type:
 type Gw is Type:
   Gw{w: KM.M, g: KM.M, +n: U32}
 
-# a node's head and the link of its port o1
+# a node's head and the link of its first input, o1
 type Nd is Type:
   Nd{w: KM.M, +hd: U32, +l1: U32}
 
@@ -278,12 +280,11 @@ def nd.l1(r: KM.M & U32, +hd: U32) -> Nd:
   (w, +l1) = r
   Nd{w, hd, l1}
 
-# node b entered by port p: o1 is 1 if p is 0, else 0 (o2, read where
-# there are three ports, is 2 unless p is); for a node of two ports, o1 is
-# its other port
-def nd.hd(r: KM.M & U32, +b: U32, +p: U32) -> Nd:
+# node b's head and the link of o1, its first input by its kind (KR.
+# kind_dir: 3 where it has none, which reads the next node's head, unused)
+def nd.hd(r: KM.M & U32, +b: U32) -> Nd:
   (w, +hd) = r
-  nd.l1(KM.m_get(w, ((b + 1 : U32) + (1 >> U32.to_nat(p) : U32) : U32)), hd)
+  nd.l1(KM.m_get(w, ((b + 1 : U32) + (KR.kind_dir(P.rk(hd)) .&. 3 : U32) : U32)), hd)
 
 # a run ended: the stack's top entered next, 0 at its bottom ending the
 # walk
@@ -302,16 +303,6 @@ def lw.np(pair: Bool, g: KM.M, +q: U32, +b: U32) -> Gq:
     case False{}:
       Gq{g, q}
 
-# b noted as a pair's lower node where o1 is the principal (o1, 1 >> p,
-# is 0) and l1 a principal, both at once where l1 | o1 has no port bits,
-# and the node behind was unmarked or is the higher
-def lw.note(cand: Bool, g: KM.M, +q: U32, +b: U32, +old: U32, +l1: U32) -> Gq:
-  match cand:
-    case True{}:
-      lw.np(U32.is_eq(old, 0) || U32.is_lt(b, P.base(l1)), g, q, b)
-    case False{}:
-      Gq{g, q}
-
 # o1's link l1 followed if the node behind was unmarked, else the run ends
 def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
   match old:
@@ -324,14 +315,17 @@ def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
         case Gq{g, +q}:
           lw.pop(KM.m_get(g, n), w, n, q)
 
-def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
+# b noted as a pair's node where o1 is its principal and l1 a principal,
+# both at once where l1 | o1 has no port bits: b's principal is negative,
+# an input, so the pair's other node never notes it
+def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +o1: U32, +l1: U32) -> Lw:
   (g, +old) = r
-  lw.f1o(old, w, lw.note(U32.is_eq(((l1 .|. (1 >> U32.to_nat(p) : U32) : U32) .&. 3 : U32), 0), g, q, b, old, l1), n, l1)
+  lw.f1o(old, w, lw.np(U32.is_eq(((l1 .|. o1 : U32) .&. 3 : U32), 0), g, q, b), n, l1)
 
-def lw.f1(s: Gw, +q: U32, +b: U32, +p: U32, +l1: U32) -> Lw:
+def lw.f1(s: Gw, +q: U32, +b: U32, +o1: U32, +l1: U32) -> Lw:
   match s:
     case Gw{w, g, +n}:
-      lw.f1m(lw.mk(g, l1), w, n, q, b, p, l1)
+      lw.f1m(lw.mk(g, l1), w, n, q, b, o1, l1)
 
 def lw.push.o(+old: U32, w: KM.M, g: KM.M, +n: U32, +l2: U32) -> Gw:
   match old:
@@ -349,16 +343,15 @@ def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32) -> Gw:
   (w, +l2) = r
   lw.push(lw.mk(g, l2), w, n, l2)
 
-def lw.p2(three: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +p: U32) -> Gw:
-  match three:
+def lw.p2(two: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +o2: U32) -> Gw:
+  match two:
     case True{}:
-      lw.p2r(KM.m_get(w, ((b + 3 : U32) - (p >> 1n : U32) : U32)), g, n)
+      lw.p2r(KM.m_get(w, ((b + 1 : U32) + o2 : U32)), g, n)
     case False{}:
       Gw{w, g, n}
 
-# an eraser or dead operator noted where its principal faces an auxiliary
-# port, the note tagged by its top bit (its word written either way); the
-# run ends
+# a void noted where its principal faces an auxiliary port, the note
+# tagged by its top bit (its word written either way); the run ends
 def lw.lev(r: KM.M & U32, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
   (w, +src) = r
   lw.pop(KM.m_get(KM.m_set(g, q, (b .|. 2147483648 : U32)), n), w, n, (q + (((src .&. 3 : U32) + 3 : U32) >> 2n : U32) : U32))
@@ -370,19 +363,20 @@ def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
     case False{}:
       lw.pop(KM.m_get(g, n), w, n, q)
 
-# by the node's arity, halved: a leaf (none is a free node, never
-# reached, and makes no event), or two or three ports
-def lw.ar(+two: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32, +hd: U32, +l1: U32) -> Lw:
-  match two:
-    case 0:
+# by the node's inputs (KR.kind_dir), o1 and o2, 3 for none: a leaf
+# without (a free node is never reached), else the second pushed, if
+# any, and the first followed
+def lw.ar(+o1: U32, +o2: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +hd: U32, +l1: U32) -> Lw:
+  match o1:
+    case 3:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(U32.is_eq((KR.kind_arity(P.rk(hd)) .&. 1 : U32), 1), w, g, n, b, p), q, b, p, l1)
+      lw.f1(lw.p2(U32.is_ne(o2, 3), w, g, n, b, o2), q, b, o1, l1)
 
-def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +p: U32) -> Lw:
+def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
   match d:
     case Nd{w, +hd, +l1}:
-      lw.ar((KR.kind_arity(P.rk(hd)) >> 1n : U32), w, g, n, q, b, p, hd, l1)
+      lw.ar((KR.kind_dir(P.rk(hd)) .&. 3 : U32), (KR.kind_dir(P.rk(hd)) >> 2n : U32), w, g, n, q, b, hd, l1)
 
 def lw.go(k: Nat, s: Lw) -> Lw:
   match k:
@@ -395,23 +389,130 @@ def lw.go(k: Nat, s: Lw) -> Lw:
             case 0:
               Lw{w, g, 0, n, q}
             case _:
-              lw.go(p, lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c), P.port(c)), g, n, q, P.base(c), P.port(c)))
+              lw.go(p, lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c)), g, n, q, P.base(c)))
 
-# the notes after the sweep: the pairs slid down to word 3 on, as a stack
-# (P.Stk) holds them, the events onto a list
-type Sp is Type:
-  Sp{g: KM.M, ws: List<&2, U32>, +j: U32}
+# The sweep (`.walk.directed.dataflow.walk`): KN's pass over the marks, a
+# word of 32 nodes at a time, a word all set passed unread
+# (`.sweep-full`), each node the walk left unmarked freed with its table
+# entry, the nodes free after it counted; and besides, each input of a
+# freed node that faces a marked node noted after the walk's notes,
+# tagged by bit 30: an output the walk keeps whose consumer goes, to be
+# given an eraser once the pass is done (bd.go). Only a freed node's
+# inputs can face a marked node, since a marked node's inputs were all
+# followed and an output faces an input. The notes' words lie past the
+# marks, which the pass reads as they were.
+type Sd is Type:
+  Sd{h: P.H, g: KM.M, +f: U32, +q: U32}
 
-def sp.ev(+ev: U32, g: KM.M, ws: List<&2, U32>, +j: U32, +v: U32) -> Sp:
-  match ev:
-    case 0:
-      Sp{KM.m_set(g, (j + 3 : U32), v), ws, (j + 1 : U32)}
-    case _:
-      Sp{g, Con{(v .&. 2147483647 : U32), ws}, j}
+def sd.rec(+bnd: Bool, h: P.H, g: KM.M, +f: U32, +q: U32, +y: U32) -> Sd:
+  match bnd:
+    case True{}:
+      Sd{h, KM.m_set(g, q, (y .|. 1073741824 : U32)), f, (q + 1 : U32)}
+    case False{}:
+      Sd{h, g, f, q}
 
-def sp.v(r: KM.M & U32, ws: List<&2, U32>, +j: U32) -> Sp:
+# y noted where the node behind it is marked (nil, under a fault, is not)
+def sd.yv(r: KM.M & U32, h: P.H, +f: U32, +q: U32, +y: U32) -> Sd:
   (g, +v) = r
-  sp.ev((v >> 31n : U32), g, ws, j, v)
+  sd.rec(U32.is_ne(((v >> U32.to_nat(((y >> 2n : U32) .&. 31 : U32)) : U32) .&. 1 : U32), 0) && U32.is_ne(y, P.nil()), h, g, f, q, y)
+
+def sd.y(r: P.H & U32, g: KM.M, +f: U32, +q: U32) -> Sd:
+  (h, +y) = r
+  sd.yv(KM.m_get(g, (y >> 7n : U32)), h, f, q, y)
+
+# the node at word b's input o looked at, 3 for none
+def sd.in(+o: U32, s: Sd, +b: U32) -> Sd:
+  match o:
+    case 3:
+      s
+    case _:
+      match s:
+        case Sd{h, g, +f, +q}:
+          sd.y(P.rd(h, ((b + 1 : U32) + o : U32)), g, f, q)
+
+def sd.free(s: Sd, +i: U32, +hd: U32) -> Sd:
+  match s:
+    case Sd{h, g, +f, +q}:
+      Sd{P.free(KN.sw.payload(KR.is_data(P.rk(hd)), h, i, hd), (i << 2n : U32)), g, (f + 1 : U32), q}
+
+# node i, unmarked: its inputs (KR.kind_dir) looked at, then it is freed
+def sd.dead(+dir: U32, s: Sd, +i: U32, +hd: U32) -> Sd:
+  sd.free(sd.in((dir >> 2n : U32), sd.in((dir .&. 3 : U32), s, (i << 2n : U32)), (i << 2n : U32)), i, hd)
+
+def sd.mk(+dead: Bool, s: Sd, +i: U32, +hd: U32) -> Sd:
+  match dead:
+    case True{}:
+      sd.dead(KR.kind_dir(P.rk(hd)), s, i, hd)
+    case False{}:
+      s
+
+def sd.hd0(+hd: U32, h: P.H, g: KM.M, +f: U32, +q: U32, +i: U32, +v: U32) -> Sd:
+  match hd:
+    case 0:
+      Sd{h, g, (f + 1 : U32), q}
+    case _:
+      sd.mk(U32.is_eq((v .&. KN.rc.bit(i) : U32), 0), Sd{h, g, f, q}, i, hd)
+
+def sd.hd(r: P.H & U32, g: KM.M, +f: U32, +q: U32, +i: U32, +v: U32) -> Sd:
+  (h, +hd) = r
+  sd.hd0(hd, h, g, f, q, i, v)
+
+# k nodes from node i, all of them in the block whose marks are v
+def sd.blk(k: Nat, s: Sd, +i: U32, +v: U32) -> Sd:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sd{h, g, +f, +q}:
+          sd.blk(p, sd.hd(P.rd(h, (i << 2n : U32)), g, f, q, i, v), (i + 1 : U32), v)
+
+# a block whose nodes were all reached holds none free or dead: passed
+def sd.mw.all(+all: Bool, s: Sd, +k: Nat, +i: U32, +v: U32) -> Sd:
+  match all:
+    case True{}:
+      s
+    case False{}:
+      sd.blk(k, s, i, v)
+
+def sd.mw(r: KM.M & U32, h: P.H, +f: U32, +q: U32, +k: Nat, +i: U32) -> Sd:
+  (g, +v) = r
+  sd.mw.all(U32.is_eq(v, 4294967295), Sd{h, g, f, q}, k, i, v)
+
+# nb blocks of 32 nodes from block b
+def sd.go(nb: Nat, +b: U32, s: Sd) -> Sd:
+  match nb:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sd{h, g, +f, +q}:
+          sd.go(p, (b + 1 : U32), sd.mw(KM.m_get(g, b), h, f, q, 32n, (b << 5n : U32)))
+
+# the first block's nodes past the header, then the rest
+def sd.first(s: Sd, +cap: U32) -> Sd:
+  match s:
+    case Sd{h, g, +f, +q}:
+      sd.go(U32.to_nat(((cap >> 5n : U32) - 1 : U32)), 1, sd.mw(KM.m_get(g, 0), h, f, q, U32.to_nat((32 - P.first() : U32)), P.first()))
+
+# the notes after the sweep, told apart by their top two bits: the pairs
+# slid down to word 3 on, as a stack (P.Stk) holds them, the events onto
+# a list, the outputs to give erasers onto another
+type Sp is Type:
+  Sp{g: KM.M, ws: List<&2, U32>, bs: List<&2, U32>, +j: U32}
+
+def sp.ev(+tag: U32, g: KM.M, ws: List<&2, U32>, bs: List<&2, U32>, +j: U32, +v: U32) -> Sp:
+  match tag:
+    case 0:
+      Sp{KM.m_set(g, (j + 3 : U32), v), ws, bs, (j + 1 : U32)}
+    case 1:
+      Sp{g, ws, Con{(v .&. 1073741823 : U32), bs}, j}
+    case _:
+      Sp{g, Con{(v .&. 2147483647 : U32), ws}, bs, j}
+
+def sp.v(r: KM.M & U32, ws: List<&2, U32>, bs: List<&2, U32>, +j: U32) -> Sp:
+  (g, +v) = r
+  sp.ev((v >> 30n : U32), g, ws, bs, j, v)
 
 def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
   match k:
@@ -419,24 +520,53 @@ def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
       s
     case 1n+p:
       match s:
-        case Sp{g, ws, +j}:
-          sp.go(p, sp.v(KM.m_get(g, i), ws, j), (i + 1 : U32))
+        case Sp{g, ws, bs, +j}:
+          sp.go(p, sp.v(KM.m_get(g, i), ws, bs, j), (i + 1 : U32))
+
+def bd.less(+f: U32) -> U32:
+  match f:
+    case 0:
+      0
+    case _:
+      (f - 1 : U32)
+
+# An eraser given to each output the walk kept whose consumer the sweep
+# freed, its event noted where the output is an auxiliary port: a copy's,
+# which the event makes linear, or a function's variable, which makes
+# none. Where it is a principal, a function the walk reached by its
+# variable alone (a variable used outside its body, or a copy's after
+# copying shared it), the eraser makes a pair left unnoted: demand
+# reaching that function by its variable reports it as it would have
+# (net-scoped-arguments). The free count is the sweep's, less the
+# erasers.
+def bd.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  (h, +e) = r
+  Mq{P.link(h, e, y), st, KN.evl.add(U32.is_ne(P.port(y), 0), e, ws), bd.less(free)}
+
+def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
+  match bs:
+    case Nil{}:
+      m
+    case Con{+y, t}:
+      match m:
+        case Mq{h, st, ws, +free}:
+          bd.go(t, bd.e(P.node(h, P.hd(6, 0), 0), st, ws, free, y))
 
 def lw.sp(s: Sp, h: P.H, +free: U32, +cap: U32) -> Mq:
   match s:
-    case Sp{g, ws, +j}:
-      Mq{h, P.stk.fin((KM.m_set(g, 0, j), (cap * 2 : U32))), ws, free}
+    case Sp{g, ws, bs, +j}:
+      bd.go(bs, Mq{h, P.stk.fin((KM.m_set(g, 0, j), (cap * 2 : U32))), ws, free})
 
-def lw.swd(s: KN.Sw, +q: U32, +cap: U32) -> Mq:
+def lw.sdd(s: Sd, +cap: U32) -> Mq:
   match s:
-    case KN.Sw{h, g, +f}:
-      lw.sp(sp.go(U32.to_nat((q - (cap >> 5n : U32) : U32)), Sp{g, Nil{}, 0}, (cap >> 5n : U32)), h, f, cap)
+    case Sd{h, g, +f, +q}:
+      lw.sp(sp.go(U32.to_nat((q - (cap >> 5n : U32) : U32)), Sp{g, Nil{}, Nil{}, 0}, (cap >> 5n : U32)), h, f, cap)
 
 # the walk done, the net swept by its marks
 def lw.fin(s: Lw, a: Array<V.Val>, +cap: U32) -> Mq:
   match s:
     case Lw{w, g, +c, +n, +q}:
-      lw.swd(KN.sw.first(KN.Sw{P.H{w, a}, g, 0}, cap), q, cap)
+      lw.sdd(sd.first(Sd{P.H{w, a}, g, 0, q}, cap), cap)
 
 # the walk's start: the interface marked, the array's last word set
 # whole, the interface's one link followed; the stack's lowest word the

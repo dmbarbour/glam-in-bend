@@ -199,6 +199,24 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
     case _ _:
       Pos{}
 
+# whether port p is one of kind k's inputs, a negative port within its
+# arity: what the collection's walk follows from a node it keeps, data's
+# flow reversed (net-scoped-arguments). A kind has at most two (law
+# inputs_at_most_two), which the kernel's table of them packs in a word
+# (KR.kind_dir)
+def is_input(+k: NodeKind, +p: Nat) -> Bool:
+  Nat.is_lt(p, arity(k)) && pol_eq(port_pol(k, p), Neg{})
+
+def inputs.b(b: Bool) -> Nat:
+  match b:
+    case True{}:
+      1n
+    case False{}:
+      0n
+
+def inputs(+k: NodeKind) -> Nat:
+  Nat.add(inputs.b(is_input(k, 0n)), Nat.add(inputs.b(is_input(k, 1n)), inputs.b(is_input(k, 2n))))
+
 # Rules
 # =====
 
