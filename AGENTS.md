@@ -108,6 +108,10 @@ Lessons carried over from the Rust bootstrap:
   default and forced-inline builds takes about a minute
   (`spike/tools/spot.sh`); a merge takes the four builds
   (`spike/tools/count_builds.sh`, under two minutes).
+- Judge a change case by case over a broad sample, not by totals alone:
+  how many cases it improves, worsens and leaves alike, and why each
+  exception moved (`spike/tools/gcbench.py compare` does so for the
+  collecting demand over the whole library).
 - Profile with `perf record -e instructions:u -c 100000` or a longer
   period, on runs of a tenth of a second or more: the kernel throttles
   sampling past `perf_event_max_sample_rate` (50,000 a second here), so a

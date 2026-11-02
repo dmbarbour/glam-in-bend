@@ -12,8 +12,11 @@ takes over plain demand in its own run (so that builds whose plain demand
 differs compare fairly): how many cases the second run improves, worsens
 or leaves alike, among those that collect in either run, a change
 counting where it passes the larger of 2,000 instructions and 0.1% of
-plain demand; the totals; capacities grown and shrunk; and the
-exceptions, each with what changed with it. A case whose collecting state
+plain demand; the totals, among them the interactions collecting made
+beyond plain demand's, work demand never needed, paid for only by the
+memory it frees (heap-strategies.erasure.load.cycle.eval-need);
+capacities grown and shrunk; and the exceptions, each with what changed
+with it. A case whose collecting state
 or value differs from its plain demand's, in either run, is listed first:
 collecting must keep demand's outcome.
 
@@ -148,7 +151,8 @@ def cmd_compare(ra, rb, n="8"):
     for tag, rs, run in (("A", a, ra), ("B", b, rb)):
         print(f"run {tag} ({run}): collecting {tot(rs, over) / tot(rs, lambda r: r['lazy_ins']) * 100:.2f}% over plain"
               f" demand in all, {tot(rs, lambda r: r['dc_cap']):,} nodes of capacity, {tot(rs, lambda r: r['dc_cyc'])}"
-              f" collections, {tot(rs, lambda r: r['dc_citrs']):,} interactions in them")
+              f" collections, {tot(rs, lambda r: r['dc_citrs']):,} interactions in them,"
+              f" {tot(rs, lambda r: r['dc_itrs'] - r['lazy_itrs']):,} beyond plain demand's")
     print(f"{len(keys)} cases, {len(coll)} collecting in either: B improves {len(better)}, worsens {len(worse)},"
           f" leaves {len(coll) - len(better) - len(worse)} alike; {len(calm)} not collecting changed")
     up = [k for k in keys if b[k]["dc_cap"] > a[k]["dc_cap"]]

@@ -357,7 +357,11 @@ takes from it:
    `heap-strategies.erasure.load.cycle.chunks.floor` (built),
    `heap-strategies.erasure.load.cycle.chunks.base` (dropped),
    `heap-strategies.erasure.load.cycle.chunks.finish` (dropped),
-   `heap-strategies.erasure.load.cycle.eval-need`,
+   `heap-strategies.erasure.load.cycle.eval-need` (built),
+   `heap-strategies.erasure.load.cycle.bench` (built),
+   `heap-strategies.erasure.load.cycle.shrink` (built),
+   `heap-strategies.erasure.load.cycle.shrink.beta`,
+   `heap-strategies.erasure.load.cycle.shrink.fuel`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1828,15 +1832,97 @@ takes from it:
              either way. What finishing buys is space, never growing
              before the net is full, and a reserve that no longer moves
              the trigger.
-       - `heap-strategies.erasure.load.cycle.eval-need` — tentative —
-         the eval's interactions are the largest remaining part of a
-         collection's cost on the dropping terms, about a third. They
-         free what an erasure or annihilation behind a noted pair holds,
-         now rather than at a later collection, work plain demand never
-         does. Whether to run them only where the sweep left less than
-         half the net free, or only those that free nodes, is for
-         discussion: what they cut off is walked by every collection
-         until they run.
+       - `heap-strategies.erasure.load.cycle.bench` — built 2026-11-02 —
+         the collecting demand's benchmark (`spike/tools/gcbench.py`):
+         every library case as a net, run by a build of
+         `spike/runmode.bend` on plain and collecting demand, counted and
+         stored (table `gcbench`), about 6 seconds for the 153 cases. Two
+         runs compare case by case: how many of the cases that collect
+         the second improves, worsens or leaves alike (a change counting
+         past 2,000 instructions or 0.1% of plain demand), the totals,
+         capacities grown and shrunk, the exceptions each with what
+         changed, and any case whose collecting outcome differs from
+         plain demand's. The 16 dropping terms, too few, had let the
+         timing of collections pass for a design's effect (`.chunks.base`).
+         The maintainer asks for such counts, improved and worsened, as
+         a matter of course, with the exceptions examined (2026-11-02;
+         AGENTS.md, "Measuring"). Main with the floor of 16: 102 of the
+         153 cases collect, 3.23% over plain demand (forced inline
+         2.56%), 652,288 nodes of capacity (store runs 146, 147).
+       - `heap-strategies.erasure.load.cycle.eval-need` — built
+         2026-11-02 — what work a collection's eval should do, and how
+         much (the maintainer: does a data copy help, does beta, is fuel
+         needed or are recognized prunings once enough, 2026-11-02).
+         Running the eval only where a sweep falls short was set aside:
+         it would not cut dead subnets off before the collections that
+         sweep them. Measured over the benchmark against main (store
+         runs 146 and 148 to 162), each variant changing one thing:
+
+             variant                 over plain  capacity   coll. itrs   cases better/worse
+             main                    3.23%       652,288    113,412
+             no eval, sweep only     3.20%       895,488    0            68/27, 29 grown
+             noted events only       3.09%       892,928    0            71/26, 28 grown
+             no noted events         3.24%       652,032    114,021      7/5
+             noted pairs once        2.99%       873,984    6,147        74/20, 21 grown
+             no data copies          3.23%       652,288    113,380      0/0
+             no beta                 3.14%       650,496    109,971      16/6
+             no fan annihilations    3.20%       654,592    110,744      24/3, 3 grown
+             erasures alone          2.72%       652,800    60,604       71/8, 4 grown
+
+         The cascades carry the memory (the noted pairs once keep 5% of
+         the interactions and lose it); data copies scarcely happen (32
+         in the library); beta and annihilations each help some nets and
+         cost others. Logically: a sweep frees only what is cut off from
+         the interface, and links run both ways, so a dead computation
+         whose result an eraser faces stays reachable through its inputs
+         until erasures consume it. The rules a collection may run fall
+         in three: those that leave fewer nodes (annihilations, beta at
+         one level, erasers meeting each other or data, an eraser on a
+         node of two ports), those that turn a node of three ports into
+         two erasers, and those that move controls or linear fans past
+         each other without shrinking anything, which can only help by
+         unblocking a later shrinking rewrite. A measure tells them apart
+         (`.shrink`). A collection's interactions beyond plain demand's
+         are work demand never needed, paid for only by the memory they
+         free: in main 75,327 of 113,412, the rest demand's own work done
+         early.
+       - `heap-strategies.erasure.load.cycle.shrink` — built 2026-11-02
+         — a collection rewrites only where the pair's rule leaves fewer
+         ports than the pair had (the generator's `collect_r`, by
+         `R.ports_of`), as an event does (law `events_shrink`): every
+         rewrite and event of a collection then lowers the net's ports,
+         so its cascade ends within them. Erasures, annihilations, beta
+         at one level and copies of data stay; controls passing, and
+         linear fans meeting at different levels, which leave as many
+         ports as they take, are left to demand; `Lift-LiftC` shrinks at
+         one level only and no header test tells its forms apart, so the
+         generator now collects neither form of such a pair rather than
+         stopping (it named the missing test). Over the benchmark: 52 of
+         102 cases better, none worse, one net 2,048 nodes rather than
+         4,096, 2.79% over plain demand against 3.23%, the collections'
+         interactions 64,224 against 113,412, 96% of them beyond plain
+         demand's (store run 163); forced inline 40 better and 5 worse,
+         2.23% against 2.56% (run 164), the worse ones control passing
+         that demand now does itself, the same interactions in all
+         (`costly-124`: 13,063 against 13,062), costlier there in that
+         build; the plain workloads unchanged in the four builds (run
+         165 against 141). Without the noted events, though, it loses
+         (`costly-133` with levels grows to 65,536 nodes): the events now
+         do what the controls' passing had done (run 162).
+         - `heap-strategies.erasure.load.cycle.shrink.beta` — tentative —
+           whether beta belongs: without it, 18 cases better and 5 worse
+           against `.shrink`, `list-sum` with labels 2,048 nodes rather
+           than 4,096 and `mixin-chain-16` with labels 15% dearer, one
+           collection more (run 161); of beta's some 3,300 interactions,
+           about 1,900 demand's own done early, 1,400 work nobody needed.
+           Beta shrinks the net, but it is evaluation: what it exposes
+           runs too.
+         - `heap-strategies.erasure.load.cycle.shrink.fuel` — tentative —
+           the eval's fuel (twice the capacity in pairs looked at) no
+           longer needed for the cascade to end, which the ports bound;
+           it could still bind (each rewrite may note pairs to look at),
+           so whether to keep it as a bound on a collection's work, or
+           drop it, is the maintainer's.
        - `heap-strategies.erasure.load.cycle.adaptive` — dropped
          2026-11-01 (the maintainer: doubling, the growth kept) —
          growth by four where it is likely to be wanted: the first few

@@ -114,10 +114,13 @@ def reduce_h.v(+fuel: Nat, +fast: Bool, h: P.H) -> P.H:
 # heap-strategies.cascade.nongrow): the eager loop, events on, from every
 # active pair, rewriting only those a collection may (KR.collects: never
 # stuck, no more nodes made than freed, no builtin applied, no need for a
-# lazy value touched) and leaving the rest, which the net does not
-# record: erasures, annihilations, beta at one level, copies of data,
-# controls passing what they may. Cheap work that carries erasers as far
-# as they go, so that a sweep then finds what is cut off; run where a
+# lazy value touched, fewer ports left than taken) and leaving the rest,
+# which the net does not record: erasures, annihilations, beta at one
+# level, copies of data. Every rewrite and event of a collection leaves
+# the net fewer ports, so its cascade ends
+# (heap-strategies.erasure.load.cycle.shrink); controls passing, which
+# leave as many, are demand's. Cheap work that carries erasers as far as
+# they go, so that a sweep then finds what is cut off; run where a
 # demand's net would grow, not per rewrite.
 
 def sel_b(c: Bool, +x: Bool, +y: Bool) -> Bool:
