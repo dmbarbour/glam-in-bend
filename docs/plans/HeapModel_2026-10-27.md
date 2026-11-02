@@ -355,8 +355,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.chunks` (built),
    `heap-strategies.erasure.load.cycle.chunks.budget` (dropped),
    `heap-strategies.erasure.load.cycle.chunks.floor` (built),
-   `heap-strategies.erasure.load.cycle.chunks.base`,
-   `heap-strategies.erasure.load.cycle.chunks.finish`,
+   `heap-strategies.erasure.load.cycle.chunks.base` (dropped),
+   `heap-strategies.erasure.load.cycle.chunks.finish` (dropped),
    `heap-strategies.erasure.load.cycle.eval-need`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1775,7 +1775,9 @@ takes from it:
            maintainer's lean: at most 15 instructions a step at 240 a
            chunk, the formula holding from 1024 nodes, 16 KB) is merged;
            64 is a bit much for a net of 128 nodes.
-         - `heap-strategies.erasure.load.cycle.chunks.base` — tentative —
+         - `heap-strategies.erasure.load.cycle.chunks.base` — dropped
+           2026-11-02, the floor alone kept for simplicity (the
+           maintainer: it would change were it moving the needle more) —
            larger chunks at every size, the maintainer's suggestion
            (2026-11-02): a 32nd of the capacity with a reserve of a 16th,
            collecting at 94% full rather than 97%. Measured with the
@@ -1800,7 +1802,10 @@ takes from it:
            with the floor alone. Its guarantee is a typical chunk's, not
            the worst's: the maintainer's to weigh.
            - `heap-strategies.erasure.load.cycle.chunks.finish` —
-             tentative — the maintainer's alternative (2026-11-02): large
+             dropped 2026-11-02 (the maintainer: not counting a linked
+             list again and again to put off a collection when the net
+             is nearly full) — the maintainer's alternative
+             (2026-11-02): large
              chunks kept safe, a 32nd with a reserve of a 16th, and where
              a chunk ends with the reserve taken, finishing chunks rather
              than the collection at once, each as long as the free list
