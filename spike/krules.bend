@@ -93,6 +93,47 @@ def kind_neg.n(+k: U32) -> U32:
 def kind_neg(+k: U32) -> Bool:
   U32.is_eq(kind_neg.n(k), 1)
 
+# the ports the collection's walk follows, a node's inputs (R.walk_first,
+# R.walk_second): the first plus 4 times the second, 3 for none
+def kind_dir(+k: U32) -> U32:
+  match k:
+    case 0:
+      15
+    case 1:
+      13
+    case 2:
+      4
+    case 3:
+      12
+    case 4:
+      9
+    case 5:
+      15
+    case 6:
+      12
+    case 7:
+      15
+    case 8:
+      12
+    case 9:
+      12
+    case 10:
+      12
+    case 11:
+      13
+    case 12:
+      12
+    case 13:
+      12
+    case 14:
+      13
+    case 15:
+      13
+    case 16:
+      12
+    case _:
+      15
+
 # a kind whose payload is a value, data or a call's or a dead call's
 # function: a table entry the node's to drop
 def is_data(+k: U32) -> Bool:

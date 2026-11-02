@@ -977,6 +977,19 @@ def tables.k(ks: List<&2, R.NodeKind>, +neg: Bool) -> String:
     case Con{+k, t}:
       "    case " ++ code(k) ++ ":\n      " ++ pick(neg, neg_str(k), U32.show(U32.from_nat(R.arity(k)))) ++ "\n" ++ tables.k(t, neg)
 
+# the ports the collection's walk follows from a node of kind k, its
+# inputs (R.walk_first, R.walk_second; law walk_follows_inputs), packed
+# as the first plus 4 times the second, 3 for none
+def dir_k(+k: R.NodeKind) -> U32:
+  (U32.from_nat(R.walk_first(k)) + (4 * U32.from_nat(R.walk_second(k)) : U32) : U32)
+
+def tables.d(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      "    case " ++ code(k) ++ ":\n      " ++ U32.show(dir_k(k)) ++ "\n" ++ tables.d(t)
+
 # ports and principal polarity by kind code (R.arity, R.port_pol)
 def tables() -> String:
   "# ports by kind code (R.arity)\n" ++
@@ -984,7 +997,10 @@ def tables() -> String:
   "# 1 where the principal port is negative (R.port_pol): a table, where a\n" ++
   "# match whose arms are constructors would be a chain\n" ++
   "def kind_neg.n(+k: U32) -> U32:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      0\n\n" ++
-  "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n"
+  "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n" ++
+  "# the ports the collection's walk follows, a node's inputs (R.walk_first,\n" ++
+  "# R.walk_second): the first plus 4 times the second, 3 for none\n" ++
+  "def kind_dir(+k: U32) -> U32:\n  match k:\n" ++ tables.d(kinds()) ++ "    case _:\n      15\n\n"
 
 def payloads.d(ks: List<&2, R.NodeKind>) -> String:
   match ks:

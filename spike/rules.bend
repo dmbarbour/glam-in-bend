@@ -199,6 +199,44 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
     case _ _:
       Pos{}
 
+# whether port p is one of kind k's inputs, a negative port within its
+# arity: what the collection's walk follows from a node it keeps, data's
+# flow reversed (net-scoped-arguments)
+def is_input(+k: NodeKind, +p: Nat) -> Bool:
+  Nat.is_lt(p, arity(k)) && pol_eq(port_pol(k, p), Neg{})
+
+def walk.first(+a: Bool, +b: Bool, +c: Bool) -> Nat:
+  match a b c:
+    case True{} _ _:
+      0n
+    case False{} True{} _:
+      1n
+    case False{} False{} True{}:
+      2n
+    case False{} False{} False{}:
+      3n
+
+def walk.second(+a: Bool, +b: Bool, +c: Bool) -> Nat:
+  match a b c:
+    case True{} True{} _:
+      1n
+    case True{} False{} True{}:
+      2n
+    case False{} True{} True{}:
+      2n
+    case _ _ _:
+      3n
+
+# the walk's ports from a node of kind k, its first input and its second,
+# 3 where there is none, which gen_krules.bend packs into the kernel's
+# table (KR.kind_dir): they name its inputs exactly, so a kind has at
+# most two (law walk_follows_inputs)
+def walk_first(+k: NodeKind) -> Nat:
+  walk.first(is_input(k, 0n), is_input(k, 1n), is_input(k, 2n))
+
+def walk_second(+k: NodeKind) -> Nat:
+  walk.second(is_input(k, 0n), is_input(k, 1n), is_input(k, 2n))
+
 # Rules
 # =====
 
@@ -437,6 +475,26 @@ def nat_eq(a: Nat, b: Nat) -> Bool:
       nat_eq(x, y)
     case _ _:
       False{}
+
+def bool_eq(+a: Bool, +b: Bool) -> Bool:
+  (a && b) || (Bool.not(a) && Bool.not(b))
+
+# the walk names port p of kind k just when it is an input
+def walk_names(+k: NodeKind, +p: Nat) -> Bool:
+  bool_eq(nat_eq(walk_first(k), p) || nat_eq(walk_second(k), p), is_input(k, p))
+
+# the walk's ports against a kind's inputs (walk_first, walk_second), for
+# every port below 3; past them, nothing to say
+def walk_ok(+k: NodeKind, +p: Nat) -> Bool:
+  match p:
+    case 0n:
+      walk_names(k, 0n)
+    case 1n:
+      walk_names(k, 1n)
+    case 2n:
+      walk_names(k, 2n)
+    case _:
+      True{}
 
 def end_eq(a: End, b: End) -> Bool:
   match a b:
