@@ -57,6 +57,10 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   where glam's shared lazy state lives: nets live and frozen, thunk and net
   cells, forcing by demand, application by splicing copies. Drafted for
   the maintainer's review.
+- [`NetData_2026-11-02.md`](NetData_2026-11-02.md): `netdata-` steps for
+  data in nets: a net's limits, the reference word and its immediates,
+  numbers, the table, borrowed and shared heaps, remote lazies,
+  collection, structured data. Drafted for the maintainer's review.
 - [`NetPairing_2026-10-26.md`](NetPairing_2026-10-26.md): `pairing-` steps
   for how copy fans pair: traced reduction, labels where they suffice, a
   GAL adaptation tested then proved in Lean, and polarity preservation.

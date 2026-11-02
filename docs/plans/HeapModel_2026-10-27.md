@@ -370,6 +370,11 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static.table`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copy` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copied` (built),
@@ -1879,7 +1884,7 @@ takes from it:
                build, +0.3% to +0.5% profile-guided; plain demand -0.3% to
                +0.7%. Layout, not work: none of them makes the new kind.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
-               — tentative — the maintainer (2026-11-02, unsure it is a
+               — planned — the maintainer (2026-11-02, unsure it is a
                good one): static links standing for `EraP` and `EraN`
                instead of nodes, a port facing one being erased or void
                without a node there. Depends on how much the kinds
@@ -1888,9 +1893,44 @@ takes from it:
                (2026-11-02): would they take the remaining 1.5% of the
                sweep's erasers (the dead copies away from the fans
                copying made, `.copied`), and help or hurt overall? An
-               experiment to tell.
+               experiment to tell. The plan, as the maintainer revised it
+               (2026-11-02): a reference whose port bits are 3, the value
+               no port has, is static, standing for a leaf in the one link
+               word of the port it faces; a few low bits of type after
+               them, no kind or form encoded at the cost of a subspace,
+               each eraser one value (`netdata-refs`, in
+               [`NetData_2026-11-02.md`](NetData_2026-11-02.md), for the
+               layout); a static meeting a rewrite first made a node
+               (materialized), native rewrites after; data table entries
+               a step of their own (`.static.table`).
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read`
+                 — planned — every reader of a link made static-safe:
+                 demand's descent and its pairs, the rewrites (a static
+                 partner materialized), the events (an eraser's kind read
+                 from the reference, nothing freed), fusion, the
+                 collection's walk (a static never followed, its pairs and
+                 voids still noted) and sweep, the audits, the interface's
+                 value; statics made only by the sweep's boundary,
+                 erasers at the outputs it keeps, the remaining 1.5% among
+                 them. Measured: what the tests cost workloads that hold
+                 no static, and the boundary's allocations gone.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`
+                 — planned — the loader makes the templates' erasers and
+                 voids static, so built nets hold no eraser node.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
+                 — planned — rewrites with a static partner generated:
+                 its payload from the reference, only A's slot freed or
+                 reused, each new leaf made static; an eraser static as A.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`
+                 — planned — what the kinds that capture an erased
+                 auxiliary buy over a static eraser at that port (the
+                 maintainer, 2026-11-02): builds where the function with
+                 its variable dead, and even the linear fans, give way to
+                 their full kind with a static eraser, measured against
+                 the kinds, toward a hybrid kept for speed and
+                 simplicity.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static`
-               — tentative — the maintainer (2026-11-02): immediate data
+               — contingent on `netdata-refs` — the maintainer (2026-11-02): immediate data
                as static nodes too, a reference whose port field holds
                the unused fourth value (3) standing for a node
                interpreted locally, the value in the reference, perhaps
@@ -1899,6 +1939,11 @@ takes from it:
                of its own. To weigh: what a static reference saves (a
                node, its loads) against what every port read then tests,
                where kinds now dispatch.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static.table`
+                 — contingent on `netdata-table` — the data table's
+                 entries referenced by packed pointers rather than by data
+                 nodes, a step of its own within the experiment (the
+                 maintainer, 2026-11-02).
            - `heap-strategies.erasure.load.cycle.walk.directed.dataflow` —
              active — which closure. Following only negative ports,
              data's flow reversed, a dead node stays dead: no rewrite of
@@ -2144,7 +2189,9 @@ takes from it:
                    record the polarity of the port it references, so that
                    a step's polarity is a test on a word already read.
                    Room: a reference is a node's word and a port, below
-                   2^23, so a high bit is free; the low two bits are the
+                   2^23 under the kernel's ceiling (`P.w_maxd`, which no
+                   record decided: `netdata-capacity`), so a high bit is
+                   free; the low two bits are the
                    port, and a reference plus one is its link's word
                    (`P.link`), so no low bit is spare without changing how
                    every link is found. Upkeep: a rewrite's new ports
