@@ -368,6 +368,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.bench.corpus`,
    `heap-strategies.erasure.load.cycle.walk.directed`,
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
+   `heap-strategies.erasure.load.cycle.walk.directed.lowering`,
+   `heap-strategies.erasure.load.cycle.walk.directed.eager`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1756,6 +1760,67 @@ takes from it:
              runs diverge, its nets smaller sooner, and the census sees
              nothing of the erasure cascades it would no longer run, 96% of
              today's collection interactions.
+           - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`
+             — tentative — the maintainer's (2026-11-02): a dead variant
+             of a kind for each positive auxiliary port, so that the
+             sweep, finding a marked node's output facing what it frees,
+             rewrites the node's kind rather than making an eraser, and
+             no event is wanted. A variant matters only where the node
+             keeps another live port: a function with its argument dead
+             (a variable unused, new) and a copy with one output dead
+             (the linear copies, already kinds). A node whose one output
+             is dead is dead whole and is freed, unless something keeps
+             it live by its principal (`.dataflow`): then an application
+             kept only to bind, an operator (the dead operator, already a
+             kind), and a consumer left with nothing to provide, which is
+             an eraser. With erasers on the boundary rewritten into
+             kinds, the census's directed walk alone keeps 497,853 nodes
+             where today's collections keep 515,299 (3.4% fewer) with no
+             eval at all; per case 52 fewer, 39 more (where today's eval
+             frees doomed nodes the walk must keep: voids flowing
+             forward, rewrites within what is needed), 11 alike. The
+             cost: kinds and their rules, which the model would derive as
+             it derives the linear fans', the laws over every kind then
+             covering them.
+           - `heap-strategies.erasure.load.cycle.walk.directed.dataflow` —
+             tentative — which closure. Following only negative ports,
+             data's flow reversed, a dead node stays dead: no rewrite of
+             the live part links a dead output into a live input, since a
+             live redex's peers in the dead part are dead inputs, and
+             polarity links an input only to an output. Following
+             principals too keeps whatever a live node will interact
+             with, as demand would reach it (a function reached by its
+             argument keeps its applier), but loses that invariant: after
+             a function is copied, each copy's variable feeds the shared
+             body's merge, so every copy's applier is kept, dead or not,
+             and a dead node can be drawn back in. Neither is sound by
+             structure alone for any net: freeing what is unmarked cuts
+             links whose values only contexts (fan levels) keep apart, so
+             soundness rests on the calculus's sharing, as fan
+             linearization by an erased output already does. Following
+             only negative ports further assumes every variable is used
+             within its binder's body, per sharing context, which glam's
+             lowering gives and a net written out by hand need not (the
+             library holds some). To measure: the census again without
+             principals, and the library's outcomes.
+           - `heap-strategies.erasure.load.cycle.walk.directed.lowering` —
+             tentative — erasers fused or applied at lowering (the
+             maintainer, 2026-11-02): an unused variable lowered to the
+             dead-argument function, a value with one use dead copied
+             linearly or not at all, a discarded expression not built.
+             Built nets would hold no eraser; erasers would arise only
+             from rules, briefly, until the next sweep folds them.
+           - `heap-strategies.erasure.load.cycle.walk.directed.eager` —
+             tentative — the same collection under eager reduction (the
+             maintainer, 2026-11-02), the stack of pairs filtered by the
+             marks after the sweep (a pair's two nodes share their fate,
+             a principal partner being kept with its partner), the pairs
+             a sweep's rewritten kinds make noted. Eager reduction wastes
+             most on dead work, which this prunes at each collection, and
+             a dead divergent computation that allocates is pruned in
+             time; one that never allocates would want a trigger by work.
+             Under eager reduction functions are copied early, so the
+             merges' conservatism (`.dataflow`) costs more there.
          - `heap-strategies.erasure.load.cycle.buffers` — dropped
            2026-11-01 (the maintainer: not worth pursuing) — the
            collection's arrays kept with the net from one collection
