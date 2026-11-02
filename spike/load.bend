@@ -14,7 +14,8 @@ import ./nets.bend as X
 #
 # Node tags, after nets.bend's constructors: 0 fn, 1 fnl n, 2 ap, 3 apl
 # n, 4 cp site, 5 cpl site n, 6 ctl n up by, 7 ctlc n up by (up 1 for a
-# raise), 8 era, 9 num v, 10 succ, 11 plus, 12 fma, 13 void.
+# raise), 8 era, 9 num v, 10 succ, 11 plus, 12 fma, 13 void, 14 fnd,
+# 15 fndl n.
 
 # Numbers
 # =======
@@ -62,6 +63,10 @@ def take(ts: List<&2, U32>) -> U32 & List<&2, U32>:
 def node.fnl(r: U32 & List<&2, U32>) -> T.TNode & List<&2, U32>:
   (+n, t) = r
   (X.fnl(n), t)
+
+def node.fndl(r: U32 & List<&2, U32>) -> T.TNode & List<&2, U32>:
+  (+n, t) = r
+  (X.fndl(n), t)
 
 def node.apl(r: U32 & List<&2, U32>) -> T.TNode & List<&2, U32>:
   (+n, t) = r
@@ -131,6 +136,10 @@ def node.k(+tag: U32, ts: List<&2, U32>) -> T.TNode & List<&2, U32>:
       (X.plus(), ts)
     case 13:
       (X.void(), ts)
+    case 14:
+      (X.fnd(), ts)
+    case 15:
+      node.fndl(take(ts))
     case _:
       (X.fma(), ts)
 

@@ -849,13 +849,15 @@ def fan_hd.go(none: Bool, +k: U32, +site: U32, +lvl: U32) -> U32:
 def fan_hd(+k: U32, +site: U32, +lvl: U32) -> U32:
   fan_hd.go(U32.is_eq(lvl, V.nolvl()), k, site, lvl)
 
-# a node with no payload: a function or an application without a level
-# marked so
+# a node with no payload: a function (its variable dead too, 17) or an
+# application without a level marked so
 def bare_hd(+k: U32) -> U32:
   match k:
     case 1:
       P.hd2(k, P.unlev(), 0)
     case 2:
+      P.hd2(k, P.unlev(), 0)
+    case 17:
       P.hd2(k, P.unlev(), 0)
     case _:
       P.hd(k, 0)
