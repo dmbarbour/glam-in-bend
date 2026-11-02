@@ -373,7 +373,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copy` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copied` (built),
-   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.fn`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.fn` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
@@ -1839,17 +1839,43 @@ takes from it:
                identity's copy, its result its own variable, never comes
                here: the walk reaches it by its principal or not at all.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.fn`
-               — planned — a function with its variable dead, a kind of
-               its own, for the erasers at a function's variable, 53% of
-               them: a fused kind (`R.lf.full` a function, `R.ex.dead` its
-               port 2, an eraser consuming there), its rules derived as the
-               linear fans' are, a function whose variable meets an eraser
-               becoming one in the derivation's marking; the sweep makes a
-               function whose variable it frees one in place. Laws
-               `linear_as_components` and `fused_polarity` take it as they
-               take the linear fans; every law split by kind gains its
-               case. Lowering may then make one for an unused variable
-               (`.lowering`).
+               — built 2026-11-02 — a function with its variable dead, a
+               kind of its own (`KFnD`, code 17, `[+ fn, - result]`), for
+               the erasers at a function's variable, 53% of them: a fused
+               kind (`R.lf.full` a function, `R.ex.dead` its port 2, a
+               consuming eraser there), its rules derived as the linear
+               fans' are, each fused side's eraser its own
+               (`R.ex.eraser`), a function whose variable meets an eraser
+               becoming one in the derivation's marking (`R.lf.mark2`); an
+               application tests its level as a function's (`R.test_eq`,
+               `N.rule_test`, the kernel's test through `R.lf.full`). Its
+               rewrites: an application's argument erased in the
+               application's slot, a copy making two, an eraser erasing the
+               body, a control crossing, the linear copies; no other
+               pair's rewrite changed. The sweep makes a kept function
+               whose variable it frees one in place (`fnd.make`). Laws:
+               `linear_as_components` now holds for it against every
+               partner and test; every law split by kind gained its arm
+               (367, the function's copied, `free_arity`'s arity mended);
+               the derived eraser put on the result instead of the
+               variable fails `rules_polarized`. Against main (gcbench
+               runs 181 and 184): collecting 0.99% below plain demand,
+               against 0.27% above; capacity 505,216 nodes against
+               542,080 (6.8% less), 291 collections against 307; 82 cases
+               better, none worse, 20 alike; an application meets a
+               function with its variable dead 4,020 times in 85 cases (a
+               scratch count). The library and 3,600 random terms pass.
+               With `.copy` and `.copied`, the sweep makes an eraser only
+               for a function reached by its variable alone away from the
+               fans copying made, 296 over the benchmark, 1.5% of the
+               erasers it made before. Lowering may make one for an unused
+               variable (`.lowering`), so that plain demand has them too.
+               Workloads that never meet the kind move with the larger
+               generated dispatch, six more pairs and an eighteenth kind
+               (store run 185 against 183, k 18): eager succ and lvl
+               +1.3% to +2.2% forced inline, -0.2% to -0.3% in the default
+               build, +0.3% to +0.5% profile-guided; plain demand -0.3% to
+               +0.7%. Layout, not work: none of them makes the new kind.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
                — tentative — the maintainer (2026-11-02, unsure it is a
                good one): static links standing for `EraP` and `EraN`

@@ -544,9 +544,8 @@ def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
 # refused when built, the void may reach the interface, where demand
 # reports a void demanded instead of the variable (net-void-demanded).
 #
-# A function's variable, unused now: an eraser put on it, which makes no
-# event, until a function with its variable dead is a kind of its own
-# (`.dead-kinds.fn`).
+# A function's variable, unused now: the function made one with its
+# variable dead (KFnD, 17), in place, its level kept (`.dead-kinds.fn`).
 #
 # The free count is the sweep's, plus the functions freed, less the
 # erasers made.
@@ -588,6 +587,16 @@ def lin.hd(r: P.H & U32, +b: U32, +p: U32) -> P.H:
 # the fan behind y made linear, y's side dropped
 def lin.drop(h: P.H, +y: U32) -> P.H:
   lin.hd(P.rd(h, P.base(y)), P.base(y), P.port(y))
+
+# the function at b made one with its variable dead: its kind changed,
+# its level kept, word 3, its variable's link, cleared, a two-port node's
+# payload word
+def fnd.hd(r: P.H & U32, +b: U32) -> P.H:
+  (h, +hd) = r
+  P.wr(P.wr(h, b, ((hd .&. 4294967232 : U32) .|. 17 : U32)), (b + 3 : U32), 0)
+
+def fnd.make(h: P.H, +y: U32) -> P.H:
+  fnd.hd(P.rd(h, P.base(y)), P.base(y))
 
 def bd.less(+f: U32) -> U32:
   match f:
@@ -649,14 +658,23 @@ def bd.how.p(+ok: Bool, +k: U32) -> U32:
     case False{}:
       0
 
+def bd.how.fn(+p: U32) -> U32:
+  match p:
+    case 0:
+      2
+    case 2:
+      3
+    case _:
+      0
+
 # by what y is, its node of kind k: 1 a copy's output, 2 a function's
-# principal, else 0
+# principal, 3 a function's variable, else 0
 def bd.how(+k: U32, +y: U32) -> U32:
   match k:
     case 3:
       bd.how.p(U32.is_ne(P.port(y), 0), 1)
     case 1:
-      bd.how.p(U32.is_eq(P.port(y), 0), 2)
+      bd.how.fn(P.port(y))
     case _:
       0
 
@@ -666,6 +684,8 @@ def bd.y.go(+how: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32
       Mq{lin.drop(h, y), st, ws, free}
     case 2:
       bd.cp.a(P.rd(h, (y + 2 : U32)), st, ws, free, y)
+    case 3:
+      Mq{fnd.make(h, y), st, ws, free}
     case _:
       bd.era(h, st, ws, free, y)
 

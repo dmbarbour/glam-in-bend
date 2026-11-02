@@ -47,6 +47,8 @@ def kcode(k: R.NodeKind) -> U32:
       15
     case R.KDOp{}:
       16
+    case R.KFnD{}:
+      17
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -82,6 +84,8 @@ def kof(c: U32) -> R.NodeKind:
       R.KMergeR{}
     case 16:
       R.KDOp{}
+    case 17:
+      R.KFnD{}
     case _:
       R.KFree{}
 
@@ -640,6 +644,8 @@ def rule_test(ka: R.NodeKind, kb: R.NodeKind, +pa: V.Pay, +pb: V.Pay) -> Bool:
     case R.KAp{} R.KData{}:
       is_builtin(pb)
     case R.KAp{} R.KFn{}:
+      V.lvl_eq(pa, pb)
+    case R.KAp{} R.KFnD{}:
       V.lvl_eq(pa, pb)
     case R.KLift{} R.KLiftC{}:
       V.ctl_eq(pa, pb)
