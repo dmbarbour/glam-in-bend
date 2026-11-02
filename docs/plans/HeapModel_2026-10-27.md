@@ -371,7 +371,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
    `heap-strategies.erasure.load.cycle.walk.directed.lowering`,
@@ -1916,13 +1917,40 @@ takes from it:
                variable, say) is refused, though demand never steps
                forward there.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report`
-               — active — demand stops, in a state of its own (7,
-               `unscoped`, among the net's outcomes beside a cycle), where
-               it would enter a node by an auxiliary port whose principal
-               is positive: before each push, in the descent
+               — built 2026-11-02 — demand stops, in a state of its own
+               (7, `unscoped`, among the net's outcomes beside a cycle),
+               where it would enter a node by an auxiliary port whose
+               principal is positive: before each push, in the descent
                (`dn.step.go`) and where the array grows (`wk.into`), a
-               read of the node's header and its kind's polarity. Its cost
-               on plain demand to measure.
+               read of the node's header and its kind's polarity. It must
+               stop there, before any interaction past the step: a check
+               left to the pairs, where the orientation reads the kind
+               already, would let the walk go on forward through
+               consumers, rewriting what the inputs-only collection frees,
+               so that the two could end differently (stuck against
+               reported). The cost, on plain demand at k 18 (store runs
+               168, main, and 169; the eager workloads unchanged): succ
+               +1.5% in the default build, +2.6% profile-guided, +4.3%
+               forced inline, +4.4% both; lvl +1.6%, +2.7%, +4.9%, +5.0%.
+               The descent's loop goes from 23 instructions a push to 35
+               in the forced-inline build: the header's load, the kind's
+               range check and bit test, and clang computing the loop's
+               condition without branches where it branched on each
+               part. Tried, default and forced inline, succ and lvl (spot
+               runs 171 to 173, branches `gc-scoped-mask`, `-p2`,
+               `-fold`): the kinds as a constant mask, +2.3% to +6.6%;
+               the header read only for an entry by port 2, the only
+               positive auxiliary port a function has, +1.1% to +4.4%;
+               the polarity folded into the descent's condition, the
+               stop reported by `wk.into`, +3.4% to +3.8%. Kept the
+               plain check, generic over kinds.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`
+                 — tentative — recovering the check's cost: a header bit
+                 for a positive principal (`header-kind-byte`), one test
+                 and no range check; or a build of demand without it
+                 where construction's check is trusted, which would let
+                 plain and collecting demand disagree on a net that
+                 escaped it. The maintainer's to weigh.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`
                — planned — the collection following only negative ports:
                the lean walk's port table without positive principals
