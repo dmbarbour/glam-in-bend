@@ -378,6 +378,8 @@ def st_name(+st: U32) -> String:
       "out of memory"
     case 7:
       "unscoped"
+    case 8:
+      "a void"
     case _:
       "going"
 

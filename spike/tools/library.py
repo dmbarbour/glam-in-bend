@@ -24,7 +24,7 @@ spike/library.txt holds the entries, separated by blank lines, each a few
   levels, labels, unfused    what must hold, lowered that way; or
   nodes, links, root         a net written out: nodes as terms.py makes
            them (fn(n) ap(n) cp(site,n) br(n) cr(n) ctl(n,+by) ctl(n,-1)
-           ctlc(n,+by) num(v) succ plus fma era), links `a.p-b.p`, the
+           ctlc(n,+by) num(v) succ plus fma era void), links `a.p-b.p`, the
            exposed port `a.p`, and
   net      what must hold
   fuel     the full reductions' fuel, 1280000 if not given (demand has
@@ -40,6 +40,9 @@ What must hold is one of
            net
   cycle    demand finds a cycle of principal ports facing auxiliary ones,
            and the full reductions no value
+  void     demand, collecting or not, finds a void at the interface,
+           nothing supplied where a value is wanted, an outcome of its own
+           (`net-void-demanded`), and the full reductions no value
   unscoped VALUE   a function's argument used outside its body, which
            glam's construction refuses (`net-scoped-arguments`): demand,
            collecting or not, reports it, and the full reductions, which
@@ -334,6 +337,13 @@ def check(c, r):
 
         if r.ev[0] != "none":
             bad.append(f"the full reduction with events gives {r.ev[0]}")
+    elif c.want == "void":
+        for label, st in (("demand", r.state), ("demand with events", r.evstate)):
+            if st != "a void":
+                bad.append(f"{label} ends {st}, not a void")
+        for label, res in (("fast", r.fast), ("ev", r.ev)):
+            if res[0] != "none":
+                bad.append(f"the full reduction ({label}) gives {res[0]}")
     elif u:
         if r.state != "unscoped":
             bad.append(f"demand ends {r.state}, not unscoped")
@@ -487,7 +497,7 @@ def main(argv):
             print(f"FAIL {c.entry} {c.mode}: no result (the run's status {res.returncode})")
             continue
         runs.append((c, r))
-        if update and c.want not in ("wrong", "cycle") and not DEMAND.match(c.want) and not UNSCOPED.match(c.want):
+        if update and c.want not in ("wrong", "cycle", "void") and not DEMAND.match(c.want) and not UNSCOPED.match(c.want):
             w = WANT.match(c.want)
             lines[c.line] = f"{c.mode}: {w.group(1) if w else c.want.split()[0]} logical {r.logical} peels {r.peels}"
             c.want = lines[c.line].partition(": ")[2]

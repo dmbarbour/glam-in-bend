@@ -375,7 +375,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost.bits`,
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.proof`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.stuck`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk` (built),
@@ -1970,7 +1970,14 @@ takes from it:
                plain check, generic over kinds, until `.report.cost` moved
                it to the pairs.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void`
-                 — tentative — a void reaching the interface reported as a
+                 — built 2026-11-02 — the maintainer chose C (2026-11-02,
+                 no performance hit expected): demand finding a void at the
+                 interface stops in a state of its own, 8, a void
+                 (`net-void-demanded`), one test where demand reaches the
+                 interface. The library gains a void node (`void`, `EraP`,
+                 the row format's tag 13) and the expectation `void`, its
+                 entries `void-demanded` and `void-applied`. Before:
+                 a void reaching the interface reported as a
                  variable used outside its body, state 7: built 2026-11-02
                  on the claim that a void arises only as an erased
                  function's variable (`EraN` meeting `Fn`), then reverted
@@ -2039,11 +2046,38 @@ takes from it:
                  plain, collecting and stress demand, none reported.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost.bits`
                    — tentative — the maintainer (2026-11-02): a link could
-                   record the polarity of the port it references among its
-                   low bits, so that a step's polarity is a test on a word
-                   already read. Unneeded for the report now; perhaps
-                   convenient to the collection's walk and sweep, which
-                   read a node's head for its inputs.
+                   record the polarity of the port it references, so that
+                   a step's polarity is a test on a word already read.
+                   Room: a reference is a node's word and a port, below
+                   2^23, so a high bit is free; the low two bits are the
+                   port, and a reference plus one is its link's word
+                   (`P.link`), so no low bit is spare without changing how
+                   every link is found. Upkeep: a rewrite's new ports
+                   have polarities known when the rewrite is generated, so
+                   the generated rewrites set the bit as a constant, and a
+                   reference moved keeps its bit, its port unchanged; the
+                   loader, the interpreted table, the events (a node
+                   re-kinded keeps its ports' polarities, law
+                   `fused_polarity`) and the fusions set it from kinds.
+                   Uses: demand's forward step seen before any rewrite past
+                   it, at no load (each link the descent reads says whether
+                   it leads to an input), which would make the report
+                   immediate again and plain and collecting demand agree
+                   on refused nets; a static eraser (`.dead-kinds.links`)
+                   told from a static void by the bit alone; and an audit
+                   of polarization, each link's two words holding opposite
+                   bits. Not a use: the collection's walk and sweep still
+                   read a node's head for its arity, a two-port node's
+                   word 3 holding its payload. Against: a second record of
+                   what the kinds already say, which a missed update makes
+                   wrong silently, so the wiring audit (`KN.wired_ok`)
+                   would check every bit against its port's kind; and
+                   every comparison and address made from a reference
+                   masks the bit, an and each, or leans on the arrays'
+                   indexes wrapping, as the walk's nil does. Worth it with
+                   static erasers, or a
+                   measured need; to measure first what keeping the bit
+                   costs plain demand, expected nothing.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`
                — built 2026-11-02 — the collection following only
                negative ports. The lean walk follows a node's inputs, the

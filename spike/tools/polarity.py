@@ -10,7 +10,7 @@ body (unscoped, net-scoped-arguments). Port polarities are rules.bend's
 
     Fn [+ fn, - result, + arg]    Ap [- ap, - arg, + result]
     Copy [- in, + left, + right]  Lift [- in, + out]
-    data [+]                      EraN [-]
+    data [+]                      EraN [-]   void, EraP [+]
     LiftC [+ out, - in] (no lowering makes one; spike/library.txt may)
 
     polarity.py [COUNT]   the differential test's terms (spike/tools/
@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import terms  # noqa: E402
 
 POL = {"fn": "+-+", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+", "ctlc": "+-",
-       "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-"}
+       "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-", "void": "+"}
 
 
 def check(net, root):

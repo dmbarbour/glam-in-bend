@@ -540,9 +540,8 @@ def bd.less(+f: U32) -> U32:
 # gone, is dead in its sharing context, and erasing it voids its
 # variable only there. In a net whose variable is used outside its
 # function's body, refused when built, the void may reach the
-# interface, where demand then reads no value instead of reporting the
-# variable (`.report.void`, open). The free count is the sweep's, less
-# the erasers.
+# interface, where demand reports a void demanded instead of the variable
+# (net-void-demanded). The free count is the sweep's, less the erasers.
 def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
   match pr:
     case True{}:
@@ -995,8 +994,9 @@ def pf_str(pf: Pf) -> String:
 # and the nodes from the interface on from word 1, depth of them;
 # interactions; how the walk stands: 0 going; the net's outcomes, 1 done,
 # 2 needing a lazy value (need), 3 stuck, 5 a cycle, 7 a variable demanded
-# outside its function's body (net-scoped-arguments, fw.scan below); and
-# the runtime's errors, which say nothing of the net
+# outside its function's body (net-scoped-arguments, fw.scan below), 8 a
+# void demanded (net-void-demanded, wk.root); and the runtime's errors,
+# which say nothing of the net
 # (machine-limits-not-errors), 4 out of fuel, 6 out of memory (the path's
 # array or a collecting demand's net could not grow)
 type D is Type:
@@ -1184,17 +1184,26 @@ def wk.hx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, 
   wk.hy(~after, P.rd(h, y), path, top, depth, n, y, hx)
 
 # the interface facing a principal port: a control's moves past it (the
-# root's rule keeps the interface), anything else is the value
-def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+# root's rule keeps the interface); a void, nothing, is demanded, an
+# outcome of its own, whatever supplied it (net-void-demanded); anything
+# else is the value
+def wk.root.v(+void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
+  match void:
+    case True{}:
+      d.stop(h, path, 0, depth, n, 8)
+    case False{}:
+      d.stop(h, path, 0, depth, n, 1)
+
+def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
       d.go(KN.interact(~after, h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
-      d.stop(h, path, 0, depth, n, 1)
+      wk.root.v(void, h, path, depth, n)
 
 def wk.root(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
-  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
+  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
 
 def wk.pair(~after: P.H -> @+x:N.Ext -> P.H, root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:

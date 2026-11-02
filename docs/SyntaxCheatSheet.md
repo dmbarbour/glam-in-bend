@@ -294,7 +294,9 @@ sum = partial 23
                                     #   arg is local to the body: to send
                                     #   it elsewhere, return it
     .copy N -> [x0, x1, ..., xN]    # dataflow fan-out, unique instances
-    .copy 0 -> [e]                  #   explicitly drop data
+    .copy 0 -> [e]                  #   explicitly drop data; wired to a
+                                    #   consumer, supply a void (demanding
+                                    #   one is an outcome of its own)
     .copy 1 -> [lhs, rhs]           #   tunnel for non-local composition
     .data Expr -> [d]               # embed functions/lists/dicts/numbers
                                     #   (Expr copied logically)
