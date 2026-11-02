@@ -523,6 +523,72 @@ def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
         case Sp{g, ws, bs, +j}:
           sp.go(p, sp.v(KM.m_get(g, i), ws, bs, j), (i + 1 : U32))
 
+# Each output the walk kept whose consumer the sweep freed
+# (`.dead-kinds`). Only a node with two outputs keeps one while losing
+# the other, the walk entering a node by an output: a copy, or a
+# function, by its variable or its principal.
+#
+# A copy's output: the copy made the linear copy keeping its other side,
+# in place, as the event an eraser there makes (`.dead-kinds.copy`).
+#
+# A function's principal, the function reached by its variable alone: a
+# copy of a function whose body copying shared, its variable reaching the
+# body through the merge of the copies' variables while its own consumer
+# is gone, dead in its sharing context; erasing it voids its variable only
+# there. Between the fans copying made, its result fed by a copy's output
+# and its variable into a merge's input, it is erased in place: both fans
+# made linear, keeping their other sides, and the function freed, as its
+# erasure and the two events after it would (`.dead-kinds.copied`).
+# Elsewhere an eraser is put on its principal, the pair noted for the
+# eval. In a net whose variable is used outside its function's body,
+# refused when built, the void may reach the interface, where demand
+# reports a void demanded instead of the variable (net-void-demanded).
+#
+# A function's variable, unused now: an eraser put on it, which makes no
+# event, until a function with its variable dead is a kind of its own
+# (`.dead-kinds.fn`).
+#
+# The free count is the sweep's, plus the functions freed, less the
+# erasers made.
+
+# a fan's linear kind keeping the side other than p: a copy's KCopyR
+# (13) or KCopyL (12), a merge's KMergeR (15) or KMergeL (14)
+def lin.base(+k: U32) -> U32:
+  match k:
+    case 3:
+      12
+    case _:
+      14
+
+def lin.side(+p: U32) -> U32:
+  match p:
+    case 1:
+      1
+    case _:
+      0
+
+# the kept side, port 2, moved to port 1, its peer told
+def lin.mv(r: P.H & U32, +b: U32) -> P.H:
+  (h, +l2) = r
+  P.wr(P.wr(h, (b + 2 : U32), l2), (l2 + 1 : U32), (b + 1 : U32))
+
+def lin.port(+p: U32, h: P.H, +b: U32) -> P.H:
+  match p:
+    case 1:
+      lin.mv(P.rd(h, (b + 3 : U32)), b)
+    case _:
+      h
+
+# the header's kind changed, its fan identity kept; word 3, a two-port
+# node's payload word, cleared; counted as the fan's event
+def lin.hd(r: P.H & U32, +b: U32, +p: U32) -> P.H:
+  (h, +hd) = r
+  P.ev_count(P.wr(P.wr(lin.port(p, h, b), b, ((hd .&. 4294967232 : U32) .|. (lin.base(P.rk(hd)) + lin.side(p) : U32) : U32)), (b + 3 : U32), 0), P.rk(hd))
+
+# the fan behind y made linear, y's side dropped
+def lin.drop(h: P.H, +y: U32) -> P.H:
+  lin.hd(P.rd(h, P.base(y)), P.base(y), P.port(y))
+
 def bd.less(+f: U32) -> U32:
   match f:
     case 0:
@@ -530,18 +596,6 @@ def bd.less(+f: U32) -> U32:
     case _:
       (f - 1 : U32)
 
-# An eraser given to each output the walk kept whose consumer the sweep
-# freed, its event noted where the output is an auxiliary port: a copy's,
-# which the event makes linear, or a function's variable, which makes
-# none. Where it is a principal, a function the walk reached by its
-# variable alone, the pair it makes is noted for the eval: a copy of a
-# function whose body copying shared, its variable reaching the body
-# through the merge of the copies' variables while its own consumer is
-# gone, is dead in its sharing context, and erasing it voids its
-# variable only there. In a net whose variable is used outside its
-# function's body, refused when built, the void may reach the
-# interface, where demand reports a void demanded instead of the variable
-# (net-void-demanded). The free count is the sweep's, less the erasers.
 def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
   match pr:
     case True{}:
@@ -549,9 +603,75 @@ def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
     case False{}:
       st
 
+# an eraser put on y, its event or pair noted
 def bd.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
   (h, +e) = r
   Mq{P.link(h, e, y), bd.st(U32.is_eq(P.port(y), 0), st, e), KN.evl.add(U32.is_ne(P.port(y), 0), e, ws), bd.less(free)}
+
+def bd.era(h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  bd.e(P.node(h, P.hd(6, 0), 0), st, ws, free, y)
+
+# one interaction more in the header's count (P.at_itrs): the erasure
+# done in place
+def bd.itr(r: P.H & U32) -> P.H:
+  (h, +n) = r
+  P.wr(h, P.at_itrs(), (n + 1 : U32))
+
+def bd.cp.go(+ok: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
+  match ok:
+    case True{}:
+      Mq{bd.itr(P.rd(P.free(lin.drop(lin.drop(h, a), b), f), P.at_itrs())), st, ws, (free + 1 : U32)}
+    case False{}:
+      bd.era(h, st, ws, free, f)
+
+def bd.cp.hb(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32, +ha: U32) -> Mq:
+  (h, +hb) = r
+  bd.cp.go(U32.is_eq(P.rk(ha), 3) && U32.is_ne(P.port(a), 0) && U32.is_eq(P.rk(hb), 4) && U32.is_ne(P.port(b), 0), h, st, ws, free, f, a, b)
+
+def bd.cp.ha(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
+  (h, +ha) = r
+  bd.cp.hb(P.rd(h, P.base(b)), st, ws, free, f, a, b, ha)
+
+def bd.cp.b(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32) -> Mq:
+  (h, +b) = r
+  bd.cp.ha(P.rd(h, P.base(a)), st, ws, free, f, a, b)
+
+# function f reached by its variable alone: its result's peer, then its
+# variable's
+def bd.cp.a(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32) -> Mq:
+  (h, +a) = r
+  bd.cp.b(P.rd(h, (f + 3 : U32)), st, ws, free, f, a)
+
+def bd.how.p(+ok: Bool, +k: U32) -> U32:
+  match ok:
+    case True{}:
+      k
+    case False{}:
+      0
+
+# by what y is, its node of kind k: 1 a copy's output, 2 a function's
+# principal, else 0
+def bd.how(+k: U32, +y: U32) -> U32:
+  match k:
+    case 3:
+      bd.how.p(U32.is_ne(P.port(y), 0), 1)
+    case 1:
+      bd.how.p(U32.is_eq(P.port(y), 0), 2)
+    case _:
+      0
+
+def bd.y.go(+how: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  match how:
+    case 1:
+      Mq{lin.drop(h, y), st, ws, free}
+    case 2:
+      bd.cp.a(P.rd(h, (y + 2 : U32)), st, ws, free, y)
+    case _:
+      bd.era(h, st, ws, free, y)
+
+def bd.y(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  (h, +hy) = r
+  bd.y.go(bd.how(P.rk(hy), y), h, st, ws, free, y)
 
 def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
   match bs:
@@ -560,7 +680,7 @@ def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
     case Con{+y, t}:
       match m:
         case Mq{h, st, ws, +free}:
-          bd.go(t, bd.e(P.node(h, P.hd(6, 0), 0), st, ws, free, y))
+          bd.go(t, bd.y(P.rd(h, P.base(y)), st, ws, free, y))
 
 def lw.sp(s: Sp, h: P.H, +free: U32, +cap: U32) -> Mq:
   match s:

@@ -370,6 +370,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.census` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copy` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copied` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.fn`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
@@ -1773,7 +1777,7 @@ takes from it:
              nothing of the erasure cascades it would no longer run, 96% of
              today's collection interactions.
            - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`
-             — planned — the maintainer's (2026-11-02): a dead variant
+             — active — the maintainer's (2026-11-02): a dead variant
              of a kind for each positive auxiliary port, so that the
              sweep, finding a marked node's output facing what it frees,
              rewrites the node's kind rather than making an eraser, and
@@ -1803,6 +1807,49 @@ takes from it:
              variable alone, by its principal (`.dataflow.walk`: its
              erasure voids the variable and erases the body, events on
              the merge and the copy that copying made).
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.census`
+               — built 2026-11-02 — the erasers the directed sweep made,
+               over the benchmark's 154 rows (scratch builds counting them
+               in the net's errors word): 20,063, at a function's variable
+               10,664 (53%), a copy's output 5,574 (28%), a function's
+               principal, the function reached by its variable alone,
+               3,825 (19%), nowhere else. Of those functions, 3,529 (92%)
+               sit between the fans copying made, a copy's output feeding
+               their result and their variable a merge's input.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copy`
+               — built 2026-11-02 — the sweep makes a copy whose output it
+               frees the linear copy keeping its other side, in place, the
+               fan's identity kept, counted as the event an eraser there
+               makes (`lin.drop`).
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.copied`
+               — built 2026-11-02 — a function reached by its variable
+               alone, between the fans copying made, erased in place: both
+               fans made linear and the function freed, counted as its
+               erasure and the two events after it. Elsewhere it keeps the
+               eraser and the eval. With `.copy` (gcbench runs 180, main,
+               and 181): collecting 0.27% over plain demand against 0.65%,
+               capacities and collections' interactions the same; 52 cases
+               better, 1 worse (`pow-2-12` with labels, +0.1% of plain), 49
+               alike; `loop-toggle-1024` with levels from 16.8% over plain
+               demand to 4.5%. `list-length` and `search-count` with
+               labels stay some 25% over: their 8 and 21 dead copies, none
+               between fans, are erased by the eval, whose cascade takes
+               the interpreted table, some 10% of the run (`.walk.loops`).
+               The library and 3,600 random terms (`dcterms.sh`) pass. An
+               identity's copy, its result its own variable, never comes
+               here: the walk reaches it by its principal or not at all.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.fn`
+               — planned — a function with its variable dead, a kind of
+               its own, for the erasers at a function's variable, 53% of
+               them: a fused kind (`R.lf.full` a function, `R.ex.dead` its
+               port 2, an eraser consuming there), its rules derived as the
+               linear fans' are, a function whose variable meets an eraser
+               becoming one in the derivation's marking; the sweep makes a
+               function whose variable it frees one in place. Laws
+               `linear_as_components` and `fused_polarity` take it as they
+               take the linear fans; every law split by kind gains its
+               case. Lowering may then make one for an unused variable
+               (`.lowering`).
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
                — tentative — the maintainer (2026-11-02, unsure it is a
                good one): static links standing for `EraP` and `EraN`
@@ -2046,7 +2093,12 @@ takes from it:
                  3,600 random terms (`dcterms.sh`, 200 a set) agree on
                  plain, collecting and stress demand, none reported.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost.bits`
-                   — tentative — the maintainer (2026-11-02): a link could
+                   — tentative — deferred until a greater benefit shows (the
+                   maintainer, 2026-11-02): it is the remote port's
+                   polarity, so a reference moved needs no update, and the
+                   Rust bootstrap kept such a bit for its dynamic polarity
+                   check, where preservation of polarity was not proved.
+                   The maintainer (2026-11-02): a link could
                    record the polarity of the port it references, so that
                    a step's polarity is a test on a word already read.
                    Room: a reference is a node's word and a port, below
