@@ -25365,6 +25365,9 @@ def Laws.fused_polarity(k):
 def Laws.beta_loops():
   {==}
 
+def Laws.capacity_leaves_tags():
+  {==}
+
 def Laws.identity_resolved(a, t):
   match a:
     case R.KFree{}:
