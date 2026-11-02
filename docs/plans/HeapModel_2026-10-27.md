@@ -1870,6 +1870,12 @@ takes from it:
                fans copying made, 296 over the benchmark, 1.5% of the
                erasers it made before. Lowering may make one for an unused
                variable (`.lowering`), so that plain demand has them too.
+               Workloads that never meet the kind move with the larger
+               generated dispatch, six more pairs and an eighteenth kind
+               (store run 185 against 183, k 18): eager succ and lvl
+               +1.3% to +2.2% forced inline, -0.2% to -0.3% in the default
+               build, +0.3% to +0.5% profile-guided; plain demand -0.3% to
+               +0.7%. Layout, not work: none of them makes the new kind.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
                — tentative — the maintainer (2026-11-02, unsure it is a
                good one): static links standing for `EraP` and `EraN`
