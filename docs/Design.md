@@ -431,6 +431,15 @@ The `NetBuilder` Effects API:
   circle (nodes each with its principal port wired to an auxiliary of the
   next, round to the first, which can never interact). A circle formed by
   reduction is reported when demand reaches it.
+- A function's argument is local to its body; to send it elsewhere, return
+  it. Construction refuses a net where the return port can need a
+  function's `arg` other than through its `result`: on the graph of
+  ports, an output needing its node's inputs and an input the output
+  wired to it, `result` must dominate `arg` from the return port. Only
+  function binds are constrained; any wiring of copies, data and
+  applications stays open, cycles of data included. A variable demanded
+  outside its function's body after reduction, where copies share a body,
+  is reported as a cycle is (`net-scoped-arguments`).
 - *Standard Effects* to support bookkeeping and backtracking
 
 Nodes interact only when principal ports connect.

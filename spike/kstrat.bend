@@ -853,7 +853,8 @@ def pf_str(pf: Pf) -> String:
 # the path below its last node, top, in an array, its capacity at word 0
 # and the nodes from the interface on from word 1, depth of them;
 # interactions; how the walk stands: 0 going; the net's outcomes, 1 done,
-# 2 needing a lazy value (need), 3 stuck, 5 a cycle; and the runtime's
+# 2 needing a lazy value (need), 3 stuck, 5 a cycle, 7 a variable demanded
+# outside its function's body (net-scoped-arguments); and the runtime's
 # errors, which say nothing of the net (machine-limits-not-errors), 4 out
 # of fuel, 6 out of memory (the path's array or a collecting demand's net
 # could not grow)
@@ -1060,6 +1061,21 @@ def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U
     case False{}:
       d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
+# a step into the node behind q, entered by an auxiliary port: a node whose
+# principal is positive provides there, so the walk would go on forward,
+# from what provides to what consumes, which only a variable demanded
+# outside its function's body starts (net-scoped-arguments): reported
+def wk.into.go(+neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match neg:
+    case True{}:
+      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
+    case False{}:
+      d.stop(h, path, top, depth, n, 7)
+
+def wk.into(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  (h, +hd) = r
+  wk.into.go(KR.kind_neg(P.rk(hd)), h, path, top, depth, n, q)
+
 def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, nil: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match nil pr:
     case True{} _:
@@ -1067,7 +1083,7 @@ def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, nil: Bool, +pr: Bool, h: P.H, path:
     case False{} True{}:
       wk.pair(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
-      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
+      wk.into(P.rd(h, P.base(q)), path, top, depth, n, q)
 
 # Pushes and what follows them in one step: most pushes find a pair at
 # once, and a step costs the walk a round through demand's loop. While
@@ -1080,6 +1096,11 @@ def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, nil: Bool, +pr: Bool, h: P.H, path:
 type Dn is Type:
   Dn{+go: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32}
 
+# what the descent stops on where the next node would be entered forward:
+# no reference, node 2^30 - 1's port 2 being past every net
+def dn.fwd() -> U32:
+  4294967294
+
 # whether the walk can push past a node facing q, at depth: an auxiliary
 # port, and room in the array
 def dn.can(+q: U32, +depth: U32) -> Bool:
@@ -1089,8 +1110,22 @@ def dn.r(r: P.H & U32, path: KM.M, +x: U32, +depth: U32) -> Dn:
   (h, +q) = r
   Dn{dn.can(q, depth), h, path, x, depth, q}
 
+# a push into the node behind q, unless its principal is positive: then
+# the descent stops where it stands, q a sentinel no port is
+# (dn.fwd, net-scoped-arguments)
+def dn.step.go(+neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Dn:
+  match neg:
+    case True{}:
+      dn.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 1 : U32), top), P.base(q), (depth + 1 : U32))
+    case False{}:
+      Dn{False{}, h, path, top, depth, dn.fwd()}
+
+def dn.step.h(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Dn:
+  (h, +hd) = r
+  dn.step.go(KR.kind_neg(P.rk(hd)), h, path, top, depth, q)
+
 def dn.step(h: P.H, path: KM.M, +top: U32, +depth: U32, +q: U32) -> Dn:
-  dn.r(P.rd(h, (P.base(q) + 1 : U32)), KM.m_set(path, (depth + 1 : U32), top), P.base(q), (depth + 1 : U32))
+  dn.step.h(P.rd(h, P.base(q)), path, top, depth, q)
 
 def wk.down(f: Nat, s: Dn) -> Dn:
   match f:
@@ -1105,10 +1140,17 @@ def wk.down(f: Nat, s: Dn) -> Dn:
             case False{}:
               Dn{False{}, h, path, top, depth, q}
 
+def wk.c.f(~after: P.H -> @+x:N.Ext -> P.H, +fwd: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
+  match fwd:
+    case True{}:
+      d.stop(h, path, top, depth, n, 7)
+    case False{}:
+      wk.q.go(~after, U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
+
 def wk.c(~after: P.H -> @+x:N.Ext -> P.H, s: Dn, +n: U32) -> D:
   match s:
     case Dn{+go, h, path, +top, +depth, +q}:
-      wk.q.go(~after, U32.is_eq(q, P.nil()), U32.is_eq(P.port(q), 0), h, path, top, depth, n, q)
+      wk.c.f(~after, U32.is_eq(q, dn.fwd()), h, path, top, depth, n, q)
 
 # what the path's last node's principal port faces
 def wk.q(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:

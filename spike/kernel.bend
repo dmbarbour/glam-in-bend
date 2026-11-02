@@ -376,6 +376,8 @@ def st_name(+st: U32) -> String:
       "a cycle"
     case 6:
       "out of memory"
+    case 7:
+      "unscoped"
     case _:
       "going"
 

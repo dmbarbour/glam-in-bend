@@ -40,6 +40,10 @@ What must hold is one of
            net
   cycle    demand finds a cycle of principal ports facing auxiliary ones,
            and the full reductions no value
+  unscoped VALUE   a function's argument used outside its body, which
+           glam's construction refuses (`net-scoped-arguments`): demand,
+           collecting or not, reports it, and the full reductions, which
+           refuse nothing, reach VALUE
   wrong    a mode known to miss the value (labels on some
            self-applications), which must still miss it.
 The erasure modes must reach the same value where every strategy must,
@@ -61,6 +65,8 @@ list (KN.free_ok) and the wiring (KN.wired_ok) in step, every net
 polarized, and a net built with a vicious circle (a closed principal
 path), which glam's construction refuses (`net-obvious-errors`), kept
 only to show demand finding it, so expecting `cycle` (polarity.py); a
+net built with a function's argument used outside its body likewise
+expecting `unscoped`, and no other (polarity.py's `unscoped`); a
 cycle may also form by rewriting,
 the interpreted table and the generated rewrites making the same
 interactions and the profile too; a term's value its evaluator's
@@ -85,6 +91,7 @@ NODE = re.compile(r"([a-z]+)(?:\(([^)]*)\))?$")
 END = re.compile(r"(\d+)\.(\d+)$")
 WANT = re.compile(r"(\S+) logical (\d+) peels (\d+)$")
 DEMAND = re.compile(r"demand (\S+)$")
+UNSCOPED = re.compile(r"unscoped (\S+)$")
 
 
 class Case:
@@ -313,7 +320,7 @@ class Run:
 def check(c, r):
     """the failures of case c in run r"""
     bad = []
-    m, d = WANT.match(c.want), DEMAND.match(c.want)
+    m, d, u = WANT.match(c.want), DEMAND.match(c.want), UNSCOPED.match(c.want)
     if c.want == "wrong":
         if r.fast[0] == str(c.value):
             bad.append(f"marked wrong, but gives {c.value}: update the library")
@@ -327,6 +334,15 @@ def check(c, r):
 
         if r.ev[0] != "none":
             bad.append(f"the full reduction with events gives {r.ev[0]}")
+    elif u:
+        if r.state != "unscoped":
+            bad.append(f"demand ends {r.state}, not unscoped")
+        if r.evstate != "unscoped":
+            bad.append(f"demand with events ends {r.evstate}, not unscoped")
+        for label, res in (("spike", r.spike), ("ref", r.ref), ("fast", r.fast), ("two", r.two), ("profile", r.prof),
+                           ("ev", r.ev), ("evref", r.evref), ("evtwo", r.evtwo), ("evprofile", r.evprof)):
+            if res[0] != u.group(1):
+                bad.append(f"{label} gives {res[0]}, not {u.group(1)}")
     elif d:
         if c.value is not None and d.group(1) != str(c.value):
             bad.append(f"the library says {d.group(1)}, the evaluator {c.value}")
@@ -430,6 +446,14 @@ def main(argv):
         if circles and c.want != "cycle":
             failing += 1
             print(f"FAIL {c.entry} {c.mode}: vicious circles {circles[:3]}, but no cycle expected")
+        # and one with a function's argument used outside its body to show
+        # demand reporting it (net-scoped-arguments)
+        loose = polarity.unscoped(c.net, c.root)
+        if bool(loose) != bool(UNSCOPED.match(c.want)):
+            failing += 1
+            print(f"FAIL {c.entry} {c.mode}: " + (f"functions {loose[:3]} with an argument used outside the body,"
+                                                  " but not expected unscoped" if loose else
+                                                  "expected unscoped, but every argument is used within its body"))
     if failing:
         return 1
     path = program(cs, out)
@@ -463,7 +487,7 @@ def main(argv):
             print(f"FAIL {c.entry} {c.mode}: no result (the run's status {res.returncode})")
             continue
         runs.append((c, r))
-        if update and c.want not in ("wrong", "cycle") and not DEMAND.match(c.want):
+        if update and c.want not in ("wrong", "cycle") and not DEMAND.match(c.want) and not UNSCOPED.match(c.want):
             w = WANT.match(c.want)
             lines[c.line] = f"{c.mode}: {w.group(1) if w else c.want.split()[0]} logical {r.logical} peels {r.peels}"
             c.want = lines[c.line].partition(": ")[2]

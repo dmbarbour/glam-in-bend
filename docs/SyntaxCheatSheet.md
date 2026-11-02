@@ -291,6 +291,8 @@ sum = partial 23
 # Node constructors (introduce ports; principal port is head of list):
     .bind -> [ap, arg, result]      # bind as an application
     .bind -> [fn, result, arg]      # bind as a function: mirrored polarity
+                                    #   arg is local to the body: to send
+                                    #   it elsewhere, return it
     .copy N -> [x0, x1, ..., xN]    # dataflow fan-out, unique instances
     .copy 0 -> [e]                  #   explicitly drop data
     .copy 1 -> [lhs, rhs]           #   tunnel for non-local composition
