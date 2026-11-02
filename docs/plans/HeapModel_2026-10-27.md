@@ -386,7 +386,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
-   `heap-strategies.erasure.load.cycle.walk.directed.lowering`,
+   `heap-strategies.erasure.load.cycle.walk.directed.lowering` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static`,
    `heap-strategies.erasure.load.cycle.walk.directed.eager`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1882,7 +1883,21 @@ takes from it:
                instead of nodes, a port facing one being erased or void
                without a node there. Depends on how much the kinds
                bring: a kind is dispatched on by the rules, a link would
-               be tested where a port is read, as nil is.
+               be tested where a port is read, as nil is. The maintainer
+               (2026-11-02): would they take the remaining 1.5% of the
+               sweep's erasers (the dead copies away from the fans
+               copying made, `.copied`), and help or hurt overall? An
+               experiment to tell.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static`
+               — tentative — the maintainer (2026-11-02): immediate data
+               as static nodes too, a reference whose port field holds
+               the unused fourth value (3) standing for a node
+               interpreted locally, the value in the reference, perhaps
+               serving better on average than distinct kinds and forms;
+               and the data table using such immediates instead of nodes
+               of its own. To weigh: what a static reference saves (a
+               node, its loads) against what every port read then tests,
+               where kinds now dispatch.
            - `heap-strategies.erasure.load.cycle.walk.directed.dataflow` —
              active — which closure. Following only negative ports,
              data's flow reversed, a dead node stays dead: no rewrite of
@@ -2287,12 +2302,37 @@ takes from it:
                it applies, go unmarked). Restoring it changes law
                `events_erase_last`, the maintainer's to approve.
            - `heap-strategies.erasure.load.cycle.walk.directed.lowering` —
-             tentative — erasers fused or applied at lowering (the
+             built 2026-11-02 — erasers fused or applied at lowering (the
              maintainer, 2026-11-02): an unused variable lowered to the
              dead-argument function, a value with one use dead copied
              linearly or not at all, a discarded expression not built.
              Built nets would hold no eraser; erasers would arise only
-             from rules, briefly, until the next sweep folds them.
+             from rules, briefly, until the next sweep folds them. The
+             spike's lowering (`terms.py`) puts an eraser in one place
+             only, an unused variable: it copies a value only for its
+             uses and discards no expression it builds. That function is
+             now lowered as one with its variable dead (`fnd`, `fndl` in
+             the templates, the row format's tags 14 and 15), so that
+             lowered nets hold no eraser; the hand-built K combinator of
+             EvalSpike's tests keeps its own (`nets.bend`'s `t_k`). The
+             loader marks it built without levels as it marks a function
+             (`KN.bare_hd`); before it did, an application met it at a
+             mismatched level and stuck, in 34 entries with labels. The
+             library: values and states unchanged, 56 entries' logical
+             interactions fewer (6,807,581 to 6,635,565 over them,
+             -2.5%), updated. The differential test, 3,600 terms (store
+             runs 186 and 187, main): every correctness column the same.
+             The benchmark, its rows lowered anew (gcbench runs 184 and
+             188): plain demand 1.38% fewer instructions, 101 cases
+             better, none worse, interactions the same; collecting 0.15%
+             fewer, capacity 497,024 nodes against 505,216, 84 cases
+             better, 4 worse, all with labels: `search-once` and
+             `parse-greedy`, now just past the threshold, collect once
+             more; `list-sum` and `search-first` send more of their
+             collections' rewrites through the interpreted table
+             (`.walk.loops`). Measured against each run's own plain
+             demand, which now has what only collecting had, collecting
+             reads 0.24% over plain demand.
            - `heap-strategies.erasure.load.cycle.walk.directed.eager` —
              tentative — the same collection under eager reduction (the
              maintainer, 2026-11-02), the stack of pairs filtered by the

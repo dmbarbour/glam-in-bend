@@ -9,6 +9,7 @@ body (unscoped, net-scoped-arguments). Port polarities are rules.bend's
 (R.port_pol):
 
     Fn [+ fn, - result, + arg]    Ap [- ap, - arg, + result]
+    FnD [+ fn, - result]          (a function whose variable is unused)
     Copy [- in, + left, + right]  Lift [- in, + out]
     data [+]                      EraN [-]   void, EraP [+]
     LiftC [+ out, - in] (no lowering makes one; spike/library.txt may)
@@ -23,7 +24,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import terms  # noqa: E402
 
-POL = {"fn": "+-+", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+", "ctlc": "+-",
+POL = {"fn": "+-+", "fnd": "+-", "ap": "--+", "cp": "-++", "br": "-+", "cr": "-+", "ctl": "-+", "ctlc": "+-",
        "num": "+", "succ": "+", "plus": "+", "fma": "+", "era": "-", "void": "+"}
 
 

@@ -25,6 +25,15 @@ def cp(+site: U32) -> T.TNode:
 def fnl(+n: U32) -> T.TNode:
   T.TN{R.KFn{}, V.PLvl{n}}
 
+# a function whose variable is unused, as lowering makes one: no eraser
+# on its variable (heap-strategies.erasure.load.cycle.walk.directed.
+# lowering)
+def fnd() -> T.TNode:
+  T.TN{R.KFnD{}, V.PNone{}}
+
+def fndl(+n: U32) -> T.TNode:
+  T.TN{R.KFnD{}, V.PLvl{n}}
+
 def apl(+n: U32) -> T.TNode:
   T.TN{R.KAp{}, V.PLvl{n}}
 

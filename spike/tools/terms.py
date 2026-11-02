@@ -380,10 +380,15 @@ def lower(net, t, env, depth, path):
         net.boxes += 1
         plug(net, lower(net, t[2], env, depth + 1, path + (net.boxes,)), (a, 1))
         return (a, 2)
-    # a lambda: Fn [+ fn, - result, + arg]
+    # a lambda: Fn [+ fn, - result, + arg]; one whose variable is unused
+    # is a function with its variable dead, FnD [+ fn, - result], no eraser
+    # made (heap-strategies.erasure.load.cycle.walk.directed.lowering)
     f = net.node("fn", depth if net.levels else 0)
     v = Var(depth, path)
     plug(net, lower(net, t[2], {**env, t[1]: v}, depth, path), (f, 1))
+    if not v.uses:
+        net.nodes[f] = ("fnd", net.nodes[f][1])
+        return (f, 0)
     if net.levels:
         fan_trie(net, (f, 2), v)
     else:
@@ -392,9 +397,7 @@ def lower(net, t, env, depth, path):
 
 
 def fan_chain(net, src, uses):
-    if not uses:
-        net.link(src, (net.node("era"), 0))
-        return
+    assert uses, "an unused variable's function is lowered as fnd"
     for u in uses[:-1]:
         net.site += 1
         c = net.node("cp", net.site, 0)
@@ -405,9 +408,7 @@ def fan_chain(net, src, uses):
 
 
 def fan_trie(net, src, var):
-    if not var.uses:
-        net.link(src, (net.node("era"), 0))
-        return
+    assert var.uses, "an unused variable's function is lowered as fnd"
     trie = {"uses": [], "boxes": {}}
     for consumer, depth, path in var.uses:
         node = trie
@@ -491,6 +492,7 @@ def to_tpl(t, levels=True, fused=True):
 
 def bend_node(kind, args, levels=True):
     if kind == "fn": return f"X.fnl({args[0]})" if levels else "X.fn()"
+    if kind == "fnd": return f"X.fndl({args[0]})" if levels else "X.fnd()"
     if kind == "ap": return f"X.apl({args[0]})" if levels else "X.ap()"
     if kind == "cp": return f"X.cpl({args[0]}, {args[1]})" if levels else f"X.cp({args[0]})"
     if kind == "br": return f"X.br({args[0]})"
@@ -512,6 +514,7 @@ def bend_tpl(net, root):
 # builds it
 def net_node(kind, args, levels=True):
     if kind == "fn": return [1, args[0]] if levels else [0]
+    if kind == "fnd": return [15, args[0]] if levels else [14]
     if kind == "ap": return [3, args[0]] if levels else [2]
     if kind == "cp": return [5, args[0], args[1]] if levels else [4, args[0]]
     if kind == "br": return [6, args[0], 1, 1]

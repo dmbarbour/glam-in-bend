@@ -23,7 +23,7 @@ spike/library.txt holds the entries, separated by blank lines, each a few
   term     a lambda term in terms.py's syntax, lowered once per mode:
   levels, labels, unfused    what must hold, lowered that way; or
   nodes, links, root         a net written out: nodes as terms.py makes
-           them (fn(n) ap(n) cp(site,n) br(n) cr(n) ctl(n,+by) ctl(n,-1)
+           them (fn(n) fnd(n) ap(n) cp(site,n) br(n) cr(n) ctl(n,+by) ctl(n,-1)
            ctlc(n,+by) num(v) succ plus fma era void), links `a.p-b.p`, the
            exposed port `a.p`, and
   net      what must hold
