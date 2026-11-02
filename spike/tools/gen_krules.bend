@@ -19,7 +19,7 @@ import ../kprim.bend as P
 # interpreter of the table instead.
 
 def kinds() -> List<&2, R.NodeKind>:
-  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KOp{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDOp{}]
+  [R.KFree{}, R.KFn{}, R.KAp{}, R.KCopy{}, R.KMerge{}, R.KData{}, R.KEraN{}, R.KEraP{}, R.KRoot{}, R.KOp{}, R.KLift{}, R.KLiftC{}, R.KCopyL{}, R.KCopyR{}, R.KMergeL{}, R.KMergeR{}, R.KDOp{}, R.KFnD{}]
 
 def kname(k: R.NodeKind) -> String:
   match k:
@@ -57,6 +57,8 @@ def kname(k: R.NodeKind) -> String:
       "MergeR"
     case R.KDOp{}:
       "DOp"
+    case R.KFnD{}:
+      "FnD"
 
 def code(+k: R.NodeKind) -> String:
   U32.show(N.kcode(k))

@@ -29,6 +29,8 @@ import Base
 #         (a fan one side of which was erased, named for the side it
 #         keeps: Linear fans, below)
 #   DOp   dead operator     [- arg]  (an operator whose result is erased)
+#   FnD   dead-variable function [+ fn, - result] (a function whose
+#         variable is erased: Linear fans, below)
 type NodeKind is Data:
   KFree{}
   KFn{}
@@ -47,6 +49,7 @@ type NodeKind is Data:
   KMergeL{}
   KMergeR{}
   KDOp{}
+  KFnD{}
 
 type Pol is Data:
   Pos{}
@@ -91,6 +94,8 @@ def arity(k: NodeKind) -> Nat:
     case KMergeL{}:
       2n
     case KMergeR{}:
+      2n
+    case KFnD{}:
       2n
     case KFree{}:
       0n
@@ -145,6 +150,8 @@ def holds(k: NodeKind) -> Holds:
       HNone{}
     case KDOp{}:
       HNone{}
+    case KFnD{}:
+      HNone{}
 
 def holds_value(h: Holds) -> Bool:
   match h:
@@ -195,6 +202,8 @@ def port_pol(k: NodeKind, p: Nat) -> Pol:
     case KMergeR{} 1n:
       Neg{}
     case KDOp{} 0n:
+      Neg{}
+    case KFnD{} 1n:
       Neg{}
     case _ _:
       Pos{}
@@ -842,6 +851,8 @@ def kind_n(k: NodeKind) -> Nat:
       15n
     case KDOp{}:
       16n
+    case KFnD{}:
+      17n
 
 # two sources the same, composed ones term by term
 def src_eq(s: Src, u: Src) -> Bool:
@@ -912,6 +923,8 @@ def lf.full(+k: NodeKind) -> NodeKind:
       KMerge{}
     case KDOp{}:
       KOp{}
+    case KFnD{}:
+      KFn{}
     case _:
       k
 
@@ -934,6 +947,8 @@ def ex.dead(+k: NodeKind) -> Nat:
       1n
     case KDOp{}:
       1n
+    case KFnD{}:
+      2n
     case _:
       0n
 
@@ -1314,6 +1329,8 @@ def test_eq(a: NodeKind, b: NodeKind) -> Bool:
       True{}
     case KAp{} KFn{}:
       True{}
+    case KAp{} KFnD{}:
+      True{}
     case KLift{} KLiftC{}:
       True{}
     case _ _:
@@ -1534,6 +1551,8 @@ def lf.mark2(kj: NodeKind, +g: G, +j: Nat, f1: Maybe<&2, Nat>, f2: Maybe<&2, Nat
       lf.keepside(KMergeR{}, g, j, f, True{})
     case KMerge{} None{} Some{f}:
       lf.keepside(KMergeL{}, g, j, f, False{})
+    case KFn{} None{} Some{f}:
+      lf.keepside(KFnD{}, g, j, f, False{})
     case _ _ _:
       g
 
@@ -1641,6 +1660,8 @@ def lf.dead_b(k: NodeKind) -> Maybe<&2, Nat>:
       Some{3n}
     case KMergeR{}:
       Some{2n}
+    case KFnD{}:
+      Some{3n}
     case _:
       None{}
 
@@ -1674,7 +1695,7 @@ def lf.derive.r(r: Rule, +a: NodeKind, +b: NodeKind) -> Rule:
     case RStuck{}:
       RStuck{}
     case RWire{xs, ls}:
-      lf.derive.g(lf.attach(lf.dead_b(b), lf.attach(lf.dead_a(a), G{xs, ls}, KEraN{}), KEraP{}), a, b)
+      lf.derive.g(lf.attach(lf.dead_b(b), lf.attach(lf.dead_a(a), G{xs, ls}, ex.eraser(a)), ex.eraser(b)), a, b)
 
 # a rule with a linear fan, derived from its full fan's
 def lf.derive(+a: NodeKind, +b: NodeKind, t: Bool) -> Rule:
@@ -1701,6 +1722,8 @@ def rule.b(+a: NodeKind, b: NodeKind, t: Bool) -> Rule:
       lf.derive(a, KMergeL{}, t)
     case KMergeR{}:
       lf.derive(a, KMergeR{}, t)
+    case KFnD{}:
+      lf.derive(a, KFnD{}, t)
     case _:
       rule.full(a, b, t)
 
@@ -1775,6 +1798,8 @@ def bare(k: NodeKind) -> Bool:
       False{}
     case KDOp{}:
       True{}
+    case KFnD{}:
+      False{}
 
 def takes_a(s: Src) -> Bool:
   match s:
@@ -1872,6 +1897,8 @@ def leveled(k: NodeKind) -> Bool:
       True{}
     case KDOp{}:
       False{}
+    case KFnD{}:
+      True{}
 
 # a spec reads a field as a level only through a lift: A's for SLiftA, B's
 # for SLiftB, into a field of its own kind
