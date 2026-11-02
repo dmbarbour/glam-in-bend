@@ -743,21 +743,55 @@ def go.interp(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H
     case False{}:
       after(wd(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st), x)
 
-def go.which(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, gen: Bool, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+# A meeting the identity, its loop resolved ahead (KR.rewrite_id): the
+# peers of the function's ports are each other, not looked at after
+def go.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      KR.rewrite_id(~S, ~R, ~note, ~fin, ~after, P.rk(ha), t, h, st, a, b, ha, hb, pa, pb, e0, e1, P.nil(), P.nil())
+
+# A meeting the identity by the interpreted table: its rule with the loop
+# resolved ahead (R.rule_id, law identity_resolved), applied as a plain
+# rule, the function's ports' peers each other and not looked at after,
+# as the generated rewrite does (go.id)
+def go.interp.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      after(wd(apply_rule(R.rule_id(kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st), N.Ext4{e0, e1, P.nil(), P.nil()})
+
+# a redex the generated rewrites do not take, its external peers including
+# its own ports or `fast` off: A meeting the identity by its rule with the
+# loop resolved ahead (walk.loops), generated where `fast` is on, else the
+# interpreted table
+def go.loop(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +id: Bool, +fast: Bool, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+  match id fast:
+    case True{} True{}:
+      go.id(~S, ~R, ~note, ~fin, ~after, t, h, st, a, b, ha, hb, pa, pb, x)
+    case True{} False{}:
+      go.interp.id(~S, ~R, ~note, ~fin, ~wd, ~after, t, h, st, a, b, ha, hb, pa, pb, x)
+    case False{} _:
+      go.interp(~S, ~R, ~note, ~fin, ~wd, ~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+
+# B the identity, a function whose body is its variable, and no other
+# external peer a port of the redex
+def is_id(+x: N.Ext, +a: U32, +b: U32, +hb: U32) -> Bool:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      U32.is_eq(P.rk(hb), 1) && U32.is_eq(e2, (b + 2 : U32)) && U32.is_eq(e3, (b + 1 : U32)) && Bool.not(mine(e0, a, b) || mine(e1, a, b))
+
+def go.which(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, gen: Bool, +fast: Bool, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match gen:
     case True{}:
       go.gen(~S, ~R, ~note, ~fin, ~wd, ~after, rn, t, h, st, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.interp(~S, ~R, ~note, ~fin, ~wd, ~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+      go.loop(~S, ~R, ~note, ~fin, ~wd, ~after, is_id(x, a, b, hb), fast, t, h, st, a, b, ha, hb, pa, pb, x)
 
-# the generated rewrite, or the interpreted table: for a redex whose
-# external peers include its own ports, or when `fast` is off
+# the generated rewrite, or for a redex whose external peers include its
+# own ports, or when `fast` is off, go.loop
 def go.rule(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & Bool, st: S, +fast: Bool, +rn: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   (h, +t) = r
-  go.which(~S, ~R, ~note, ~fin, ~wd, ~after, fast && Bool.not(any_partner(x, a, b)), rn, t, h, st, a, b, ha, hb, pa, pb, x)
+  go.which(~S, ~R, ~note, ~fin, ~wd, ~after, fast && Bool.not(any_partner(x, a, b)), fast, rn, t, h, st, a, b, ha, hb, pa, pb, x)
 
-# the pair's rule by number (KR.rule_no), read once for the payload test
-# and the rewrite
 def go.ext.r(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +rn: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
   go.rule(~S, ~R, ~note, ~fin, ~wd, ~after, KR.test(~S, ~R, ~note, ~fin, ~after, rn, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, rn, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),

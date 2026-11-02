@@ -1816,6 +1816,60 @@ def grow_cases(ps: List<&2, Pr>, +n: Nat) -> String:
             grow_code.e(String.eq(grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), ""),
               grow_expr(grows_r(R.rule(a, b, True{})), grows_r(R.rule(a, b, False{})), a, b), a, b) ++ "\n" ++ grow_cases(t, 1n+n)
 
+# A meeting the identity (heap-strategies.erasure.load.cycle.walk.
+# directed.dataflow.walk.loops): a function whose body is its variable,
+# its ports 1 and 2 wired to each other, for which the kernel took the
+# interpreted table. Its rule with that loop resolved ahead (R.rule_id,
+# law identity_resolved) is generated as any rule is, A's level checks
+# against a function kept, and reached by A's kind (rewrite_id).
+
+def id_name(+a: R.NodeKind) -> String:
+  "rw.id." ++ kname(a)
+
+def differs_id(+a: R.NodeKind) -> Bool:
+  Bool.not(String.eq(rule_fns(True{}, R.rule_id(a, True{}), "x", a, R.KFn{}), rule_fns(True{}, R.rule_id(a, False{}), "x", a, R.KFn{})))
+
+def id_fns.d(d: Bool, +a: R.NodeKind) -> String:
+  match d:
+    case True{}:
+      rule_fns(True{}, R.rule_id(a, True{}), id_name(a) ++ ".yes", a, R.KFn{}) ++ rule_fns(True{}, R.rule_id(a, False{}), id_name(a) ++ ".no", a, R.KFn{})
+    case False{}:
+      rule_fns(True{}, R.rule_id(a, False{}), id_name(a), a, R.KFn{})
+
+def id_fns(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      id_fns.d(differs_id(a), a) ++ id_fns(t)
+
+def id_case.d(d: Bool, +a: R.NodeKind) -> String:
+  match d:
+    case True{}:
+      "    case " ++ code(a) ++ ":\n" ++
+      "      match t:\n" ++
+      "        case True{}:\n" ++
+      "          " ++ call(R.rule_id(a, True{}), id_name(a) ++ ".yes", checked(a, R.KFn{})) ++ "\n" ++
+      "        case False{}:\n" ++
+      "          " ++ call(R.rule_id(a, False{}), id_name(a) ++ ".no", checked(a, R.KFn{})) ++ "\n"
+    case False{}:
+      "    case " ++ code(a) ++ ":\n" ++
+      "      " ++ call(R.rule_id(a, False{}), id_name(a), checked(a, R.KFn{})) ++ "\n"
+
+def id_cases(as: List<&2, R.NodeKind>) -> String:
+  match as:
+    case Nil{}:
+      ""
+    case Con{+a, t}:
+      id_case.d(differs_id(a), a) ++ id_cases(t)
+
+def rewrite_id() -> String:
+  "# A, negative principal, of kind ka, meeting the identity, its loop\n" ++
+  "# resolved ahead (R.rule_id); t is the payload test; a stuck pair counted\n" ++
+  "# an error as the rule table's are\n" ++
+  "def rewrite_id(" ++ arm_params() ++ ") -> R:\n  match ka:\n" ++ id_cases(kinds()) ++
+  "    case _:\n      fin(P.err_if(U32.is_ne(ka, 8), h), st)\n\n"
+
 def file() -> String:
   "import Base\n" ++
   "import ./kprim.bend as P\n" ++
@@ -1859,8 +1913,10 @@ def file() -> String:
   "    case 3:\n      Bool.not(P.same_lvl(ha, hb))\n    case _:\n      False{}\n\n" ++
   "def collects(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  collects.k(collect_of(rule_no(ka, kb)), ha, hb)\n\n" ++
   over_a(kinds(), True{}) ++
+  id_fns(kinds()) ++
   events() ++
-  rewrites()
+  rewrites() ++
+  rewrite_id()
 
 def main() -> IO(Unit):
   IO.print(file())

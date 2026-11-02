@@ -1754,6 +1754,40 @@ def rule(a: NodeKind, b: NodeKind, t: Bool) -> Rule:
     case _:
       RStuck{}
 
+# Loops resolved ahead (heap-strategies.erasure.load.cycle.walk.directed.
+# dataflow.walk.loops): a redex whose own auxiliary ports i and j are
+# wired to each other, external peer i the redex's port j, takes its
+# rule's links to Ext i and Ext j as one: what the rule links to Ext i
+# joined to what it links to Ext j, as the kernel's interpreter joins them
+# (and lf.apply, the laws'); a link between the two, a wire with no node,
+# vanishes. A rule wires every external peer once.
+def loop.join.v(+same: Bool, u: End, v: End, ls: List<&2, Link>, +i: Nat, +j: Nat) -> List<&2, Link>:
+  match same:
+    case True{}:
+      lf.cut(ls, Ext{i})
+    case False{}:
+      Con{Link{u, v}, lf.cut(lf.cut(ls, Ext{i}), Ext{j})}
+
+def loop.join(mu: Maybe<&2, End>, mv: Maybe<&2, End>, ls: List<&2, Link>, +i: Nat, +j: Nat) -> List<&2, Link>:
+  match mu mv:
+    case Some{+u} Some{+v}:
+      loop.join.v(end_eq(u, Ext{j}), u, v, ls, i, j)
+    case _ _:
+      ls
+
+def loop.resolve(r: Rule, +i: Nat, +j: Nat) -> Rule:
+  match r:
+    case RWire{xs, +ls}:
+      RWire{xs, loop.join(lf.peer(ls, Ext{i}), lf.peer(ls, Ext{j}), ls, i, j)}
+    case RStuck{}:
+      RStuck{}
+
+# A meeting the identity, a function whose body is its variable, its ports
+# 1 and 2 wired to each other (external peers 2 and 3): its rule with the
+# loop resolved, for the kernel's generated rewrite (law identity_resolved)
+def rule_id(+a: NodeKind, +t: Bool) -> Rule:
+  loop.resolve(rule(a, KFn{}, t), 2n, 3n)
+
 # Payloads held
 # -------------
 #
@@ -3252,6 +3286,27 @@ def loop.beta(+ap: Bool, +fn: Bool) -> List<&2, Nat>:
 def beta_loops() -> Bool:
   ex.eq(loop.beta(False{}, True{}), [2n, 1n, 0n, 0n, 0n]) && ex.eq(loop.beta(True{}, False{}), [0n, 0n, 4n, 3n, 0n]) &&
     ex.eq(loop.beta(True{}, True{}), [0n, 0n, 0n, 0n, 0n]) && ex.eq(loop.beta(False{}, False{}), [4n, 3n, 2n, 1n, 0n])
+
+# A (node 0) meeting the identity (node 1): A's auxiliary ports external
+# peers 0 and 1, as its arity has them; the function's body its variable
+def id.aux(+n: Nat) -> List<&2, Link>:
+  match n:
+    case 3n:
+      [Link{New{0n, 1n}, Ext{0n}}, Link{New{0n, 2n}, Ext{1n}}]
+    case 2n:
+      [Link{New{0n, 1n}, Ext{0n}}]
+    case _:
+      []
+
+def id.g(+a: NodeKind) -> G:
+  G{[Spec{a, SPayA{}}, Spec{KFn{}, SPayB{}}],
+    Con{Link{New{0n, 0n}, New{1n, 0n}}, List.append(&2, Link, id.aux(arity(a)), [Link{New{1n, 1n}, New{1n, 2n}}])}}
+
+# A's rule against the identity with its loop resolved ahead rewrites the
+# looped redex as the full rule does, the laws' application resolving it
+# (law identity_resolved)
+def identity_resolved(+a: NodeKind, +t: Bool) -> Bool:
+  ex.eq(loop.after(lf.apply(rule(a, KFn{}, t), id.g(a), 0n, 1n)), loop.after(lf.apply(rule_id(a, t), id.g(a), 0n, 1n)))
 
 # a copy (node 0) meeting the identity function (node 1), its outputs
 # external peers 0 and 1
