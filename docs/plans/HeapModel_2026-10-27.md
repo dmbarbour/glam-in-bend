@@ -362,6 +362,11 @@ takes from it:
    `heap-strategies.erasure.load.cycle.shrink` (built),
    `heap-strategies.erasure.load.cycle.shrink.beta`,
    `heap-strategies.erasure.load.cycle.shrink.fuel`,
+   `heap-strategies.erasure.load.cycle.shrink.untested`,
+   `heap-strategies.erasure.load.cycle.shrink.ctl-cost`,
+   `heap-strategies.erasure.load.cycle.shrink.copy`,
+   `heap-strategies.erasure.load.cycle.bench.corpus`,
+   `heap-strategies.erasure.load.cycle.walk.directed`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1690,6 +1695,35 @@ takes from it:
            link fails); that the kernel's rewrites do what the model's do
            is a draft (`kernel_rewrite_refines`). Once it is a law, the
            net goes or stays as the maintainer chooses.
+         - `heap-strategies.erasure.load.cycle.walk.directed` — tentative —
+           the maintainer's (2026-11-02): links run both ways, but data
+           and demand do not. Data flows from a positive port to a
+           negative one, demand back; reaching a fan by one of its
+           outputs, its input is needed, but its other output only if
+           something needed reaches it another way. A walk that follows,
+           from a node reached, its principal and its negative ports,
+           never its positive auxiliary ones, marks what demand could
+           need, a subset of what is connected. The principal is followed
+           whatever its polarity because a node's auxiliary ports gain
+           their values only by its principal's interaction: a function
+           reached by its argument (a variable used outside its body,
+           which a net need not exclude) must keep what it meets. What
+           the walk does not mark is dead though connected: the other
+           branch of a fan whose consumer leads nowhere, an application
+           waiting on its function whose result is erased (an eraser on
+           an application's result, or a function's argument, makes no
+           event, so today's cascade stops there), and all they alone
+           hold. The sweep frees it, and where a freed node faced a
+           marked node's positive auxiliary port puts a consuming eraser
+           there (whose event, on a fan, makes it linear): meant to come
+           to what erasing the dead part would, all of it at once, even
+           where a cascade stops, and without its interactions. To weigh: how much more it frees,
+           measured first by marking both ways in one collection and
+           counting the difference; the sweep's added work at the
+           boundary, only where it frees; a port polarity table in the
+           kernel; and a proof that freeing what the walk leaves unmarked
+           keeps the interface's value (a structural law, the patched net
+           wired and polarized, comes first).
          - `heap-strategies.erasure.load.cycle.buffers` — dropped
            2026-11-01 (the maintainer: not worth pursuing) — the
            collection's arrays kept with the net from one collection
@@ -1849,6 +1883,15 @@ takes from it:
          AGENTS.md, "Measuring"). Main with the floor of 16: 102 of the
          153 cases collect, 3.23% over plain demand (forced inline
          2.56%), 652,288 nodes of capacity (store runs 146, 147).
+         - `heap-strategies.erasure.load.cycle.bench.corpus` — tentative
+           — the library is a set of nets kept for what they exercise,
+           not a sample of programs, so a finding over it rules a
+           hypothesis out more surely than in: that data copies scarcely
+           happen here says nothing of programs that copy data often
+           (the maintainer, 2026-11-02). Broader populations would help:
+           the differential test's random terms (`terms.py`), and larger
+           programs once there are any; and each negative finding read
+           against why it holds, by logic, before it is relied on.
        - `heap-strategies.erasure.load.cycle.eval-need` — built
          2026-11-02 — what work a collection's eval should do, and how
          much (the maintainer: does a data copy help, does beta, is fuel
@@ -1923,6 +1966,35 @@ takes from it:
            it could still bind (each rewrite may note pairs to look at),
            so whether to keep it as a bound on a collection's work, or
            drop it, is the maintainer's.
+         - `heap-strategies.erasure.load.cycle.shrink.untested` —
+           tentative — pairs collectable in one variant only that no
+           header test tells apart are left uncollected, each named in
+           the generator's `collect_untested`, any other stopping the
+           generator by naming the test it lacks, so that none is
+           forgotten for want of a test (the maintainer, 2026-11-02). One
+           so far: a level control meeting its co-control, which
+           annihilates where their indexes agree, an agreement read from
+           their payloads after peeling a fused run (`P.Pl`), which the
+           collection's header test cannot see; collecting it needs the
+           payloads read, and the peel's test without its rewrite.
+         - `heap-strategies.erasure.load.cycle.shrink.ctl-cost` — planned
+           — control passing that collections no longer do, demand now
+           doing it, costs more in the forced-inline build: `costly-124`
+           with the same interactions, some 0.2 million instructions
+           dearer there, cheaper in the default build (store runs 163,
+           164). A signal to look at control passing's cost on demand's
+           path (the maintainer, 2026-11-02).
+         - `heap-strategies.erasure.load.cycle.shrink.copy` — tentative —
+           a full copy meeting data passes the ports test (four ports to
+           two) but frees no node, its two nodes becoming two, and table
+           data gains an entry, a value duplicated, perhaps a large one:
+           in a collection it is at best demand's work done early, at
+           worst a copy nobody needed. Not so in the sample (32 in the
+           library, none mattering), but by the accounting. Counting
+           nodes rather than ports leaves it out: fewer nodes other than
+           erasers and dead operators, or as many and fewer nodes in all,
+           keeps every other collected rule and still ends every cascade.
+           The maintainer's to choose.
        - `heap-strategies.erasure.load.cycle.adaptive` — dropped
          2026-11-01 (the maintainer: doubling, the growth kept) —
          growth by four where it is likely to be wanted: the first few

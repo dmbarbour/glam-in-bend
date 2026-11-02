@@ -1683,7 +1683,9 @@ def stuck_cases(ps: List<&2, Pr>, +n: Nat) -> String:
 # of a table entry adds one to the table, which the copy node it consumes
 # bounds (the maintainer, 2026-11-01; heap-strategies.erasure.load.cycle).
 # Where the variants differ, the header test the pair's payload test is
-# (P.same_lvl) decides; with no such test, neither variant is collected.
+# (P.same_lvl) decides; with no such test, a pair named in
+# collect_untested is left uncollected, and any other stops the
+# generator, naming the test it lacks.
 
 # an application or an operator meeting data, which may be a need for a
 # lazy value only the table tells (kstrat.bend's may_need): never collected
@@ -1720,6 +1722,26 @@ def collect_test.full(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
 def collect_test(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
   collect_test.full(R.lf.full(a), R.lf.full(b))
 
+# the pairs collectable in one variant only that no header test tells
+# apart, left uncollected until a collection can test them, each named so
+# that none is forgotten: a level control meeting its co-control, which
+# annihilates where their indexes agree, an agreement read from their
+# payloads after peeling a fused run (P.Pl), which the header test cannot
+# see (heap-strategies.erasure.load.cycle.shrink.untested)
+def collect_untested(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
+  match a b:
+    case R.KLift{} R.KLiftC{}:
+      True{}
+    case _ _:
+      False{}
+
+def collect_code.untested(+tested: Bool, +code: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match tested:
+    case True{}:
+      code
+    case False{}:
+      pick(collect_untested(a, b), "0", "missing_collect_test_" ++ kname(a) ++ "_" ++ kname(b))
+
 def collect_code.go(+cy: Bool, +cn: Bool, +tested: Bool, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match cy cn:
     case True{} True{}:
@@ -1727,9 +1749,9 @@ def collect_code.go(+cy: Bool, +cn: Bool, +tested: Bool, +a: R.NodeKind, +b: R.N
     case False{} False{}:
       "0"
     case True{} False{}:
-      pick(tested, "2", "0")
+      collect_code.untested(tested, "2", a, b)
     case False{} True{}:
-      pick(tested, "3", "0")
+      collect_code.untested(tested, "3", a, b)
 
 def collect_code(+a: R.NodeKind, +b: R.NodeKind) -> String:
   collect_code.go(collect_r(a, b, R.rule(a, b, True{})), collect_r(a, b, R.rule(a, b, False{})), collect_test(a, b), a, b)
