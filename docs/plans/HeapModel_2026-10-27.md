@@ -2019,7 +2019,13 @@ takes from it:
                plain demand ended only done or in a cycle. A walk skipping
                the second input (scratch branch `gc-dataflow-mut`) differs
                in 14 to 18 terms of every set of 20, the tool exiting 1.
-               The library: 154 cases pass.
+               The library: 154 cases pass. Cost: plain demand and the
+               eager workloads unchanged in the four builds at k 18 (store
+               run 177 against 169); collecting on succ, all of it live, 66
+               to 70 instructions a node of final capacity at k 14 and 16
+               in the default and forced-inline builds, as main's 67 to
+               70: the walk reading a node's head before the link it
+               follows costs nothing measurable.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`
                  — tentative — generated rewrites for a redex whose peers
                  include its own ports, which the kernel interprets at
