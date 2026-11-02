@@ -701,6 +701,19 @@ law aux_loops:
   for +k: R.NodeKind
   {R.loops_aux(k) == True{} : Bool}
 
+# LAW: the collection's walk follows exactly a node's inputs: for every
+# port below 3, the walk's first or second port from a node of kind k
+# (R.walk_first, R.walk_second, which gen_krules.bend packs as the
+# kernel's KR.kind_dir) is that port just when it is an input
+# (R.is_input), a negative port within the kind's arity. So a kind has at
+# most two inputs, all of them followed, and a walk entering a node by an
+# output never leaves by the port it came in by.
+# Record: net-scoped-arguments
+law walk_follows_inputs:
+  for +k: R.NodeKind
+  for +p: Nat
+  {R.walk_ok(k, p) == True{} : Bool}
+
 # LAW: a linear fan has its full fan's polarities at the ports it keeps,
 # so its loops are its components'.
 # Record: net-nodes-double

@@ -534,14 +534,25 @@ def bd.less(+f: U32) -> U32:
 # freed, its event noted where the output is an auxiliary port: a copy's,
 # which the event makes linear, or a function's variable, which makes
 # none. Where it is a principal, a function the walk reached by its
-# variable alone (a variable used outside its body, or a copy's after
-# copying shared it), the eraser makes a pair left unnoted: demand
-# reaching that function by its variable reports it as it would have
-# (net-scoped-arguments). The free count is the sweep's, less the
-# erasers.
+# variable alone, the pair it makes is noted for the eval: a copy of a
+# function whose body copying shared, its variable reaching the body
+# through the merge of the copies' variables while its own consumer is
+# gone, is dead in its sharing context, and erasing it voids its
+# variable only there. In a net whose variable is used outside its
+# function's body, refused when built, the void may reach the interface,
+# which demand reports as it reports entering the function by its
+# variable (wk.root, net-scoped-arguments). The free count is the
+# sweep's, less the erasers.
+def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
+  match pr:
+    case True{}:
+      P.push(st, e)
+    case False{}:
+      st
+
 def bd.e(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
   (h, +e) = r
-  Mq{P.link(h, e, y), st, KN.evl.add(U32.is_ne(P.port(y), 0), e, ws), bd.less(free)}
+  Mq{P.link(h, e, y), bd.st(U32.is_eq(P.port(y), 0), st, e), KN.evl.add(U32.is_ne(P.port(y), 0), e, ws), bd.less(free)}
 
 def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
   match bs:
@@ -984,7 +995,8 @@ def pf_str(pf: Pf) -> String:
 # and the nodes from the interface on from word 1, depth of them;
 # interactions; how the walk stands: 0 going; the net's outcomes, 1 done,
 # 2 needing a lazy value (need), 3 stuck, 5 a cycle, 7 a variable demanded
-# outside its function's body (net-scoped-arguments); and the runtime's
+# outside its function's body, entering the function by it or reading a
+# void (net-scoped-arguments); and the runtime's
 # errors, which say nothing of the net (machine-limits-not-errors), 4 out
 # of fuel, 6 out of memory (the path's array or a collecting demand's net
 # could not grow)
@@ -1102,17 +1114,27 @@ def wk.hx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, 
   wk.hy(~after, P.rd(h, y), path, top, depth, n, y, hx)
 
 # the interface facing a principal port: a control's moves past it (the
-# root's rule keeps the interface), anything else is the value
-def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+# root's rule keeps the interface); a void is the variable of a function
+# erased, which only a variable used outside its body brings there,
+# reported as entering the function by it is (net-scoped-arguments);
+# anything else is the value
+def wk.root.v(+void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
+  match void:
+    case True{}:
+      d.stop(h, path, 0, depth, n, 7)
+    case False{}:
+      d.stop(h, path, 0, depth, n, 1)
+
+def wk.root.go(~after: P.H -> @+x:N.Ext -> P.H, c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
       d.go(KN.interact(~after, h, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
     case False{}:
-      d.stop(h, path, 0, depth, n, 1)
+      wk.root.v(void, h, path, depth, n)
 
 def wk.root(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
-  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), h, path, depth, n, y)
+  wk.root.go(~after, U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
 
 def wk.pair(~after: P.H -> @+x:N.Ext -> P.H, root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:

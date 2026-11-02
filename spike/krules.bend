@@ -93,8 +93,8 @@ def kind_neg.n(+k: U32) -> U32:
 def kind_neg(+k: U32) -> Bool:
   U32.is_eq(kind_neg.n(k), 1)
 
-# the ports the collection's walk follows, a node's inputs (R.is_input):
-# the first plus 4 times the second, 3 for none
+# the ports the collection's walk follows, a node's inputs (R.walk_first,
+# R.walk_second): the first plus 4 times the second, 3 for none
 def kind_dir(+k: U32) -> U32:
   match k:
     case 0:

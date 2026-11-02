@@ -23458,6 +23458,247 @@ def Laws.aux_loops(k):
 
     case R.KDOp{}:
       {==}
+def Laws.walk_follows_inputs(k, p):
+  match k:
+    case R.KFree{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KFn{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KAp{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KCopy{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KMerge{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KData{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KEraN{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KEraP{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KRoot{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KOp{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KLift{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KLiftC{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KCopyL{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KCopyR{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KMergeL{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KMergeR{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+    case R.KDOp{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              match r:
+                case 0n:
+                  {==}
+                case 1n+t:
+                  {==}
+
 def Laws.fused_polarity(k):
   match k:
     case R.KFree{}:

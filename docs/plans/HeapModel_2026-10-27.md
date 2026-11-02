@@ -373,7 +373,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`,
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
    `heap-strategies.erasure.load.cycle.walk.directed.lowering`,
    `heap-strategies.erasure.load.cycle.walk.directed.eager`,
@@ -1944,6 +1947,18 @@ takes from it:
                the polarity folded into the descent's condition, the
                stop reported by `wk.into`, +3.4% to +3.8%. Kept the
                plain check, generic over kinds.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void`
+                 — built 2026-11-02 — a void reaching the interface
+                 reported as entering a function by its variable is, state
+                 7. A void arises only as an erased function's variable
+                 (`EraN` meeting `Fn`) and flows forward from there; under
+                 scoping it stays in that function's body, dead with it,
+                 so one at the interface is a variable used outside its
+                 body. Where a collection erased a function demand would
+                 have entered by its variable (`.walk`), demand then
+                 reports the same state, and the value it reads, none, is
+                 the same. In the library and the 7,200 random terms
+                 (`.walk`), no plain demand ends so.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`
                  — tentative — recovering the check's cost: a header bit
                  for a positive principal (`header-kind-byte`), one test
@@ -1952,16 +1967,74 @@ takes from it:
                  plain and collecting demand disagree on a net that
                  escaped it. The maintainer's to weigh.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`
-               — planned — the collection following only negative ports:
-               the lean walk's port table without positive principals
-               (`gc-census-pd`'s); pair notes from the negative principals
-               followed; the sweep, where a freed node faced a marked
-               node's output, putting a consuming eraser there (or the
-               dead kind, `.dead-kinds`), noted as an event; the eval as
-               now. Measured by the benchmark (outcomes kept, cases
-               improved and worsened) and the stress mode, with laws for
-               the structure (dead never feeds live, the boundary's shape)
-               as they prove feasible.
+               — built 2026-11-02 — the collection following only
+               negative ports. The lean walk follows a node's inputs, the
+               first and the second by its kind (`KR.kind_dir`, generated
+               from `R.walk_first` and `R.walk_second`; law
+               `walk_follows_inputs`: they name exactly the inputs, so a
+               kind has at most two), entering every node by an output;
+               a pair is noted by its negative node, which alone follows
+               its principal, and a void facing an input for its event.
+               An eraser has no output and is never entered: the sweep
+               (`sd.*`), freeing what the walk left unmarked, notes each
+               input of a freed node that faces a marked node (only those
+               can: a marked node's inputs were all followed), a kept
+               output whose consumer goes; after the pass each is given an
+               eraser (`bd.go`), its event noted where the output is an
+               auxiliary port (a copy's, made linear; a function's
+               variable, none), and where it is a principal, a function
+               reached by its variable alone, the pair noted for the
+               eval. That happens in valid nets: a copy of a function
+               whose body copying shared reaches the body by its
+               variable, through the merge of the copies' variables,
+               while its own consumer is gone, and is dead in its sharing
+               context. Left unnoted (gcbench run 175), such copies stay:
+               `costly-133` with levels grew from 2,048 nodes to 65,536,
+               `costly-124` unfused and `mixin-chain-16` with labels
+               doubled. Noted (run 176), erasing one voids its variable
+               only in its own context, as the linear fans' events do;
+               where a variable is used outside its body the void may
+               reach the interface, which demand reports (`.report.void`).
+               Against main (gcbench runs 174 and 176, 154 cases, outcomes
+               all kept): collecting 0.63% over plain demand against
+               2.77%; capacity 541,824 nodes against 650,368 (16.7% less),
+               none grown and 24 shrunk; 307 collections against 317, their
+               interactions 16,365 against 64,224, the cascades of erasers
+               no longer run; 72 cases better, 9 worse, 21 alike. The
+               worse are the toggling and junk loops (`loop-toggle` and
+               `loop-junk` at 64 to 1024, +0.4% to +8.0% of plain demand),
+               where the eval's erasures of dead copies cost work and free
+               nothing that changes growth; and against run 175,
+               `list-length` and `search-count` with labels cost 2.2M and
+               2.0M instructions more for some 400 more interactions each,
+               the profile showing the interpreted table (`KN.apply_rule`,
+               `R.lf_peer`), which takes a redex whose peers include its own
+               ports: a dead copy of the identity, a function whose body is
+               its variable (law `copy_identity`), erased (`.walk.loops`).
+               Random terms (`spike/tools/dcterms.sh`, a build of
+               `spike/runmode.bend`, which gains the stress test as mode
+               `dcs`): the differential test's 18 sets of 400 terms, on
+               plain demand, collecting and under stress, agree on every
+               term, the stress test collecting in 376 to 399 of each 400;
+               plain demand ended only done or in a cycle. A walk skipping
+               the second input (scratch branch `gc-dataflow-mut`) differs
+               in 14 to 18 terms of every set of 20, the tool exiting 1.
+               The library: 154 cases pass.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`
+                 — tentative — generated rewrites for a redex whose peers
+                 include its own ports, which the kernel interprets at
+                 some 6,000 instructions a rewrite: erasing a looped
+                 function (a dead copy of the identity) first, as the
+                 collection now erases them; the loops' laws
+                 (`beta_loops`, `copy_identity`) as the reference.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`
+                 — tentative — the structure as laws: that the sweep's
+                 net is wired and polarized, every kept output facing an
+                 input, and that a dead node stays dead, no rewrite of the
+                 kept part linking a freed output into a kept input; then
+                 that pruning keeps the interface's value, which rests on
+                 the sharing calculus (per sharing context), as the linear
+                 fans' events do.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`
                — tentative — the dead application's event, dropped where a
                function's scope was unknown

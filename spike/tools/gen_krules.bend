@@ -978,28 +978,10 @@ def tables.k(ks: List<&2, R.NodeKind>, +neg: Bool) -> String:
       "    case " ++ code(k) ++ ":\n      " ++ pick(neg, neg_str(k), U32.show(U32.from_nat(R.arity(k)))) ++ "\n" ++ tables.k(t, neg)
 
 # the ports the collection's walk follows from a node of kind k, its
-# inputs (R.is_input): the first and the second, 3 where there is none,
-# packed as first + 4 * second; a third input, which no kind has (law
-# inputs_at_most_two), would be left out
-def dir.o(+a: Bool, +b: Bool, +c: Bool) -> U32:
-  match a b c:
-    case True{} True{} _:
-      4
-    case True{} False{} True{}:
-      8
-    case True{} False{} False{}:
-      12
-    case False{} True{} True{}:
-      9
-    case False{} True{} False{}:
-      13
-    case False{} False{} True{}:
-      14
-    case False{} False{} False{}:
-      15
-
+# inputs (R.walk_first, R.walk_second; law walk_follows_inputs), packed
+# as the first plus 4 times the second, 3 for none
 def dir_k(+k: R.NodeKind) -> U32:
-  dir.o(R.is_input(k, 0n), R.is_input(k, 1n), R.is_input(k, 2n))
+  (U32.from_nat(R.walk_first(k)) + (4 * U32.from_nat(R.walk_second(k)) : U32) : U32)
 
 def tables.d(ks: List<&2, R.NodeKind>) -> String:
   match ks:
@@ -1016,8 +998,8 @@ def tables() -> String:
   "# match whose arms are constructors would be a chain\n" ++
   "def kind_neg.n(+k: U32) -> U32:\n  match k:\n" ++ tables.k(kinds(), True{}) ++ "    case _:\n      0\n\n" ++
   "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n" ++
-  "# the ports the collection's walk follows, a node's inputs (R.is_input):\n" ++
-  "# the first plus 4 times the second, 3 for none\n" ++
+  "# the ports the collection's walk follows, a node's inputs (R.walk_first,\n" ++
+  "# R.walk_second): the first plus 4 times the second, 3 for none\n" ++
   "def kind_dir(+k: U32) -> U32:\n  match k:\n" ++ tables.d(kinds()) ++ "    case _:\n      15\n\n"
 
 def payloads.d(ks: List<&2, R.NodeKind>) -> String:
