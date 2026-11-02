@@ -364,9 +364,10 @@ takes from it:
    `heap-strategies.erasure.load.cycle.shrink.fuel`,
    `heap-strategies.erasure.load.cycle.shrink.untested`,
    `heap-strategies.erasure.load.cycle.shrink.ctl-cost`,
-   `heap-strategies.erasure.load.cycle.shrink.copy`,
+   `heap-strategies.erasure.load.cycle.shrink.copy` (dropped),
    `heap-strategies.erasure.load.cycle.bench.corpus`,
    `heap-strategies.erasure.load.cycle.walk.directed`,
+   `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
    `heap-strategies.erasure.load.cycle.lazy-sweep` (dropped),
@@ -1723,7 +1724,38 @@ takes from it:
            boundary, only where it frees; a port polarity table in the
            kernel; and a proof that freeing what the walk leaves unmarked
            keeps the interface's value (a structural law, the patched net
-           wired and polarized, comes first).
+           wired and polarized, comes first). A walk this way would also
+           free dead structure where today's collections wait for an
+           eval a whole cycle later (the maintainer, hoping it works out,
+           2026-11-02).
+           - `heap-strategies.erasure.load.cycle.walk.directed.census` —
+             built 2026-11-02 — what the directed walk would mark, counted
+             at every collection of the benchmark's cases, before it (on
+             branch `gc-census`, 64a3daf: the walk's ports a generated
+             table, `KR.kind_follow`, from `R.port_pol`; `KN.reach_dir`;
+             the counts in header words no event uses; store run 166).
+             Over 317 collections in 102 cases: 581,678 nodes reached,
+             515,299 live after today's collections, 497,853 marked by the
+             directed walk. It marks fewer than today keeps in 52 cases
+             and more in 39, where today's eval frees what is needed but
+             doomed: voids flowing forward from a providing eraser, which
+             a walk back from the interface cannot see, and rewrites
+             within the needed part; a directed design keeps the eval for
+             those. Of the nodes live after today's collections, 30,259
+             are unmarked by the directed walk: consuming erasers 60%,
+             functions 13%, applications 9%, level controls 14%, fans the
+             rest. But 16,890 of them are links into marked nodes, each
+             needing a consuming eraser after a directed sweep, and most
+             already are one, an unused variable's eraser on a needed
+             function, say. The net gain, some 13,369 nodes (2.6% of what
+             today keeps), falls to 37 cases, none losing: `loop-fix-64`
+             with labels 29% of its live nodes, `mixin-late` unfused 25%,
+             `list-length` and `search-count` with labels about 20%,
+             `costly-6` unfused 13% (1,014 nodes for 7 erasers), others
+             10% to 12%. A snapshot of today's runs: a directed design's
+             runs diverge, its nets smaller sooner, and the census sees
+             nothing of the erasure cascades it would no longer run, 96% of
+             today's collection interactions.
          - `heap-strategies.erasure.load.cycle.buffers` — dropped
            2026-11-01 (the maintainer: not worth pursuing) — the
            collection's arrays kept with the net from one collection
@@ -1984,9 +2016,13 @@ takes from it:
            dearer there, cheaper in the default build (store runs 163,
            164). A signal to look at control passing's cost on demand's
            path (the maintainer, 2026-11-02).
-         - `heap-strategies.erasure.load.cycle.shrink.copy` — tentative —
-           a full copy meeting data passes the ports test (four ports to
-           two) but frees no node, its two nodes becoming two, and table
+         - `heap-strategies.erasure.load.cycle.shrink.copy` — dropped
+           2026-11-02 (the maintainer: data copied is 8 bytes at most,
+           the table's resizing aside, and a copy splits the fan, which
+           would otherwise hold garbage through an auxiliary port until
+           the directed walk, `.walk.directed`, cuts it) — a full copy
+           meeting data passes the ports test (four ports to two) but
+           frees no node, its two nodes becoming two, and table
            data gains an entry, a value duplicated, perhaps a large one:
            in a collection it is at best demand's work done early, at
            worst a copy nobody needed. Not so in the sample (32 in the
