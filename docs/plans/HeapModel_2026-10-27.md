@@ -369,11 +369,15 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed`,
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.check` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report` (built),
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`,
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost.bits`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.proof`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.stuck`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`,
@@ -1769,7 +1773,7 @@ takes from it:
              nothing of the erasure cascades it would no longer run, 96% of
              today's collection interactions.
            - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`
-             — tentative — the maintainer's (2026-11-02): a dead variant
+             — planned — the maintainer's (2026-11-02): a dead variant
              of a kind for each positive auxiliary port, so that the
              sweep, finding a marked node's output facing what it frees,
              rewrites the node's kind rather than making an eraser, and
@@ -1789,7 +1793,23 @@ takes from it:
              forward, rewrites within what is needed), 11 alike. The
              cost: kinds and their rules, which the model would derive as
              it derives the linear fans', the laws over every kind then
-             covering them.
+             covering them. The maintainer (2026-11-02), on the directed
+             sweep's erasers (`.dataflow.walk`): make no eraser node, nor
+             turn a node into one; have a kind of no allocation for
+             every fused eraser. The directed walk enters a node by an
+             output, so a kept node has one live output, and a boundary
+             lies only at a node with two: a copy (the linear copies) and
+             a function, by its variable (unused, new) or, reached by its
+             variable alone, by its principal (`.dataflow.walk`: its
+             erasure voids the variable and erases the body, events on
+             the merge and the copy that copying made).
+             - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
+               — tentative — the maintainer (2026-11-02, unsure it is a
+               good one): static links standing for `EraP` and `EraN`
+               instead of nodes, a port facing one being erased or void
+               without a node there. Depends on how much the kinds
+               bring: a kind is dispatched on by the rules, a link would
+               be tested where a port is read, as nil is.
            - `heap-strategies.erasure.load.cycle.walk.directed.dataflow` —
              active — which closure. Following only negative ports,
              data's flow reversed, a dead node stays dead: no rewrite of
@@ -1918,20 +1938,21 @@ takes from it:
                variable read outside its body only after its function is
                applied (the root adding the function's result to the
                variable, say) is refused, though demand never steps
-               forward there.
+               forward there. The library's expectation for such nets
+               (`unscoped VALUE`, the full reductions' values still
+               checked) the maintainer accepts until we are confident in
+               the static checks and that invalid nets are indeed refused
+               (2026-11-02).
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report`
                — built 2026-11-02 — demand stops, in a state of its own
                (7, `unscoped`, among the net's outcomes beside a cycle),
                where it would enter a node by an auxiliary port whose
                principal is positive: before each push, in the descent
                (`dn.step.go`) and where the array grows (`wk.into`), a
-               read of the node's header and its kind's polarity. It must
-               stop there, before any interaction past the step: a check
-               left to the pairs, where the orientation reads the kind
-               already, would let the walk go on forward through
-               consumers, rewriting what the inputs-only collection frees,
-               so that the two could end differently (stuck against
-               reported). The cost, on plain demand at k 18 (store runs
+               read of the node's header and its kind's polarity. Stopping
+               there kept the walk within what the inputs-only collection
+               keeps until the report; the maintainer accepted a later one
+               (`.report.cost`). The cost, on plain demand at k 18 (store runs
                168, main, and 169; the eager workloads unchanged): succ
                +1.5% in the default build, +2.6% profile-guided, +4.3%
                forced inline, +4.4% both; lvl +1.6%, +2.7%, +4.9%, +5.0%.
@@ -1946,26 +1967,83 @@ takes from it:
                positive auxiliary port a function has, +1.1% to +4.4%;
                the polarity folded into the descent's condition, the
                stop reported by `wk.into`, +3.4% to +3.8%. Kept the
-               plain check, generic over kinds.
+               plain check, generic over kinds, until `.report.cost` moved
+               it to the pairs.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.void`
-                 — built 2026-11-02 — a void reaching the interface
-                 reported as entering a function by its variable is, state
-                 7. A void arises only as an erased function's variable
-                 (`EraN` meeting `Fn`) and flows forward from there; under
-                 scoping it stays in that function's body, dead with it,
-                 so one at the interface is a variable used outside its
-                 body. Where a collection erased a function demand would
-                 have entered by its variable (`.walk`), demand then
-                 reports the same state, and the value it reads, none, is
-                 the same. In the library and the 7,200 random terms
-                 (`.walk`), no plain demand ends so.
+                 — tentative — a void reaching the interface reported as a
+                 variable used outside its body, state 7: built 2026-11-02
+                 on the claim that a void arises only as an erased
+                 function's variable (`EraN` meeting `Fn`), then reverted
+                 the same day. The maintainer (2026-11-02), uncertain: a
+                 user may wire a `.copy 0` port to a negative port,
+                 supplying a void directly; presenting a void at the
+                 interface as an error would make such a void an error in
+                 general, which wants a proper discussion, not a judgement
+                 in passing. The options, for that discussion:
+                 - A, as now: the interface facing a void is done with no
+                   value, as facing a function is, and `net_arity` takes a
+                   non-data normal form for an error already. For: no new
+                   outcome, a user's void a value like any other. Against:
+                   nothing says where a void came from; and on a refused
+                   net, collecting demand, which may erase a function
+                   reached by its variable alone (`.walk`), can end done
+                   where plain demand reports the variable (accepted for
+                   refused nets, the maintainer, 2026-11-02).
+                 - B, reverted: a void at the interface reported as a
+                   variable used outside its body. For: plain and
+                   collecting demand agree on refused nets, and a void from
+                   an erased function is called what it is. Against: wrong
+                   for a user's void, unless D refuses those.
+                 - C: an outcome of its own, a void demanded. For: says
+                   what demand found and no more, a user's void reaching
+                   the interface surfacing where it does, not at the
+                   bridge. Against: a new outcome; on a refused net plain
+                   and collecting demand still end differently, both in
+                   error.
+                 - D: construction refuses a void supplied directly, a
+                   `.copy 0` port wired as an output, so that every void is
+                   an erased function's variable and B holds. For: one
+                   source of voids, the scoping argument covering them all.
+                   Against: no direct way to supply nothing (a placeholder
+                   for an argument known to be ignored takes a data value
+                   instead), and the copy loses at 0 the mirrored polarity
+                   a bind has.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost`
-                 — tentative — recovering the check's cost: a header bit
-                 for a positive principal (`header-kind-byte`), one test
-                 and no range check; or a build of demand without it
-                 where construction's check is trusted, which would let
-                 plain and collecting demand disagree on a net that
-                 escaped it. The maintainer's to weigh.
+                 — built 2026-11-02 — the maintainer (2026-11-02): 1.5% to
+                 5% is much for a one-time check of a property; check only
+                 the active pair, discovering some violations later, and
+                 scan the demand path for the earliest one once one is
+                 found; ideally the static check would make the dynamic
+                 one needless, with a proof (`.proof`). The walk enters
+                 every node by an output, so in a valid net its last node
+                 meets a pair with a negative principal; the branch that
+                 orients the pair (`wk.ori`), taken anyway, now reports a
+                 positive one after scanning the path for the earliest node
+                 whose principal is positive (`fw.scan`), and a walk ending
+                 stuck or in a cycle scans its path too, so that no forward
+                 step is hidden behind those outcomes; only the runtime's
+                 (fuel, memory) and a need, which resumes, come first. Going
+                 forward, the walk may rewrite before reporting:
+                 `ap-dead-extruded` reports after one rewrite, the other
+                 extrusion entries at once. The descent is as before the
+                 push check. Cost, the four builds at k 18 (store run 178):
+                 plain demand 4.2% to 5.4% below main before the push check
+                 (run 168), 5.6% to 9.4% below main with it (run 177), the
+                 eager workloads unchanged. More than the check's own cost
+                 came back: the orientation's other branch, which no valid
+                 walk takes, was the second caller of the pair's rewrite
+                 chain (`nd.go`), which therefore stayed a segment of its
+                 own, 7.8% of plain demand's instructions on succ; with one
+                 caller it is inlined into the walk's. The library passes;
+                 3,600 random terms (`dcterms.sh`, 200 a set) agree on
+                 plain, collecting and stress demand, none reported.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.report.cost.bits`
+                   — tentative — the maintainer (2026-11-02): a link could
+                   record the polarity of the port it references among its
+                   low bits, so that a step's polarity is a test on a word
+                   already read. Unneeded for the report now; perhaps
+                   convenient to the collection's walk and sweep, which
+                   read a node's head for its inputs.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk`
                — built 2026-11-02 — the collection following only
                negative ports. The lean walk follows a node's inputs, the
@@ -1992,9 +2070,15 @@ takes from it:
                `costly-133` with levels grew from 2,048 nodes to 65,536,
                `costly-124` unfused and `mixin-chain-16` with labels
                doubled. Noted (run 176), erasing one voids its variable
-               only in its own context, as the linear fans' events do;
-               where a variable is used outside its body the void may
-               reach the interface, which demand reports (`.report.void`).
+               only in its own context, as the linear fans' events do
+               (sound if scoping holds per sharing context: `.proof`);
+               where a variable is used outside its body, in a net refused
+               when built, the void may reach the interface, read as no
+               value (`.report.void`, open). The erasers the sweep makes,
+               and the nodes it turns into none, are to go: the maintainer
+               (2026-11-02) wants no eraser made, nor a node turned into
+               one, but a kind of no allocation for every fused eraser
+               (`.dead-kinds`).
                Against main (gcbench runs 174 and 176, 154 cases, outcomes
                all kept): collecting 0.63% over plain demand against
                2.77%; capacity 541,824 nodes against 650,368 (16.7% less),
@@ -2041,6 +2125,42 @@ takes from it:
                  that pruning keeps the interface's value, which rests on
                  the sharing calculus (per sharing context), as the linear
                  fans' events do.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.proof`
+               — tentative — the maintainer (2026-11-02): can erasing a
+               function reached by its variable alone (`.walk`) be proved
+               to keep demand's outcome? Ideally the same proof would make
+               the dynamic check of `.report` needless, and found turning
+               dead operators into erasers (`.stuck`). The lemma all three
+               want: in a scoped net, erasing a function whose consumer is
+               gone (never to be applied) changes nothing the interface
+               can observe. Provable now, by rules and polarities: a dead
+               node stays dead (no rewrite of the kept part links a freed
+               output into a kept input; every rule links a positive port
+               to a negative one), and the sweep's net is wired and
+               polarized (`.walk.laws`). Provable with a model of nets and
+               of what demand observes, for nets as built: scoping there
+               is structural, the function's result dominating every use
+               of its variable, so a function never applied has its body,
+               uses of its variable and all, unobserved. Not provable
+               without a model of sharing: once copying shares a body,
+               scoping holds per sharing context, and the claim rests on
+               fans keeping contexts apart, the correctness of the levels
+               encoding itself (labels are known to fail on some
+               self-applications, the library's `wrong` entries). The
+               evidence meanwhile: the library and 7,200 random terms, on
+               plain, collecting and stress demand, in both encodings.
+             - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.stuck`
+               — tentative — the maintainer (2026-11-02): revisit
+               `fusions-as-components`' "stuck where they are stuck",
+               perhaps refining it by who is stuck. A dead operator is
+               stuck where an operator is, awaiting its bind; turned into
+               an eraser it would erase its input at once. Demand never
+               reaches a dead operator, which has no output, so where it
+               is stuck nothing observes; what an eraser does beyond it,
+               erasing what it faces, a function among them, is `.proof`'s
+               lemma. A refinement: a fusion is stuck where its components
+               are, as observed from the interface. The directed
+               collection already frees dead operators, unmarked.
              - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`
                — tentative — the dead application's event, dropped where a
                function's scope was unknown
