@@ -354,6 +354,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.sweep-full` (built),
    `heap-strategies.erasure.load.cycle.chunks` (built),
    `heap-strategies.erasure.load.cycle.chunks.budget` (dropped),
+   `heap-strategies.erasure.load.cycle.chunks.floor`,
    `heap-strategies.erasure.load.cycle.eval-need`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1750,6 +1751,24 @@ takes from it:
            chunk a collection, and collections are rare: 0.12 million
            instructions on the dropping terms, about one a node on
            `succ` (store run 142, `nobud` against `dp`).
+         - `heap-strategies.erasure.load.cycle.chunks.floor` — tentative
+           — a floor on a chunk's steps for small nets, the reserve twice
+           it (the maintainer asks, 2026-11-02): a 256-node net's chunk is
+           4 steps, some 60 instructions a step at 240 a chunk. The
+           reserve comes off the free list before each chunk, so a floor
+           grows a small net that could not spare it, by one doubling at
+           most. Measured (store run 143), floors of 16, 32 and 64 steps
+           against none: on the 16 dropping terms 2.96%, 2.91% and 2.69%
+           over plain demand against 3.03% (forced inline 2.09%, 2.05%,
+           1.83% against 2.14%); on `succ` a node or two fewer at k 14;
+           the library's capacities 652,288, 655,744 and 664,320 against
+           649,984 (0.4%, 0.9%, 2.2% more), its nets of 256 nodes or
+           fewer 55, 51 and 47 of 153 against 57, its collections 318,
+           315 and 296 against 332; every case kept. A floor of 64 holds
+           128 nodes (2 KB) in reserve. Its cost is a live net's: a frozen
+           net is compact, copying only what is reached, so the room
+           lasts while a net is reduced or held partial in a cell. Which
+           floor, if any, is the maintainer's trade of space for speed.
        - `heap-strategies.erasure.load.cycle.eval-need` — tentative —
          the eval's interactions are the largest remaining part of a
          collection's cost on the dropping terms, about a third. They
