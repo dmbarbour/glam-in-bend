@@ -749,6 +749,13 @@ law identity_resolved:
   for +t: Bool
   {R.identity_resolved(a, t) == True{} : Bool}
 
+# LAW: a net's words stop at 2^30, so a reference stays below 2^30: the
+# collection's walk tags references in its notes with bits 31 and 30, and
+# a net doubling to eight times its nodes in words stays within a U32.
+# Record: net-capacity
+law capacity_leaves_tags:
+  {P.capacity_ok() == True{} : Bool}
+
 # LAW: a fused node behaves as its components: a linear fan, whatever its
 # principal meets, is stuck where its full fan with the dead side erased
 # is, and otherwise leaves the same graph, both normalized by the

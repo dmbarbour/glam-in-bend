@@ -118,6 +118,8 @@ where the shared lazy state that Bend cannot hold goes.
 - [`net-nodes-double`](decisions/net-nodes-double.md): a net holds its
   nodes in one flat array of its own, doubled when full; the heap holds nets
   as values, each reduced by one worker at a time.
+- [`net-capacity`](decisions/net-capacity.md): a net holds at most 2^28
+  nodes, so a reference stays below 2^30.
 - [`net-demand-whnf`](decisions/net-demand-whnf.md): a forced net reduces
   to weak head normal form at its root, only the pairs on the way; other
   strategies only where they terminate.

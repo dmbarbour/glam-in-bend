@@ -31,8 +31,8 @@ import ./kmem_grow.bend as KM
 def nil() -> U32:
   4294967295
 
-# Capacity: 2^21 nodes, 2^21 active pairs, 2^20 data entries, 2^24 levels;
-# passing any is an error.
+# Capacity: 2^28 nodes (net-capacity), as many data entries as nodes
+# holding them, 2^24 levels; passing any is an error.
 def lvl_cap() -> U32:
   16777216
 
@@ -217,12 +217,17 @@ def iface() -> U32:
   28
 
 # A net starts at 128 nodes, 2 KB (net-nodes-double); node words up to
-# 2^23 (2^21 nodes); a strategy's stack of pairs up to 2^22 words
+# 2^30 (2^28 nodes, net-capacity), so a reference stays below 2^30 and
+# eight times the nodes fits a U32 (law capacity_leaves_tags); a
+# strategy's stack of pairs up to 2^28 words, a word a node
 def w_maxd() -> Nat:
-  23n
+  30n
 
 def rs_maxd() -> Nat:
-  22n
+  28n
+
+def capacity_ok() -> Bool:
+  Nat.is_le(w_maxd(), 30n)
 
 def link_of.go(more: Bool, +j: U32) -> U32:
   match more:

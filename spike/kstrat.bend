@@ -495,9 +495,10 @@ def sd.first(s: Sd, +cap: U32) -> Sd:
     case Sd{h, g, +f, +q}:
       sd.go(U32.to_nat(((cap >> 5n : U32) - 1 : U32)), 1, sd.mw(KM.m_get(g, 0), h, f, q, U32.to_nat((32 - P.first() : U32)), P.first()))
 
-# the notes after the sweep, told apart by their top two bits: the pairs
-# slid down to word 3 on, as a stack (P.Stk) holds them, the events onto
-# a list, the outputs to give erasers onto another
+# the notes after the sweep, told apart by their top two bits, which no
+# reference sets (net-capacity): the pairs slid down to word 3 on, as a
+# stack (P.Stk) holds them, the events onto a list, the outputs to give
+# erasers onto another
 type Sp is Type:
   Sp{g: KM.M, ws: List<&2, U32>, bs: List<&2, U32>, +j: U32}
 

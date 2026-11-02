@@ -2189,9 +2189,11 @@ takes from it:
                    record the polarity of the port it references, so that
                    a step's polarity is a test on a word already read.
                    Room: a reference is a node's word and a port, below
-                   2^23 under the kernel's ceiling (`P.w_maxd`, which no
-                   record decided: `netdata-capacity`), so a high bit is
-                   free; the low two bits are the
+                   2^30 (`net-capacity`), so its top two bits are free in
+                   a link, though a static (`netdata-refs`) takes the
+                   whole word, and the walk tags references in its notes
+                   with them, so a reference noted would be masked first;
+                   the low two bits are the
                    port, and a reference plus one is its link's word
                    (`P.link`), so no low bit is spare without changing how
                    every link is found. Upkeep: a rewrite's new ports
