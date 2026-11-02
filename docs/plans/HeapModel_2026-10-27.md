@@ -384,6 +384,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.stuck`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops.rest`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
    `heap-strategies.erasure.load.cycle.walk.directed.lowering` (built),
@@ -2283,6 +2284,20 @@ takes from it:
                  layout, the generated file larger. A first dispatch, a
                  three-way choice at every rewrite, cost plain demand 0.4%
                  (run 191); the generated rewrites' one test was kept.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops.rest`
+                   — tentative — the maintainer (2026-11-02): to revisit,
+                   the redexes with loops the interpreted table still
+                   takes, 20 over the benchmark on plain demand and as
+                   many collecting, 2 at most a case, in 14 cases with
+                   labels (`mixin-once`, `list-sum`, `list-length`,
+                   `search-count` among them): which patterns they are,
+                   counted as `.walk.loops` counted; `R.loop.resolve` takes
+                   any pair of looped peers, so a pattern that matters
+                   resolves ahead as the identity's did, a law like
+                   `identity_resolved` its check. Also there: the
+                   identity's erasure and copy resolved faithfully, an
+                   eraser and a void, or a copy and a merge, made to
+                   annihilate next, which a normalized rule would not make.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`
                  — tentative — the structure as laws: that the sweep's
                  net is wired and polarized, every kept output facing an
