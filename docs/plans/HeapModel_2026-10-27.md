@@ -1974,7 +1974,8 @@ takes from it:
                  no performance hit expected): demand finding a void at the
                  interface stops in a state of its own, 8, a void
                  (`net-void-demanded`), one test where demand reaches the
-                 interface. The library gains a void node (`void`, `EraP`,
+                 interface: no change in the four builds (store run 179
+                 against 178). The library gains a void node (`void`, `EraP`,
                  the row format's tag 13) and the expectation `void`, its
                  entries `void-demanded` and `void-applied`. Before:
                  a void reaching the interface reported as a
