@@ -383,7 +383,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.proof`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.stuck`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk` (built),
-   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`,
    `heap-strategies.erasure.load.cycle.walk.directed.dataflow.dead-ap`,
    `heap-strategies.erasure.load.cycle.walk.directed.lowering` (built),
@@ -2239,12 +2239,50 @@ takes from it:
                70: the walk reading a node's head before the link it
                follows costs nothing measurable.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.loops`
-                 — tentative — generated rewrites for a redex whose peers
-                 include its own ports, which the kernel interprets at
-                 some 6,000 instructions a rewrite: erasing a looped
-                 function (a dead copy of the identity) first, as the
-                 collection now erases them; the loops' laws
-                 (`beta_loops`, `copy_identity`) as the reference.
+                 — built 2026-11-02 — generated rewrites for a redex whose
+                 peers include its own ports, which the kernel interpreted
+                 at some 6,000 instructions a rewrite. Counted over the
+                 benchmark (scratch builds, the errors word): 903 such
+                 rewrites on plain demand, 941 collecting, in 35 cases,
+                 all but a few with labels (`list-sum`, `list-length`,
+                 `search-count` some 200 each, 10% of their runs); by pair,
+                 a copy meeting the identity 717, an application 169, an
+                 eraser 38 collecting, the rest some 20 to 95. The
+                 identity, a function whose body is its variable, its
+                 ports 1 and 2 wired to each other: A's rule against it
+                 with that loop resolved ahead (`R.rule_id`, by
+                 `R.loop.resolve`, which joins what a rule links to the two
+                 looped peers, a wire with no node vanishing), law
+                 `identity_resolved`: it rewrites the looped redex as the
+                 full rule does, both by the laws' application (`lf.apply`,
+                 resolving the loop as the interpreter does), for every A
+                 and test; joining the wrong ends fails it. Generated as
+                 any rule is, A's level checks kept, reached by A's kind
+                 (`KR.rewrite_id`) from the cold side of the generated
+                 dispatch's one test (`KN.go.loop`), where `is_id` finds the
+                 pattern. The interpreted table takes the same resolved
+                 rule as a plain one (`KN.go.interp.id`): the interpreter
+                 had joined the loop after the rule's other links and
+                 looked for events at the redex's own, reused, ports, so
+                 that with events the two differed (`costly-124` with
+                 labels, 3 events against 15); taking the resolved rule
+                 both ways, they agree by construction, as plain rules do.
+                 Interpreted rewrites over the benchmark: 903 to 20 on
+                 plain demand, 941 to 20 collecting. The library passes;
+                 the differential test's 3,600 terms as on main (store run
+                 190). The benchmark against main (gcbench runs 188 and
+                 193, the default build, outcomes the same): `list-length`,
+                 `list-sum` and `search-count` with labels 15% to 16%
+                 fewer instructions on plain demand, 29% to 30% fewer
+                 collecting, `search-pairs` 8%; 86 other cases some 0.5%
+                 more, in all plain demand +0.23%, collecting -0.06%. The
+                 standard workloads, which take no loop (store run 194
+                 against 189): eager -0.5% to -2.5% but +0.2%
+                 profile-guided; plain demand -1.2% to -1.3% forced inline,
+                 +0.1% to +0.5% in the default and profile-guided builds:
+                 layout, the generated file larger. A first dispatch, a
+                 three-way choice at every rewrite, cost plain demand 0.4%
+                 (run 191); the generated rewrites' one test was kept.
                - `heap-strategies.erasure.load.cycle.walk.directed.dataflow.walk.laws`
                  — tentative — the structure as laws: that the sweep's
                  net is wired and polarized, every kept output facing an
