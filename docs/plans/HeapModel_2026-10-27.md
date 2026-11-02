@@ -356,6 +356,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.chunks.budget` (dropped),
    `heap-strategies.erasure.load.cycle.chunks.floor` (built),
    `heap-strategies.erasure.load.cycle.chunks.base`,
+   `heap-strategies.erasure.load.cycle.chunks.finish`,
    `heap-strategies.erasure.load.cycle.eval-need`,
    `heap-strategies.erasure.load.cycle.reserve` (built),
    `heap-strategies.erasure.load.cycle.adaptive` (dropped),
@@ -1798,6 +1799,30 @@ takes from it:
            over plain demand (forced inline 1.61%) against 2.96% (2.09%)
            with the floor alone. Its guarantee is a typical chunk's, not
            the worst's: the maintainer's to weigh.
+           - `heap-strategies.erasure.load.cycle.chunks.finish` —
+             tentative — the maintainer's alternative (2026-11-02): large
+             chunks kept safe, a 32nd with a reserve of a 16th, and where
+             a chunk ends with the reserve taken, finishing chunks rather
+             than the collection at once, each as long as the free list
+             still covers at two nodes a step (counted by walking it, a
+             chunk's worth at most), until it covers fewer than 16 steps.
+             The collection then comes with the net all but full,
+             whatever the reserve's size, which sets only the chunks'
+             length. Prototyped on branch `gc-chunk-finish` (9910895):
+             every library case kept; the library's capacities 648,192,
+             the least of any setting (two nets stay at 2,048 nodes where
+             the floor alone grows them to 4,096; none grows), 314
+             collections; the dropping terms 3.05% over plain demand
+             together (forced inline 2.23%), 2.89% without
+             `loop-junk-1024` unfused, against 2.94% and 2.82% with the
+             floor alone; `succ` 68 to 70 instructions a node (store run
+             145). So the gains of a 16th's reserve on 15 dropping terms
+             came from collecting at 94%, not from the halved chunks
+             (some 6,000 chunks fewer, about 0.2 points): where
+             collections fall shifts a term's cost by more than that,
+             either way. What finishing buys is space, never growing
+             before the net is full, and a reserve that no longer moves
+             the trigger.
        - `heap-strategies.erasure.load.cycle.eval-need` — tentative —
          the eval's interactions are the largest remaining part of a
          collection's cost on the dropping terms, about a third. They
