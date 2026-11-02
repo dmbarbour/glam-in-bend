@@ -1673,14 +1673,17 @@ def stuck_cases(ps: List<&2, Pr>, +n: Nat) -> String:
 
 # Collecting (heap-strategies.cascade.nongrow; heap-strategies.erasure.
 # load): may a collection reduce A meeting B? Where the rule is never
-# stuck, makes at most the two nodes it frees and applies no builtin, and
-# the pair is no need for a lazy value: erasures, annihilations, beta at
-# one level, copies of data, controls passing data or each other, the
-# events with them. A copy of a table entry adds one to the table, which
-# the copy node it consumes bounds (the maintainer, 2026-11-01;
-# heap-strategies.erasure.load.cycle). Where the variants differ, the header test the
-# pair's payload test is (P.same_lvl) decides; a differing pair with none
-# names what does not exist.
+# stuck, makes at most the two nodes it frees and applies no builtin, the
+# pair is no need for a lazy value, and the rule leaves fewer ports than
+# the pair had, as an event does (law events_shrink), so that a
+# collection's cascade of rewrites and events ends within the net's ports
+# (heap-strategies.erasure.load.cycle.shrink): erasures, annihilations,
+# beta at one level, copies of data, the events with them; controls
+# passing, which leave as many ports as they take, are demand's. A copy
+# of a table entry adds one to the table, which the copy node it consumes
+# bounds (the maintainer, 2026-11-01; heap-strategies.erasure.load.cycle).
+# Where the variants differ, the header test the pair's payload test is
+# (P.same_lvl) decides; with no such test, neither variant is collected.
 
 # an application or an operator meeting data, which may be a need for a
 # lazy value only the table tells (kstrat.bend's may_need): never collected
@@ -1693,15 +1696,16 @@ def may_need_k(a: R.NodeKind, b: R.NodeKind) -> Bool:
     case _ _:
       False{}
 
-def collect_r.r(r: R.Rule) -> Bool:
+def collect_r.r(r: R.Rule, +a: R.NodeKind, +b: R.NodeKind) -> Bool:
   match r:
     case R.RWire{+xs, ls}:
-      Nat.is_le(List.length(&2, R.Spec, xs), 2n) && Bool.not(has_apply(xs))
+      Nat.is_le(List.length(&2, R.Spec, xs), 2n) && Bool.not(has_apply(xs)) &&
+        Nat.is_lt(R.ports_of(xs), Nat.add(R.arity(a), R.arity(b)))
     case R.RStuck{}:
       False{}
 
 def collect_r(+a: R.NodeKind, +b: R.NodeKind, r: R.Rule) -> Bool:
-  Bool.not(may_need_k(a, b)) && collect_r.r(r)
+  Bool.not(may_need_k(a, b)) && collect_r.r(r, a, b)
 
 # the pairs whose payload test is the header test P.same_lvl
 def collect_test.full(+a: R.NodeKind, +b: R.NodeKind) -> Bool:
@@ -1723,9 +1727,9 @@ def collect_code.go(+cy: Bool, +cn: Bool, +tested: Bool, +a: R.NodeKind, +b: R.N
     case False{} False{}:
       "0"
     case True{} False{}:
-      pick(tested, "2", "missing_collect_test_" ++ kname(a) ++ "_" ++ kname(b))
+      pick(tested, "2", "0")
     case False{} True{}:
-      pick(tested, "3", "missing_collect_test_" ++ kname(a) ++ "_" ++ kname(b))
+      pick(tested, "3", "0")
 
 def collect_code(+a: R.NodeKind, +b: R.NodeKind) -> String:
   collect_code.go(collect_r(a, b, R.rule(a, b, True{})), collect_r(a, b, R.rule(a, b, False{})), collect_test(a, b), a, b)
@@ -1806,7 +1810,8 @@ def file() -> String:
   "def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:\n  grows.k(grow_of(rule_no(ka, kb)), ha, hb)\n\n" ++
   "# may a collection reduce A, negative principal, meeting B? Never stuck,\n" ++
   "# no more nodes made than freed, no builtin applied, no need for a lazy\n" ++
-  "# value touched (heap-strategies.cascade.nongrow). By the pair's rule,\n" ++
+  "# value touched (heap-strategies.cascade.nongrow), fewer ports left than\n" ++
+  "# taken (heap-strategies.erasure.load.cycle.shrink). By the pair's rule,\n" ++
   "# a table: 0 never, 1 always, 2 when the levels agree, 3 when they do\n" ++
   "# not\n" ++
   "def collect_of(+r: U32) -> U32:\n  match r:\n    case 0:\n      0\n" ++ collect_cases(numbered(), 1n) ++ "    case _:\n      0\n\n" ++

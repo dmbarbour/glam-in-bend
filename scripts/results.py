@@ -22,6 +22,9 @@ note. Results hang off runs:
            run 113 on, demand's alone there, the total), capacity and nodes
            live, its collections, their interactions and events, and the
            capacity they scanned
+  gcbench  the collecting benchmark (spike/tools/gcbench.py, which owns
+           the table): per library case, plain and collecting demand's
+           instructions, interactions and capacity, and the collections'
   counts   instructions and interactions per build and workload
   metrics  any named number
 

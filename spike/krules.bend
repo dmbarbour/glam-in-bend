@@ -1224,7 +1224,8 @@ def grows(+ka: U32, +kb: U32, +ha: U32, +hb: U32) -> Bool:
 
 # may a collection reduce A, negative principal, meeting B? Never stuck,
 # no more nodes made than freed, no builtin applied, no need for a lazy
-# value touched (heap-strategies.cascade.nongrow). By the pair's rule,
+# value touched (heap-strategies.cascade.nongrow), fewer ports left than
+# taken (heap-strategies.erasure.load.cycle.shrink). By the pair's rule,
 # a table: 0 never, 1 always, 2 when the levels agree, 3 when they do
 # not
 def collect_of(+r: U32) -> U32:
@@ -1278,9 +1279,9 @@ def collect_of(+r: U32) -> U32:
     case 23:
       1
     case 24:
-      1
+      0
     case 25:
-      1
+      0
     case 26:
       0
     case 27:
@@ -1290,9 +1291,9 @@ def collect_of(+r: U32) -> U32:
     case 29:
       1
     case 30:
-      1
+      0
     case 31:
-      1
+      0
     case 32:
       0
     case 33:
@@ -1302,11 +1303,11 @@ def collect_of(+r: U32) -> U32:
     case 35:
       1
     case 36:
-      1
+      0
     case 37:
-      1
+      2
     case 38:
-      1
+      2
     case 39:
       0
     case 40:
@@ -1316,11 +1317,11 @@ def collect_of(+r: U32) -> U32:
     case 42:
       1
     case 43:
-      1
+      0
     case 44:
-      1
+      2
     case 45:
-      1
+      2
     case 46:
       1
     case 47:
@@ -1338,9 +1339,9 @@ def collect_of(+r: U32) -> U32:
     case 53:
       0
     case 54:
-      1
+      0
     case 55:
-      1
+      0
     case _:
       0
 
