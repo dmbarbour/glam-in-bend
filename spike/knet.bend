@@ -62,15 +62,15 @@ def pay(s: R.Src, h: P.H, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +ua: Bool, +ub
     case R.SPayB{}:
       pay.use(ub && KR.is_data(P.rk(hb)), h, hb, pb)
     case R.SFanA{}:
-      (h, P.PW{0, P.fld(ha), 0})
+      (h, P.PW{P.form(ha), P.fld(ha), 0})
     case R.SFanB{}:
-      (h, P.PW{0, P.fld(hb), 0})
+      (h, P.PW{P.form(hb), P.fld(hb), 0})
     case R.SApply{}:
       P.apply(h, ha, pa, hb, pb)
     case R.SLiftA{}:
-      (h, P.PW{0, P.lift(P.fld(hb), pb, P.fld(ha)), pa})
+      (h, P.PW{P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha)), pa})
     case R.SLiftB{}:
-      (h, P.PW{0, P.lift(P.fld(ha), pa, P.fld(hb)), pb})
+      (h, P.PW{P.form(hb), P.lift(P.fld(ha), pa, P.fld(hb)), pb})
     # no rule makes a composed source (law rules_base_sources)
     case R.SAp{f, x}:
       (h, P.PW{0, 0, 0})
@@ -271,18 +271,19 @@ def note_of.go(both: Bool, +u: U32) -> List<&2, U32>:
 def note_of.s(+su: Bool, +u: U32, +v: U32) -> List<&2, U32>:
   match su:
     case True{}:
-      note_of.go(Bool.not(P.is_static(v)), v)
+      [v]
     case False{}:
       [u]
 
 def note_of.p(both: Bool, +u: U32, +v: U32) -> List<&2, U32>:
   match both:
     case True{}:
-      note_of.s(P.is_static(u), u, v)
+      note_of.s(P.is_static(u) && Bool.not(P.is_static(v)), u, v)
     case False{}:
       []
 
-# as P.note: the pair by u, or by v where u is static, none for two
+# as P.note: the pair by u, or by v where u alone is static; two statics
+# meeting by u, which stands for the pair (static-links-count-as-nodes)
 def note_of(+u: U32, +v: U32) -> List<&2, U32>:
   note_of.p(P.pri(u) && P.pri(v), u, v)
 
@@ -328,6 +329,28 @@ def notes_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&
       []
     case 1n+p:
       List.append(&2, U32, notes_at(partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b), notes_pairs(p, 1n+i, ls, x, refs, xs, a, b))
+
+# is e a port of the redex itself? (net.bend's partner, without the index)
+# A filter: a static whose value reads as one of the redex's nodes passes
+# for its port, which only sends the rewrite off the generated path (go.
+# loop), where the tests that decide (own, partner) know a static from a
+# port
+def mine(+e: U32, +a: U32, +b: U32) -> Bool:
+  U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
+
+def any_partner(+x: N.Ext, +a: U32, +b: U32) -> Bool:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      mine(e0, a, b) || mine(e1, a, b) || mine(e2, a, b) || mine(e3, a, b)
+
+# is e a port of the redex itself, exactly: no static is
+def own(+e: U32, +a: U32, +b: U32) -> Bool:
+  Bool.not(P.is_static(e)) && mine(e, a, b)
+
+def any_own(+x: N.Ext, +a: U32, +b: U32) -> Bool:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      own(e0, a, b) || own(e1, a, b) || own(e2, a, b) || own(e3, a, b)
 
 # The ends to look at for events after a rewrite by the table: each
 # external peer, or where it is static, no node to look at, the end the
@@ -383,7 +406,7 @@ type Wd is Type:
 def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> Wd:
   match m:
     case Mk{h, +refs, +ua, +ub}:
-      Wd{fuse_made(N.any_partner(x, a, b), xs, ls, x, refs, a, b,
+      Wd{fuse_made(any_own(x, a, b), xs, ls, x, refs, a, b,
           link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h))),
         List.append(&2, U32, notes_plain(ls, x, refs, xs, a, b), notes_pairs(4n, 0n, ls, x, refs, xs, a, b)),
         wd.sites(ls, x, refs, xs, a, b)}
@@ -437,17 +460,6 @@ def aux_or_nil(b: Bool, +l: U32) -> U32:
 def payload(+h: U32, +w2: U32, +w3: U32) -> U32:
   KR.payload.k(P.rk(h), w2, w3)
 
-# is e a port of the redex itself? (net.bend's partner, without the index)
-# A filter: a static whose value reads as one of the redex's nodes passes
-# for its port, which only sends the rewrite to the interpreter, whose own
-# test (partner) knows a static from a port
-def mine(+e: U32, +a: U32, +b: U32) -> Bool:
-  U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
-
-def any_partner(+x: N.Ext, +a: U32, +b: U32) -> Bool:
-  match x:
-    case N.Ext4{+e0, +e1, +e2, +e3}:
-      mine(e0, a, b) || mine(e1, a, b) || mine(e2, a, b) || mine(e3, a, b)
 
 # Events
 # ======
@@ -890,7 +902,7 @@ def go.loop(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -
 def is_id(+x: N.Ext, +a: U32, +b: U32, +hb: U32) -> Bool:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      U32.is_eq(P.rk(hb), 1) && U32.is_eq(e2, (b + 2 : U32)) && U32.is_eq(e3, (b + 1 : U32)) && Bool.not(mine(e0, a, b) || mine(e1, a, b))
+      U32.is_eq(P.rk(hb), 1) && U32.is_eq(e2, (b + 2 : U32)) && U32.is_eq(e3, (b + 1 : U32)) && Bool.not(own(e0, a, b) || own(e1, a, b))
 
 def go.which(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, gen: Bool, +fast: Bool, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match gen:
