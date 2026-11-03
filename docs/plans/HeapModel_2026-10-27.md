@@ -2056,7 +2056,14 @@ takes from it:
                  linear kinds did with events. In plain demand over the
                  library, 614 fan interactions (0.02%, in 31 cases) meet
                  a static eraser at a fan port: the gain here is
-                 simplicity more than speed.
+                 simplicity more than speed. The maintainer's aside
+                 (2026-11-03): the consuming eraser, the providing one and
+                 nil as one value, an eraser's polarity being its port's;
+                 all ones names no node, so that no static passes for a
+                 redex's own port, and the walk already reads it as
+                 marked; what uses nil for a port a node lacks (the
+                 events' worklist) then wants a marker of its own, and the
+                 audit no longer tells an erased port from a lost link.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`
                  — planned — the maintainer's design (2026-11-03):
                  erasure events travel through auxiliary ports alone. A
@@ -2073,19 +2080,46 @@ takes from it:
                  their kind changes.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`
                  — planned — the collection's walk back to `.links.read`'s
-                 once dead ports leave the sweep no kinds to convert, with
-                 one case open: a function reached by its variable alone,
-                 its principal facing a static eraser that demand's own
-                 rewrite left there (the copied-function case,
-                 `.dead-kinds.copied`). Its principal faces the dead part;
-                 erasing it reaches the remaining graph through its
-                 variable, voiding it at the merge of the copies'
-                 variables, sound by the calculus' sharing in a valid net;
-                 left unreduced, dead copies keep their fans whole (five
-                 cases grew, mixin-chain-16 by 8.7%, gcbench run 212).
-                 Options: the walk reads a function's principal when it
-                 enters by the variable, noting the pair for the eval; or
-                 no reduction there, at that cost.
+                 once dead ports leave the sweep no kinds to convert. The
+                 sweep frees the dead part in bulk and erases only at the
+                 cut, a dead node's inputs facing live outputs (a static
+                 pointer among those inputs dropped with it): an eraser on
+                 the live side, an event at an auxiliary port, an
+                 interaction at a principal, run at the collection. Settled
+                 (the maintainer, 2026-11-03): a collection applies erasure
+                 interactions, since marking reaches a dead copy of a
+                 function through the merge of the copies' variables and
+                 cannot tell which branch of a merge is live. The case: a
+                 node marked through one output while another faces the
+                 dead part; at an auxiliary that is a dead port, the
+                 static saying so; at the principal, the node is dead in
+                 that context, and only an interaction frees it, its
+                 variable voided at the merge, sound by the calculus'
+                 sharing in a valid net. It needs a positive principal
+                 and a positive auxiliary: of our kinds the function alone
+                 (a dead, unmarked function needs nothing: a live
+                 consumer of its variable would have marked it). The rule
+                 general, by polarity, for a law to pin: the kinds with a
+                 positive principal and a positive auxiliary are the
+                 function, so that a kind added with two outputs, one its
+                 principal, fails the law and its erasure from the
+                 principal is reviewed. The sweep finds the case from the
+                 dead consumer's input; a static eraser that demand's own
+                 rewrite left on such a principal has no dead node facing
+                 it, so the walk reads the principal of such a node when
+                 it enters by its positive auxiliary (a table generated
+                 from the rules), noting the pair for the eval (left
+                 unreduced, dead copies kept their fans whole: five cases
+                 grew, mixin-chain-16 by 8.7%, gcbench run 212). At write
+                 time instead: a function's erasure, an interaction, makes
+                 two erasers; its variable's chain is linear and never
+                 reaches a positive principal, but its body's eraser may
+                 land on another function's principal (a curried body, a
+                 copied function), so a complete rule needs a worklist and
+                 a partial one leaves the case to the collection anyway.
+                 Not pursued: normal evaluation leaves an eraser that
+                 lands on a principal to demand (lazy) or notes it
+                 (eager).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
                  — active — built 2026-11-03 on branch `links-native`
                  (eaec5cb), unmerged, the maintainer to decide: the rules
@@ -3030,7 +3064,8 @@ takes from it:
        transition of its own, since it makes optimizations assume type
        safety and so touches laws. It changes eager interaction counts,
        as a collection at arbitrary points does, unless erasers carry a
-       weight (weighted erasers).
+       weight; not worth it, the maintainer (2026-11-03): the profile
+       keeps dead operators' events, for the analysis of discrepancies.
      - `heap-strategies.erasure.merge` — built 2026-10-31 (the
        maintainer's approval, 2026-10-31) — branch `erasure-kernel` onto main: the events in their
        own strategies, costing nothing where they are off. It changes no
