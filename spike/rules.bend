@@ -1896,6 +1896,69 @@ def se.go(+p: Pol, +k: NodeKind) -> Bool:
 def static_erasure(+k: NodeKind) -> Bool:
   se.go(port_pol(k, 0n), k)
 
+# Native erasers (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.native): a rule that makes an eraser makes nothing else,
+# and each eraser's principal faces an external peer or another of its
+# erasers, so that the kernel makes them static, no node made, each a
+# static in the link word of the peer it faces, two facing a meeting
+# (law erasers_native).
+
+def nv.era(k: NodeKind) -> Bool:
+  match k:
+    case KEraN{}:
+      True{}
+    case KEraP{}:
+      True{}
+    case _:
+      False{}
+
+def nv.any(xs: List<&2, Spec>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{Spec{k, s}, t}:
+      nv.era(k) || nv.any(t)
+
+def nv.all(xs: List<&2, Spec>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{Spec{k, s}, t}:
+      nv.era(k) && nv.all(t)
+
+# the end an eraser's principal faces: an external peer, or an eraser's
+# principal
+def nv.out(m: Maybe<&2, End>, +xs: List<&2, Spec>) -> Bool:
+  match m:
+    case Some{e}:
+      match e:
+        case Ext{i}:
+          True{}
+        case New{+j, +p}:
+          nat_eq(p, 0n) && nv.era(spec_kind(xs, j))
+    case None{}:
+      False{}
+
+# the principals of new nodes j .. j + n - 1
+def nv.each(n: Nat, +j: Nat, +xs: List<&2, Spec>, +ls: List<&2, Link>) -> Bool:
+  match n:
+    case 0n:
+      True{}
+    case 1n+m:
+      nv.out(lf.peer(ls, New{j, 0n}), xs) && nv.each(m, 1n+j, xs, ls)
+
+def nv.ok(r: Rule) -> Bool:
+  match r:
+    case RStuck{}:
+      True{}
+    case RWire{+xs, +ls}:
+      Bool.not(nv.any(xs)) || (nv.all(xs) && nv.each(List.length(&2, Spec, xs), 0n, xs, ls))
+
+# the rules of A meeting B, and A meeting the identity with its loop
+# resolved (rule_id), for both tests
+def erasers_native(+a: NodeKind, +b: NodeKind) -> Bool:
+  nv.ok(rule(a, b, True{})) && nv.ok(rule(a, b, False{})) && nv.ok(rule_id(a, True{})) && nv.ok(rule_id(a, False{}))
+
 # Payloads held
 # -------------
 #

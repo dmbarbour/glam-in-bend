@@ -762,6 +762,18 @@ law static_erasure:
   for +k: R.NodeKind
   {R.static_erasure(k) == True{} : Bool}
 
+# LAW: a rule that makes an eraser makes nothing else, and each eraser's
+# principal faces an external peer or another of its erasers, for both
+# payload tests, and with the identity's loop resolved: so the generated
+# rewrites make them static, no node, a static put in the link word of
+# the peer each faces, two facing a meeting, as the rule wires them
+# (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native).
+# Record: static-links-count-as-nodes
+law erasers_native:
+  for +a: R.NodeKind
+  for +b: R.NodeKind
+  {R.erasers_native(a, b) == True{} : Bool}
+
 # LAW: a net's words stop at 2^30, so a reference stays below 2^30: the
 # collection's walk tags references in its notes with bits 31 and 30, and
 # a net doubling to eight times its nodes in words stays within a U32.

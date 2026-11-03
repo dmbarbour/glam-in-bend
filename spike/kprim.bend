@@ -466,6 +466,11 @@ def link_x(h: H, +x: U32, +y: U32) -> H:
 def link_xx(h: H, +y: U32, +z: U32) -> H:
   link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
 
+# static s put in the link word of e, the port it faces, unless e is
+# static too: two statics meeting, nothing written
+def put_st(h: H, +e: U32, +s: U32) -> H:
+  link.to(is_static(e), h, e, s)
+
 # Nodes
 # =====
 

@@ -641,7 +641,103 @@ def start(+w: Bool, +xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> St
     drop_if(is_data(a) && Nat.is_eq(uses(xs, True{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
       free_of(w, List.length(&2, R.Spec, xs)), True{}), False{})
 
-def entry(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+# Native erasers (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.native): a rule whose new nodes are all erasers, each
+# facing an external peer or another of them (law erasers_native), makes
+# them static, no node: both of the redex's slots freed, a static put in
+# the link word of the peer each faces (P.put_st), two facing a meeting,
+# noted as a pair of allocated erasers would be
+# (static-links-count-as-nodes). Events keep their eraser in the node's
+# own slot: a pair the node is in keeps its place on a strategy's stack
+# by that node.
+
+def st_name(k: R.NodeKind) -> String:
+  match k:
+    case R.KEraN{}:
+      "P.st_eran()"
+    case _:
+      "P.st_erap()"
+
+# an end as a native rule names it: a new eraser by its static
+def nv.end(+xs: List<&2, R.Spec>, e: R.End) -> String:
+  match e:
+    case R.Ext{i}:
+      "e" ++ Nat.show(i)
+    case R.New{+j, p}:
+      st_name(spec_kind(spec_at(xs, j)))
+
+def nv.link(+xs: List<&2, R.Spec>, u: R.End, v: R.End, +acc: String) -> String:
+  match u v:
+    case R.Ext{i} R.Ext{k}:
+      "P.link_xx(" ++ acc ++ ", e" ++ Nat.show(i) ++ ", e" ++ Nat.show(k) ++ ")"
+    case R.Ext{i} R.New{+j, p}:
+      "P.put_st(" ++ acc ++ ", e" ++ Nat.show(i) ++ ", " ++ st_name(spec_kind(spec_at(xs, j))) ++ ")"
+    case R.New{+j, p} R.Ext{i}:
+      "P.put_st(" ++ acc ++ ", e" ++ Nat.show(i) ++ ", " ++ st_name(spec_kind(spec_at(xs, j))) ++ ")"
+    case R.New{j, p} R.New{k, q}:
+      acc
+
+def nv.links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
+  match ls:
+    case Nil{}:
+      acc
+    case Con{R.Link{u, v}, t}:
+      nv.links(xs, t, nv.link(xs, u, v, acc))
+
+# a note's ends in a native rule: of an external peer and what faces it,
+# the peer unless it is static (P.site); of two statics, either
+def nv.note_x(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> String:
+  match u v:
+    case R.Ext{i} _:
+      "P.site(e" ++ Nat.show(i) ++ ", " ++ nv.end(xs, v) ++ ")"
+    case R.New{j, p} R.Ext{i}:
+      "P.site(e" ++ Nat.show(i) ++ ", " ++ nv.end(xs, u) ++ ")"
+    case R.New{j, p} R.New{k, q}:
+      nv.end(xs, u)
+
+def nv.note_y(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> String:
+  match u v:
+    case R.New{j, p} R.Ext{i}:
+      nv.end(xs, u)
+    case _ _:
+      nv.end(xs, v)
+
+def nv.notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
+  match ls:
+    case Nil{}:
+      acc
+    case Con{R.Link{+u, +v}, t}:
+      nv.notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, nv.note_x(xs, u, v), nv.note_y(xs, u, v)))
+
+def nv.fuses(+xs: List<&2, R.Spec>, es: List<&2, R.End>, +acc: String) -> String:
+  match es:
+    case Nil{}:
+      acc
+    case Con{e, t}:
+      nv.fuses(xs, t, "P.fuse(" ++ acc ++ ", " ++ nv.end(xs, e) ++ ")")
+
+def nv.site(m: Maybe<&2, R.End>, +xs: List<&2, R.Spec>) -> String:
+  match m:
+    case Some{e}:
+      nv.end(xs, e)
+    case None{}:
+      "P.nil()"
+
+def nv.site.s(b: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +i: Nat) -> String:
+  match b:
+    case True{}:
+      "P.site(e" ++ Nat.show(i) ++ ", " ++ nv.site(R.lf.peer(ls, R.Ext{i}), xs) ++ ")"
+    case False{}:
+      "P.nil()"
+
+def nv.sites(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>) -> String:
+  "N.Ext4{" ++ nv.site.s(site(xs, ls, 0n), xs, ls, 0n) ++ ", " ++ nv.site.s(site(xs, ls, 1n), xs, ls, 1n) ++ ", " ++
+    nv.site.s(site(xs, ls, 2n), xs, ls, 2n) ++ ", " ++ nv.site.s(site(xs, ls, 3n), xs, ls, 3n) ++ "}"
+
+def nv.finish(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
+  finish.w(any_site(xs, ls), "fin(" ++ nv.fuses(xs, N.fuse_ends(xs, ls), nv.links(xs, ls, st)) ++ ", " ++ nv.notes(xs, ls, "st") ++ ")", nv.sites(xs, ls))
+
+def entry.k(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match xs:
     case Nil{}:
       "def " ++ name ++ "(" ++ tparam(w) ++ "h: P.H, " ++ common() ++ ") -> " ++ ret(w) ++ ":\n" ++
@@ -651,6 +747,17 @@ def entry(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>,
         pre_fn(w, name, 0n, sp, pre_of(sp, xs, 0n, a, b)) ++
         "def " ++ name ++ "(" ++ tparam(w) ++ "h: P.H, " ++ common() ++ ") -> " ++ ret(w) ++ ":\n" ++
         "  " ++ make_call(w, name, start(w, xs, a, b), 0n, sp, pre_of(sp, xs, 0n, a, b)) ++ "\n\n"
+
+def entry.go(+native: Bool, +w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  match native:
+    case True{}:
+      "def " ++ name ++ "(" ++ tparam(w) ++ "h: P.H, " ++ common() ++ ") -> " ++ ret(w) ++ ":\n" ++
+        "  " ++ nv.finish(xs, ls, start(w, [], a, b)) ++ "\n\n"
+    case False{}:
+      entry.k(w, name, xs, ls, a, b)
+
+def entry(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+  entry.go(w && R.nv.any(xs), w, name, xs, ls, a, b)
 
 # a rule's functions, the first named `name`
 def rule_fns(+w: Bool, r: R.Rule, +name: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
