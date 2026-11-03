@@ -140,6 +140,66 @@ def kind_dir(+k: U32) -> U32:
     case _:
       15
 
+# the effective kind of a node of kind k, d1 and d2 whether its ports 1
+# and 2 hold static erasers (R.dead_kind)
+def dead_kind(+k: U32, +d1: Bool, +d2: Bool) -> U32:
+  match k:
+    case 1:
+      match d1 d2:
+        case False{} False{}:
+          1
+        case True{} False{}:
+          1
+        case False{} True{}:
+          17
+        case True{} True{}:
+          17
+    case 3:
+      match d1 d2:
+        case False{} False{}:
+          3
+        case True{} False{}:
+          13
+        case False{} True{}:
+          12
+        case True{} True{}:
+          6
+    case 4:
+      match d1 d2:
+        case False{} False{}:
+          4
+        case True{} False{}:
+          15
+        case False{} True{}:
+          14
+        case True{} True{}:
+          7
+    case _:
+      k
+
+# a kind a dead port changes, whose links its effective kind reads
+def kind_dead(+k: U32) -> Bool:
+  match k:
+    case 1:
+      True{}
+    case 3:
+      True{}
+    case 4:
+      True{}
+    case _:
+      False{}
+
+# an effective kind keeping its full kind's port 2 as its port 1
+# (R.ex.kept)
+def kept2(+k: U32) -> Bool:
+  match k:
+    case 13:
+      True{}
+    case 15:
+      True{}
+    case _:
+      False{}
+
 # a kind whose payload is a value, data or a call's or a dead call's
 # function: a table entry the node's to drop
 def is_data(+k: U32) -> Bool:
@@ -1566,7 +1626,7 @@ def rw.Ap.Data.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin
   rw.Ap.Data.yes.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(9, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Ap.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.st_eran()), e1, P.st_erap()), note(note(st, P.site(e0, P.st_eran()), P.st_eran()), P.site(e1, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_eran()), P.site(e1, P.st_erap()), P.nil(), P.nil()})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.era()), e1, P.era()), note(note(st, P.site(e0, P.era()), P.era()), P.site(e1, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.site(e1, P.era()), P.nil(), P.nil()})
 
 def rw.Ap.LiftC.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -1614,7 +1674,7 @@ def rw.Ap.MergeR(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: 
   rw.Ap.MergeR.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(2, P.form(ha), P.fld(ha)), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Ap.FnD.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e0, P.st_eran()), e1, e2), e1), note(note(st, P.site(e0, P.st_eran()), P.st_eran()), P.site(e1, e2), e2)), N.Ext4{P.site(e0, P.st_eran()), P.site(e1, e2), P.nil(), P.nil()})
+  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e0, P.era()), e1, e2), e1), note(note(st, P.site(e0, P.era()), P.era()), P.site(e1, e2), e2)), N.Ext4{P.site(e0, P.era()), P.site(e1, e2), P.nil(), P.nil()})
 
 def rw.Copy.Fn.k4(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32, +n2: U32) -> R:
   (h, +n3) = r
@@ -1673,7 +1733,7 @@ def rw.Copy.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: 
   rw.Copy.Data.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), e1, P.st_erap()), note(note(st, P.site(e0, P.st_erap()), P.st_erap()), P.site(e1, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.site(e1, P.st_erap()), P.nil(), P.nil()})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.era()), e1, P.era()), note(note(st, P.site(e0, P.era()), P.era()), P.site(e1, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.site(e1, P.era()), P.nil(), P.nil()})
 
 def rw.Copy.LiftC.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -1691,7 +1751,7 @@ def rw.Copy.LiftC(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin:
   rw.Copy.LiftC.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(3, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.MergeL.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.fuse(P.put_st(P.link_xx(P.fresh2(h, a, b), e0, e2), e1, P.st_erap()), e0), note(note(st, P.site(e0, e2), e2), P.site(e1, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, e2), P.site(e1, P.st_erap()), P.nil(), P.nil()})
+  after(fin(P.fuse(P.put_st(P.link_xx(P.fresh2(h, a, b), e0, e2), e1, P.era()), e0), note(note(st, P.site(e0, e2), e2), P.site(e1, P.era()), P.era())), N.Ext4{P.site(e0, e2), P.site(e1, P.era()), P.nil(), P.nil()})
 
 def rw.Copy.MergeL.no.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -1709,7 +1769,7 @@ def rw.Copy.MergeL.no(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~
   rw.Copy.MergeL.no.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(14, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Copy.MergeR.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), e1, e2), e1), note(note(st, P.site(e0, P.st_erap()), P.st_erap()), P.site(e1, e2), e2)), N.Ext4{P.site(e0, P.st_erap()), P.site(e1, e2), P.nil(), P.nil()})
+  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e0, P.era()), e1, e2), e1), note(note(st, P.site(e0, P.era()), P.era()), P.site(e1, e2), e2)), N.Ext4{P.site(e0, P.era()), P.site(e1, e2), P.nil(), P.nil()})
 
 def rw.Copy.MergeR.no.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -1742,10 +1802,10 @@ def rw.Copy.FnD(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P
   rw.Copy.FnD.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(17, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.EraN.Fn(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), e3, P.st_erap()), note(note(st, P.site(e2, P.st_eran()), P.st_eran()), P.site(e3, P.st_erap()), P.st_erap())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.site(e3, P.st_erap())})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.era()), e3, P.era()), note(note(st, P.site(e2, P.era()), P.era()), P.site(e3, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.site(e3, P.era())})
 
 def rw.EraN.Merge(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), e3, P.st_eran()), note(note(st, P.site(e2, P.st_eran()), P.st_eran()), P.site(e3, P.st_eran()), P.st_eran())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.site(e3, P.st_eran())})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.era()), e3, P.era()), note(note(st, P.site(e2, P.era()), P.era()), P.site(e3, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.site(e3, P.era())})
 
 def rw.EraN.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   fin(P.drop(P.fresh2(h, a, b), P.form(hb), pb), st)
@@ -1754,16 +1814,16 @@ def rw.EraN.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: 
   fin(P.fresh2(h, a, b), st)
 
 def rw.EraN.LiftC(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), note(st, P.site(e2, P.st_eran()), P.st_eran())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.era()), note(st, P.site(e2, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.EraN.MergeL(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), note(st, P.site(e2, P.st_eran()), P.st_eran())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.era()), note(st, P.site(e2, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.EraN.MergeR(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), note(st, P.site(e2, P.st_eran()), P.st_eran())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.era()), note(st, P.site(e2, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.EraN.FnD(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), note(st, P.site(e2, P.st_eran()), P.st_eran())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e2, P.era()), note(st, P.site(e2, P.era()), P.era())), N.Ext4{P.nil(), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.Root.LiftC.k1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   (h, +n0) = r
@@ -1803,7 +1863,7 @@ def rw.Op.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.
   rw.Op.Data.k1.pre(~S, ~R, ~note, ~fin, ~after, P.apply(P.free(h, b), ha, pa, hb, pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Op.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.drop(P.fresh2(h, a, b), P.form(ha), pa), e0, P.st_erap()), note(st, P.site(e0, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.nil(), P.nil()})
+  after(fin(P.put_st(P.drop(P.fresh2(h, a, b), P.form(ha), pa), e0, P.era()), note(st, P.site(e0, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.nil(), P.nil()})
 
 def rw.Op.LiftC.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
@@ -1876,7 +1936,7 @@ def rw.Lift.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: 
   rw.Lift.Data.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.Lift.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), note(st, P.site(e0, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.nil(), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.era()), note(st, P.site(e0, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.nil(), P.nil()})
 
 def rw.Lift.LiftC.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
   after(fin(P.fuse(P.link_xx(P.fresh2(h, a, b), e0, e2), e0), note(st, P.site(e0, e2), e2)), N.Ext4{P.site(e0, e2), P.nil(), P.nil(), P.nil()})
@@ -1950,7 +2010,7 @@ def rw.CopyL.Fn(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P
   rw.CopyL.Fn.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(1, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyL.Merge.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.fuse(P.put_st(P.link_xx(P.fresh2(h, a, b), e0, e2), e3, P.st_eran()), e0), note(note(st, P.site(e0, e2), e2), P.site(e3, P.st_eran()), P.st_eran())), N.Ext4{P.site(e0, e2), P.nil(), P.nil(), P.site(e3, P.st_eran())})
+  after(fin(P.fuse(P.put_st(P.link_xx(P.fresh2(h, a, b), e0, e2), e3, P.era()), e0), note(note(st, P.site(e0, e2), e2), P.site(e3, P.era()), P.era())), N.Ext4{P.site(e0, e2), P.nil(), P.nil(), P.site(e3, P.era())})
 
 def rw.CopyL.Merge.no.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -1975,7 +2035,7 @@ def rw.CopyL.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin:
   rw.CopyL.Data.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyL.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), note(st, P.site(e0, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.nil(), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.era()), note(st, P.site(e0, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.nil(), P.nil()})
 
 def rw.CopyL.LiftC.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
@@ -2003,7 +2063,7 @@ def rw.CopyL.MergeL.no(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, 
   rw.CopyL.MergeL.no.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(14, P.form(hb), P.fld(hb)), 0), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyL.MergeR.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), e2, P.st_eran()), note(note(st, P.site(e0, P.st_erap()), P.st_erap()), P.site(e2, P.st_eran()), P.st_eran())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e0, P.era()), e2, P.era()), note(note(st, P.site(e0, P.era()), P.era()), P.site(e2, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.CopyL.MergeR.no.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
@@ -2043,7 +2103,7 @@ def rw.CopyR.Fn(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P
   rw.CopyR.Fn.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(1, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyR.Merge.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), e0, e3), e0), note(note(st, P.site(e2, P.st_eran()), P.st_eran()), P.site(e0, e3), e3)), N.Ext4{P.site(e0, e3), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.fuse(P.link_xx(P.put_st(P.fresh2(h, a, b), e2, P.era()), e0, e3), e0), note(note(st, P.site(e2, P.era()), P.era()), P.site(e0, e3), e3)), N.Ext4{P.site(e0, e3), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.CopyR.Merge.no.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r
@@ -2068,7 +2128,7 @@ def rw.CopyR.Data(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin:
   rw.CopyR.Data.k1(~S, ~R, ~note, ~fin, ~after, P.renode(P.free(h, b), a, P.hd2(5, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyR.EraP(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.st_erap()), note(st, P.site(e0, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.nil(), P.nil()})
+  after(fin(P.put_st(P.fresh2(h, a, b), e0, P.era()), note(st, P.site(e0, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.nil(), P.nil()})
 
 def rw.CopyR.LiftC.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
@@ -2082,7 +2142,7 @@ def rw.CopyR.LiftC(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin
   rw.CopyR.LiftC.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(13, P.form(ha), P.lift(P.fld(hb), pb, P.fld(ha))), pa), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.CopyR.MergeL.yes(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.st_eran()), e0, P.st_erap()), note(note(st, P.site(e2, P.st_eran()), P.st_eran()), P.site(e0, P.st_erap()), P.st_erap())), N.Ext4{P.site(e0, P.st_erap()), P.nil(), P.site(e2, P.st_eran()), P.nil()})
+  after(fin(P.put_st(P.put_st(P.fresh2(h, a, b), e2, P.era()), e0, P.era()), note(note(st, P.site(e2, P.era()), P.era()), P.site(e0, P.era()), P.era())), N.Ext4{P.site(e0, P.era()), P.nil(), P.site(e2, P.era()), P.nil()})
 
 def rw.CopyR.MergeL.no.k2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32) -> R:
   (h, +n1) = r
@@ -2181,7 +2241,7 @@ def rw.id.Copy(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.
   rw.id.Copy.k1(~S, ~R, ~note, ~fin, ~after, P.renode(h, a, P.hd2(1, P.form(hb), P.fld(hb)), pb), st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 def rw.id.EraN(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32) -> R:
-  fin(P.fresh2(h, a, b), note(st, P.st_eran(), P.st_erap()))
+  fin(P.fresh2(h, a, b), note(st, P.era(), P.era()))
 
 def rw.id.Lift.k3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e1: U32, +e2: U32, +e3: U32, +n0: U32, +n1: U32) -> R:
   (h, +n2) = r

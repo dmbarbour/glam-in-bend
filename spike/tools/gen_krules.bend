@@ -652,11 +652,7 @@ def start(+w: Bool, +xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> St
 # by that node.
 
 def st_name(k: R.NodeKind) -> String:
-  match k:
-    case R.KEraN{}:
-      "P.st_eran()"
-    case _:
-      "P.st_erap()"
+  "P.era()"
 
 # an end as a native rule names it: a new eraser by its static
 def nv.end(+xs: List<&2, R.Spec>, e: R.End) -> String:
@@ -1153,6 +1149,50 @@ def tables.d(ks: List<&2, R.NodeKind>) -> String:
     case Con{+k, t}:
       "    case " ++ code(k) ++ ":\n      " ++ U32.show(dir_k(k)) ++ "\n" ++ tables.d(t)
 
+def dead.arm(+k: R.NodeKind, +d1: Bool, +d2: Bool, +pat: String) -> String:
+  "        case " ++ pat ++ ":\n          " ++ code(R.dead_kind(k, d1, d2)) ++ "\n"
+
+# a kind a dead port changes (R.dead_kind)
+def dead.has(+k: R.NodeKind) -> Bool:
+  Bool.not(R.dk.is(R.dead_kind(k, True{}, False{}), k)) || Bool.not(R.dk.is(R.dead_kind(k, False{}, True{}), k))
+
+def dead.k(+k: R.NodeKind) -> String:
+  "    case " ++ code(k) ++ ":\n      match d1 d2:\n" ++
+    dead.arm(k, False{}, False{}, "False{} False{}") ++ dead.arm(k, True{}, False{}, "True{} False{}") ++
+    dead.arm(k, False{}, True{}, "False{} True{}") ++ dead.arm(k, True{}, True{}, "True{} True{}")
+
+def tables.dk(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(dead.has(k), dead.k(k), "") ++ tables.dk(t)
+
+def tables.dr(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(dead.has(k), "    case " ++ code(k) ++ ":\n      True{}\n", "") ++ tables.dr(t)
+
+def tables.k2(ks: List<&2, R.NodeKind>) -> String:
+  match ks:
+    case Nil{}:
+      ""
+    case Con{+k, t}:
+      pick(Nat.is_eq(R.ex.kept(k), 2n), "    case " ++ code(k) ++ ":\n      True{}\n", "") ++ tables.k2(t)
+
+# dead ports by kind code (R.dead_kind, R.ex.kept; law dead_ports)
+def tables.dead() -> String:
+  "# the effective kind of a node of kind k, d1 and d2 whether its ports 1\n" ++
+  "# and 2 hold static erasers (R.dead_kind)\n" ++
+  "def dead_kind(+k: U32, +d1: Bool, +d2: Bool) -> U32:\n  match k:\n" ++ tables.dk(kinds()) ++ "    case _:\n      k\n\n" ++
+  "# a kind a dead port changes, whose links its effective kind reads\n" ++
+  "def kind_dead(+k: U32) -> Bool:\n  match k:\n" ++ tables.dr(kinds()) ++ "    case _:\n      False{}\n\n" ++
+  "# an effective kind keeping its full kind's port 2 as its port 1\n" ++
+  "# (R.ex.kept)\n" ++
+  "def kept2(+k: U32) -> Bool:\n  match k:\n" ++ tables.k2(kinds()) ++ "    case _:\n      False{}\n\n"
+
 # ports and principal polarity by kind code (R.arity, R.port_pol)
 def tables() -> String:
   "# ports by kind code (R.arity)\n" ++
@@ -1163,7 +1203,8 @@ def tables() -> String:
   "def kind_neg(+k: U32) -> Bool:\n  U32.is_eq(kind_neg.n(k), 1)\n\n" ++
   "# the ports the collection's walk follows, a node's inputs (R.walk_first,\n" ++
   "# R.walk_second): the first plus 4 times the second, 3 for none\n" ++
-  "def kind_dir(+k: U32) -> U32:\n  match k:\n" ++ tables.d(kinds()) ++ "    case _:\n      15\n\n"
+  "def kind_dir(+k: U32) -> U32:\n  match k:\n" ++ tables.d(kinds()) ++ "    case _:\n      15\n\n" ++
+  tables.dead()
 
 def payloads.d(ks: List<&2, R.NodeKind>) -> String:
   match ks:

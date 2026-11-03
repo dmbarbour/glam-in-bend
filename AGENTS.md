@@ -97,6 +97,12 @@ Lessons carried over from the Rust bootstrap:
   normalize, under `scripts/capped.sh MB SECONDS command`: an uncapped run
   once exhausted the machine's memory and crashed the session. Prefer
   native builds (`bend x.bend -o x`) for spike runs.
+- Cap a run near its normal cost, so that one going astray shows in
+  minutes, and stop it there: a hang is a fault to trace, not to wait
+  out. A large generated program's build peaks near 3.5 GB (the
+  library's, 2026-11-03): build one at a time, and keep the caps of
+  runs that overlap below the machine's free memory. Run
+  `scripts/cgroup-delegate.sh` first, or the caps only poll.
 - Exact counters (interactions, cells) are signal; timings are trend data,
   recorded with the Bend version, the commit and the CPU. Count
   instructions too (`scripts/count.sh`, under `perf`): stable to a few

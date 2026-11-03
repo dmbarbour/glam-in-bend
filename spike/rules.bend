@@ -3238,6 +3238,62 @@ def ex.first.s(r: Rule) -> Src:
     case RStuck{}:
       SNone{}
 
+# Dead ports (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.
+# links.dead-ports): a static eraser at a node's auxiliary port is that
+# port's deadness, and the kernel takes the node by its effective kind,
+# the fused kind it stands for, by whether its ports 1 and 2 are dead (d1,
+# d2): a fan with one side dead the linear fan keeping the other, with
+# both the eraser the events would make of it; a function with its
+# variable dead the function with it dead. A port no fused kind has dead
+# is not read: a function's body, an operator's result, whose event makes
+# the dead operator, its payload dropped. The kernel's table is generated
+# from this one (tools/gen_krules.bend), the kept side its port 1
+# (ex.kept).
+
+def dk.of(+one: NodeKind, +two: NodeKind, +both: NodeKind, +k: NodeKind, +d1: Bool, +d2: Bool) -> NodeKind:
+  match d1 d2:
+    case False{} False{}:
+      k
+    case True{} False{}:
+      one
+    case False{} True{}:
+      two
+    case True{} True{}:
+      both
+
+def dead_kind(+k: NodeKind, +d1: Bool, +d2: Bool) -> NodeKind:
+  match k:
+    case KCopy{}:
+      dk.of(KCopyR{}, KCopyL{}, KEraN{}, KCopy{}, d1, d2)
+    case KMerge{}:
+      dk.of(KMergeR{}, KMergeL{}, KEraP{}, KMerge{}, d1, d2)
+    case KFn{}:
+      dk.of(KFn{}, KFnD{}, KFnD{}, KFn{}, d1, d2)
+    case _:
+      k
+
+def dk.is(+a: NodeKind, +b: NodeKind) -> Bool:
+  Nat.is_eq(kind_n(a), kind_n(b))
+
+# e a fused form of k whose dead port is dead
+def dk.one(+k: NodeKind, +d1: Bool, +d2: Bool, +e: NodeKind) -> Bool:
+  dk.is(lf.full(e), k) && Bool.not(dk.is(e, k)) && ((Nat.is_eq(ex.dead(e), 1n) && d1) || (Nat.is_eq(ex.dead(e), 2n) && d2))
+
+# e what the events make of k with both sides dead: the linear form
+# keeping one side, an eraser at it (law events_as_components)
+def dk.both(+k: NodeKind, +d1: Bool, +d2: Bool, +e: NodeKind) -> Bool:
+  d1 && d2 && dk.is(e, ex.first(event(dead_kind(k, True{}, False{}), ex.eraser(dead_kind(k, True{}, False{})), 1n))) &&
+    dk.is(e, ex.first(event(dead_kind(k, False{}, True{}), ex.eraser(dead_kind(k, False{}, True{})), 1n)))
+
+def dk.ok(+k: NodeKind, +d1: Bool, +d2: Bool, +e: NodeKind) -> Bool:
+  dk.is(e, k) || dk.one(k, d1, d2, e) || dk.both(k, d1, d2, e)
+
+# a node of kind k, d1 and d2 its dead ports, taken by its kind, by a
+# fused form of it whose dead port is dead, or with both sides dead by
+# what events make of it (law dead_ports)
+def dead_port(+k: NodeKind, +d1: Bool, +d2: Bool) -> Bool:
+  dk.ok(k, d1, d2, dead_kind(k, d1, d2))
+
 def fz.evport.go(full: Bool, +a: NodeKind, +p: Nat) -> Nat:
   match full:
     case True{}:

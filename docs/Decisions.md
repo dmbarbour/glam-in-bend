@@ -123,6 +123,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`static-links-count-as-nodes`](decisions/static-links-count-as-nodes.md):
   a static link counts as the node it stands for, in every count and
   profile; its value means only what the layout gives it.
+- [`erasure-at-write`](decisions/erasure-at-write.md): a static eraser at
+  an auxiliary port acts where it is written, never tested on a rewrite's
+  path, which costs every rewrite in Bend.
 - [`net-demand-whnf`](decisions/net-demand-whnf.md): a forced net reduces
   to weak head normal form at its root, only the pairs on the way; other
   strategies only where they terminate.

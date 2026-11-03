@@ -152,7 +152,7 @@ def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
 
 def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
   (h, +hx) = r
-  coll.hy(P.rdy(h, x, y), st, x, y, hx)
+  coll.hy(KN.rdy(h, x, y, hx), st, x, y, hx)
 
 def collect.fin(r: Ran) -> P.H:
   match r:
@@ -179,7 +179,7 @@ def run.q(n: Nat, q: P.PopQ) -> Ran:
         case P.PopQ{h, st, +x, +y, +ok, +hd}:
           match ok:
             case True{}:
-              run.q(p, P.popq(coll.hx(P.rdh(h, x), st, x, y), KR.most_pairs(), hd))
+              run.q(p, P.popq(coll.hx(KN.rdx(h, x), st, x, y), KR.most_pairs(), hd))
             case False{}:
               Ran{h, 1n+p}
 
@@ -323,9 +323,9 @@ def lw.np(pair: Bool, g: KM.M, +q: U32, +b: U32) -> Gq:
     case False{}:
       Gq{g, q}
 
-# a static, not nil
+# a static (an eraser, nil's value too)
 def lw.st(+l: U32) -> Bool:
-  P.is_static(l) && U32.is_ne(l, P.nil())
+  P.is_static(l)
 
 def lw.sel(+c: Bool, +x: U32) -> U32:
   match c:
@@ -607,75 +607,26 @@ def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
 # the other, the walk entering a node by an output: a copy, or a
 # function, by its variable or its principal.
 #
-# A copy's output: the copy made the linear copy keeping its other side,
-# in place, as the event an eraser there makes (`.dead-kinds.copy`).
+# A copy's output, or a function's variable: a static eraser put there,
+# the port dead (`.dead-kinds.links.dead-ports`), its event looked at,
+# which runs only where the copy's other side is dead too.
 #
 # A function's principal, the function reached by its variable alone: a
 # copy of a function whose body copying shared, its variable reaching the
 # body through the merge of the copies' variables while its own consumer
 # is gone, dead in its sharing context; erasing it voids its variable only
 # there. Between the fans copying made, its result fed by a copy's output
-# and its variable into a merge's input, it is erased in place: both fans
-# made linear, keeping their other sides, and the function freed, as its
-# erasure and the two events after it would (`.dead-kinds.copied`).
-# Elsewhere a static eraser is put on its principal, the pair noted for
-# the eval, which erases the function with no node made (KN.static_erase). In a net whose variable is used outside its function's body,
-# refused when built, the void may reach the interface, where demand
-# reports a void demanded instead of the variable (net-void-demanded).
-#
-# A function's variable, unused now: the function made one with its
-# variable dead (KFnD, 17), in place, its level kept (`.dead-kinds.fn`).
+# and its variable into a merge's input, it is erased in place: the
+# function freed and a static eraser put on each fan's side, as its
+# erasure would (`.dead-kinds.copied`). Elsewhere a static eraser is put
+# on its principal, the pair noted for the eval, which erases the
+# function with no node made (KN.static_erase). In a net whose variable
+# is used outside its function's body, refused when built, the void may
+# reach the interface, where demand reports a void demanded instead of
+# the variable (net-void-demanded).
 #
 # The free count is the sweep's, plus the functions freed; an eraser made
 # is static, no node.
-
-# a fan's linear kind keeping the side other than p: a copy's KCopyR
-# (13) or KCopyL (12), a merge's KMergeR (15) or KMergeL (14)
-def lin.base(+k: U32) -> U32:
-  match k:
-    case 3:
-      12
-    case _:
-      14
-
-def lin.side(+p: U32) -> U32:
-  match p:
-    case 1:
-      1
-    case _:
-      0
-
-# the kept side, port 2, moved to port 1, its peer told, unless static
-def lin.mv(r: P.H & U32, +b: U32) -> P.H:
-  (h, +l2) = r
-  P.link_x(h, (b + 1 : U32), l2)
-
-def lin.port(+p: U32, h: P.H, +b: U32) -> P.H:
-  match p:
-    case 1:
-      lin.mv(P.rd(h, (b + 3 : U32)), b)
-    case _:
-      h
-
-# the header's kind changed, its fan identity kept; word 3, a two-port
-# node's payload word, cleared; counted as the fan's event
-def lin.hd(r: P.H & U32, +b: U32, +p: U32) -> P.H:
-  (h, +hd) = r
-  P.ev_count(P.wr(P.wr(lin.port(p, h, b), b, ((hd .&. 4294967232 : U32) .|. (lin.base(P.rk(hd)) + lin.side(p) : U32) : U32)), (b + 3 : U32), 0), P.rk(hd))
-
-# the fan behind y made linear, y's side dropped
-def lin.drop(h: P.H, +y: U32) -> P.H:
-  lin.hd(P.rd(h, P.base(y)), P.base(y), P.port(y))
-
-# the function at b made one with its variable dead: its kind changed,
-# its level kept, word 3, its variable's link, cleared, a two-port node's
-# payload word
-def fnd.hd(r: P.H & U32, +b: U32) -> P.H:
-  (h, +hd) = r
-  P.wr(P.wr(h, b, ((hd .&. 4294967232 : U32) .|. 17 : U32)), (b + 3 : U32), 0)
-
-def fnd.make(h: P.H, +y: U32) -> P.H:
-  fnd.hd(P.rd(h, P.base(y)), P.base(y))
 
 def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
   match pr:
@@ -687,7 +638,12 @@ def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
 # a static eraser put on y, no node made (`.links.read`): its pair noted
 # by y, its event looked at from y
 def bd.era(h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
-  Mq{P.wr(h, (y + 1 : U32), P.st_eran()), bd.st(U32.is_eq(P.port(y), 0), st, y), KN.evl.add(U32.is_ne(P.port(y), 0), y, ws), free}
+  Mq{P.wr(h, (y + 1 : U32), P.era()), bd.st(U32.is_eq(P.port(y), 0), st, y), KN.evl.add(U32.is_ne(P.port(y), 0), y, ws), free}
+
+def bd.era.m(m: Mq, +y: U32) -> Mq:
+  match m:
+    case Mq{h, st, ws, +free}:
+      bd.era(h, st, ws, free, y)
 
 # one interaction more in the header's count (P.at_itrs): the erasure
 # done in place
@@ -698,13 +654,13 @@ def bd.itr(r: P.H & U32) -> P.H:
 def bd.cp.go(+ok: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
   match ok:
     case True{}:
-      Mq{bd.itr(P.rd(P.free(lin.drop(lin.drop(h, a), b), f), P.at_itrs())), st, ws, (free + 1 : U32)}
+      bd.era.m(bd.era(bd.itr(P.rd(P.free(h, f), P.at_itrs())), st, ws, (free + 1 : U32), a), b)
     case False{}:
       bd.era(h, st, ws, free, f)
 
 def bd.cp.hb(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32, +ha: U32) -> Mq:
   (h, +hb) = r
-  bd.cp.go(U32.is_eq(P.rk(ha), 3) && U32.is_ne(P.port(a), 0) && U32.is_eq(P.rk(hb), 4) && U32.is_ne(P.port(b), 0), h, st, ws, free, f, a, b)
+  bd.cp.go(Bool.not(P.is_static(a) || P.is_static(b)) && U32.is_eq(P.rk(ha), 3) && U32.is_ne(P.port(a), 0) && U32.is_eq(P.rk(hb), 4) && U32.is_ne(P.port(b), 0), h, st, ws, free, f, a, b)
 
 def bd.cp.ha(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
   (h, +ha) = r
@@ -720,47 +676,17 @@ def bd.cp.a(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32) -> 
   (h, +a) = r
   bd.cp.b(P.rd(h, (f + 3 : U32)), st, ws, free, f, a)
 
-def bd.how.p(+ok: Bool, +k: U32) -> U32:
-  match ok:
+def bd.y.go(+fp: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  match fp:
     case True{}:
-      k
-    case False{}:
-      0
-
-def bd.how.fn(+p: U32) -> U32:
-  match p:
-    case 0:
-      2
-    case 2:
-      3
-    case _:
-      0
-
-# by what y is, its node of kind k: 1 a copy's output, 2 a function's
-# principal, 3 a function's variable, else 0
-def bd.how(+k: U32, +y: U32) -> U32:
-  match k:
-    case 3:
-      bd.how.p(U32.is_ne(P.port(y), 0), 1)
-    case 1:
-      bd.how.fn(P.port(y))
-    case _:
-      0
-
-def bd.y.go(+how: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
-  match how:
-    case 1:
-      Mq{lin.drop(h, y), st, ws, free}
-    case 2:
       bd.cp.a(P.rd(h, (y + 2 : U32)), st, ws, free, y)
-    case 3:
-      Mq{fnd.make(h, y), st, ws, free}
-    case _:
+    case False{}:
       bd.era(h, st, ws, free, y)
 
+# y a function's principal, or else a dead port
 def bd.y(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
   (h, +hy) = r
-  bd.y.go(bd.how(P.rk(hy), y), h, st, ws, free, y)
+  bd.y.go(U32.is_eq(P.rk(hy), 1) && U32.is_eq(P.port(y), 0), h, st, ws, free, y)
 
 def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
   match bs:
@@ -867,11 +793,12 @@ def two.hy(r: P.H & U32, +hx: U32) -> P.H & Bool:
 
 def two.hx(r: P.H & U32, +x: U32, +y: U32) -> P.H & Bool:
   (h, +hx) = r
-  two.hy(P.rdy(h, x, y), hx)
+  two.hy(KN.rdy(h, x, y, hx), hx)
 
-# would the pair x - y grow the net? (either may be static: P.rdh, P.rdy)
+# would the pair x - y grow the net? (either may be static, each by its
+# effective kind: KN.rdx, KN.rdy)
 def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
-  two.hx(P.rdh(h, x), x, y)
+  two.hx(KN.rdx(h, x), x, y)
 
 # the pair x - y reduced, unless the fuel's interactions are made: then the
 # run ends with the pair left
@@ -1063,12 +990,12 @@ def pr.hy(r: P.H & U32, pf: Pf, +x: U32, +y: U32, +hx: U32) -> P.H & Pf:
 
 def pr.hx(r: P.H & U32, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
   (h, +hx) = r
-  pr.hy(P.rdy(h, x, y), pf, x, y, hx)
+  pr.hy(KN.rdy(h, x, y, hx), pf, x, y, hx)
 
-# the pair x - y, counted before it interacts, a static by its kind
-# (static-links-count-as-nodes)
+# the pair x - y, counted before it interacts, each by its effective
+# kind, a static by its eraser's (static-links-count-as-nodes)
 def probe(h: P.H, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
-  pr.hx(P.rdh(h, x), pf, x, y)
+  pr.hx(KN.rdx(h, x), pf, x, y)
 
 # the state after a profiled run, and the fuel it left
 type PRan is Type:
@@ -1513,22 +1440,14 @@ def wk.sx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, 
 def wk.sr(~after: P.H -> @+x:N.Ext -> P.H, +root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match root:
     case True{}:
-      wk.root.v(U32.is_eq(q, P.st_erap()), h, path, depth, n)
+      wk.root.v(U32.is_eq(q, P.era()), h, path, depth, n)
     case False{}:
       wk.sx(~after, P.rd(h, top), path, top, depth, n, q)
-
-# a static the last node faces, or nil, under a fault: stuck
-def wk.st(~after: P.H -> @+x:N.Ext -> P.H, +nil: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
-  match nil:
-    case True{}:
-      fw.scan(h, path, top, depth, n, 3)
-    case False{}:
-      wk.sr(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
 
 def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, st: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match st pr:
     case True{} _:
-      wk.st(~after, U32.is_eq(q, P.nil()), h, path, top, depth, n, q)
+      wk.sr(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} True{}:
       wk.pair(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:

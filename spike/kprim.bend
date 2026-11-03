@@ -392,46 +392,21 @@ def link(h: H, +x: U32, +y: U32) -> H:
 # reference whose port bits are 3, the value no port has, is static: no
 # node, a leaf standing in the one link word of the port it faces, which
 # nothing links back. Of NetData's layout (netdata-refs) the constants
-# alone: bits 7 to 0 all ones, a 24-bit code above, here an eraser's kind
-# code; nil, all ones, is the code that names none. A static's value says
-# nothing else: a reference compared with a node's tests first whether it
-# is static. A static stands for a node, as many copies of it as there
-# are links to it, and counts as one (static-links-count-as-nodes). Only
-# the erasers are static so far, made where the sweep keeps an output
-# whose consumer it frees and where a node erased by one leaves its peers.
-def st_eran() -> U32:
-  1791
-
-def st_erap() -> U32:
-  2047
-
-# the static of eraser kind k, its kind code in the constants' class
-def st_of(+k: U32) -> U32:
-  ((k << 8n : U32) .|. 255 : U32)
+# alone, and of those one: the eraser, nil's value, all ones (the
+# maintainer's aside, 2026-11-03). An eraser takes the polarity other than
+# its port's, so one value serves the consuming and the providing alike,
+# and all ones names no node, so that no static eraser passes for a port.
+# A static's value says nothing else: a reference compared with a node's
+# tests first whether it is static. A static stands for a node, as many
+# copies of it as there are links to it, and counts as one
+# (static-links-count-as-nodes). A static eraser at a port is that port's
+# deadness (`.dead-kinds.links.dead-ports`, knet.bend's dead ports).
+def era() -> U32:
+  nil()
 
 # a static reference, nil among them
 def is_static(+r: U32) -> Bool:
   U32.is_eq((r .&. 3 : U32), 3)
-
-# a static's header, as a node of its kind holds it: its kind alone; nil,
-# and anything else, kind 63, none
-def st_hd(+r: U32) -> U32:
-  match r:
-    case 1791:
-      6
-    case 2047:
-      7
-    case _:
-      63
-
-# the static a static eraser meets: two statics facing are leaves of
-# opposite polarities, and only erasers are static
-def st_other(+r: U32) -> U32:
-  match r:
-    case 1791:
-      2047
-    case _:
-      1791
 
 def site.go(+st: Bool, +e: U32, +f: U32) -> U32:
   match st:
@@ -603,28 +578,6 @@ def free_b.go(+st: Bool, h: H, +r: U32) -> H:
 def free_b(h: H, +r: U32) -> H:
   free_b.go(is_static(r), h, r)
 
-def rdh.go(+st: Bool, h: H, +r: U32) -> H & U32:
-  match st:
-    case True{}:
-      (h, st_hd(r))
-    case False{}:
-      rd(h, base(r))
-
-# the header behind reference r: a static's its own (st_hd)
-def rdh(h: H, +r: U32) -> H & U32:
-  rdh.go(is_static(r), h, r)
-
-def rdy.go(+sx: Bool, h: H, +x: U32, +y: U32) -> H & U32:
-  match sx:
-    case True{}:
-      (h, st_hd(st_other(x)))
-    case False{}:
-      rdh(h, y)
-
-# the header of the pair x - y's second node, y read off x's principal: a
-# static's; or, x static, a meeting of two statics (P.note), the other's
-def rdy(h: H, +x: U32, +y: U32) -> H & U32:
-  rdy.go(is_static(x), h, x, y)
 
 def gm.link(r: H & U32, +fh0: U32, +n: U32) -> H:
   (h, +wcap) = r

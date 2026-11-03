@@ -26892,6 +26892,81 @@ def Laws.linear_as_components(f, v, t):
               {==}
             case False{}:
               {==}
+def Laws.dead_ports(k, d1, d2):
+  match k:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      match d1:
+        case True{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KFnD{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      match d1:
+        case True{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KMerge{}:
+      match d1:
+        case True{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          match d2:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KOp{}:
+      {==}
+    case R.KLift{}:
+      {==}
+    case R.KLiftC{}:
+      {==}
+    case R.KCopyL{}:
+      {==}
+    case R.KCopyR{}:
+      {==}
+    case R.KMergeL{}:
+      {==}
+    case R.KMergeR{}:
+      {==}
+    case R.KDOp{}:
+      {==}
+
 def Laws.events_as_components(a, p, v, t):
   match a:
     case R.KFree{}:

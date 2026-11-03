@@ -15,12 +15,16 @@
 #
 # OUT holds the nets written and each mode's output. A random corpus finds
 # faults; shrink one into the library (spike/library.txt) before fixing it.
+# The three modes run at once, each under scripts/capped.sh: DCTERMS_CAP,
+# "MEGABYTES SECONDS" (1500 300), so that together they stay within the
+# machine's free memory.
 set -u
 [ $# -ge 2 ] || { echo "usage: $0 RUNMODE OUT [COUNT]" >&2; exit 2; }
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 RM=$1
 OUT=$2
 COUNT=${3:-100}
+CAP=${DCTERMS_CAP:-1500 300}
 status=0
 for tail in succ plus fma; do
   for mode in levels labels; do
@@ -33,7 +37,8 @@ for tail in succ plus fma; do
       mkdir -p "$D"
       python3 -I "$ROOT/spike/tools/terms.py" --kernel $flags gen "$D" "$COUNT" "$seed" >/dev/null
       for m in lazy dclazy dcs; do
-        "$ROOT/scripts/capped.sh" 4000 1200 "$RM" "$D/nets.txt" $m > "$D/$m.txt" 2>&1 &
+        # shellcheck disable=SC2086
+        "$ROOT/scripts/capped.sh" $CAP "$RM" "$D/nets.txt" $m > "$D/$m.txt" 2>&1 &
       done
       wait
       python3 -I - "$D" "$tail $mode $seed" <<'PY' || status=1
