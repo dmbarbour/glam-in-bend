@@ -227,7 +227,7 @@ def fuse_ext.go(skip: Bool, +e: U32, h: P.H) -> P.H:
       P.fuse(h, e)
 
 def fuse_ext(+e: U32, +a: U32, +b: U32, h: P.H) -> P.H:
-  fuse_ext.go(U32.is_eq(e, P.nil()) || Maybe.is_some(&2, Nat, N.partner(e, a, b)), e, h)
+  fuse_ext.go(P.is_static(e) || Maybe.is_some(&2, Nat, N.partner(e, a, b)), e, h)
 
 # fusion at each external peer outside the redex: where the redex's own
 # ports were joined through it, the links it made are not the rule's
@@ -254,8 +254,23 @@ def note_of.go(both: Bool, +u: U32) -> List<&2, U32>:
     case False{}:
       []
 
+def note_of.s(+su: Bool, +u: U32, +v: U32) -> List<&2, U32>:
+  match su:
+    case True{}:
+      note_of.go(Bool.not(P.is_static(v)), v)
+    case False{}:
+      [u]
+
+def note_of.p(both: Bool, +u: U32, +v: U32) -> List<&2, U32>:
+  match both:
+    case True{}:
+      note_of.s(P.is_static(u), u, v)
+    case False{}:
+      []
+
+# as P.note: the pair by u, or by v where u is static, none for two
 def note_of(+u: U32, +v: U32) -> List<&2, U32>:
-  note_of.go(U32.is_eq(P.port(u), 0) && U32.is_eq(P.port(v), 0), u)
+  note_of.p(P.pri(u) && P.pri(v), u, v)
 
 def notes_if(c: Bool, +u: U32, +v: U32) -> List<&2, U32>:
   match c:
@@ -416,8 +431,17 @@ def ws.add.go(none: Bool, +e: U32, ws: List<&2, U32>) -> List<&2, U32>:
     case False{}:
       Con{e, ws}
 
-def ws.add(+e: U32, ws: List<&2, U32>) -> List<&2, U32>:
-  ws.add.go(U32.is_eq(e, P.nil()), e, ws)
+def ws.add.s(+st: Bool, +e: U32, +f: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  match st:
+    case True{}:
+      ws.add.go(U32.is_eq(e, P.nil()), f, ws)
+    case False{}:
+      Con{e, ws}
+
+# end e to look at, or where it is static, no node, f, the end facing it;
+# nil none
+def ws.add(+e: U32, +f: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  ws.add.s(P.is_static(e), e, f, ws)
 
 def ev.x1.k(one: Bool, +w2: U32, +w3: U32) -> U32:
   match one:
@@ -547,9 +571,12 @@ def ev.run.fin(~S: Type, r: P.H & S, ws: List<&2, U32>, +k: U32) -> Ev<S>:
 # it, x0 the peer of a's principal and x1 of its other auxiliary port,
 # run and counted, its peers to look at; the family's state given room
 # first for the pair the event may note. B holds no payload (law
-# events_take_held, and the generator's inner_events), so none is read
+# events_take_held, and the generator's inner_events), so none is read;
+# B may be static, with no node (KR.event frees it by P.free_b). A peer
+# static is looked at from the end of a facing it: its principal, which
+# keeps its link, or port 1, where a linear fan keeps its other side
 def ev.run(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, ws.add(x1, ws)), P.rk(ha))
+  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, a, ws.add(x1, (a + 1 : U32), ws)), P.rk(ha))
 
 def ev.w3(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ev<S>:
   (h, +w3) = r
@@ -584,9 +611,22 @@ def ev.hy(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> 
   (h, +hy) = r
   ev.ori(~S, ~note, ~room, U32.is_eq(P.port(e), 0), h, st, ws, e, y, hx, hy)
 
+# e's peer y static, an eraser with no node: the event where e is an
+# auxiliary port it erases, B the static; none where e is a principal,
+# the two a pair
+def ev.st(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ev<S>:
+  ev.at(~S, ~note, ~room, U32.is_ne(P.port(e), 0) && ev.is(hx, e, P.st_hd(y)), h, st, ws, P.base(e), y, hx, P.st_hd(y), P.port(e))
+
+def ev.y.s(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, +sy: Bool, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ev<S>:
+  match sy:
+    case True{}:
+      ev.st(~S, ~note, ~room, h, st, ws, e, y, hx)
+    case False{}:
+      ev.hy(~S, ~note, ~room, P.rd(h, P.base(y)), st, ws, e, y, hx)
+
 def ev.y(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ev<S>:
   (h, +y) = r
-  ev.hy(~S, ~note, ~room, P.rd(h, P.base(y)), st, ws, e, y, hx)
+  ev.y.s(~S, ~note, ~room, P.is_static(y), h, st, ws, e, y, hx)
 
 def ev.c(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, c: Bool, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +hx: U32) -> Ev<S>:
   match c:
@@ -613,8 +653,10 @@ def ev.one.go(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32
         case Ev{h, st, ws}:
           ev.end(~S, ~note, ~room, h, st, ws, e)
 
+# none for nil, or a static, no node: the generated rewrites give the end
+# facing a static instead (P.site)
 def ev.one(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, w: Ev<S>, +e: U32) -> Ev<S>:
-  ev.one.go(~S, ~note, ~room, U32.is_eq(e, P.nil()), w, e)
+  ev.one.go(~S, ~note, ~room, P.is_static(e), w, e)
 
 # Families
 # --------
@@ -836,9 +878,97 @@ def int.x(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
   (h, +hx) = r
   int.y(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, y), st, fast, x, y, hx)
 
-# rewrite the active pair x >< y
+# Static erasure (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.read): node x meeting a static eraser at its principal
+# is erased with no node made, as its rule does it (law static_erasure):
+# x freed, its payload dropped, each auxiliary port's peer given a static
+# eraser, consuming where the port is an input and providing where an
+# output, its pair or event noted as a rule's are; a peer static or x's
+# own port given nothing. A pair the rule leaves stuck is left. Nothing
+# is materialized: a node made for the static would come off the free
+# list that a collection's eval counts from (kstrat.bend's mq.run).
+
+def se.in.go(+i: Bool) -> U32:
+  match i:
+    case True{}:
+      P.st_eran()
+    case False{}:
+      P.st_erap()
+
+# the static for port p of kind code k's peer: consuming where p is an
+# input (KR.kind_dir), providing where an output
+def se.st(+k: U32, +p: U32) -> U32:
+  se.in.go(U32.is_eq((KR.kind_dir(k) .&. 3 : U32), p) || U32.is_eq((KR.kind_dir(k) >> 2n : U32), p))
+
+def se.put.go(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.wr(h, (e + 1 : U32), s)
+
+# static s put at peer e of x, unless e is static or x's own
+def se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  se.put.go(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+def se.free(+data: Bool, h: P.H, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> P.H:
+  match data:
+    case True{}:
+      P.free(P.drop(h, P.form(hx), payload(hx, w2, w3)), x)
+    case False{}:
+      P.free(h, x)
+
+def se.do(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +k: U32, +e1: U32, +e2: U32) -> R:
+  after(fin(se.put(se.put(h, e1, se.st(k, 1), x), e2, se.st(k, 2), x), note(note(st, e1, se.st(k, 1)), e2, se.st(k, 2))),
+    N.Ext4{e1, e2, P.nil(), P.nil()})
+
+# the pair's KR.stuck_by: x as A where its principal is negative, the
+# static providing (EraP, 7); else as B, the static consuming (EraN, 6)
+def se.stuck(+neg: Bool, +k: U32) -> U32:
+  match neg:
+    case True{}:
+      KR.stuck_by(k, 7)
+    case False{}:
+      KR.stuck_by(6, k)
+
+def se.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ok: Bool, +stuck: Bool, h: P.H, st: S, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> R:
+  match ok stuck:
+    case True{} False{}:
+      se.do(~S, ~R, ~note, ~fin, ~after, se.free(KR.is_data(P.rk(hx)), h, x, hx, w2, w3), st, x, P.rk(hx),
+        aux_or_nil(U32.is_lt(1, arity(hx)), w2), aux_or_nil(U32.is_lt(2, arity(hx)), w3))
+    case True{} True{}:
+      fin(h, st)
+    case False{} _:
+      fin(P.h_err(h), st)
+
+def se.w3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32) -> R:
+  (h, +w3) = r
+  se.go(~S, ~R, ~note, ~fin, ~after, U32.is_eq(s, se.in.go(Bool.not(KR.kind_neg(P.rk(hx))))),
+    U32.is_ne(se.stuck(KR.kind_neg(P.rk(hx)), P.rk(hx)), 0), h, st, x, hx, w2, w3)
+
+def se.w2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32) -> R:
+  (h, +w2) = r
+  se.w3(~S, ~R, ~note, ~fin, ~after, P.rd(h, (x + 3 : U32)), st, x, s, hx, w2)
+
+def se.hx(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32) -> R:
+  (h, +hx) = r
+  se.w2(~S, ~R, ~note, ~fin, ~after, P.rd(h, (x + 2 : U32)), st, x, s, hx)
+
+# node x, its principal facing static s: erased, or left where stuck; a
+# static of the wrong polarity, nil among them, is a fault, counted
+def static_erase(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +s: U32) -> R:
+  se.hx(~S, ~R, ~note, ~fin, ~after, P.rd(h, x), st, x, s)
+
+def int.s(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +sy: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
+  match sy:
+    case True{}:
+      static_erase(~S, ~R, ~note, ~fin, ~after, h, st, x, y)
+    case False{}:
+      int.x(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, x), st, fast, x, y)
+
+# rewrite the active pair x >< y; y may be static, x never
 def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
-  int.x(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, x), st, fast, x, y)
+  int.s(~S, ~R, ~note, ~fin, ~wd, ~after, P.is_static(y), h, st, fast, x, y)
 
 # The families' chains: the net alone, and with a strategy's stack, on
 # which each rewrite notes the pairs it makes, in the order it makes them
@@ -982,9 +1112,17 @@ def value.h(r: P.H & U32, +pn: U32) -> P.H & Maybe<&2, V.Val>:
   (h, +hp) = r
   value.is(U32.is_eq(P.rk(hp), 5), h, hp, pn)
 
+def value.ps(+st: Bool, h: P.H, +peer: U32) -> P.H & Maybe<&2, V.Val>:
+  match st:
+    case True{}:
+      (h, None{})
+    case False{}:
+      value.h(P.rd(h, P.base(peer)), P.base(peer))
+
+# a static peer, an eraser, holds no value
 def value.peer(r: P.H & U32) -> P.H & Maybe<&2, V.Val>:
   (h, +peer) = r
-  value.h(P.rd(h, P.base(peer)), P.base(peer))
+  value.ps(P.is_static(peer), h, peer)
 
 def value.none(none: Bool, h: P.H, +root: U32) -> P.H & Maybe<&2, V.Val>:
   match none:
@@ -1191,11 +1329,18 @@ def wa.at(inside: Bool, h: P.H, +x: U32, +y: U32, +ok: Bool) -> Wa:
     case False{}:
       Wa{h, False{}}
 
+def wa.lk(+st: Bool, h: P.H, +x: U32, +y: U32, +cap: U32, +ok: Bool) -> Wa:
+  match st:
+    case True{}:
+      Wa{h, ok && (U32.is_eq(y, P.st_eran()) || U32.is_eq(y, P.st_erap()))}
+    case False{}:
+      wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
+
 # port x's link y: a port of a node past the header and within the
-# capacity, not x
+# capacity, not x; or a static eraser, which links nothing back
 def wa.link(r: P.H & U32, +x: U32, +cap: U32, +ok: Bool) -> Wa:
   (h, +y) = r
-  wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
+  wa.lk(P.is_static(y), h, x, y, cap, ok)
 
 # node i4 / 4's ports from p, k of them
 def wa.ports(k: Nat, +i4: U32, +p: U32, +cap: U32, s: Wa) -> Wa:
@@ -1267,7 +1412,7 @@ def rc.see.go(ok: Bool, h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32, +j: U32) -
 
 # the node behind reference p, marked and put on the worklist if new
 def rc.see(+p: U32, h: P.H, mk: KM.M, wl: KM.M, +n: U32, +c: U32) -> Rc:
-  rc.see.go(U32.is_ne(p, P.nil()), h, mk, wl, n, c, (p >> 2n : U32))
+  rc.see.go(Bool.not(P.is_static(p)), h, mk, wl, n, c, (p >> 2n : U32))
 
 def rc.port.r(r: P.H & U32, mk: KM.M, wl: KM.M, +n: U32, +c: U32) -> Rc:
   (h, +q) = r

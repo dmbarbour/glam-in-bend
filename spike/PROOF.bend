@@ -25368,6 +25368,48 @@ def Laws.beta_loops():
 def Laws.capacity_leaves_tags():
   {==}
 
+def Laws.statics_sink():
+  {==}
+
+def Laws.static_erasure(k):
+  match k:
+    case R.KFree{}:
+      {==}
+    case R.KFn{}:
+      {==}
+    case R.KFnD{}:
+      {==}
+    case R.KAp{}:
+      {==}
+    case R.KCopy{}:
+      {==}
+    case R.KMerge{}:
+      {==}
+    case R.KData{}:
+      {==}
+    case R.KEraN{}:
+      {==}
+    case R.KEraP{}:
+      {==}
+    case R.KRoot{}:
+      {==}
+    case R.KOp{}:
+      {==}
+    case R.KLift{}:
+      {==}
+    case R.KLiftC{}:
+      {==}
+    case R.KCopyL{}:
+      {==}
+    case R.KCopyR{}:
+      {==}
+    case R.KMergeL{}:
+      {==}
+    case R.KMergeR{}:
+      {==}
+    case R.KDOp{}:
+      {==}
+
 def Laws.identity_resolved(a, t):
   match a:
     case R.KFree{}:

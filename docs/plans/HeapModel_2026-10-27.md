@@ -370,7 +370,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.census` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`,
-   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`,
@@ -1460,7 +1460,11 @@ takes from it:
              (`terms.py`'s node kinds).
          - `heap-strategies.erasure.load.cycle.oom` — planned — a failed
            growth counted apart from the program's errors (`P.h_err`), in
-           the eager strategies too (`machine-limits-not-errors`).
+           the eager strategies too (`machine-limits-not-errors`). With
+           it, configured memory limits, if their cost is negligible (the
+           maintainer, 2026-11-03): a net may hold 2^28 nodes
+           (`net-capacity`), more than a machine may give, and an
+           allocation the machine refuses is a crash, not out of memory.
          - `heap-strategies.erasure.load.cycle.loops` — tentative — loops
            in constant space, as functional programs run them (the
            maintainer): the library's `loop-toggle` and `loop-junk`
@@ -1884,7 +1888,7 @@ takes from it:
                build, +0.3% to +0.5% profile-guided; plain demand -0.3% to
                +0.7%. Layout, not work: none of them makes the new kind.
              - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`
-               — planned — the maintainer (2026-11-02, unsure it is a
+               — active — the maintainer (2026-11-02, unsure it is a
                good one): static links standing for `EraP` and `EraN`
                instead of nodes, a port facing one being erased or void
                without a node there. Depends on how much the kinds
@@ -1904,23 +1908,82 @@ takes from it:
                (materialized), native rewrites after; data table entries
                a step of their own (`.static.table`).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read`
-                 — planned — every reader of a link made static-safe:
-                 demand's descent and its pairs, the rewrites (a static
-                 partner materialized), the events (an eraser's kind read
-                 from the reference, nothing freed), fusion, the
-                 collection's walk (a static never followed, its pairs and
-                 voids still noted) and sweep, the audits, the interface's
-                 value; statics made only by the sweep's boundary,
-                 erasers at the outputs it keeps, the remaining 1.5% among
-                 them. Measured: what the tests cost workloads that hold
-                 no static, and the boundary's allocations gone.
+                 — built 2026-11-03 — every reader of a link made
+                 static-safe, statics made by the sweep's boundary alone.
+                 Two departures from the plan, each for a reason found on
+                 the way. No static is materialized: a node made for one
+                 in a collection's eval comes off the free list its count
+                 runs down to (P.freed_since stops at the head the sweep
+                 left, which a materialization may take), so a node
+                 meeting a static eraser at its principal is erased
+                 natively (KN.static_erase): freed, its payload dropped,
+                 each auxiliary port's peer given a static eraser,
+                 consuming at an input's producer and providing at an
+                 output's consumer, no node made; law `static_erasure`
+                 proves that this is the table's rule for every kind, or
+                 the pair is stuck for both tests (the root's), and the
+                 kernel leaves it. And links test nothing: the erasers'
+                 codes have their low 22 bits all ones (2^31 - 1
+                 consuming, 3 * 2^30 - 1 providing), so a static plus one
+                 is 0 modulo every net's size (`net-capacity`), and a link
+                 written back to one lands on word 0, now the header's
+                 sink, which nothing reads (law `statics_sink`); the free
+                 list's head moved to word 27, the event counters down a
+                 word, kind 0 never acting in one. The readers: a pair's
+                 partner tested where an eager family interacts
+                 (KN.interact.f) and where demand's descent meets it
+                 (wk.c, in the test nil already had; an erasure there
+                 goes back down the path as a rewrite does); a static
+                 counted principal in a pair's note (P.pri), the
+                 generated notes putting a new node's end first and, of
+                 two external peers, the one not static (P.site); the
+                 events looking from the end facing a static (P.site in
+                 the generated sites, the worklist's ws.add), a static B
+                 read from its reference (P.st_hd) and never freed
+                 (P.free_b); fusion's and reachability's nil tests
+                 widened; the collection's walk reading a static as
+                 marked (lw.mw, branch-free) and noting the pair a node
+                 makes with one at its principal, but not a static void's
+                 event at an auxiliary input, which demand meets where it
+                 gets there, so that notes stay one a node within the
+                 walk's array; the sweep passing statics by; the audit
+                 accepting the two erasers; the interface's value none
+                 facing one; the two-stack and profiling strategies'
+                 header reads (P.rdh). Statics made: where the sweep gave
+                 a kept output an eraser, in valid nets only a function's
+                 principal reached by its variable alone away from the
+                 fans copying made (`.copied`'s 1.5%); the eval erases the
+                 function natively, and the erasure cascades through
+                 statics with no node made (an instrumented build, one
+                 random set: 1,169 static erasures under collecting
+                 demand in 5 terms, 1,268 under stress in 23). The
+                 library and 3,600 random terms pass, unchanged on plain,
+                 collecting and stress demand. Measured against main
+                 (gcbench runs 195 and 204): collecting 0.12% below plain
+                 demand against 0.06%; 30 cases better, 16 worse (at most
+                 0.51% of plain, the walk's longer mark index on large
+                 walks: pow-2-12, loop-toggle-1024), 58 alike; capacity
+                 unchanged, 497,024 nodes; 908 fewer interactions in the
+                 collections, an eraser meeting a static eraser vanishing
+                 with no interaction made. Workloads holding no static
+                 (count_builds runs 197 and 203, k 18): plain demand
+                 -0.4% to +0.5% in the default and profile-guided builds,
+                 -2.1% to +2.1% forced inline (layout); eager +0.6% to
+                 +3.4%, the partner's test at each pair and the selects in
+                 beta's notes. Before the sink and the ordered notes
+                 (runs 198, 202; ablations 199 to 201), tests in the links
+                 had cost eager 2 to 2.8 points and demand all of its
+                 0.4% to 1.6%, a note testing both ends 2 to 3 points.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`
                  — planned — the loader makes the templates' erasers and
                  voids static, so built nets hold no eraser node.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
-                 — planned — rewrites with a static partner generated:
-                 its payload from the reference, only A's slot freed or
-                 reused, each new leaf made static; an eraser static as A.
+                 — planned — rewrites making leaves make them static: an
+                 eraser a rule or an event makes facing an external peer
+                 a static there, no node. Erasure by a static partner is
+                 native already (`.links.read`); a static of another
+                 kind, data immediates (`.static`), would want its own
+                 rewrites, its payload from the reference.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`
                  — planned — what the kinds that capture an erased
                  auxiliary buy over a static eraser at that port (the
@@ -2804,6 +2867,11 @@ takes from it:
        that raised it, the rewrite written out by hand in `kstrat.bend`
        for the collecting demand, retired with `.reserve`; the next such
        case takes it up.
+       - `heap-strategies.generate.revisit` — tentative — the maintainer
+         (2026-11-03): revisit our approach to generators at some point.
+         Now one generator, `spike/tools/gen_krules.bend` (1,922 lines),
+         writes the kernel's rewrites, `spike/krules.bend` (3,394 lines),
+         and the gate and the pre-commit hook regenerate it to compare.
      - `heap-strategies.erasure.typed` — tentative — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node

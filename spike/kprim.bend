@@ -158,17 +158,18 @@ def dt_dup(t: DT, +i: U32) -> DT & U32:
 type H is Type:
   H{w: KM.M, a: Array<V.Val>}
 
-# The header, nodes 0 to 6, which the free list never holds: the free
-# list's head (a node's index plus one, 0 for none), errors, interactions
-# (counted by the run's fuel, set when it ends), how many nodes fit; the
-# data table's free head, its high-water mark, its capacity and the depth
-# of its array (DT); the collections run under demand and the capacity
-# they scanned, summed (heap-strategies.erasure.load.cycle); the reserve's
-# head, free nodes kept off the free list, and whether the allocator has
-# taken it (heap-strategies.erasure.load.cycle.reserve); then the events,
-# by the kind of the node each acts on (heap-strategies.erasure.kernel), a
-# word a kind
-def at_fh() -> U32:
+# The header, nodes 0 to 6, which the free list never holds: first the
+# sink, word 0, where a link written back to a static lands (Static links,
+# below), read by nothing; errors, interactions (counted by the run's
+# fuel, set when it ends), how many nodes fit; the data table's free head,
+# its high-water mark, its capacity and the depth of its array (DT); the
+# collections run under demand and the capacity they scanned, summed
+# (heap-strategies.erasure.load.cycle); the reserve's head, free nodes
+# kept off the free list, and whether the allocator has taken it
+# (heap-strategies.erasure.load.cycle.reserve); the events, by the kind of
+# the node each acts on (heap-strategies.erasure.kernel), a word a kind;
+# last the free list's head (a node's index plus one, 0 for none)
+def at_sink() -> U32:
   0
 
 def at_errs() -> U32:
@@ -204,10 +205,13 @@ def at_rsv() -> U32:
 def at_tap() -> U32:
   11
 
-# events at a node of kind code k, below 16: no kind past them makes one
-# (law events_fit_header)
+# events at a node of kind code k, 1 to 15: no kind past them makes one
+# (law events_fit_header), and none acts on a free node, kind 0
 def at_evk(+k: U32) -> U32:
-  (12 + k : U32)
+  (11 + k : U32)
+
+def at_fh() -> U32:
+  27
 
 # the first node after the header, the interface, and its reference
 def first() -> U32:
@@ -374,7 +378,7 @@ def evs.go(k: Nat, r: H & U32, +i: U32) -> H & U32:
 
 # the events counted, of every kind
 def evs(h: H) -> H & U32:
-  evs.go(16n, (h, 0), 0)
+  evs.go(15n, (h, 0), 1)
 
 def port(+r: U32) -> U32:
   (r .&. 3 : U32)
@@ -384,6 +388,70 @@ def port(+r: U32) -> U32:
 # record: a strategy that wants its pairs notes them (note, below)
 def link(h: H, +x: U32, +y: U32) -> H:
   wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x)
+
+# Static links
+# ============
+#
+# heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links: a
+# reference whose port bits are 3, the value no port has, is static: no
+# node, a leaf standing in the one link word of the port it faces, which
+# nothing links back. Of NetData's layout (netdata-refs) the constants
+# alone: bits 7 to 0 all ones, a 24-bit code above. The erasers' codes
+# have their low 22 bits all ones, so that a static plus one is 0 modulo
+# every net's size, 2^30 words at most (net-capacity): a link written
+# back to one lands on the header's sink, word 0, so links need no test
+# (law statics_sink). Of the four such values, all ones is nil, and the
+# lowest, 2^30 - 1, would share its base with the last node a net may
+# hold: the consuming eraser is 2^31 - 1, the providing 3 * 2^30 - 1, both
+# above every reference, so that no node's base is ever theirs. Only the
+# erasers are static so far, made where the sweep keeps an output whose
+# consumer it frees and where a node erased by one leaves its peers.
+def st_eran() -> U32:
+  2147483647
+
+def st_erap() -> U32:
+  3221225471
+
+# a static reference, nil among them
+def is_static(+r: U32) -> Bool:
+  U32.is_eq((r .&. 3 : U32), 3)
+
+def st_hd.go(+t: U32) -> U32:
+  match t:
+    case 1:
+      6
+    case 2:
+      7
+    case _:
+      63
+
+# a static's header, as a node of its kind holds it: its kind alone; nil,
+# and anything else, kind 63, none
+def st_hd(+r: U32) -> U32:
+  st_hd.go((r >> 30n : U32))
+
+def site.go(+st: Bool, +e: U32, +f: U32) -> U32:
+  match st:
+    case True{}:
+      f
+    case False{}:
+      e
+
+# the end the events look at for a rewrite's external peer e (knet.bend's
+# Events): e, or where it is static, no node, f, the end the rule linked
+# it to, which an event's B static faces just as well
+def site(+e: U32, +f: U32) -> U32:
+  site.go(is_static(e), e, f)
+
+# a principal port, or a static, whose one port is principal
+def pri(+r: U32) -> Bool:
+  U32.is_eq(((r + 1 : U32) .&. 2 : U32), 0)
+
+# the statics' write-backs land on the sink: their codes' low 22 bits all
+# ones, the net at most 2^30 words
+def sink_ok() -> Bool:
+  U32.is_eq(((st_eran() + 1 : U32) << 2n : U32), 0) && U32.is_eq(((st_erap() + 1 : U32) << 2n : U32), 0) &&
+    is_static(st_eran()) && is_static(st_erap()) && Nat.is_le(w_maxd(), 30n)
 
 # Nodes
 # =====
@@ -505,6 +573,28 @@ def free(h: H, +r: U32) -> H:
   match h:
     case H{w, a}:
       free.fh(KM.m_get(w, at_fh()), a, r)
+
+def free_b.go(+st: Bool, h: H, +r: U32) -> H:
+  match st:
+    case True{}:
+      h
+    case False{}:
+      free(h, r)
+
+# an event's B freed, unless static: nothing to free
+def free_b(h: H, +r: U32) -> H:
+  free_b.go(is_static(r), h, r)
+
+def rdh.go(+st: Bool, h: H, +r: U32) -> H & U32:
+  match st:
+    case True{}:
+      (h, st_hd(r))
+    case False{}:
+      rd(h, base(r))
+
+# the header behind reference r: a static's its own (st_hd)
+def rdh(h: H, +r: U32) -> H & U32:
+  rdh.go(is_static(r), h, r)
 
 def gm.link(r: H & U32, +fh0: U32, +n: U32) -> H:
   (h, +wcap) = r
@@ -1146,7 +1236,7 @@ def fa.y.go(none: Bool, h: H, +k: U32, +x: U32, +y: U32) -> H:
 
 def fa.y(r: H & U32, +k: U32, +x: U32) -> H:
   (h, +y) = r
-  fa.y.go(U32.is_eq(y, nil()), h, k, x, y)
+  fa.y.go(is_static(y), h, k, x, y)
 
 def fa.ctl(ctl: Bool, h: H, +k: U32, +x: U32) -> H:
   match ctl:
@@ -1169,11 +1259,12 @@ def fa.go0(none: Bool, h: H, +x: U32) -> H:
 # the link at port x: when it joins two controls of one kind, principal to
 # auxiliary in the order they fuse, and compose finds one control acting
 # as both, fuse them. A rewrite tries each link it made that may join two
-# controls (net.bend's fuse_ends). The link a fusion makes is not tried
+# controls (net.bend's fuse_ends); nil or a static, no node, is none. The
+# link a fusion makes is not tried
 # again: on 600 random terms that found one more fusion, saving two
 # interactions, at more cost than it saved.
 def fuse(h: H, +x: U32) -> H:
-  fa.go0(U32.is_eq(x, nil()), h, x)
+  fa.go0(is_static(x), h, x)
 
 
 # Peeling
@@ -1317,10 +1408,13 @@ def note.go(both: Bool, st: Stk, +x: U32) -> Stk:
 def push(st: Stk, +x: U32) -> Stk:
   note.go(True{}, st, x)
 
-# a link x - y a rewrite made: if both ports are principal, the pair
-# goes on the stack as x
+# a link x - y a rewrite made: if both ports are principal, the pair goes
+# on the stack as x; y may be static, whose one port is principal, x
+# never a static that makes a pair (a static's port is not 0): the
+# generated rewrites put a new node's end first, and of two external
+# peers the one not static (P.site)
 def note(st: Stk, +x: U32, +y: U32) -> Stk:
-  note.go(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), st, x)
+  note.go(U32.is_eq(port(x), 0) && pri(y), st, x)
 
 # the newest pair on the stack, if any
 type Pop is Type:

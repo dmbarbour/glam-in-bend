@@ -139,6 +139,8 @@ def end(+xs: List<&2, R.Spec>, e: R.End) -> String:
     case R.New{+j, +p}:
       new_end(j, p)
 
+# a link: an external peer may be static, whose write-back lands on the
+# net's sink (kprim.bend's Static links)
 def links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
   match ls:
     case Nil{}:
@@ -153,6 +155,25 @@ def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
     case False{}:
       acc
 
+# a note's ends: a new node's first, which is never static; of two
+# external peers, either of which may be static (P.note), the one that is
+# not (P.site), then the other
+def note_x(u: R.End, v: R.End) -> String:
+  match u v:
+    case R.Ext{i} R.New{j, p}:
+      new_end(j, p)
+    case R.Ext{i} R.Ext{k}:
+      "P.site(e" ++ Nat.show(i) ++ ", e" ++ Nat.show(k) ++ ")"
+    case R.New{j, p} _:
+      new_end(j, p)
+
+def note_y(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> String:
+  match u v:
+    case R.Ext{i} R.New{j, p}:
+      "e" ++ Nat.show(i)
+    case _ _:
+      end(xs, v)
+
 # the eager family's notes: each link that may join two principal ports
 # (R.may_pri, as R.pairs_made counts them), in the order links makes them
 def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
@@ -160,7 +181,7 @@ def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
     case Nil{}:
       acc
     case Con{R.Link{+u, +v}, t}:
-      notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, end(xs, u), end(xs, v)))
+      notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, note_x(u, v), note_y(xs, u, v)))
 
 # One family of rewrites (spike-templates), written once and generic over
 # what a strategy threads beside the net (knet.bend's Families): S, a
@@ -489,10 +510,20 @@ def site(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +i: Nat) -> Bool:
     case Con{R.Link{+u, +v}, t}:
       (is_ext(u, i) && site.end(xs, v, i)) || (is_ext(v, i) && site.end(xs, u, i)) || site(xs, t, i)
 
-def site.s(b: Bool, +i: Nat) -> String:
+# the end the rule links external peer i to
+def facing(+xs: List<&2, R.Spec>, m: Maybe<&2, R.End>) -> String:
+  match m:
+    case Some{e}:
+      end(xs, e)
+    case None{}:
+      "P.nil()"
+
+# a site: external peer i, or where it is static, no node to look at,
+# the end the rule linked it to (P.site)
+def site.s(b: Bool, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +i: Nat) -> String:
   match b:
     case True{}:
-      "e" ++ Nat.show(i)
+      "P.site(e" ++ Nat.show(i) ++ ", " ++ facing(xs, R.lf.peer(ls, R.Ext{i})) ++ ")"
     case False{}:
       "P.nil()"
 
@@ -500,8 +531,8 @@ def any_site(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>) -> Bool:
   site(xs, ls, 0n) || site(xs, ls, 1n) || site(xs, ls, 2n) || site(xs, ls, 3n)
 
 def sites(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>) -> String:
-  "N.Ext4{" ++ site.s(site(xs, ls, 0n), 0n) ++ ", " ++ site.s(site(xs, ls, 1n), 1n) ++ ", " ++
-    site.s(site(xs, ls, 2n), 2n) ++ ", " ++ site.s(site(xs, ls, 3n), 3n) ++ "}"
+  "N.Ext4{" ++ site.s(site(xs, ls, 0n), xs, ls, 0n) ++ ", " ++ site.s(site(xs, ls, 1n), xs, ls, 1n) ++ ", " ++
+    site.s(site(xs, ls, 2n), xs, ls, 2n) ++ ", " ++ site.s(site(xs, ls, 3n), xs, ls, 3n) ++ "}"
 
 # Fusing controls
 # ---------------
@@ -564,39 +595,49 @@ def drop_if(d: Bool, +st: String, +isa: Bool) -> String:
     case False{}:
       st
 
-def free.one(one: Bool) -> String:
-  match one:
-    case True{}:
+def free.one(+w: Bool, one: Bool) -> String:
+  match w one:
+    case True{} True{}:
       "P.free(h, b)"
-    case False{}:
+    case False{} True{}:
+      "P.free_b(h, b)"
+    case _ False{}:
       "h"
 
+def free.two(w: Bool) -> String:
+  match w:
+    case True{}:
+      "P.fresh2(h, a, b)"
+    case False{}:
+      "P.free(P.free_b(h, b), a)"
+
 # the redex's slots no new node takes, freed: both for a rule making
-# none, b's for one making one
-def free_of(+n: Nat) -> String:
+# none, b's for one making one. An event's B may be static, with no
+# node to free (P.free_b)
+def free_of(+w: Bool, +n: Nat) -> String:
   match n:
     case 0n:
-      "P.fresh2(h, a, b)"
+      free.two(w)
     case 1n+p:
-      free.one(Nat.is_eq(p, 0n))
+      free.one(w, Nat.is_eq(p, 0n))
 
 # the state after freeing the redex: a data payload no new node uses,
 # dropped
-def start(+xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
+def start(+w: Bool, +xs: List<&2, R.Spec>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   drop_if(is_data(b) && Nat.is_eq(uses(xs, False{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
     drop_if(is_data(a) && Nat.is_eq(uses(xs, True{}, List.length(&2, R.Spec, xs)), 0n) && Bool.not(has_apply(xs)),
-      free_of(List.length(&2, R.Spec, xs)), True{}), False{})
+      free_of(w, List.length(&2, R.Spec, xs)), True{}), False{})
 
 def entry(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match xs:
     case Nil{}:
       "def " ++ name ++ "(" ++ tparam(w) ++ "h: P.H, " ++ common() ++ ") -> " ++ ret(w) ++ ":\n" ++
-        "  " ++ finish(w, xs, ls, start(xs, a, b)) ++ "\n\n"
+        "  " ++ finish(w, xs, ls, start(w, xs, a, b)) ++ "\n\n"
     case Con{sp, t}:
       steps(w, List.length(&2, R.Spec, xs), name, List.length(&2, R.Spec, xs), xs, ls, a, b) ++
         pre_fn(w, name, 0n, sp, pre_of(sp, xs, 0n, a, b)) ++
         "def " ++ name ++ "(" ++ tparam(w) ++ "h: P.H, " ++ common() ++ ") -> " ++ ret(w) ++ ":\n" ++
-        "  " ++ make_call(w, name, start(xs, a, b), 0n, sp, pre_of(sp, xs, 0n, a, b)) ++ "\n\n"
+        "  " ++ make_call(w, name, start(w, xs, a, b), 0n, sp, pre_of(sp, xs, 0n, a, b)) ++ "\n\n"
 
 # a rule's functions, the first named `name`
 def rule_fns(+w: Bool, r: R.Rule, +name: String, +a: R.NodeKind, +b: R.NodeKind) -> String:
