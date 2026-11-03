@@ -334,14 +334,11 @@ def lw.sel(+c: Bool, +x: U32) -> U32:
     case False{}:
       0
 
-# the note for o1, b's first input, and l1, its link: b, where o1 is its
-# principal and l1 a principal or a static (a pair, b's principal
-# negative, an input, so that the other node never notes it, and a
-# static has none); the end facing a static void at an auxiliary o1, an
-# event; else none
-def lw.v1(+o1: U32, +l1: U32, +b: U32) -> U32:
-  (lw.sel(U32.is_eq((o1 .|. ((l1 + 1 : U32) .&. 2 : U32) : U32), 0), b) .|.
-    lw.sel(U32.is_ne(o1, 0) && lw.st(l1), ((b + o1 : U32) .|. 2147483648 : U32)) : U32)
+# b noted as a pair's node where o1 is its principal and l1 a principal
+# or a static (P.pri), both at once: b's principal is negative, an input,
+# so that the pair's other node never notes it, and a static has none
+def lw.pair(+o1: U32, +l1: U32) -> Bool:
+  U32.is_eq((o1 .|. ((l1 + 1 : U32) .&. 2 : U32) : U32), 0)
 
 # o1's link l1 followed if the node behind was unmarked, else the run ends
 def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
@@ -355,42 +352,39 @@ def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
         case Gq{g, +q}:
           lw.pop(KM.m_get(g, n), w, n, q)
 
-# o1's note and the pending one, e (lw.v1): where e is none and l1 is no
-# static at an auxiliary o1, which reads as marked, b noted as a pair's
-# node as ever, where o1 is its principal and l1 a principal or a static
+# b's pair noted, and the pending note, e, where there is one
 def lw.nq(+cold: Bool, g: KM.M, +q: U32, +b: U32, +o1: U32, +l1: U32, +e: U32) -> Gq:
   match cold:
     case True{}:
-      lw.np2(lw.v1(o1, l1, b), e, g, q)
+      lw.np2(lw.sel(lw.pair(o1, l1), b), e, g, q)
     case False{}:
-      lw.np(U32.is_eq((o1 .|. ((l1 + 1 : U32) .&. 2 : U32) : U32), 0), g, q, b)
+      lw.np(lw.pair(o1, l1), g, q, b)
 
 def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +o1: U32, +l1: U32, +e: U32) -> Lw:
   (g, +old) = r
-  lw.f1o(old, w, lw.nq(U32.is_ne(e, 0) || (U32.is_ne(old, 0) && U32.is_ne(o1, 0) && lw.st(l1)), g, q, b, o1, l1, e), n, l1)
+  lw.f1o(old, w, lw.nq(U32.is_ne(e, 0), g, q, b, o1, l1, e), n, l1)
 
 def lw.f1(s: Gw, +q: U32, +b: U32, +o1: U32, +l1: U32) -> Lw:
   match s:
     case Gw{w, g, +n, +e}:
       lw.f1m(lw.mk(g, l1), w, n, q, b, o1, l1, e)
 
-# o2's link pushed unless the node behind was marked; a static reads as
-# marked, and a static void there is an event of the end facing it,
-# pending
-def lw.push.o(+old: U32, w: KM.M, g: KM.M, +n: U32, +l2: U32, +e: U32) -> Gw:
+# o2's link pushed unless the node behind was marked (a static reads as
+# marked)
+def lw.push.o(+old: U32, w: KM.M, g: KM.M, +n: U32, +l2: U32) -> Gw:
   match old:
     case 0:
       Gw{w, KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32), 0}
     case _:
-      Gw{w, g, n, lw.sel(lw.st(l2), e)}
+      Gw{w, g, n, 0}
 
-def lw.push(r: KM.M & U32, w: KM.M, +n: U32, +l2: U32, +e: U32) -> Gw:
+def lw.push(r: KM.M & U32, w: KM.M, +n: U32, +l2: U32) -> Gw:
   (g, +old) = r
-  lw.push.o(old, w, g, n, l2, e)
+  lw.push.o(old, w, g, n, l2)
 
-def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32, +e: U32) -> Gw:
+def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32) -> Gw:
   (w, +l2) = r
-  lw.push(lw.mk(g, l2), w, n, l2, e)
+  lw.push(lw.mk(g, l2), w, n, l2)
 
 # a static eraser at the other output of a function or a copy, the one
 # the walk did not enter by: the boundary the sweep notes where it frees
@@ -398,23 +392,6 @@ def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32, +e: U32) -> Gw:
 def lw.p2o(r: KM.M & U32, g: KM.M, +n: U32, +e: U32) -> Gw:
   (w, +l) = r
   Gw{w, g, n, lw.sel(lw.st(l), e)}
-
-# The statics a node faces (`.dead-kinds.links.native`) noted as their
-# nodes would have been: at the principal, a pair; a static void at an
-# auxiliary input, an event, by the end facing it; a static eraser at a
-# second output, a boundary. A node has two inputs, or one and a second
-# output, so that its notes and the nodes it leads to are two at most,
-# and the notes and the stack, entries for distinct nodes, fit the array.
-def lw.p2(+o2: U32, +oth: U32, w: KM.M, g: KM.M, +n: U32, +b: U32) -> Gw:
-  match o2:
-    case 3:
-      match oth:
-        case 3:
-          Gw{w, g, n, 0}
-        case _:
-          lw.p2o(KM.m_get(w, ((b + 1 : U32) + oth : U32)), g, n, ((b + oth : U32) .|. 1073741824 : U32))
-    case _:
-      lw.p2r(KM.m_get(w, ((b + 1 : U32) + o2 : U32)), g, n, ((b + o2 : U32) .|. 2147483648 : U32))
 
 # the output of a node of kind code k other than port p, the one the walk
 # entered by: a function's principal or variable, a copy's other side; 3
@@ -427,6 +404,28 @@ def lw.oth(+k: U32, +p: U32) -> U32:
       (3 - p : U32)
     case _:
       3
+
+def lw.p2.o(+oth: U32, w: KM.M, g: KM.M, +n: U32, +b: U32) -> Gw:
+  match oth:
+    case 3:
+      Gw{w, g, n, 0}
+    case _:
+      lw.p2o(KM.m_get(w, ((b + 1 : U32) + oth : U32)), g, n, ((b + oth : U32) .|. 1073741824 : U32))
+
+# The statics a node faces (`.dead-kinds.links.native`), noted as their
+# nodes would have been where the collection needs them: at the principal,
+# a pair; a static eraser at the second output of a function or a copy, a
+# boundary. A node of one input has two outputs at most, so that its
+# notes and the nodes it leads to stay two at most, and the notes and the
+# stack, entries for distinct nodes, fit the array. A static void at an
+# auxiliary input is no event the walk notes: what its node's event would
+# do is left to demand, where it gets there.
+def lw.p2(+o2: U32, +k: U32, +p: U32, w: KM.M, g: KM.M, +n: U32, +b: U32) -> Gw:
+  match o2:
+    case 3:
+      lw.p2.o(lw.oth(k, p), w, g, n, b)
+    case _:
+      lw.p2r(KM.m_get(w, ((b + 1 : U32) + o2 : U32)), g, n)
 
 # a void noted where its principal faces an auxiliary port, the note
 # tagged by its top bit (its word written either way); the run ends
@@ -444,17 +443,17 @@ def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
 # by the node's inputs (KR.kind_dir), o1 and o2, 3 for none: a leaf
 # without (a free node is never reached), else the second pushed, if
 # any, and the first followed
-def lw.ar(+o1: U32, +o2: U32, +oth: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +hd: U32, +l1: U32) -> Lw:
+def lw.ar(+o1: U32, +o2: U32, +p: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +hd: U32, +l1: U32) -> Lw:
   match o1:
     case 3:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(o2, oth, w, g, n, b), q, b, o1, l1)
+      lw.f1(lw.p2(o2, P.rk(hd), p, w, g, n, b), q, b, o1, l1)
 
 def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> Lw:
   match d:
     case Nd{w, +hd, +l1}:
-      lw.ar((KR.kind_dir(P.rk(hd)) .&. 3 : U32), (KR.kind_dir(P.rk(hd)) >> 2n : U32), lw.oth(P.rk(hd), P.port(c)), w, g, n, q, b, hd, l1)
+      lw.ar((KR.kind_dir(P.rk(hd)) .&. 3 : U32), (KR.kind_dir(P.rk(hd)) >> 2n : U32), P.port(c), w, g, n, q, b, hd, l1)
 
 def lw.go(k: Nat, s: Lw) -> Lw:
   match k:
