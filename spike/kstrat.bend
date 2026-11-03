@@ -26,10 +26,10 @@ def scan.push(c: Bool, st: P.Stk, +i: U32) -> P.Stk:
       st
 
 # node i's principal faces q: a pair, recorded once, from its lower node;
-# a static, above every node, from i
+# a static, no node, from i
 def scan.peer(r: P.H & U32, st: P.Stk, +i: U32) -> P.E:
   (h, +q) = r
-  P.E{h, scan.push(P.pri(q) && U32.is_gt(q, i), st, i)}
+  P.E{h, scan.push(P.pri(q) && (P.is_static(q) || U32.is_gt(q, i)), st, i)}
 
 def scan.go(live: Bool, h: P.H, st: P.Stk, +i: U32) -> P.E:
   match live:
@@ -152,7 +152,7 @@ def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
 
 def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
   (h, +hx) = r
-  coll.hy(P.rdh(h, y), st, x, y, hx)
+  coll.hy(P.rdy(h, x, y), st, x, y, hx)
 
 def collect.fin(r: Ran) -> P.H:
   match r:
@@ -179,7 +179,7 @@ def run.q(n: Nat, q: P.PopQ) -> Ran:
         case P.PopQ{h, st, +x, +y, +ok, +hd}:
           match ok:
             case True{}:
-              run.q(p, P.popq(coll.hx(P.rd(h, x), st, x, y), KR.most_pairs(), hd))
+              run.q(p, P.popq(coll.hx(P.rdh(h, x), st, x, y), KR.most_pairs(), hd))
             case False{}:
               Ran{h, 1n+p}
 
@@ -577,10 +577,10 @@ def lin.side(+p: U32) -> U32:
     case _:
       0
 
-# the kept side, port 2, moved to port 1, its peer told
+# the kept side, port 2, moved to port 1, its peer told, unless static
 def lin.mv(r: P.H & U32, +b: U32) -> P.H:
   (h, +l2) = r
-  P.link(h, (b + 1 : U32), l2)
+  P.link_x(h, (b + 1 : U32), l2)
 
 def lin.port(+p: U32, h: P.H, +b: U32) -> P.H:
   match p:
@@ -797,13 +797,13 @@ def two.hy(r: P.H & U32, +hx: U32) -> P.H & Bool:
   (h, +hy) = r
   (h, two.ori(KR.kind_neg(P.rk(hx)), hx, hy))
 
-def two.hx(r: P.H & U32, +y: U32) -> P.H & Bool:
+def two.hx(r: P.H & U32, +x: U32, +y: U32) -> P.H & Bool:
   (h, +hx) = r
-  two.hy(P.rdh(h, y), hx)
+  two.hy(P.rdy(h, x, y), hx)
 
-# would the pair x - y grow the net?
+# would the pair x - y grow the net? (either may be static: P.rdh, P.rdy)
 def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
-  two.hx(P.rd(h, x), y)
+  two.hx(P.rdh(h, x), x, y)
 
 # the pair x - y reduced, unless the fuel's interactions are made: then the
 # run ends with the pair left
@@ -995,11 +995,12 @@ def pr.hy(r: P.H & U32, pf: Pf, +x: U32, +y: U32, +hx: U32) -> P.H & Pf:
 
 def pr.hx(r: P.H & U32, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
   (h, +hx) = r
-  pr.hy(P.rdh(h, y), pf, x, y, hx)
+  pr.hy(P.rdy(h, x, y), pf, x, y, hx)
 
-# the pair x - y, counted before it interacts
+# the pair x - y, counted before it interacts, a static by its kind
+# (static-links-count-as-nodes)
 def probe(h: P.H, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
-  pr.hx(P.rd(h, x), pf, x, y)
+  pr.hx(P.rdh(h, x), pf, x, y)
 
 # the state after a profiled run, and the fuel it left
 type PRan is Type:

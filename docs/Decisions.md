@@ -120,6 +120,9 @@ where the shared lazy state that Bend cannot hold goes.
   as values, each reduced by one worker at a time.
 - [`net-capacity`](decisions/net-capacity.md): a net holds at most 2^28
   nodes, so a reference stays below 2^30.
+- [`static-links-count-as-nodes`](decisions/static-links-count-as-nodes.md):
+  a static link counts as the node it stands for, in every count and
+  profile; its value means only what the layout gives it.
 - [`net-demand-whnf`](decisions/net-demand-whnf.md): a forced net reduces
   to weak head normal form at its root, only the pairs on the way; other
   strategies only where they terminate.

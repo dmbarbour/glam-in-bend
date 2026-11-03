@@ -762,15 +762,6 @@ law static_erasure:
   for +k: R.NodeKind
   {R.static_erasure(k) == True{} : Bool}
 
-# LAW: a link written back to a static eraser, which has no link word,
-# lands on the net's sink, word 0, which nothing reads: each static plus
-# one is 0 modulo every size a net's words may have, 2^30 at most, so
-# that the kernel links to a static as to a port, with no test
-# (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read).
-# Record: net-capacity
-law statics_sink:
-  {P.sink_ok() == True{} : Bool}
-
 # LAW: a net's words stop at 2^30, so a reference stays below 2^30: the
 # collection's walk tags references in its notes with bits 31 and 30, and
 # a net doubling to eight times its nodes in words stays within a U32.

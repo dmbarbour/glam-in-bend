@@ -146,17 +146,31 @@ def resolve(+x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, e: R.End) ->
     case R.New{+j, +p}:
       new_ref(N.nth(refs, j), p, R.spec_kind(xs, j))
 
+def partner.s(+st: Bool, +e: U32, +a: U32, +b: U32) -> Maybe<&2, Nat>:
+  match st:
+    case True{}:
+      None{}
+    case False{}:
+      N.partner(e, a, b)
+
+# e's index among the redex's ports (N.partner), none where e is static,
+# whose value names no node
+def partner(+e: U32, +a: U32, +b: U32) -> Maybe<&2, Nat>:
+  partner.s(P.is_static(e), e, a, b)
+
 def internal(+x: N.Ext, +a: U32, +b: U32, e: R.End) -> Bool:
   match e:
     case R.Ext{i}:
-      Maybe.is_some(&2, Nat, N.partner(N.ext_at(x, i), a, b))
+      Maybe.is_some(&2, Nat, partner(N.ext_at(x, i), a, b))
     case R.New{j, p}:
       False{}
 
+# a link the interpreter makes: either end may be an external peer, and
+# static (kprim.bend's Static links)
 def link_if(b: Bool, h: P.H, +u: U32, +v: U32) -> P.H:
   match b:
     case True{}:
-      P.link(h, u, v)
+      P.link_xx(h, u, v)
     case False{}:
       h
 
@@ -178,7 +192,7 @@ def pair_link(bad: Bool, +u: R.End, +v: R.End, +x: N.Ext, +refs: List<&2, U32>, 
     case True{}:
       h
     case False{}:
-      P.link(h, resolve(x, refs, xs, u), resolve(x, refs, xs, v))
+      P.link_xx(h, resolve(x, refs, xs, u), resolve(x, refs, xs, v))
 
 def pair_ends(oi: Maybe<&2, R.End>, oj: Maybe<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32, h: P.H) -> P.H:
   match oi oj:
@@ -208,7 +222,7 @@ def link_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2
     case 0n:
       h
     case 1n+p:
-      link_pairs(p, 1n+i, ls, x, refs, xs, a, b, pair_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b, h))
+      link_pairs(p, 1n+i, ls, x, refs, xs, a, b, pair_at(partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b, h))
 
 # fusion at each link the rule made that may join two controls, as the
 # generated rewrites try it
@@ -227,7 +241,7 @@ def fuse_ext.go(skip: Bool, +e: U32, h: P.H) -> P.H:
       P.fuse(h, e)
 
 def fuse_ext(+e: U32, +a: U32, +b: U32, h: P.H) -> P.H:
-  fuse_ext.go(P.is_static(e) || Maybe.is_some(&2, Nat, N.partner(e, a, b)), e, h)
+  fuse_ext.go(P.is_static(e) || Maybe.is_some(&2, Nat, partner(e, a, b)), e, h)
 
 # fusion at each external peer outside the redex: where the redex's own
 # ports were joined through it, the links it made are not the rule's
@@ -313,7 +327,7 @@ def notes_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&
     case 0n:
       []
     case 1n+p:
-      List.append(&2, U32, notes_at(N.partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b), notes_pairs(p, 1n+i, ls, x, refs, xs, a, b))
+      List.append(&2, U32, notes_at(partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b), notes_pairs(p, 1n+i, ls, x, refs, xs, a, b))
 
 # a rewrite by the table: the net, and the pairs its links made
 type Wd is Type:
@@ -376,6 +390,9 @@ def payload(+h: U32, +w2: U32, +w3: U32) -> U32:
   KR.payload.k(P.rk(h), w2, w3)
 
 # is e a port of the redex itself? (net.bend's partner, without the index)
+# A filter: a static whose value reads as one of the redex's nodes passes
+# for its port, which only sends the rewrite to the interpreter, whose own
+# test (partner) knows a static from a port
 def mine(+e: U32, +a: U32, +b: U32) -> Bool:
   U32.is_ne(e, P.nil()) && (U32.is_eq((e >> 2n : U32), (a >> 2n : U32)) || U32.is_eq((e >> 2n : U32), (b >> 2n : U32)))
 
@@ -918,8 +935,18 @@ def se.free(+data: Bool, h: P.H, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> P.H:
     case False{}:
       P.free(h, x)
 
+# x's auxiliary ports linked to each other: the two statics they get
+# meet, as two erasers the rule makes would (static-links-count-as-nodes)
+def se.notes(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +loop: Bool, st: S, +k: U32, +e1: U32, +e2: U32) -> S:
+  match loop:
+    case True{}:
+      note(st, se.st(k, 1), se.st(k, 2))
+    case False{}:
+      note(note(st, e1, se.st(k, 1)), e2, se.st(k, 2))
+
 def se.do(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +k: U32, +e1: U32, +e2: U32) -> R:
-  after(fin(se.put(se.put(h, e1, se.st(k, 1), x), e2, se.st(k, 2), x), note(note(st, e1, se.st(k, 1)), e2, se.st(k, 2))),
+  after(fin(se.put(se.put(h, e1, se.st(k, 1), x), e2, se.st(k, 2), x),
+      se.notes(~S, ~note, Bool.not(P.is_static(e1)) && U32.is_eq(P.base(e1), x), st, k, e1, e2)),
     N.Ext4{e1, e2, P.nil(), P.nil()})
 
 # the pair's KR.stuck_by: x as A where its principal is negative, the
@@ -954,21 +981,36 @@ def se.hx(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
   (h, +hx) = r
   se.w2(~S, ~R, ~note, ~fin, ~after, P.rd(h, (x + 2 : U32)), st, x, s, hx)
 
+# two statics meeting, noted as a pair by x (P.note): nothing to rewrite,
+# the pair counted where it is taken, as one of allocated erasers
+def static_meet(~S: Type, ~R: Type, ~fin: P.H -> S -> R, h: P.H, st: S) -> R:
+  fin(h, st)
+
 # node x, its principal facing static s: erased, or left where stuck; a
 # static of the wrong polarity, nil among them, is a fault, counted
 def static_erase(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +s: U32) -> R:
   se.hx(~S, ~R, ~note, ~fin, ~after, P.rd(h, x), st, x, s)
 
+def int.st(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +sx: Bool, h: P.H, st: S, +x: U32, +y: U32) -> R:
+  match sx:
+    case True{}:
+      static_meet(~S, ~R, ~fin, h, st)
+    case False{}:
+      static_erase(~S, ~R, ~note, ~fin, ~after, h, st, x, y)
+
 def int.s(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +sy: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
   match sy:
     case True{}:
-      static_erase(~S, ~R, ~note, ~fin, ~after, h, st, x, y)
+      int.st(~S, ~R, ~note, ~fin, ~after, P.is_static(x), h, st, x, y)
     case False{}:
       int.x(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, x), st, fast, x, y)
 
-# rewrite the active pair x >< y; y may be static, x never
+# rewrite the active pair x >< y: y may be static; x too, a meeting of two
+# statics noted (P.note), y then whatever x's word reads. Both ports of a
+# pair are principal, port bits 0 or a static's 3, so x | y has 3 there
+# just when either is static
 def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
-  int.s(~S, ~R, ~note, ~fin, ~wd, ~after, P.is_static(y), h, st, fast, x, y)
+  int.s(~S, ~R, ~note, ~fin, ~wd, ~after, U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
 
 # The families' chains: the net alone, and with a strategy's stack, on
 # which each rewrite notes the pairs it makes, in the order it makes them

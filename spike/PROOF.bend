@@ -25368,9 +25368,6 @@ def Laws.beta_loops():
 def Laws.capacity_leaves_tags():
   {==}
 
-def Laws.statics_sink():
-  {==}
-
 def Laws.static_erasure(k):
   match k:
     case R.KFree{}:
