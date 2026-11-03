@@ -1908,33 +1908,28 @@ takes from it:
                (materialized), native rewrites after; data table entries
                a step of their own (`.static.table`).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read`
-                 — built 2026-11-03 — every reader of a link made
-                 static-safe, statics made by the sweep's boundary alone.
-                 Two departures from the plan, each for a reason found on
-                 the way. No static is materialized: a node made for one
-                 in a collection's eval comes off the free list its count
-                 runs down to (P.freed_since stops at the head the sweep
-                 left, which a materialization may take), so a node
-                 meeting a static eraser at its principal is erased
+                 — built 2026-11-03, refined the same day — every reader
+                 of a link made static-safe, statics made by the sweep's
+                 boundary alone. One departure from the plan, for a reason
+                 found on the way: no static is materialized. A node made
+                 for one in a collection's eval comes off the free list
+                 its count runs down to (P.freed_since stops at the head
+                 the sweep left, which a materialization may take), so a
+                 node meeting a static eraser at its principal is erased
                  natively (KN.static_erase): freed, its payload dropped,
                  each auxiliary port's peer given a static eraser,
                  consuming at an input's producer and providing at an
                  output's consumer, no node made; law `static_erasure`
                  proves that this is the table's rule for every kind, or
                  the pair is stuck for both tests (the root's), and the
-                 kernel leaves it. And links test nothing: the erasers'
-                 codes have their low 22 bits all ones (2^31 - 1
-                 consuming, 3 * 2^30 - 1 providing), so a static plus one
-                 is 0 modulo every net's size (`net-capacity`), and a link
-                 written back to one lands on word 0, now the header's
-                 sink, which nothing reads (law `statics_sink`); the free
-                 list's head moved to word 27, the event counters down a
-                 word, kind 0 never acting in one. The readers: a pair's
-                 partner tested where an eager family interacts
-                 (KN.interact.f) and where demand's descent meets it
-                 (wk.c, in the test nil already had; an erasure there
-                 goes back down the path as a rewrite does); a static
-                 counted principal in a pair's note (P.pri), the
+                 kernel leaves it. The readers: a link from a rewrite to
+                 an external peer tests it before writing back (P.link_x,
+                 P.link_xx, in the generated rewrites, the interpreter,
+                 fusion and peeling); a pair's partner tested where an
+                 eager family interacts (KN.interact.f) and where demand's
+                 descent meets it (wk.c, in the test nil already had; an
+                 erasure there goes back down the path as a rewrite does);
+                 a static counted principal in a pair's note (P.pri), the
                  generated notes putting a new node's end first and, of
                  two external peers, the one not static (P.site); the
                  events looking from the end facing a static (P.site in
@@ -1942,15 +1937,32 @@ takes from it:
                  read from its reference (P.st_hd) and never freed
                  (P.free_b); fusion's and reachability's nil tests
                  widened; the collection's walk reading a static as
-                 marked (lw.mw, branch-free) and noting the pair a node
-                 makes with one at its principal, but not a static void's
-                 event at an auxiliary input, which demand meets where it
-                 gets there, so that notes stay one a node within the
-                 walk's array; the sweep passing statics by; the audit
-                 accepting the two erasers; the interface's value none
-                 facing one; the two-stack and profiling strategies'
-                 header reads (P.rdh). Statics made: where the sweep gave
-                 a kept output an eraser, in valid nets only a function's
+                 marked (lw.mw, by its port bits, as nil was) and noting
+                 the pair a node makes with one at its principal, but not
+                 a static void's event at an auxiliary input, which demand
+                 meets where it gets there, so that notes stay one a node
+                 within the walk's array; the sweep passing statics by;
+                 the audit accepting the two erasers; the interface's
+                 value none facing one; the interpreter's test for the
+                 redex's own ports (KN.partner) knowing a static from a
+                 port. The first form (merged at 9b9ea11) chose the
+                 erasers' values so that a write-back landed on a scratch
+                 word of the header, moving the free list's head, and let
+                 two statics meeting vanish uncounted. The maintainer
+                 (2026-11-03, `static-links-count-as-nodes`): numbering
+                 for a scratch word won't generalize to immediates and
+                 packed pointers and gives statics a location they lack;
+                 statics count as the nodes they stand for. Refined:
+                 plain codes (an eraser's kind code in the constants'
+                 class), the header as before, write-backs tested, two
+                 statics meeting noted as a pair where a strategy keeps
+                 pairs, a static standing for it on the stack (P.note,
+                 KN.static_meet), and in native erasure where a peer is a
+                 static or the node's two ports are joined; demand, which
+                 notes nothing, leaves them uncounted, as it leaves a pair
+                 of allocated erasers off its path, which a collection
+                 sweeps unreduced. Statics made: where the sweep gave a
+                 kept output an eraser, in valid nets only a function's
                  principal reached by its variable alone away from the
                  fans copying made (`.copied`'s 1.5%); the eval erases the
                  function natively, and the erasure cascades through
@@ -1959,21 +1971,19 @@ takes from it:
                  demand in 5 terms, 1,268 under stress in 23). The
                  library and 3,600 random terms pass, unchanged on plain,
                  collecting and stress demand. Measured against main
-                 (gcbench runs 195 and 204): collecting 0.12% below plain
-                 demand against 0.06%; 30 cases better, 16 worse (at most
+                 (gcbench runs 195 and 209): collecting 0.08% below plain
+                 demand against 0.06%; 27 cases better, 16 worse (at most
                  0.51% of plain, the walk's longer mark index on large
-                 walks: pow-2-12, loop-toggle-1024), 58 alike; capacity
-                 unchanged, 497,024 nodes; 908 fewer interactions in the
-                 collections, an eraser meeting a static eraser vanishing
-                 with no interaction made. Workloads holding no static
-                 (count_builds runs 197 and 203, k 18): plain demand
-                 -0.4% to +0.5% in the default and profile-guided builds,
-                 -2.1% to +2.1% forced inline (layout); eager +0.6% to
-                 +3.4%, the partner's test at each pair and the selects in
-                 beta's notes. Before the sink and the ordered notes
-                 (runs 198, 202; ablations 199 to 201), tests in the links
-                 had cost eager 2 to 2.8 points and demand all of its
-                 0.4% to 1.6%, a note testing both ends 2 to 3 points.
+                 walks: pow-2-12, loop-fix-64), 61 alike; capacity and
+                 every case's interactions in collections as on main.
+                 Workloads holding no static (count_builds runs 197 and
+                 208, k 18): plain demand +0.03% to +1.63%, +0.38% to
+                 +0.56% in the default build; eager +1.2% to +4.9%. Of
+                 that (ablations 199 to 201, the first form's runs 198,
+                 202 and 203): the write-back tests 0.75 points of plain
+                 demand and 1.3 to 2.1 of eager, the partner's test at
+                 each pair 1.2 to 1.9 of eager; the price of static links
+                 for every rewrite, whether or not a net holds any.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`
                  — planned — the loader makes the templates' erasers and
                  voids static, so built nets hold no eraser node.

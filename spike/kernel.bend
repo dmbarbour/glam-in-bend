@@ -151,7 +151,7 @@ def evk.go(k: Nat, r: P.H & String, +i: U32) -> P.H & String:
 # the events by the kind code of the node each acted on, ` k:n` for each
 # kind with any
 def ev_kinds(h: P.H) -> P.H & String:
-  evk.go(15n, (h, ""), 1)
+  evk.go(16n, (h, ""), 0)
 
 def prof_ev.s(r: P.H & String, pf: KS.Pf, +n: U32) -> String:
   (h, s) = r
