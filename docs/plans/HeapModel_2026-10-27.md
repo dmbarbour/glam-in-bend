@@ -373,6 +373,9 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.meet`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.dead-ports`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static.table`,
@@ -2017,22 +2020,150 @@ takes from it:
                  interactions involve one (445,275 of 8,804,291), two
                  erasers meeting 0.8% (`.links.native`).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.meet`
-                 — contingent on
-                 `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static`
-                 — the stats of two statics meeting where statics are not
-                 all erasers: a meeting's stack entry holds one static,
-                 and the other is taken for the eraser of the other
-                 polarity (P.st_other), true only while erasers alone are
-                 static. The maintainer's options (2026-11-03): encode the
-                 kind pair in the entry, or count the meeting's stats
-                 before the stack.
+                 — planned — the stats of two statics meeting: a meeting's
+                 stack entry holds one static, and the other is taken for
+                 the eraser of the other polarity (P.st_other), true only
+                 while erasers alone are static. The maintainer's options
+                 (2026-11-03): encode the kind pair in the entry, or count
+                 the meeting's stats before the stack; and profiles kept
+                 in the net's header, so that no count relies on feedback
+                 through a strategy's stack. Counters by kind pair in the
+                 header, counted where the meeting happens in any
+                 strategy, the stack's meeting entries gone; the header
+                 may grow by a node (the maintainer, 2026-11-03). Its 28
+                 words now: 12 of the net's own (the free list's head,
+                 errors, interactions, capacity; the data table's four;
+                 the collections' two; the reserve's two) and 16 event
+                 counters, one a kind code below 16.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.dead-ports`
+                 — planned — on a side branch (the maintainer,
+                 2026-11-03): a static eraser at a port is that port's
+                 deadness, read from a link word a rewrite reads anyway,
+                 so the dead kinds give way to dead ports. The function
+                 with its variable dead goes: beta links the argument's
+                 producer to the variable's peer, and a static there
+                 erases the argument through that link. The linear fans
+                 go: a fan's rewrite dispatches on the static bits of its
+                 auxiliary links, to the linear rewrite derived as now
+                 (the full rule with an eraser attached at the dead port,
+                 simplified) but in the full fan's layout. The dead
+                 operator becomes a static constant meanwhile
+                 (`heap-strategies.erasure.typed` would make it an
+                 eraser). Laws restated: a dead port behaves as its
+                 components. Changes laws on main and the library's
+                 counts: plain demand makes fewer interactions than with
+                 allocated erasers where a fan has a dead side, as the
+                 linear kinds did with events. In plain demand over the
+                 library, 614 fan interactions (0.02%, in 31 cases) meet
+                 a static eraser at a fan port: the gain here is
+                 simplicity more than speed. The maintainer's aside
+                 (2026-11-03): the consuming eraser, the providing one and
+                 nil as one value, an eraser's polarity being its port's;
+                 all ones names no node, so that no static passes for a
+                 redex's own port, and the walk already reads it as
+                 marked; what uses nil for a port a node lacks (the
+                 events' worklist) then wants a marker of its own, and the
+                 audit no longer tells an erased port from a lost link.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`
+                 — planned — the maintainer's design (2026-11-03):
+                 erasure events travel through auxiliary ports alone. A
+                 node whose last auxiliary is erased (a fan's two sides, a
+                 merge's two inputs, a control's other port, an operator's
+                 result) is erased at its principal, an eraser of its
+                 principal's polarity written to the principal's peer;
+                 landing on a principal is an interaction, not an event:
+                 eager notes the pair, lazy leaves it until demand reaches
+                 it. Each event makes one eraser at most, at the node's
+                 one principal, so a chain is linear and needs no stack;
+                 specialized by kind and entry port, peeking at most at
+                 the other auxiliary. Replaces the events' worklist and
+                 their kind changes.
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`
+                 — planned — the collection's walk back to `.links.read`'s
+                 once dead ports leave the sweep no kinds to convert. The
+                 sweep frees the dead part in bulk and erases only at the
+                 cut, a dead node's inputs facing live outputs (a static
+                 pointer among those inputs dropped with it): an eraser on
+                 the live side, an event at an auxiliary port, an
+                 interaction at a principal, run at the collection. Settled
+                 (the maintainer, 2026-11-03): a collection applies erasure
+                 interactions, since marking reaches a dead copy of a
+                 function through the merge of the copies' variables and
+                 cannot tell which branch of a merge is live. The case: a
+                 node marked through one output while another faces the
+                 dead part; at an auxiliary that is a dead port, the
+                 static saying so; at the principal, the node is dead in
+                 that context, and only an interaction frees it, its
+                 variable voided at the merge, sound by the calculus'
+                 sharing in a valid net. It needs a positive principal
+                 and a positive auxiliary: of our kinds the function alone
+                 (a dead, unmarked function needs nothing: a live
+                 consumer of its variable would have marked it). The rule
+                 general, by polarity, for a law to pin: the kinds with a
+                 positive principal and a positive auxiliary are the
+                 function, so that a kind added with two outputs, one its
+                 principal, fails the law and its erasure from the
+                 principal is reviewed. The sweep finds the case from the
+                 dead consumer's input; a static eraser that demand's own
+                 rewrite left on such a principal has no dead node facing
+                 it, so the walk reads the principal of such a node when
+                 it enters by its positive auxiliary (a table generated
+                 from the rules), noting the pair for the eval (left
+                 unreduced, dead copies kept their fans whole: five cases
+                 grew, mixin-chain-16 by 8.7%, gcbench run 212). At write
+                 time instead: a function's erasure, an interaction, makes
+                 two erasers; its variable's chain is linear and never
+                 reaches a positive principal, but its body's eraser may
+                 land on another function's principal (a curried body, a
+                 copied function), so a complete rule needs a worklist and
+                 a partial one leaves the case to the collection anyway.
+                 Not pursued: normal evaluation leaves an eraser that
+                 lands on a principal to demand (lazy) or notes it
+                 (eager).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
-                 — planned — rewrites making leaves make them static: an
-                 eraser a rule or an event makes facing an external peer
-                 a static there, no node. Erasure by a static partner is
-                 native already (`.links.read`); a static of another
-                 kind, data immediates (`.static`), would want its own
-                 rewrites, its payload from the reference.
+                 — active — built 2026-11-03 on branch `links-native`
+                 (eaec5cb), unmerged, the maintainer to decide: the rules
+                 that make erasers make them static. Every eraser a rule
+                 makes faces an external peer, or another of its erasers,
+                 and a rule making one makes nothing else (31 rules: 21
+                 making one, 10 two; law `erasers_native`, on the branch),
+                 so the generator emits such a rule with no node made,
+                 both slots freed, a static put in each facing peer's link
+                 word (P.put_st), two facing a meeting noted as a pair.
+                 Events keep their eraser in the node's own slot, since a
+                 pair the node is in keeps its place on a stack by that
+                 node. The collection needs statics where it found eraser
+                 nodes: a function's or a copy's second output facing a
+                 static eraser is the boundary the sweep noted when it
+                 freed an eraser's node there (a function reached by its
+                 variable alone, its principal facing one, kept its body
+                 alive otherwise: five cases grew, mixin-chain-16 by 8.7%,
+                 gcbench run 212), so the walk reads that output for
+                 nodes of one input (gcbench run 221 against 210):
+                 capacity as with allocated erasers, none grown, one
+                 shrunk; the collections' interactions 15,634 against
+                 15,668; collecting 0.03% over plain demand against 0.12%
+                 below, 68 cases worse, 4 better. Noting static voids at
+                 auxiliary inputs as events too cost as much and restored
+                 nothing (runs 213 to 218; 214 holds no rows); forced
+                 inline, the same cost (runs 219, 220). Plain demand over
+                 the library: +0.05% (+0.42% forced inline), the
+                 interactions alike, 2% to 4% faster on the cases heavy
+                 in erasure (search-pairs, mixin-chain-4, list-bind-16), up
+                 to 0.2% slower on five. So far, erasers as statics do not
+                 pay here: they save little allocation, and the
+                 collection pays to find them. Building it found three
+                 faults on main's interpreted path, fixed there: its notes
+                 dropped two statics meeting; its fans and lifts lost their
+                 form (`pay`: a fan made by the table, in a net without
+                 levels, then failed to pair with one made at load by the
+                 same site, which the generated rewrites never did); and
+                 the identity's test and the choice of where fusion is
+                 tried read a static whose value names a node's index (an
+                 eraser's kind code, nodes 447 and 511) as one of the
+                 redex's own ports (KN.own). A static of another kind,
+                 data immediates (`.static`), would want rewrites of its
+                 own, its payload from the reference.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`
                  — planned — what the kinds that capture an erased
                  auxiliary buy over a static eraser at that port (the
@@ -2921,14 +3052,20 @@ takes from it:
          Now one generator, `spike/tools/gen_krules.bend` (1,922 lines),
          writes the kernel's rewrites, `spike/krules.bend` (3,394 lines),
          and the gate and the pre-commit hook regenerate it to compare.
-     - `heap-strategies.erasure.typed` — tentative — erasure assuming type
+     - `heap-strategies.erasure.typed` — planned — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
        whose stuckness only a type error could show may be erased as
        though the program were typed. Valid reasoning, but it gives up
        diagnostics (a type error erased rather than reported) and
-       weakens the laws on stuckness; a strategy for later, not
-       particular to operators.
+       weakens the laws on stuckness. The maintainer (2026-11-03) favors
+       it for dead operators, valid for any type-safe net, which further
+       simplifies static erasure (`.dead-kinds.links.dead-ports`); a
+       transition of its own, since it makes optimizations assume type
+       safety and so touches laws. It changes eager interaction counts,
+       as a collection at arbitrary points does, unless erasers carry a
+       weight; not worth it, the maintainer (2026-11-03): the profile
+       keeps dead operators' events, for the analysis of discrepancies.
      - `heap-strategies.erasure.merge` — built 2026-10-31 (the
        maintainer's approval, 2026-10-31) — branch `erasure-kernel` onto main: the events in their
        own strategies, costing nothing where they are off. It changes no
