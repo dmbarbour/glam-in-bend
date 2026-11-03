@@ -74,6 +74,12 @@ cycle may also form by rewriting,
 the interpreted table and the generated rewrites making the same
 interactions and the profile too; a term's value its evaluator's
 (terms.py).
+
+The build and the run go under scripts/capped.sh, each capped near its
+cost so that a run going astray fails in minutes: the build peaks at
+3.5 GB in 76 s, the run at a few dozen MB in under a minute (2026-11-03).
+LIBRARY_BUILD_CAP and LIBRARY_RUN_CAP override them, "MEGABYTES SECONDS".
+Run one library at a time: two builds at once need 7 GB.
 """
 import os
 import re
@@ -89,6 +95,13 @@ ROOT = os.path.dirname(SPIKE)
 LIBRARY = os.path.join(SPIKE, "library.txt")
 MODES = ("levels", "labels", "unfused")
 FUEL = 1280000
+BUILD_CAP = "5000 240"
+RUN_CAP = "1000 120"
+
+
+def cap(var, default):
+    """A cap for scripts/capped.sh, MEGABYTES SECONDS, from the environment."""
+    return os.environ.get(var, default).split()
 
 NODE = re.compile(r"([a-z]+)(?:\(([^)]*)\))?$")
 END = re.compile(r"(\d+)\.(\d+)$")
@@ -469,9 +482,13 @@ def main(argv):
     path = program(cs, out)
     exe = os.path.join(out, "library")
     bend = os.environ.get("BEND", "bend")
-    subprocess.run([bend, os.path.basename(path), "-o", "library"], cwd=out, check=True, stdout=subprocess.DEVNULL)
-    res = subprocess.run([os.path.join(ROOT, "scripts", "capped.sh"), "4000", "900", exe],
-                         capture_output=True, text=True)
+    capped = os.path.join(ROOT, "scripts", "capped.sh")
+    subprocess.run([capped] + cap("LIBRARY_BUILD_CAP", BUILD_CAP) + [bend, os.path.basename(path), "-o", "library"],
+                   cwd=out, check=True, stdout=subprocess.DEVNULL)
+    res = subprocess.run([capped] + cap("LIBRARY_RUN_CAP", RUN_CAP) + [exe], capture_output=True, text=True)
+    if res.returncode == 137:
+        failing += 1
+        print("FAIL the run: " + (res.stderr.strip().splitlines() or ["killed"])[-1])
     with open(os.path.join(out, "out.txt"), "w") as f:
         f.write(res.stdout)
     got = {}
