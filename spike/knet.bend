@@ -153,12 +153,10 @@ def internal(+x: N.Ext, +a: U32, +b: U32, e: R.End) -> Bool:
     case R.New{j, p}:
       False{}
 
-# a link the interpreter makes: either end may be an external peer, and
-# static (kprim.bend's Static links)
 def link_if(b: Bool, h: P.H, +u: U32, +v: U32) -> P.H:
   match b:
     case True{}:
-      P.link_xx(h, u, v)
+      P.link(h, u, v)
     case False{}:
       h
 
@@ -180,7 +178,7 @@ def pair_link(bad: Bool, +u: R.End, +v: R.End, +x: N.Ext, +refs: List<&2, U32>, 
     case True{}:
       h
     case False{}:
-      P.link_xx(h, resolve(x, refs, xs, u), resolve(x, refs, xs, v))
+      P.link(h, resolve(x, refs, xs, u), resolve(x, refs, xs, v))
 
 def pair_ends(oi: Maybe<&2, R.End>, oj: Maybe<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32, h: P.H) -> P.H:
   match oi oj:

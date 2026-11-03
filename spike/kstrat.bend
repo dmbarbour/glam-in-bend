@@ -577,10 +577,10 @@ def lin.side(+p: U32) -> U32:
     case _:
       0
 
-# the kept side, port 2, moved to port 1, its peer told, unless static
+# the kept side, port 2, moved to port 1, its peer told
 def lin.mv(r: P.H & U32, +b: U32) -> P.H:
   (h, +l2) = r
-  P.link_x(h, (b + 1 : U32), l2)
+  P.link(h, (b + 1 : U32), l2)
 
 def lin.port(+p: U32, h: P.H, +b: U32) -> P.H:
   match p:

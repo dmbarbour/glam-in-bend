@@ -139,27 +139,14 @@ def end(+xs: List<&2, R.Spec>, e: R.End) -> String:
     case R.New{+j, +p}:
       new_end(j, p)
 
-# a link, by its ends: between two new nodes' ports P.link; from a new
-# node's port to an external peer, which may be static (kprim.bend's
-# Static links), P.link_x, the new port first; between two external
-# peers P.link_xx
-def link_call(+xs: List<&2, R.Spec>, u: R.End, v: R.End, +acc: String) -> String:
-  match u v:
-    case R.New{j, p} R.New{k, q}:
-      "P.link(" ++ acc ++ ", " ++ new_end(j, p) ++ ", " ++ new_end(k, q) ++ ")"
-    case R.New{j, p} R.Ext{i}:
-      "P.link_x(" ++ acc ++ ", " ++ new_end(j, p) ++ ", e" ++ Nat.show(i) ++ ")"
-    case R.Ext{i} R.New{j, p}:
-      "P.link_x(" ++ acc ++ ", " ++ new_end(j, p) ++ ", e" ++ Nat.show(i) ++ ")"
-    case R.Ext{i} R.Ext{k}:
-      "P.link_xx(" ++ acc ++ ", e" ++ Nat.show(i) ++ ", e" ++ Nat.show(k) ++ ")"
-
+# a link: an external peer may be static, whose write-back lands on the
+# net's sink (kprim.bend's Static links)
 def links(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
   match ls:
     case Nil{}:
       acc
     case Con{R.Link{u, v}, t}:
-      links(xs, t, link_call(xs, u, v, acc))
+      links(xs, t, "P.link(" ++ acc ++ ", " ++ end(xs, u) ++ ", " ++ end(xs, v) ++ ")")
 
 def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
   match c:
@@ -168,6 +155,25 @@ def note_if(c: Bool, +acc: String, +u: String, +v: String) -> String:
     case False{}:
       acc
 
+# a note's ends: a new node's first, which is never static; of two
+# external peers, either of which may be static (P.note), the one that is
+# not (P.site), then the other
+def note_x(u: R.End, v: R.End) -> String:
+  match u v:
+    case R.Ext{i} R.New{j, p}:
+      new_end(j, p)
+    case R.Ext{i} R.Ext{k}:
+      "P.site(e" ++ Nat.show(i) ++ ", e" ++ Nat.show(k) ++ ")"
+    case R.New{j, p} _:
+      new_end(j, p)
+
+def note_y(+xs: List<&2, R.Spec>, u: R.End, v: R.End) -> String:
+  match u v:
+    case R.Ext{i} R.New{j, p}:
+      "e" ++ Nat.show(i)
+    case _ _:
+      end(xs, v)
+
 # the eager family's notes: each link that may join two principal ports
 # (R.may_pri, as R.pairs_made counts them), in the order links makes them
 def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
@@ -175,7 +181,7 @@ def notes(+xs: List<&2, R.Spec>, ls: List<&2, R.Link>, +acc: String) -> String:
     case Nil{}:
       acc
     case Con{R.Link{+u, +v}, t}:
-      notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, end(xs, u), end(xs, v)))
+      notes(xs, t, note_if(R.may_pri(u) && R.may_pri(v), acc, note_x(u, v), note_y(xs, u, v)))
 
 # One family of rewrites (spike-templates), written once and generic over
 # what a strategy threads beside the net (knet.bend's Families): S, a
