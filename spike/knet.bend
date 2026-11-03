@@ -329,16 +329,64 @@ def notes_pairs(n: Nat, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&
     case 1n+p:
       List.append(&2, U32, notes_at(partner(N.ext_at(x, i), a, b), i, ls, x, refs, xs, a, b), notes_pairs(p, 1n+i, ls, x, refs, xs, a, b))
 
-# a rewrite by the table: the net, and the pairs its links made
+# The ends to look at for events after a rewrite by the table: each
+# external peer, or where it is static, no node to look at, the end the
+# rewrite linked it to, as the generated rewrites give it (P.site); an
+# end the rule links to one of the redex's own ports stands for what the
+# rule links to the external that port faced (link_pairs)
+def st.end(m: Maybe<&2, R.End>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>) -> U32:
+  match m:
+    case Some{u}:
+      resolve(x, refs, xs, u)
+    case None{}:
+      P.nil()
+
+def st.join(pt: Maybe<&2, Nat>, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +k: Nat) -> U32:
+  match pt:
+    case Some{+j}:
+      st.end(R.lf.peer(ls, R.Ext{j}), x, refs, xs)
+    case None{}:
+      N.ext_at(x, k)
+
+def st.peer(m: Maybe<&2, R.End>, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> U32:
+  match m:
+    case Some{u}:
+      match u:
+        case R.Ext{+k}:
+          st.join(partner(N.ext_at(x, k), a, b), ls, x, refs, xs, k)
+        case R.New{+j, +p}:
+          new_ref(N.nth(refs, j), p, R.spec_kind(xs, j))
+    case None{}:
+      P.nil()
+
+def st.site(+st: Bool, +e: U32, +i: Nat, +ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> U32:
+  match st:
+    case True{}:
+      st.peer(R.lf.peer(ls, R.Ext{i}), ls, x, refs, xs, a, b)
+    case False{}:
+      e
+
+def st.s(+e: U32) -> Bool:
+  P.is_static(e) && U32.is_ne(e, P.nil())
+
+def wd.sites(+ls: List<&2, R.Link>, +x: N.Ext, +refs: List<&2, U32>, +xs: List<&2, R.Spec>, +a: U32, +b: U32) -> N.Ext:
+  match x:
+    case N.Ext4{+e0, +e1, +e2, +e3}:
+      N.Ext4{st.site(st.s(e0), e0, 0n, ls, x, refs, xs, a, b), st.site(st.s(e1), e1, 1n, ls, x, refs, xs, a, b),
+        st.site(st.s(e2), e2, 2n, ls, x, refs, xs, a, b), st.site(st.s(e3), e3, 3n, ls, x, refs, xs, a, b)}
+
+# a rewrite by the table: the net, the pairs its links made, and the ends
+# to look at for events (wd.sites)
 type Wd is Type:
-  Wd{h: P.H, ns: List<&2, U32>}
+  Wd{h: P.H, ns: List<&2, U32>, sx: N.Ext}
 
 def wire.made(m: Mk, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext, +a: U32, +b: U32) -> Wd:
   match m:
     case Mk{h, +refs, +ua, +ub}:
       Wd{fuse_made(N.any_partner(x, a, b), xs, ls, x, refs, a, b,
           link_pairs(4n, 0n, ls, x, refs, xs, a, b, link_plain(ls, x, refs, xs, a, b, h))),
-        List.append(&2, U32, notes_plain(ls, x, refs, xs, a, b), notes_pairs(4n, 0n, ls, x, refs, xs, a, b))}
+        List.append(&2, U32, notes_plain(ls, x, refs, xs, a, b), notes_pairs(4n, 0n, ls, x, refs, xs, a, b)),
+        wd.sites(ls, x, refs, xs, a, b)}
 
 # replace the redex a >< b by the rule's nodes and links
 def wire(h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +x: N.Ext) -> Wd:
@@ -349,11 +397,11 @@ def apply_rule(r: R.Rule, h: P.H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32
     case R.RWire{xs, ls}:
       wire(h, a, b, ha, hb, pa, pb, xs, ls, x)
     case R.RStuck{}:
-      Wd{P.err_if(U32.is_ne(P.rk(ha), 8), h), []}
+      Wd{P.err_if(U32.is_ne(P.rk(ha), 8), h), [], x}
 
 def wd.h(w: Wd) -> P.H:
   match w:
-    case Wd{h, ns}:
+    case Wd{h, ns, +sx}:
       h
 
 def push_all(ns: List<&2, U32>, st: P.Stk) -> P.Stk:
@@ -365,7 +413,7 @@ def push_all(ns: List<&2, U32>, st: P.Stk) -> P.Stk:
 
 def wd.e(w: Wd, st: P.Stk) -> P.E:
   match w:
-    case Wd{h, ns}:
+    case Wd{h, ns, +sx}:
       P.E{h, push_all(ns, st)}
 
 # Interaction
@@ -785,10 +833,16 @@ def go.gen(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H ->
     case N.Ext4{+e0, +e1, +e2, +e3}:
       KR.rewrite(~S, ~R, ~note, ~fin, ~after, P.rk(ha), rn, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
+# a rewrite by the table, then `after` at its sites (wd.sites)
+def go.wd(~S: Type, ~R: Type, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, w: Wd, st: S) -> R:
+  match w:
+    case Wd{h, ns, +sx}:
+      after(wd(Wd{h, ns, sx}, st), sx)
+
 def go.interp.pl(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.Pl, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> R:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      after(wd(apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st), N.Ext4{e0, e1, e2, e3})
+      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
 
 # the interpreted table, then `after` at all its external peers; a Lift
 # facing a LiftC is peeled first, as the generated rewrite for the pair
@@ -800,7 +854,7 @@ def go.interp(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H
         case N.Ext4{+e0, +e1, +e2, +e3}:
           go.interp.pl(~S, ~R, ~note, ~fin, ~wd, ~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
     case False{}:
-      after(wd(apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st), x)
+      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
 
 # A meeting the identity, its loop resolved ahead (KR.rewrite_id): the
 # peers of the function's ports are each other, not looked at after
@@ -816,7 +870,7 @@ def go.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
 def go.interp.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      after(wd(apply_rule(R.rule_id(kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st), N.Ext4{e0, e1, P.nil(), P.nil()})
+      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule_id(kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st)
 
 # a redex the generated rewrites do not take, its external peers including
 # its own ports or `fast` off: A meeting the identity by its rule with the
@@ -935,14 +989,23 @@ def se.free(+data: Bool, h: P.H, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> P.H:
     case False{}:
       P.free(h, x)
 
-# x's auxiliary ports linked to each other: the two statics they get
-# meet, as two erasers the rule makes would (static-links-count-as-nodes)
+def se.note(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +none: Bool, st: S, +e: U32, +s: U32) -> S:
+  match none:
+    case True{}:
+      st
+    case False{}:
+      note(st, e, s)
+
+# the pairs the statics put on x's peers make, none for a port x lacks
+# (nil); x's auxiliary ports linked to each other, the two statics they
+# get meet, as two erasers the rule makes would
+# (static-links-count-as-nodes)
 def se.notes(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +loop: Bool, st: S, +k: U32, +e1: U32, +e2: U32) -> S:
   match loop:
     case True{}:
       note(st, se.st(k, 1), se.st(k, 2))
     case False{}:
-      note(note(st, e1, se.st(k, 1)), e2, se.st(k, 2))
+      se.note(~S, ~note, U32.is_eq(e2, P.nil()), se.note(~S, ~note, U32.is_eq(e1, P.nil()), st, e1, se.st(k, 1)), e2, se.st(k, 2))
 
 def se.do(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +k: U32, +e1: U32, +e2: U32) -> R:
   after(fin(se.put(se.put(h, e1, se.st(k, 1), x), e2, se.st(k, 2), x),
@@ -1123,13 +1186,52 @@ def load.root(r: P.H & U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, 
   (h, +root) = r
   P.link(load.links(links, load.nodes(nodes, h)), root, x)
 
+# Statics at load (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.load): each eraser the template holds becomes static in
+# the link word of the port it faces, its node freed, unless that port is
+# an eraser's too: a pair of two erasers stays two nodes, a pair any
+# strategy finds and counts as it finds any (static-links-count-as-nodes)
+def ld.put(+go: Bool, h: P.H, +i4: U32, +q: U32, +k: U32) -> P.H:
+  match go:
+    case True{}:
+      P.free(P.wr(h, (q + 1 : U32), P.st_of(k)), i4)
+    case False{}:
+      h
+
+def ld.hq(r: P.H & U32, +i4: U32, +q: U32, +k: U32) -> P.H:
+  (h, +hq) = r
+  ld.put(U32.is_ne((P.rk(hq) .|. 1 : U32), 7) && Bool.not(P.is_static(q)), h, i4, q, k)
+
+def ld.q(r: P.H & U32, +i4: U32, +k: U32) -> P.H:
+  (h, +q) = r
+  ld.hq(P.rd(h, P.base(q)), i4, q, k)
+
+def ld.era(+era: Bool, h: P.H, +i4: U32, +k: U32) -> P.H:
+  match era:
+    case True{}:
+      ld.q(P.rd(h, (i4 + 1 : U32)), i4, k)
+    case False{}:
+      h
+
+def ld.hd(r: P.H & U32, +i4: U32) -> P.H:
+  (h, +hd) = r
+  ld.era(U32.is_eq((P.rk(hd) .|. 1 : U32), 7), h, i4, P.rk(hd))
+
+# the template's k nodes from node i
+def ld.statics(k: Nat, h: P.H, +i: U32) -> P.H:
+  match k:
+    case 0n:
+      h
+    case 1n+p:
+      ld.statics(p, ld.hd(P.rd(h, (i << 2n : U32)), (i << 2n : U32)), (i + 1 : U32))
+
 # the template's net, its exposed port linked to the interface: node 3,
 # the first after the header, which keeps its slot for good (HeapModel's
-# "Nets")
+# "Nets"); its erasers made static
 def load(t: T.Tpl) -> P.H:
   match t:
     case T.Tpl{nodes, links, root, +size}:
-      load.root(P.node(P.h_new(), P.hd(8, 0), 0), nodes, links, tref(root))
+      ld.statics(U32.to_nat(size), load.root(P.node(P.h_new(), P.hd(8, 0), 0), nodes, links, tref(root)), (P.first() + 1 : U32))
 
 # Results
 # =======

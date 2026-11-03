@@ -371,7 +371,8 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read` (built),
-   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load` (built),
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.meet`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static.table`,
@@ -1985,8 +1986,46 @@ takes from it:
                  each pair 1.2 to 1.9 of eager; the price of static links
                  for every rewrite, whether or not a net holds any.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load`
-                 — planned — the loader makes the templates' erasers and
-                 voids static, so built nets hold no eraser node.
+                 — built 2026-11-03 — the loader makes the templates'
+                 erasers and voids static (KN.load's ld.statics): each
+                 eraser whose principal faces a port that is no eraser's
+                 becomes a static in that port's link word, its node
+                 freed; two erasers facing stay two nodes, a pair every
+                 strategy finds and counts as it finds any. Lowering makes
+                 no eraser or void since `.lowering`, so only the
+                 library's hand-written nets hold any: the step changes
+                 nothing the benchmark measures (gcbench run 210 against
+                 209: every case's interactions and capacity alike; 11
+                 lowered cases a little faster, layout; count_builds run
+                 211 against 208, no workload moved but by layout, at
+                 most 0.55%), and its worth is that the library now runs
+                 statics through every strategy: eager, two stacks, the
+                 profile, the erasure modes, the interpreted table. That
+                 found two faults, both fixed: native erasure noted the
+                 absent peers of a node of fewer than three ports, nil,
+                 which reads as static, as two statics meeting, counted
+                 by the profile (2 logical interactions too many on six
+                 entries; latent on main, where the collection's eval left
+                 them uncollected); and the interpreted table looked for
+                 events at a static external peer rather than at the end
+                 the rewrite linked it to, as the generated rewrites do
+                 (KN.wd.sites, carried in the table's result). The library
+                 passes with its logical interactions as with allocated
+                 erasers, the interpreted and generated rewrites making
+                 the same interactions and events. Where erasers are made
+                 is the rules: in the library's eager profiles 5.1% of the
+                 interactions involve one (445,275 of 8,804,291), two
+                 erasers meeting 0.8% (`.links.native`).
+               - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.meet`
+                 — contingent on
+                 `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.static`
+                 — the stats of two statics meeting where statics are not
+                 all erasers: a meeting's stack entry holds one static,
+                 and the other is taken for the eraser of the other
+                 polarity (P.st_other), true only while erasers alone are
+                 static. The maintainer's options (2026-11-03): encode the
+                 kind pair in the entry, or count the meeting's stats
+                 before the stack.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
                  — planned — rewrites making leaves make them static: an
                  eraser a rule or an event makes facing an external peer

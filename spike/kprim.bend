@@ -405,6 +405,10 @@ def st_eran() -> U32:
 def st_erap() -> U32:
   2047
 
+# the static of eraser kind k, its kind code in the constants' class
+def st_of(+k: U32) -> U32:
+  ((k << 8n : U32) .|. 255 : U32)
+
 # a static reference, nil among them
 def is_static(+r: U32) -> Bool:
   U32.is_eq((r .&. 3 : U32), 3)
