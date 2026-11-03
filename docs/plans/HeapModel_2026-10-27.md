@@ -2027,12 +2027,49 @@ takes from it:
                  kind pair in the entry, or count the meeting's stats
                  before the stack.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
-                 — planned — rewrites making leaves make them static: an
-                 eraser a rule or an event makes facing an external peer
-                 a static there, no node. Erasure by a static partner is
-                 native already (`.links.read`); a static of another
-                 kind, data immediates (`.static`), would want its own
-                 rewrites, its payload from the reference.
+                 — active — built 2026-11-03 on branch `links-native`
+                 (eaec5cb), unmerged, the maintainer to decide: the rules
+                 that make erasers make them static. Every eraser a rule
+                 makes faces an external peer, or another of its erasers,
+                 and a rule making one makes nothing else (31 rules: 21
+                 making one, 10 two; law `erasers_native`, on the branch),
+                 so the generator emits such a rule with no node made,
+                 both slots freed, a static put in each facing peer's link
+                 word (P.put_st), two facing a meeting noted as a pair.
+                 Events keep their eraser in the node's own slot, since a
+                 pair the node is in keeps its place on a stack by that
+                 node. The collection needs statics where it found eraser
+                 nodes: a function's or a copy's second output facing a
+                 static eraser is the boundary the sweep noted when it
+                 freed an eraser's node there (a function reached by its
+                 variable alone, its principal facing one, kept its body
+                 alive otherwise: five cases grew, mixin-chain-16 by 8.7%,
+                 gcbench run 212), so the walk reads that output for
+                 nodes of one input (gcbench run 221 against 210):
+                 capacity as with allocated erasers, none grown, one
+                 shrunk; the collections' interactions 15,634 against
+                 15,668; collecting 0.03% over plain demand against 0.12%
+                 below, 68 cases worse, 4 better. Noting static voids at
+                 auxiliary inputs as events too cost as much and restored
+                 nothing (runs 213 to 218; 214 holds no rows); forced
+                 inline, the same cost (runs 219, 220). Plain demand over
+                 the library: +0.05% (+0.42% forced inline), the
+                 interactions alike, 2% to 4% faster on the cases heavy
+                 in erasure (search-pairs, mixin-chain-4, list-bind-16), up
+                 to 0.2% slower on five. So far, erasers as statics do not
+                 pay here: they save little allocation, and the
+                 collection pays to find them. Building it found three
+                 faults on main's interpreted path, fixed there: its notes
+                 dropped two statics meeting; its fans and lifts lost their
+                 form (`pay`: a fan made by the table, in a net without
+                 levels, then failed to pair with one made at load by the
+                 same site, which the generated rewrites never did); and
+                 the identity's test and the choice of where fusion is
+                 tried read a static whose value names a node's index (an
+                 eraser's kind code, nodes 447 and 511) as one of the
+                 redex's own ports (KN.own). A static of another kind,
+                 data immediates (`.static`), would want rewrites of its
+                 own, its payload from the reference.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.kinds`
                  — planned — what the kinds that capture an erased
                  auxiliary buy over a static eraser at that port (the
