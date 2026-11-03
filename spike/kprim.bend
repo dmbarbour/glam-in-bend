@@ -385,6 +385,68 @@ def port(+r: U32) -> U32:
 def link(h: H, +x: U32, +y: U32) -> H:
   wr(wr(h, (x + 1 : U32), y), (y + 1 : U32), x)
 
+# Static links
+# ============
+#
+# heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links: a
+# reference whose port bits are 3, the value no port has, is static: no
+# node, a leaf standing in the one link word of the port it faces, which
+# nothing links back. Of NetData's layout (netdata-refs) the constants
+# alone: bits 7 to 0 all ones, a 24-bit code above, here sixteen ones over
+# a leaf's kind, so that a static lies above every reference
+# (net-capacity: no node's base is ever a static's) and its kind is its
+# second byte; nil, all ones, is the one with no kind (63, none). Only the
+# erasers are static so far, made where the sweep keeps an output whose
+# consumer it frees and where a node erased by one leaves its peers.
+def st_of(+k: U32) -> U32:
+  ((k << 8n : U32) .|. 4294902015 : U32)
+
+def st_eran() -> U32:
+  st_of(6)
+
+def st_erap() -> U32:
+  st_of(7)
+
+# a static reference, nil among them
+def is_static(+r: U32) -> Bool:
+  U32.is_eq((r .&. 3 : U32), 3)
+
+# a static's header, as a node of its kind holds it: its kind alone
+def st_hd(+r: U32) -> U32:
+  ((r >> 8n : U32) .&. 63 : U32)
+
+def site.go(+st: Bool, +e: U32, +f: U32) -> U32:
+  match st:
+    case True{}:
+      f
+    case False{}:
+      e
+
+# the end the events look at for a rewrite's external peer e (knet.bend's
+# Events): e, or where it is static, no node, f, the end the rule linked
+# it to, which an event's B static faces just as well
+def site(+e: U32, +f: U32) -> U32:
+  site.go(is_static(e), e, f)
+
+# a principal port, or a static, whose one port is principal
+def pri(+r: U32) -> Bool:
+  U32.is_eq(((r + 1 : U32) .&. 2 : U32), 0)
+
+def link.to(+st: Bool, h: H, +x: U32, +y: U32) -> H:
+  match st:
+    case True{}:
+      h
+    case False{}:
+      wr(h, (x + 1 : U32), y)
+
+# link node port x to y, which may be static, then told nothing
+def link_x(h: H, +x: U32, +y: U32) -> H:
+  link.to(is_static(y), wr(h, (x + 1 : U32), y), y, x)
+
+# link y and z, either of which may be static
+def link_xx(h: H, +y: U32, +z: U32) -> H:
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
+
 # Nodes
 # =====
 
@@ -505,6 +567,28 @@ def free(h: H, +r: U32) -> H:
   match h:
     case H{w, a}:
       free.fh(KM.m_get(w, at_fh()), a, r)
+
+def free_b.go(+st: Bool, h: H, +r: U32) -> H:
+  match st:
+    case True{}:
+      h
+    case False{}:
+      free(h, r)
+
+# an event's B freed, unless static: nothing to free
+def free_b(h: H, +r: U32) -> H:
+  free_b.go(is_static(r), h, r)
+
+def rdh.go(+st: Bool, h: H, +r: U32) -> H & U32:
+  match st:
+    case True{}:
+      (h, st_hd(r))
+    case False{}:
+      rd(h, base(r))
+
+# the header behind reference r: a static's its own (st_hd)
+def rdh(h: H, +r: U32) -> H & U32:
+  rdh.go(is_static(r), h, r)
 
 def gm.link(r: H & U32, +fh0: U32, +n: U32) -> H:
   (h, +wcap) = r
@@ -1053,7 +1137,7 @@ def fl.fuse(f: FZ, h: H, +p: U32, +l: U32, +o: U32) -> H:
     case FzNo{}:
       h
     case FzTo{+n, +off}:
-      free(link(ctl_set(h, p, 10, n, off), (p + 1 : U32), o), l)
+      free(link_x(ctl_set(h, p, 10, n, off), (p + 1 : U32), o), l)
 
 def fl.o(r: H & U32, +p: U32, +l: U32, f: FZ) -> H:
   (h, +o) = r
@@ -1084,7 +1168,7 @@ def fc.fuse(f: FZ, h: H, +a: U32, +b: U32, +i: U32) -> H:
     case FzNo{}:
       h
     case FzTo{+n, +off}:
-      free(link(ctl_set(h, b, 11, n, off), i, (b + 1 : U32)), a)
+      free(link_x(ctl_set(h, b, 11, n, off), (b + 1 : U32), i), a)
 
 def fc.i(r: H & U32, +a: U32, +b: U32, f: FZ) -> H:
   (h, +i) = r
@@ -1146,7 +1230,7 @@ def fa.y.go(none: Bool, h: H, +k: U32, +x: U32, +y: U32) -> H:
 
 def fa.y(r: H & U32, +k: U32, +x: U32) -> H:
   (h, +y) = r
-  fa.y.go(U32.is_eq(y, nil()), h, k, x, y)
+  fa.y.go(is_static(y), h, k, x, y)
 
 def fa.ctl(ctl: Bool, h: H, +k: U32, +x: U32) -> H:
   match ctl:
@@ -1169,11 +1253,12 @@ def fa.go0(none: Bool, h: H, +x: U32) -> H:
 # the link at port x: when it joins two controls of one kind, principal to
 # auxiliary in the order they fuse, and compose finds one control acting
 # as both, fuse them. A rewrite tries each link it made that may join two
-# controls (net.bend's fuse_ends). The link a fusion makes is not tried
+# controls (net.bend's fuse_ends); nil or a static, no node, is none. The
+# link a fusion makes is not tried
 # again: on 600 random terms that found one more fusion, saving two
 # interactions, at more cost than it saved.
 def fuse(h: H, +x: U32) -> H:
-  fa.go0(U32.is_eq(x, nil()), h, x)
+  fa.go0(is_static(x), h, x)
 
 
 # Peeling
@@ -1209,7 +1294,7 @@ type Pe is Type:
 
 def pe.at(r: H & U32, +x: U32, +e: U32, +o: U32) -> Pe:
   (h, +rest) = r
-  Pe{link(link(h, (x + 1 : U32), rest), (rest + 1 : U32), e), o, rest}
+  Pe{link_x(link(h, (x + 1 : U32), rest), (rest + 1 : U32), e), o, rest}
 
 # control x, of kind k2 at index n with offset o and port 1's peer e,
 # keeps k units of its run; a new control of its kind takes the rest
@@ -1317,10 +1402,25 @@ def note.go(both: Bool, st: Stk, +x: U32) -> Stk:
 def push(st: Stk, +x: U32) -> Stk:
   note.go(True{}, st, x)
 
-# a link x - y a rewrite made: if both ports are principal, the pair
-# goes on the stack as x
+def note.s(+sx: Bool, st: Stk, +x: U32, +y: U32) -> Stk:
+  match sx:
+    case True{}:
+      note.go(Bool.not(is_static(y)), st, y)
+    case False{}:
+      note.go(True{}, st, x)
+
+def note.p(both: Bool, st: Stk, +x: U32, +y: U32) -> Stk:
+  match both:
+    case True{}:
+      note.s(is_static(x), st, x, y)
+    case False{}:
+      st
+
+# a link x - y a rewrite made: if both ports are principal, a static's
+# one port among them, the pair goes on the stack as x, or as y where x
+# is static; two statics facing make no pair
 def note(st: Stk, +x: U32, +y: U32) -> Stk:
-  note.go(U32.is_eq(port(x), 0) && U32.is_eq(port(y), 0), st, x)
+  note.p(U32.is_eq((((x + 1 : U32) .|. (y + 1 : U32) : U32) .&. 2 : U32), 0), st, x, y)
 
 # the newest pair on the stack, if any
 type Pop is Type:

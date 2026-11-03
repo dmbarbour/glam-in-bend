@@ -1788,6 +1788,114 @@ def loop.resolve(r: Rule, +i: Nat, +j: Nat) -> Rule:
 def rule_id(+a: NodeKind, +t: Bool) -> Rule:
   loop.resolve(rule(a, KFn{}, t), 2n, 3n)
 
+# Static erasure (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.read): a node meeting a static eraser at its principal,
+# an eraser with no node, the kernel erases as one rule for every kind:
+# the node freed, its payload dropped, each auxiliary port's peer given an
+# eraser of its own, consuming (EraN) where the port is an input and
+# providing (EraP) where an output, no node made and nothing else linked.
+# The table's rule for the pair is that for either payload test, or stuck
+# for both, where the kernel leaves the pair (law static_erasure).
+
+# the eraser a principal of polarity p meets: of the other
+def se.of(+p: Pol) -> NodeKind:
+  match p:
+    case Neg{}:
+      KEraP{}
+    case Pos{}:
+      KEraN{}
+
+# the pair's rule: k as A where its principal is negative, else as B
+def se.rule(+p: Pol, +k: NodeKind, +t: Bool) -> Rule:
+  match p:
+    case Neg{}:
+      rule(k, KEraP{}, t)
+    case Pos{}:
+      rule(KEraN{}, k, t)
+
+# k's external peers, from k's port 1: A's are 0 and 1, B's 2 and 3
+def se.base(+p: Pol) -> Nat:
+  match p:
+    case Neg{}:
+      0n
+    case Pos{}:
+      2n
+
+def se.inp(+i: Bool) -> NodeKind:
+  match i:
+    case True{}:
+      KEraN{}
+    case False{}:
+      KEraP{}
+
+def se.none(s: Src) -> Bool:
+  match s:
+    case SNone{}:
+      True{}
+    case _:
+      False{}
+
+def se.hit(ok: Bool, +j: Nat) -> Maybe<&2, Nat>:
+  match ok:
+    case True{}:
+      Some{j}
+    case False{}:
+      None{}
+
+# the new node an external peer is linked to, port 0, made from nothing
+# as the eraser for port p of k: its index, or none
+def se.new(m: Maybe<&2, End>, +xs: List<&2, Spec>, +k: NodeKind, +p: Nat) -> Maybe<&2, Nat>:
+  match m:
+    case Some{e}:
+      match e:
+        case New{+j, +q}:
+          se.hit(nat_eq(q, 0n) && nat_eq(kind_n(spec_kind(xs, j)), kind_n(se.inp(is_input(k, p)))) && se.none(spec_src(xs, j)), j)
+        case Ext{i}:
+          None{}
+    case None{}:
+      None{}
+
+def se.two(a: Maybe<&2, Nat>, b: Maybe<&2, Nat>) -> Bool:
+  match a b:
+    case Some{+i} Some{+j}:
+      Bool.not(nat_eq(i, j))
+    case _ _:
+      False{}
+
+# each of k's n auxiliary ports' peers, from external b, linked to an
+# eraser of its own
+def se.ports(+n: Nat, +xs: List<&2, Spec>, +ls: List<&2, Link>, +k: NodeKind, +b: Nat) -> Bool:
+  match n:
+    case 0n:
+      True{}
+    case 1n:
+      Maybe.is_some(&2, Nat, se.new(lf.peer(ls, Ext{b}), xs, k, 1n))
+    case 2n:
+      se.two(se.new(lf.peer(ls, Ext{b}), xs, k, 1n), se.new(lf.peer(ls, Ext{Nat.add(b, 1n)}), xs, k, 2n))
+    case _:
+      False{}
+
+def se.wire(+xs: List<&2, Spec>, +ls: List<&2, Link>, +k: NodeKind, +b: Nat) -> Bool:
+  nat_eq(List.length(&2, Spec, xs), Nat.sub(arity(k), 1n)) && nat_eq(List.length(&2, Link, ls), Nat.sub(arity(k), 1n)) &&
+    se.ports(Nat.sub(arity(k), 1n), xs, ls, k, b)
+
+def se.ok(r1: Rule, r2: Rule, +k: NodeKind, +b: Nat) -> Bool:
+  match r1 r2:
+    case RStuck{} RStuck{}:
+      True{}
+    case RWire{xs, ls} RWire{ys, ms}:
+      se.wire(xs, ls, k, b) && se.wire(ys, ms, k, b)
+    case _ _:
+      False{}
+
+def se.go(+p: Pol, +k: NodeKind) -> Bool:
+  se.ok(se.rule(p, k, True{}), se.rule(p, k, False{}), k, se.base(p))
+
+# k meeting a static eraser at its principal: erased as the kernel does it,
+# or stuck for both tests
+def static_erasure(+k: NodeKind) -> Bool:
+  se.go(port_pol(k, 0n), k)
+
 # Payloads held
 # -------------
 #

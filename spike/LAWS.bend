@@ -749,6 +749,19 @@ law identity_resolved:
   for +t: Bool
   {R.identity_resolved(a, t) == True{} : Bool}
 
+# LAW: a node meeting an eraser at its principal is erased by the table's
+# rule as the kernel erases one meeting a static eraser, which has no
+# node: the node freed, each auxiliary port's peer given an eraser of its
+# own, consuming where the port is an input and providing where an
+# output, nothing else made or linked; or the pair is stuck for either
+# payload test, and the kernel leaves it. The kernel's shortcut behaves as
+# the rule (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.
+# links.read).
+# Record: fusions-as-components
+law static_erasure:
+  for +k: R.NodeKind
+  {R.static_erasure(k) == True{} : Bool}
+
 # LAW: a net's words stop at 2^30, so a reference stays below 2^30: the
 # collection's walk tags references in its notes with bits 31 and 30, and
 # a net doubling to eight times its nodes in words stays within a U32.
