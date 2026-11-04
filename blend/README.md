@@ -102,11 +102,17 @@ its own copy, bound to its own finals: no sharing between objects.
   copied definition by its own name. The samples hold the tool to its
   present order.
 - An abstract object emits nothing of its own.
+- Before each definition, a marker names where it is written,
+  `# blend: FILE:LINE`; its lines follow as they are there, so the line
+  k lines below a marker is the source's k lines below LINE.
+  `blend/where.sh FILE.bend LINE` finds it, for Bend's errors on emitted
+  code.
 
 ## The samples
 
-`blend/samples/`: each `.blend` beside the `.bend` it emits and the
-`.out` its program prints.
+`blend/samples/`: each `.blend` beside the `.bend` it emits, a generated
+file checked current by `scripts/check_generated.sh`, and the `.out` its
+program prints.
 
 - `override`: introduction, update, late binding.
 - `prior`: `_name`, and C3 over a diamond of updates.
@@ -142,6 +148,5 @@ linearization, `^` in a definition of the module.
   support them (2026-11-04).
 - Types, laws and proofs overridden or specialized per family: Bend's
   for now, to revisit once Blend matures (the maintainer, 2026-11-04).
-- Errors from Bend on emitted code: line markers back to the `.blend`.
 - Blend's own home: written in Bend (`generated-sources`), here first,
   perhaps shared beyond this project.

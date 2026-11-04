@@ -1,8 +1,8 @@
 #!/bin/sh
-# Blend's samples (blend/README.md): each valid sample's .bend is what
-# Blend emits from its .blend, byte for byte, and runs under Bend to print
-# what its .out says; each invalid sample fails, its errors exactly its
-# .err.
+# Blend's samples (blend/README.md): each valid sample's .bend, what
+# Blend emits from its .blend (a generated file, checked current by
+# scripts/check_generated.sh), runs under Bend to print what its .out
+# says; each invalid sample fails, its errors exactly its .err.
 #
 #   blend/check.sh
 set -u
@@ -21,10 +21,6 @@ for src in *.blend; do
     status=1
     continue
   fi
-  "$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1 | cmp -s - "$base.bend" || {
-    echo "blend: $src does not emit $base.bend:"
-    "$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1 | diff - "$base.bend" | head -20
-    status=1; }
   got=$("$CAPPED" 1000 60 "$BEND" "$base.bend" 2>&1)
   if [ "$got" != "$(cat "$base.out")" ]; then
     echo "blend: $base.bend prints '$got', not '$(cat "$base.out")'"

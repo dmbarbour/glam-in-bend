@@ -3116,23 +3116,24 @@ def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
 # Text
 # ----
 
-# what emission reads: the objects, the units, how each is emitted
+# what emission reads: the file's name, the objects, the units, how each
+# is emitted
 type Ec is Data:
-  Ec{obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>}
+  Ec{file: List<&2, U32>, obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>}
 
 def ec.obs(e: Ec) -> List<&2, Ob>:
   match e:
-    case Ec{obs, us, mus}:
+    case Ec{file, obs, us, mus}:
       obs
 
 def ec.us(e: Ec) -> List<&2, Un>:
   match e:
-    case Ec{obs, us, mus}:
+    case Ec{file, obs, us, mus}:
       us
 
 def ec.mu(e: Ec, +i: U32) -> Mu:
   match e:
-    case Ec{obs, us, mus}:
+    case Ec{file, obs, us, mus}:
       mu.at(mus, i)
 
 # the text so far, its bytes reversed, and each copied unit's next number
@@ -3257,11 +3258,25 @@ def rls.put(ls: List<&2, Rl>, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb
     case Con{l, t}:
       rls.put(t, e, x, j, dind, rl.put(l, e, x, j, dind, b))
 
-# a definition's j-th copy, after a blank line: `def NAME(...) -> T:` and
-# its body
+def ec.file(e: Ec) -> List<&2, U32>:
+  match e:
+    case Ec{file, obs, us, mus}:
+      file
+
+# the line before a definition naming where it is written,
+# `# blend: FILE:LINE`: its body's lines follow as they do there, so the
+# emitted line k lines below the marker is the source's k lines below
+# LINE (blend/where.sh finds it)
+def marker(+e: Ec, +x: U32) -> List<&2, U32>:
+  List.append(&2, U32, codes("\n# blend: "), List.append(&2, U32, ec.file(e),
+    Con{58, codes(U32.show(node.no(un.node(un.at(ec.us(e), x)))))}))
+
+# a definition's j-th copy, after a blank line: its marker,
+# `def NAME(...) -> T:` and its body
 def unit.put(+e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
   tb.put(rls.put(un.lines(un.at(ec.us(e), x)), e, x, j, node.ind(un.node(un.at(ec.us(e), x))),
-    tb.put(b, List.append(&2, U32, codes("\ndef "), List.append(&2, U32, own.name(e, x, j), node.rest(un.node(un.at(ec.us(e), x))))))),
+    tb.put(b, List.append(&2, U32, marker(e, x),
+      List.append(&2, U32, codes("\ndef "), List.append(&2, U32, own.name(e, x, j), node.rest(un.node(un.at(ec.us(e), x)))))))),
     [10])
 
 def copies.put(n: Nat, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
@@ -3365,7 +3380,7 @@ def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&
   +d = walk(roots.of(roots, cx, us), calls(rss), obs, us)
   +order = ds.order(d)
   +ms = mults(order, List.reverse(&2, U32, order), rss, obs, us, Ms{mus.one(us), Nil{}})
-  emit.out(file, Ec{obs, us, ms.ms(ms)}, order, ob.mems(ob.at(obs, 0)),
+  emit.out(file, Ec{codes(file), obs, us, ms.ms(ms)}, order, ob.mems(ob.at(obs, 0)),
     List.append(&2, Er, er.roots(roots, obs, us), List.append(&2, Er, ds.ers(d), ms.ers(ms))))
 
 # Stages
