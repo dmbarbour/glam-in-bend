@@ -1,0 +1,1 @@
+nested-twice.blend:11: object Inner: another Inner is inherited where this one is; extend it instead (`extend Inner with`)

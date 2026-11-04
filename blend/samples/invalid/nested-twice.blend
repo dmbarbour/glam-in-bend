@@ -1,0 +1,13 @@
+# A nested object its host inherits already is extended, not introduced
+# again, as a definition is updated, not introduced again.
+import Base
+
+object Outer with
+  object Inner with
+    def name() -> String:
+      "inner"
+
+object Outer2 extends Outer with
+  object Inner with
+    def name() -> String:
+      "inner2"

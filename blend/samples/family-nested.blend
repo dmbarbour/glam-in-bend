@@ -1,0 +1,34 @@
+# Nested objects inherited and extended: a host's nested object is folded
+# down the host's linearization as a definition is, `object N`
+# introducing it and `extend N with` updating it (glam's `extend`, a
+# mixin on the named object). A body inherited with its host sees the
+# final host through `^`, as glam's `self` is the final instance.
+import Base
+
+object Outer with
+  def name() -> String:
+    "outer"
+  object Inner with
+    def name() -> String:
+      "inner"
+    def path() -> String:
+      ^name() ++ "." ++ name()
+
+object Outer2 extends Outer with
+  upd name() -> String:
+    "outer2"
+  extend Inner with
+    upd name() -> String:
+      "inner2"
+
+object Outer3 extends Outer with
+  upd name() -> String:
+    "outer3"
+
+object Outer4 extends Outer2 with
+  extend Inner with
+    upd name() -> String:
+      _name() ++ "+"
+
+def main() -> IO(Unit):
+  IO.print(Outer.Inner.path() ++ " " ++ Outer2.Inner.path() ++ " " ++ Outer3.Inner.path() ++ " " ++ Outer4.Inner.path())

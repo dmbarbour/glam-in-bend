@@ -68,6 +68,17 @@ Bend's imports pass through.
   no object in reach defines may be one of the module's definitions,
   Bend's, its text kept; any other name is Bend's. A bare name is a local
   or an object's definition, never both (`shadowing-is-an-error`).
+- **Nested objects** are members too, folded down their host's
+  linearization as a definition is: `object Inner` introduces one,
+  `extend Inner with` updates it (glam's `extend`, a mixin on the named
+  object), `extend abstract Inner` keeps it abstract, a plain `extend`
+  instantiating it. An object has its parents' nested objects, each its
+  own (`Outer2.Inner`), linearized from the contributors nearest it to
+  the one introducing it, then that one's parents. A body inherited
+  with its host sees the final host through `^` (glam's `self`, the
+  final instance); one reached by its path (`extends Outer.In`) sees
+  the host it was reached through. `extend` stays out of the top level
+  (`blend-namespaces-as-bends`).
 - **Inheritance** is multiple, linearized by C3 as glam's is: a parent
   named twice is one parent. An object's definitions apply after its
   parents', so that an `upd`'s prior is the definition the next object
@@ -153,6 +164,8 @@ program prints.
   family, in place of a template argument; a definition calling itself.
 - `sharing`: affine by default, `shared` and `copied`.
 - `nested`: nested objects, `^name`, the module's definitions as Bend's.
+- `family-nested`: nested objects inherited and extended down their
+  hosts' linearizations, `^` seeing the final host.
 - `types`: type members declared, given by each family and named in
   signatures, a datatype of the module's taking one as its argument.
 - `imports`, with `lib/shapes.blend`: an object extending an imported
@@ -167,7 +180,9 @@ undefined, a parameter shadowing a definition, parents with no C3
 linearization, `^` in a definition of the module, members after a header
 that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
-file, a name beginning `Blend_`.
+file, a name beginning `Blend_`, an extension of nothing inherited, a
+nested object introduced where one is inherited, `extend` at the top
+level.
 
 ## Known issues
 
@@ -190,8 +205,6 @@ file, a name beginning `Blend_`.
 - Several files on one command line, and how their outputs are written;
   the maintainer leans to one root module doing a dozen jobs by its
   imports (2026-11-04).
-- Nested objects inherited and extended, `extend Inner with ...`
-  (`blend-nested`).
 - Laws and proofs as members, each family its own instance
   (`blend-object-laws`); Blend's own laws (`blend-laws`).
 - Macros, explicit in the source, marked apart from Bend's templates

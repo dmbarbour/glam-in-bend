@@ -1,0 +1,8 @@
+# An extension updates a nested object its host inherits; with none to
+# extend, `object Inner` introduces it.
+import Base
+
+object Outer with
+  extend Inner with
+    def name() -> String:
+      "inner"

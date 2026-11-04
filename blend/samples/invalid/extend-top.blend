@@ -1,0 +1,11 @@
+# `extend` stays out of the top level, where it would change an object
+# other modules depend on: it is a mixin on a nested object.
+import Base
+
+object Outer with
+  def name() -> String:
+    "outer"
+
+extend Outer with
+  upd name() -> String:
+    "outer!"
