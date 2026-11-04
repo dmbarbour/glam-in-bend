@@ -31,6 +31,6 @@ def AnyOf.op(+a: AnyOf.T(), +b: AnyOf.T()) -> AnyOf.T():
 def AnyOf.double(+x: AnyOf.T()) -> AnyOf.T():
   x
 
-# blend: laws.blend:75
+# blend: laws.blend:83
 def main() -> IO(Unit):
   IO.print(Nat.show(NatAdd.double(3n)) ++ " " ++ Bool.show(AnyOf.double(True{})))

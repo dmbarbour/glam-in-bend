@@ -20,13 +20,15 @@ Bend's `LAWS.bend` and `PROOF.bend` are.
 1. Three files, as Bend's convention keeps laws and proofs apart from
    the code and from each other (the maintainer, 2026-11-04), written
    by one emission, never one without the others (the maintainer,
-   2026-11-04): `blend/run.sh emit X.blend [DIR]` writes the code
-   `X.bend` and, where the module has laws or proofs, `X_LAWS.bend`,
+   2026-11-04): `blend/run.sh emit X.blend... [DIR]` writes, for each
+   module named, the code `X.bend` and, where the module has laws or
+   proofs, `X_LAWS.bend`,
    every law of the module, its concrete objects' instances and its
    own, importing the code as `Blend_0`, and `X_PROOF.bend`, every
    proof, `def Blend_Laws.Obj.name`, importing the code and the laws,
-   as `Blend_Laws`, each proof after those it uses; where any has an
-   error, none. Both name the code through `Blend_0`, the module's
+   as `Blend_Laws`, each proof after those it uses; where any module
+   has an error, nothing. A module's top-level laws and proofs go there
+   too, as its objects' do. Both name the code through `Blend_0`, the module's
    datatypes too, and other modules as the code does. `_`, not a dot:
    Bend imports only plain names (letters, digits, `_` and `-`), and
    `X.LAWS.bend` is refused.
@@ -50,9 +52,12 @@ Bend's `LAWS.bend` and `PROOF.bend` are.
 5. A typed proof, `proof name(params) -> T:`, is a lemma: it states what
    it proves, goes into the proofs' file by its own name, and is named
    by proofs, never by code. `_name` in a proof, of a law (which has no
-   prior), is its proof's prior: the prior is written in the proofs'
-   file, its law stated again in the laws' file by the prior's name, so
-   that Bend pairs them. A member keeps its kind down the
+   prior), is its proof's prior. A prior no proof names is not written,
+   and nothing checks it; one named is written in the proofs' file, a
+   def proving the law for the family's finals, its law stated again in
+   the laws' file by the prior's name, since Bend types an untyped def
+   by the law of its name: the same claim named twice, which the prior
+   must meet for the proof relying on it to stand. A member keeps its kind down the
    linearization: `upd` updates a definition, `upd proof` a proof or a
    lemma, and neither a law.
 

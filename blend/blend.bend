@@ -5001,7 +5001,7 @@ def basename(path: String) -> String:
   base.k(until(List.reverse(&2, U32, codes(path)), 47))
 
 def usage() -> String:
-  "usage: bend blend.bend read|objects|resolve FILE.blend, or emit FILE.blend [DIR]"
+  "usage: bend blend.bend read|objects|resolve FILE.blend, or emit FILE.blend... [DIR]"
 
 # 1 read, 2 objects, 3 resolve, 4 emit
 def run(+cmd: U32, +files: List<&2, List<&2, U32>>, +paths: List<&2, List<&2, U32>>, +trees: List<&2, List<&2, Node>>) -> Out:
@@ -5061,21 +5061,67 @@ def write.failed(+path: List<&2, U32>) -> IO(Unit):
     IO.print_err("blend: cannot write " ++ text(path))
     IO.exit(1)
 
-# the files written into dir, each path printed once written
-def write.all(fs: List<&2, Fo>, +dir: List<&2, U32>) -> IO(Unit):
+# the files written, each path printed once written
+def write.all(fs: List<&2, Fo>) -> IO(Unit):
   match fs:
     case Nil{}:
       IO.pure(Unit, Unit{})
     case Con{f, t}:
       match f:
+        case Fo{+path, bs}:
+          IO.bind(Bool, Unit, write.file(path, bs),
+            +ok => when(IO(Unit), ok, u => IO.bind(Unit, Unit, IO.print(text(path)), v => write.all(t)), u => write.failed(path)))
+
+def fos.at(fs: List<&2, Fo>, +dir: List<&2, U32>) -> List<&2, Fo>:
+  match fs:
+    case Nil{}:
+      Nil{}
+    case Con{f, t}:
+      match f:
         case Fo{+name, bs}:
-          IO.bind(Bool, Unit, write.file(path.join(dir, name), bs),
-            +ok => when(IO(Unit), ok, u => IO.bind(Unit, Unit, IO.print(text(path.join(dir, name))), v => write.all(t, dir)),
-              u => write.failed(path.join(dir, name))))
+          Con{Fo{path.join(dir, name), bs}, fos.at(t, dir)}
+
+# a module's files placed in dir
+def out.at(o: Out, +dir: List<&2, U32>) -> Out:
+  match o:
+    case Outs{fs}:
+      Outs{fos.at(fs, dir)}
+    case Out{+ok, text}:
+      Out{ok, text}
+
+# two modules' emissions as one: their files, or the errors of either
+# and both, so that a command writes every module's files or none
+def out.join(a: Out, b: Out) -> Out:
+  match a b:
+    case Outs{x} Outs{y}:
+      Outs{List.append(&2, Fo, x, y)}
+    case Outs{x} Out{+ok, t}:
+      Out{False{}, t}
+    case Out{+ok, t} Outs{y}:
+      Out{False{}, t}
+    case Out{+ok1, t1} Out{+ok2, t2}:
+      Out{False{}, t1 ++ "\n" ++ t2}
+
+def fos.twice(fs: List<&2, Fo>, +seen: List<&2, List<&2, U32>>) -> Maybe<&2, List<&2, U32>>:
+  match fs:
+    case Nil{}:
+      None{}
+    case Con{f, t}:
+      match f:
+        case Fo{+path, bs}:
+          when(Maybe<&2, List<&2, U32>>, names.has(seen, path), u => Some{path}, u => fos.twice(t, Con{path, seen}))
+
+# the files, unless two modules would write one path
+def out.once(o: Out) -> Out:
+  match o:
+    case Outs{+fs}:
+      on.maybe(List<&2, U32>, Out, fos.twice(fs, Nil{}), u => Outs{fs}, +p => Out{False{}, "blend: two modules would write " ++ text(p)})
+    case Out{+ok, text}:
+      Out{ok, text}
 
 # the output printed, or the files written; errors to stderr, and the
 # exit status 1
-def main.out(o: Out, +dir: List<&2, U32>) -> IO(Unit):
+def main.out(o: Out) -> IO(Unit):
   match o:
     case Out{+ok, text}:
       match ok:
@@ -5086,7 +5132,7 @@ def main.out(o: Out, +dir: List<&2, U32>) -> IO(Unit):
             IO.print_err(text)
             IO.exit(1)
     case Outs{fs}:
-      write.all(fs, dir)
+      write.all(fs)
 
 def read.got(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Maybe<&2, List<&2, U32>>):
   (f, r) = fr
@@ -5159,34 +5205,64 @@ def load.go(n: Nat, todo: List<&2, Td>, +mods: List<&2, Md>) -> IO(List<&2, Md>)
                   +m => load.go(k, List.append(&2, Td, rest, md.todo(path, m, U32.from_nat(List.length(&2, Md, mods)))),
                     Con{md.of(path, m, from), mods})))
 
-def main.file(+cmd: U32, +path: String, +dir: List<&2, U32>) -> IO(Unit):
+def main.file(+cmd: U32, +path: String) -> IO(Unit):
   do IO<Unit>:
     ms : List<&2, Md> <- load.go(4096n, [Td{codes(path), 0}], Nil{})
-    main.out(run.mods(cmd, ms), dir)
+    main.out(run.mods(cmd, ms))
 
 # a path's directory, `.` for a bare name
 def dir.of(+p: List<&2, U32>) -> List<&2, U32>:
   when(List<&2, U32>, holds(p, [47]), u => slashes(path.dir(p)), u => codes("."))
 
-# emission writes into the directory given, else the root's own
+def dir.or(m: Maybe<&2, List<&2, U32>>, +p: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case None{}:
+      dir.of(p)
+    case Some{d}:
+      d
+
+# each module emitted in turn, each read with its imports, into the
+# directory given, else its own; then every module's files written, or
+# none
+def main.emit.go(ps: List<&2, String>, +dir: Maybe<&2, List<&2, U32>>, acc: Out) -> IO(Unit):
+  match ps:
+    case Nil{}:
+      main.out(out.once(acc))
+    case Con{+p, t}:
+      IO.bind(List<&2, Md>, Unit, load.go(4096n, [Td{codes(p), 0}], Nil{}),
+        +ms => main.emit.go(t, dir, out.join(acc, out.at(run.mods(4, ms), dir.or(dir, codes(p))))))
+
+def args.data(xs: List<String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      Con{x, args.data(t)}
+
+# `emit FILE.blend... [DIR]`: the modules, and a last argument not one
+# the directory
+def main.emit(+xs: List<&2, String>) -> IO(Unit):
+  on.maybe(String, IO(Unit), List.last(&2, String, xs), u => main.out(Out{False{}, usage()}),
+    +l => when(IO(Unit), Bool.not(ends(codes(l), codes(".blend"))) && Nat.is_gt(List.length(&2, String, xs), 1n),
+      v => main.emit.go(List.take(&2, String, xs, Nat.sub(List.length(&2, String, xs), 1n)), Some{codes(l)}, Outs{Nil{}}),
+      v => main.emit.go(xs, None{}, Outs{Nil{}})))
+
 def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
   match cmd:
     case 0:
-      main.out(Out{False{}, usage()}, Nil{})
+      main.out(Out{False{}, usage()})
+    case 4:
+      main.emit(args.data(xs))
     case _:
       match xs:
         case Con{+path, r}:
           match r:
             case Nil{}:
-              main.file(cmd, path, dir.of(codes(path)))
+              main.file(cmd, path)
             case Con{d, t}:
-              match t:
-                case Nil{}:
-                  when(IO(Unit), U32.is_eq(cmd, 4), u => main.file(cmd, path, codes(d)), u => main.out(Out{False{}, usage()}, Nil{}))
-                case Con{y, z}:
-                  main.out(Out{False{}, usage()}, Nil{})
+              main.out(Out{False{}, usage()})
         case Nil{}:
-          main.out(Out{False{}, usage()}, Nil{})
+          main.out(Out{False{}, usage()})
 
 def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool, +em: Bool) -> U32:
   match rd ob rs em:
@@ -5208,9 +5284,9 @@ def main.args(xs: List<String>) -> IO(Unit):
         case Con{+flag, r2}:
           main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve"), String.eq(flag, "emit")), r2)
         case Nil{}:
-          main.out(Out{False{}, usage()}, Nil{})
+          main.out(Out{False{}, usage()})
     case Nil{}:
-      main.out(Out{False{}, usage()}, Nil{})
+      main.out(Out{False{}, usage()})
 
 def main() -> IO(Unit):
   do IO<Unit>:

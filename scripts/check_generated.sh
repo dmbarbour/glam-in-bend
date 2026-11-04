@@ -16,18 +16,19 @@ root=$PWD
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 status=0
 
-# Blend's emission of one module, all of it at once: the code, and the
-# laws and proofs beside it where the module has any
+# Blend's emission of a directory's modules, all of it at once: each
+# module's code, and its laws and proofs beside it where it has any
 # (`blend-proofs-beside-code`), written into results/ (out of git, each
-# file overwritten, none removed) and compared with the files in dir;
-# a laws or proofs file the emission no longer writes is stale
+# file overwritten, none removed) and compared with the files in dir; a
+# laws or proofs file the emission no longer writes is stale
 blend_check() {
-  dir=$1 file=$2 src=$3
+  dir=$1
+  shift
   out=$root/results/blend/generated/$dir
-  again="(cd $dir && $(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh emit $src)"
+  again="(cd $dir && $(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh emit $*)"
   mkdir -p "$out" || return 1
-  if ! wrote=$(cd "$dir" && "$root/blend/run.sh" emit "$src" "$out"); then
-    echo "$dir/$file: blend emit $src fails"
+  if ! wrote=$(cd "$dir" && "$root/blend/run.sh" emit "$@" "$out"); then
+    echo "$dir: blend emit $* fails"
     return 1
   fi
   ok=0
@@ -36,28 +37,31 @@ blend_check() {
     name=${p##*/}
     names="$names$name "
     if cmp -s "$p" "$dir/$name"; then
-      echo "$dir/$name: matches blend $src"
+      echo "$dir/$name: matches blend"
     else
-      echo "$dir/$name differs from what blend $src writes: regenerate it $again"
+      echo "$dir/$name differs from what blend writes: regenerate it $again"
       ok=1
     fi
   done
-  for name in "${file%.bend}_LAWS.bend" "${file%.bend}_PROOF.bend"; do
-    case $names in
-      *" $name "*) ;;
-      *) [ ! -e "$dir/$name" ] || { echo "$dir/$name: blend $src writes it no longer: remove it"; ok=1; } ;;
-    esac
+  for src in "$@"; do
+    for name in "${src%.blend}_LAWS.bend" "${src%.blend}_PROOF.bend"; do
+      case $names in
+        *" $name "*) ;;
+        *) [ ! -e "$dir/$name" ] || { echo "$dir/$name: blend writes it no longer: remove it"; ok=1; } ;;
+      esac
+    done
   done
   return "$ok"
 }
 
-# one line each: the directory, the generated file, the generator's kind
-# (`bend`, a Bend program printing the file; `blend`, Blend's emission,
-# the file its code) and its arguments, relative to the directory
-while read -r dir file kind args; do
-  [ -n "$dir" ] || continue
+# one line each: the generator's kind and the directory it runs in; for
+# `bend`, a Bend program printing a file, the file and its arguments; for
+# `blend`, Blend's emission, the directory's modules
+while read -r kind dir rest; do
+  [ -n "$kind" ] || continue
   case $kind in
     bend)
+      file=${rest%% *} args=${rest#* }
       # shellcheck disable=SC2086 # the arguments split as written
       if (cd "$dir" && $BEND $args | cmp -s - "$file"); then
         echo "$dir/$file: matches bend $args"
@@ -65,24 +69,13 @@ while read -r dir file kind args; do
         echo "$dir/$file differs from what bend $args writes: regenerate it (cd $dir && bend $args > $file)"
         status=1
       fi ;;
-    blend) blend_check "$dir" "$file" "$args" || status=1 ;;
-    *) echo "$dir/$file: no generator of kind $kind"; status=1 ;;
+    # shellcheck disable=SC2086 # the modules split as written
+    blend) blend_check "$dir" $rest || status=1 ;;
+    *) echo "$dir: no generator of kind $kind"; status=1 ;;
   esac
 done <<'EOF'
-spike krules.bend bend tools/gen_krules.bend
-blend/samples family.bend blend family.blend
-blend/samples nested.bend blend nested.blend
-blend/samples override.bend blend override.blend
-blend/samples prior.bend blend prior.blend
-blend/samples sharing.bend blend sharing.blend
-blend/samples choice.bend blend choice.blend
-blend/samples types.bend blend types.blend
-blend/samples imports.bend blend imports.blend
-blend/samples family-nested.bend blend family-nested.blend
-blend/samples nested-reach.bend blend nested-reach.blend
-blend/samples laws.bend blend laws.blend
-blend/samples laws-imported.bend blend laws-imported.blend
-blend/samples/lib shapes.bend blend shapes.blend
-blend/samples/lib adds.bend blend adds.blend
+bend spike krules.bend tools/gen_krules.bend
+blend blend/samples family.blend nested.blend override.blend prior.blend sharing.blend choice.blend types.blend imports.blend family-nested.blend nested-reach.blend laws.blend laws-imported.blend
+blend blend/samples/lib shapes.blend adds.blend
 EOF
 exit "$status"
