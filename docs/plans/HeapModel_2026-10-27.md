@@ -2143,13 +2143,40 @@ takes from it:
                    maintainer's fallback): a fan's events are the table's
                    again, and the erasure modes make main's interactions
                    and events exactly, every case alike.
-                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers` — planned — the table's
-                   events in every strategy, run where statics are written
-                   (the native rules, static erasure, the sweep, the
-                   loader), not by tests after every rewrite: plain eager
-                   would then make the linear fans' savings (with static
-                   labels up to 46%, the dead ports' counts at a867628); a
-                   linear chain, no worklist.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers` — built 2026-11-04: the
+                   table's events in every strategy, run where statics are
+                   written, not by tests after every rewrite. The rewrites
+                   take a second follow-up beside `after`, `erased`, which
+                   only the rules making erasers call (the generated native
+                   rules, the interpreted table where its rule makes one,
+                   static erasure); plain strategies pass the events as
+                   `erased` and nothing as `after`, the erasure modes the
+                   events as both. Plain eager's logical interactions over
+                   the library 7.8% fewer (10,601,541 to 9,777,333), none
+                   more, up to 46% with static labels (mixin-once-16
+                   13,947 to 7,523), the events' whole saving: 9,649,714
+                   against 9,649,584 with every event, the rest in
+                   hand-written dead calls whose events come from nodes,
+                   not statics. Plain demand alike in interactions, 27
+                   cases needing less capacity (mixin-chain-16 labels
+                   12.8% fewer instructions), 0.19% fewer in all, up to
+                   1% more where nothing is saved; collecting demand 0.17%
+                   more (gcbench run 233 against 230). The kernel's
+                   workloads, no interaction saved there, four builds
+                   against main (count_builds 236 against 235): plain
+                   eager default +0 to +0.37%, pgo 0, forced inline +1.0%
+                   to +1.14%, both -0.29% to +0.16%; plain demand +0.14%
+                   to +0.19%, 0, -0.35% to -0.49%, +1.9% to +2.4%: `go`
+                   three continuation segments more a family
+                   (sharing.py), the events' call from the native rules.
+                   Not covered: a static moved by a rule's link between
+                   two external peers, and the loader's; so the walk keeps
+                   its read of a copy's other output.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers.moves` — tentative — events
+                   where a rule's link between two external peers moves a
+                   static (an annihilation meeting a dead port, beta
+                   meeting a dead variable), the remaining writer, and the
+                   loader's statics; then `.links.walk.narrow`.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — active — gcbench runs 226 and 227
                    against 221 and the library against main so far; spot
                    against run 211 to come. Collecting demand at 227:
@@ -2246,7 +2273,7 @@ takes from it:
                    cost against run 211 lies elsewhere, these workloads
                    meeting few statics at auxiliary ports.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk.narrow` — contingent on
-                   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers`
+                   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers.moves`
                    — the walk reads only a function's principal, entered
                    by its variable, once no strategy leaves a static on a
                    copy's output.

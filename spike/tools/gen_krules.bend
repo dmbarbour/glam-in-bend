@@ -242,14 +242,14 @@ def stepname(+name: String, +j: Nat) -> String:
 def tparam(w: Bool) -> String:
   match w:
     case True{}:
-      "~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, "
+      "~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, "
     case False{}:
       "~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, "
 
 def targ(w: Bool) -> String:
   match w:
     case True{}:
-      "~S, ~R, ~note, ~fin, ~after, "
+      "~S, ~R, ~note, ~fin, ~after, ~erased, "
     case False{}:
       "~S, ~note, "
 
@@ -264,6 +264,17 @@ def finish.w(w: Bool, +x: String, +ss: String) -> String:
   match w:
     case True{}:
       "after(" ++ x ++ ", " ++ ss ++ ")"
+    case False{}:
+      x
+
+# a rule that makes erasers, static, ends by `erased` where others end by
+# `after`: the events where its statics land, run in every strategy, so
+# that none is tested for after a rewrite that writes no static
+# (`.links.propagate.writers`, erasure-at-write)
+def finish.n(w: Bool, +x: String, +ss: String) -> String:
+  match w:
+    case True{}:
+      "erased(" ++ x ++ ", " ++ ss ++ ")"
     case False{}:
       x
 
@@ -731,7 +742,7 @@ def nv.sites(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>) -> String:
     nv.site.s(site(xs, ls, 2n), xs, ls, 2n) ++ ", " ++ nv.site.s(site(xs, ls, 3n), xs, ls, 3n) ++ "}"
 
 def nv.finish(+xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +st: String) -> String:
-  finish.w(any_site(xs, ls), "fin(" ++ nv.fuses(xs, N.fuse_ends(xs, ls), nv.links(xs, ls, st)) ++ ", " ++ nv.notes(xs, ls, "st") ++ ")", nv.sites(xs, ls))
+  finish.n(any_site(xs, ls), "fin(" ++ nv.fuses(xs, N.fuse_ends(xs, ls), nv.links(xs, ls, st)) ++ ", " ++ nv.notes(xs, ls, "st") ++ ")", nv.sites(xs, ls))
 
 def entry.k(+w: Bool, +name: String, +xs: List<&2, R.Spec>, +ls: List<&2, R.Link>, +a: R.NodeKind, +b: R.NodeKind) -> String:
   match xs:

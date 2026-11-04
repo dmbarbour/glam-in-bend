@@ -29,7 +29,8 @@ maintainer allowed should it prove simpler and more efficient.
 - The rewrite's dispatch reads kinds alone, as before
   `.links.dead-ports`.
 - Writers of statics (native rules, static erasure, the sweep, the
-  loader) are where erasure continues; plain strategies may then make
-  events, as the erasure modes do now.
+  loader) are where erasure continues: every strategy makes the table's
+  events where native rules and static erasure write statics, the
+  erasure modes after every rewrite too (`.links.propagate.writers`).
 - Strategies that run no events leave a static on a fan's side, which
   the full fan's rules then meet.

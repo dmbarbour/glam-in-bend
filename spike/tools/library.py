@@ -2,8 +2,10 @@
 """The library of nets (pairing-library in docs/plans/NetPairing_2026-10-26.md):
 small nets kept for what they exercise, each run through the spike, the
 kernel's interpreted table and its generated rewrites, on demand, with
-two stacks, by the profiling strategy, and in the erasure modes, which
-run events (heap-strategies.erasure.kernel): eager by the generated
+two stacks, by the profiling strategy, each running the events where a
+rule writes a static (`.links.propagate.writers`), and in the erasure
+modes, which run events after every rewrite (heap-strategies.erasure.
+kernel): eager by the generated
 rewrites and by the interpreted table, on demand, with two stacks, and
 profiled, its logical interactions those of the interactions made, its
 events by kind apart. What must hold is checked; interactions and events

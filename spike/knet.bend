@@ -906,62 +906,77 @@ def go.none.e(r: P.E, +x: N.Ext) -> P.E:
 
 # the generated rewrite, which calls `after` itself at the external peers
 # where its rule may make an event (gen_krules.bend's sites)
-def go.gen(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.gen(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite(~S, ~R, ~note, ~fin, ~after, P.rk(ha), rn, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+      KR.rewrite(~S, ~R, ~note, ~fin, ~after, ~erased, P.rk(ha), rn, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
 
 # a rewrite by the table, then `after` at its sites (wd.sites)
-def go.wd(~S: Type, ~R: Type, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, w: Wd, st: S) -> R:
-  match w:
-    case Wd{h, ns, +sx}:
+# a rule's erasers, which its rewrite makes static
+def rule_erases(r: R.Rule) -> Bool:
+  match r:
+    case R.RWire{xs, ls}:
+      R.nv.any(xs)
+    case R.RStuck{}:
+      False{}
+
+def go.wd.w(~S: Type, ~R: Type, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +er: Bool, w: Wd, st: S) -> R:
+  match er w:
+    case True{} Wd{h, ns, +sx}:
+      erased(wd(Wd{h, ns, sx}, st), sx)
+    case False{} Wd{h, ns, +sx}:
       after(wd(Wd{h, ns, sx}, st), sx)
 
-def go.interp.pl(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.Pl, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> R:
+# a rewrite by the table, then at its sites `erased` where its rule makes
+# erasers, as the generated rewrites do, else `after`
+def go.wd(~S: Type, ~R: Type, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: R.Rule, w: Wd, st: S) -> R:
+  go.wd.w(~S, ~R, ~wd, ~after, ~erased, rule_erases(r), w, st)
+
+def go.interp.pl(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.Pl, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> R:
   match r:
     case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
-      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
+      go.wd(~S, ~R, ~wd, ~after, ~erased, R.rule(kof(ha), kof(hb), t), apply_rule(R.rule(kof(ha), kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
 
 # the interpreted table, then `after` at all its external peers; a Lift
 # facing a LiftC is peeled first, as the generated rewrite for the pair
 # does (kprim.bend's peel_ctl), the peers then those peeling leaves
-def go.interp(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ctl: Bool, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.interp(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, ctl: Bool, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match ctl:
     case True{}:
       match x:
         case N.Ext4{+e0, +e1, +e2, +e3}:
-          go.interp.pl(~S, ~R, ~note, ~fin, ~wd, ~after, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+          go.interp.pl(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
     case False{}:
-      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
+      go.wd(~S, ~R, ~wd, ~after, ~erased, R.rule(kof(ha), kof(hb), t), apply_rule(R.rule(kof(ha), kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
 
 # A meeting the identity, its loop resolved ahead (KR.rewrite_id): the
 # peers of the function's ports are each other, not looked at after
-def go.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      KR.rewrite_id(~S, ~R, ~note, ~fin, ~after, P.rk(ha), t, h, st, a, b, ha, hb, pa, pb, e0, e1, P.nil(), P.nil())
+      KR.rewrite_id(~S, ~R, ~note, ~fin, ~after, ~erased, P.rk(ha), t, h, st, a, b, ha, hb, pa, pb, e0, e1, P.nil(), P.nil())
 
 # A meeting the identity by the interpreted table: its rule with the loop
 # resolved ahead (R.rule_id, law identity_resolved), applied as a plain
 # rule, the function's ports' peers each other and not looked at after,
 # as the generated rewrite does (go.id)
-def go.interp.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.interp.id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match x:
     case N.Ext4{+e0, +e1, +e2, +e3}:
-      go.wd(~S, ~R, ~wd, ~after, apply_rule(R.rule_id(kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st)
+      go.wd(~S, ~R, ~wd, ~after, ~erased, R.rule_id(kof(ha), t), apply_rule(R.rule_id(kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st)
 
 # a redex the generated rewrites do not take, its external peers including
 # its own ports or `fast` off: A meeting the identity by its rule with the
 # loop resolved ahead (walk.loops), generated where `fast` is on, else the
 # interpreted table
-def go.loop(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +id: Bool, +fast: Bool, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.loop(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +id: Bool, +fast: Bool, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match id fast:
     case True{} True{}:
-      go.id(~S, ~R, ~note, ~fin, ~after, t, h, st, a, b, ha, hb, pa, pb, x)
+      go.id(~S, ~R, ~note, ~fin, ~after, ~erased, t, h, st, a, b, ha, hb, pa, pb, x)
     case True{} False{}:
-      go.interp.id(~S, ~R, ~note, ~fin, ~wd, ~after, t, h, st, a, b, ha, hb, pa, pb, x)
+      go.interp.id(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, t, h, st, a, b, ha, hb, pa, pb, x)
     case False{} _:
-      go.interp(~S, ~R, ~note, ~fin, ~wd, ~after, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+      go.interp(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
 
 # B the identity, a function whose body is its variable, and no other
 # external peer a port of the redex
@@ -970,65 +985,65 @@ def is_id(+x: N.Ext, +a: U32, +b: U32, +hb: U32) -> Bool:
     case N.Ext4{+e0, +e1, +e2, +e3}:
       U32.is_eq(P.rk(hb), 1) && U32.is_eq(e2, (b + 2 : U32)) && U32.is_eq(e3, (b + 1 : U32)) && Bool.not(own(e0, a, b) || own(e1, a, b))
 
-def go.which(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, gen: Bool, +fast: Bool, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.which(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, gen: Bool, +fast: Bool, +rn: U32, +t: Bool, h: P.H, st: S, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   match gen:
     case True{}:
-      go.gen(~S, ~R, ~note, ~fin, ~wd, ~after, rn, t, h, st, a, b, ha, hb, pa, pb, x)
+      go.gen(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, rn, t, h, st, a, b, ha, hb, pa, pb, x)
     case False{}:
-      go.loop(~S, ~R, ~note, ~fin, ~wd, ~after, is_id(x, a, b, hb), fast, t, h, st, a, b, ha, hb, pa, pb, x)
+      go.loop(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, is_id(x, a, b, hb), fast, t, h, st, a, b, ha, hb, pa, pb, x)
 
 # the generated rewrite, or for a redex whose external peers include its
 # own ports, or when `fast` is off, go.loop
-def go.rule(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & Bool, st: S, +fast: Bool, +rn: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
+def go.rule(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & Bool, st: S, +fast: Bool, +rn: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> R:
   (h, +t) = r
-  go.which(~S, ~R, ~note, ~fin, ~wd, ~after, fast && Bool.not(any_partner(x, a, b)), fast, rn, t, h, st, a, b, ha, hb, pa, pb, x)
+  go.which(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, fast && Bool.not(any_partner(x, a, b)), fast, rn, t, h, st, a, b, ha, hb, pa, pb, x)
 
-def go.ext.r(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +rn: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  go.rule(~S, ~R, ~note, ~fin, ~wd, ~after, KR.test(~S, ~R, ~note, ~fin, ~after, rn, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, rn, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
+def go.ext.r(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +rn: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
+  go.rule(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, KR.test(~S, ~R, ~note, ~fin, ~after, ~erased, rn, h, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2)), st, fast, rn, a, b, ha, hb, payload(ha, 0, a2), payload(hb, b1, b2),
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
 # the pair by its kinds as they are: a static at a link word is read
 # nowhere on the rewrite's path, every test there costing every rewrite
 # (erasure-at-write)
-def go.ext(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+def go.ext(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
+  go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
 
-def go.b2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> R:
+def go.b2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> R:
   (h, +b2) = r
-  go.ext(~S, ~R, ~note, ~fin, ~wd, ~after, fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+  go.ext(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
 
-def go.b1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> R:
+def go.b1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> R:
   (h, +b1) = r
-  go.b2(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
+  go.b2(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
 
-def go.a2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> R:
+def go.a2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> R:
   (h, +a2) = r
-  go.b1(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
+  go.b1(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
 
-def go.a1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
+def go.a1(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
   (h, +a1) = r
-  go.a2(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
+  go.a2(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
 
 # a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
 # a node's payload: a data node's word 2, a call's or a control's word 3.
-def go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
-  go.a1(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
+def go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> R:
+  go.a1(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
 
-def ori(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, neg: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> R:
+def ori(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, neg: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> R:
   match neg:
     case True{}:
-      go(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, x, y, hx, hy)
+      go(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, h, st, fast, x, y, hx, hy)
     case False{}:
-      go(~S, ~R, ~note, ~fin, ~wd, ~after, h, st, fast, y, x, hy, hx)
+      go(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, h, st, fast, y, x, hy, hx)
 
-def int.y(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> R:
+def int.y(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +x: U32, +y: U32, +hx: U32) -> R:
   (h, +hy) = r
-  ori(~S, ~R, ~note, ~fin, ~wd, ~after, KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
+  ori(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
 
-def int.x(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
+def int.x(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
   (h, +hx) = r
-  int.y(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, y), st, fast, x, y, hx)
+  int.y(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, y), st, fast, x, y, hx)
 
 # Static erasure (heap-strategies.erasure.load.cycle.walk.directed.
 # dead-kinds.links.read): node x meeting a static eraser at its principal
@@ -1076,8 +1091,8 @@ def se.notes(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +loop: Bool, st: S, 
     case False{}:
       se.note(~S, ~note, U32.is_lt(KR.kind_arity(k), 3), se.note(~S, ~note, U32.is_lt(KR.kind_arity(k), 2), st, e1, P.era()), e2, P.era())
 
-def se.do(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +k: U32, +e1: U32, +e2: U32) -> R:
-  after(fin(se.put(se.put(h, e1, P.era(), x), e2, P.era(), x),
+def se.do(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +k: U32, +e1: U32, +e2: U32) -> R:
+  erased(fin(se.put(se.put(h, e1, P.era(), x), e2, P.era(), x),
       se.notes(~S, ~note, Bool.not(P.is_static(e1)) && U32.is_eq(P.base(e1), x), st, k, e1, e2)),
     N.Ext4{e1, e2, P.nil(), P.nil()})
 
@@ -1090,30 +1105,30 @@ def se.stuck(+neg: Bool, +k: U32) -> U32:
     case False{}:
       KR.stuck_by(6, k)
 
-def se.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ok: Bool, +stuck: Bool, h: P.H, st: S, +x: U32, +hx: U32, +k: U32, +w2: U32, +w3: U32) -> R:
+def se.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +ok: Bool, +stuck: Bool, h: P.H, st: S, +x: U32, +hx: U32, +k: U32, +w2: U32, +w3: U32) -> R:
   match ok stuck:
     case True{} False{}:
-      se.do(~S, ~R, ~note, ~fin, ~after, se.free(KR.is_data(P.rk(hx)), h, x, hx, w2, w3), st, x, k,
+      se.do(~S, ~R, ~note, ~fin, ~after, ~erased, se.free(KR.is_data(P.rk(hx)), h, x, hx, w2, w3), st, x, k,
         aux_or_nil(U32.is_lt(1, KR.kind_arity(k)), w2), aux_or_nil(U32.is_lt(2, KR.kind_arity(k)), w3))
     case True{} True{}:
       fin(h, st)
     case False{} _:
       fin(P.h_err(h), st)
 
-def se.k(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +k: U32, h: P.H, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32, +w3: U32) -> R:
-  se.go(~S, ~R, ~note, ~fin, ~after, U32.is_eq(s, P.era()), U32.is_ne(se.stuck(KR.kind_neg(k), k), 0), h, st, x, hx, k, w2, w3)
+def se.k(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +k: U32, h: P.H, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32, +w3: U32) -> R:
+  se.go(~S, ~R, ~note, ~fin, ~after, ~erased, U32.is_eq(s, P.era()), U32.is_ne(se.stuck(KR.kind_neg(k), k), 0), h, st, x, hx, k, w2, w3)
 
-def se.w3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32) -> R:
+def se.w3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32) -> R:
   (h, +w3) = r
-  se.k(~S, ~R, ~note, ~fin, ~after, P.rk(hx), h, st, x, s, hx, w2, w3)
+  se.k(~S, ~R, ~note, ~fin, ~after, ~erased, P.rk(hx), h, st, x, s, hx, w2, w3)
 
-def se.w2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32) -> R:
+def se.w2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32) -> R:
   (h, +w2) = r
-  se.w3(~S, ~R, ~note, ~fin, ~after, P.rd(h, (x + 3 : U32)), st, x, s, hx, w2)
+  se.w3(~S, ~R, ~note, ~fin, ~after, ~erased, P.rd(h, (x + 3 : U32)), st, x, s, hx, w2)
 
-def se.hx(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32) -> R:
+def se.hx(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32) -> R:
   (h, +hx) = r
-  se.w2(~S, ~R, ~note, ~fin, ~after, P.rd(h, (x + 2 : U32)), st, x, s, hx)
+  se.w2(~S, ~R, ~note, ~fin, ~after, ~erased, P.rd(h, (x + 2 : U32)), st, x, s, hx)
 
 # two statics meeting, noted as a pair by x (P.note): nothing to rewrite,
 # the pair counted where it is taken, as one of allocated erasers
@@ -1122,29 +1137,29 @@ def static_meet(~S: Type, ~R: Type, ~fin: P.H -> S -> R, h: P.H, st: S) -> R:
 
 # node x, its principal facing static s: erased by its kind, or
 # left where stuck; a static other than the eraser is a fault, counted
-def static_erase(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +s: U32) -> R:
-  se.hx(~S, ~R, ~note, ~fin, ~after, P.rd(h, x), st, x, s)
+def static_erase(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +s: U32) -> R:
+  se.hx(~S, ~R, ~note, ~fin, ~after, ~erased, P.rd(h, x), st, x, s)
 
-def int.st(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +sx: Bool, h: P.H, st: S, +x: U32, +y: U32) -> R:
+def int.st(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +sx: Bool, h: P.H, st: S, +x: U32, +y: U32) -> R:
   match sx:
     case True{}:
       static_meet(~S, ~R, ~fin, h, st)
     case False{}:
-      static_erase(~S, ~R, ~note, ~fin, ~after, h, st, x, y)
+      static_erase(~S, ~R, ~note, ~fin, ~after, ~erased, h, st, x, y)
 
-def int.s(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +sy: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
+def int.s(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, +sy: Bool, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
   match sy:
     case True{}:
-      int.st(~S, ~R, ~note, ~fin, ~after, P.is_static(x), h, st, x, y)
+      int.st(~S, ~R, ~note, ~fin, ~after, ~erased, P.is_static(x), h, st, x, y)
     case False{}:
-      int.x(~S, ~R, ~note, ~fin, ~wd, ~after, P.rd(h, x), st, fast, x, y)
+      int.x(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, P.rd(h, x), st, fast, x, y)
 
 # rewrite the active pair x >< y: y may be static; x too, a meeting of two
 # statics noted (P.note), y then whatever x's word reads. Both ports of a
 # pair are principal, port bits 0 or a static's 3, so x | y has 3 there
 # just when either is static
-def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
-  int.s(~S, ~R, ~note, ~fin, ~wd, ~after, U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
+def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
+  int.s(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
 
 # The families' chains: the net alone, and with a strategy's stack, on
 # which each rewrite notes the pairs it makes, in the order it makes them
@@ -1154,10 +1169,10 @@ def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.
 # 2.4% of its instructions, store run 84).
 
 def interact(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
-  interact.f(~Unit, ~P.H, ~note.u, ~fin.h, ~wd.u, ~after, h, Unit{}, fast, x, y)
+  interact.f(~Unit, ~P.H, ~note.u, ~fin.h, ~wd.u, ~after, ~ev.settle, h, Unit{}, fast, x, y)
 
 def interact.e(~after: P.E -> @+x:N.Ext -> P.E, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
-  interact.f(~P.Stk, ~P.E, ~P.note, ~fin.e, ~wd.e, ~after, h, st, fast, x, y)
+  interact.f(~P.Stk, ~P.E, ~P.note, ~fin.e, ~wd.e, ~after, ~ev.settle.e, h, st, fast, x, y)
 
 # Loading a template
 # ==================

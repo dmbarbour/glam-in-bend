@@ -194,22 +194,22 @@ name: costly-124
 why: labels need 326 interactions; with levels, 97% of the work is controls
   crossing controls, fans and numbers, and erased one at a time
 term: (mul (pow ((\f. add (f #1) (f #2)) (\n. n (add #1) #0)) (mul #3 #2)) (pow (mul #0 #3) (mul #3 #3))) succ 0
-levels: 0 logical 23367 peels 0
-labels: 0 logical 325 peels 0
-unfused: 0 logical 128919 peels 0
+levels: 0 logical 17491 peels 0
+labels: 0 logical 291 peels 0
+unfused: 0 logical 97135 peels 0
 
 name: costly-107
 why: labels need 193 interactions, levels 77 times as many
 term: ((\f. mul (f ((\f. mul (f ((\x. mul x x) #3)) (f #2)) (\n. pow n #2))) (f (twice (\n. add n n) #0))) (\n. mul n #2)) succ 0
-levels: 0 logical 19565 peels 0
-labels: 0 logical 192 peels 0
-unfused: 0 logical 53537 peels 0
+levels: 0 logical 19506 peels 0
+labels: 0 logical 170 peels 0
+unfused: 0 logical 53192 peels 0
 
 name: costly-133
 why: the costliest that finishes, a self-application labels cannot finish;
   with unit brackets it needs more than the fuel
 term: (pow ((\n. n (add #1) #0) (self #1)) (self (twice (mul #2) #1))) succ 0
-levels: 1 logical 230763 peels 0
+levels: 1 logical 139275 peels 0
 
 name: costly-6
 why: a self-application labels get wrong; the kernel's fusion saves half
@@ -217,9 +217,9 @@ why: a self-application labels get wrong; the kernel's fusion saves half
   value, and demand finds a cycle of principal ports facing auxiliary
   ones, which it once walked until its fuel ran out
 term: (pow (self (twice (\n. pow n #2) #0)) ((\f. mul (f (twice (\n. mul n #2) #1)) (f (twice (\n. n n) #2))) (\n. n (add #1) #0))) succ 0
-levels: 1 logical 150306 peels 0
+levels: 1 logical 149112 peels 0
 labels: wrong
-unfused: 1 logical 1634502 peels 0
+unfused: 1 logical 1626320 peels 0
 
 # Demand
 
@@ -299,8 +299,8 @@ why: a function copied with a dead call in its body, the call's argument
   its variable, superposed where the copy crosses the binder: the dead
   call meets the superposition, and unfused the controls facing it
 term: (\f. plus (f 1) (f 2)) (\x. (\u. 7) (succ x))
-levels: 14 logical 21 peels 0
-unfused: 14 logical 55 peels 0
+levels: 14 logical 18 peels 0
+unfused: 14 logical 48 peels 0
 
 name: dead-port-swap
 why: a function copied, its body applying its variable to the successor
@@ -312,9 +312,9 @@ why: a function copied, its body applying its variable to the successor
   events' drain (heap-strategies.erasure.load.cycle.walk.directed.
   dead-kinds.links.dead-ports, shrunk from costly-124)
 term: (\f. add (f #1) (f #2)) (\n. n S #0) succ 0
-levels: 3 logical 146 peels 0
-labels: 3 logical 66 peels 0
-unfused: 3 logical 466 peels 0
+levels: 3 logical 144 peels 0
+labels: 3 logical 65 peels 0
+unfused: 3 logical 446 peels 0
 
 # Backtracking with two continuations (terms.py's ret, fail, alt, bind,
 # guard, once): a first solution drops the failure continuation, every
@@ -323,33 +323,33 @@ unfused: 3 logical 466 peels 0
 name: search-first
 why: the first x in 0..7 with x + x = 6, the rest of the search dropped
 term: first (bind (upto #8) (\x. guard (eq (add x x) #6) (ret x))) #0 succ 0
-levels: 3 logical 67895 peels 0
-labels: 3 logical 12635 peels 0
-unfused: 3 logical 170115 peels 0
+levels: 3 logical 50713 peels 0
+labels: 3 logical 9290 peels 0
+unfused: 3 logical 135897 peels 0
 
 name: search-pairs
 why: the first x, y in 0..5 with x + y = 5, nested choices, the inner
   search dropped with the outer
 term: first (bind (upto #6) (\x. bind (upto #6) (\y. guard (eq (add x y) #5) (ret (add (mul x #3) y))))) #0 succ 0
-levels: 5 logical 123764 peels 0
-labels: 5 logical 22894 peels 0
-unfused: 5 logical 366164 peels 0
+levels: 5 logical 91850 peels 0
+labels: 5 logical 15823 peels 0
+unfused: 5 logical 296020 peels 0
 
 name: search-once
 why: a cut (once) commits to the first x = 3 in 0..4 and computes on with
   it, the alternatives dropped mid-program
 term: first (bind (once (bind (upto #5) (\x. guard (eq x #3) (ret x)))) (\x. ret (mul x x))) #0 succ 0
-levels: 9 logical 10537 peels 0
-labels: 9 logical 2503 peels 0
-unfused: 9 logical 30757 peels 0
+levels: 9 logical 8838 peels 0
+labels: 9 logical 2040 peels 0
+unfused: 9 logical 25598 peels 0
 
 name: search-count
 why: every x, y in 0..5 with x + y = 5 counted: nothing dropped, the
   search's whole cost
 term: count (bind (upto #6) (\x. bind (upto #6) (\y. guard (eq (add x y) #5) (ret x)))) succ 0
-levels: 6 logical 113006 peels 0
-labels: 6 logical 21725 peels 0
-unfused: 6 logical 314008 peels 0
+levels: 6 logical 82229 peels 0
+labels: 6 logical 14673 peels 0
+unfused: 6 logical 249047 peels 0
 
 # The list monad (terms.py's nil, cons, lret, lbind, lguard): every
 # solution in order, as a fold; the first alone drops the rest
@@ -358,24 +358,24 @@ name: list-sum
 why: the pairs x, y in 0..5 with x + y = 5, every one, summed as 3x + y:
   the list monad's whole cost
 term: sum (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret (add (mul x #3) y))))) succ 0
-levels: 60 logical 139470 peels 0
-labels: 60 logical 24137 peels 0
-unfused: 60 logical 379894 peels 0
+levels: 60 logical 105514 peels 0
+labels: 60 logical 16458 peels 0
+unfused: 60 logical 302352 peels 0
 
 name: list-head
 why: the same list, its head alone: the rest, a fold never taken, left
   to demand as garbage
 term: head (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret (add (mul x #3) y))))) #0 succ 0
-levels: 5 logical 128295 peels 0
-labels: 5 logical 23196 peels 0
-unfused: 5 logical 335659 peels 0
+levels: 5 logical 96128 peels 0
+labels: 5 logical 16073 peels 0
+unfused: 5 logical 265828 peels 0
 
 name: list-length
 why: the same pairs counted, their values never read
 term: length (lbind (range #6) (\x. lbind (range #6) (\y. lguard (eq (add x y) #5) (lret x)))) succ 0
-levels: 6 logical 116125 peels 0
-labels: 6 logical 22027 peels 0
-unfused: 6 logical 291457 peels 0
+levels: 6 logical 85503 peels 0
+labels: 6 logical 14923 peels 0
+unfused: 6 logical 226347 peels 0
 
 # A state threaded through backtracking (terms.py's sret, sbind, salt,
 # sonce, srun): a branch begins from the state where its choice was made,
@@ -385,26 +385,26 @@ unfused: 6 logical 291457 peels 0
 name: parse-greedy
 why: as many 1s as there are, at most 5, then a 2: three
 term: srun (sbind (many #5 (sat (eq #1))) (\n. sbind (sat (eq #2)) (\x. sret n))) (scons #1 (scons #1 (scons #1 (scons #2 snil)))) #9 succ 0
-levels: 3 logical 36826 peels 0
-labels: 3 logical 3182 peels 0
-unfused: 3 logical 139262 peels 0
+levels: 3 logical 36265 peels 0
+labels: 3 logical 3161 peels 0
+unfused: 3 logical 135579 peels 0
 
 name: parse-backtrack
 why: 1s, then a 1, then the end: many takes all three, the next 1 fails,
   and many gives one back, the input restored with it: two
 term: srun (sbind (many #5 (sat (eq #1))) (\n. sbind (sat (eq #1)) (\x. sbind eof (\u. sret n)))) (scons #1 (scons #1 (scons #1 snil))) #9 succ 0
-levels: 2 logical 34534 peels 0
-labels: 2 logical 3013 peels 0
-unfused: 2 logical 135390 peels 0
+levels: 2 logical 33471 peels 0
+labels: 2 logical 2863 peels 0
+unfused: 2 logical 129693 peels 0
 
 name: parse-cut
 why: the same with many under a cut (sonce): committed to all three 1s,
   the next 1 fails with nothing to go back to, and the parse gives the
   default, 9
 term: srun (sbind (sonce (many #5 (sat (eq #1)))) (\n. sbind (sat (eq #1)) (\x. sbind eof (\u. sret n)))) (scons #1 (scons #1 (scons #1 snil))) #9 succ 0
-levels: 9 logical 43063 peels 0
-labels: 9 logical 3545 peels 0
-unfused: 9 logical 154871 peels 0
+levels: 9 logical 41693 peels 0
+labels: 9 logical 3374 peels 0
+unfused: 9 logical 145847 peels 0
 
 # Objects as fixpoints of mixins (terms.py's ext, new): records a
 # selector picks from, mixins taking super and self, self tied by Y.
@@ -418,7 +418,7 @@ why: x is self's y plus 1, and a later mixin sets y to 10: late binding
 term: new (ext (\super self sel. sel (super T) #10) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 11
-labels: 11 logical 1272 peels 0
+labels: 11 logical 842 peels 0
 unfused: demand 11
 
 name: mixin-late-z
@@ -429,7 +429,7 @@ why: mixin-late tied by Z, the fixpoint whose self-application waits under
 term: Z (ext (\super self sel. sel (super T) #10) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 11
-labels: 11 logical 1273 peels 0
+labels: 11 logical 843 peels 0
 unfused: demand 11
 
 name: mixin-super
@@ -437,7 +437,7 @@ why: a mixin doubling super's y under x as self's y plus 1: 7
 term: new (ext (\super self sel. sel (S (self F)) (super F)) (ext (\super self sel. sel (super T) (add (super F) (super F))) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 7
-labels: 7 logical 950 peels 0
+labels: 7 logical 522 peels 0
 unfused: demand 7
 
 # Families at n, 2n and 4n, for fitting cost to a + b n^k
@@ -502,23 +502,23 @@ name: list-bind-8
 why: each of 0..n-1 through lret and lbind, counted: the list monad's
   cost per element, a family with list-bind-16 and list-bind-32
 term: length (lbind (range #8) (\x. lret x)) succ 0
-levels: 8 logical 3716 peels 0
-labels: 8 logical 835 peels 0
-unfused: 8 logical 29924 peels 0
+levels: 8 logical 3381 peels 0
+labels: 8 logical 775 peels 0
+unfused: 8 logical 27239 peels 0
 
 name: list-bind-16
 why: 16 elements
 term: length (lbind (range #16) (\x. lret x)) succ 0
-levels: 16 logical 10556 peels 0
-labels: 16 logical 2027 peels 0
-unfused: 16 logical 163076 peels 0
+levels: 16 logical 9849 peels 0
+labels: 16 logical 1927 peels 0
+unfused: 16 logical 155851 peels 0
 
 name: list-bind-32
 why: 32 elements
 term: length (lbind (range #32) (\x. lret x)) succ 0
-levels: 32 logical 33452 peels 0
-labels: 32 logical 5563 peels 0
-unfused: 32 logical 1050564 peels 0
+levels: 32 logical 31809 peels 0
+labels: 32 logical 5383 peels 0
+unfused: 32 logical 1029075 peels 0
 
 name: mixin-chain-4
 why: n mixins each adding 1 to super's y, under x as self's y plus 1:
@@ -527,7 +527,7 @@ why: n mixins each adding 1 to super's y, under x as self's y plus 1:
 term: new (#4 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 8
-labels: 8 logical 2790 peels 0
+labels: 8 logical 1706 peels 0
 unfused: demand 8
 
 name: mixin-chain-8
@@ -535,7 +535,7 @@ why: 8 mixins
 term: new (#8 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 12
-labels: 12 logical 7046 peels 0
+labels: 12 logical 4102 peels 0
 unfused: demand 12
 
 name: mixin-chain-16
@@ -543,7 +543,7 @@ why: 16 mixins
 term: new (#16 (ext (\super self sel. sel (super T) (S (super F)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 20
-labels: 20 logical 21030 peels 0
+labels: 20 logical 11774 peels 0
 unfused: demand 20
 
 name: mixin-once-4
@@ -554,7 +554,7 @@ why: mixin-chain with super used once, both fields taken by one
 term: new (#4 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 8
-labels: 8 logical 2031 peels 0
+labels: 8 logical 1223 peels 0
 unfused: demand 8
 
 name: mixin-once-8
@@ -562,7 +562,7 @@ why: 8 mixins
 term: new (#8 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 12
-labels: 12 logical 4851 peels 0
+labels: 12 logical 2747 peels 0
 unfused: demand 12
 
 name: mixin-once-16
@@ -570,7 +570,7 @@ why: 16 mixins
 term: new (#16 (ext (\super self sel. super (\x y. sel x (S y)))) (ext (\super self sel. sel (S (self F)) (super F)) (\self sel. sel #2 #3))) T succ 0
 fuel: 100000
 levels: demand 20
-labels: 20 logical 13947 peels 0
+labels: 20 logical 7523 peels 0
 unfused: demand 20
 
 name: loop-toggle-64
