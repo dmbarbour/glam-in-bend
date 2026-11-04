@@ -1,0 +1,26 @@
+# Laws stated in one module and proved in another: lib/adds.blend states
+# `plus_zero` and proves it once; each family here gets its own instance,
+# proved by the library's proof bound to the family's finals. A family
+# states a law of its own, proved with an inherited one as a lemma, and
+# one proves `plus_zero` again by its prior proof, `_plus_zero`.
+import Base
+import ./lib/adds.blend as A
+
+object Zero extends A.Adds with
+  def zero() -> Nat:
+    0n
+  law plus_zero_twice:
+    for +x: Nat
+    {plus(plus(x, zero()), zero()) == x : Nat}
+  proof plus_zero_twice(x):
+    %plus_zero(x) : {Nat.add(Nat.add(x, 0n), 0n) == _ : Nat}
+    plus_zero(Nat.add(x, 0n))
+
+object Again extends A.Adds with
+  def zero() -> Nat:
+    0n
+  upd proof plus_zero(x):
+    _plus_zero(x)
+
+def main() -> IO(Unit):
+  IO.print(Nat.show(Zero.plus(2n, Again.plus(1n, Zero.zero()))))

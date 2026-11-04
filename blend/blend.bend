@@ -813,13 +813,16 @@ def law.r(r: List<&2, U32> & List<&2, U32>, +txt: List<&2, U32>, body: List<&2, 
 def law.item(+txt: List<&2, U32>, body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   law.r(until(drop(4n, txt), 58), txt, body, no, ind)
 
-def proof.r(r: List<&2, U32> & List<&2, U32>, +upd: Bool, +txt: List<&2, U32>, body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
+def proof.r(r: List<&2, U32> & List<&2, U32>, +upd: Bool, +txt: List<&2, U32>, +body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   (+name, +rest) = r
   when(Item, name.ok(trim(name)) && Bool.not(blank(rest)),
-    u => IDef{0, upd, List.append(&2, U32, trim(name), [35]), Con{40, rest}, params.go(commas(parens(rest))), body, no, ind, 2},
+    u => when(Item, holds(rest, codes(") ->")),
+      v => IDef{0, upd, trim(name), Con{40, rest}, params.go(commas(parens(rest))), body, no, ind, 3},
+      v => IDef{0, upd, List.append(&2, U32, trim(name), [35]), Con{40, rest}, params.go(commas(parens(rest))), body, no, ind, 2}),
     u => IBad{txt, no, ind})
 
-# `proof NAME(params):`, or `upd proof`
+# `proof NAME(params):`, a law's proof, or `upd proof`; typed,
+# `proof NAME(params) -> T:`, a lemma, stating what it proves
 def proof.item(+txt: List<&2, U32>, +upd: Bool, +body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   when(Item, upd, u => proof.r(until(drop(10n, txt), 40), True{}, txt, body, no, ind),
     u => proof.r(until(drop(6n, txt), 40), False{}, txt, body, no, ind))
@@ -1837,16 +1840,19 @@ def er.lins(ps: List<&2, List<&2, U32>>, ls: List<&2, Maybe<&2, Lz>>, +id: U32, 
 #
 # An object's definitions: its linearization's members applied from its
 # base to itself, each name with the objects that gave it, the latest
-# first (an upd's prior is the next), and the line of the latest.
+# first (an upd's prior is the next), the line of the latest, and what it
+# is: a definition (0), a law (1), a law's proof (2), a lemma (3).
 
 type En is Data:
-  En{name: List<&2, U32>, chain: List<&2, U32>, +no: U32}
+  En{name: List<&2, U32>, chain: List<&2, U32>, +no: U32, +what: U32}
 
 # a member's error: its object and line, its kind (0 an introduction of a
 # name another object has, 1 a name its object gives twice, 2 an update of
-# nothing), its name and upd or def, and the object and line it met
+# nothing, 3 an update of a law or of another kind of member), its name
+# and upd or def, the object and line it met, what the member is and what
+# it met
 type Fe is Data:
-  Fe{+q: U32, +mno: U32, +kind: U32, name: List<&2, U32>, +upd: Bool, +origin: U32, +ono: U32}
+  Fe{+q: U32, +mno: U32, +kind: U32, name: List<&2, U32>, +upd: Bool, +origin: U32, +ono: U32, +what: U32, +was: U32}
 
 type Fd is Data:
   Fd{map: List<&2, En>, fes: List<&2, Fe>}
@@ -1857,7 +1863,7 @@ def en.find(es: List<&2, En>, +n: List<&2, U32>) -> Maybe<&2, En>:
       None{}
     case Con{+e, t}:
       match e:
-        case En{+name, chain, +no}:
+        case En{+name, chain, +no, +what}:
           when(Maybe<&2, En>, same(name, n), u => Some{e}, u => en.find(t, n))
 
 def en.set(es: List<&2, En>, +e: En, +n: List<&2, U32>) -> List<&2, En>:
@@ -1866,7 +1872,7 @@ def en.set(es: List<&2, En>, +e: En, +n: List<&2, U32>) -> List<&2, En>:
       [e]
     case Con{+x, +t}:
       match x:
-        case En{+name, chain, +no}:
+        case En{+name, chain, +no, +what}:
           when(List<&2, En>, same(name, n), u => Con{e, t}, u => Con{x, en.set(t, e, n)})
 
 def en.head(xs: List<&2, U32>) -> U32:
@@ -1877,27 +1883,33 @@ def en.head(xs: List<&2, U32>) -> U32:
       h
 
 # an introduction met an entry: twice in one object, or from another
-def fd.def.at(+q: U32, +no: U32, +name: List<&2, U32>, e: En, map: List<&2, En>, fes: List<&2, Fe>) -> Fd:
+def fd.def.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, map: List<&2, En>, fes: List<&2, Fe>) -> Fd:
   match e:
-    case En{n, +chain, +eno}:
-      Fd{en.set(map, En{name, [q], no}, name),
-        Con{Fe{q, no, when(U32, U32.is_eq(en.head(chain), q), u => 1, u => 0), name, False{}, en.head(chain), eno}, fes}}
+    case En{n, +chain, +eno, +was}:
+      Fd{en.set(map, En{name, [q], no, what}, name),
+        Con{Fe{q, no, when(U32, U32.is_eq(en.head(chain), q), u => 1, u => 0), name, False{}, en.head(chain), eno, what, was}, fes}}
 
-def fd.upd.at(+q: U32, +no: U32, +name: List<&2, U32>, e: En, +map: List<&2, En>, +fes: List<&2, Fe>) -> Fd:
+# whether an update may replace what it meets: never a law, and a
+# definition only by a definition, a lemma by a lemma
+def upd.fits(+what: U32, +was: U32) -> Bool:
+  Bool.not(U32.is_eq(was, 1)) && Bool.not(Bool.xor(U32.is_eq(what, 0), U32.is_eq(was, 0)))
+
+def fd.upd.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, +map: List<&2, En>, +fes: List<&2, Fe>) -> Fd:
   match e:
-    case En{n, +chain, +eno}:
-      when(Fd, U32.is_eq(en.head(chain), q),
-        u => Fd{en.set(map, En{name, chain, no}, name), Con{Fe{q, no, 1, name, True{}, q, eno}, fes}},
-        u => Fd{en.set(map, En{name, Con{q, chain}, no}, name), fes})
+    case En{n, +chain, +eno, +was}:
+      when(Fd, Bool.not(upd.fits(what, was)), u => Fd{map, Con{Fe{q, no, 3, name, True{}, en.head(chain), eno, what, was}, fes}},
+        u => when(Fd, U32.is_eq(en.head(chain), q),
+          v => Fd{en.set(map, En{name, chain, no, was}, name), Con{Fe{q, no, 1, name, True{}, q, eno, what, was}, fes}},
+          v => Fd{en.set(map, En{name, Con{q, chain}, no, was}, name), fes}))
 
-def fd.def(+q: U32, +upd: Bool, +name: List<&2, U32>, +no: U32, d: Fd) -> Fd:
+def fd.def(+q: U32, +upd: Bool, +name: List<&2, U32>, +no: U32, +what: U32, d: Fd) -> Fd:
   match d:
     case Fd{+map, +fes}:
       on.maybe(En, Fd, en.find(map, name),
         u => when(Fd, upd,
-          v => Fd{en.set(map, En{name, [q], no}, name), Con{Fe{q, no, 2, name, True{}, q, no}, fes}},
-          v => Fd{en.set(map, En{name, [q], no}, name), fes}),
-        +e => when(Fd, upd, v => fd.upd.at(q, no, name, e, map, fes), v => fd.def.at(q, no, name, e, map, fes)))
+          v => Fd{en.set(map, En{name, [q], no, what}, name), Con{Fe{q, no, 2, name, True{}, q, no, what, what}, fes}},
+          v => Fd{en.set(map, En{name, [q], no, what}, name), fes}),
+        +e => when(Fd, upd, v => fd.upd.at(q, no, name, what, e, map, fes), v => fd.def.at(q, no, name, what, e, map, fes)))
 
 def fd.mems(ns: List<&2, Node>, +q: U32, d: Fd) -> Fd:
   match ns:
@@ -1906,7 +1918,7 @@ def fd.mems(ns: List<&2, Node>, +q: U32, d: Fd) -> Fd:
     case Con{nd, t}:
       match nd:
         case NDef{+share, +upd, name, rest, params, body, +no, +ind, +what}:
-          fd.mems(t, q, fd.def(q, upd, name, no, d))
+          fd.mems(t, q, fd.def(q, upd, name, no, what, d))
         case _:
           fd.mems(t, q, d)
 
@@ -1957,7 +1969,7 @@ def fe.lines(fes: List<&2, Fe>) -> List<&2, U32>:
       Nil{}
     case Con{f, t}:
       match f:
-        case Fe{+q, +mno, +kind, name, +upd, +origin, +ono}:
+        case Fe{+q, +mno, +kind, name, +upd, +origin, +ono, +what, +was}:
           Con{mno, fe.lines(t)}
 
 def fd.lines(m: Maybe<&2, Fd>) -> List<&2, U32>:
@@ -1987,48 +1999,84 @@ def kw(+upd: Bool) -> String:
 def ends(+xs: List<&2, U32>, +p: List<&2, U32>) -> Bool:
   starts(List.reverse(&2, U32, xs), List.reverse(&2, U32, p))
 
-# a member as messages name it: a proof, named `#` after its law's name
-# inside Blend, by its law
-def is.proof(+name: List<&2, U32>) -> Bool:
-  ends(name, [35])
-
-# the name a definition is emitted by: `Obj.f`, a prior `Obj.f.Origin`,
-# the module's own unprefixed
 # a proof's name, its law's: the `#` that keeps them apart dropped
 def name.plain(+n: List<&2, U32>) -> List<&2, U32>:
   when(List<&2, U32>, ends(n, [35]), u => List.take(&2, U32, n, Nat.sub(List.length(&2, U32, n), 1n)), u => n)
 
-def mem.say(+name: List<&2, U32>) -> String:
-  when(String, is.proof(name), u => "a proof of " ++ text(name.plain(name)), u => text(name))
+# a member as messages name it, by what it is: a proof, named `#` after
+# its law's name inside Blend, by its law
+def mem.say(+name: List<&2, U32>, +what: U32) -> String:
+  match what:
+    case 1:
+      "law " ++ text(name)
+    case 2:
+      "a proof of " ++ text(name.plain(name))
+    case 3:
+      "proof " ++ text(name)
+    case _:
+      text(name)
 
-def mem.no(+name: List<&2, U32>) -> String:
-  when(String, is.proof(name), u => "no proof of " ++ text(name.plain(name)), u => "no " ++ text(name))
+def mem.no(+name: List<&2, U32>, +what: U32) -> String:
+  match what:
+    case 1:
+      "no law " ++ text(name)
+    case 2:
+      "no proof of " ++ text(name.plain(name))
+    case 3:
+      "no proof " ++ text(name)
+    case _:
+      "no " ++ text(name)
 
-def mem.kw(+upd: Bool, +name: List<&2, U32>) -> String:
-  when(String, is.proof(name), u => when(String, upd, v => "upd proof ", v => "proof ") ++ text(name.plain(name)), u => kw(upd) ++ text(name))
+# the keyword that introduces it
+def intro.kw(+what: U32) -> String:
+  match what:
+    case 0:
+      "def"
+    case 1:
+      "law"
+    case _:
+      "proof"
 
-def intro.kw(+name: List<&2, U32>) -> String:
-  when(String, is.proof(name), u => "proof", u => "def")
+def upd.kw(+what: U32) -> String:
+  match what:
+    case 0:
+      "upd"
+    case _:
+      "upd proof"
 
-def upd.kw(+name: List<&2, U32>) -> String:
-  when(String, is.proof(name), u => "upd proof", u => "upd")
+# the member's line as written, `upd proof right_id`
+def mem.kw(+upd: Bool, +name: List<&2, U32>, +what: U32) -> String:
+  when(String, upd, u => upd.kw(what) ++ " ", u => intro.kw(what) ++ " ") ++ text(name.plain(name))
+
+# an introduction meeting a name its object has: an update the cure,
+# unless a law is either
+def fe.met(+obs: List<&2, Ob>, +q: U32, +mno: U32, +name: List<&2, U32>, +upd: Bool, +origin: U32, +what: U32, +was: U32) -> Er:
+  when(Er, U32.is_eq(what, 1) || U32.is_eq(was, 1),
+    u => Er{mno, mem.kw(upd, name, what) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.say(name, was) ++ " already, from " ++
+      ob.name(obs, origin) ++ ": a law is stated once, so name this " ++ when(String, U32.is_eq(what, 1), v => "law", v => "member") ++ " anew"},
+    u => Er{mno, mem.kw(upd, name, what) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.say(name, was) ++ " already, from " ++
+      ob.name(obs, origin) ++ " (update it with " ++ upd.kw(what) ++ ")"})
 
 def fe.msg(+obs: List<&2, Ob>, +id: U32, f: Fe) -> Er:
   match f:
-    case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono}:
+    case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono, +what, +was}:
       match kind:
         case 1:
-          Er{mno, mem.say(name) ++ " is given twice in " ++ ob.name(obs, q) ++ ", at lines " ++ U32.show(ono) ++ " and " ++ U32.show(mno)}
+          Er{mno, mem.say(name, what) ++ " is given twice in " ++ ob.name(obs, q) ++ ", at lines " ++ U32.show(ono) ++ " and " ++ U32.show(mno)}
         case 2:
           when(Er, is.root(obs, q),
-            u => Er{mno, mem.kw(upd, name) ++ ": the module is no object, so it has nothing to update (introduce it with " ++ intro.kw(name) ++ ")"},
-            u => Er{mno, mem.kw(upd, name) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.no(name) ++ " to update (introduce it with " ++ intro.kw(name) ++ ")"})
+            u => Er{mno, mem.kw(upd, name, what) ++ ": the module is no object, so it has nothing to update (introduce it with " ++ intro.kw(what) ++ ")"},
+            u => Er{mno, mem.kw(upd, name, what) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.no(name, what) ++ " to update (introduce it with " ++ intro.kw(what) ++ ")"})
+        case 3:
+          when(Er, U32.is_eq(was, 1),
+            u => Er{mno, mem.kw(upd, name, what) ++ ": " ++ text(name) ++ " is a law, from " ++ ob.name(obs, origin) ++
+              ", stated once and never updated (state a new law, or update its proof with upd proof)"},
+            u => Er{mno, mem.kw(upd, name, what) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.say(name, was) ++ " from " ++ ob.name(obs, origin) ++
+              ", which " ++ upd.kw(what) ++ " cannot update (update it with " ++ upd.kw(was) ++ ")"})
         case _:
-          when(Er, U32.is_eq(q, id),
-            u => Er{mno, mem.kw(upd, name) ++ ": " ++ ob.name(obs, q) ++ " has " ++ mem.say(name) ++ " already, from " ++
-              ob.name(obs, origin) ++ " (update it with " ++ upd.kw(name) ++ ")"},
-            u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has " ++ mem.say(name) ++ " from both " ++ ob.say(obs, origin) ++
-              " and " ++ ob.say(obs, q) ++ ", each introducing it with " ++ intro.kw(name)})
+          when(Er, U32.is_eq(q, id), u => fe.met(obs, q, mno, name, upd, origin, what, was),
+            u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has " ++ text(name) ++ " from both " ++ ob.say(obs, origin) ++
+              " and " ++ ob.say(obs, q) ++ ", each introducing it with " ++ intro.kw(was)})
 
 def er.fes(fes: List<&2, Fe>, +skip: List<&2, U32>, +obs: List<&2, Ob>, +id: U32) -> List<&2, Er>:
   match fes:
@@ -2036,9 +2084,9 @@ def er.fes(fes: List<&2, Fe>, +skip: List<&2, U32>, +obs: List<&2, Ob>, +id: U32
       Nil{}
     case Con{+f, +t}:
       match f:
-        case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono}:
+        case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono, +what, +was}:
           when(List<&2, Er>, has(skip, mno), u => er.fes(t, skip, obs, id),
-            u => Con{fe.msg(obs, id, Fe{q, mno, kind, name, upd, origin, ono}), er.fes(t, skip, obs, id)})
+            u => Con{fe.msg(obs, id, Fe{q, mno, kind, name, upd, origin, ono, what, was}), er.fes(t, skip, obs, id)})
 
 # Declarations
 # ------------
@@ -2149,7 +2197,7 @@ def show.ens(+obs: List<&2, Ob>, es: List<&2, En>) -> String:
       ""
     case Con{e, t}:
       match e:
-        case En{name, chain, +no}:
+        case En{name, chain, +no, +what}:
           "  " ++ text(name) ++ ": " ++ show.chain(obs, chain) ++ "\n" ++ show.ens(obs, t)
 
 def show.fd(+obs: List<&2, Ob>, m: Maybe<&2, Fd>) -> String:
@@ -2167,7 +2215,7 @@ def show.en.names(es: List<&2, En>) -> String:
       ""
     case Con{e, t}:
       match e:
-        case En{name, chain, +no}:
+        case En{name, chain, +no, +what}:
           "  " ++ text(name) ++ "\n" ++ show.en.names(t)
 
 # the module's definitions, Bend's, by name alone
@@ -2797,15 +2845,20 @@ def en.chain(m: Maybe<&2, En>) -> List<&2, U32>:
       Nil{}
     case Some{e}:
       match e:
-        case En{name, chain, +no}:
+        case En{name, chain, +no, +what}:
           chain
 
-# `_n`: the definition of n that q's replaced in o's copy
-def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+def rr.prior.of(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
   on.maybe(U32, Rr, prior.find(en.chain(en.find(cx.map(cx, o), n)), after(cx.ord(cx, o), q)),
-    u => rr.er(t, no, "_" ++ text(n) ++ ": " ++ ob.name(cx.obs(cx), o) ++ " has no definition of " ++ text(n) ++ " before " ++
-      ob.name(cx.obs(cx), q) ++ "'s"),
+    u => rr.er(t, no, "_" ++ text(name.plain(n)) ++ ": " ++ ob.name(cx.obs(cx), o) ++ " has no " ++
+      when(String, ends(n, [35]), v => "proof of ", v => "definition of ") ++ text(name.plain(n)) ++ " before " ++ ob.name(cx.obs(cx), q) ++ "'s"),
     +c => Rr{RR{0, Rf{o, n, True{}, c}}, Nil{}, [In{n, c, True{}}]})
+
+# `_n`: the definition of n that q's replaced in o's copy; a law has no
+# prior, so `_n` of a law n is its proof's, `n#`
+def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  when(Rr, has.def(cx.map(cx, o), List.append(&2, U32, n, [35])), u => rr.prior.of(cx, o, q, List.append(&2, U32, n, [35]), t, no),
+    u => rr.prior.of(cx, o, q, n, t, no))
 
 # `^n`, k carets: the k-th host's final n, the module's definition at
 # the top
@@ -2981,6 +3034,8 @@ def mem.find(ns: List<&2, Node>, +n: List<&2, U32>) -> Maybe<&2, Node>:
         case _:
           mem.find(t, n)
 
+# the name a definition is emitted by: `Obj.f`, a prior `Obj.f.Origin`,
+# the module's own unprefixed
 def path.name(+path: List<&2, List<&2, U32>>, +n: List<&2, U32>) -> List<&2, U32>:
   match path:
     case Nil{}:
@@ -3076,7 +3131,7 @@ def ins.finals(es: List<&2, En>) -> List<&2, In>:
       Nil{}
     case Con{e, t}:
       match e:
-        case En{name, chain, +no}:
+        case En{name, chain, +no, +what}:
           Con{In{name, en.head(chain), False{}}, ins.finals(t)}
 
 # a concrete object's copies: its finals, then each prior they reach
@@ -3201,8 +3256,14 @@ def ers.uniq(es: List<&2, Er>) -> List<&2, Er>:
           when(List<&2, Er>, er.same(e, f), u => ers.uniq(Con{f, r}), u => Con{e, ers.uniq(Con{f, r})})
 
 # a command's output: what it printed, and whether it found no error
+# a file emission writes: its name, beside the root's, and its bytes
+type Fo is Data:
+  Fo{name: List<&2, U32>, bytes: List<&2, U32>}
+
+# what a command prints, or the files emission writes
 type Out is Type:
   Out{+ok: Bool, text: String}
+  Outs{fs: List<&2, Fo>}
 
 def ers.out(+files: List<&2, List<&2, U32>>, es: List<&2, Er>) -> Out:
   Out{False{}, show.ers(files, ers.uniq(List.sort(~Er, ~er.le, es)))}
@@ -3917,15 +3978,29 @@ def rf.ext(+e: Ec, +r: Rf) -> List<&2, U32>:
 def un.what(+us: List<&2, Un>, +x: U32) -> U32:
   node.what(un.node(un.at(us, x)))
 
+def rf.law(r: Rf) -> Rf:
+  match r:
+    case Rf{+obj, name, +prior, +origin}:
+      Rf{obj, name.plain(name), False{}, origin}
+
+# whether unit y is the law unit x proves, a prior proof's included: a
+# proof's own law, named in its body, is the proof itself, its induction
+# (any proof of a law serves, so none is bound late); another law named
+# is that law's final proof
+def proves.own(+us: List<&2, Un>, +x: U32, +y: U32) -> Bool:
+  U32.is_eq(un.what(us, x), 2) && U32.is_eq(un.what(us, y), 1) && rf.eq(rf.law(un.ref(un.at(us, x))), un.ref(un.at(us, y)))
+
 def ref.put(+e: Ec, +x: U32, +j: U32, +mark: U32, +r: Rf, m: Maybe<&2, U32>, +b: Tb) -> Tb:
   match m:
     case None{}:
       tb.put(mark.put(mark, b), when(List<&2, U32>, U32.is_gt(ec.mode(e), 0) && U32.is_eq(loc.mod(ob.no(ob.at(ec.obs(e), rf.obj(r)))), 0),
         u => List.append(&2, U32, codes("Blend_0."), rf.text(ec.obs(e), r)), u => rf.ext(e, r)))
     case Some{+y}:
-      when(Tb, U32.is_eq(ec.mode(e), 2) && U32.is_eq(un.what(ec.us(e), y), 1),
-        u => tb.put(mark.put(mark, b), List.append(&2, U32, codes("Blend_Laws."), rf.text(ec.obs(e), r))),
-        u => ref.self(U32.is_eq(y, x), e, x, j, y, mark.put(mark, b)))
+      when(Tb, U32.is_eq(ec.mode(e), 2) && proves.own(ec.us(e), x, y),
+        u => tb.put(mark.put(mark, b), List.append(&2, U32, codes("Blend_Laws."), own.name(e, x, j))),
+        u => when(Tb, U32.is_eq(ec.mode(e), 2) && (U32.is_eq(un.what(ec.us(e), y), 1) || U32.is_eq(un.what(ec.us(e), y), 2)),
+          v => tb.put(mark.put(mark, b), List.append(&2, U32, codes("Blend_Laws."), rf.text(ec.obs(e), r))),
+          v => ref.self(U32.is_eq(y, x), e, x, j, y, mark.put(mark, b))))
 
 # a token as written; in the laws and proofs, a datatype's or a
 # constructor's name of the root's through the code's alias
@@ -3989,16 +4064,26 @@ def marker(+e: Ec, +x: U32) -> List<&2, U32>:
 
 # a definition's j-th copy, after a blank line: its marker,
 # `def NAME(...) -> T:` and its body
-# `law`, or a proof's `def` through the laws' alias, else `def`
+# `law`, or a proof's `def` through the laws' alias, else `def` (a
+# lemma's too)
 def unit.kw(+e: Ec, +x: U32) -> List<&2, U32>:
   when(List<&2, U32>, U32.is_eq(un.what(ec.us(e), x), 1), u => codes("\nlaw "),
     u => when(List<&2, U32>, U32.is_eq(un.what(ec.us(e), x), 2), v => codes("\ndef Blend_Laws."), v => codes("\ndef ")))
 
-def unit.put(+e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
-  tb.put(rls.put(un.lines(un.at(ec.us(e), x)), e, x, j, node.ind(un.node(un.at(ec.us(e), x))),
-    rts.put(un.hd(un.at(ec.us(e), x)), e, x, j,
-      tb.put(b, List.append(&2, U32, marker(e, x), List.append(&2, U32, unit.kw(e, x), own.name(e, x, j)))))),
+# the unit whose lines a unit is written with: its own, but in the laws'
+# file a proof's prior's, its law's
+def unit.src(+e: Ec, +x: U32) -> U32:
+  when(U32, U32.is_eq(ec.mode(e), 1) && U32.is_eq(un.what(ec.us(e), x), 2),
+    u => on.maybe(U32, U32, un.find(ec.us(e), rf.law(un.ref(un.at(ec.us(e), x))), 0), v => x, y => y), u => x)
+
+def unit.put.as(+e: Ec, +s: U32, +x: U32, +j: U32, b: Tb) -> Tb:
+  tb.put(rls.put(un.lines(un.at(ec.us(e), s)), e, s, j, node.ind(un.node(un.at(ec.us(e), s))),
+    rts.put(un.hd(un.at(ec.us(e), s)), e, s, j,
+      tb.put(b, List.append(&2, U32, marker(e, s), List.append(&2, U32, unit.kw(e, s), own.name(e, x, j)))))),
     [10])
+
+def unit.put(+e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
+  unit.put.as(e, unit.src(e, x), x, j, b)
 
 def copies.put(n: Nat, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
   match n:
@@ -4123,21 +4208,6 @@ def res.lines(+root: List<&2, U32>, ps: List<&2, List<&2, U32>>, +k: U32) -> Lis
       List.append(&2, U32, codes("import "), List.append(&2, U32, rel.import(root, p),
         List.append(&2, U32, codes(" as "), List.append(&2, U32, res.alias(k), Con{10, res.lines(root, t, (k + 1 : U32))}))))
 
-# bytes as UTF-8, to the String printed; need, the continuation bytes
-# still due, cp the code point so far
-def utf8(xs: List<&2, U32>, +need: U32, +cp: U32) -> String:
-  match xs:
-    case Nil{}:
-      SNil{}
-    case Con{+b, +t}:
-      when(String, U32.is_gt(need, 0),
-        u => when(String, U32.is_eq(need, 1),
-          v => SCon{Char.from_u32(((cp << 6n) .|. (b .&. 63) : U32)), utf8(t, 0, 0)},
-          v => utf8(t, (need - 1 : U32), ((cp << 6n) .|. (b .&. 63) : U32))),
-        u => when(String, U32.is_lt(b, 128), v => SCon{Char.from_u32(b), utf8(t, 0, 0)},
-          v => when(String, U32.is_lt(b, 224), w => utf8(t, 1, (b .&. 31 : U32)),
-            w => when(String, U32.is_lt(b, 240), z => utf8(t, 2, (b .&. 15 : U32)), z => utf8(t, 3, (b .&. 7 : U32))))))
-
 def zeros(us: List<&2, Un>) -> List<&2, U32>:
   match us:
     case Nil{}:
@@ -4145,13 +4215,14 @@ def zeros(us: List<&2, Un>) -> List<&2, U32>:
     case Con{u, t}:
       Con{1, zeros(t)}
 
-def tb.text(b: Tb) -> String:
+# the text's bytes, its last newline kept
+def tb.bytes(b: Tb) -> List<&2, U32>:
   match b:
     case Tb{acc, ctrs}:
-      utf8(List.reverse(&2, U32, List.tail(&2, U32, acc)), 0, 0)
+      List.reverse(&2, U32, acc)
 
 # the emitted module: its header, Bend's imports, each unit's copies in
-# order, the last newline left to IO.print
+# order
 def bend.lines(ls: List<&2, Ln>) -> List<&2, U32>:
   match ls:
     case Nil{}:
@@ -4174,8 +4245,8 @@ def datatypes(ns: List<&2, Node>, +files: List<&2, List<&2, U32>>) -> List<&2, U
         case _:
           datatypes(t, files)
 
-def module.text(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>) -> String:
-  tb.text(order.put(order, e, Tb{rev.onto(List.append(&2, U32, codes("# Written by Blend from "),
+def module.bytes(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>) -> List<&2, U32>:
+  tb.bytes(order.put(order, e, Tb{rev.onto(List.append(&2, U32, codes("# Written by Blend from "),
     List.append(&2, U32, loc.file(files, 0), List.append(&2, U32, codes("; do not edit.\n"),
     List.append(&2, U32, imports(tree), List.append(&2, U32, more, datatypes(tree, files)))))), Nil{}), zeros(ec.us(e))}))
 
@@ -4194,10 +4265,49 @@ def ms.ers(s: Ms) -> List<&2, Er>:
     case Ms{ms, ers}:
       ers
 
-def emit.out(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>, es: List<&2, Er>) -> Out:
+def file.stem(+b: List<&2, U32>) -> List<&2, U32>:
+  when(List<&2, U32>, ends(b, codes(".bend")), u => List.take(&2, U32, b, Nat.sub(List.length(&2, U32, b), 5n)), u => b)
+
+# the root's file as Blend writes it, its last part given: `knet_LAWS.bend`
+def root.file(+root: List<&2, U32>, +last: List<&2, U32>) -> List<&2, U32>:
+  List.append(&2, U32, file.stem(bendify(List.head.or(List.reverse(&2, List<&2, U32>, split.slash(root, Nil{}, Nil{}))), True{})), last)
+
+# the laws' file (mode 1) or the proofs' (mode 2): its context, its
+# units in order, its reserved imports, its errors
+type Pf is Data:
+  Pf{e: Ec, order: List<&2, U32>, more: List<&2, U32>, ers: List<&2, Er>}
+
+def pf.has(p: Pf) -> Bool:
+  match p:
+    case Pf{e, order, more, ers}:
+      Bool.not(List.is_empty(&2, U32, order))
+
+# the code's file, from beside it; the proofs import the laws' too
+def code.import(+root: List<&2, U32>, +mode: U32) -> List<&2, U32>:
+  List.append(&2, U32, codes("import ./"), List.append(&2, U32, root.file(root, codes(".bend")), List.append(&2, U32, codes(" as Blend_0\n"),
+    when(List<&2, U32>, U32.is_eq(mode, 2), u => List.append(&2, U32, codes("import ./"), List.append(&2, U32, root.file(root, codes("_LAWS.bend")), codes(" as Blend_Laws\n"))),
+      u => Nil{}))))
+
+def proof.bytes(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>) -> List<&2, U32>:
+  tb.bytes(order.put(order, e, Tb{rev.onto(List.append(&2, U32, codes("# Written by Blend from "),
+    List.append(&2, U32, loc.file(files, 0), List.append(&2, U32, codes("; do not edit.\n"),
+    List.append(&2, U32, imports(tree), List.append(&2, U32, code.import(path.at(ec.paths(e), 0), ec.mode(e)), more))))), Nil{}), zeros(ec.us(e))}))
+
+def pf.file(+files: List<&2, List<&2, U32>>, +tree: List<&2, Node>, +name: List<&2, U32>, p: Pf) -> Fo:
+  match p:
+    case Pf{+e, +order, more, ers}:
+      Fo{name, proof.bytes(files, e, order, tree, more)}
+
+# the files, or the errors of any: the code, and where the module has
+# laws or proofs, the laws' and the proofs' beside it, all of one
+# emission (`blend-proofs-beside-code`)
+def emit.out(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>, +lw: Pf, +pf: Pf, es: List<&2, Er>) -> Out:
   match es:
     case Nil{}:
-      Out{True{}, module.text(files, e, List.reverse(&2, U32, order), tree, more)}
+      Outs{Con{Fo{root.file(path.at(ec.paths(e), 0), codes(".bend")), module.bytes(files, e, List.reverse(&2, U32, order), tree, more)},
+        when(List<&2, Fo>, pf.has(lw) || pf.has(pf),
+          u => [pf.file(files, tree, root.file(path.at(ec.paths(e), 0), codes("_LAWS.bend")), lw), pf.file(files, tree, root.file(path.at(ec.paths(e), 0), codes("_PROOF.bend")), pf)],
+          u => Nil{})}}
     case Con{x, t}:
       ers.out(files, Con{x, t})
 
@@ -4250,13 +4360,8 @@ def rf.name(r: Rf) -> List<&2, U32>:
     case Rf{+obj, name, +prior, +origin}:
       name
 
-def rf.law(r: Rf) -> Rf:
-  match r:
-    case Rf{+obj, name, +prior, +origin}:
-      Rf{obj, name.plain(name), False{}, origin}
-
-# a law named where a definition is wanted: a law is a claim, its proof
-# Bend's alone to call
+# a law, a proof or a lemma named where a definition is wanted: a law is
+# a claim, and its proof and a lemma are Bend's alone to call
 def er.law.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +no: U32) -> List<&2, Er>:
   match ts:
     case Nil{}:
@@ -4265,9 +4370,9 @@ def er.law.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +no: U32) -> List<&2, Er>:
       match t:
         case RR{+mark, +ref}:
           on.maybe(U32, List<&2, Er>, un.find(us, ref, 0), v => er.law.rts(r, us, no),
-            +x => when(List<&2, Er>, U32.is_eq(un.what(us, x), 1),
-              v => Con{Er{no, "law " ++ text(rf.name(ref)) ++ " is a claim, not a definition: only a proof may name it"}, er.law.rts(r, us, no)},
-              v => er.law.rts(r, us, no)))
+            +x => when(List<&2, Er>, U32.is_eq(un.what(us, x), 0), v => er.law.rts(r, us, no),
+              v => Con{Er{no, when(String, U32.is_eq(un.what(us, x), 1), w => "law " ++ text(rf.name(ref)) ++ " is a claim, not a definition",
+                w => "proof " ++ text(name.plain(rf.name(ref))) ++ " belongs to the proofs, not the code") ++ ": only a proof may name it"}, er.law.rts(r, us, no)}))
         case _:
           er.law.rts(r, us, no)
 
@@ -4292,6 +4397,80 @@ def er.laws(xs: List<&2, Un>, +us: List<&2, Un>) -> List<&2, Er>:
           v => Con{Er{node.no(un.node(x)), "proof " ++ text(name.plain(rf.name(un.ref(x)))) ++ " proves no law: its object states none of that name"}, er.laws(t, us)},
           v => er.laws(t, us)))
 
+def pf.ers(p: Pf) -> List<&2, Er>:
+  match p:
+    case Pf{e, order, more, ers}:
+      ers
+
+def rf.proof(r: Rf) -> Rf:
+  match r:
+    case Rf{+obj, name, +prior, +origin}:
+      Rf{obj, List.append(&2, U32, name, [35]), prior, origin}
+
+# a unit's calls, a law called its proof's, unit k's own law left out
+def calls.law(cs: List<&2, U32>, +us: List<&2, Un>, +k: U32) -> List<&2, U32>:
+  match cs:
+    case Nil{}:
+      Nil{}
+    case Con{+c, +t}:
+      when(List<&2, U32>, proves.own(us, k, c), u => calls.law(t, us, k),
+        u => when(List<&2, U32>, U32.is_eq(un.what(us, c), 1),
+          v => on.maybe(U32, List<&2, U32>, un.find(us, rf.proof(un.ref(un.at(us, c))), 0), w => calls.law(t, us, k),
+            +p => when(List<&2, U32>, U32.is_eq(p, k), w => calls.law(t, us, k), w => Con{p, calls.law(t, us, k)})),
+          v => Con{c, calls.law(t, us, k)}))
+
+def calls.laws(css: List<&2, List<&2, U32>>, +us: List<&2, Un>, +k: U32) -> List<&2, List<&2, U32>>:
+  match css:
+    case Nil{}:
+      Nil{}
+    case Con{cs, t}:
+      Con{calls.law(cs, us, k), calls.laws(t, us, (k + 1 : U32))}
+
+def rf.prior(r: Rf) -> Bool:
+  match r:
+    case Rf{+obj, name, +prior, +origin}:
+      prior
+
+# whether a unit goes in the laws' file (mode 1), its laws and its proofs'
+# priors, each stating its law again by its own name, or the proofs'
+# (mode 2), its proofs and lemmas
+def un.in(+mode: U32, +u: Un) -> Bool:
+  when(Bool, U32.is_eq(mode, 1),
+    v => U32.is_eq(node.what(un.node(u)), 1) || (U32.is_eq(node.what(un.node(u)), 2) && rf.prior(un.ref(u))),
+    v => U32.is_gt(node.what(un.node(u)), 1))
+
+def units.what(us: List<&2, Un>, +mode: U32) -> List<&2, Un>:
+  match us:
+    case Nil{}:
+      Nil{}
+    case Con{+u, +t}:
+      when(List<&2, Un>, un.in(mode, u), v => Con{u, units.what(t, mode)}, v => units.what(t, mode))
+
+# the units of the order in a mode's file
+def order.what(xs: List<&2, U32>, +us: List<&2, Un>, +mode: U32) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +t}:
+      when(List<&2, U32>, un.in(mode, un.at(us, x)), u => Con{x, order.what(t, us, mode)}, u => order.what(t, us, mode))
+
+def proof.parts(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +all: List<&2, Un>) -> Pf:
+  +obs = cx.obs(cx)
+  +us = units.of(all, True{})
+  +d = walk(roots.all(cx, us), calls.laws(calls(refss(us, us, 0)), us, 0), obs, us)
+  +order = List.reverse(&2, U32, ds.order(d))
+  +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
+  +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
+  +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0)))} : Ec}
+  Pf{e, order.what(order, us, mode), res.lines(path.at(cx.paths(cx), 0), res, 1),
+    List.append(&2, Er, ds.ers(d), er.names(names.all(order.what(order, us, mode), e), Nil{}))}
+
+# Stages
+# ======
+#
+# A stage runs when the one before it found no error: the objects, the
+# references, then emission.
+
 # the emitted module, or its errors
 def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +obs = cx.obs(cx)
@@ -4304,8 +4483,11 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(us, obs, cx.paths(cx)), own, Nil{})
   +e = {Ec{files, obs, us, ms.ms(ms), cx.als(cx), own, res, cx.paths(cx), 0, Nil{}} : Ec}
-  emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1),
-    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), List.append(&2, Er, er.laws(all, all), er.names(names.all(List.reverse(&2, U32, order), e), Nil{})))))
+  +lw = proof.parts(1, files, cx, all)
+  +pf = proof.parts(2, files, cx, all)
+  emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1), lw, pf,
+    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), List.append(&2, Er, er.laws(all, all),
+      List.append(&2, Er, er.names(names.all(List.reverse(&2, U32, order), e), Nil{}), List.append(&2, Er, pf.ers(lw), pf.ers(pf)))))))
 
 # The laws and the proofs
 # -----------------------
@@ -4318,97 +4500,13 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
 # as Bend imports only plain names). A proof names the law it proves,
 # which Bend reads as that law's proof.
 
-def rf.proof(r: Rf) -> Rf:
-  match r:
-    case Rf{+obj, name, +prior, +origin}:
-      Rf{obj, List.append(&2, U32, name, [35]), prior, origin}
-
-# a unit's calls, a law called its proof's, unit k's own left out
-def calls.law(cs: List<&2, U32>, +us: List<&2, Un>, +k: U32) -> List<&2, U32>:
-  match cs:
-    case Nil{}:
-      Nil{}
-    case Con{+c, +t}:
-      when(List<&2, U32>, U32.is_eq(un.what(us, c), 1),
-        u => on.maybe(U32, List<&2, U32>, un.find(us, rf.proof(un.ref(un.at(us, c))), 0), v => calls.law(t, us, k),
-          +p => when(List<&2, U32>, U32.is_eq(p, k), v => calls.law(t, us, k), v => Con{p, calls.law(t, us, k)})),
-        u => Con{c, calls.law(t, us, k)})
-
-def calls.laws(css: List<&2, List<&2, U32>>, +us: List<&2, Un>, +k: U32) -> List<&2, List<&2, U32>>:
-  match css:
-    case Nil{}:
-      Nil{}
-    case Con{cs, t}:
-      Con{calls.law(cs, us, k), calls.laws(t, us, (k + 1 : U32))}
-
-def units.what(us: List<&2, Un>, +w: U32) -> List<&2, Un>:
-  match us:
-    case Nil{}:
-      Nil{}
-    case Con{+u, +t}:
-      when(List<&2, Un>, U32.is_eq(node.what(un.node(u)), w), v => Con{u, units.what(t, w)}, v => units.what(t, w))
-
-# the units of the order that are laws (what 1) or proofs (what 2)
-def order.what(xs: List<&2, U32>, +us: List<&2, Un>, +w: U32) -> List<&2, U32>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{+x, +t}:
-      when(List<&2, U32>, U32.is_eq(un.what(us, x), w), u => Con{x, order.what(t, us, w)}, u => order.what(t, us, w))
-
-def file.stem(+b: List<&2, U32>) -> List<&2, U32>:
-  when(List<&2, U32>, ends(b, codes(".bend")), u => List.take(&2, U32, b, Nat.sub(List.length(&2, U32, b), 5n)), u => b)
-
-# the root's file as Blend writes it, its last part given: `knet_LAWS.bend`
-def root.file(+root: List<&2, U32>, +last: List<&2, U32>) -> List<&2, U32>:
-  List.append(&2, U32, file.stem(bendify(List.head.or(List.reverse(&2, List<&2, U32>, split.slash(root, Nil{}, Nil{}))), True{})), last)
-
-# the code's file, from beside it; the proofs import the laws' too
-def code.import(+root: List<&2, U32>, +mode: U32) -> List<&2, U32>:
-  List.append(&2, U32, codes("import ./"), List.append(&2, U32, root.file(root, codes(".bend")), List.append(&2, U32, codes(" as Blend_0\n"),
-    when(List<&2, U32>, U32.is_eq(mode, 2), u => List.append(&2, U32, codes("import ./"), List.append(&2, U32, root.file(root, codes("_LAWS.bend")), codes(" as Blend_Laws\n"))),
-      u => Nil{}))))
-
-def proof.text(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>) -> String:
-  tb.text(order.put(order, e, Tb{rev.onto(List.append(&2, U32, codes("# Written by Blend from "),
-    List.append(&2, U32, loc.file(files, 0), List.append(&2, U32, codes("; do not edit.\n"),
-    List.append(&2, U32, imports(tree), List.append(&2, U32, code.import(path.at(ec.paths(e), 0), ec.mode(e)), more))))), Nil{}), zeros(ec.us(e))}))
-
-def proof.out(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, +more: List<&2, U32>, es: List<&2, Er>) -> Out:
-  match es:
-    case Nil{}:
-      Out{True{}, proof.text(files, e, order, tree, more)}
-    case Con{x, t}:
-      ers.out(files, Con{x, t})
-
-# the laws (mode 1) or the proofs (mode 2), or the errors of either
-def proved(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
-  +obs = cx.obs(cx)
-  +all = units(os)
-  +us = units.of(all, True{})
-  +d = walk(roots.all(cx, us), calls.laws(calls(refss(us, us, 0)), us, 0), obs, us)
-  +order = List.reverse(&2, U32, ds.order(d))
-  +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
-  +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
-  +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0)))} : Ec}
-  proof.out(files, e, order.what(order, us, mode), ob.mems(ob.at(obs, 0)),
-    res.lines(path.at(cx.paths(cx), 0), res, 1),
-    List.append(&2, Er, ds.ers(d), List.append(&2, Er, er.laws(all, all),
-      List.append(&2, Er, er.names(names.all(order.what(order, us, 1), e), Nil{}), er.names(names.all(order.what(order, us, 2), e), Nil{})))))
-
-# Stages
-# ======
-#
-# A stage runs when the one before it found no error: the objects, the
-# references, then emission.
-
 def resolved.next(+cmd: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   match cmd:
     case 3:
       resolved(files, cx.obs(cx), os)
     case _:
       when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, ocs.ers(os))), u => resolved(files, cx.obs(cx), os),
-        u => when(Out, U32.is_gt(cmd, 4), v => proved((cmd - 4 : U32), files, cx, os), v => emitted(files, cx, os)))
+        u => emitted(files, cx, os))
 
 def objects.next(+cmd: U32, +files: List<&2, List<&2, U32>>, +als: List<&2, Al>, +paths: List<&2, List<&2, U32>>, +pss: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
   match cmd:
@@ -4903,9 +5001,9 @@ def basename(path: String) -> String:
   base.k(until(List.reverse(&2, U32, codes(path)), 47))
 
 def usage() -> String:
-  "usage: bend blend.bend read|objects|resolve|emit|laws|proof FILE.blend"
+  "usage: bend blend.bend read|objects|resolve FILE.blend, or emit FILE.blend [DIR]"
 
-# 1 read, 2 objects, 3 resolve, 4 emit, 5 laws, 6 proof
+# 1 read, 2 objects, 3 resolve, 4 emit
 def run(+cmd: U32, +files: List<&2, List<&2, U32>>, +paths: List<&2, List<&2, U32>>, +trees: List<&2, List<&2, Node>>) -> Out:
   match cmd:
     case 1:
@@ -4928,8 +5026,56 @@ def run.mods(+cmd: U32, +ms: List<&2, Md>) -> Out:
           v => run(cmd, mds.names(Con{r, t}, md.path(r)), mds.paths(Con{r, t}), mds.trees(Con{r, t}, 0))),
         u => Out{False{}, "blend: cannot read " ++ text(md.path(r))})
 
-# the output printed; errors to stderr, and the exit status 1
-def main.out(o: Out) -> IO(Unit):
+def write.done(fr: File & Result<&1, &1, U32 & String, Unit>) -> IO(Bool):
+  (f, r) = fr
+  match r:
+    case Done{u}:
+      do IO<Bool>:
+        File.close(f)
+        return True{}
+    case Fail{e}:
+      do IO<Bool>:
+        File.close(f)
+        return False{}
+
+def write.opened(r: Result<&1, &1, U32 & String, File>, bs: List<&2, U32>) -> IO(Bool):
+  match r:
+    case Done{f}:
+      do IO<Bool>:
+        fr : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
+        write.done(fr)
+    case Fail{e}:
+      IO.pure(Bool, False{})
+
+# a file's bytes written, False where it cannot be
+def write.file(+path: List<&2, U32>, bs: List<&2, U32>) -> IO(Bool):
+  do IO<Bool>:
+    r : Result<&1, &1, U32 & String, File> <- File.open_bytes(path, "w")
+    write.opened(r, bs)
+
+def path.join(+dir: List<&2, U32>, +name: List<&2, U32>) -> List<&2, U32>:
+  List.append(&2, U32, dir, Con{47, name})
+
+def write.failed(+path: List<&2, U32>) -> IO(Unit):
+  do IO<Unit>:
+    IO.print_err("blend: cannot write " ++ text(path))
+    IO.exit(1)
+
+# the files written into dir, each path printed once written
+def write.all(fs: List<&2, Fo>, +dir: List<&2, U32>) -> IO(Unit):
+  match fs:
+    case Nil{}:
+      IO.pure(Unit, Unit{})
+    case Con{f, t}:
+      match f:
+        case Fo{+name, bs}:
+          IO.bind(Bool, Unit, write.file(path.join(dir, name), bs),
+            +ok => when(IO(Unit), ok, u => IO.bind(Unit, Unit, IO.print(text(path.join(dir, name))), v => write.all(t, dir)),
+              u => write.failed(path.join(dir, name))))
+
+# the output printed, or the files written; errors to stderr, and the
+# exit status 1
+def main.out(o: Out, +dir: List<&2, U32>) -> IO(Unit):
   match o:
     case Out{+ok, text}:
       match ok:
@@ -4939,6 +5085,8 @@ def main.out(o: Out) -> IO(Unit):
           do IO<Unit>:
             IO.print_err(text)
             IO.exit(1)
+    case Outs{fs}:
+      write.all(fs, dir)
 
 def read.got(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Maybe<&2, List<&2, U32>>):
   (f, r) = fr
@@ -5011,41 +5159,46 @@ def load.go(n: Nat, todo: List<&2, Td>, +mods: List<&2, Md>) -> IO(List<&2, Md>)
                   +m => load.go(k, List.append(&2, Td, rest, md.todo(path, m, U32.from_nat(List.length(&2, Md, mods)))),
                     Con{md.of(path, m, from), mods})))
 
-def main.file(+cmd: U32, +path: String) -> IO(Unit):
+def main.file(+cmd: U32, +path: String, +dir: List<&2, U32>) -> IO(Unit):
   do IO<Unit>:
     ms : List<&2, Md> <- load.go(4096n, [Td{codes(path), 0}], Nil{})
-    main.out(run.mods(cmd, ms))
+    main.out(run.mods(cmd, ms), dir)
 
+# a path's directory, `.` for a bare name
+def dir.of(+p: List<&2, U32>) -> List<&2, U32>:
+  when(List<&2, U32>, holds(p, [47]), u => slashes(path.dir(p)), u => codes("."))
+
+# emission writes into the directory given, else the root's own
 def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
   match cmd:
     case 0:
-      main.out(Out{False{}, usage()})
+      main.out(Out{False{}, usage()}, Nil{})
     case _:
       match xs:
-        case Con{path, r}:
+        case Con{+path, r}:
           match r:
             case Nil{}:
-              main.file(cmd, path)
-            case Con{x, t}:
-              main.out(Out{False{}, usage()})
+              main.file(cmd, path, dir.of(codes(path)))
+            case Con{d, t}:
+              match t:
+                case Nil{}:
+                  when(IO(Unit), U32.is_eq(cmd, 4), u => main.file(cmd, path, codes(d)), u => main.out(Out{False{}, usage()}, Nil{}))
+                case Con{y, z}:
+                  main.out(Out{False{}, usage()}, Nil{})
         case Nil{}:
-          main.out(Out{False{}, usage()})
+          main.out(Out{False{}, usage()}, Nil{})
 
-def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool, +em: Bool, +lw: Bool, +pf: Bool) -> U32:
-  match rd ob rs em lw pf:
-    case True{} _ _ _ _ _:
+def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool, +em: Bool) -> U32:
+  match rd ob rs em:
+    case True{} _ _ _:
       1
-    case False{} True{} _ _ _ _:
+    case False{} True{} _ _:
       2
-    case False{} False{} True{} _ _ _:
+    case False{} False{} True{} _:
       3
-    case False{} False{} False{} True{} _ _:
+    case False{} False{} False{} True{}:
       4
-    case False{} False{} False{} False{} True{} _:
-      5
-    case False{} False{} False{} False{} False{} True{}:
-      6
-    case False{} False{} False{} False{} False{} False{}:
+    case False{} False{} False{} False{}:
       0
 
 def main.args(xs: List<String>) -> IO(Unit):
@@ -5053,11 +5206,11 @@ def main.args(xs: List<String>) -> IO(Unit):
     case Con{p, r}:
       match r:
         case Con{+flag, r2}:
-          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve"), String.eq(flag, "emit"), String.eq(flag, "laws"), String.eq(flag, "proof")), r2)
+          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve"), String.eq(flag, "emit")), r2)
         case Nil{}:
-          main.out(Out{False{}, usage()})
+          main.out(Out{False{}, usage()}, Nil{})
     case Nil{}:
-      main.out(Out{False{}, usage()})
+      main.out(Out{False{}, usage()}, Nil{})
 
 def main() -> IO(Unit):
   do IO<Unit>:

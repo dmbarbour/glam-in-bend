@@ -1,0 +1,19 @@
+# A library's family of additions, its laws stated and proved once for
+# every family: a module states laws its importers' families instantiate,
+# each bound to its own finals (blend/samples/laws-imported.blend).
+import Base
+
+abstract object Adds with
+  declare zero
+  def plus(+a: Nat, +b: Nat) -> Nat:
+    Nat.add(a, b)
+  law plus_zero:
+    for +x: Nat
+    {plus(x, zero()) == x : Nat}
+  proof plus_zero(x):
+    match x:
+      case 0n:
+        {==}
+      case 1n+p:
+        %plus_zero(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+        {==}

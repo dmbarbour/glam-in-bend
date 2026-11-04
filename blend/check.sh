@@ -28,11 +28,15 @@ for src in *.blend; do
   fi
 done
 m=0
+# an invalid sample that emits writes into results/ (out of git), never
+# beside the sample
+out=../../results/blend/invalid
+mkdir -p "$out" || exit 1
 for src in invalid/*.blend; do
   m=$((m + 1))
   err=${src%.blend}.err
   [ -f "$err" ] || { echo "blend: $src has no .err"; status=1; continue; }
-  if got=$("$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1); then
+  if got=$("$CAPPED" 500 30 "$BLEND" emit "$src" "$out" 2>&1); then
     echo "blend: $src emits, where it must fail with $(cat "$err")"
     status=1
   elif [ "$got" != "$(cat "$err")" ]; then

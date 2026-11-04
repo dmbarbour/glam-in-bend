@@ -2,9 +2,12 @@
 # definitions and types, and each concrete object gets its own instance,
 # bound to its own finals, as a definition does; `proof name(...)` proves
 # it, where the law is stated or in any object below, and `upd proof`
-# proves it again where a family needs its own. Blend writes the laws
-# and proofs into a file of their own, laws.PROOF.bend, beside the code,
-# so that the program built carries none.
+# proves it again where a family needs its own; a typed proof is a
+# lemma, stating what it proves. A proof's own law, named in it, is its
+# induction; another law named is that law's proof. Blend writes the
+# laws and the proofs into files of their own beside the code,
+# laws_LAWS.bend and laws_PROOF.bend, so that the program built carries
+# none.
 import Base
 
 abstract object Monoid with
@@ -34,6 +37,19 @@ object NatAdd extends Monoid with
       case 1n+p:
         %right_id(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
         {==}
+  proof add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
+    match a:
+      case 0n:
+        {==}
+      case 1n+p:
+        %add_succ(p, b) : {2n+Nat.add(p, b) == 1n+_ : Nat}
+        {==}
+  law op_succ:
+    for +a: T()
+    for +b: T()
+    {1n+op(a, b) == op(a, 1n+b) : T()}
+  proof op_succ(a, b):
+    add_succ(a, b)
 
 object AnyOf extends Monoid with
   type T: Data = Bool

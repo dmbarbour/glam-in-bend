@@ -71,8 +71,9 @@ IO shell.
   for each use.
 - [`blend-proofs-beside-code`](decisions/blend-proofs-beside-code.md): a
   Blend module's laws and proofs are written into files of their own
-  beside its code, `X_LAWS.bend` and `X_PROOF.bend`; a law is a claim
-  stated once, its proof a member `upd proof` may replace.
+  beside its code, `X_LAWS.bend` and `X_PROOF.bend`, by the emission
+  that writes the code; a law is a claim stated once, its proof a member
+  `upd proof` may replace, a typed proof a lemma.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.
