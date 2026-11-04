@@ -2183,7 +2183,13 @@ takes from it:
                    where a rule's link between two external peers moves a
                    static (an annihilation meeting a dead port, beta
                    meeting a dead variable), the remaining writer, and the
-                   loader's statics; then `.links.walk.narrow`.
+                   loader's statics; then `.links.walk.narrow`. Not
+                   pursued for now (2026-11-04): the generated rewrite
+                   cannot know such a link carries a static, so it would
+                   test on beta's and the annihilations' path, the hottest
+                   rules, and the writers already make the events' whole
+                   measurable saving (9,649,714 against 9,649,584). Taken
+                   up if a workload shows statics moved in number.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — active — gcbench runs 226 and 227
                    against 221 and the library against main so far; spot
                    against run 211 to come. Collecting demand at 227:
@@ -3241,9 +3247,11 @@ takes from it:
          on main with one. Blind spot: Bend's leaf functions (`spin_N`)
          carry no names in the C, so a helper added to a path, a call
          each time but no new segment, does not show; perf by symbol
-         still finds those. Next, if it pays: a source-level pass
-         listing functions with two callers along the hot chains before
-         any build.
+         still finds those. A source-level pass listing functions with
+         two callers along the hot chains before any build: not pursued
+         (2026-11-04), as it would flag every helper with two callers,
+         most of them leaves Bend makes no segment of, where the
+         comparison answers what the compiler did in half a minute.
        - `heap-strategies.generate.specialize` — tentative — the
          maintainer (2026-11-03): a preprocessor of our own, in Bend
          (`generated-sources`), to specialize code and avoid accidental
