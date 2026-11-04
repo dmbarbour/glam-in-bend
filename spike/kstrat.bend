@@ -795,8 +795,8 @@ def two.hx(r: P.H & U32, +x: U32, +y: U32) -> P.H & Bool:
   (h, +hx) = r
   two.hy(KN.rdy(h, x, y, hx), hx)
 
-# would the pair x - y grow the net? (either may be static, each by its
-# effective kind: KN.rdx, KN.rdy)
+# would the pair x - y grow the net? (either may be static: KN.rdx,
+# KN.rdy)
 def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
   two.hx(KN.rdx(h, x), x, y)
 
@@ -992,8 +992,8 @@ def pr.hx(r: P.H & U32, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
   (h, +hx) = r
   pr.hy(KN.rdy(h, x, y, hx), pf, x, y, hx)
 
-# the pair x - y, counted before it interacts, each by its effective
-# kind, a static by its eraser's (static-links-count-as-nodes)
+# the pair x - y, counted before it interacts, a static by its eraser's
+# kind (static-links-count-as-nodes)
 def probe(h: P.H, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
   pr.hx(KN.rdx(h, x), pf, x, y)
 

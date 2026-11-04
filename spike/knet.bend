@@ -472,67 +472,11 @@ def payload(+h: U32, +w2: U32, +w3: U32) -> U32:
   KR.payload.k(P.rk(h), w2, w3)
 
 
-# Dead ports
-# ==========
+# Static erasers' kinds
+# =====================
 #
-# heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.
-# dead-ports: a static eraser at a port is that port's deadness, so that
-# the kernel takes a node by its effective kind, the fused kind it would
-# have been (R.dead_kind, law dead_ports): a copy with an eraser at one
-# output the linear copy keeping the other (CopyL keeping port 1, CopyR
-# port 2), at both an eraser (EraN); a merge so (MergeL, MergeR, EraP); a
-# function with its variable erased the function with its variable dead
-# (FnD). The table's rules for that kind rewrite it, which behave as their
-# components (law linear_as_components), its external peers taken in that
-# kind's layout, the kept side as port 1. The kernel no longer makes the
-# linear fans; a net that holds one keeps their rules.
-
-# the effective kind code of a node of kind code k, l1 and l2 its ports 1
-# and 2's links (KR.dead_kind, generated from R.dead_kind)
-def dk(+k: U32, +l1: U32, +l2: U32) -> U32:
-  KR.dead_kind(k, P.is_static(l1), P.is_static(l2))
-
-# header h with its kind code replaced by k, its form and field kept
-def dk.hd(+h: U32, +k: U32) -> U32:
-  ((h .&. 4294967232 : U32) .|. k : U32)
-
-def dk.sel(+two: Bool, +l1: U32, +l2: U32) -> U32:
-  match two:
-    case True{}:
-      l2
-    case False{}:
-      l1
-
-# the peer of port 1 of a node of kind code k0 taken by effective kind k,
-# of l1 and l2: port 2's where a dead port made it a kind keeping its
-# full kind's port 2 (KR.kept2: CopyR, MergeR); a node of that kind
-# itself keeps its side at port 1
-def dk.p1(+k0: U32, +k: U32, +l1: U32, +l2: U32) -> U32:
-  dk.sel(U32.is_ne(k0, k) && KR.kept2(k), l1, l2)
-
-def eff.l2(r: P.H & U32, +hd: U32, +l1: U32) -> P.H & U32:
-  (h, +l2) = r
-  (h, dk.hd(hd, dk(P.rk(hd), l1, l2)))
-
-def eff.l1(r: P.H & U32, +x: U32, +hd: U32) -> P.H & U32:
-  (h, +l1) = r
-  eff.l2(P.rd(h, (x + 3 : U32)), hd, l1)
-
-def eff.k(+dead: Bool, h: P.H, +x: U32, +hd: U32) -> P.H & U32:
-  match dead:
-    case True{}:
-      eff.l1(P.rd(h, (x + 2 : U32)), x, hd)
-    case False{}:
-      (h, hd)
-
-# the links read of a kind a dead port changes (KR.kind_dead)
-def eff.hd(r: P.H & U32, +x: U32) -> P.H & U32:
-  (h, +hd) = r
-  eff.k(KR.kind_dead(P.rk(hd)), h, x, hd)
-
-# node x's effective header, x a reference to it
-def effh(h: P.H, +x: U32) -> P.H & U32:
-  eff.hd(P.rd(h, P.base(x)), P.base(x))
+# One value stands for every static eraser (P.era): an eraser's polarity
+# is the one its port lacks.
 
 def era.in(+i: Bool) -> U32:
   match i:
@@ -552,11 +496,11 @@ def rdx.go(+sx: Bool, h: P.H, +x: U32) -> P.H & U32:
     case True{}:
       (h, 6)
     case False{}:
-      effh(h, x)
+      P.rd(h, P.base(x))
 
 # A strategy's look at a pair x - y, y read off x's principal (kstrat.bend's
-# collection, two stacks and profile): x's effective header; x static, a
-# meeting of two statics (P.note), the consuming eraser's
+# collection, two stacks and profile): x's header; x static, a meeting of
+# two statics (P.note), the consuming eraser's
 def rdx(h: P.H, +x: U32) -> P.H & U32:
   rdx.go(P.is_static(x), h, x)
 
@@ -567,7 +511,7 @@ def rdy.go(+sx: Bool, +sy: Bool, h: P.H, +y: U32, +hx: U32) -> P.H & U32:
     case False{} True{}:
       (h, era.in(KR.kind_neg(P.rk(hx))))
     case False{} False{}:
-      effh(h, y)
+      P.rd(h, P.base(y))
 
 # and y's: a static, the eraser of the polarity other than x's principal's;
 # in a meeting, the providing eraser's
@@ -614,24 +558,25 @@ def rdy(h: P.H, +x: U32, +y: U32, +hx: U32) -> P.H & U32:
 type Ev<-S: Type> is Type:
   Ev{h: P.H, st: S, ws: List<&2, U32>}
 
-def ws.add.go(none: Bool, +e: U32, ws: List<&2, U32>) -> List<&2, U32>:
-  match none:
-    case True{}:
-      ws
-    case False{}:
-      Con{e, ws}
-
 def ws.add.s(+st: Bool, +e: U32, +f: U32, ws: List<&2, U32>) -> List<&2, U32>:
   match st:
     case True{}:
-      ws.add.go(U32.is_eq(e, P.nil()), f, ws)
+      Con{f, ws}
     case False{}:
       Con{e, ws}
 
-# end e to look at, or where it is static, no node, f, the end facing it;
-# nil none
+# end e to look at, or where it is static, no node, f, the end facing it.
+# A port a node lacks is told by its arity, never by nil: nil is the
+# static eraser's value too (P.era)
 def ws.add(+e: U32, +f: U32, ws: List<&2, U32>) -> List<&2, U32>:
   ws.add.s(P.is_static(e), e, f, ws)
+
+def ws.add.if(+has: Bool, +e: U32, +f: U32, ws: List<&2, U32>) -> List<&2, U32>:
+  match has:
+    case True{}:
+      ws.add(e, f, ws)
+    case False{}:
+      ws
 
 def ev.x1.k(one: Bool, +w2: U32, +w3: U32) -> U32:
   match one:
@@ -766,23 +711,15 @@ def ev.run.fin(~S: Type, r: P.H & S, ws: List<&2, U32>, +k: U32) -> Ev<S>:
 # static is looked at from the end of a facing it: its principal, which
 # keeps its link, or port 1, where a linear fan keeps its other side
 def ev.run.go(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, a, ws.add(x1, (a + 1 : U32), ws)), P.rk(ha))
+  ev.run.fin(~S, KR.event(~S, ~note, P.rk(ha), p, P.rk(hb), h, room(st, KR.ev_most()), a, b, ha, hb, pa, 0, x0, x1, P.nil(), P.nil()), ws.add(x0, a, ws.add.if(U32.is_eq(arity(ha), 3), x1, (a + 1 : U32), ws)), P.rk(ha))
 
-def ev.run.f(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, +skip: Bool, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  match skip:
-    case True{}:
-      Ev{h, st, ws}
-    case False{}:
-      ev.run.go(~S, ~note, ~room, h, st, ws, a, b, ha, hb, p, pa, x0, x1)
-
-# a static eraser's event at a fan runs only where the fan's other side is
-# dead too: one side erased is a dead port, the static saying so, and no
-# kind changes (dead ports); with both, the fan made linear, and the
-# linear fan, its kept side's peer a static now, made an eraser by the
-# event that follows, as the table's events go. An eraser with a node
-# still makes its event, its node freed
+# A copy's or a merge's events are the table's (R.event): an eraser at one
+# side makes the linear fan keeping the other, and at a linear fan's kept
+# side an eraser, in the node's own slot (`.links.propagate.fans`: kinds
+# kept, the maintainer's fallback, measured better than dead ports left
+# on full fans)
 def ev.run(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +pa: U32, +x0: U32, +x1: U32) -> Ev<S>:
-  ev.run.f(~S, ~note, ~room, (U32.is_eq(P.rk(ha), 3) || U32.is_eq(P.rk(ha), 4)) && P.is_static(b) && Bool.not(P.is_static(x1)), h, st, ws, a, b, ha, hb, p, pa, x0, x1)
+  ev.run.go(~S, ~note, ~room, h, st, ws, a, b, ha, hb, p, pa, x0, x1)
 
 def ev.w3(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, r: P.H & U32, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32, +x0: U32, +w2: U32) -> Ev<S>:
   (h, +w3) = r
@@ -1051,40 +988,11 @@ def go.ext.r(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H 
     N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
       aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)})
 
-# the pair by its effective kinds ka and kb (dead ports), each external
-# peer in its kind's layout
-def go.eff(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +kb: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, KR.rule_no(ka, kb), fast, a, b, dk.hd(ha, ka), dk.hd(hb, kb), dk.p1(P.rk(ha), ka, a1, a2), a2, dk.p1(P.rk(hb), kb, b1, b2), b2, h, st)
-
-# a pair whose external peers include its own ports goes by its full
-# kinds, so that each port it names is the port it is: a dead port's
-# static, no port, takes none of them; so does a pair no dead port
-# changes; the rest by its effective kinds
-def go.own(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +full: Bool, +ka: U32, +kb: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  match full:
-    case True{}:
-      go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
-    case False{}:
-      go.eff(~S, ~R, ~note, ~fin, ~wd, ~after, ka, kb, fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
-
-def go.dk(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +ka: U32, +kb: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  go.own(~S, ~R, ~note, ~fin, ~wd, ~after, (U32.is_eq(ka, P.rk(ha)) && U32.is_eq(kb, P.rk(hb))) || any_own(N.Ext4{aux_or_nil(U32.is_lt(1, arity(ha)), a1), aux_or_nil(U32.is_lt(2, arity(ha)), a2),
-      aux_or_nil(U32.is_lt(1, arity(hb)), b1), aux_or_nil(U32.is_lt(2, arity(hb)), b2)}, a, b),
-    ka, kb, fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
-
-def go.st(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +any: Bool, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  match any:
-    case True{}:
-      go.dk(~S, ~R, ~note, ~fin, ~wd, ~after, dk(P.rk(ha), a1, a2), dk(P.rk(hb), b1, b2), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
-    case False{}:
-      go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
-
-# The common case first: none of the four words static, no dead port, the
-# pair by its kinds as they are; a payload word that happens to look
-# static only sends the pair the longer way, which finds its kinds
-# unchanged
+# the pair by its kinds as they are: a static at a link word is read
+# nowhere on the rewrite's path, every test there costing every rewrite
+# (erasure-at-write)
 def go.ext(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S) -> R:
-  go.st(~S, ~R, ~note, ~fin, ~wd, ~after, P.is_static(a1) || P.is_static(a2) || P.is_static(b1) || P.is_static(b2), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+  go.ext.r(~S, ~R, ~note, ~fin, ~wd, ~after, KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
 
 def go.b2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> R:
   (h, +b2) = r
@@ -1157,10 +1065,10 @@ def se.note(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +none: Bool, st: S, +
     case False{}:
       note(st, e, s)
 
-# the pairs the erasers put on x's peers make, none for a port the
-# effective kind k lacks (nil, an eraser's value too, so told by k's
-# arity); x's auxiliary ports linked to each other, the two erasers they
-# get meet, as two the rule makes would (static-links-count-as-nodes)
+# the pairs the erasers put on x's peers make, none for a port kind k
+# lacks (nil, an eraser's value too, so told by k's arity); x's
+# auxiliary ports linked to each other, the two erasers they get meet, as
+# two the rule makes would (static-links-count-as-nodes)
 def se.notes(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, +loop: Bool, st: S, +k: U32, +e1: U32, +e2: U32) -> S:
   match loop:
     case True{}:
@@ -1182,13 +1090,11 @@ def se.stuck(+neg: Bool, +k: U32) -> U32:
     case False{}:
       KR.stuck_by(6, k)
 
-# x erased by its effective kind k: a dead port's eraser goes with it, the
-# kept side's peer taken as port 1's (dead ports)
 def se.go(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, +ok: Bool, +stuck: Bool, h: P.H, st: S, +x: U32, +hx: U32, +k: U32, +w2: U32, +w3: U32) -> R:
   match ok stuck:
     case True{} False{}:
       se.do(~S, ~R, ~note, ~fin, ~after, se.free(KR.is_data(P.rk(hx)), h, x, hx, w2, w3), st, x, k,
-        aux_or_nil(U32.is_lt(1, KR.kind_arity(k)), dk.p1(P.rk(hx), k, w2, w3)), aux_or_nil(U32.is_lt(2, KR.kind_arity(k)), w3))
+        aux_or_nil(U32.is_lt(1, KR.kind_arity(k)), w2), aux_or_nil(U32.is_lt(2, KR.kind_arity(k)), w3))
     case True{} True{}:
       fin(h, st)
     case False{} _:
@@ -1199,7 +1105,7 @@ def se.k(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S
 
 def se.w3(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32, +w2: U32) -> R:
   (h, +w3) = r
-  se.k(~S, ~R, ~note, ~fin, ~after, dk(P.rk(hx), w2, w3), h, st, x, s, hx, w2, w3)
+  se.k(~S, ~R, ~note, ~fin, ~after, P.rk(hx), h, st, x, s, hx, w2, w3)
 
 def se.w2(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, r: P.H & U32, st: S, +x: U32, +s: U32, +hx: U32) -> R:
   (h, +w2) = r
@@ -1214,7 +1120,7 @@ def se.hx(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
 def static_meet(~S: Type, ~R: Type, ~fin: P.H -> S -> R, h: P.H, st: S) -> R:
   fin(h, st)
 
-# node x, its principal facing static s: erased by its effective kind, or
+# node x, its principal facing static s: erased by its kind, or
 # left where stuck; a static other than the eraser is a fault, counted
 def static_erase(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~after: R -> @+x:N.Ext -> R, h: P.H, st: S, +x: U32, +s: U32) -> R:
   se.hx(~S, ~R, ~note, ~fin, ~after, P.rd(h, x), st, x, s)

@@ -1,6 +1,6 @@
 # A static eraser at an auxiliary port acts where it is written
 
-`erasure-at-write` · maintainer · rev 8ff2722
+`erasure-at-write` · maintainer · rev 85dc9f5
 
 **Context.** A static eraser at an auxiliary port marks that port dead
 (`static-links-count-as-nodes`). HeapModel's
@@ -18,10 +18,12 @@ pattern was cheapest, but it pushed the library's build past 6 GB.
 **Decision.** The maintainer (2026-11-03): erasure at an auxiliary port
 is handled where the static is written, never tested on the rewrite's
 path. A node whose last auxiliary is erased is erased at its principal,
-a linear chain (`.links.propagate`). That step tries it first without the
-kinds a dead side makes (the linear fans), whose port layouts cost a swap
-and a fault. If kind-based specialization of fans and merges proves
-simpler and more efficient, it returns.
+a linear chain (`.links.propagate`). The kinds a dead side makes, the
+linear fans, stay, made by the table's events where the static lands:
+tried without them, a fan with a dead side copied into it, 2.83% more
+interactions eager with events and collections three times the work
+(gcbench run 226), so kind-based specialization returned, as the
+maintainer allowed should it prove simpler and more efficient.
 
 **Consequences.**
 - The rewrite's dispatch reads kinds alone, as before
@@ -29,5 +31,5 @@ simpler and more efficient, it returns.
 - Writers of statics (native rules, static erasure, the sweep, the
   loader) are where erasure continues; plain strategies may then make
   events, as the erasure modes do now.
-- A fan with one dead side goes through the full fan's rules, its dead
-  side meeting the static, unless kinds return.
+- Strategies that run no events leave a static on a fan's side, which
+  the full fan's rules then meet.

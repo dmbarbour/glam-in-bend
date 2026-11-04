@@ -809,23 +809,6 @@ law events_as_components:
   for +t: Bool
   {R.fz_event(a, p, v, t) == True{} : Bool}
 
-# LAW: and so does a node with dead ports: the kernel takes a node whose
-# auxiliary ports hold static erasers by its effective kind (R.dead_kind,
-# from which the kernel's table is generated), which is its own kind, a
-# fused form of it whose dead port is dead, so that its rules are the
-# node's with an eraser there (linear_as_components), or, both sides of a
-# fan dead, the eraser the events make of either linear form
-# (events_as_components). A dead port mapped to a fused kind that keeps
-# it, or to another kind's form, fails it
-# (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.
-# dead-ports).
-# Record: fusions-as-components
-law dead_ports:
-  for +k: R.NodeKind
-  for +d1: Bool
-  for +d2: Bool
-  {R.dead_port(k, d1, d2) == True{} : Bool}
-
 # LAW: and so does a run of controls: a control standing for a run of
 # unit brackets, against whatever its principal meets but a control
 # facing it, is stuck where its units in series are, and otherwise leaves

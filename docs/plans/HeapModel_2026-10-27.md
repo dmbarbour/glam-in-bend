@@ -2100,6 +2100,53 @@ takes from it:
                  Measured against branch `links-native`'s interactions and
                  instructions, and against the dead ports' interactions
                  (the library's counts on branch `dead-ports`).
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.dispatch` — built 2026-11-04 on branch
+                   `propagate` (off `dead-ports`): the rewrite's dispatch
+                   by kinds alone, static erasure and the strategies'
+                   reads by full kinds; the dead-port tables and law
+                   `dead_ports` gone (in history at a867628); lowering
+                   back to FnD for an unused variable, which without dead
+                   ports goes through the full function's rules (5% more
+                   interactions where it does). The library's counts are
+                   main's exactly; plain demand 0.03% fewer instructions
+                   than branch `links-native`, 49 to 54 cases better and
+                   none worse (gcbench runs 226, 227 against 221, the
+                   benchmark's nets lowered again). Fault found: the
+                   events' worklist took nil for a port a node lacks,
+                   and with one eraser value every static eraser is nil,
+                   so a fan's follow-up event was dropped (the generated
+                   rewrites 9 interactions over the interpreted table on
+                   three cases, which noted the site twice; masked on
+                   `dead-ports`): a port a node lacks is told by its arity.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.fans` — built 2026-11-04, kinds kept: tried
+                   first without linear fans, a fan dying at its last
+                   side made in place the eraser of its principal's
+                   polarity, one event. Eager with events then made 2.83%
+                   more interactions than main (up to 94% with static
+                   labels, loop-toggle-1024 7,018 to 13,643), and
+                   collecting demand cost 2.32% over plain demand, its
+                   collections 51,143 interactions against 15,634
+                   (gcbench run 226), copies with a dead side copying into
+                   it. So kind-based specialization returns (the
+                   maintainer's fallback): a fan's events are the table's
+                   again, and the erasure modes make main's interactions
+                   and events exactly, every case alike.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers` — planned — the table's
+                   events in every strategy, run where statics are written
+                   (the native rules, static erasure, the sweep, the
+                   loader), not by tests after every rewrite: plain eager
+                   would then make the linear fans' savings (with static
+                   labels up to 46%, the dead ports' counts at a867628); a
+                   linear chain, no worklist.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — active — gcbench runs 226 and 227
+                   against 221 and the library against main so far; spot
+                   against run 211 to come. Collecting demand at 227:
+                   0.42% over plain demand against 0.03%, capacity 20%
+                   less in all but 31 cases grown (loop-toggle-1024
+                   unfused 2,048 to 32,768 nodes) and 48 shrunk, its
+                   collections 13,640 interactions against 15,634: the
+                   sweep's boundary as statics and events rather than
+                   kinds changed in place, `.links.walk`'s to settle.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`
                  — planned — the collection's walk back to `.links.read`'s
                  once dead ports leave the sweep no kinds to convert. The

@@ -140,66 +140,6 @@ def kind_dir(+k: U32) -> U32:
     case _:
       15
 
-# the effective kind of a node of kind k, d1 and d2 whether its ports 1
-# and 2 hold static erasers (R.dead_kind)
-def dead_kind(+k: U32, +d1: Bool, +d2: Bool) -> U32:
-  match k:
-    case 1:
-      match d1 d2:
-        case False{} False{}:
-          1
-        case True{} False{}:
-          1
-        case False{} True{}:
-          17
-        case True{} True{}:
-          17
-    case 3:
-      match d1 d2:
-        case False{} False{}:
-          3
-        case True{} False{}:
-          13
-        case False{} True{}:
-          12
-        case True{} True{}:
-          6
-    case 4:
-      match d1 d2:
-        case False{} False{}:
-          4
-        case True{} False{}:
-          15
-        case False{} True{}:
-          14
-        case True{} True{}:
-          7
-    case _:
-      k
-
-# a kind a dead port changes, whose links its effective kind reads
-def kind_dead(+k: U32) -> Bool:
-  match k:
-    case 1:
-      True{}
-    case 3:
-      True{}
-    case 4:
-      True{}
-    case _:
-      False{}
-
-# an effective kind keeping its full kind's port 2 as its port 1
-# (R.ex.kept)
-def kept2(+k: U32) -> Bool:
-  match k:
-    case 13:
-      True{}
-    case 15:
-      True{}
-    case _:
-      False{}
-
 # a kind whose payload is a value, data or a call's or a dead call's
 # function: a table entry the node's to drop
 def is_data(+k: U32) -> Bool:

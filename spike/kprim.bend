@@ -400,7 +400,7 @@ def link(h: H, +x: U32, +y: U32) -> H:
 # tests first whether it is static. A static stands for a node, as many
 # copies of it as there are links to it, and counts as one
 # (static-links-count-as-nodes). A static eraser at a port is that port's
-# deadness (`.dead-kinds.links.dead-ports`, knet.bend's dead ports).
+# deadness (`erasure-at-write`).
 def era() -> U32:
   nil()
 

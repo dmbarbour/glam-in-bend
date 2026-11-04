@@ -381,15 +381,13 @@ def lower(net, t, env, depth, path):
         plug(net, lower(net, t[2], env, depth + 1, path + (net.boxes,)), (a, 1))
         return (a, 2)
     # a lambda: Fn [+ fn, - result, + arg]; one whose variable is unused
-    # has an eraser at its variable, which the loader makes a static, the
-    # port dead, the function's effective kind FnD [+ fn, - result]
-    # (heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.
-    # dead-ports; FnD itself since `.lowering`)
+    # is a function with its variable dead, FnD [+ fn, - result], no eraser
+    # made (heap-strategies.erasure.load.cycle.walk.directed.lowering)
     f = net.node("fn", depth if net.levels else 0)
     v = Var(depth, path)
     plug(net, lower(net, t[2], {**env, t[1]: v}, depth, path), (f, 1))
     if not v.uses:
-        net.link((f, 2), (net.node("era"), 0))
+        net.nodes[f] = ("fnd", net.nodes[f][1])
         return (f, 0)
     if net.levels:
         fan_trie(net, (f, 2), v)
@@ -399,7 +397,7 @@ def lower(net, t, env, depth, path):
 
 
 def fan_chain(net, src, uses):
-    assert uses, "an unused variable has an eraser"
+    assert uses, "an unused variable's function is lowered as fnd"
     for u in uses[:-1]:
         net.site += 1
         c = net.node("cp", net.site, 0)
@@ -410,7 +408,7 @@ def fan_chain(net, src, uses):
 
 
 def fan_trie(net, src, var):
-    assert var.uses, "an unused variable has an eraser"
+    assert var.uses, "an unused variable's function is lowered as fnd"
     trie = {"uses": [], "boxes": {}}
     for consumer, depth, path in var.uses:
         node = trie
