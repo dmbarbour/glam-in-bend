@@ -87,6 +87,16 @@ Bend's imports pass through.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`): Bend's constructor
   names are global; a type member can be one's argument (`Box<S()>`).
+- **Imports** of other `.blend` files, `import ./lib/shapes.blend as
+  S`, name their objects `S.Square`, to extend and to call. Imports form
+  a DAG, each file read once, a cycle an error, and an object means the
+  same however an import reaches it, the module being no object
+  (`blend-module-is-bend`). Each module emits its own `.bend`; the
+  root's import of one names it. An object extending another module's
+  copies what it inherits, and the bodies copied name that module's
+  definitions through its alias; the imports they need, that module and
+  its own, are carried into the root's emission, where the root has none
+  of that alias, an alias two imports give two files an error.
 - **No Bend logic of its own.** Blend translates objects; what a
   definition says in Bend means what Bend makes of it, so two
   definitions calling each other are an error, as in Bend
@@ -132,6 +142,8 @@ program prints.
 - `nested`: nested objects, `^name`, the module's definitions as Bend's.
 - `types`: type members declared, given by each family and named in
   signatures, a datatype of the module's taking one as its argument.
+- `imports`, with `lib/shapes.blend`: an object extending an imported
+  one, the library's definitions named through its alias.
 - `choice`: a family's choice as a constant definition, the branch
   on it left to the C compiler to fold.
 
@@ -141,7 +153,8 @@ affine definition used twice, mutual recursion, a declared name left
 undefined, a parameter shadowing a definition, parents with no C3
 linearization, `^` in a definition of the module, members after a header
 that leaves out `with`, a declared type left undefined, a datatype in an
-object.
+object, an import reaching the module importing it, an import of no
+file.
 
 ## Open questions
 
@@ -150,14 +163,13 @@ object.
   substituted where used and a `static match` pruning arms; at most,
   definitions computed by running Bend when generating, as
   `spike/tools/gen_krules.bend` does.
-- Imports between `.blend` files. A plain `.bend` file names an object's
-  definitions by their emitted names, `Eager.go` (the maintainer,
-  2026-11-04). A module emits every definition, not only those some
-  roots reach, so that a module several import is emitted once (the
-  maintainer, 2026-11-04).
-  An object means the same however an import reaches it, the module
-  being no object (`blend-imports`); the maintainer leans to one root
-  module doing a dozen jobs by its imports (2026-11-04).
+- A plain `.bend` file names an object's definitions by their emitted
+  names, `Eager.go` (the maintainer, 2026-11-04). A module emits every
+  definition, not only those some roots reach, so that a module several
+  import is emitted once (the maintainer, 2026-11-04).
+- Several files on one command line, and how their outputs are written;
+  the maintainer leans to one root module doing a dozen jobs by its
+  imports (2026-11-04).
 - Nested objects inherited and extended, `extend Inner with ...`
   (`blend-nested`).
 - Laws and proofs as members, each family its own instance

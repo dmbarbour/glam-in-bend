@@ -1,0 +1,15 @@
+# Imports: `import ./lib/shapes.blend as S` names the library's objects
+# `S.Square`, to extend and to call. Each module emits its own `.bend`,
+# this one importing the library's; an object extending one of its
+# objects copies what it inherits, the library's own definitions named
+# through the alias, and an object means the same however an import
+# reaches it.
+import Base
+import ./lib/shapes.blend as S
+
+object Big extends S.Square with
+  upd side() -> U32:
+    (_side() * 10 : U32)
+
+def main() -> IO(Unit):
+  IO.print(U32.show(S.Square.perimeter()) ++ " " ++ U32.show(Big.perimeter()))

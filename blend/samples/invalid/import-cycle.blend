@@ -1,0 +1,6 @@
+# An import that reaches the module importing it: imports form a DAG.
+import ./import-cycle.blend as Me
+
+object A with
+  def a() -> U32:
+    1

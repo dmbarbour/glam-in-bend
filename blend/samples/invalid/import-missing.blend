@@ -1,0 +1,4 @@
+# An import of a file there is none of.
+import ./nowhere.blend as N
+
+object A extends N.B

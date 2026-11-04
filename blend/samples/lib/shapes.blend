@@ -1,0 +1,16 @@
+# A library the sample `imports` imports: a module emits its own `.bend`
+# (`lib/shapes.bend`), and a module extending its objects copies what it
+# inherits.
+import Base
+
+def twice(+n: U32) -> U32:
+  (n * 2 : U32)
+
+abstract object Shape with
+  declare side
+  def perimeter() -> U32:
+    twice(twice(side()))
+
+object Square extends Shape with
+  def side() -> U32:
+    3

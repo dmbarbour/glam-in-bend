@@ -42,5 +42,7 @@ blend/samples prior.bend blend prior.blend
 blend/samples sharing.bend blend sharing.blend
 blend/samples choice.bend blend choice.blend
 blend/samples types.bend blend types.blend
+blend/samples imports.bend blend imports.blend
+blend/samples/lib shapes.bend blend shapes.blend
 EOF
 exit "$status"
