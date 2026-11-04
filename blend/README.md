@@ -14,7 +14,8 @@ Status: a design, its samples, and the tool's first steps: `bend
 blend.bend read FILE.blend` reads a `.blend` file and prints its
 structure (`blend-read`); `bend blend.bend objects FILE.blend` checks
 its objects and prints their linearizations and definitions
-(`blend-objects`). Each valid sample's emitted form is written by
+(`blend-objects`); `bend blend.bend resolve FILE.blend` binds each
+copy's names and prints what they reach (`blend-resolve`). Each valid sample's emitted form is written by
 hand and checked to run under Bend; `blend/check.sh` checks them and
 reads every sample, and the gate runs it. The maintainer's
 direction (2026-11-04): `def` and `upd` for introduction and override,

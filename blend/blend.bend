@@ -2,12 +2,15 @@ import Base
 
 # Blend: static objects for Bend (blend/README.md; the plan,
 # docs/plans/Blend_2026-11-04.md). So far it reads a `.blend` file into
-# its structure (`blend-read`) and checks its objects (`blend-objects`):
+# its structure (`blend-read`), checks its objects (`blend-objects`) and
+# binds the names in each concrete object's copies (`blend-resolve`):
 #
 #   bend blend.bend read FILE.blend       the structure, one item a line,
 #                                         each body's names under it
 #   bend blend.bend objects FILE.blend    each object's linearization and
 #                                         definitions, or the errors
+#   bend blend.bend resolve FILE.blend    each copy and what its names
+#                                         reach, or the errors
 #
 # Bend has no mutual recursion, so the source is read in two passes: the
 # lines into a flat list of items, each with its line and indentation (an
@@ -1925,29 +1928,778 @@ def show.ers(+file: String, es: List<&2, Er>) -> String:
         case Er{+no, msg}:
           file ++ ":" ++ U32.show(no) ++ ": " ++ msg ++ "\n" ++ show.ers(file, t)
 
-def objects.out(+file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> String:
+# References
+# ==========
+#
+# Each concrete object's definitions, its own copies, their bodies'
+# names bound (`blend-resolve`): a bare name to the final definition of
+# the innermost object that has it, the concrete object itself first,
+# then the hosts of the object that wrote the body; a dotted name to an
+# object's definition (`Outer.Inner.path`), the longest object path
+# first; `_name` to the definition the writer's replaced, `^name` to its
+# host's, `~name` as a bare name, the mark kept. A body's locals are its
+# parameters and binders; a local named as a definition is an error
+# (`shadowing-is-an-error`), so any other name a definition has is a
+# reference. The rest is Bend's.
+
+# the module, its objects, their linearizations and definitions
+type Cx is Data:
+  Cx{obs: List<&2, Ob>, ls: List<&2, Maybe<&2, Lz>>, fs: List<&2, Maybe<&2, Fd>>}
+
+def cx.obs(c: Cx) -> List<&2, Ob>:
+  match c:
+    case Cx{obs, ls, fs}:
+      obs
+
+def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{d}:
+      match d:
+        case Fd{map, fes}:
+          map
+
+def cx.map(c: Cx, +id: U32) -> List<&2, En>:
+  match c:
+    case Cx{obs, ls, fs}:
+      fd.map(fd.at(fs, id))
+
+def cx.ord(c: Cx, +id: U32) -> List<&2, U32>:
+  match c:
+    case Cx{obs, ls, fs}:
+      lz.ord(lz.at(ls, id))
+
+def has.def(+map: List<&2, En>, +n: List<&2, U32>) -> Bool:
+  Maybe.is_some(&2, En, en.find(map, n))
+
+# an object's hosts, innermost first, the module last; the module's none
+def hosts.go(n: Nat, +obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n++k:
+      when(List<&2, U32>, U32.is_eq(id, 0), u => Nil{},
+        u => Con{ob.host(ob.at(obs, id)), hosts.go(k, obs, ob.host(ob.at(obs, id)))})
+
+def hosts(+obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
+  hosts.go(1n+List.length(&2, Ob, obs), obs, id)
+
+# A body's locals
+# ---------------
+
+def tok.sym(t: Tok, +c: U32) -> Bool:
+  match t:
+    case TSym{+x}:
+      U32.is_eq(x, c)
+    case _:
+      False{}
+
+# whether ts begins with the symbol c
+def tok.sym.head(ts: List<&2, Tok>, +c: U32) -> Bool:
+  match ts:
+    case Nil{}:
+      False{}
+    case Con{t, r}:
+      tok.sym(t, c)
+
+def tok.solid(ts: List<&2, Tok>) -> List<&2, Tok>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{t, r}:
+      match t:
+        case TSp{x}:
+          tok.solid(r)
+        case TCom{x}:
+          tok.solid(r)
+        case _:
+          Con{t, tok.solid(r)}
+
+def tok.brace(ts: List<&2, Tok>) -> Bool:
+  match ts:
+    case Nil{}:
+      False{}
+    case Con{t, r}:
+      tok.sym(t, 123)
+
+def tok.arrow(ts: List<&2, Tok>) -> Bool:
+  match ts:
+    case Con{a, r}:
+      match r:
+        case Con{b, r2}:
+          tok.sym(a, 61) && tok.sym(b, 62)
+        case Nil{}:
+          False{}
+    case Nil{}:
+      False{}
+
+def is.wild(+x: List<&2, U32>) -> Bool:
+  same(x, codes("_"))
+
+# a pattern's binders: its names, but constructors (a name before `{`)
+# and `_`; up to the pattern's `:`
+def pat.names(+ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, +r}:
+      match t:
+        case TName{+x}:
+          when(List<&2, List<&2, U32>>, tok.brace(r) || is.wild(x), u => pat.names(r), u => Con{x, pat.names(r)})
+        case TSym{+c}:
+          match c:
+            case 58:
+              Nil{}
+            case _:
+              pat.names(r)
+        case _:
+          pat.names(r)
+
+# a let's binders: names, brackets, commas and marks, then a lone `=`
+def let.names(+ts: List<&2, Tok>, +acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, +r}:
+      match t:
+        case TName{+x}:
+          let.names(r, when(List<&2, List<&2, U32>>, tok.brace(r) || is.wild(x), u => acc, u => Con{x, acc}))
+        case TSym{+c}:
+          match c:
+            case 61:
+              when(List<&2, List<&2, U32>>, tok.arrow(Con{TSym{c}, r}) || tok.sym.head(r, 61), u => Nil{}, u => acc)
+            case 40:
+              let.names(r, acc)
+            case 41:
+              let.names(r, acc)
+            case 44:
+              let.names(r, acc)
+            case 43:
+              let.names(r, acc)
+            case 45:
+              let.names(r, acc)
+            case 123:
+              let.names(r, acc)
+            case 125:
+              let.names(r, acc)
+            case _:
+              Nil{}
+        case _:
+          Nil{}
+
+# a lambda's binders: each name before `=>`
+def lam.names(+ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, +r}:
+      match t:
+        case TName{+x}:
+          when(List<&2, List<&2, U32>>, tok.arrow(r), u => Con{x, lam.names(r)}, u => lam.names(r))
+        case _:
+          lam.names(r)
+
+# a bind's or an annotated let's binder: a line's first name before `:`
+def bind.name(+ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, +r}:
+      match t:
+        case TSym{+c}:
+          match c:
+            case 43:
+              bind.name(r)
+            case 45:
+              bind.name(r)
+            case _:
+              Nil{}
+        case TName{+x}:
+          when(List<&2, List<&2, U32>>, tok.sym.head(r, 58), u => [x], u => Nil{})
+        case _:
+          Nil{}
+
+def is.case(ts: List<&2, Tok>) -> Bool:
+  match ts:
+    case Nil{}:
+      False{}
+    case Con{t, r}:
+      match t:
+        case TName{x}:
+          same(x, codes("case"))
+        case _:
+          False{}
+
+def line.names.k(+pat: Bool, +ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
+  match pat:
+    case True{}:
+      List.append(&2, List<&2, U32>, pat.names(List.tail(&2, Tok, ts)), lam.names(ts))
+    case False{}:
+      List.append(&2, List<&2, U32>, let.names(ts, Nil{}), List.append(&2, List<&2, U32>, bind.name(ts), lam.names(ts)))
+
+def line.names(+ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
+  line.names.k(is.case(tok.solid(ts)), tok.solid(ts))
+
+# A name bound
+# ------------
+
+# where a name points: a final definition (obj's), or a prior (the one
+# origin gave, in obj's copy)
+type Rf is Data:
+  Rf{+obj: U32, name: List<&2, U32>, +prior: Bool, +origin: U32}
+
+# a body's token, a reference resolved or as written
+type Rt is Data:
+  RT{t: Tok}
+  RR{+mark: U32, ref: Rf}
+
+type Rl is Data:
+  Rl{+no: U32, +ind: U32, ts: List<&2, Rt>}
+
+# a definition in a concrete object's copy: its name, the object whose
+# member it is, whether it is a prior
+type In is Data:
+  In{name: List<&2, U32>, +q: U32, +prior: Bool}
+
+# a token resolved, the errors it raised, the priors it reached
+type Rr is Data:
+  Rr{rt: Rt, ers: List<&2, Er>, ins: List<&2, In>}
+
+# a name token's text
+def tok.txt(t: Tok) -> List<&2, U32>:
+  match t:
+    case TName{x}:
+      x
+    case _:
+      Nil{}
+
+def rr.tok(t: Tok) -> Rr:
+  Rr{RT{t}, Nil{}, Nil{}}
+
+def rr.er(t: Tok, +no: U32, msg: String) -> Rr:
+  Rr{RT{t}, [Er{no, msg}], Nil{}}
+
+def carets(xs: List<&2, U32>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{+h, t}:
+      match h:
+        case 94:
+          1n+carets(t)
+        case _:
+          0n
+
+def nth(+xs: List<&2, U32>, n: Nat) -> Maybe<&2, U32>:
+  List.get(&2, U32, xs, n)
+
+# a reference to obj's final n, an error where obj is abstract
+def rr.final(+cx: Cx, +obj: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  when(Rr, ob.abs(ob.at(cx.obs(cx), obj)),
+    u => rr.er(t, no, text(tok.txt(t)) ++ " names a definition of " ++ ob.name(cx.obs(cx), obj) ++ ", which is abstract and emits nothing"),
+    u => Rr{RR{mark, Rf{obj, n, False{}, obj}}, Nil{}, Nil{}})
+
+# a bare name: the concrete object's, then each host's, innermost first
+def look(+cx: Cx, hs: List<&2, U32>, +n: List<&2, U32>) -> Maybe<&2, U32>:
+  match hs:
+    case Nil{}:
+      None{}
+    case Con{+h, t}:
+      when(Maybe<&2, U32>, has.def(cx.map(cx, h), n), u => Some{h}, u => look(cx, t, n))
+
+# a dotted name as an object's path and one of its definitions, the
+# longest path first; k, the path's length tried
+def look.obj(k: Nat, +cx: Cx, +q: U32, +ps: List<&2, List<&2, U32>>) -> Maybe<&2, Rf>:
+  match k:
+    case 0n:
+      None{}
+    case 1n++j:
+      on.maybe(U32, Maybe<&2, Rf>, resolve(List.length(&2, Ob, cx.obs(cx)), cx.obs(cx), q, List.take(&2, List<&2, U32>, ps, k)),
+        u => look.obj(j, cx, q, ps),
+        +x => when(Maybe<&2, Rf>, has.def(cx.map(cx, x), dots(List.drop(&2, List<&2, U32>, ps, k))),
+          v => Some{Rf{x, dots(List.drop(&2, List<&2, U32>, ps, k)), False{}, x}},
+          v => look.obj(j, cx, q, ps)))
+
+def rr.rf(+cx: Cx, +mark: U32, +t: Tok, +no: U32, f: Rf) -> Rr:
+  match f:
+    case Rf{+obj, +name, +prior, +origin}:
+      rr.final(cx, obj, mark, name, t, no)
+
+def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  on.maybe(Rf, Rr, look.obj(List.length(&2, List<&2, U32>, List.tail(&2, List<&2, U32>, parts(n))), cx, q, parts(n)),
+    u => rr.tok(t),
+    f => rr.rf(cx, mark, t, no, f))
+
+# a name with no mark, or after `~`: a local, a definition, or Bend's
+def rr.plain(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  when(Rr, names.has(locals, n), u => rr.tok(t),
+    u => on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
+      v => rr.dotted(cx, q, mark, n, t, no),
+      +h => rr.final(cx, h, mark, n, t, no)))
+
+# the first of the definers, latest first, that comes after q in o's
+# linearization
+def prior.find(cs: List<&2, U32>, +after: List<&2, U32>) -> Maybe<&2, U32>:
+  match cs:
+    case Nil{}:
+      None{}
+    case Con{+c, t}:
+      when(Maybe<&2, U32>, has(after, c), u => Some{c}, u => prior.find(t, after))
+
+def after(xs: List<&2, U32>, +q: U32) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +t}:
+      when(List<&2, U32>, U32.is_eq(x, q), u => t, u => after(t, q))
+
+def en.chain(m: Maybe<&2, En>) -> List<&2, U32>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{e}:
+      match e:
+        case En{name, chain, +no}:
+          chain
+
+# `_n`: the definition of n that q's replaced in o's copy
+def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  on.maybe(U32, Rr, prior.find(en.chain(en.find(cx.map(cx, o), n)), after(cx.ord(cx, o), q)),
+    u => rr.er(t, no, "_" ++ text(n) ++ ": " ++ ob.name(cx.obs(cx), o) ++ " has no definition of " ++ text(n) ++ " before " ++
+      ob.name(cx.obs(cx), q) ++ "'s"),
+    +c => Rr{RR{0, Rf{o, n, True{}, c}}, Nil{}, [In{n, c, True{}}]})
+
+# `^n`, k carets: the k-th host's final n
+def rr.host(+cx: Cx, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whole: List<&2, U32>, +no: U32) -> Rr:
+  on.maybe(U32, Rr, List.get(&2, U32, hosts(cx.obs(cx), q), Nat.sub(k, 1n)),
+    u => rr.er(t, no, text(whole) ++ " steps out of the module, which has no host"),
+    +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
+      v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
+
+def rr.mark(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32, +r: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  match h:
+    case 94:
+      rr.host(cx, q, carets(Con{h, r}), List.drop(&2, U32, Con{h, r}, carets(Con{h, r})), t, Con{h, r}, no)
+    case 126:
+      rr.plain(cx, o, q, locals, 126, r, t, no)
+    case 95:
+      when(Rr, blank(r) || names.has(locals, Con{h, r}), u => rr.tok(t), u => rr.prior(cx, o, q, r, t, no))
+    case _:
+      rr.plain(cx, o, q, locals, 0, Con{h, r}, t, no)
+
+def rr.of(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +t: Tok, +no: U32) -> Rr:
+  match t:
+    case TName{+x}:
+      match x:
+        case Nil{}:
+          rr.tok(t)
+        case Con{+h, +r}:
+          rr.mark(cx, o, q, locals, h, r, TName{Con{h, r}}, no)
+    case _:
+      rr.tok(t)
+
+# A definition's body
+# -------------------
+
+type Rb is Data:
+  Rb{ls: List<&2, Rl>, ers: List<&2, Er>, ins: List<&2, In>}
+
+def rb.cons(x: Rr, rest: Rb) -> Rb:
+  match x rest:
+    case Rr{rt, e, i} Rb{ls, es, more}:
+      Rb{Con{Rl{0, 0, [rt]}, ls}, List.append(&2, Er, e, es), List.append(&2, In, i, more)}
+
+def rb.toks(ts: List<&2, Tok>, +cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +no: U32) -> Rb:
+  match ts:
+    case Nil{}:
+      Rb{Nil{}, Nil{}, Nil{}}
+    case Con{t, r}:
+      rb.cons(rr.of(cx, o, q, locals, t, no), rb.toks(r, cx, o, q, locals, no))
+
+# a line's tokens, gathered from rb.toks' one-token lines
+def rl.join(ls: List<&2, Rl>) -> List<&2, Rt>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Rl{+no, +ind, ts}:
+          List.append(&2, Rt, ts, rl.join(t))
+
+def rb.line(+no: U32, +ind: U32, b: Rb) -> Rb:
+  match b:
+    case Rb{ls, es, more}:
+      Rb{[Rl{no, ind, rl.join(ls)}], es, more}
+
+def rb.join(a: Rb, b: Rb) -> Rb:
+  match a b:
+    case Rb{l1, e1, i1} Rb{l2, e2, i2}:
+      Rb{List.append(&2, Rl, l1, l2), List.append(&2, Er, e1, e2), List.append(&2, In, i1, i2)}
+
+def rb.lines(bs: List<&2, Bl>, +cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>) -> Rb:
+  match bs:
+    case Nil{}:
+      Rb{Nil{}, Nil{}, Nil{}}
+    case Con{b, t}:
+      match b:
+        case Bl{+no, +ind, ts}:
+          rb.join(rb.line(no, ind, rb.toks(ts, cx, o, q, locals, no)), rb.lines(t, cx, o, q, locals))
+
+# a body's binders, with the line of each
+type Lc is Data:
+  Lc{name: List<&2, U32>, +no: U32}
+
+def lc.tag(ns: List<&2, List<&2, U32>>, +no: U32) -> List<&2, Lc>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{n, t}:
+      Con{Lc{n, no}, lc.tag(t, no)}
+
+def body.binders(bs: List<&2, Bl>) -> List<&2, Lc>:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{b, t}:
+      match b:
+        case Bl{+no, +ind, ts}:
+          List.append(&2, Lc, lc.tag(line.names(ts), no), body.binders(t))
+
+def lc.names(ls: List<&2, Lc>) -> List<&2, List<&2, U32>>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Lc{n, +no}:
+          Con{n, lc.names(t)}
+
+def unmark(xs: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+h, t}:
+      match h:
+        case 126:
+          t
+        case _:
+          Con{h, t}
+
+def unmarks(ns: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{n, t}:
+      Con{unmark(n), unmarks(t)}
+
+# whether n names a definition a bare name would reach
+def visible(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>) -> Bool:
+  Maybe.is_some(&2, U32, look(cx, Con{o, hosts(cx.obs(cx), q)}, n))
+
+def shadow.params(ps: List<&2, List<&2, U32>>, +cx: Cx, +o: U32, +q: U32, +dn: String, +no: U32) -> List<&2, Er>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, +t}:
+      when(List<&2, Er>, visible(cx, o, q, p),
+        u => Con{Er{no, "the parameter " ++ text(p) ++ " of " ++ dn ++ " shadows the definition " ++ text(p)}, shadow.params(t, cx, o, q, dn, no)},
+        u => shadow.params(t, cx, o, q, dn, no))
+
+def shadow.locals(ls: List<&2, Lc>, +cx: Cx, +o: U32, +q: U32, +dn: String) -> List<&2, Er>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, +t}:
+      match l:
+        case Lc{+n, +no}:
+          when(List<&2, Er>, visible(cx, o, q, n),
+            u => Con{Er{no, "the local " ++ text(n) ++ " of " ++ dn ++ " shadows the definition " ++ text(n)}, shadow.locals(t, cx, o, q, dn)},
+            u => shadow.locals(t, cx, o, q, dn))
+
+# a resolved definition: what it is, its member as written, its lines
+type Rd is Data:
+  Rd{inst: In, node: Node, ls: List<&2, Rl>}
+
+# Copies
+# ------
+
+def mem.find(ns: List<&2, Node>, +n: List<&2, U32>) -> Maybe<&2, Node>:
+  match ns:
+    case Nil{}:
+      None{}
+    case Con{+nd, t}:
+      match nd:
+        case NDef{+share, +upd, +name, +rest, +params, +body, +no}:
+          when(Maybe<&2, Node>, same(name, n), u => Some{NDef{share, upd, name, rest, params, body, no}}, u => mem.find(t, n))
+        case _:
+          mem.find(t, n)
+
+def path.name(+path: List<&2, List<&2, U32>>, +n: List<&2, U32>) -> List<&2, U32>:
+  match path:
+    case Nil{}:
+      n
+    case Con{h, t}:
+      List.append(&2, U32, dots(Con{h, t}), Con{46, n})
+
+# the name a definition is emitted by: `Obj.f`, a prior `Obj.f.Origin`,
+# the module's own unprefixed
+def rf.text(+obs: List<&2, Ob>, r: Rf) -> List<&2, U32>:
+  match r:
+    case Rf{+obj, +name, +prior, +origin}:
+      when(List<&2, U32>, prior,
+        u => List.append(&2, U32, path.name(ob.path(ob.at(obs, obj)), name), Con{46, dots(ob.path(ob.at(obs, origin)))}),
+        u => path.name(ob.path(ob.at(obs, obj)), name))
+
+def in.ref(+o: U32, i: In) -> Rf:
+  match i:
+    case In{name, +q, +prior}:
+      Rf{o, name, prior, q}
+
+def copy.k(i: In, nd: Node, b: Rb, sh: List<&2, Er>) -> Rd & Rb:
+  match b:
+    case Rb{ls, es, more}:
+      (Rd{i, nd, ls}, Rb{Nil{}, List.append(&2, Er, sh, es), more})
+
+# a member's copy in o: its body bound, the priors it reaches
+def copy.node(+cx: Cx, +o: U32, i: In, +nd: Node) -> Rd & Rb:
+  match i:
+    case In{+n, +q, +prior}:
+      match nd:
+        case NDef{+share, +upd, +name, +rest, +params, +body, +no}:
+          copy.k(In{n, q, prior}, nd, rb.lines(body, cx, o, q, List.append(&2, List<&2, U32>, unmarks(params), lc.names(body.binders(body)))),
+            List.append(&2, Er, shadow.params(unmarks(params), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))), no),
+              shadow.locals(body.binders(body), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))))))
+        case _:
+          (Rd{In{n, q, prior}, nd, Nil{}}, Rb{Nil{}, Nil{}, Nil{}})
+
+def copy.of(+cx: Cx, +o: U32, +i: In) -> Rd & Rb:
+  match i:
+    case In{+n, +q, +prior}:
+      on.maybe(Node, Rd & Rb, mem.find(ob.mems(ob.at(cx.obs(cx), q)), n),
+        u => (Rd{i, NBad{Nil{}, 0}, Nil{}}, Rb{Nil{}, Nil{}, Nil{}}),
+        nd => copy.node(cx, o, i, nd))
+
+def in.eq(a: In, b: In) -> Bool:
+  match a b:
+    case In{n, +q, +p} In{m, +r, +s}:
+      same(n, m) && U32.is_eq(q, r) && Bool.not(Bool.xor(p, s))
+
+def ins.has(+xs: List<&2, In>, +i: In) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+x, t}:
+      in.eq(x, i) || ins.has(t, i)
+
+# the copies made so far, their errors
+type Cp is Data:
+  Cp{rds: List<&2, Rd>, ers: List<&2, Er>, done: List<&2, In>}
+
+def on.pair(-A: Type, -B: Type, -R: Type, p: A & B, f: A -> B -> R) -> R:
+  (a, b) = p
+  f(a, b)
+
+def cp.add(rd: Rd, b: Rb, c: Cp) -> Cp:
+  match b c:
+    case Rb{ls, es, more} Cp{rds, ers, done}:
+      Cp{Con{rd, rds}, List.append(&2, Er, ers, es), done}
+
+def rb.ins(b: Rb) -> List<&2, In>:
+  match b:
+    case Rb{ls, es, more}:
+      more
+
+# the worklist of copies: the finals, then each prior reached; fuel, the
+# file's definitions
+def copies.go(n: Nat, +cx: Cx, +o: U32, todo: List<&2, In>, +c: Cp) -> Cp:
+  match n:
+    case 0n:
+      c
+    case 1n++k:
+      match todo:
+        case Nil{}:
+          c
+        case Con{+i, +t}:
+          match c:
+            case Cp{+rds, +ers, +done}:
+              when(Cp, ins.has(done, i), u => copies.go(k, cx, o, t, Cp{rds, ers, done}),
+                u => on.pair(Rd, Rb, Cp, copy.of(cx, o, i),
+                  rd => +b => copies.go(k, cx, o, List.append(&2, In, t, rb.ins(b)), cp.add(rd, b, Cp{rds, ers, Con{i, done}}))))
+
+def ins.finals(es: List<&2, En>) -> List<&2, In>:
   match es:
     case Nil{}:
+      Nil{}
+    case Con{e, t}:
+      match e:
+        case En{name, chain, +no}:
+          Con{In{name, en.head(chain), False{}}, ins.finals(t)}
+
+# a concrete object's copies: its finals, then each prior they reach
+def copies(+cx: Cx, +o: U32) -> Cp:
+  copies.go(1n+count(ob.mems(ob.at(cx.obs(cx), 0))), cx, o, ins.finals(cx.map(cx, o)), Cp{Nil{}, Nil{}, Nil{}})
+
+# The copies, printed
+# -------------------
+
+def show.rts(+obs: List<&2, Ob>, ts: List<&2, Rt>) -> List<&2, String>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{t, r}:
+      match t:
+        case RR{+mark, ref}:
+          Con{text(rf.text(obs, ref)), show.rts(obs, r)}
+        case _:
+          show.rts(obs, r)
+
+def show.rls(+obs: List<&2, Ob>, ls: List<&2, Rl>) -> List<&2, String>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Rl{+no, +ind, ts}:
+          List.append(&2, String, show.rts(obs, ts), show.rls(obs, t))
+
+def show.strs(xs: List<&2, String>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{x, t}:
+      match t:
+        case Nil{}:
+          x
+        case Con{h, r}:
+          x ++ ", " ++ show.strs(Con{h, r})
+
+def show.refs(xs: List<&2, String>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{x, t}:
+      " -> " ++ show.strs(Con{x, t})
+
+def show.rds(+obs: List<&2, Ob>, +o: U32, rs: List<&2, Rd>) -> String:
+  match rs:
+    case Nil{}:
+      ""
+    case Con{r, t}:
+      match r:
+        case Rd{i, nd, ls}:
+          "  " ++ text(rf.text(obs, in.ref(o, i))) ++ show.refs(show.rls(obs, ls)) ++ "\n" ++ show.rds(obs, o, t)
+
+# A module's copies
+# -----------------
+
+def cp.ers(c: Cp) -> List<&2, Er>:
+  match c:
+    case Cp{rds, ers, done}:
+      ers
+
+def cp.rds(c: Cp) -> List<&2, Rd>:
+  match c:
+    case Cp{rds, ers, done}:
+      List.reverse(&2, Rd, rds)
+
+# a concrete object and its copies
+type Oc is Data:
+  Oc{+id: U32, cp: Cp}
+
+# every concrete object's copies, the module's first
+def module.copies(os: List<&2, Ob>, +cx: Cx) -> List<&2, Oc>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, +t}:
+      match o:
+        case Ob{+id, +host, path, +abs, parents, mems, +no}:
+          when(List<&2, Oc>, abs, u => module.copies(t, cx), u => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)})
+
+def ocs.ers(os: List<&2, Oc>) -> List<&2, Er>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, t}:
+      match o:
+        case Oc{+id, c}:
+          List.append(&2, Er, cp.ers(c), ocs.ers(t))
+
+def show.ocs(+obs: List<&2, Ob>, os: List<&2, Oc>) -> String:
+  match os:
+    case Nil{}:
+      ""
+    case Con{o, t}:
+      match o:
+        case Oc{+id, c}:
+          ob.name(obs, id) ++ "\n" ++ show.rds(obs, id, cp.rds(c)) ++ show.ocs(obs, t)
+
+def er.same(a: Er, b: Er) -> Bool:
+  match a b:
+    case Er{+x, m} Er{+y, n}:
+      U32.is_eq(x, y) && String.eq(m, n)
+
+# sorted errors, each once: a body copied into several objects may raise
+# one error in each
+def ers.uniq(es: List<&2, Er>) -> List<&2, Er>:
+  match es:
+    case Nil{}:
+      Nil{}
+    case Con{+e, t}:
+      match t:
+        case Nil{}:
+          [e]
+        case Con{+f, +r}:
+          when(List<&2, Er>, er.same(e, f), u => ers.uniq(Con{f, r}), u => Con{e, ers.uniq(Con{f, r})})
+
+def resolve.out(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>, es: List<&2, Er>) -> String:
+  match es:
+    case Nil{}:
+      show.ocs(obs, os)
+    case Con{e, t}:
+      show.ers(file, ers.uniq(List.sort(~Er, ~er.le, Con{e, t})))
+
+def resolved(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>) -> String:
+  resolve.out(file, obs, os, ocs.ers(os))
+
+# Stages
+# ======
+#
+# A stage runs when the one before it found no error: the objects, then
+# the references.
+
+def objects.next(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
+  match cmd:
+    case 2:
       show.obs(obs, ls, fs, obs)
+    case _:
+      resolved(file, obs, module.copies(obs, Cx{obs, ls, fs}))
+
+def objects.out(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> String:
+  match es:
+    case Nil{}:
+      objects.next(cmd, file, obs, ls, fs)
     case Con{e, t}:
       show.ers(file, List.sort(~Er, ~er.le, Con{e, t}))
 
-def objects.k(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
-  objects.out(file, obs, ls, fs,
+def objects.k(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
+  objects.out(cmd, file, obs, ls, fs,
     List.append(&2, Er, er.obs(obs, obs), List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs))))
 
-def objects.l(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> String:
-  objects.k(file, obs, pss, ls, folds(ls, obs))
+def objects.l(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> String:
+  objects.k(cmd, file, obs, pss, ls, folds(ls, obs))
 
-def objects.p(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> String:
-  objects.l(file, obs, pss, lins(pss))
+def objects.p(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> String:
+  objects.l(cmd, file, obs, pss, lins(pss))
 
-def objects.o(+file: String, +obs: List<&2, Ob>) -> String:
-  objects.p(file, obs, pids(obs, obs))
+def objects.o(+cmd: U32, +file: String, +obs: List<&2, Ob>) -> String:
+  objects.p(cmd, file, obs, pids(obs, obs))
 
-# the module's objects, or its errors, each `FILE:LINE: message`
-def objects(+file: String, +tree: List<&2, Node>) -> String:
-  objects.o(file, obs(tree))
+# the module's objects (cmd 2) or their copies (3), or the errors of the
+# first stage that has them, each `FILE:LINE: message`
+def objects(+cmd: U32, +file: String, +tree: List<&2, Node>) -> String:
+  objects.o(cmd, file, obs(tree))
 
 # The command line
 # ================
@@ -1956,6 +2708,9 @@ def objects(+file: String, +tree: List<&2, Node>) -> String:
 #   bend blend.bend objects FILE.blend    the objects, or the errors found
 #                                         so far, `FILE:LINE: message`
 #                                         in line order (`blend-objects`)
+#   bend blend.bend resolve FILE.blend    each concrete object's copies
+#                                         and what their names reach
+#                                         (`blend-resolve`)
 
 def base.k(r: List<&2, U32> & List<&2, U32>) -> String:
   (a, b) = r
@@ -1966,15 +2721,17 @@ def basename(path: String) -> String:
   base.k(until(List.reverse(&2, U32, codes(path)), 47))
 
 def usage() -> String:
-  "usage: bend blend.bend read|objects FILE.blend"
+  "usage: bend blend.bend read|objects|resolve FILE.blend"
 
-# 1 read, 2 objects
+# 1 read, 2 objects, 3 resolve
 def run(+cmd: U32, +file: String, +bs: List<&2, U32>) -> String:
   match cmd:
     case 1:
       show(read(bs), List.length(&2, U32, bs))
     case 2:
-      objects(file, read(bs))
+      objects(2, file, read(bs))
+    case 3:
+      objects(3, file, read(bs))
     case _:
       usage()
 
@@ -2019,13 +2776,15 @@ def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
         case Nil{}:
           IO.print(usage())
 
-def cmd.of(+rd: Bool, +ob: Bool) -> U32:
-  match rd ob:
-    case True{} _:
+def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool) -> U32:
+  match rd ob rs:
+    case True{} _ _:
       1
-    case False{} True{}:
+    case False{} True{} _:
       2
-    case False{} False{}:
+    case False{} False{} True{}:
+      3
+    case False{} False{} False{}:
       0
 
 def main.args(xs: List<String>) -> IO(Unit):
@@ -2033,7 +2792,7 @@ def main.args(xs: List<String>) -> IO(Unit):
     case Con{p, r}:
       match r:
         case Con{+flag, r2}:
-          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects")), r2)
+          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve")), r2)
         case Nil{}:
           IO.print(usage())
     case Nil{}:

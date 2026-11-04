@@ -2,10 +2,11 @@
 # Blend's samples (blend/README.md): each valid sample's emitted form,
 # written by hand until Blend emits it, must run under Bend and print what
 # its .out says; each invalid sample states the error it must raise in
-# its .err. Blend checks every sample's objects (`blend-objects`): the
-# invalid samples whose errors its steps so far find must print their
-# .err exactly, and every other sample no error; once it emits, its
-# output is compared with the .bend too.
+# its .err. Blend checks every sample as far as its steps go (its
+# objects, `blend-objects`; their references, `blend-resolve`): the
+# invalid samples whose errors those steps find must print their .err
+# exactly, and every other sample no error; once it emits, its output is
+# compared with the .bend too.
 #
 #   blend/check.sh
 set -u
@@ -35,9 +36,9 @@ for src in invalid/*.blend; do
 done
 # the invalid samples whose errors Blend finds so far, by the step that
 # finds them
-found="upd-undefined def-defined undeclared no-c3"
+found="upd-undefined def-defined undeclared no-c3 shadow host-at-module"
 for src in *.blend invalid/*.blend; do
-  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend objects "$src" 2>&1) || {
+  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend resolve "$src" 2>&1) || {
     echo "blend: checking $src failed: $got"; status=1; continue; }
   base=$(basename "$src" .blend)
   case " $found " in
@@ -49,5 +50,5 @@ for src in *.blend invalid/*.blend; do
         echo "blend: $src gives errors:"; echo "$bad"; status=1; } ;;
   esac
 done
-[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, objects: ok"
+[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, resolved: ok"
 exit "$status"
