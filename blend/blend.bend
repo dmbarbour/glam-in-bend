@@ -14,8 +14,34 @@ import Base
 # indentation, a stack of the objects being read; each body's lines become
 # Bend's tokens as its definition joins the tree. A line Blend cannot read
 # is kept as such (`?` when printed), for a later step to report: reading
-# never fails. Loops that would call each other are written as one loop
-# over a state record, a step function deciding each turn, on fuel.
+# never fails. Bend matches only variables and has no mutual recursion, so
+# a decision on a computed value goes through `when`, its arms thunks, a
+# loop's next turn inside an arm; a loop that does not shrink its input
+# structurally runs on fuel.
+
+# Decisions
+# =========
+
+# a decision on a computed value: Bend matches only variables, so the arms
+# are thunks, and a loop's next turn sits in an arm, inside the loop
+
+def when(-R: Type, c: Bool, yes: Unit -> R, no: Unit -> R) -> R:
+  match c:
+    case True{}:
+      yes(Unit{})
+    case False{}:
+      no(Unit{})
+
+def on.maybe(-A: Data, -R: Type, m: Maybe<&2, A>, none: Unit -> R, some: A -> R) -> R:
+  match m:
+    case None{}:
+      none(Unit{})
+    case Some{+x}:
+      some(x)
+
+def on.pair(-A: Type, -B: Type, -R: Type, p: A & B, f: A -> B -> R) -> R:
+  (a, b) = p
+  f(a, b)
 
 # Text
 # ====
@@ -92,28 +118,16 @@ def rtrim(xs: List<&2, U32>) -> List<&2, U32>:
 def trim(xs: List<&2, U32>) -> List<&2, U32>:
   rtrim(ltrim(xs))
 
-# whether each of xs is c
-def eqs(xs: List<&2, U32>, +c: U32) -> List<&2, Bool>:
+def until.go(xs: List<&2, U32>, +c: U32, +acc: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
   match xs:
     case Nil{}:
-      Nil{}
-    case Con{+h, t}:
-      Con{U32.is_eq(h, c), eqs(t, c)}
-
-def until.go(xs: List<&2, U32>, bs: List<&2, Bool>, acc: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
-  match xs bs:
-    case Con{+h, t} Con{+b, bt}:
-      match b:
-        case True{}:
-          (List.reverse(&2, U32, acc), t)
-        case False{}:
-          until.go(t, bt, Con{h, acc})
-    case _ _:
       (List.reverse(&2, U32, acc), Nil{})
+    case Con{+h, +t}:
+      when(List<&2, U32> & List<&2, U32>, U32.is_eq(h, c), u => (List.reverse(&2, U32, acc), t), u => until.go(t, c, Con{h, acc}))
 
 # xs up to the first c, and what follows it (c dropped)
-def until(+xs: List<&2, U32>, +c: U32) -> List<&2, U32> & List<&2, U32>:
-  until.go(xs, eqs(xs, c), Nil{})
+def until(xs: List<&2, U32>, +c: U32) -> List<&2, U32> & List<&2, U32>:
+  until.go(xs, c, Nil{})
 
 # xs split at its commas outside any bracket, each part trimmed
 def commas.add(x: List<&2, U32>, out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
@@ -164,36 +178,17 @@ def depth.next(+prev: U32, +h: U32, +d: U32) -> U32:
     case _:
       d
 
-type Cs is Type:
-  Cs{xs: List<&2, U32>, +prev: U32, +depth: U32, cur: List<&2, U32>, out: List<&2, List<&2, U32>>}
+def commas.go(xs: List<&2, U32>, +prev: U32, +depth: U32, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match xs:
+    case Nil{}:
+      List.reverse(&2, List<&2, U32>, commas.end(cur, out))
+    case Con{+h, +t}:
+      when(List<&2, List<&2, U32>>, U32.is_eq(h, 44) && U32.is_eq(depth, 0),
+        u => commas.go(t, h, depth, Nil{}, commas.end(cur, out)),
+        u => commas.go(t, h, depth.next(prev, h, depth), Con{h, cur}, out))
 
-def commas.c(+split: Bool, +h: U32, t: List<&2, U32>, +prev: U32, +depth: U32, cur: List<&2, U32>, out: List<&2, List<&2, U32>>) -> Cs:
-  match split:
-    case True{}:
-      Cs{t, h, depth, Nil{}, commas.end(cur, out)}
-    case False{}:
-      Cs{t, h, depth.next(prev, h, depth), Con{h, cur}, out}
-
-def commas.step(s: Cs) -> Cs:
-  match s:
-    case Cs{xs, +prev, +depth, cur, out}:
-      match xs:
-        case Nil{}:
-          Cs{Nil{}, prev, depth, cur, out}
-        case Con{+h, t}:
-          commas.c(U32.is_eq(h, 44) && U32.is_eq(depth, 0), h, t, prev, depth, cur, out)
-
-def commas.go(n: Nat, s: Cs) -> List<&2, List<&2, U32>>:
-  match n:
-    case 0n:
-      match s:
-        case Cs{xs, +prev, +depth, cur, out}:
-          List.reverse(&2, List<&2, U32>, commas.end(cur, out))
-    case 1n+k:
-      commas.go(k, commas.step(s))
-
-def commas(+xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
-  commas.go(List.length(&2, U32, xs), Cs{xs, 0, 0, Nil{}, Nil{}})
+def commas(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
+  commas.go(xs, 0, 0, Nil{}, Nil{})
 
 # Lines
 # =====
@@ -439,64 +434,44 @@ def run.host(r: Rn) -> Rn:
     case Rn{acc, xs, cs}:
       run.name(xs, cs, acc)
 
-type Tk is Type:
-  Tk{xs: List<&2, U32>, cs: List<&2, U32>, out: List<&2, Tok>}
-
-def tok.make(+k: U32, txt: List<&2, U32>) -> Tok:
-  match k:
-    case 0:
-      TSp{txt}
-    case 1:
-      TName{txt}
-    case 2:
-      TNum{txt}
-    case _:
-      TStr{txt}
-
-def tok.add(r: Rn, +k: U32, out: List<&2, Tok>) -> Tk:
+def on.rn(-R: Type, r: Rn, f: List<&2, U32> -> List<&2, U32> -> List<&2, U32> -> R) -> R:
   match r:
     case Rn{acc, xs, cs}:
-      Tk{xs, cs, Con{tok.make(k, List.reverse(&2, U32, acc)), out}}
+      f(acc, xs, cs)
 
-def tok.step(s: Tk) -> Tk:
-  match s:
-    case Tk{xs, cs, out}:
-      match xs cs:
-        case Con{+h, t} Con{+c, ct}:
-          match c:
-            case 0:
-              tok.add(run.sp(t, ct, Con{h, Nil{}}), 0, out)
-            case 1:
-              tok.add(run.name(t, ct, Con{h, Nil{}}), 1, out)
-            case 2:
-              tok.add(run.num(t, ct, Con{h, Nil{}}), 2, out)
-            case 4:
-              tok.add(run.str(t, ct, Con{h, Nil{}}, False{}), 4, out)
-            case 5:
-              Tk{Nil{}, Nil{}, Con{TCom{Con{h, t}}, out}}
-            case 6:
-              tok.add(run.host(run.carets(t, ct, Con{h, Nil{}})), 1, out)
-            case 7:
-              tok.add(run.name(t, ct, Con{h, Nil{}}), 1, out)
-            case 10:
-              tok.add(run.chr(t, ct, Con{h, Nil{}}, False{}), 4, out)
-            case _:
-              Tk{t, ct, Con{TSym{h}, out}}
-        case _ _:
-          Tk{Nil{}, Nil{}, out}
-
-# fuel: the line's length, as each step takes a byte at least
-def tok.go(n: Nat, s: Tk) -> List<&2, Tok>:
+# a line's tokens, one a turn; fuel, the line's length, as each turn
+# takes a byte at least
+def toks.go(n: Nat, xs: List<&2, U32>, cs: List<&2, U32>, +out: List<&2, Tok>) -> List<&2, Tok>:
   match n:
     case 0n:
-      match s:
-        case Tk{xs, cs, out}:
+      List.reverse(&2, Tok, out)
+    case 1n++k:
+      match xs cs:
+        case Con{+h, +t} Con{+c, +ct}:
+          match c:
+            case 0:
+              on.rn(List<&2, Tok>, run.sp(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TSp{List.reverse(&2, U32, acc)}, out}))
+            case 1:
+              on.rn(List<&2, Tok>, run.name(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
+            case 2:
+              on.rn(List<&2, Tok>, run.num(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TNum{List.reverse(&2, U32, acc)}, out}))
+            case 4:
+              on.rn(List<&2, Tok>, run.str(t, ct, [h], False{}), acc => r => rc => toks.go(k, r, rc, Con{TStr{List.reverse(&2, U32, acc)}, out}))
+            case 5:
+              List.reverse(&2, Tok, Con{TCom{Con{h, t}}, out})
+            case 6:
+              on.rn(List<&2, Tok>, run.host(run.carets(t, ct, [h])), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
+            case 7:
+              on.rn(List<&2, Tok>, run.name(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
+            case 10:
+              on.rn(List<&2, Tok>, run.chr(t, ct, [h], False{}), acc => r => rc => toks.go(k, r, rc, Con{TStr{List.reverse(&2, U32, acc)}, out}))
+            case _:
+              toks.go(k, t, ct, Con{TSym{h}, out})
+        case _ _:
           List.reverse(&2, Tok, out)
-    case 1n+k:
-      tok.go(k, tok.step(s))
 
 def toks(+xs: List<&2, U32>) -> List<&2, Tok>:
-  tok.go(List.length(&2, U32, xs), Tk{xs, classes(xs), Nil{}})
+  toks.go(List.length(&2, U32, xs), xs, classes(xs), Nil{})
 
 def toks.lines(ls: List<&2, Ln>) -> List<&2, Bl>:
   match ls:
@@ -555,38 +530,16 @@ def params.go(ps: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
       Con{param.name(p), params.go(t)}
 
 # the parameter list between a header's first parenthesis and its match
-type Ps is Type:
-  Ps{xs: List<&2, U32>, +prev: U32, +depth: U32, acc: List<&2, U32>, +done: Bool}
+def parens.go(xs: List<&2, U32>, +prev: U32, +depth: U32, +acc: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      List.reverse(&2, U32, acc)
+    case Con{+h, +t}:
+      when(List<&2, U32>, U32.is_eq(h, 41) && U32.is_eq(depth, 0), u => List.reverse(&2, U32, acc),
+        u => parens.go(t, h, depth.next(prev, h, depth), Con{h, acc}))
 
-def parens.c(+close: Bool, +h: U32, t: List<&2, U32>, +prev: U32, +depth: U32, acc: List<&2, U32>) -> Ps:
-  match close:
-    case True{}:
-      Ps{t, h, depth, acc, True{}}
-    case False{}:
-      Ps{t, h, depth.next(prev, h, depth), Con{h, acc}, False{}}
-
-def parens.step(s: Ps) -> Ps:
-  match s:
-    case Ps{xs, +prev, +depth, acc, +done}:
-      match xs done:
-        case _ True{}:
-          Ps{xs, prev, depth, acc, True{}}
-        case Nil{} False{}:
-          Ps{Nil{}, prev, depth, acc, True{}}
-        case Con{+h, t} False{}:
-          parens.c(U32.is_eq(h, 41) && U32.is_eq(depth, 0), h, t, prev, depth, acc)
-
-def parens.go(n: Nat, s: Ps) -> List<&2, U32>:
-  match n:
-    case 0n:
-      match s:
-        case Ps{xs, +prev, +depth, acc, +done}:
-          List.reverse(&2, U32, acc)
-    case 1n+k:
-      parens.go(k, parens.step(s))
-
-def parens(+xs: List<&2, U32>) -> List<&2, U32>:
-  parens.go(List.length(&2, U32, xs), Ps{xs, 0, 0, Nil{}, False{}})
+def parens(xs: List<&2, U32>) -> List<&2, U32>:
+  parens.go(xs, 0, 0, Nil{})
 
 def def.named(+ok: Bool, name: List<&2, U32>, +rest: List<&2, U32>, xs: List<&2, U32>, +share: U32, +upd: Bool, body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   match ok:
@@ -695,131 +648,76 @@ def decl.some(ns: List<&2, List<&2, U32>>) -> Bool:
 def decl.item(+ns: List<&2, List<&2, U32>>, line: List<&2, U32>, +no: U32, +ind: U32) -> Item:
   decl.named(decl.some(ns) && names.ok(ns), ns, line, no, ind)
 
-# a line's body lines: those after it, blank or indented deeper; its
-# trailing blank lines left out
-type Bd is Type:
-  Bd{ls: List<&2, Ln>, +ind: U32, acc: List<&2, Ln>, +done: Bool}
-
-def body.in(+inside: Bool, l: Ln, t: List<&2, Ln>, +ind: U32, acc: List<&2, Ln>) -> Bd:
-  match inside:
-    case True{}:
-      Bd{t, ind, Con{l, acc}, False{}}
-    case False{}:
-      Bd{Con{l, t}, ind, acc, True{}}
-
-def body.l(l: Ln, t: List<&2, Ln>, +ind: U32, acc: List<&2, Ln>) -> Bd:
-  match l:
-    case Ln{+no, +li, +txt}:
-      body.in(blank(txt) || U32.is_gt(li, ind), Ln{no, li, txt}, t, ind, acc)
-
-def body.step(s: Bd) -> Bd:
-  match s:
-    case Bd{ls, +ind, acc, +done}:
-      match ls done:
-        case _ True{}:
-          Bd{ls, ind, acc, True{}}
-        case Nil{} False{}:
-          Bd{Nil{}, ind, acc, True{}}
-        case Con{l, t} False{}:
-          body.l(l, t, ind, acc)
-
-# the reversed lines' leading blanks dropped
-type Tr is Type:
-  Tr{rs: List<&2, Ln>, +stop: Bool}
-
-def body.lead(+b: Bool, l: Ln, t: List<&2, Ln>) -> Tr:
-  match b:
-    case True{}:
-      Tr{t, False{}}
-    case False{}:
-      Tr{Con{l, t}, True{}}
-
-def body.blank1(rs: List<&2, Ln>) -> Tr:
-  match rs:
+# a line's body lines: those after it, blank or indented deeper than ind,
+# and the lines after them
+def body.go(ls: List<&2, Ln>, +ind: U32, +acc: List<&2, Ln>) -> List<&2, Ln> & List<&2, Ln>:
+  match ls:
     case Nil{}:
-      Tr{Nil{}, True{}}
-    case Con{l, t}:
+      (List.reverse(&2, Ln, acc), Nil{})
+    case Con{l, +t}:
+      match l:
+        case Ln{+no, +li, +txt}:
+          when(List<&2, Ln> & List<&2, Ln>, blank(txt) || U32.is_gt(li, ind), u => body.go(t, ind, Con{Ln{no, li, txt}, acc}),
+            u => (List.reverse(&2, Ln, acc), Con{Ln{no, li, txt}, t}))
+
+# lines, their leading blank ones dropped
+def body.lead(ls: List<&2, Ln>) -> List<&2, Ln>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, +t}:
       match l:
         case Ln{+no, +ind, +txt}:
-          body.lead(blank(txt), Ln{no, ind, txt}, t)
+          when(List<&2, Ln>, blank(txt), u => body.lead(t), u => Con{Ln{no, ind, txt}, t})
 
-def body.trim.go(n: Nat, r: Tr) -> List<&2, Ln>:
-  match n r:
-    case 0n Tr{rs, +stop}:
-      rs
-    case 1n+k Tr{rs, +stop}:
-      match stop:
-        case True{}:
-          rs
-        case False{}:
-          body.trim.go(k, body.blank1(rs))
-
-def body.trim(+ls: List<&2, Ln>) -> List<&2, Ln>:
-  List.reverse(&2, Ln, body.trim.go(List.length(&2, Ln, ls), Tr{List.reverse(&2, Ln, ls), False{}}))
-
-def body.go(n: Nat, s: Bd) -> List<&2, Ln> & List<&2, Ln>:
-  match n:
-    case 0n:
-      match s:
-        case Bd{ls, +ind, acc, +done}:
-          (List.reverse(&2, Ln, acc), ls)
-    case 1n+k:
-      body.go(k, body.step(s))
+# a body, its trailing blank lines dropped
+def body.trim(ls: List<&2, Ln>) -> List<&2, Ln>:
+  List.reverse(&2, Ln, body.lead(List.reverse(&2, Ln, ls)))
 
 # The flat pass
 # -------------
 
-type Fl is Type:
-  Fl{ls: List<&2, Ln>, out: List<&2, Item>}
+# a line that is no definition's header: an item, or nothing for a blank
+# line or a comment
+def flat.line(+skip: Bool, +imp: Bool, +abs: Bool, +obj: Bool, +decl: Bool, +txt: List<&2, U32>, +no: U32, +ind: U32, out: List<&2, Item>) -> List<&2, Item>:
+  match skip imp abs obj decl:
+    case True{} _ _ _ _:
+      out
+    case False{} True{} _ _ _:
+      Con{IImport{txt, no, ind}, out}
+    case False{} False{} True{} _ _:
+      Con{obj.item(drop(16n, txt), txt, True{}, no, ind), out}
+    case False{} False{} False{} True{} _:
+      Con{obj.item(drop(7n, txt), txt, False{}, no, ind), out}
+    case False{} False{} False{} False{} True{}:
+      Con{decl.item(commas(drop(8n, txt)), txt, no, ind), out}
+    case False{} False{} False{} False{} False{}:
+      Con{IBad{txt, no, ind}, out}
 
-def flat.def(r: List<&2, Ln> & List<&2, Ln>, txt: List<&2, U32>, +no: U32, +ind: U32, out: List<&2, Item>) -> Fl:
-  (body, rest) = r
-  Fl{rest, Con{def.share(txt, body.trim(body), no, ind), out}}
+def flat.item(+txt: List<&2, U32>, +no: U32, +ind: U32, out: List<&2, Item>) -> List<&2, Item>:
+  flat.line(blank(txt) || comment(txt), starts(txt, codes("import ")), starts(txt, codes("abstract object ")),
+    starts(txt, codes("object ")), starts(txt, codes("declare ")), txt, no, ind, out)
 
-def flat.k(+skip: Bool, +imp: Bool, +abs: Bool, +obj: Bool, +decl: Bool, +df: Bool, +txt: List<&2, U32>, +no: U32, +ind: U32, t: List<&2, Ln>, out: List<&2, Item>, +k: Nat) -> Fl:
-  match skip imp abs obj decl df:
-    case True{} _ _ _ _ _:
-      Fl{t, out}
-    case False{} True{} _ _ _ _:
-      Fl{t, Con{IImport{txt, no, ind}, out}}
-    case False{} False{} True{} _ _ _:
-      Fl{t, Con{obj.item(drop(16n, txt), txt, True{}, no, ind), out}}
-    case False{} False{} False{} True{} _ _:
-      Fl{t, Con{obj.item(drop(7n, txt), txt, False{}, no, ind), out}}
-    case False{} False{} False{} False{} True{} _:
-      Fl{t, Con{decl.item(commas(drop(8n, txt)), txt, no, ind), out}}
-    case False{} False{} False{} False{} False{} True{}:
-      flat.def(body.go(k, Bd{t, ind, Nil{}, False{}}), txt, no, ind, out)
-    case False{} False{} False{} False{} False{} False{}:
-      Fl{t, Con{IBad{txt, no, ind}, out}}
-
-def flat.kind(+txt: List<&2, U32>, +no: U32, +ind: U32, t: List<&2, Ln>, out: List<&2, Item>, +k: Nat) -> Fl:
-  flat.k(blank(txt) || comment(txt), starts(txt, codes("import ")), starts(txt, codes("abstract object ")),
-    starts(txt, codes("object ")), starts(txt, codes("declare ")), is_def(txt), txt, no, ind, t, out, k)
-
-def flat.step(s: Fl, +k: Nat) -> Fl:
-  match s:
-    case Fl{ls, out}:
-      match ls:
-        case Nil{}:
-          Fl{Nil{}, out}
-        case Con{l, t}:
-          match l:
-            case Ln{+no, +ind, txt}:
-              flat.kind(txt, no, ind, t, out, k)
-
-# the items, a line read at least each step, as many steps as lines
-def flat.go(n: Nat, +k: Nat, s: Fl) -> List<&2, Item>:
+# the items: a line a turn, or a definition's header with its body;
+# fuel, the lines' count
+def flat.go(n: Nat, ls: List<&2, Ln>, +out: List<&2, Item>) -> List<&2, Item>:
   match n:
     case 0n:
-      match s:
-        case Fl{ls, out}:
+      List.reverse(&2, Item, out)
+    case 1n++m:
+      match ls:
+        case Nil{}:
           List.reverse(&2, Item, out)
-    case 1n+m:
-      flat.go(m, k, flat.step(s, k))
+        case Con{l, +t}:
+          match l:
+            case Ln{+no, +ind, +txt}:
+              when(List<&2, Item>, is_def(txt),
+                u => on.pair(List<&2, Ln>, List<&2, Ln>, List<&2, Item>, body.go(t, ind, Nil{}),
+                  body => rest => flat.go(m, rest, Con{def.share(txt, body.trim(body), no, ind), out})),
+                u => flat.go(m, t, flat.item(txt, no, ind, out)))
 
 def flat(+ls: List<&2, Ln>) -> List<&2, Item>:
-  flat.go(List.length(&2, Ln, ls), List.length(&2, Ln, ls), Fl{ls, Nil{}})
+  flat.go(List.length(&2, Ln, ls), ls, Nil{})
 
 # The tree
 # --------
@@ -841,16 +739,6 @@ def fr.add(f: Fr, n: Node) -> Fr:
     case Fr{+top, +ind, +abs, name, parents, kids, +no}:
       Fr{top, ind, abs, name, parents, Con{n, kids}, no}
 
-def fr.node(f: Fr) -> Node:
-  match f:
-    case Fr{+top, +ind, +abs, name, parents, kids, +no}:
-      NObj{abs, name, parents, List.reverse(&2, Node, kids), no}
-
-def fr.closes(f: Fr, +i: U32) -> Bool & Fr:
-  match f:
-    case Fr{+top, +ind, +abs, name, parents, kids, +no}:
-      (Bool.not(top) && U32.is_ge(ind, i), Fr{top, ind, abs, name, parents, kids, no})
-
 def close.into(st: List<&2, Fr>, n: Node) -> List<&2, Fr>:
   match st:
     case Nil{}:
@@ -858,40 +746,25 @@ def close.into(st: List<&2, Fr>, n: Node) -> List<&2, Fr>:
     case Con{f, rest}:
       Con{fr.add(f, n), rest}
 
-type Cl is Type:
-  Cl{st: List<&2, Fr>, +i: U32, +done: Bool}
-
-def close.f(r: Bool & Fr, rest: List<&2, Fr>, +i: U32) -> Cl:
-  (+c, f) = r
-  match c:
-    case True{}:
-      Cl{close.into(rest, fr.node(f)), i, False{}}
-    case False{}:
-      Cl{Con{f, rest}, i, True{}}
-
-def close.step(s: Cl) -> Cl:
-  match s:
-    case Cl{st, +i, +done}:
-      match st done:
-        case _ True{}:
-          Cl{st, i, True{}}
-        case Nil{} False{}:
-          Cl{Nil{}, i, True{}}
-        case Con{f, rest} False{}:
-          close.f(fr.closes(f, i), rest, i)
-
-# objects closed while the top one starts at or right of column i
-def close.go(n: Nat, s: Cl) -> List<&2, Fr>:
+# objects closed while the top one starts at or right of column i; fuel,
+# the stack's height
+def close.go(n: Nat, st: List<&2, Fr>, +i: U32) -> List<&2, Fr>:
   match n:
     case 0n:
-      match s:
-        case Cl{st, +i, +done}:
-          st
-    case 1n+k:
-      close.go(k, close.step(s))
+      st
+    case 1n++k:
+      match st:
+        case Nil{}:
+          Nil{}
+        case Con{f, +rest}:
+          match f:
+            case Fr{+top, +ind, +abs, +name, +parents, +kids, +no}:
+              when(List<&2, Fr>, Bool.not(top) && U32.is_ge(ind, i),
+                u => close.go(k, close.into(rest, NObj{abs, name, parents, List.reverse(&2, Node, kids), no}), i),
+                u => Con{Fr{top, ind, abs, name, parents, kids, no}, rest})
 
 def close(+st: List<&2, Fr>, +i: U32) -> List<&2, Fr>:
-  close.go(List.length(&2, Fr, st), Cl{st, i, False{}})
+  close.go(List.length(&2, Fr, st), st, i)
 
 def item.ind(it: Item) -> U32 & Item:
   match it:
@@ -1059,22 +932,6 @@ def show(ns: List<&2, Node>, +n: Nat) -> String:
 # linearization from the last, its base, to itself (`blend-objects`).
 # Errors are found per object, each reported once: where an object's
 # error is its parent's already, the parent's report stands.
-
-# a decision on a computed value: Bend matches only variables, so the arms
-# are thunks, and a loop's next turn sits in an arm, inside the loop
-def when(-R: Type, c: Bool, yes: Unit -> R, no: Unit -> R) -> R:
-  match c:
-    case True{}:
-      yes(Unit{})
-    case False{}:
-      no(Unit{})
-
-def on.maybe(-A: Data, -R: Type, m: Maybe<&2, A>, none: Unit -> R, some: A -> R) -> R:
-  match m:
-    case None{}:
-      none(Unit{})
-    case Some{+x}:
-      some(x)
 
 def has(xs: List<&2, U32>, +x: U32) -> Bool:
   match xs:
@@ -2505,10 +2362,6 @@ def ins.has(+xs: List<&2, In>, +i: In) -> Bool:
 # the copies made so far, their errors
 type Cp is Data:
   Cp{rds: List<&2, Rd>, ers: List<&2, Er>, done: List<&2, In>}
-
-def on.pair(-A: Type, -B: Type, -R: Type, p: A & B, f: A -> B -> R) -> R:
-  (a, b) = p
-  f(a, b)
 
 def cp.add(rd: Rd, b: Rb, c: Cp) -> Cp:
   match b c:
