@@ -373,7 +373,7 @@ takes from it:
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.read` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.load` (built),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.meet`,
-   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.dead-ports`,
+   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.dead-ports` (dropped),
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`,
    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`,
@@ -620,6 +620,16 @@ takes from it:
        it goes on reducing a corrupted net, with pairs no polarized net
        has (a freed node and data, two merges): reported, not crashed,
        but work wasted on a net already failed.
+     - `heap-strategies.net.payload-store` — tentative — a node made
+       writes its header and its payload word (word 3 but for data),
+       which a node of three ports then overwrites with port 2's link:
+       one store of no use per such node, a function, an application or
+       a fan; the generated rewrites know each new node's kind. Found
+       2026-11-04, when the maintainer asked what writing nil as debug
+       information costs: nothing, since no state stores nil (an
+       in-memory marker for a port a rule or a node lacks, told by its
+       arity where it matters, as the events' worklist now does), and the
+       audit reads a live node's ports below its arity.
    - `heap-strategies.stack` — built 2026-10-28 — no
      pairs kept in the net (the maintainer, 2026-10-28): every active pair
      is in such a set once, every strategy but one would clear it, and
@@ -1727,8 +1737,10 @@ takes from it:
            the free list keeping its old ones. What excludes both is the
            wiring: the models prove every rewrite keeps a wired net wired
            (`rewrite_wired`, `kernel_rewrite_wired`), and the library
-           audits the kernel's nets for it (`KN.wired_ok`, which a nil
-           link fails); that the kernel's rewrites do what the model's do
+           audits the kernel's nets for it (`KN.wired_ok`, which a stale
+           link fails; nil is the static eraser's value since
+           `.links.dead-ports`, and no state writes it for a lost link);
+           that the kernel's rewrites do what the model's do
            is a draft (`kernel_rewrite_refines`). Once it is a law, the
            net goes or stays as the maintainer chooses.
          - `heap-strategies.erasure.load.cycle.walk.directed` — active —
@@ -2036,37 +2048,52 @@ takes from it:
                  the collections' two; the reserve's two) and 16 event
                  counters, one a kind code below 16.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.dead-ports`
-                 — planned — on a side branch (the maintainer,
-                 2026-11-03): a static eraser at a port is that port's
-                 deadness, read from a link word a rewrite reads anyway,
-                 so the dead kinds give way to dead ports. The function
-                 with its variable dead goes: beta links the argument's
-                 producer to the variable's peer, and a static there
-                 erases the argument through that link. The linear fans
-                 go: a fan's rewrite dispatches on the static bits of its
-                 auxiliary links, to the linear rewrite derived as now
-                 (the full rule with an eraser attached at the dead port,
-                 simplified) but in the full fan's layout. The dead
-                 operator becomes a static constant meanwhile
-                 (`heap-strategies.erasure.typed` would make it an
-                 eraser). Laws restated: a dead port behaves as its
-                 components. Changes laws on main and the library's
-                 counts: plain demand makes fewer interactions than with
-                 allocated erasers where a fan has a dead side, as the
-                 linear kinds did with events. In plain demand over the
-                 library, 614 fan interactions (0.02%, in 31 cases) meet
-                 a static eraser at a fan port: the gain here is
-                 simplicity more than speed. The maintainer's aside
-                 (2026-11-03): the consuming eraser, the providing one and
-                 nil as one value, an eraser's polarity being its port's;
-                 all ones names no node, so that no static passes for a
-                 redex's own port, and the walk already reads it as
-                 marked; what uses nil for a port a node lacks (the
-                 events' worklist) then wants a marker of its own, and the
-                 audit no longer tells an erased port from a lost link.
+                 — dropped 2026-11-03 for its dispatch (`erasure-at-write`),
+                 built on branch `dead-ports`, whose other parts carry to
+                 `.links.propagate`. A static eraser at an auxiliary port
+                 was that port's deadness: the kernel took a function, a
+                 copy or a merge by the kind its dead ports made it
+                 (R.dead_kind, law `dead_ports`), dispatching to the linear
+                 rules, the external peers in that kind's layout. The
+                 library passed: values alike, the interpreted and
+                 generated rewrites alike, logical interactions fewer in
+                 36 cases and more in none, static labels up to 46%
+                 (mixin-once-16 13,947 to 7,518), levels at most 1.5%. But
+                 every form of the read cost each rewrite: a test on the
+                 four words then the old path, 9%; helpers or a second
+                 caller of the rule's call, 9% to 10%; the pattern as
+                 arithmetic indexing a generated table, 5.5% (pow-2-12 and
+                 costly-6 counted alone), and that table pushed the
+                 library's build past 6 GB. Plain demand over the library
+                 7.1% more instructions, interactions alike (gcbench run
+                 223 against 221; run 222 at 18.4%, before the common case
+                 came first); the kernel's workloads 9% to 12% in both
+                 the default and the forced-inline builds (spot run 224).
+                 Bend makes every function a call and a shared one a
+                 segment of its own (docs/BendIssues.md, Inlining left to
+                 the C compiler), so
+                 a read on the shared path costs every rewrite, for 0.02%
+                 of demand's interactions. Faults found and fixed on the
+                 branch: the port swap of a fan keeping its port 2 applied
+                 to a node already of that kind, made by a rule, losing
+                 two links (demand with events reported a variable used
+                 outside its body, eager with events cycled in its
+                 events' drain; shrunk to the library's dead-port-swap);
+                 and the interpreted table allocated its erasers, so it
+                 made no dead ports where the generated rewrites did, and
+                 now makes them static too. What carries on: the
+                 maintainer's aside, the consuming eraser, the providing
+                 one and nil as one value, all ones (P.era); the sweep's
+                 boundary as statics put on dead ports, the copied
+                 function freed; R.dead_kind and its law, the kinds a
+                 dead port would make; the interpreted table's static
+                 erasers; the library's tools (`library.py`: one case or
+                 one strategy alone, LIBRARY_FILE, the caps).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`
-                 — planned — the maintainer's design (2026-11-03):
-                 erasure events travel through auxiliary ports alone. A
+                 — active — decided 2026-11-03 (`erasure-at-write`), the
+                 maintainer's design of the same day: erasure events
+                 travel through auxiliary ports alone, handled where a
+                 static is written, never tested on a rewrite's path. A
                  node whose last auxiliary is erased (a fan's two sides, a
                  merge's two inputs, a control's other port, an operator's
                  result) is erased at its principal, an eraser of its
@@ -2077,7 +2104,61 @@ takes from it:
                  one principal, so a chain is linear and needs no stack;
                  specialized by kind and entry port, peeking at most at
                  the other auxiliary. Replaces the events' worklist and
-                 their kind changes.
+                 their kind changes: tried first without the linear fans,
+                 whose port layouts cost `.links.dead-ports` a swap and a
+                 fault (the maintainer: removing them removes that
+                 complexity); kind-based specialization of fans and
+                 merges returns if it proves simpler and more efficient.
+                 Measured against branch `links-native`'s interactions and
+                 instructions, and against the dead ports' interactions
+                 (the library's counts on branch `dead-ports`).
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.dispatch` — built 2026-11-04 on branch
+                   `propagate` (off `dead-ports`): the rewrite's dispatch
+                   by kinds alone, static erasure and the strategies'
+                   reads by full kinds; the dead-port tables and law
+                   `dead_ports` gone (in history at a867628); lowering
+                   back to FnD for an unused variable, which without dead
+                   ports goes through the full function's rules (5% more
+                   interactions where it does). The library's counts are
+                   main's exactly; plain demand 0.03% fewer instructions
+                   than branch `links-native`, 49 to 54 cases better and
+                   none worse (gcbench runs 226, 227 against 221, the
+                   benchmark's nets lowered again). Fault found: the
+                   events' worklist took nil for a port a node lacks,
+                   and with one eraser value every static eraser is nil,
+                   so a fan's follow-up event was dropped (the generated
+                   rewrites 9 interactions over the interpreted table on
+                   three cases, which noted the site twice; masked on
+                   `dead-ports`): a port a node lacks is told by its arity.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.fans` — built 2026-11-04, kinds kept: tried
+                   first without linear fans, a fan dying at its last
+                   side made in place the eraser of its principal's
+                   polarity, one event. Eager with events then made 2.83%
+                   more interactions than main (up to 94% with static
+                   labels, loop-toggle-1024 7,018 to 13,643), and
+                   collecting demand cost 2.32% over plain demand, its
+                   collections 51,143 interactions against 15,634
+                   (gcbench run 226), copies with a dead side copying into
+                   it. So kind-based specialization returns (the
+                   maintainer's fallback): a fan's events are the table's
+                   again, and the erasure modes make main's interactions
+                   and events exactly, every case alike.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers` — planned — the table's
+                   events in every strategy, run where statics are written
+                   (the native rules, static erasure, the sweep, the
+                   loader), not by tests after every rewrite: plain eager
+                   would then make the linear fans' savings (with static
+                   labels up to 46%, the dead ports' counts at a867628); a
+                   linear chain, no worklist.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — active — gcbench runs 226 and 227
+                   against 221 and the library against main so far; spot
+                   against run 211 to come. Collecting demand at 227:
+                   0.42% over plain demand against 0.03%, capacity 20%
+                   less in all but 31 cases grown (loop-toggle-1024
+                   unfused 2,048 to 32,768 nodes) and 48 shrunk, its
+                   collections 13,640 interactions against 15,634: the
+                   sweep's boundary as statics and events rather than
+                   kinds changed in place, `.links.walk`'s to settle.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`
                  — planned — the collection's walk back to `.links.read`'s
                  once dead ports leave the sweep no kinds to convert. The
@@ -2121,8 +2202,9 @@ takes from it:
                  lands on a principal to demand (lazy) or notes it
                  (eager).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
-                 — active — built 2026-11-03 on branch `links-native`
-                 (eaec5cb), unmerged, the maintainer to decide: the rules
+                 — built 2026-11-03 on branch `links-native` (eaec5cb),
+                 merged to main 2026-11-04 with `.links.propagate` (the
+                 maintainer's approval): the rules
                  that make erasers make them static. Every eraser a rule
                  makes faces an external peer, or another of its erasers,
                  and a rule making one makes nothing else (31 rules: 21
@@ -3052,6 +3134,23 @@ takes from it:
          Now one generator, `spike/tools/gen_krules.bend` (1,922 lines),
          writes the kernel's rewrites, `spike/krules.bend` (3,394 lines),
          and the gate and the pre-commit hook regenerate it to compare.
+       - `heap-strategies.generate.sharing` — tentative — the maintainer
+         (2026-11-03): we struggle with sharing, so sharpen the axe. Bend
+         folds a chain of functions into one segment only while each has
+         one caller; a second caller, or a branch whose arms both call
+         the continuation, makes a function its own segment, and every
+         function is a call with its results through memory, so a helper
+         on the shared path costs every rewrite (`.links.dead-ports`;
+         docs/BendIssues.md, Inlining left to the C compiler). A lightweight lint
+         to spot it: from the emitted C, the segments (`WL_FID_`) and the
+         out-of-line functions a hot entry reaches, compared before and
+         after a change; or from the Bend sources, each function's
+         callers along the hot chains.
+       - `heap-strategies.generate.specialize` — tentative — the
+         maintainer (2026-11-03): a preprocessor of our own, in Bend
+         (`generated-sources`), to specialize code and avoid accidental
+         sharing: a copy per caller where Bend's templates cannot make
+         one.
      - `heap-strategies.erasure.typed` — planned — erasure assuming type
        safety (the maintainer, 2026-11-01): a dead operator, sure to
        receive data, becomes an eraser at once, and in general a node
@@ -3449,6 +3548,16 @@ takes from it:
        too on programs that behave like real ones (the library's
        mixins, searches, parsers): random terms and the standard
        workloads never make the best profiles.
+     - `heap-strategies.measure.library-nets` — tentative — the library's
+       nets read at run time rather than built into its program (the
+       maintainer, 2026-11-03, for later). Measured that day: Bend's
+       compiler takes the kernel alone (spike/runmode.bend) to C in 15 s
+       at a 1.8 GB peak, 3.1 MB of C, which clang builds in 16 s at
+       0.23 GB; the library's program, its 156 nets as literal
+       templates, in 39 s at 3.1 GB, 12.7 MB of C, clang 34 s at 1.2 GB.
+       The nets cost the compiler 1.3 GB and 24 s of each build; the
+       loader's format (spike/load.bend) already serves runmode and
+       runterms.
    - `heap-strategies.fresh` — tentative — a future experiment, apart
      from `heap-strategies.erasure` (the maintainer, 2026-10-30): a mark
      on a fan that has never commuted, which has no residuals anywhere,

@@ -79,7 +79,13 @@ The build and the run go under scripts/capped.sh, each capped near its
 cost so that a run going astray fails in minutes: the build peaks at
 3.5 GB in 76 s, the run at a few dozen MB in under a minute (2026-11-03).
 LIBRARY_BUILD_CAP and LIBRARY_RUN_CAP override them, "MEGABYTES SECONDS".
-Run one library at a time: two builds at once need 7 GB.
+Run one library at a time: two builds at once need 7 GB. OUT/library K
+runs case K alone (the K of its `#K:` line in OUT/out.txt, the cases in
+the entries' order, each entry's modes in turn), printing its line, and
+OUT/library K I its strategy I alone (STRATEGIES: 0 spike, 1 ref, 2 fast,
+3 lazy, 4 two, 5 ev, 6 evref, 7 evlazy, 8 evtwo, 9 evprof, 10 prof,
+11 dc, 12 dcs): a run that hangs, each case under a short cap, shows
+which case, then which strategy.
 """
 import os
 import re
@@ -92,7 +98,8 @@ import terms  # noqa: E402
 
 SPIKE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT = os.path.dirname(SPIKE)
-LIBRARY = os.path.join(SPIKE, "library.txt")
+# LIBRARY_FILE names another file of entries, to shrink a fault in
+LIBRARY = os.environ.get("LIBRARY_FILE", os.path.join(SPIKE, "library.txt"))
 MODES = ("levels", "labels", "unfused")
 FUEL = 1280000
 BUILD_CAP = "5000 240"
@@ -183,6 +190,36 @@ def cases(es, only):
     return out
 
 
+# the strategies a case runs through, in its line's order: each its name
+# and the Bend expression giving its result's text
+STRATEGIES = [
+    ("spike", "spike_str(T.result(T.run(tpl_of(k), fuel_of(k, 1n))))"),
+    ("ref", "res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), False{}))"),
+    ("fast", "res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{}))"),
+    ("lazy", "lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), []))"),
+    ("two", "res_str(K.run_two(tpl_of(k), fuel_of(k, 0n), True{}))"),
+    ("ev", "ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), True{}))"),
+    ("evref", "ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), False{}))"),
+    ("evlazy", "evlazy_str(K.run_dev(tpl_of(k), fuel_of(k, 2n), []))"),
+    ("evtwo", "ev_str(K.run_two_ev(tpl_of(k), fuel_of(k, 0n), True{}))"),
+    ("evprof", "K.profile_ev(tpl_of(k), fuel_of(k, 0n), True{})"),
+    ("prof", "K.profile_t(tpl_of(k), fuel_of(k, 0n), True{})"),
+    ("dc", "dc_str(K.run_dc(tpl_of(k), fuel_of(k, 2n), []))"),
+    ("dcs", "dc_str(K.run_ds.s(tpl_of(k), fuel_of(k, 2n), []))"),
+]
+
+
+def one_defs():
+    """Bend: `one`, a case through every strategy, and `one.m`, through
+    the strategy of index i alone (STRATEGIES), any other index all of them."""
+    line = ' ++\n    " | '.join(f'{n} " ++ {e}' for n, e in STRATEGIES)
+    arms = "".join(f'    case {i}:\n      "#" ++ U32.show(k) ++ ": {n} " ++ {e}\n' for i, (n, e) in enumerate(STRATEGIES))
+    return ("# a case through every strategy\ndef one(+k: U32) -> String:\n"
+            f'  "#" ++ U32.show(k) ++ ": {line}\n\n'
+            "# a case through strategy i alone (library.py's STRATEGIES)\n"
+            f"def one.m(+k: U32, +i: U32) -> String:\n  match i:\n{arms}    case _:\n      one(k)\n\n")
+
+
 MAIN = r'''
 def show_m(m: Maybe<&2, V.Val>) -> String:
   match m:
@@ -233,22 +270,7 @@ def dc_str(r: K.CRes) -> String:
     case K.CRes{k, +cyc, +citrs, +cevs, +scan}:
       lazy_str(k) ++ " cyc " ++ U32.show(cyc) ++ " itrs " ++ U32.show(citrs) ++ " ev " ++ U32.show(cevs) ++ " scan " ++ U32.show(scan)
 
-# a case through every strategy
-def one(+k: U32) -> String:
-  "#" ++ U32.show(k) ++ ": spike " ++ spike_str(T.result(T.run(tpl_of(k), fuel_of(k, 1n)))) ++
-    " | ref " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), False{})) ++
-    " | fast " ++ res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{})) ++
-    " | lazy " ++ lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), [])) ++
-    " | two " ++ res_str(K.run_two(tpl_of(k), fuel_of(k, 0n), True{})) ++
-    " | ev " ++ ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), True{})) ++
-    " | evref " ++ ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), False{})) ++
-    " | evlazy " ++ evlazy_str(K.run_dev(tpl_of(k), fuel_of(k, 2n), [])) ++
-    " | evtwo " ++ ev_str(K.run_two_ev(tpl_of(k), fuel_of(k, 0n), True{})) ++
-    " | evprof " ++ K.profile_ev(tpl_of(k), fuel_of(k, 0n), True{}) ++
-    " | prof " ++ K.profile_t(tpl_of(k), fuel_of(k, 0n), True{}) ++
-    " | dc " ++ dc_str(K.run_dc(tpl_of(k), fuel_of(k, 2n), [])) ++
-    " | dcs " ++ dc_str(K.run_ds.s(tpl_of(k), fuel_of(k, 2n), []))
-
+ONE
 def all(n: Nat, +k: U32) -> String:
   match n:
     case 0n:
@@ -256,8 +278,33 @@ def all(n: Nat, +k: U32) -> String:
     case 1n+p:
       one(k) ++ "\n" ++ all(p, (k + 1 : U32))
 
-def main() -> IO(Unit):
+def main.all() -> IO(Unit):
   IO.print(all(COUNT, 0) ++ "events tables: " ++ KN.ev_tables() ++ "\nbuiltin fields: " ++ KN.builtin_fields())
+
+def main.case(+k: U32, xs: List<String>) -> IO(Unit):
+  match xs:
+    case Con{a, r}:
+      IO.print(one.m(k, Maybe.default(&2, U32, U32.read(a), 99)))
+    case Nil{}:
+      IO.print(one(k))
+
+# with an argument K, case K alone, and with I its strategy I alone (its
+# line, to trace a hang)
+def main.args(xs: List<String>) -> IO(Unit):
+  match xs:
+    case Con{p, r}:
+      match r:
+        case Con{a, r2}:
+          main.case(Maybe.default(&2, U32, U32.read(a), 0), r2)
+        case Nil{}:
+          main.all()
+    case Nil{}:
+      main.all()
+
+def main() -> IO(Unit):
+  do IO<Unit>:
+    xs : List<String> <- IO.args()
+    main.args(xs)
 '''
 
 
@@ -281,7 +328,7 @@ def program(cs, out):
     for i, c in enumerate(cs):
         lines.append(f"    case {i}:\n      fuel.go({c.fuel}n, who)")
     lines.append(f"    case _:\n      fuel.go({FUEL}n, who)\n")
-    lines.append(MAIN.replace("COUNT", f"{len(cs)}n"))
+    lines.append(MAIN.replace("COUNT", f"{len(cs)}n").replace("ONE\n", one_defs()))
     path = os.path.join(out, "library.bend")
     with open(path, "w") as f:
         f.write("\n".join(lines))

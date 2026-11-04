@@ -152,7 +152,7 @@ def coll.hy(r: P.H & U32, st: P.Stk, +x: U32, +y: U32, +hx: U32) -> P.E:
 
 def coll.hx(r: P.H & U32, st: P.Stk, +x: U32, +y: U32) -> P.E:
   (h, +hx) = r
-  coll.hy(P.rdy(h, x, y), st, x, y, hx)
+  coll.hy(KN.rdy(h, x, y, hx), st, x, y, hx)
 
 def collect.fin(r: Ran) -> P.H:
   match r:
@@ -179,7 +179,7 @@ def run.q(n: Nat, q: P.PopQ) -> Ran:
         case P.PopQ{h, st, +x, +y, +ok, +hd}:
           match ok:
             case True{}:
-              run.q(p, P.popq(coll.hx(P.rdh(h, x), st, x, y), KR.most_pairs(), hd))
+              run.q(p, P.popq(coll.hx(KN.rdx(h, x), st, x, y), KR.most_pairs(), hd))
             case False{}:
               Ran{h, 1n+p}
 
@@ -245,10 +245,9 @@ def mq.run(m: Mq, +cap: U32) -> P.H & U32:
 # nodes, fewer than the capacity, so they never meet. A static link, nil
 # among them, finds its mark in the array's last word, set whole from the
 # start (lw.mw): it reads as marked, never followed. A static at a node's
-# principal is that node's pair, noted; a static void at an auxiliary
-# input is no event the walk notes, an optimization left (demand meets it
-# where it gets there), so that notes stay one a node. The kernel links no
-# port to nil, so nil is a net under a fault (`.walk.nil`). The state is five words, the net's data table set aside, and
+# principal is that node's pair, noted; at its other ports, noted as its
+# node would have been (Sx, below). The kernel links no port to nil, so
+# nil is a net under a fault (`.walk.nil`). The state is five words, the net's data table set aside, and
 # each helper is called from one place, so that clang inlines the step
 # whole: Bend returns a helper's result through an array its caller
 # copies (docs/BendIssues.md, "Records returned through every level,
@@ -263,9 +262,9 @@ type Lw is Type:
   Lw{w: KM.M, g: KM.M, +c: U32, +n: U32, +q: U32}
 
 # the net's words, the walk's array and the stack's lowest word, after a
-# push
+# push; and a note pending, 0 for none (lw.p2)
 type Gw is Type:
-  Gw{w: KM.M, g: KM.M, +n: U32}
+  Gw{w: KM.M, g: KM.M, +n: U32, +e: U32}
 
 # a node's head and the link of its first input, o1
 type Nd is Type:
@@ -305,12 +304,41 @@ def lw.pop(r: KM.M & U32, w: KM.M, +n: U32, +q: U32) -> Lw:
 type Gq is Type:
   Gq{g: KM.M, +q: U32}
 
+def lw.one(+v: U32) -> U32:
+  match v:
+    case 0:
+      0
+    case _:
+      1
+
+# notes v and e, either 0 for none, each word written either way
+def lw.np2(+v: U32, +e: U32, g: KM.M, +q: U32) -> Gq:
+  Gq{KM.m_set(KM.m_set(g, q, v), (q + lw.one(v) : U32), e), ((q + lw.one(v) : U32) + lw.one(e) : U32)}
+
+# b noted as a pair's node where pair holds
 def lw.np(pair: Bool, g: KM.M, +q: U32, +b: U32) -> Gq:
   match pair:
     case True{}:
       Gq{KM.m_set(g, q, b), (q + 1 : U32)}
     case False{}:
       Gq{g, q}
+
+# a static (an eraser, nil's value too)
+def lw.st(+l: U32) -> Bool:
+  P.is_static(l)
+
+def lw.sel(+c: Bool, +x: U32) -> U32:
+  match c:
+    case True{}:
+      x
+    case False{}:
+      0
+
+# b noted as a pair's node where o1 is its principal and l1 a principal
+# or a static (P.pri), both at once: b's principal is negative, an input,
+# so that the pair's other node never notes it, and a static has none
+def lw.pair(+o1: U32, +l1: U32) -> Bool:
+  U32.is_eq((o1 .|. ((l1 + 1 : U32) .&. 2 : U32) : U32), 0)
 
 # o1's link l1 followed if the node behind was unmarked, else the run ends
 def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
@@ -324,26 +352,32 @@ def lw.f1o(+old: U32, w: KM.M, s: Gq, +n: U32, +l1: U32) -> Lw:
         case Gq{g, +q}:
           lw.pop(KM.m_get(g, n), w, n, q)
 
-# b noted as a pair's node where o1 is its principal and l1 a principal or
-# a static (P.pri), both at once: b's principal is negative, an input, so
-# the pair's other node never notes it, and a static has none
-def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +o1: U32, +l1: U32) -> Lw:
+# b's pair noted, and the pending note, e, where there is one
+def lw.nq(+cold: Bool, g: KM.M, +q: U32, +b: U32, +o1: U32, +l1: U32, +e: U32) -> Gq:
+  match cold:
+    case True{}:
+      lw.np2(lw.sel(lw.pair(o1, l1), b), e, g, q)
+    case False{}:
+      lw.np(lw.pair(o1, l1), g, q, b)
+
+def lw.f1m(r: KM.M & U32, w: KM.M, +n: U32, +q: U32, +b: U32, +o1: U32, +l1: U32, +e: U32) -> Lw:
   (g, +old) = r
-  lw.f1o(old, w, lw.np(U32.is_eq((o1 .|. ((l1 + 1 : U32) .&. 2 : U32) : U32), 0), g, q, b), n, l1)
+  lw.f1o(old, w, lw.nq(U32.is_ne(e, 0), g, q, b, o1, l1, e), n, l1)
 
 def lw.f1(s: Gw, +q: U32, +b: U32, +o1: U32, +l1: U32) -> Lw:
   match s:
-    case Gw{w, g, +n}:
-      lw.f1m(lw.mk(g, l1), w, n, q, b, o1, l1)
+    case Gw{w, g, +n, +e}:
+      lw.f1m(lw.mk(g, l1), w, n, q, b, o1, l1, e)
 
+# o2's link pushed unless the node behind was marked (a static reads as
+# marked)
 def lw.push.o(+old: U32, w: KM.M, g: KM.M, +n: U32, +l2: U32) -> Gw:
   match old:
     case 0:
-      Gw{w, KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32)}
+      Gw{w, KM.m_set(g, (n - 1 : U32), l2), (n - 1 : U32), 0}
     case _:
-      Gw{w, g, n}
+      Gw{w, g, n, 0}
 
-# o2's link pushed unless the node behind was marked
 def lw.push(r: KM.M & U32, w: KM.M, +n: U32, +l2: U32) -> Gw:
   (g, +old) = r
   lw.push.o(old, w, g, n, l2)
@@ -352,12 +386,46 @@ def lw.p2r(r: KM.M & U32, g: KM.M, +n: U32) -> Gw:
   (w, +l2) = r
   lw.push(lw.mk(g, l2), w, n, l2)
 
-def lw.p2(two: Bool, w: KM.M, g: KM.M, +n: U32, +b: U32, +o2: U32) -> Gw:
-  match two:
-    case True{}:
+# a static eraser at the other output of a function or a copy, the one
+# the walk did not enter by: the boundary the sweep notes where it frees
+# an eraser's node facing a kept output (bd.go), pending
+def lw.p2o(r: KM.M & U32, g: KM.M, +n: U32, +e: U32) -> Gw:
+  (w, +l) = r
+  Gw{w, g, n, lw.sel(lw.st(l), e)}
+
+# the output of a node of kind code k other than port p, the one the walk
+# entered by: a function's principal or variable, a copy's other side; 3
+# for none
+def lw.oth(+k: U32, +p: U32) -> U32:
+  match k:
+    case 1:
+      (2 - p : U32)
+    case 3:
+      (3 - p : U32)
+    case _:
+      3
+
+def lw.p2.o(+oth: U32, w: KM.M, g: KM.M, +n: U32, +b: U32) -> Gw:
+  match oth:
+    case 3:
+      Gw{w, g, n, 0}
+    case _:
+      lw.p2o(KM.m_get(w, ((b + 1 : U32) + oth : U32)), g, n, ((b + oth : U32) .|. 1073741824 : U32))
+
+# The statics a node faces (`.dead-kinds.links.native`), noted as their
+# nodes would have been where the collection needs them: at the principal,
+# a pair; a static eraser at the second output of a function or a copy, a
+# boundary. A node of one input has two outputs at most, so that its
+# notes and the nodes it leads to stay two at most, and the notes and the
+# stack, entries for distinct nodes, fit the array. A static void at an
+# auxiliary input is no event the walk notes: what its node's event would
+# do is left to demand, where it gets there.
+def lw.p2(+o2: U32, +k: U32, +p: U32, w: KM.M, g: KM.M, +n: U32, +b: U32) -> Gw:
+  match o2:
+    case 3:
+      lw.p2.o(lw.oth(k, p), w, g, n, b)
+    case _:
       lw.p2r(KM.m_get(w, ((b + 1 : U32) + o2 : U32)), g, n)
-    case False{}:
-      Gw{w, g, n}
 
 # a void noted where its principal faces an auxiliary port, the note
 # tagged by its top bit (its word written either way); the run ends
@@ -375,17 +443,17 @@ def lw.leaf(ev: Bool, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
 # by the node's inputs (KR.kind_dir), o1 and o2, 3 for none: a leaf
 # without (a free node is never reached), else the second pushed, if
 # any, and the first followed
-def lw.ar(+o1: U32, +o2: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +hd: U32, +l1: U32) -> Lw:
+def lw.ar(+o1: U32, +o2: U32, +p: U32, w: KM.M, g: KM.M, +n: U32, +q: U32, +b: U32, +hd: U32, +l1: U32) -> Lw:
   match o1:
     case 3:
       lw.leaf(KR.ev_end(P.rk(hd), 0), w, g, n, q, b)
     case _:
-      lw.f1(lw.p2(U32.is_ne(o2, 3), w, g, n, b, o2), q, b, o1, l1)
+      lw.f1(lw.p2(o2, P.rk(hd), p, w, g, n, b), q, b, o1, l1)
 
-def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32) -> Lw:
+def lw.at(d: Nd, g: KM.M, +n: U32, +q: U32, +b: U32, +c: U32) -> Lw:
   match d:
     case Nd{w, +hd, +l1}:
-      lw.ar((KR.kind_dir(P.rk(hd)) .&. 3 : U32), (KR.kind_dir(P.rk(hd)) >> 2n : U32), w, g, n, q, b, hd, l1)
+      lw.ar((KR.kind_dir(P.rk(hd)) .&. 3 : U32), (KR.kind_dir(P.rk(hd)) >> 2n : U32), P.port(c), w, g, n, q, b, hd, l1)
 
 def lw.go(k: Nat, s: Lw) -> Lw:
   match k:
@@ -398,7 +466,7 @@ def lw.go(k: Nat, s: Lw) -> Lw:
             case 0:
               Lw{w, g, 0, n, q}
             case _:
-              lw.go(p, lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c)), g, n, q, P.base(c)))
+              lw.go(p, lw.at(nd.hd(KM.m_get(w, P.base(c)), P.base(c)), g, n, q, P.base(c), c))
 
 # The sweep (`.walk.directed.dataflow.walk`): KN's pass over the marks, a
 # word of 32 nodes at a time, a word all set passed unread
@@ -539,75 +607,26 @@ def sp.go(k: Nat, s: Sp, +i: U32) -> Sp:
 # the other, the walk entering a node by an output: a copy, or a
 # function, by its variable or its principal.
 #
-# A copy's output: the copy made the linear copy keeping its other side,
-# in place, as the event an eraser there makes (`.dead-kinds.copy`).
+# A copy's output, or a function's variable: a static eraser put there,
+# the port dead (`.dead-kinds.links.dead-ports`), its event looked at,
+# which runs only where the copy's other side is dead too.
 #
 # A function's principal, the function reached by its variable alone: a
 # copy of a function whose body copying shared, its variable reaching the
 # body through the merge of the copies' variables while its own consumer
 # is gone, dead in its sharing context; erasing it voids its variable only
 # there. Between the fans copying made, its result fed by a copy's output
-# and its variable into a merge's input, it is erased in place: both fans
-# made linear, keeping their other sides, and the function freed, as its
-# erasure and the two events after it would (`.dead-kinds.copied`).
-# Elsewhere a static eraser is put on its principal, the pair noted for
-# the eval, which erases the function with no node made (KN.static_erase). In a net whose variable is used outside its function's body,
-# refused when built, the void may reach the interface, where demand
-# reports a void demanded instead of the variable (net-void-demanded).
-#
-# A function's variable, unused now: the function made one with its
-# variable dead (KFnD, 17), in place, its level kept (`.dead-kinds.fn`).
+# and its variable into a merge's input, it is erased in place: the
+# function freed and a static eraser put on each fan's side, as its
+# erasure would (`.dead-kinds.copied`). Elsewhere a static eraser is put
+# on its principal, the pair noted for the eval, which erases the
+# function with no node made (KN.static_erase). In a net whose variable
+# is used outside its function's body, refused when built, the void may
+# reach the interface, where demand reports a void demanded instead of
+# the variable (net-void-demanded).
 #
 # The free count is the sweep's, plus the functions freed; an eraser made
 # is static, no node.
-
-# a fan's linear kind keeping the side other than p: a copy's KCopyR
-# (13) or KCopyL (12), a merge's KMergeR (15) or KMergeL (14)
-def lin.base(+k: U32) -> U32:
-  match k:
-    case 3:
-      12
-    case _:
-      14
-
-def lin.side(+p: U32) -> U32:
-  match p:
-    case 1:
-      1
-    case _:
-      0
-
-# the kept side, port 2, moved to port 1, its peer told, unless static
-def lin.mv(r: P.H & U32, +b: U32) -> P.H:
-  (h, +l2) = r
-  P.link_x(h, (b + 1 : U32), l2)
-
-def lin.port(+p: U32, h: P.H, +b: U32) -> P.H:
-  match p:
-    case 1:
-      lin.mv(P.rd(h, (b + 3 : U32)), b)
-    case _:
-      h
-
-# the header's kind changed, its fan identity kept; word 3, a two-port
-# node's payload word, cleared; counted as the fan's event
-def lin.hd(r: P.H & U32, +b: U32, +p: U32) -> P.H:
-  (h, +hd) = r
-  P.ev_count(P.wr(P.wr(lin.port(p, h, b), b, ((hd .&. 4294967232 : U32) .|. (lin.base(P.rk(hd)) + lin.side(p) : U32) : U32)), (b + 3 : U32), 0), P.rk(hd))
-
-# the fan behind y made linear, y's side dropped
-def lin.drop(h: P.H, +y: U32) -> P.H:
-  lin.hd(P.rd(h, P.base(y)), P.base(y), P.port(y))
-
-# the function at b made one with its variable dead: its kind changed,
-# its level kept, word 3, its variable's link, cleared, a two-port node's
-# payload word
-def fnd.hd(r: P.H & U32, +b: U32) -> P.H:
-  (h, +hd) = r
-  P.wr(P.wr(h, b, ((hd .&. 4294967232 : U32) .|. 17 : U32)), (b + 3 : U32), 0)
-
-def fnd.make(h: P.H, +y: U32) -> P.H:
-  fnd.hd(P.rd(h, P.base(y)), P.base(y))
 
 def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
   match pr:
@@ -619,7 +638,12 @@ def bd.st(+pr: Bool, st: P.Stk, +e: U32) -> P.Stk:
 # a static eraser put on y, no node made (`.links.read`): its pair noted
 # by y, its event looked at from y
 def bd.era(h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
-  Mq{P.wr(h, (y + 1 : U32), P.st_eran()), bd.st(U32.is_eq(P.port(y), 0), st, y), KN.evl.add(U32.is_ne(P.port(y), 0), y, ws), free}
+  Mq{P.wr(h, (y + 1 : U32), P.era()), bd.st(U32.is_eq(P.port(y), 0), st, y), KN.evl.add(U32.is_ne(P.port(y), 0), y, ws), free}
+
+def bd.era.m(m: Mq, +y: U32) -> Mq:
+  match m:
+    case Mq{h, st, ws, +free}:
+      bd.era(h, st, ws, free, y)
 
 # one interaction more in the header's count (P.at_itrs): the erasure
 # done in place
@@ -630,13 +654,13 @@ def bd.itr(r: P.H & U32) -> P.H:
 def bd.cp.go(+ok: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
   match ok:
     case True{}:
-      Mq{bd.itr(P.rd(P.free(lin.drop(lin.drop(h, a), b), f), P.at_itrs())), st, ws, (free + 1 : U32)}
+      bd.era.m(bd.era(bd.itr(P.rd(P.free(h, f), P.at_itrs())), st, ws, (free + 1 : U32), a), b)
     case False{}:
       bd.era(h, st, ws, free, f)
 
 def bd.cp.hb(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32, +ha: U32) -> Mq:
   (h, +hb) = r
-  bd.cp.go(U32.is_eq(P.rk(ha), 3) && U32.is_ne(P.port(a), 0) && U32.is_eq(P.rk(hb), 4) && U32.is_ne(P.port(b), 0), h, st, ws, free, f, a, b)
+  bd.cp.go(Bool.not(P.is_static(a) || P.is_static(b)) && U32.is_eq(P.rk(ha), 3) && U32.is_ne(P.port(a), 0) && U32.is_eq(P.rk(hb), 4) && U32.is_ne(P.port(b), 0), h, st, ws, free, f, a, b)
 
 def bd.cp.ha(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32, +a: U32, +b: U32) -> Mq:
   (h, +ha) = r
@@ -652,47 +676,17 @@ def bd.cp.a(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +f: U32) -> 
   (h, +a) = r
   bd.cp.b(P.rd(h, (f + 3 : U32)), st, ws, free, f, a)
 
-def bd.how.p(+ok: Bool, +k: U32) -> U32:
-  match ok:
+def bd.y.go(+fp: Bool, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
+  match fp:
     case True{}:
-      k
-    case False{}:
-      0
-
-def bd.how.fn(+p: U32) -> U32:
-  match p:
-    case 0:
-      2
-    case 2:
-      3
-    case _:
-      0
-
-# by what y is, its node of kind k: 1 a copy's output, 2 a function's
-# principal, 3 a function's variable, else 0
-def bd.how(+k: U32, +y: U32) -> U32:
-  match k:
-    case 3:
-      bd.how.p(U32.is_ne(P.port(y), 0), 1)
-    case 1:
-      bd.how.fn(P.port(y))
-    case _:
-      0
-
-def bd.y.go(+how: U32, h: P.H, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
-  match how:
-    case 1:
-      Mq{lin.drop(h, y), st, ws, free}
-    case 2:
       bd.cp.a(P.rd(h, (y + 2 : U32)), st, ws, free, y)
-    case 3:
-      Mq{fnd.make(h, y), st, ws, free}
-    case _:
+    case False{}:
       bd.era(h, st, ws, free, y)
 
+# y a function's principal, or else a dead port
 def bd.y(r: P.H & U32, st: P.Stk, ws: List<&2, U32>, +free: U32, +y: U32) -> Mq:
   (h, +hy) = r
-  bd.y.go(bd.how(P.rk(hy), y), h, st, ws, free, y)
+  bd.y.go(U32.is_eq(P.rk(hy), 1) && U32.is_eq(P.port(y), 0), h, st, ws, free, y)
 
 def bd.go(bs: List<&2, U32>, m: Mq) -> Mq:
   match bs:
@@ -799,11 +793,12 @@ def two.hy(r: P.H & U32, +hx: U32) -> P.H & Bool:
 
 def two.hx(r: P.H & U32, +x: U32, +y: U32) -> P.H & Bool:
   (h, +hx) = r
-  two.hy(P.rdy(h, x, y), hx)
+  two.hy(KN.rdy(h, x, y, hx), hx)
 
-# would the pair x - y grow the net? (either may be static: P.rdh, P.rdy)
+# would the pair x - y grow the net? (either may be static: KN.rdx,
+# KN.rdy)
 def two.grows(h: P.H, +x: U32, +y: U32) -> P.H & Bool:
-  two.hx(P.rdh(h, x), x, y)
+  two.hx(KN.rdx(h, x), x, y)
 
 # the pair x - y reduced, unless the fuel's interactions are made: then the
 # run ends with the pair left
@@ -995,12 +990,12 @@ def pr.hy(r: P.H & U32, pf: Pf, +x: U32, +y: U32, +hx: U32) -> P.H & Pf:
 
 def pr.hx(r: P.H & U32, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
   (h, +hx) = r
-  pr.hy(P.rdy(h, x, y), pf, x, y, hx)
+  pr.hy(KN.rdy(h, x, y, hx), pf, x, y, hx)
 
-# the pair x - y, counted before it interacts, a static by its kind
-# (static-links-count-as-nodes)
+# the pair x - y, counted before it interacts, a static by its eraser's
+# kind (static-links-count-as-nodes)
 def probe(h: P.H, pf: Pf, +x: U32, +y: U32) -> P.H & Pf:
-  pr.hx(P.rdh(h, x), pf, x, y)
+  pr.hx(KN.rdx(h, x), pf, x, y)
 
 # the state after a profiled run, and the fuel it left
 type PRan is Type:
@@ -1445,22 +1440,14 @@ def wk.sx(~after: P.H -> @+x:N.Ext -> P.H, r: P.H & U32, path: KM.M, +top: U32, 
 def wk.sr(~after: P.H -> @+x:N.Ext -> P.H, +root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match root:
     case True{}:
-      wk.root.v(U32.is_eq(q, P.st_erap()), h, path, depth, n)
+      wk.root.v(U32.is_eq(q, P.era()), h, path, depth, n)
     case False{}:
       wk.sx(~after, P.rd(h, top), path, top, depth, n, q)
-
-# a static the last node faces, or nil, under a fault: stuck
-def wk.st(~after: P.H -> @+x:N.Ext -> P.H, +nil: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
-  match nil:
-    case True{}:
-      fw.scan(h, path, top, depth, n, 3)
-    case False{}:
-      wk.sr(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
 
 def wk.q.go(~after: P.H -> @+x:N.Ext -> P.H, st: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match st pr:
     case True{} _:
-      wk.st(~after, U32.is_eq(q, P.nil()), h, path, top, depth, n, q)
+      wk.sr(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} True{}:
       wk.pair(~after, U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:

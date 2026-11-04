@@ -25368,6 +25368,693 @@ def Laws.beta_loops():
 def Laws.capacity_leaves_tags():
   {==}
 
+def Laws.erasers_native(a, b):
+  match a:
+    case R.KFree{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KFn{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KFnD{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KAp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KCopy{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KMerge{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KData{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KEraN{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KEraP{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KRoot{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KOp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KLift{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KLiftC{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KCopyL{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KCopyR{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KMergeL{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KMergeR{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+    case R.KDOp{}:
+      match b:
+        case R.KFree{}:
+          {==}
+        case R.KFn{}:
+          {==}
+        case R.KFnD{}:
+          {==}
+        case R.KAp{}:
+          {==}
+        case R.KCopy{}:
+          {==}
+        case R.KMerge{}:
+          {==}
+        case R.KData{}:
+          {==}
+        case R.KEraN{}:
+          {==}
+        case R.KEraP{}:
+          {==}
+        case R.KRoot{}:
+          {==}
+        case R.KOp{}:
+          {==}
+        case R.KLift{}:
+          {==}
+        case R.KLiftC{}:
+          {==}
+        case R.KCopyL{}:
+          {==}
+        case R.KCopyR{}:
+          {==}
+        case R.KMergeL{}:
+          {==}
+        case R.KMergeR{}:
+          {==}
+        case R.KDOp{}:
+          {==}
+
 def Laws.static_erasure(k):
   match k:
     case R.KFree{}:
