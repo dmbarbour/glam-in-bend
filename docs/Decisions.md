@@ -53,6 +53,10 @@ IO shell.
   generated into files of its own, by Bend programs, and checked current;
   no external macro processor (one of our own, in Bend, may come), no
   script editing sources.
+- [`blend-adds-no-bend-logic`](decisions/blend-adds-no-bend-logic.md):
+  Blend translates objects and adds no Bend logic of its own; mutual
+  recursion is an error as in Bend; types, laws and proofs stay Bend's
+  for now.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.

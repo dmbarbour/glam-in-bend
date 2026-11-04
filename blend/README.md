@@ -10,9 +10,11 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: a design, its samples, and the tool's first step: `bend
+Status: a design, its samples, and the tool's first steps: `bend
 blend.bend read FILE.blend` reads a `.blend` file and prints its
-structure (`blend-read`). Each valid sample's emitted form is written by
+structure (`blend-read`); `bend blend.bend objects FILE.blend` checks
+its objects and prints their linearizations and definitions
+(`blend-objects`). Each valid sample's emitted form is written by
 hand and checked to run under Bend; `blend/check.sh` checks them and
 reads every sample, and the gate runs it. The maintainer's
 direction (2026-11-04): `def` and `upd` for introduction and override,
@@ -65,6 +67,11 @@ definitions are emitted with no prefix. Bend's imports pass through.
     affine definition a copy alone reaches is copied with it.
 - **Nothing at run time.** Types stay in plain Bend: they make no code to
   specialize, and Bend's constructor names are global.
+- **No Bend logic of its own.** Blend translates objects; what a
+  definition says in Bend means what Bend makes of it, so two
+  definitions calling each other are an error, as in Bend
+  (`blend-adds-no-bend-logic`). Anything more is a construct of Blend's
+  own, named where it is used.
 
 ## What it emits
 
@@ -113,6 +120,13 @@ linearization, `^` out of the module.
   definitions by their emitted names, `Eager.go` (the maintainer,
   2026-11-04), and which definitions are emitted, every concrete
   object's or those reachable from roots, is the command line's to say.
+  Several files given as roots could confuse where they extend one
+  imported object; the maintainer leans to an import system that lets
+  one root module do a dozen jobs (2026-11-04).
+- Macros, explicit in the source: the maintainer allows that Blend may
+  support them (2026-11-04).
+- Types, laws and proofs overridden or specialized per family: Bend's
+  for now, to revisit once Blend matures (the maintainer, 2026-11-04).
 - Errors from Bend on emitted code: line markers back to the `.blend`.
 - Blend's own home: written in Bend (`generated-sources`), here first,
   perhaps shared beyond this project.

@@ -2,9 +2,10 @@
 # Blend's samples (blend/README.md): each valid sample's emitted form,
 # written by hand until Blend emits it, must run under Bend and print what
 # its .out says; each invalid sample states the error it must raise in
-# its .err. Blend reads every sample, valid or not, with no line it cannot
-# read (`blend-read`); once it emits, its output is compared with the
-# .bend or the .err.
+# its .err. Blend checks every sample's objects (`blend-objects`): the
+# invalid samples whose errors its steps so far find must print their
+# .err exactly, and every other sample no error; once it emits, its
+# output is compared with the .bend too.
 #
 #   blend/check.sh
 set -u
@@ -32,11 +33,21 @@ for src in invalid/*.blend; do
   m=$((m + 1))
   [ -f "${src%.blend}.err" ] || { echo "blend: $src has no .err"; status=1; }
 done
+# the invalid samples whose errors Blend finds so far, by the step that
+# finds them
+found="upd-undefined def-defined undeclared no-c3"
 for src in *.blend invalid/*.blend; do
-  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend read "$src" 2>&1) || {
-    echo "blend: reading $src failed: $got"; status=1; continue; }
-  bad=$(printf '%s\n' "$got" | grep -E '^ *\? ') && {
-    echo "blend: $src has lines Blend cannot read:"; echo "$bad"; status=1; }
+  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend objects "$src" 2>&1) || {
+    echo "blend: checking $src failed: $got"; status=1; continue; }
+  base=$(basename "$src" .blend)
+  case " $found " in
+    *" $base "*)
+      [ "$got" = "$(cat "${src%.blend}.err")" ] || {
+        echo "blend: $src gives '$got', not '$(cat "${src%.blend}.err")'"; status=1; } ;;
+    *)
+      bad=$(printf '%s\n' "$got" | grep -E '^[^ :]+:[0-9]+: ') && {
+        echo "blend: $src gives errors:"; echo "$bad"; status=1; } ;;
+  esac
 done
-[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, read: ok"
+[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, objects: ok"
 exit "$status"

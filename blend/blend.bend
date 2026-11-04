@@ -1,11 +1,13 @@
 import Base
 
 # Blend: static objects for Bend (blend/README.md; the plan,
-# docs/plans/Blend_2026-11-04.md). This first step reads a `.blend` file
-# into its structure (`blend-read`):
+# docs/plans/Blend_2026-11-04.md). So far it reads a `.blend` file into
+# its structure (`blend-read`) and checks its objects (`blend-objects`):
 #
-#   bend blend.bend read FILE.blend    the structure, one item a line,
-#                                      each body's names under it
+#   bend blend.bend read FILE.blend       the structure, one item a line,
+#                                         each body's names under it
+#   bend blend.bend objects FILE.blend    each object's linearization and
+#                                         definitions, or the errors
 #
 # Bend has no mutual recursion, so the source is read in two passes: the
 # lines into a flat list of items, each with its line and indentation (an
@@ -1050,58 +1052,988 @@ def show.go(n: Nat, ns: List<&2, Node>, +ind: String) -> String:
 def show(ns: List<&2, Node>, +n: Nat) -> String:
   show.go(n, ns, "")
 
+# Objects
+# =======
+#
+# The module and its objects, numbered in source order, the module 0;
+# each object's parents found by name, its linearization by C3 as glam
+# linearizes, and the definitions each has by applying the members of its
+# linearization from the last, its base, to itself (`blend-objects`).
+# Errors are found per object, each reported once: where an object's
+# error is its parent's already, the parent's report stands.
+
+# a decision on a computed value: Bend matches only variables, so the arms
+# are thunks, and a loop's next turn sits in an arm, inside the loop
+def when(-R: Type, c: Bool, yes: Unit -> R, no: Unit -> R) -> R:
+  match c:
+    case True{}:
+      yes(Unit{})
+    case False{}:
+      no(Unit{})
+
+def on.maybe(-A: Data, -R: Type, m: Maybe<&2, A>, none: Unit -> R, some: A -> R) -> R:
+  match m:
+    case None{}:
+      none(Unit{})
+    case Some{+x}:
+      some(x)
+
+def has(xs: List<&2, U32>, +x: U32) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+h, t}:
+      U32.is_eq(h, x) || has(t, x)
+
+def names.eq(xs: List<&2, List<&2, U32>>, ys: List<&2, List<&2, U32>>) -> Bool:
+  match xs ys:
+    case Nil{} Nil{}:
+      True{}
+    case Con{x, xt} Con{y, yt}:
+      same(x, y) && names.eq(xt, yt)
+    case _ _:
+      False{}
+
+def names.has(ns: List<&2, List<&2, U32>>, +n: List<&2, U32>) -> Bool:
+  match ns:
+    case Nil{}:
+      False{}
+    case Con{x, t}:
+      same(x, n) || names.has(t, n)
+
+def parts.go(xs: List<&2, U32>, cur: List<&2, U32>, out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match xs:
+    case Nil{}:
+      List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
+    case Con{+h, t}:
+      match h:
+        case 46:
+          parts.go(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
+        case _:
+          parts.go(t, Con{h, cur}, out)
+
+# a dotted name's parts
+def parts(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
+  parts.go(xs, Nil{}, Nil{})
+
+# an object: its number, its host's, its path from the module, its
+# parents as written, its members (the module's: the whole file)
+type Ob is Data:
+  Ob{+id: U32, +host: U32, path: List<&2, List<&2, U32>>, +abs: Bool, parents: List<&2, List<&2, U32>>, mems: List<&2, Node>, +no: U32}
+
+# a member list being walked, with its object's number and path
+type Wf is Data:
+  Wf{+host: U32, path: List<&2, List<&2, U32>>, nodes: List<&2, Node>}
+
+def count(ns: List<&2, Node>) -> Nat:
+  match ns:
+    case Nil{}:
+      0n
+    case Con{nd, t}:
+      match nd:
+        case NObj{+abs, name, parents, kids, +no}:
+          1n+Nat.add(count(kids), count(t))
+        case _:
+          1n+count(t)
+
+# the objects in source order, an object entered as it is met; fuel: a
+# node or a finished member list a step
+def obs.go(n: Nat, st: List<&2, Wf>, +next: U32, out: List<&2, Ob>) -> List<&2, Ob>:
+  match n:
+    case 0n:
+      List.reverse(&2, Ob, out)
+    case 1n+k:
+      match st:
+        case Nil{}:
+          List.reverse(&2, Ob, out)
+        case Con{f, rest}:
+          match f:
+            case Wf{+host, +path, nodes}:
+              match nodes:
+                case Nil{}:
+                  obs.go(k, rest, next, out)
+                case Con{nd, t}:
+                  match nd:
+                    case NObj{+abs, +name, parents, +kids, +no}:
+                      obs.go(k, Con{Wf{next, List.append(&2, List<&2, U32>, path, [name]), kids}, Con{Wf{host, path, t}, rest}},
+                        (next + 1 : U32), Con{Ob{next, host, List.append(&2, List<&2, U32>, path, [name]), abs, parents, kids, no}, out})
+                    case _:
+                      obs.go(k, Con{Wf{host, path, t}, rest}, next, out)
+
+def obs(+tree: List<&2, Node>) -> List<&2, Ob>:
+  obs.go(Nat.add(Nat.add(count(tree), count(tree)), 2n), [Wf{0, Nil{}, tree}], 1, [Ob{0, 0, Nil{}, False{}, Nil{}, tree, 0}])
+
+def ob.or(m: Maybe<&2, Ob>) -> Ob:
+  match m:
+    case None{}:
+      Ob{0, 0, Nil{}, False{}, Nil{}, Nil{}, 0}
+    case Some{o}:
+      o
+
+def ob.at(+obs: List<&2, Ob>, +id: U32) -> Ob:
+  ob.or(List.get(&2, Ob, obs, U32.to_nat(id)))
+
+def ob.path(o: Ob) -> List<&2, List<&2, U32>>:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      path
+
+def ob.host(o: Ob) -> U32:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      host
+
+def ob.abs(o: Ob) -> Bool:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      abs
+
+def ob.no(o: Ob) -> U32:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      no
+
+def ob.mems(o: Ob) -> List<&2, Node>:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      mems
+
+def dots(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{p, t}:
+      match t:
+        case Nil{}:
+          p
+        case Con{h, r}:
+          List.append(&2, U32, p, Con{46, dots(Con{h, r})})
+
+def ob.name.of(+path: List<&2, List<&2, U32>>) -> String:
+  match path:
+    case Nil{}:
+      "the module"
+    case Con{h, t}:
+      text(dots(Con{h, t}))
+
+# an object's name as messages give it; the module's, "the module"
+def ob.name(+obs: List<&2, Ob>, +id: U32) -> String:
+  ob.name.of(ob.path(ob.at(obs, id)))
+
+# the first object at path p
+def find.path(+obs: List<&2, Ob>, +p: List<&2, List<&2, U32>>) -> Maybe<&2, U32>:
+  match obs:
+    case Nil{}:
+      None{}
+    case Con{+o, +t}:
+      match o:
+        case Ob{+id, +host, +path, +abs, parents, mems, +no}:
+          when(Maybe<&2, U32>, names.eq(path, p), u => Some{id}, u => find.path(t, p))
+
+# a parent's name found from scope s outward to the module: the object at
+# s's path and the name's parts; fuel, the objects' count
+def resolve(n: Nat, +obs: List<&2, Ob>, +s: U32, +segs: List<&2, List<&2, U32>>) -> Maybe<&2, U32>:
+  match n:
+    case 0n:
+      None{}
+    case 1n++k:
+      on.maybe(U32, Maybe<&2, U32>, find.path(obs, List.append(&2, List<&2, U32>, ob.path(ob.at(obs, s)), segs)),
+        u => when(Maybe<&2, U32>, U32.is_eq(s, 0), v => None{}, v => resolve(k, obs, ob.host(ob.at(obs, s)), segs)),
+        x => Some{x})
+
+def parent.find(+obs: List<&2, Ob>, +host: U32, +p: List<&2, U32>) -> Maybe<&2, U32>:
+  resolve(List.length(&2, Ob, obs), obs, host, parts(p))
+
+# an object's parents found, those named by nothing left out
+def pids.go(ps: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +host: U32) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, +t}:
+      on.maybe(U32, List<&2, U32>, parent.find(obs, host, p), u => pids.go(t, obs, host), x => Con{x, pids.go(t, obs, host)})
+
+# xs, each kept where it first appears
+def uniq(xs: List<&2, U32>, +seen: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +t}:
+      when(List<&2, U32>, has(seen, x), u => uniq(t, seen), u => Con{x, uniq(t, Con{x, seen})})
+
+# a parent named twice is one parent
+def pids.of(o: Ob, +obs: List<&2, Ob>) -> List<&2, U32>:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      uniq(pids.go(parents, obs, host), Nil{})
+
+# each object's parents, by number
+def pids(os: List<&2, Ob>, +obs: List<&2, Ob>) -> List<&2, List<&2, U32>>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, t}:
+      Con{pids.of(o, obs), pids(t, obs)}
+
+# an error: its line and its message
+type Er is Data:
+  Er{+no: U32, msg: String}
+
+def er.le(a: Er, b: Er) -> Bool:
+  match a b:
+    case Er{+x, m} Er{+y, n}:
+      U32.is_le(x, y)
+
+def er.parents(ps: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +id: U32, +host: U32, +no: U32) -> List<&2, Er>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, +t}:
+      on.maybe(U32, List<&2, Er>, parent.find(obs, host, p),
+        u => Con{Er{no, ob.name(obs, id) ++ " extends " ++ text(p) ++ ", which names no object"}, er.parents(t, obs, id, host, no)},
+        x => er.parents(t, obs, id, host, no))
+
+def er.twice(+obs: List<&2, Ob>, +id: U32, +path: List<&2, List<&2, U32>>, +no: U32) -> List<&2, Er>:
+  on.maybe(U32, List<&2, Er>, find.path(obs, path), u => Nil{},
+    +x => when(List<&2, Er>, U32.is_eq(x, id), v => Nil{},
+      v => [Er{no, "object " ++ ob.name(obs, id) ++ " is defined at line " ++ U32.show(ob.no(ob.at(obs, x))) ++ " already"}]))
+
+# a member list's lines Blend cannot read, and imports inside an object
+def er.mems(ns: List<&2, Node>, +top: Bool) -> List<&2, Er>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, +t}:
+      match nd:
+        case NBad{txt, +no}:
+          Con{Er{no, "Blend cannot read this line: " ++ text(txt)}, er.mems(t, top)}
+        case NImport{txt, +no}:
+          when(List<&2, Er>, top, u => er.mems(t, top),
+            u => Con{Er{no, "an import belongs to the module, outside every object"}, er.mems(t, top)})
+        case _:
+          er.mems(t, top)
+
+# each object's errors of reading and naming
+def er.obs(os: List<&2, Ob>, +obs: List<&2, Ob>) -> List<&2, Er>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, t}:
+      match o:
+        case Ob{+id, +host, +path, +abs, +parents, mems, +no}:
+          List.append(&2, Er, er.mems(mems, U32.is_eq(id, 0)),
+            List.append(&2, Er, when(List<&2, Er>, U32.is_eq(id, 0), u => Nil{}, u => er.twice(obs, id, path, no)),
+              List.append(&2, Er, er.parents(parents, obs, id, host, no), er.obs(t, obs))))
+
+# C3
+# --
+#
+# An object's linearization is itself, then the merge of its parents'
+# linearizations and its parents' list: each turn takes the first head
+# that is in no list's tail. The lists keep their owners, for the message
+# when no head is free.
+
+type Sq is Data:
+  Sq{+owner: U32, xs: List<&2, U32>}
+
+def in_tails(ss: List<&2, Sq>, +h: U32) -> Bool:
+  match ss:
+    case Nil{}:
+      False{}
+    case Con{s, t}:
+      match s:
+        case Sq{+o, xs}:
+          match xs:
+            case Nil{}:
+              in_tails(t, h)
+            case Con{x, r}:
+              has(r, h) || in_tails(t, h)
+
+# the first head in no tail
+def c3.good(cs: List<&2, Sq>, +all: List<&2, Sq>) -> Maybe<&2, U32>:
+  match cs:
+    case Nil{}:
+      None{}
+    case Con{c, t}:
+      match c:
+        case Sq{+o, xs}:
+          match xs:
+            case Nil{}:
+              c3.good(t, all)
+            case Con{+h, r}:
+              when(Maybe<&2, U32>, in_tails(all, h), u => c3.good(t, all), u => Some{h})
+
+def c3.head.drop(xs: List<&2, U32>, +h: U32) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +t}:
+      when(List<&2, U32>, U32.is_eq(x, h), u => t, u => Con{x, t})
+
+def c3.keep(+o: U32, xs: List<&2, U32>, rest: List<&2, Sq>) -> List<&2, Sq>:
+  match xs:
+    case Nil{}:
+      rest
+    case Con{x, r}:
+      Con{Sq{o, Con{x, r}}, rest}
+
+# the lists, h taken from their heads, the empty ones dropped
+def c3.take(ss: List<&2, Sq>, +h: U32) -> List<&2, Sq>:
+  match ss:
+    case Nil{}:
+      Nil{}
+    case Con{s, t}:
+      match s:
+        case Sq{+o, xs}:
+          c3.keep(o, c3.head.drop(xs, h), c3.take(t, h))
+
+type Mg is Data:
+  MOk{ord: List<&2, U32>}
+  MFail{seqs: List<&2, Sq>}
+
+# fuel: the lists' lengths, a head taken each turn
+def c3.merge(n: Nat, +seqs: List<&2, Sq>, +out: List<&2, U32>) -> Mg:
+  match n:
+    case 0n:
+      MFail{seqs}
+    case 1n++k:
+      match seqs:
+        case Nil{}:
+          MOk{List.reverse(&2, U32, out)}
+        case Con{+s, +t}:
+          on.maybe(U32, Mg, c3.good(Con{s, t}, Con{s, t}), u => MFail{Con{s, t}},
+            +h => c3.merge(k, c3.take(Con{s, t}, h), Con{h, out}))
+
+def sqs.len(ss: List<&2, Sq>) -> Nat:
+  match ss:
+    case Nil{}:
+      0n
+    case Con{s, t}:
+      match s:
+        case Sq{+o, xs}:
+          Nat.add(List.length(&2, U32, xs), sqs.len(t))
+
+# a linearization found: whether it is sound (its parents' too), and its order
+type Lz is Data:
+  Lz{+ok: Bool, ord: List<&2, U32>}
+
+def lz.or(m: Maybe<&2, Maybe<&2, Lz>>) -> Maybe<&2, Lz>:
+  match m:
+    case None{}:
+      None{}
+    case Some{z}:
+      z
+
+def lz.at(+lins: List<&2, Maybe<&2, Lz>>, +id: U32) -> Maybe<&2, Lz>:
+  lz.or(List.get(&2, Maybe<&2, Lz>, lins, U32.to_nat(id)))
+
+def lin.seqs.k(+ok: Bool, +p: U32, ord: List<&2, U32>, rest: Maybe<&2, Maybe<&2, List<&2, Sq>>>) -> Maybe<&2, Maybe<&2, List<&2, Sq>>>:
+  match ok:
+    case True{}:
+      match rest:
+        case None{}:
+          None{}
+        case Some{r}:
+          match r:
+            case Some{ss}:
+              Some{Some{Con{Sq{p, ord}, ss}}}
+            case None{}:
+              Some{None{}}
+    case False{}:
+      match rest:
+        case None{}:
+          None{}
+        case Some{r}:
+          Some{None{}}
+
+def lin.seqs.z(+p: U32, m: Maybe<&2, Lz>, rest: Maybe<&2, Maybe<&2, List<&2, Sq>>>) -> Maybe<&2, Maybe<&2, List<&2, Sq>>>:
+  match m:
+    case None{}:
+      None{}
+    case Some{z}:
+      match z:
+        case Lz{+ok, ord}:
+          lin.seqs.k(ok, p, ord, rest)
+
+# the parents' linearizations as lists to merge, None while one is missing
+# (an unsound one: Some of None, its error its own)
+def lin.seqs(ps: List<&2, U32>, +lins: List<&2, Maybe<&2, Lz>>) -> Maybe<&2, Maybe<&2, List<&2, Sq>>>:
+  match ps:
+    case Nil{}:
+      Some{Some{Nil{}}}
+    case Con{+p, t}:
+      lin.seqs.z(p, lz.at(lins, p), lin.seqs(t, lins))
+
+def lin.mg(+id: U32, m: Mg) -> Lz:
+  match m:
+    case MOk{ord}:
+      Lz{True{}, Con{id, ord}}
+    case MFail{ss}:
+      Lz{False{}, [id]}
+
+def lin.of(+id: U32, +ps: List<&2, U32>, ss: Maybe<&2, List<&2, Sq>>) -> Lz:
+  match ss:
+    case None{}:
+      Lz{False{}, [id]}
+    case Some{+seqs}:
+      lin.mg(id, c3.merge(1n+sqs.len(List.append(&2, Sq, seqs, [Sq{id, ps}])), c3.take(List.append(&2, Sq, seqs, [Sq{id, ps}]), 4294967295), Nil{}))
+
+def lin.try(+id: U32, +ps: List<&2, U32>, m: Maybe<&2, Maybe<&2, List<&2, Sq>>>) -> Maybe<&2, Lz>:
+  match m:
+    case None{}:
+      None{}
+    case Some{ss}:
+      Some{lin.of(id, ps, ss)}
+
+# a round: each object not yet linearized whose parents are
+def lin.round(ps: List<&2, List<&2, U32>>, cur: List<&2, Maybe<&2, Lz>>, +id: U32, +all: List<&2, Maybe<&2, Lz>>) -> List<&2, Maybe<&2, Lz>>:
+  match ps cur:
+    case Con{+p, pt} Con{c, ct}:
+      match c:
+        case Some{z}:
+          Con{Some{z}, lin.round(pt, ct, (id + 1 : U32), all)}
+        case None{}:
+          Con{lin.try(id, p, lin.seqs(p, all)), lin.round(pt, ct, (id + 1 : U32), all)}
+    case _ _:
+      Nil{}
+
+def lin.go(n: Nat, +pss: List<&2, List<&2, U32>>, +lins: List<&2, Maybe<&2, Lz>>) -> List<&2, Maybe<&2, Lz>>:
+  match n:
+    case 0n:
+      lins
+    case 1n+k:
+      lin.go(k, pss, lin.round(pss, lins, 0, lins))
+
+def nones(ps: List<&2, List<&2, U32>>) -> List<&2, Maybe<&2, Lz>>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{p, t}:
+      Con{None{}, nones(t)}
+
+# every object's linearization, None where its parents lead back to it;
+# a round for each object at most, as each round linearizes one at least
+def lins(+pss: List<&2, List<&2, U32>>) -> List<&2, Maybe<&2, Lz>>:
+  lin.go(1n+List.length(&2, List<&2, U32>, pss), pss, nones(pss))
+
+# two lists that order two heads both ways, for the message
+type Cf is Data:
+  Cf{+a: U32, +x: U32, +b: U32, +y: U32}
+
+def cf.with(ss: List<&2, Sq>, +a: U32, +x: U32, +r: List<&2, U32>) -> Maybe<&2, Cf>:
+  match ss:
+    case Nil{}:
+      None{}
+    case Con{s, t}:
+      match s:
+        case Sq{+b, xs}:
+          match xs:
+            case Nil{}:
+              cf.with(t, a, x, r)
+            case Con{+y, +r2}:
+              when(Maybe<&2, Cf>, has(r2, x) && has(r, y), u => Some{Cf{a, x, b, y}}, u => cf.with(t, a, x, r))
+
+def cf.find(cs: List<&2, Sq>, +all: List<&2, Sq>) -> Maybe<&2, Cf>:
+  match cs:
+    case Nil{}:
+      None{}
+    case Con{c, t}:
+      match c:
+        case Sq{+a, xs}:
+          match xs:
+            case Nil{}:
+              cf.find(t, all)
+            case Con{+x, +r}:
+              on.maybe(Cf, Maybe<&2, Cf>, cf.with(all, a, x, r), u => cf.find(t, all), f => Some{f})
+
+def cf.msg(+obs: List<&2, Ob>, m: Maybe<&2, Cf>) -> String:
+  match m:
+    case None{}:
+      "no order fits its parents' orders"
+    case Some{f}:
+      match f:
+        case Cf{+a, +x, +b, +y}:
+          ob.name(obs, a) ++ " puts " ++ ob.name(obs, x) ++ " before " ++ ob.name(obs, y) ++ ", and " ++
+            ob.name(obs, b) ++ " puts " ++ ob.name(obs, y) ++ " before " ++ ob.name(obs, x)
+
+def c3.why(+obs: List<&2, Ob>, +id: U32, m: Mg) -> List<&2, Er>:
+  match m:
+    case MOk{ord}:
+      Nil{}
+    case MFail{+ss}:
+      [Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has no C3 linearization: " ++ cf.msg(obs, cf.find(ss, ss))}]
+
+def c3.er(+obs: List<&2, Ob>, +id: U32, +ps: List<&2, U32>, ss: Maybe<&2, List<&2, Sq>>) -> List<&2, Er>:
+  match ss:
+    case None{}:
+      Nil{}
+    case Some{+seqs}:
+      c3.why(obs, id, c3.merge(1n+sqs.len(List.append(&2, Sq, seqs, [Sq{id, ps}])), c3.take(List.append(&2, Sq, seqs, [Sq{id, ps}]), 4294967295), Nil{}))
+
+def c3.er.k(+obs: List<&2, Ob>, +id: U32, +ps: List<&2, U32>, m: Maybe<&2, Maybe<&2, List<&2, Sq>>>) -> List<&2, Er>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{ss}:
+      c3.er(obs, id, ps, ss)
+
+# the linearization errors: an object its parents lead back to, and one
+# whose sound parents have no merge
+def er.lins(ps: List<&2, List<&2, U32>>, ls: List<&2, Maybe<&2, Lz>>, +id: U32, +obs: List<&2, Ob>, +all: List<&2, Maybe<&2, Lz>>) -> List<&2, Er>:
+  match ps ls:
+    case Con{+p, +pt} Con{l, +lt}:
+      match l:
+        case None{}:
+          Con{Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " inherits from itself"}, er.lins(pt, lt, (id + 1 : U32), obs, all)}
+        case Some{z}:
+          match z:
+            case Lz{+ok, ord}:
+              when(List<&2, Er>, ok, u => er.lins(pt, lt, (id + 1 : U32), obs, all),
+                u => List.append(&2, Er, c3.er.k(obs, id, p, lin.seqs(p, all)), er.lins(pt, lt, (id + 1 : U32), obs, all)))
+    case _ _:
+      Nil{}
+
+# Definitions
+# -----------
+#
+# An object's definitions: its linearization's members applied from its
+# base to itself, each name with the objects that gave it, the latest
+# first (an upd's prior is the next), and the line of the latest.
+
+type En is Data:
+  En{name: List<&2, U32>, chain: List<&2, U32>, +no: U32}
+
+# a member's error: its object and line, its kind (0 an introduction of a
+# name another object has, 1 a name its object gives twice, 2 an update of
+# nothing), its name and upd or def, and the object and line it met
+type Fe is Data:
+  Fe{+q: U32, +mno: U32, +kind: U32, name: List<&2, U32>, +upd: Bool, +origin: U32, +ono: U32}
+
+type Fd is Data:
+  Fd{map: List<&2, En>, fes: List<&2, Fe>}
+
+def en.find(es: List<&2, En>, +n: List<&2, U32>) -> Maybe<&2, En>:
+  match es:
+    case Nil{}:
+      None{}
+    case Con{+e, t}:
+      match e:
+        case En{+name, chain, +no}:
+          when(Maybe<&2, En>, same(name, n), u => Some{e}, u => en.find(t, n))
+
+def en.set(es: List<&2, En>, +e: En, +n: List<&2, U32>) -> List<&2, En>:
+  match es:
+    case Nil{}:
+      [e]
+    case Con{+x, +t}:
+      match x:
+        case En{+name, chain, +no}:
+          when(List<&2, En>, same(name, n), u => Con{e, t}, u => Con{x, en.set(t, e, n)})
+
+def en.head(xs: List<&2, U32>) -> U32:
+  match xs:
+    case Nil{}:
+      0
+    case Con{+h, t}:
+      h
+
+# an introduction met an entry: twice in one object, or from another
+def fd.def.at(+q: U32, +no: U32, +name: List<&2, U32>, e: En, map: List<&2, En>, fes: List<&2, Fe>) -> Fd:
+  match e:
+    case En{n, +chain, +eno}:
+      Fd{en.set(map, En{name, [q], no}, name),
+        Con{Fe{q, no, when(U32, U32.is_eq(en.head(chain), q), u => 1, u => 0), name, False{}, en.head(chain), eno}, fes}}
+
+def fd.upd.at(+q: U32, +no: U32, +name: List<&2, U32>, e: En, +map: List<&2, En>, +fes: List<&2, Fe>) -> Fd:
+  match e:
+    case En{n, +chain, +eno}:
+      when(Fd, U32.is_eq(en.head(chain), q),
+        u => Fd{en.set(map, En{name, chain, no}, name), Con{Fe{q, no, 1, name, True{}, q, eno}, fes}},
+        u => Fd{en.set(map, En{name, Con{q, chain}, no}, name), fes})
+
+def fd.def(+q: U32, +upd: Bool, +name: List<&2, U32>, +no: U32, d: Fd) -> Fd:
+  match d:
+    case Fd{+map, +fes}:
+      on.maybe(En, Fd, en.find(map, name),
+        u => when(Fd, upd,
+          v => Fd{en.set(map, En{name, [q], no}, name), Con{Fe{q, no, 2, name, True{}, q, no}, fes}},
+          v => Fd{en.set(map, En{name, [q], no}, name), fes}),
+        +e => when(Fd, upd, v => fd.upd.at(q, no, name, e, map, fes), v => fd.def.at(q, no, name, e, map, fes)))
+
+def fd.mems(ns: List<&2, Node>, +q: U32, d: Fd) -> Fd:
+  match ns:
+    case Nil{}:
+      d
+    case Con{nd, t}:
+      match nd:
+        case NDef{+share, +upd, name, rest, params, body, +no}:
+          fd.mems(t, q, fd.def(q, upd, name, no, d))
+        case _:
+          fd.mems(t, q, d)
+
+def fd.obs(qs: List<&2, U32>, +obs: List<&2, Ob>, d: Fd) -> Fd:
+  match qs:
+    case Nil{}:
+      d
+    case Con{+q, t}:
+      fd.obs(t, obs, fd.mems(ob.mems(ob.at(obs, q)), q, d))
+
+# an object's definitions and its members' errors, its linearization sound
+def fold(+obs: List<&2, Ob>, l: Maybe<&2, Lz>) -> Maybe<&2, Fd>:
+  match l:
+    case None{}:
+      None{}
+    case Some{z}:
+      match z:
+        case Lz{+ok, ord}:
+          when(Maybe<&2, Fd>, ok, u => Some{fd.obs(List.reverse(&2, U32, ord), obs, Fd{Nil{}, Nil{}})}, u => None{})
+
+def folds(ls: List<&2, Maybe<&2, Lz>>, +obs: List<&2, Ob>) -> List<&2, Maybe<&2, Fd>>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      Con{fold(obs, l), folds(t, obs)}
+
+def fd.or(m: Maybe<&2, Maybe<&2, Fd>>) -> Maybe<&2, Fd>:
+  match m:
+    case None{}:
+      None{}
+    case Some{f}:
+      f
+
+def fd.at(+fds: List<&2, Maybe<&2, Fd>>, +id: U32) -> Maybe<&2, Fd>:
+  fd.or(List.get(&2, Maybe<&2, Fd>, fds, U32.to_nat(id)))
+
+def fe.lines(fes: List<&2, Fe>) -> List<&2, U32>:
+  match fes:
+    case Nil{}:
+      Nil{}
+    case Con{f, t}:
+      match f:
+        case Fe{+q, +mno, +kind, name, +upd, +origin, +ono}:
+          Con{mno, fe.lines(t)}
+
+def fd.lines(m: Maybe<&2, Fd>) -> List<&2, U32>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{d}:
+      match d:
+        case Fd{map, fes}:
+          fe.lines(fes)
+
+# the members' error lines of an object's parents: their own reports
+def seen(ps: List<&2, U32>, +fds: List<&2, Maybe<&2, Fd>>) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, t}:
+      List.append(&2, U32, fd.lines(fd.at(fds, p)), seen(t, fds))
+
+def kw(+upd: Bool) -> String:
+  match upd:
+    case True{}:
+      "upd "
+    case False{}:
+      "def "
+
+def fe.msg(+obs: List<&2, Ob>, +id: U32, f: Fe) -> Er:
+  match f:
+    case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono}:
+      match kind:
+        case 1:
+          Er{mno, text(name) ++ " is given twice in " ++ ob.name(obs, q) ++ ", at lines " ++ U32.show(ono) ++ " and " ++ U32.show(mno)}
+        case 2:
+          Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has no " ++ text(name) ++ " to update (introduce it with def)"}
+        case _:
+          when(Er, U32.is_eq(q, id),
+            u => Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has " ++ text(name) ++ " already, from " ++
+              ob.name(obs, origin) ++ " (update it with upd)"},
+            u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has " ++ text(name) ++ " from both " ++ ob.name(obs, origin) ++
+              " and " ++ ob.name(obs, q) ++ ", each introducing it with def"})
+
+def er.fes(fes: List<&2, Fe>, +skip: List<&2, U32>, +obs: List<&2, Ob>, +id: U32) -> List<&2, Er>:
+  match fes:
+    case Nil{}:
+      Nil{}
+    case Con{+f, +t}:
+      match f:
+        case Fe{+q, +mno, +kind, +name, +upd, +origin, +ono}:
+          when(List<&2, Er>, has(skip, mno), u => er.fes(t, skip, obs, id),
+            u => Con{fe.msg(obs, id, Fe{q, mno, kind, name, upd, origin, ono}), er.fes(t, skip, obs, id)})
+
+# Declarations
+# ------------
+
+# a declared name, the object declaring it, and the line
+type Dn is Data:
+  Dn{name: List<&2, U32>, +q: U32, +no: U32}
+
+def decl.tag(ns: List<&2, List<&2, U32>>, +q: U32, +no: U32) -> List<&2, Dn>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{n, t}:
+      Con{Dn{n, q, no}, decl.tag(t, q, no)}
+
+def decl.names(ns: List<&2, Node>, +q: U32) -> List<&2, Dn>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, t}:
+      match nd:
+        case NDecl{names, +no}:
+          List.append(&2, Dn, decl.tag(names, q, no), decl.names(t, q))
+        case _:
+          decl.names(t, q)
+
+def decl.obs(qs: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, Dn>:
+  match qs:
+    case Nil{}:
+      Nil{}
+    case Con{+q, t}:
+      List.append(&2, Dn, decl.names(ob.mems(ob.at(obs, q)), q), decl.obs(t, obs))
+
+def decl.missing(+obs: List<&2, Ob>, +id: U32, +n: List<&2, U32>, +q: U32, +no: U32) -> Er:
+  when(Er, U32.is_eq(id, 0),
+    u => Er{no, "the module declares " ++ text(n) ++ " and defines none"},
+    u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " defines no " ++ text(n) ++ ", which " ++ ob.name(obs, q) ++
+      " declares (or mark " ++ ob.name(obs, id) ++ " abstract)"})
+
+def decl.check.k(+obs: List<&2, Ob>, +id: U32, +map: List<&2, En>, +done: List<&2, List<&2, U32>>, +n: List<&2, U32>, +q: U32, +no: U32) -> List<&2, Er>:
+  when(List<&2, Er>, names.has(done, n) || Maybe.is_some(&2, En, en.find(map, n)), u => Nil{},
+    u => [decl.missing(obs, id, n, q, no)])
+
+def decl.check(+obs: List<&2, Ob>, +id: U32, +map: List<&2, En>, +done: List<&2, List<&2, U32>>, d: Dn) -> List<&2, Er>:
+  match d:
+    case Dn{+n, +q, +no}:
+      decl.check.k(obs, id, map, done, n, q, no)
+
+def decl.pair.name(d: Dn) -> List<&2, U32>:
+  match d:
+    case Dn{n, +q, +no}:
+      n
+
+def decl.go(ds: List<&2, Dn>, +obs: List<&2, Ob>, +id: U32, +map: List<&2, En>, +done: List<&2, List<&2, U32>>) -> List<&2, Er>:
+  match ds:
+    case Nil{}:
+      Nil{}
+    case Con{+d, t}:
+      List.append(&2, Er, decl.check(obs, id, map, done, d), decl.go(t, obs, id, map, Con{decl.pair.name(d), done}))
+
+# a concrete object's declared names it gives no definition, each once
+def er.decls(+obs: List<&2, Ob>, +id: U32, +ord: List<&2, U32>, +map: List<&2, En>) -> List<&2, Er>:
+  when(List<&2, Er>, ob.abs(ob.at(obs, id)), u => Nil{}, u => decl.go(decl.obs(List.reverse(&2, U32, ord), obs), obs, id, map, Nil{}))
+
+def er.def.k(+obs: List<&2, Ob>, +id: U32, +ps: List<&2, U32>, +fds: List<&2, Maybe<&2, Fd>>, +ord: List<&2, U32>, m: Maybe<&2, Fd>) -> List<&2, Er>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{d}:
+      match d:
+        case Fd{+map, fes}:
+          List.append(&2, Er, er.fes(fes, seen(ps, fds), obs, id), er.decls(obs, id, ord, map))
+
+def lz.ord(m: Maybe<&2, Lz>) -> List<&2, U32>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{z}:
+      match z:
+        case Lz{+ok, ord}:
+          ord
+
+# each object's errors of definition and declaration
+def er.defs(ps: List<&2, List<&2, U32>>, fs: List<&2, Maybe<&2, Fd>>, ls: List<&2, Maybe<&2, Lz>>, +id: U32, +obs: List<&2, Ob>, +fds: List<&2, Maybe<&2, Fd>>) -> List<&2, Er>:
+  match ps fs ls:
+    case Con{+p, pt} Con{f, ft} Con{l, lt}:
+      List.append(&2, Er, er.def.k(obs, id, p, fds, lz.ord(l), f), er.defs(pt, ft, lt, (id + 1 : U32), obs, fds))
+    case _ _ _:
+      Nil{}
+
+# The objects, printed
+# --------------------
+
+def show.ids(+obs: List<&2, Ob>, xs: List<&2, U32>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{+x, t}:
+      match t:
+        case Nil{}:
+          ob.name(obs, x)
+        case Con{h, r}:
+          ob.name(obs, x) ++ ", " ++ show.ids(obs, Con{h, r})
+
+def show.chain(+obs: List<&2, Ob>, xs: List<&2, U32>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{+x, t}:
+      match t:
+        case Nil{}:
+          ob.name(obs, x)
+        case Con{h, r}:
+          ob.name(obs, x) ++ " < " ++ show.chain(obs, Con{h, r})
+
+def show.ens(+obs: List<&2, Ob>, es: List<&2, En>) -> String:
+  match es:
+    case Nil{}:
+      ""
+    case Con{e, t}:
+      match e:
+        case En{name, chain, +no}:
+          "  " ++ text(name) ++ ": " ++ show.chain(obs, chain) ++ "\n" ++ show.ens(obs, t)
+
+def show.fd(+obs: List<&2, Ob>, m: Maybe<&2, Fd>) -> String:
+  match m:
+    case None{}:
+      ""
+    case Some{d}:
+      match d:
+        case Fd{map, fes}:
+          show.ens(obs, map)
+
+def show.abs.of(+a: Bool) -> String:
+  match a:
+    case True{}:
+      "abstract "
+    case False{}:
+      ""
+
+def show.ob(+obs: List<&2, Ob>, o: Ob, l: Maybe<&2, Lz>, f: Maybe<&2, Fd>) -> String:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no}:
+      when(String, U32.is_eq(id, 0), u => "the module",
+        u => show.abs.of(abs) ++ ob.name(obs, id) ++ ": " ++ show.ids(obs, lz.ord(l))) ++ "\n" ++ show.fd(obs, f)
+
+# each object, its linearization, and each definition it has with the
+# objects that gave it, the final first
+def show.obs(os: List<&2, Ob>, ls: List<&2, Maybe<&2, Lz>>, fs: List<&2, Maybe<&2, Fd>>, +obs: List<&2, Ob>) -> String:
+  match os ls fs:
+    case Con{o, ot} Con{l, lt} Con{f, ft}:
+      show.ob(obs, o, l, f) ++ show.obs(ot, lt, ft, obs)
+    case _ _ _:
+      ""
+
+def show.ers(+file: String, es: List<&2, Er>) -> String:
+  match es:
+    case Nil{}:
+      ""
+    case Con{e, t}:
+      match e:
+        case Er{+no, msg}:
+          file ++ ":" ++ U32.show(no) ++ ": " ++ msg ++ "\n" ++ show.ers(file, t)
+
+def objects.out(+file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> String:
+  match es:
+    case Nil{}:
+      show.obs(obs, ls, fs, obs)
+    case Con{e, t}:
+      show.ers(file, List.sort(~Er, ~er.le, Con{e, t}))
+
+def objects.k(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
+  objects.out(file, obs, ls, fs,
+    List.append(&2, Er, er.obs(obs, obs), List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs))))
+
+def objects.l(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> String:
+  objects.k(file, obs, pss, ls, folds(ls, obs))
+
+def objects.p(+file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> String:
+  objects.l(file, obs, pss, lins(pss))
+
+def objects.o(+file: String, +obs: List<&2, Ob>) -> String:
+  objects.p(file, obs, pids(obs, obs))
+
+# the module's objects, or its errors, each `FILE:LINE: message`
+def objects(+file: String, +tree: List<&2, Node>) -> String:
+  objects.o(file, obs(tree))
+
 # The command line
 # ================
+#
+#   bend blend.bend read FILE.blend       the structure (`blend-read`)
+#   bend blend.bend objects FILE.blend    the objects, or the errors found
+#                                         so far, `FILE:LINE: message`
+#                                         in line order (`blend-objects`)
 
-def run(+bs: List<&2, U32>) -> String:
-  show(read(bs), List.length(&2, U32, bs))
+def base.k(r: List<&2, U32> & List<&2, U32>) -> String:
+  (a, b) = r
+  text(List.reverse(&2, U32, a))
 
-def main.read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
+# a path's last part, as messages name the file
+def basename(path: String) -> String:
+  base.k(until(List.reverse(&2, U32, codes(path)), 47))
+
+def usage() -> String:
+  "usage: bend blend.bend read|objects FILE.blend"
+
+# 1 read, 2 objects
+def run(+cmd: U32, +file: String, +bs: List<&2, U32>) -> String:
+  match cmd:
+    case 1:
+      show(read(bs), List.length(&2, U32, bs))
+    case 2:
+      objects(file, read(bs))
+    case _:
+      usage()
+
+def main.read(+cmd: U32, +file: String, fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
   (f, r) = fr
   match r:
     case Done{bs}:
       do IO<Unit>:
         File.close(f)
-        IO.print(run(bs))
+        IO.print(run(cmd, file, bs))
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         IO.print("blend: cannot read the file")
 
-def main.size(fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
+def main.size(+cmd: U32, +file: String, fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
   (f, r) = fs
   match r:
     case Done{+n}:
       do IO<Unit>:
         fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
-        main.read(fr)
+        main.read(cmd, file, fr)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         IO.print("blend: cannot size the file")
 
-def main.file(path: String) -> IO(Unit):
+def main.file(+cmd: U32, +path: String) -> IO(Unit):
   do IO<Unit>:
     f : File <- IO.try(File, File.open(path, "r"))
     fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
-    main.size(fs)
+    main.size(cmd, basename(path), fs)
 
-def usage() -> String:
-  "usage: bend blend.bend read FILE.blend"
-
-def main.flag(+read: Bool, xs: List<String>) -> IO(Unit):
-  match read xs:
-    case True{} Con{path, r}:
-      main.file(path)
-    case _ _:
+def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
+  match cmd:
+    case 0:
       IO.print(usage())
+    case _:
+      match xs:
+        case Con{path, r}:
+          main.file(cmd, path)
+        case Nil{}:
+          IO.print(usage())
+
+def cmd.of(+rd: Bool, +ob: Bool) -> U32:
+  match rd ob:
+    case True{} _:
+      1
+    case False{} True{}:
+      2
+    case False{} False{}:
+      0
 
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
     case Con{p, r}:
       match r:
         case Con{+flag, r2}:
-          main.flag(String.eq(flag, "read"), r2)
+          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects")), r2)
         case Nil{}:
           IO.print(usage())
     case Nil{}:
