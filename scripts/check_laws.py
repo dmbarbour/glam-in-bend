@@ -5,7 +5,9 @@ column 0 and the indented lines after it. A Blend module's law members are
 laws too (blend/README.md): in a `.blend` file, a `law <name>:` line at any
 indentation and the lines indented deeper after it, named by the objects
 it sits in, `Monoid.right_id`. Comments and spacing aside, adding,
-changing or removing one is a law change. Each commit on main's first-parent
+changing or removing one is a law change. An invalid sample's laws are
+none: a file under a directory named `invalid` is held only to the error
+it must raise (the maintainer, 2026-11-04). Each commit on main's first-parent
 history that changes laws must name every one of them in `Law: <name>`
 trailers. Side branches are free: land law work on main with a merge
 (`--no-ff`) or squash commit that names the laws.
@@ -100,6 +102,11 @@ def blend_laws(text):
     return found
 
 
+def invalid(path):
+    """Whether a path is an invalid sample's, under a directory `invalid`."""
+    return "invalid" in pathlib.PurePosixPath(path).parts[:-1]
+
+
 def tree_laws(tree):
     """{(path, name): text} for every LAWS.bend and .blend file at a
     tree-ish, or the index (":")."""
@@ -111,7 +118,8 @@ def tree_laws(tree):
         paths = git("ls-tree", "-r", "--name-only", tree).stdout.split()
     found = {}
     for path in paths:
-        read = laws if path == "LAWS.bend" or path.endswith("/LAWS.bend") else blend_laws if path.endswith(".blend") else None
+        read = (None if invalid(path) else laws if path == "LAWS.bend" or path.endswith("/LAWS.bend")
+                else blend_laws if path.endswith(".blend") else None)
         if read:
             text = git("show", f"{tree}{path}" if tree == ":" else f"{tree}:{path}").stdout
             for name, body in read(text).items():
@@ -145,6 +153,8 @@ def check_history():
 
 def check_citations():
     for path in [*pathlib.Path(".").glob("**/LAWS.bend"), *pathlib.Path(".").glob("**/*.blend")]:
+        if invalid(path.as_posix()):
+            continue
         for number, line in enumerate(path.read_text().splitlines(), 1):
             citation = CITATION.search(line)
             if not citation:

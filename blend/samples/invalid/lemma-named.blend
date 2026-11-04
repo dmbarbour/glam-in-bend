@@ -1,0 +1,11 @@
+# A typed proof is a lemma, stating what it proves; it belongs to the
+# proofs, which code may not name.
+import Base
+
+object C with
+  def size(+n: Nat) -> Nat:
+    1n
+  proof sz(n: Nat) -> {size(n) == 1n : Nat}:
+    {==}
+  def twice(+n: Nat) -> Nat:
+    sz(n)

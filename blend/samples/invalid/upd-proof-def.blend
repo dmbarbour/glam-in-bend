@@ -1,0 +1,11 @@
+# `upd proof` replaces a proof; `size` is a definition, which only
+# `upd` updates.
+import Base
+
+abstract object D0 with
+  def size(+n: Nat) -> Nat:
+    1n
+
+object D extends D0 with
+  upd proof size(n: Nat) -> {1n == 1n : Nat}:
+    {==}

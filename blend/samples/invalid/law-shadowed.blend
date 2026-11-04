@@ -1,0 +1,17 @@
+# A law is stated once: a definition of its name in a family below meets
+# the law, as any introduction of a name the object has does.
+import Base
+
+abstract object Sized with
+  declare size
+  law small:
+    for +n: Nat
+    {size(n) == size(n) : Nat}
+  proof small(n):
+    {==}
+
+object B extends Sized with
+  def size(+n: Nat) -> Nat:
+    1n
+  def small(+n: Nat) -> Nat:
+    n

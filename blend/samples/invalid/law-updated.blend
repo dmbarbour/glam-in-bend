@@ -1,0 +1,17 @@
+# A law is stated once, never updated: `upd small` would replace the
+# claim with a definition, the law gone from the family that does it.
+import Base
+
+abstract object Sized with
+  declare size
+  law small:
+    for +n: Nat
+    {size(n) == size(n) : Nat}
+  proof small(n):
+    {==}
+
+object A extends Sized with
+  def size(+n: Nat) -> Nat:
+    1n
+  upd small(+n: Nat) -> Nat:
+    n
