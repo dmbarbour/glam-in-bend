@@ -17,7 +17,9 @@ its objects and prints their linearizations and definitions
 (`blend-objects`); `bend blend.bend resolve FILE.blend` binds each
 copy's names and prints what they reach (`blend-resolve`). Each valid sample's emitted form is written by
 hand and checked to run under Bend; `blend/check.sh` checks them and
-reads every sample, and the gate runs it. The maintainer's
+reads every sample, and the gate runs it. `blend/run.sh COMMAND
+FILE.blend` runs the tool, built once for each version of its sources
+(`blend/build.sh`). The maintainer's
 direction (2026-11-04): `def` and `upd` for introduction and override,
 definitions affine unless marked; the samples may change to fit the
 implementation, keeping their intention. The tool and the kernel's move

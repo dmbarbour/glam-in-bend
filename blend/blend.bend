@@ -832,7 +832,7 @@ def flat(+ls: List<&2, Ln>) -> List<&2, Item>:
 type Node is Data:
   NImport{txt: List<&2, U32>, +no: U32}
   NDecl{names: List<&2, List<&2, U32>>, +no: U32}
-  NDef{+share: U32, +upd: Bool, name: List<&2, U32>, rest: List<&2, U32>, params: List<&2, List<&2, U32>>, body: List<&2, Bl>, +no: U32}
+  NDef{+share: U32, +upd: Bool, name: List<&2, U32>, rest: List<&2, U32>, params: List<&2, List<&2, U32>>, body: List<&2, Bl>, +no: U32, +ind: U32}
   NObj{+abs: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, kids: List<&2, Node>, +no: U32}
   NBad{txt: List<&2, U32>, +no: U32}
 
@@ -920,7 +920,7 @@ def tree.put(st: List<&2, Fr>, it: Item) -> List<&2, Fr>:
     case IDecl{names, +no, +ind}:
       close.into(st, NDecl{names, no})
     case IDef{+share, +upd, name, rest, params, body, +no, +ind}:
-      close.into(st, NDef{share, upd, name, rest, params, toks.lines(body), no})
+      close.into(st, NDef{share, upd, name, rest, params, toks.lines(body), no, ind})
     case IBad{txt, +no, +ind}:
       close.into(st, NBad{txt, no})
 
@@ -1042,7 +1042,7 @@ def show.go(n: Nat, ns: List<&2, Node>, +ind: String) -> String:
               ind ++ text(txt) ++ show.line(no) ++ "\n" ++ show.go(k, t, ind)
             case NDecl{names, +no}:
               ind ++ "declare " ++ show.names(names) ++ show.line(no) ++ "\n" ++ show.go(k, t, ind)
-            case NDef{+share, +upd, name, rest, params, +body, +no}:
+            case NDef{+share, +upd, name, rest, params, +body, +no, +dind}:
               ind ++ show.share(share) ++ show.kw(upd) ++ text(name) ++ " [" ++ show.names(params) ++ "], " ++
                 U32.show(U32.from_nat(List.length(&2, Bl, body))) ++ " body lines" ++ show.line(no) ++ "\n" ++
                 show.used(show.uses(body), ind) ++ show.go(k, t, ind)
@@ -1668,7 +1668,7 @@ def fd.mems(ns: List<&2, Node>, +q: U32, d: Fd) -> Fd:
       d
     case Con{nd, t}:
       match nd:
-        case NDef{+share, +upd, name, rest, params, body, +no}:
+        case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
           fd.mems(t, q, fd.def(q, upd, name, no, d))
         case _:
           fd.mems(t, q, d)
@@ -2430,8 +2430,8 @@ def mem.find(ns: List<&2, Node>, +n: List<&2, U32>) -> Maybe<&2, Node>:
       None{}
     case Con{+nd, t}:
       match nd:
-        case NDef{+share, +upd, +name, +rest, +params, +body, +no}:
-          when(Maybe<&2, Node>, same(name, n), u => Some{NDef{share, upd, name, rest, params, body, no}}, u => mem.find(t, n))
+        case NDef{+share, +upd, +name, +rest, +params, +body, +no, +ind}:
+          when(Maybe<&2, Node>, same(name, n), u => Some{NDef{share, upd, name, rest, params, body, no, ind}}, u => mem.find(t, n))
         case _:
           mem.find(t, n)
 
@@ -2466,7 +2466,7 @@ def copy.node(+cx: Cx, +o: U32, i: In, +nd: Node) -> Rd & Rb:
   match i:
     case In{+n, +q, +prior}:
       match nd:
-        case NDef{+share, +upd, +name, +rest, +params, +body, +no}:
+        case NDef{+share, +upd, +name, +rest, +params, +body, +no, +ind}:
           copy.k(In{n, q, prior}, nd, rb.lines(body, cx, o, q, List.append(&2, List<&2, U32>, unmarks(params), lc.names(body.binders(body)))),
             List.append(&2, Er, shadow.params(unmarks(params), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))), no),
               shadow.locals(body.binders(body), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))))))

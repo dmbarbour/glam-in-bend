@@ -13,6 +13,8 @@ set -u
 cd "$(dirname "$0")/samples" || exit 1
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 CAPPED=../../scripts/capped.sh
+# Blend's executable, built once for each version of its sources
+BLEND=$(BEND=$BEND ../build.sh) || { echo "blend: no executable to check with"; exit 1; }
 status=0
 n=0
 for src in *.blend; do
@@ -38,7 +40,7 @@ done
 # finds them
 found="upd-undefined def-defined undeclared no-c3 shadow host-at-module"
 for src in *.blend invalid/*.blend; do
-  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend resolve "$src" 2>&1) || {
+  got=$("$CAPPED" 500 30 "$BLEND" resolve "$src" 2>&1) || {
     echo "blend: checking $src failed: $got"; status=1; continue; }
   base=$(basename "$src" .blend)
   case " $found " in
