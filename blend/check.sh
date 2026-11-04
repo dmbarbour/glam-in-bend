@@ -1,9 +1,10 @@
 #!/bin/sh
 # Blend's samples (blend/README.md): each valid sample's emitted form,
-# written by hand until Blend exists, must run under Bend and print what
+# written by hand until Blend emits it, must run under Bend and print what
 # its .out says; each invalid sample states the error it must raise in
-# its .err. Once Blend exists, it is run on every sample too, its output
-# compared with the .bend or the .err.
+# its .err. Blend reads every sample, valid or not, with no line it cannot
+# read (`blend-read`); once it emits, its output is compared with the
+# .bend or the .err.
 #
 #   blend/check.sh
 set -u
@@ -31,5 +32,11 @@ for src in invalid/*.blend; do
   m=$((m + 1))
   [ -f "${src%.blend}.err" ] || { echo "blend: $src has no .err"; status=1; }
 done
-[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid: ok"
+for src in *.blend invalid/*.blend; do
+  got=$("$CAPPED" 1000 60 "$BEND" ../blend.bend read "$src" 2>&1) || {
+    echo "blend: reading $src failed: $got"; status=1; continue; }
+  bad=$(printf '%s\n' "$got" | grep -E '^ *\? ') && {
+    echo "blend: $src has lines Blend cannot read:"; echo "$bad"; status=1; }
+done
+[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, read: ok"
 exit "$status"

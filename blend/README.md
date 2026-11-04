@@ -10,9 +10,11 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: a design and its samples, no tool yet. Each valid sample's
-emitted form is written by hand and checked to run under Bend;
-`blend/check.sh` checks them, and the gate runs it. The maintainer's
+Status: a design, its samples, and the tool's first step: `bend
+blend.bend read FILE.blend` reads a `.blend` file and prints its
+structure (`blend-read`). Each valid sample's emitted form is written by
+hand and checked to run under Bend; `blend/check.sh` checks them and
+reads every sample, and the gate runs it. The maintainer's
 direction (2026-11-04): `def` and `upd` for introduction and override,
 definitions affine unless marked; the samples may change to fit the
 implementation, keeping their intention. The tool and the kernel's move
@@ -107,11 +109,10 @@ linearization, `^` out of the module.
   by running Bend when generating, as `spike/tools/gen_krules.bend` does.
 - Type parameters, a family's state type: an alias definition
   substituted where used, or the family's types left to Bend's `~`.
-- Which definitions a module emits: all of every concrete object's, or
-  those reachable from its own definitions and the names other modules
-  use.
-- Imports between `.blend` files, and how a plain `.bend` file names an
-  object's definitions (`Eager.go`).
+- Imports between `.blend` files. A plain `.bend` file names an object's
+  definitions by their emitted names, `Eager.go` (the maintainer,
+  2026-11-04), and which definitions are emitted, every concrete
+  object's or those reachable from roots, is the command line's to say.
 - Errors from Bend on emitted code: line markers back to the `.blend`.
 - Blend's own home: written in Bend (`generated-sources`), here first,
   perhaps shared beyond this project.

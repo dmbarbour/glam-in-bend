@@ -51,7 +51,7 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 - [`Blend_2026-11-04.md`](Blend_2026-11-04.md): `blend-` steps for Blend,
   our preprocessor of static objects for Bend: the tool, in Bend, its
   samples its tests, then the kernel's strategy families moved onto it.
-  Drafted for the maintainer's review.
+  Reviewed by the maintainer, 2026-11-04.
 - [`Codegen_2026-11-04.md`](Codegen_2026-11-04.md): `codegen-` steps for
   generation and specialization: how Bend compiles our code, an audit of
   the kernel's sharing, what must be specialized and by which vehicle.
