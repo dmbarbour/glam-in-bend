@@ -3134,8 +3134,9 @@ takes from it:
          Now one generator, `spike/tools/gen_krules.bend` (1,922 lines),
          writes the kernel's rewrites, `spike/krules.bend` (3,394 lines),
          and the gate and the pre-commit hook regenerate it to compare.
-       - `heap-strategies.generate.sharing` — tentative — the maintainer
-         (2026-11-03): we struggle with sharing, so sharpen the axe. Bend
+       - `heap-strategies.generate.sharing` — built 2026-11-04, a first
+         cut — the maintainer (2026-11-03): we struggle with sharing, so
+         sharpen the axe. Bend
          folds a chain of functions into one segment only while each has
          one caller; a second caller, or a branch whose arms both call
          the continuation, makes a function its own segment, and every
@@ -3145,7 +3146,21 @@ takes from it:
          to spot it: from the emitted C, the segments (`WL_FID_`) and the
          out-of-line functions a hot entry reaches, compared before and
          after a change; or from the Bend sources, each function's
-         callers along the hot chains.
+         callers along the hot chains. Built: `spike/tools/sharing.py
+         compare BASE OUT` emits a program's C at BASE and in the working
+         tree (runmode.bend by default, 15 s and 1.8 GB each, one at a
+         time under the caps), counts each Bend function's segments per
+         family (`#define FID_<module>_<function>_<instance>`, its `_k`
+         pieces with it), and lists each function whose count moved,
+         with its call sites in both trees. Against a867628 it names the
+         dead ports' split at once: `go.ext.r` 8 segments a family with
+         three callers (`go.eff`, `go.own`, `go.st`), folded into `go`
+         on main with one. Blind spot: Bend's leaf functions (`spin_N`)
+         carry no names in the C, so a helper added to a path, a call
+         each time but no new segment, does not show; perf by symbol
+         still finds those. Next, if it pays: a source-level pass
+         listing functions with two callers along the hot chains before
+         any build.
        - `heap-strategies.generate.specialize` — tentative — the
          maintainer (2026-11-03): a preprocessor of our own, in Bend
          (`generated-sources`), to specialize code and avoid accidental

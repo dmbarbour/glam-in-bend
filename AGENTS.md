@@ -103,6 +103,13 @@ Lessons carried over from the Rust bootstrap:
   library's, 2026-11-03): build one at a time, and keep the caps of
   runs that overlap below the machine's free memory. Run
   `scripts/cgroup-delegate.sh` first, or the caps only poll.
+- Bend folds a chain of functions into one compiled segment only while
+  each has one caller; a second caller splits a function into a segment
+  of its own, which costs every call through it. Before trusting a
+  change to a hot path, `python3 -I spike/tools/sharing.py compare HEAD
+  OUT` lists the functions whose segments moved, with their call sites
+  (half a minute). Helpers stay invisible there: Bend's small leaf
+  functions are unnamed in its C.
 - Exact counters (interactions, cells) are signal; timings are trend data,
   recorded with the Bend version, the commit and the CPU. Count
   instructions too (`scripts/count.sh`, under `perf`): stable to a few
