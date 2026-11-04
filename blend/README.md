@@ -10,9 +10,9 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: the tool emits. `blend/run.sh emit FILE.blend [ROOT...]` prints
-the `.bend` a `.blend` file makes, every concrete object's definitions
-or what the roots reach, or its errors (on stderr, the status 1). The
+Status: the tool emits. `blend/run.sh emit FILE.blend` prints the
+`.bend` a `.blend` file makes, every concrete object's definitions, or
+its errors (on stderr, the status 1). The
 stages before it print what they find: `read` the structure, `objects`
 each object's linearization and definitions, `resolve` each copy and
 what its names reach. `blend/run.sh` runs the tool built once for each
@@ -145,8 +145,9 @@ that leaves out `with`.
   `blend-types`).
 - Imports between `.blend` files. A plain `.bend` file names an object's
   definitions by their emitted names, `Eager.go` (the maintainer,
-  2026-11-04), and which definitions are emitted, every concrete
-  object's or those reachable from roots, is the command line's to say.
+  2026-11-04). A module emits every definition, not only those some
+  roots reach, so that a module several import is emitted once (the
+  maintainer, 2026-11-04).
   An object means the same however an import reaches it, the module
   being no object (`blend-imports`); the maintainer leans to one root
   module doing a dozen jobs by its imports (2026-11-04).

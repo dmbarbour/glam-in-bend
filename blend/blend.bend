@@ -2603,8 +2603,9 @@ def resolved(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>) -> Out:
 # The emitted module (`blend-emit`): every copy a unit, the units in
 # source order (the module's definitions and its concrete objects by
 # their lines, an object's members in its linearization's order, its own
-# first), emitted callees first by a walk from each in turn, or from the
-# roots the command line names; two units calling each other an error,
+# first), emitted callees first by a walk from each in turn, every one
+# emitted, so that a module imported by several is emitted once; two
+# units calling each other an error,
 # as Bend has no mutual recursion (`blend-adds-no-bend-logic`). Then the
 # sharing: an affine unit has one use at most, a call to itself aside; a
 # copied unit is emitted by its own name and once more for each use,
@@ -2857,30 +2858,6 @@ def roots.ids(rs: List<&2, Rf>, +us: List<&2, Un>) -> List<&2, U32>:
 # every unit in source order
 def roots.all(+cx: Cx, +us: List<&2, Un>) -> List<&2, U32>:
   roots.ids(roots.sls(List.sort(~Sl, ~sl.le, List.append(&2, Sl, slots.mod(ob.mems(ob.at(cx.obs(cx), 0))), slots.obs(cx.obs(cx)))), cx), us)
-
-def un.named(+obs: List<&2, Ob>, +us: List<&2, Un>, +n: List<&2, U32>, +k: U32) -> Maybe<&2, U32>:
-  match us:
-    case Nil{}:
-      None{}
-    case Con{+u, +t}:
-      when(Maybe<&2, U32>, same(rf.text(obs, un.ref(u)), n), v => Some{k}, v => un.named(obs, t, n, (k + 1 : U32)))
-
-# roots named on the command line, by their emitted names
-def roots.named(rs: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> List<&2, U32>:
-  match rs:
-    case Nil{}:
-      Nil{}
-    case Con{+r, +t}:
-      on.maybe(U32, List<&2, U32>, un.named(obs, us, r, 0), u => roots.named(t, obs, us), x => Con{x, roots.named(t, obs, us)})
-
-def er.roots(rs: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> List<&2, Er>:
-  match rs:
-    case Nil{}:
-      Nil{}
-    case Con{+r, +t}:
-      on.maybe(U32, List<&2, Er>, un.named(obs, us, r, 0),
-        u => Con{Er{0, "the root " ++ text(r) ++ " names no definition"}, er.roots(t, obs, us)},
-        x => er.roots(t, obs, us))
 
 # The walk
 # --------
@@ -3374,13 +3351,6 @@ def ms.ers(s: Ms) -> List<&2, Er>:
     case Ms{ms, ers}:
       ers
 
-def roots.of(rs: List<&2, List<&2, U32>>, +cx: Cx, +us: List<&2, Un>) -> List<&2, U32>:
-  match rs:
-    case Nil{}:
-      roots.all(cx, us)
-    case Con{r, t}:
-      roots.named(Con{r, t}, cx.obs(cx), us)
-
 def emit.out(+file: String, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, es: List<&2, Er>) -> Out:
   match es:
     case Nil{}:
@@ -3433,17 +3403,16 @@ def er.names(ns: List<&2, Nm>, +seen: List<&2, Nm>) -> List<&2, Er>:
               U32.show(no) ++ ": rename one"}, er.names(t, Con{m, seen})})
 
 # the emitted module, or its errors
-def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
+def emitted(+file: String, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +obs = cx.obs(cx)
   +us = units(os)
   +rss = refss(us, us, 0)
-  +d = walk(roots.of(roots, cx, us), calls(rss), obs, us)
+  +d = walk(roots.all(cx, us), calls(rss), obs, us)
   +order = ds.order(d)
   +ms = mults(order, List.reverse(&2, U32, order), rss, obs, us, Ms{mus.one(us), Nil{}})
   +e = {Ec{codes(file), obs, us, ms.ms(ms)} : Ec}
   emit.out(file, e, order, ob.mems(ob.at(obs, 0)),
-    List.append(&2, Er, er.roots(roots, obs, us), List.append(&2, Er, ds.ers(d),
-      List.append(&2, Er, ms.ers(ms), er.names(names.all(List.reverse(&2, U32, order), e), Nil{})))))
+    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), er.names(names.all(List.reverse(&2, U32, order), e), Nil{}))))
 
 # Stages
 # ======
@@ -3451,45 +3420,45 @@ def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&
 # A stage runs when the one before it found no error: the objects, the
 # references, then emission.
 
-def resolved.next(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
+def resolved.next(+cmd: U32, +file: String, +cx: Cx, +os: List<&2, Oc>) -> Out:
   match cmd:
     case 3:
       resolved(file, cx.obs(cx), os)
     case _:
-      when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, ocs.ers(os))), u => resolved(file, cx.obs(cx), os), u => emitted(file, roots, cx, os))
+      when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, ocs.ers(os))), u => resolved(file, cx.obs(cx), os), u => emitted(file, cx, os))
 
-def objects.next(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
+def objects.next(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
   match cmd:
     case 2:
       Out{True{}, show.obs(obs, ls, fs, obs)}
     case _:
-      resolved.next(cmd, file, roots, Cx{obs, ls, fs}, module.copies(obs, Cx{obs, ls, fs}))
+      resolved.next(cmd, file, Cx{obs, ls, fs}, module.copies(obs, Cx{obs, ls, fs}))
 
-def objects.out(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> Out:
+def objects.out(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> Out:
   match es:
     case Nil{}:
-      objects.next(cmd, file, roots, obs, ls, fs)
+      objects.next(cmd, file, obs, ls, fs)
     case Con{e, t}:
       ers.out(file, Con{e, t})
 
-def objects.k(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
-  objects.out(cmd, file, roots, obs, ls, fs,
+def objects.k(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
+  objects.out(cmd, file, obs, ls, fs,
     List.append(&2, Er, er.obs(obs, obs), List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs))))
 
-def objects.l(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> Out:
-  objects.k(cmd, file, roots, obs, pss, ls, folds(ls, obs))
+def objects.l(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> Out:
+  objects.k(cmd, file, obs, pss, ls, folds(ls, obs))
 
-def objects.p(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> Out:
-  objects.l(cmd, file, roots, obs, pss, lins(pss))
+def objects.p(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> Out:
+  objects.l(cmd, file, obs, pss, lins(pss))
 
-def objects.o(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>) -> Out:
-  objects.p(cmd, file, roots, obs, pids(obs, obs))
+def objects.o(+cmd: U32, +file: String, +obs: List<&2, Ob>) -> Out:
+  objects.p(cmd, file, obs, pids(obs, obs))
 
 # the module's objects (cmd 2), their copies (3) or the emitted module
 # (4), or the errors of the first stage that has them, each
 # `FILE:LINE: message`
-def objects(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +tree: List<&2, Node>) -> Out:
-  objects.o(cmd, file, roots, obs(tree))
+def objects(+cmd: U32, +file: String, +tree: List<&2, Node>) -> Out:
+  objects.o(cmd, file, obs(tree))
 
 # The command line
 # ================
@@ -3501,10 +3470,9 @@ def objects(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +tree: Li
 #   bend blend.bend resolve FILE.blend    each concrete object's copies
 #                                         and what their names reach
 #                                         (`blend-resolve`)
-#   bend blend.bend emit FILE.blend [ROOT...]
-#                                         the emitted module, all of it or
-#                                         what the roots reach, by their
-#                                         emitted names (`blend-emit`)
+#   bend blend.bend emit FILE.blend       the emitted module, every
+#                                         concrete object's definitions
+#                                         (`blend-emit`)
 #
 # blend/run.sh runs the same, built once (blend/build.sh).
 
@@ -3517,17 +3485,17 @@ def basename(path: String) -> String:
   base.k(until(List.reverse(&2, U32, codes(path)), 47))
 
 def usage() -> String:
-  "usage: bend blend.bend read|objects|resolve FILE.blend, or emit FILE.blend [ROOT...]"
+  "usage: bend blend.bend read|objects|resolve|emit FILE.blend"
 
 # 1 read, 2 objects, 3 resolve, 4 emit
-def run(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +bs: List<&2, U32>) -> Out:
+def run(+cmd: U32, +file: String, +bs: List<&2, U32>) -> Out:
   match cmd:
     case 1:
       Out{True{}, show(read(bs), List.length(&2, U32, bs))}
     case 0:
       Out{False{}, usage()}
     case _:
-      objects(cmd, file, roots, read(bs))
+      objects(cmd, file, read(bs))
 
 # the output printed; errors to stderr, and the exit status 1
 def main.out(o: Out) -> IO(Unit):
@@ -3541,42 +3509,35 @@ def main.out(o: Out) -> IO(Unit):
             IO.print_err(text)
             IO.exit(1)
 
-def main.read(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
+def main.read(+cmd: U32, +file: String, fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
   (f, r) = fr
   match r:
     case Done{bs}:
       do IO<Unit>:
         File.close(f)
-        main.out(run(cmd, file, roots, bs))
+        main.out(run(cmd, file, bs))
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         main.out(Out{False{}, "blend: cannot read the file"})
 
-def main.size(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
+def main.size(+cmd: U32, +file: String, fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
   (f, r) = fs
   match r:
     case Done{+n}:
       do IO<Unit>:
         fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
-        main.read(cmd, file, roots, fr)
+        main.read(cmd, file, fr)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         main.out(Out{False{}, "blend: cannot size the file"})
 
-def main.file(+cmd: U32, +path: String, +roots: List<&2, List<&2, U32>>) -> IO(Unit):
+def main.file(+cmd: U32, +path: String) -> IO(Unit):
   do IO<Unit>:
     f : File <- IO.try(File, File.open(path, "r"))
     fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
-    main.size(cmd, basename(path), roots, fs)
-
-def args.names(xs: List<String>) -> List<&2, List<&2, U32>>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{x, t}:
-      Con{codes(x), args.names(t)}
+    main.size(cmd, basename(path), fs)
 
 def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
   match cmd:
@@ -3585,7 +3546,11 @@ def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
     case _:
       match xs:
         case Con{path, r}:
-          main.file(cmd, path, args.names(r))
+          match r:
+            case Nil{}:
+              main.file(cmd, path)
+            case Con{x, t}:
+              main.out(Out{False{}, usage()})
         case Nil{}:
           main.out(Out{False{}, usage()})
 
