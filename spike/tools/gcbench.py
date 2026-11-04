@@ -115,7 +115,8 @@ def cmd_run(out, binary, note, jobs="4"):
 def load(c, run):
     cols = ["row", "name", "lazy_state", "lazy_value", "lazy_itrs", "lazy_cap", "lazy_ins", "dc_state", "dc_value",
             "dc_itrs", "dc_cap", "dc_ins", "dc_cyc", "dc_citrs", "dc_scan"]
-    return {r[0]: dict(zip(cols, r)) for r in c.execute(f"select {', '.join(cols)} from gcbench where run_id=?",
+    # by name, never by row: a library entry added shifts every row after it
+    return {r[1]: dict(zip(cols, r)) for r in c.execute(f"select {', '.join(cols)} from gcbench where run_id=?",
                                                         (int(run),))}
 
 

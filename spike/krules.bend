@@ -140,6 +140,19 @@ def kind_dir(+k: U32) -> U32:
     case _:
       15
 
+# the other output of a node of kind k entered by its output p, where
+# it has two, 3 where none (R.walk_other; law two_outputs): the two
+# outputs' sum less p, p an output, as the walk enters only by one (law
+# walk_follows_inputs)
+def walk_oth(+k: U32, +p: U32) -> U32:
+  match k:
+    case 1:
+      (2 - p : U32)
+    case 3:
+      (3 - p : U32)
+    case _:
+      3
+
 # a kind whose payload is a value, data or a call's or a dead call's
 # function: a table entry the node's to drop
 def is_data(+k: U32) -> Bool:
