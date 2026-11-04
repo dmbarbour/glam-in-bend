@@ -26,7 +26,8 @@ constructors being no more global than definitions.
 
 **Decision.** The maintainer (2026-11-04): if Bend's top-level namespace
 does not depend on the path of imports, neither does Blend's; no
-surprises. A module made an object, copied for each importer, would
+surprises. Blend's top-level namespace follows Bend's as far as it can,
+foibles and all (the maintainer, 2026-11-04). A module made an object, copied for each importer, would
 also make its datatypes as many distinct types, values of one copy's
 refused by another's: the module stays one, as a Bend file is.
 - A module's names are its own definitions and objects, and through the
@@ -47,5 +48,9 @@ refused by another's: the module stays one, as a Bend file is.
   Bend, however its inheritance runs.
 - The sample `imports` copies a datatype (`S.Dim`) and a plain Bend
   import (`Blend_1`); `reserved-prefix` fails.
+- Known short of it: Blend identifies a module by its path made plain,
+  where Bend goes by the file a path resolves to, so a symlinked
+  `.blend` file is two modules to Blend and its emission one to Bend
+  (`blend-symlinks`).
 
 **Rule lives in:** `blend/README.md`, The model.

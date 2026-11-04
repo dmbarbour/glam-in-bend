@@ -169,6 +169,13 @@ that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
 file, a name beginning `Blend_`.
 
+## Known issues
+
+- Symlinks: Blend identifies a module by its path made plain (`.` and
+  `..` resolved), where Bend goes by the file a path resolves to, a
+  symlink included; a `.blend` file reached by a symlink is two modules
+  to Blend (`docs/plans/Blend_2026-11-04.md`, `blend-symlinks`).
+
 ## Open questions
 
 - Partial evaluation: a constant definition and the C compiler cover
