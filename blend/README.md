@@ -39,9 +39,11 @@ Bend's imports pass through.
     object Name extends Parent1, Parent2 with   # `with` before members
       def f(+x: U32) -> U32:        # introduces f: an error if Name has f
         g(x)
-      upd g(+x: U32) -> U32:        # updates g: an error if Name has none
+      upd def g(+x: U32) -> U32:    # updates g: an error if Name has none
         (_g(x) + 1 : U32)
-      shared def h(...) -> ...:     # sharing other than affine, stated
+      upd h(+x: U32) -> U32:        # `upd` alone: sugar for `upd def`
+        (_h(x) * 2 : U32)
+      shared def k(...) -> ...:     # sharing other than affine, stated
         ...
       object Inner with             # objects nest
         ...
@@ -52,7 +54,9 @@ Bend's imports pass through.
     object Both extends Name, Family    # no members: no `with`
 
 - **Definitions** are Bend definitions, `def` introducing a name and
-  `upd` replacing one the object has, glam's `=` and `:=`. A body is Bend.
+  `upd def` replacing one the object has, glam's `=` and `:=`; `upd`
+  alone is sugar for `upd def`, as `upd type` updates a type (the
+  maintainer, 2026-11-04). A body is Bend.
 - **References** in a body, as in glam: a bare name called binds to the
   final object's definition, so that an update reaches every definition
   that calls it; a reference takes the longest name defined, dots

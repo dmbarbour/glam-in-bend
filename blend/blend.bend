@@ -562,12 +562,17 @@ def def.r(r: List<&2, U32> & List<&2, U32>, xs: List<&2, U32>, +share: U32, +upd
 def def.item(+xs: List<&2, U32>, +share: U32, +upd: Bool, body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   def.r(until(xs, 40), xs, share, upd, body, no, ind)
 
+# after `upd `, a definition's update: `upd def f(...)`, or `upd f(...)`,
+# sugar for it (the maintainer, 2026-11-04), as `upd type` is a type's
+def upd.def(+xs: List<&2, U32>) -> List<&2, U32>:
+  when(List<&2, U32>, starts(xs, codes("def ")), u => drop(4n, xs), u => xs)
+
 def def.kw.d(+d: Bool, +u: Bool, xs: List<&2, U32>, +share: U32, body: List<&2, Ln>, +no: U32, +ind: U32) -> Item:
   match d u:
     case True{} _:
       def.item(drop(4n, xs), share, False{}, body, no, ind)
     case False{} True{}:
-      def.item(drop(4n, xs), share, True{}, body, no, ind)
+      def.item(upd.def(drop(4n, xs)), share, True{}, body, no, ind)
     case False{} False{}:
       IBad{xs, no, ind}
 
