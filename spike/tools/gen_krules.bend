@@ -377,6 +377,25 @@ def node_call.go(reuse: Bool, +j: Nat, +st: String) -> String:
 def node_call(+j: Nat, +st: String) -> String:
   node_call.go(Nat.is_lt(j, 2n), j, st)
 
+def node_call_h.go(reuse: Bool, +j: Nat, +st: String) -> String:
+  match reuse:
+    case True{}:
+      "P.renode.h(" ++ st ++ ", " ++ slot.go(Nat.is_eq(j, 0n), j) ++ ", "
+    case False{}:
+      "P.node.h(" ++ st ++ ", "
+
+# node j's call where its kind has three ports: its header alone, its word
+# 3 port 2's link, which the rewrite writes (P.node.h)
+def node_call_h(+j: Nat, +st: String) -> String:
+  node_call_h.go(Nat.is_lt(j, 2n), j, st)
+
+def make.node(three: Bool, +j: Nat, +st: String, +k: R.NodeKind, +s: R.Src) -> String:
+  match three:
+    case True{}:
+      node_call_h(j, st) ++ hdr(k, s) ++ ")"
+    case False{}:
+      node_call(j, st) ++ hdr(k, s) ++ ", " ++ pword(s) ++ ")"
+
 def node_pw_call.go(reuse: Bool, +j: Nat) -> String:
   match reuse:
     case True{}:
@@ -393,7 +412,7 @@ def make_call(+w: Bool, +name: String, +st: String, +j: Nat, sp: R.Spec, pre: Pr
     case R.Spec{+k, +s}:
       match pre:
         case PNo{}:
-          stepname(name, 1n+j) ++ "(" ++ targ(w) ++ node_call(j, st) ++ hdr(k, s) ++ ", " ++ pword(s) ++ "), " ++ common_args() ++ made_args(j, 0n) ++ ")"
+          stepname(name, 1n+j) ++ "(" ++ targ(w) ++ make.node(Nat.is_eq(R.arity(k), 3n), j, st, k, s) ++ ", " ++ common_args() ++ made_args(j, 0n) ++ ")"
         case PAp{}:
           stepname(name, 1n+j) ++ ".pre(" ++ targ(w) ++ "P.apply(" ++ st ++ ", ha, pa, hb, pb), " ++ common_args() ++ made_args(j, 0n) ++ ")"
         case PDup{+isa}:

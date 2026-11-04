@@ -553,6 +553,19 @@ def node(h: H, +hd: U32, +p: U32) -> H & U32:
 def renode(h: H, +r: U32, +hd: U32, +p: U32) -> H & U32:
   node.fin((h, r), hd, p)
 
+def node.hd(r: H & U32, +hd: U32) -> H & U32:
+  (h, +n) = r
+  (wr(h, n, hd), n)
+
+# a node of three ports, its header alone written: its word 3, where node
+# would store a payload, is port 2's link, which the rewrite making it
+# writes (heap-strategies.net.payload-store)
+def node.h(h: H, +hd: U32) -> H & U32:
+  node.hd(alloc(h), hd)
+
+def renode.h(h: H, +r: U32, +hd: U32) -> H & U32:
+  node.hd((h, r), hd)
+
 def base(+r: U32) -> U32:
   (r .&. 4294967292 : U32)
 

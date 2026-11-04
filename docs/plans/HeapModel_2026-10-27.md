@@ -620,7 +620,7 @@ takes from it:
        it goes on reducing a corrupted net, with pairs no polarized net
        has (a freed node and data, two merges): reported, not crashed,
        but work wasted on a net already failed.
-     - `heap-strategies.net.payload-store` — tentative — a node made
+     - `heap-strategies.net.payload-store` — built 2026-11-04 — a node made
        writes its header and its payload word (word 3 but for data),
        which a node of three ports then overwrites with port 2's link:
        one store of no use per such node, a function, an application or
@@ -629,7 +629,14 @@ takes from it:
        information costs: nothing, since no state stores nil (an
        in-memory marker for a port a rule or a node lacks, told by its
        arity where it matters, as the events' worklist now does), and the
-       audit reads a live node's ports below its arity.
+       audit reads a live node's ports below its arity. Built: the
+       generated rewrites make a node of three ports by its header alone
+       (P.node.h, P.renode.h), 33 calls. The kernel's workloads, four
+       builds against run 236 (count_builds 238, 237): default -0.09% to
+       -0.96%, forced inline +0.12% to +0.51%, profile-guided eager +0.24%
+       to +0.44% and demand -0.49% to -0.68%, both -0.47% to -0.99%: 12
+       better, 8 worse, the gains the larger; a store removed, the rises
+       layout.
    - `heap-strategies.stack` — built 2026-10-28 — no
      pairs kept in the net (the maintainer, 2026-10-28): every active pair
      is in such a set once, every strategy but one would clear it, and
