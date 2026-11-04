@@ -2237,7 +2237,14 @@ takes from it:
                    to -1.7% without events and +1.2% to +2.0% with them,
                    a static's eraser kind found from the ports' directions
                    by two table calls where the events' table names it
-                   (KR.ev_by), to try.
+                   (KR.ev_by). Tried: a static's event and its kind now
+                   by KR.ev_by alone (law events_polarized: one eraser at
+                   most makes an event at a port, the one of the other
+                   polarity), demand with events 1.1% to 1.35% fewer
+                   instructions forced inline, the rest alike (spot run
+                   232 against 231); the rest of the forced-inline events'
+                   cost against run 211 lies elsewhere, these workloads
+                   meeting few statics at auxiliary ports.
                  - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk.narrow` — contingent on
                    `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers`
                    — the walk reads only a function's principal, entered

@@ -485,12 +485,6 @@ def era.in(+i: Bool) -> U32:
     case False{}:
       6
 
-# the eraser a static eraser at port p of a node of kind code k is: a
-# providing one (EraP, 7) at an input, a consuming one (EraN, 6) at an
-# output
-def era.at(+k: U32, +p: U32) -> U32:
-  era.in(U32.is_eq((KR.kind_dir(k) .&. 3 : U32), p) || U32.is_eq((KR.kind_dir(k) >> 2n : U32), p))
-
 def rdx.go(+sx: Bool, h: P.H, +x: U32) -> P.H & U32:
   match sx:
     case True{}:
@@ -754,11 +748,17 @@ def ev.hy(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> 
   (h, +hy) = r
   ev.ori(~S, ~note, ~room, U32.is_eq(P.port(e), 0), h, st, ws, e, y, hx, hy)
 
+def ev.st.b(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, +b: U32, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ev<S>:
+  ev.at(~S, ~note, ~room, U32.is_ne(P.port(e), 0) && (U32.is_eq(b, 6) || U32.is_eq(b, 7)), h, st, ws, P.base(e), y, hx, b, P.port(e))
+
 # e's peer y static, an eraser with no node: the event where e is an
-# auxiliary port it erases, B the static; none where e is a principal,
-# the two a pair
+# auxiliary port the events' table has an eraser's event at (KR.ev_by),
+# B the static, of the kind the table names: an event's eraser faces a
+# port of the other polarity (law events_polarized), so at most one
+# eraser makes it, the static's. None where e is a principal, the two a
+# pair
 def ev.st(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ev<S>:
-  ev.at(~S, ~note, ~room, U32.is_ne(P.port(e), 0) && ev.is(hx, e, era.at(P.rk(hx), P.port(e))), h, st, ws, P.base(e), y, hx, era.at(P.rk(hx), P.port(e)), P.port(e))
+  ev.st.b(~S, ~note, ~room, KR.ev_by(P.rk(hx), P.port(e)), h, st, ws, e, y, hx)
 
 def ev.y.s(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, +sy: Bool, h: P.H, st: S, ws: List<&2, U32>, +e: U32, +y: U32, +hx: U32) -> Ev<S>:
   match sy:
