@@ -2160,8 +2160,13 @@ takes from it:
                    sweep's boundary as statics and events rather than
                    kinds changed in place, `.links.walk`'s to settle.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk`
-                 — planned — the collection's walk back to `.links.read`'s
-                 once dead ports leave the sweep no kinds to convert. The
+                 — active — the collection's walk back to `.links.read`'s
+                 once dead ports leave the sweep no kinds to convert.
+                 Revised 2026-11-04: kinds stay (`erasure-at-write`), and
+                 plain strategies leave statics on a copy's output, which
+                 only the walk finds, so its read of a node's other output
+                 stays until `.links.propagate.writers` converts copies
+                 where statics are written. The
                  sweep frees the dead part in bulk and erases only at the
                  cut, a dead node's inputs facing live outputs (a static
                  pointer among those inputs dropped with it): an eraser on
@@ -2201,6 +2206,43 @@ takes from it:
                  Not pursued: normal evaluation leaves an eraser that
                  lands on a principal to demand (lazy) or notes it
                  (eager).
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk.boundary` — built 2026-11-04 on
+                   branch `walk`: the sweep's boundaries made in place
+                   again, as `links-native` made them, a copy made linear,
+                   a function's variable dead, the copied function freed
+                   between its fans made linear. `.links.dead-ports` had
+                   put a static there and left the conversion to the
+                   collection's events, the table's general rewrite from
+                   the events' worklist, about 780 instructions more a
+                   boundary: collecting demand cost 0.36% over plain
+                   demand against 0.03%, every count alike (gcbench run
+                   227 against 221; the cost the same at 7 collections or
+                   103, a boundary dying once whichever finds it). Back to
+                   0.03%, every collecting case alike with run 221 (run
+                   228).
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk.table` — built 2026-11-04: the walk
+                   reads a node's other output by a table generated from
+                   the rules (R.walk_other, by the ports' polarities;
+                   KR.walk_oth, the two outputs' sum less the port entered
+                   by, as the hand-written table was: a nested match cost
+                   about 1.5 instructions a node, gcbench run 229), and law
+                   `two_outputs` pins the kinds it serves: the kinds with
+                   two outputs are the function and the copy, and of the
+                   kinds with a positive principal and a positive
+                   auxiliary, the function alone, so that a kind added
+                   with two outputs fails it and gets its boundary written.
+                   Collecting demand as run 221 in every case (run 230);
+                   the kernel's workloads against run 211 (spot run 231):
+                   the default build -0.45% to +0.63%, forced inline -1.2%
+                   to -1.7% without events and +1.2% to +2.0% with them,
+                   a static's eraser kind found from the ports' directions
+                   by two table calls where the events' table names it
+                   (KR.ev_by), to try.
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.walk.narrow` — contingent on
+                   `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers`
+                   — the walk reads only a function's principal, entered
+                   by its variable, once no strategy leaves a static on a
+                   copy's output.
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
                  — built 2026-11-03 on branch `links-native` (eaec5cb),
                  merged to main 2026-11-04 with `.links.propagate` (the

@@ -246,6 +246,82 @@ def walk_first(+k: NodeKind) -> Nat:
 def walk_second(+k: NodeKind) -> Nat:
   walk.second(is_input(k, 0n), is_input(k, 1n), is_input(k, 2n))
 
+# whether port p is one of kind k's outputs, a positive port within its
+# arity
+def is_output(+k: NodeKind, +p: Nat) -> Bool:
+  Nat.is_lt(p, arity(k)) && pol_eq(port_pol(k, p), Pos{})
+
+def walk.oth2.go(+px: Bool, +py: Bool, +x: Nat, +y: Nat) -> Nat:
+  match px py:
+    case True{} _:
+      y
+    case False{} True{}:
+      x
+    case False{} False{}:
+      3n
+
+def walk.oth2(+x: Nat, +y: Nat, +p: Nat) -> Nat:
+  walk.oth2.go(Nat.is_eq(p, x), Nat.is_eq(p, y), x, y)
+
+def walk.oth(+a: Bool, +b: Bool, +c: Bool, +p: Nat) -> Nat:
+  match a b c:
+    case True{} True{} False{}:
+      walk.oth2(0n, 1n, p)
+    case True{} False{} True{}:
+      walk.oth2(0n, 2n, p)
+    case False{} True{} True{}:
+      walk.oth2(1n, 2n, p)
+    case _ _ _:
+      3n
+
+# the other output of a node of kind k the walk entered by its output p,
+# where it has two, 3 where none: what the walk reads for a static eraser
+# there, the boundary the sweep then makes (kstrat.bend's lw.p2.o), or a
+# function's principal facing one; gen_krules.bend writes it as the
+# kernel's KR.walk_oth (law two_outputs)
+def walk_other(+k: NodeKind, +p: Nat) -> Nat:
+  walk.oth(is_output(k, 0n), is_output(k, 1n), is_output(k, 2n), p)
+
+def outs.two(+a: Bool, +b: Bool, +c: Bool) -> Bool:
+  match a b c:
+    case True{} True{} False{}:
+      True{}
+    case True{} False{} True{}:
+      True{}
+    case False{} True{} True{}:
+      True{}
+    case _ _ _:
+      False{}
+
+def fn_or_copy(+k: NodeKind) -> Bool:
+  match k:
+    case KFn{}:
+      True{}
+    case KCopy{}:
+      True{}
+    case _:
+      False{}
+
+def is_fn(+k: NodeKind) -> Bool:
+  match k:
+    case KFn{}:
+      True{}
+    case _:
+      False{}
+
+def same_bool(+a: Bool, +b: Bool) -> Bool:
+  match a:
+    case True{}:
+      b
+    case False{}:
+      Bool.not(b)
+
+# the kinds with two outputs are the function and the copy, and of those
+# the function alone has its principal among them (law two_outputs)
+def two_outputs(+k: NodeKind) -> Bool:
+  same_bool(outs.two(is_output(k, 0n), is_output(k, 1n), is_output(k, 2n)), fn_or_copy(k)) &&
+    same_bool(is_output(k, 0n) && (is_output(k, 1n) || is_output(k, 2n)), is_fn(k))
+
 # Rules
 # =====
 

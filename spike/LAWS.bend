@@ -714,6 +714,21 @@ law walk_follows_inputs:
   for +p: Nat
   {R.walk_ok(k, p) == True{} : Bool}
 
+# LAW: the kinds with two outputs, the ones a walk entering by an output
+# can find the other of facing a dead part, are the function and the
+# copy; and of the kinds with a positive principal and a positive
+# auxiliary, the function alone. The sweep's boundaries are written for
+# those (kstrat.bend: a copy made linear in place, a function's variable
+# dead, a function reached by its variable alone erased between its
+# fans), and the walk reads the other output by R.walk_other: a kind
+# added with two outputs fails this law, so that its boundary is written
+# and reviewed (heap-strategies.erasure.load.cycle.walk.directed.
+# dead-kinds.links.walk).
+# Record: net-scoped-arguments
+law two_outputs:
+  for +k: R.NodeKind
+  {R.two_outputs(k) == True{} : Bool}
+
 # LAW: a linear fan has its full fan's polarities at the ports it keeps,
 # so its loops are its components'.
 # Record: net-nodes-double
