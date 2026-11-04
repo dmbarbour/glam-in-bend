@@ -1,12 +1,8 @@
 #!/bin/sh
-# Blend's samples (blend/README.md): each valid sample's emitted form,
-# written by hand until Blend emits it, must run under Bend and print what
-# its .out says; each invalid sample states the error it must raise in
-# its .err. Blend checks every sample as far as its steps go (its
-# objects, `blend-objects`; their references, `blend-resolve`): the
-# invalid samples whose errors those steps find must print their .err
-# exactly, and every other sample no error; once it emits, its output is
-# compared with the .bend too.
+# Blend's samples (blend/README.md): each valid sample's .bend is what
+# Blend emits from its .blend, byte for byte, and runs under Bend to print
+# what its .out says; each invalid sample fails, its errors exactly its
+# .err.
 #
 #   blend/check.sh
 set -u
@@ -25,6 +21,10 @@ for src in *.blend; do
     status=1
     continue
   fi
+  "$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1 | cmp -s - "$base.bend" || {
+    echo "blend: $src does not emit $base.bend:"
+    "$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1 | diff - "$base.bend" | head -20
+    status=1; }
   got=$("$CAPPED" 1000 60 "$BEND" "$base.bend" 2>&1)
   if [ "$got" != "$(cat "$base.out")" ]; then
     echo "blend: $base.bend prints '$got', not '$(cat "$base.out")'"
@@ -34,23 +34,15 @@ done
 m=0
 for src in invalid/*.blend; do
   m=$((m + 1))
-  [ -f "${src%.blend}.err" ] || { echo "blend: $src has no .err"; status=1; }
+  err=${src%.blend}.err
+  [ -f "$err" ] || { echo "blend: $src has no .err"; status=1; continue; }
+  if got=$("$CAPPED" 500 30 "$BLEND" emit "$src" 2>&1); then
+    echo "blend: $src emits, where it must fail with $(cat "$err")"
+    status=1
+  elif [ "$got" != "$(cat "$err")" ]; then
+    echo "blend: $src gives '$got', not '$(cat "$err")'"
+    status=1
+  fi
 done
-# the invalid samples whose errors Blend finds so far, by the step that
-# finds them
-found="upd-undefined def-defined undeclared no-c3 shadow host-at-module"
-for src in *.blend invalid/*.blend; do
-  got=$("$CAPPED" 500 30 "$BLEND" resolve "$src" 2>&1) || {
-    echo "blend: checking $src failed: $got"; status=1; continue; }
-  base=$(basename "$src" .blend)
-  case " $found " in
-    *" $base "*)
-      [ "$got" = "$(cat "${src%.blend}.err")" ] || {
-        echo "blend: $src gives '$got', not '$(cat "${src%.blend}.err")'"; status=1; } ;;
-    *)
-      bad=$(printf '%s\n' "$got" | grep -E '^[^ :]+:[0-9]+: ') && {
-        echo "blend: $src gives errors:"; echo "$bad"; status=1; } ;;
-  esac
-done
-[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, resolved: ok"
+[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid: ok"
 exit "$status"

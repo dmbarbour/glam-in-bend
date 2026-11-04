@@ -10,20 +10,20 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: a design, its samples, and the tool's first steps: `bend
-blend.bend read FILE.blend` reads a `.blend` file and prints its
-structure (`blend-read`); `bend blend.bend objects FILE.blend` checks
-its objects and prints their linearizations and definitions
-(`blend-objects`); `bend blend.bend resolve FILE.blend` binds each
-copy's names and prints what they reach (`blend-resolve`). Each valid sample's emitted form is written by
-hand and checked to run under Bend; `blend/check.sh` checks them and
-reads every sample, and the gate runs it. `blend/run.sh COMMAND
-FILE.blend` runs the tool, built once for each version of its sources
-(`blend/build.sh`). The maintainer's
-direction (2026-11-04): `def` and `upd` for introduction and override,
-definitions affine unless marked; the samples may change to fit the
-implementation, keeping their intention. The tool and the kernel's move
-onto it: `docs/plans/Blend_2026-11-04.md`.
+Status: the tool emits. `blend/run.sh emit FILE.blend [ROOT...]` prints
+the `.bend` a `.blend` file makes, every concrete object's definitions
+or what the roots reach, or its errors (on stderr, the status 1). The
+stages before it print what they find: `read` the structure, `objects`
+each object's linearization and definitions, `resolve` each copy and
+what its names reach. `blend/run.sh` runs the tool built once for each
+version of its sources (`blend/build.sh`); `bend blend.bend COMMAND ...`
+runs the same, checked and compiled each time. `blend/check.sh`, in the
+gate, holds every sample to its `.bend` or its `.err`.
+
+The maintainer's direction (2026-11-04): `def` and `upd` for
+introduction and override, definitions affine unless marked; the samples
+may change to fit the implementation, keeping their intention. The tool
+and the kernel's move onto it: `docs/plans/Blend_2026-11-04.md`.
 
 ## The model
 
@@ -87,8 +87,13 @@ its own copy, bound to its own finals: no sharing between objects.
   `Obj.f.c2`, in the order their uses appear. A nested object's prefix is
   its path, `Outer.Inner.f`.
 - Definitions come callees first, as Bend requires, source order between
-  the unrelated. Two definitions calling each other have no such order:
-  an error, as Bend has no mutual recursion.
+  the unrelated: the module's definitions and its concrete objects by
+  their lines, an object's members in its linearization's order, its own
+  first, a definition's callees in the order its body names them. Two
+  definitions calling each other have no such order: an error, as Bend
+  has no mutual recursion.
+- A copied definition no definition uses is emitted once, by its own
+  name, for a plain `.bend` file to call.
 - An abstract object emits nothing of its own.
 
 ## The samples

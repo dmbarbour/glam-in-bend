@@ -1,16 +1,11 @@
 import Base
 
 # Blend: static objects for Bend (blend/README.md; the plan,
-# docs/plans/Blend_2026-11-04.md). So far it reads a `.blend` file into
-# its structure (`blend-read`), checks its objects (`blend-objects`) and
-# binds the names in each concrete object's copies (`blend-resolve`):
-#
-#   bend blend.bend read FILE.blend       the structure, one item a line,
-#                                         each body's names under it
-#   bend blend.bend objects FILE.blend    each object's linearization and
-#                                         definitions, or the errors
-#   bend blend.bend resolve FILE.blend    each copy and what its names
-#                                         reach, or the errors
+# docs/plans/Blend_2026-11-04.md). It reads a `.blend` file into its
+# structure (`blend-read`), checks its objects (`blend-objects`), binds
+# the names in each concrete object's copies (`blend-resolve`) and emits
+# the module (`blend-emit`); each command runs the stages up to its own
+# (The command line, at the end). Run it built (blend/run.sh).
 #
 # Bend has no mutual recursion, so the source is read in two passes: the
 # lines into a flat list of items, each with its line and indentation (an
@@ -1919,14 +1914,29 @@ def show.obs(os: List<&2, Ob>, ls: List<&2, Maybe<&2, Lz>>, fs: List<&2, Maybe<&
     case _ _ _:
       ""
 
-def show.ers(+file: String, es: List<&2, Er>) -> String:
+def show.ers.more(es: List<&2, Er>) -> String:
   match es:
     case Nil{}:
       ""
     case Con{e, t}:
+      "\n"
+
+def er.at(+no: U32) -> String:
+  match no:
+    case 0:
+      ""
+    case _:
+      ":" ++ U32.show(no)
+
+# errors, each `FILE:LINE: message`, a line 0 left out
+def show.ers(+file: String, es: List<&2, Er>) -> String:
+  match es:
+    case Nil{}:
+      ""
+    case Con{e, +t}:
       match e:
         case Er{+no, msg}:
-          file ++ ":" ++ U32.show(no) ++ ": " ++ msg ++ "\n" ++ show.ers(file, t)
+          file ++ er.at(no) ++ ": " ++ msg ++ show.ers.more(t) ++ show.ers(file, t)
 
 # References
 # ==========
@@ -2653,53 +2663,839 @@ def ers.uniq(es: List<&2, Er>) -> List<&2, Er>:
         case Con{+f, +r}:
           when(List<&2, Er>, er.same(e, f), u => ers.uniq(Con{f, r}), u => Con{e, ers.uniq(Con{f, r})})
 
-def resolve.out(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>, es: List<&2, Er>) -> String:
+# a command's output: what it printed, and whether it found no error
+type Out is Type:
+  Out{+ok: Bool, text: String}
+
+def ers.out(+file: String, es: List<&2, Er>) -> Out:
+  Out{False{}, show.ers(file, ers.uniq(List.sort(~Er, ~er.le, es)))}
+
+def resolve.out(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>, es: List<&2, Er>) -> Out:
   match es:
     case Nil{}:
-      show.ocs(obs, os)
+      Out{True{}, show.ocs(obs, os)}
     case Con{e, t}:
-      show.ers(file, ers.uniq(List.sort(~Er, ~er.le, Con{e, t})))
+      ers.out(file, Con{e, t})
 
-def resolved(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>) -> String:
+def resolved(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>) -> Out:
   resolve.out(file, obs, os, ocs.ers(os))
+
+# Emission
+# ========
+#
+# The emitted module (`blend-emit`): every copy a unit, the units in
+# source order (the module's definitions and its concrete objects by
+# their lines, an object's members in its linearization's order, its own
+# first), emitted callees first by a walk from each in turn, or from the
+# roots the command line names; two units calling each other an error,
+# as Bend has no mutual recursion (`blend-adds-no-bend-logic`). Then the
+# sharing: an affine unit has one use at most, a call to itself aside; a
+# copied unit is emitted once for each use, `Obj.f.c1` and on in the
+# order the uses are emitted, and an affine unit only a multiplied unit
+# uses goes with each of its copies, numbered alike.
+
+# a unit: one definition of the emitted program, before copies, and the
+# concrete object it is emitted in
+type Un is Data:
+  Un{+o: U32, inst: In, node: Node, ls: List<&2, Rl>}
+
+def rf.eq(a: Rf, b: Rf) -> Bool:
+  match a b:
+    case Rf{+o1, n1, +p1, +g1} Rf{+o2, n2, +p2, +g2}:
+      U32.is_eq(o1, o2) && same(n1, n2) && Bool.not(Bool.xor(p1, p2)) && (Bool.not(p1) || U32.is_eq(g1, g2))
+
+def un.rds(+o: U32, rs: List<&2, Rd>) -> List<&2, Un>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{r, t}:
+      match r:
+        case Rd{i, nd, ls}:
+          Con{Un{o, i, nd, ls}, un.rds(o, t)}
+
+def units(os: List<&2, Oc>) -> List<&2, Un>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      match x:
+        case Oc{+id, c}:
+          List.append(&2, Un, un.rds(id, cp.rds(c)), units(t))
+
+def un.ref(u: Un) -> Rf:
+  match u:
+    case Un{+o, i, nd, ls}:
+      in.ref(o, i)
+
+def un.node(u: Un) -> Node:
+  match u:
+    case Un{+o, i, nd, ls}:
+      nd
+
+def un.lines(u: Un) -> List<&2, Rl>:
+  match u:
+    case Un{+o, i, nd, ls}:
+      ls
+
+def un.or(m: Maybe<&2, Un>) -> Un:
+  match m:
+    case None{}:
+      Un{0, In{Nil{}, 0, False{}}, NBad{Nil{}, 0}, Nil{}}
+    case Some{u}:
+      u
+
+def un.at(+us: List<&2, Un>, +i: U32) -> Un:
+  un.or(List.get(&2, Un, us, U32.to_nat(i)))
+
+# a unit's index
+def un.find(+us: List<&2, Un>, +r: Rf, +k: U32) -> Maybe<&2, U32>:
+  match us:
+    case Nil{}:
+      None{}
+    case Con{+u, +t}:
+      when(Maybe<&2, U32>, rf.eq(un.ref(u), r), v => Some{k}, v => un.find(t, r, (k + 1 : U32)))
+
+def node.no(n: Node) -> U32:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
+      no
+    case _:
+      0
+
+def node.ind(n: Node) -> U32:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
+      ind
+    case _:
+      0
+
+def node.share(n: Node) -> U32:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
+      share
+    case _:
+      0
+
+def node.rest(n: Node) -> List<&2, U32>:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
+      rest
+    case _:
+      Nil{}
+
+def un.name(+obs: List<&2, Ob>, +us: List<&2, Un>, +i: U32) -> List<&2, U32>:
+  rf.text(obs, un.ref(un.at(us, i)))
+
+# Uses
+# ----
+
+# a use: the unit used or using, and the line
+type Ru is Data:
+  Ru{+u: U32, +no: U32}
+
+def refs.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +self: U32, +no: U32) -> List<&2, Ru>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{t, +r}:
+      match t:
+        case RR{+mark, ref}:
+          on.maybe(U32, List<&2, Ru>, un.find(us, ref, 0), v => refs.rts(r, us, self, no),
+            +x => when(List<&2, Ru>, U32.is_eq(x, self), v => refs.rts(r, us, self, no), v => Con{Ru{x, no}, refs.rts(r, us, self, no)}))
+        case _:
+          refs.rts(r, us, self, no)
+
+def refs.rls(ls: List<&2, Rl>, +us: List<&2, Un>, +self: U32) -> List<&2, Ru>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Rl{+no, +ind, ts}:
+          List.append(&2, Ru, refs.rts(ts, us, self, no), refs.rls(t, us, self))
+
+# each unit's uses of others, in its body's order, calls to itself aside
+def refss(xs: List<&2, Un>, +us: List<&2, Un>, +k: U32) -> List<&2, List<&2, Ru>>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      Con{refs.rls(un.lines(x), us, k), refss(t, us, (k + 1 : U32))}
+
+def ru.us(rs: List<&2, Ru>) -> List<&2, U32>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{r, t}:
+      match r:
+        case Ru{+u, +no}:
+          Con{u, ru.us(t)}
+
+def calls(rss: List<&2, List<&2, Ru>>) -> List<&2, List<&2, U32>>:
+  match rss:
+    case Nil{}:
+      Nil{}
+    case Con{rs, t}:
+      Con{ru.us(rs), calls(t)}
+
+def ids.or(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{x}:
+      x
+
+def ids.at(+xss: List<&2, List<&2, U32>>, +i: U32) -> List<&2, U32>:
+  ids.or(List.get(&2, List<&2, U32>, xss, U32.to_nat(i)))
+
+def rus.or(m: Maybe<&2, List<&2, Ru>>) -> List<&2, Ru>:
+  match m:
+    case None{}:
+      Nil{}
+    case Some{x}:
+      x
+
+def rus.at(+rss: List<&2, List<&2, Ru>>, +i: U32) -> List<&2, Ru>:
+  rus.or(List.get(&2, List<&2, Ru>, rss, U32.to_nat(i)))
+
+# Order
+# -----
+
+# the units a source-order slot holds: a definition of the module's, or a
+# concrete object
+type Sl is Data:
+  Sl{+no: U32, +kind: U32, name: List<&2, U32>, +id: U32}
+
+def sl.le(a: Sl, b: Sl) -> Bool:
+  match a b:
+    case Sl{+x, +k1, n1, +i1} Sl{+y, +k2, n2, +i2}:
+      U32.is_le(x, y)
+
+def slots.mod(ns: List<&2, Node>) -> List<&2, Sl>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, t}:
+      match nd:
+        case NDef{+share, +upd, name, rest, params, body, +no, +ind}:
+          Con{Sl{no, 0, name, 0}, slots.mod(t)}
+        case _:
+          slots.mod(t)
+
+def slots.obs(os: List<&2, Ob>) -> List<&2, Sl>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, +t}:
+      match o:
+        case Ob{+id, +host, path, +abs, parents, mems, +no}:
+          when(List<&2, Sl>, abs || U32.is_eq(id, 0), u => slots.obs(t), u => Con{Sl{no, 1, Nil{}, id}, slots.obs(t)})
+
+# q's members that are o's finals, as references
+def roots.q(ns: List<&2, Node>, +o: U32, +q: U32, +map: List<&2, En>) -> List<&2, Rf>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, +t}:
+      match nd:
+        case NDef{+share, +upd, +name, rest, params, body, +no, +ind}:
+          when(List<&2, Rf>, U32.is_eq(en.head(en.chain(en.find(map, name))), q),
+            u => Con{Rf{o, name, False{}, o}, roots.q(t, o, q, map)}, u => roots.q(t, o, q, map))
+        case _:
+          roots.q(t, o, q, map)
+
+def roots.ord(qs: List<&2, U32>, +cx: Cx, +o: U32) -> List<&2, Rf>:
+  match qs:
+    case Nil{}:
+      Nil{}
+    case Con{+q, t}:
+      List.append(&2, Rf, roots.q(ob.mems(ob.at(cx.obs(cx), q)), o, q, cx.map(cx, o)), roots.ord(t, cx, o))
+
+def roots.sl(s: Sl, +cx: Cx) -> List<&2, Rf>:
+  match s:
+    case Sl{+no, +kind, name, +id}:
+      match kind:
+        case 0:
+          [Rf{0, name, False{}, 0}]
+        case _:
+          roots.ord(cx.ord(cx, id), cx, id)
+
+def roots.sls(ss: List<&2, Sl>, +cx: Cx) -> List<&2, Rf>:
+  match ss:
+    case Nil{}:
+      Nil{}
+    case Con{s, t}:
+      List.append(&2, Rf, roots.sl(s, cx), roots.sls(t, cx))
+
+def roots.ids(rs: List<&2, Rf>, +us: List<&2, Un>) -> List<&2, U32>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{r, +t}:
+      on.maybe(U32, List<&2, U32>, un.find(us, r, 0), u => roots.ids(t, us), x => Con{x, roots.ids(t, us)})
+
+# every unit in source order
+def roots.all(+cx: Cx, +us: List<&2, Un>) -> List<&2, U32>:
+  roots.ids(roots.sls(List.sort(~Sl, ~sl.le, List.append(&2, Sl, slots.mod(ob.mems(ob.at(cx.obs(cx), 0))), slots.obs(cx.obs(cx)))), cx), us)
+
+def un.named(+obs: List<&2, Ob>, +us: List<&2, Un>, +n: List<&2, U32>, +k: U32) -> Maybe<&2, U32>:
+  match us:
+    case Nil{}:
+      None{}
+    case Con{+u, +t}:
+      when(Maybe<&2, U32>, same(rf.text(obs, un.ref(u)), n), v => Some{k}, v => un.named(obs, t, n, (k + 1 : U32)))
+
+# roots named on the command line, by their emitted names
+def roots.named(rs: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> List<&2, U32>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{+r, +t}:
+      on.maybe(U32, List<&2, U32>, un.named(obs, us, r, 0), u => roots.named(t, obs, us), x => Con{x, roots.named(t, obs, us)})
+
+def er.roots(rs: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> List<&2, Er>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{+r, +t}:
+      on.maybe(U32, List<&2, Er>, un.named(obs, us, r, 0),
+        u => Con{Er{0, "the root " ++ text(r) ++ " names no definition"}, er.roots(t, obs, us)},
+        x => er.roots(t, obs, us))
+
+# The walk
+# --------
+
+# a unit being walked, and its calls not yet followed
+type Fm is Data:
+  Fm{+u: U32, rest: List<&2, U32>}
+
+# the walk: its stack, the roots left, the units on the stack (the top
+# first), those done, the order (the last first), its errors
+type Ds is Data:
+  Ds{stack: List<&2, Fm>, roots: List<&2, U32>, path: List<&2, U32>, done: List<&2, U32>, order: List<&2, U32>, ers: List<&2, Er>}
+
+def path.to(ps: List<&2, U32>, +c: U32) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, t}:
+      when(List<&2, U32>, U32.is_eq(p, c), u => [p], u => Con{p, path.to(t, c)})
+
+def strs.and(xs: List<&2, String>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{x, t}:
+      match t:
+        case Nil{}:
+          x
+        case Con{y, r}:
+          match r:
+            case Nil{}:
+              x ++ " and " ++ y
+            case Con{z, r2}:
+              x ++ ", " ++ strs.and(Con{y, Con{z, r2}})
+
+def unit.names(xs: List<&2, U32>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, t}:
+      Con{text(un.name(obs, us, x)), unit.names(t, obs, us)}
+
+# units that call each other: those on the stack from c to the top
+def er.cycle(+obs: List<&2, Ob>, +us: List<&2, Un>, +path: List<&2, U32>, +c: U32) -> Er:
+  Er{node.no(un.node(un.at(us, c))),
+    strs.and(unit.names(List.reverse(&2, U32, path.to(path, c)), obs, us)) ++ " call each other, which Bend cannot express"}
+
+def ds.call(+c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, Fm>, +roots: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>,
+    +order: List<&2, U32>, +ers: List<&2, Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  when(Ds, has(done, c), v => Ds{Con{Fm{u, rs}, st}, roots, path, done, order, ers},
+    v => when(Ds, has(path, c), w => Ds{Con{Fm{u, rs}, st}, roots, path, done, order, Con{er.cycle(obs, us, path, c), ers}},
+      w => Ds{Con{Fm{c, ids.at(cal, c)}, Con{Fm{u, rs}, st}}, roots, Con{c, path}, done, order, ers}))
+
+def ds.step(s: Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  match s:
+    case Ds{stack, roots, path, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              Ds{Nil{}, Nil{}, path, done, order, ers}
+            case Con{+r, +rt}:
+              when(Ds, has(done, r), u => Ds{Nil{}, rt, path, done, order, ers},
+                u => Ds{[Fm{r, ids.at(cal, r)}], rt, [r], done, order, ers})
+        case Con{f, st}:
+          match f:
+            case Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  Ds{st, roots, List.tail(&2, U32, path), Con{u, done}, Con{u, order}, ers}
+                case Con{+c, rs}:
+                  ds.call(c, u, rs, st, roots, path, done, order, ers, cal, obs, us)
+
+def ds.go(n: Nat, s: Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  match n:
+    case 0n:
+      s
+    case 1n+k:
+      ds.go(k, ds.step(s, cal, obs, us), cal, obs, us)
+
+def lens(xss: List<&2, List<&2, U32>>) -> Nat:
+  match xss:
+    case Nil{}:
+      0n
+    case Con{xs, t}:
+      Nat.add(List.length(&2, U32, xs), lens(t))
+
+# the walk from the roots: each step pushes, pops or follows a call
+def walk(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), lens(cal)), Nat.add(List.length(&2, Un, us), List.length(&2, Un, us))),
+    Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}, Nil{}}, cal, obs, us)
+
+# Sharing
+# -------
+
+# how a unit is emitted: m copies, plain (0), numbered by its uses
+# (copied, 1) or by its one user's copies (2)
+type Mu is Data:
+  Mu{+m: U32, +kind: U32}
+
+def mu.or(x: Maybe<&2, Mu>) -> Mu:
+  match x:
+    case None{}:
+      Mu{1, 0}
+    case Some{v}:
+      v
+
+def mu.at(+ms: List<&2, Mu>, +i: U32) -> Mu:
+  mu.or(List.get(&2, Mu, ms, U32.to_nat(i)))
+
+def mu.m(x: Mu) -> U32:
+  match x:
+    case Mu{+m, +kind}:
+      m
+
+def mu.kind(x: Mu) -> U32:
+  match x:
+    case Mu{+m, +kind}:
+      kind
+
+def uses.in(rs: List<&2, Ru>, +e: U32, +x: U32) -> List<&2, Ru>:
+  match rs:
+    case Nil{}:
+      Nil{}
+    case Con{r, +t}:
+      match r:
+        case Ru{+u, +no}:
+          when(List<&2, Ru>, U32.is_eq(u, x), v => Con{Ru{e, no}, uses.in(t, e, x)}, v => uses.in(t, e, x))
+
+# the uses of x by the emitted units, in their order
+def uses.of(es: List<&2, U32>, +rss: List<&2, List<&2, Ru>>, +x: U32) -> List<&2, Ru>:
+  match es:
+    case Nil{}:
+      Nil{}
+    case Con{+e, t}:
+      List.append(&2, Ru, uses.in(rus.at(rss, e), e, x), uses.of(t, rss, x))
+
+def uses.m(us: List<&2, Ru>, +ms: List<&2, Mu>) -> U32:
+  match us:
+    case Nil{}:
+      0
+    case Con{r, t}:
+      match r:
+        case Ru{+u, +no}:
+          (mu.m(mu.at(ms, u)) + uses.m(t, ms) : U32)
+
+def ru.user(rs: List<&2, Ru>) -> U32:
+  match rs:
+    case Nil{}:
+      0
+    case Con{r, t}:
+      match r:
+        case Ru{+u, +no}:
+          u
+
+def times(+n: U32) -> String:
+  match n:
+    case 1:
+      ""
+    case 2:
+      ", twice"
+    case _:
+      ", " ++ U32.show(n) ++ " times"
+
+# the uses grouped by user and line: `Obj.f (line 9, twice)`
+def uses.say(rs: List<&2, Ru>, +obs: List<&2, Ob>, +us: List<&2, Un>, +u: U32, +no: U32, +n: U32) -> List<&2, String>:
+  match rs:
+    case Nil{}:
+      when(List<&2, String>, U32.is_eq(n, 0), v => Nil{},
+        v => [text(un.name(obs, us, u)) ++ " (line " ++ U32.show(no) ++ times(n) ++ ")"])
+    case Con{r, +t}:
+      match r:
+        case Ru{+v, +l}:
+          when(List<&2, String>, (U32.is_eq(v, u) && U32.is_eq(l, no)) || U32.is_eq(n, 0), w => uses.say(t, obs, us, v, l, (n + 1 : U32)),
+            w => Con{text(un.name(obs, us, u)) ++ " (line " ++ U32.show(no) ++ times(n) ++ ")", uses.say(t, obs, us, v, l, 1)})
+
+def er.affine(+obs: List<&2, Ob>, +us: List<&2, Un>, +x: U32, +rs: List<&2, Ru>) -> Er:
+  Er{node.no(un.node(un.at(us, x))), text(un.name(obs, us, x)) ++ " is affine and has " ++ U32.show(U32.from_nat(List.length(&2, Ru, rs))) ++
+    " uses, in " ++ show.strs(uses.say(rs, obs, us, 0, 0, 0)) ++ ": mark it shared or copied"}
+
+type Ms is Data:
+  Ms{ms: List<&2, Mu>, ers: List<&2, Er>}
+
+def ms.set(s: Ms, +x: U32, +mu: Mu) -> Ms:
+  match s:
+    case Ms{ms, ers}:
+      Ms{List.set(&2, Mu, ms, U32.to_nat(x), mu), ers}
+
+def ms.er(s: Ms, e: Er) -> Ms:
+  match s:
+    case Ms{ms, ers}:
+      Ms{ms, Con{e, ers}}
+
+def ms.ms(s: Ms) -> List<&2, Mu>:
+  match s:
+    case Ms{ms, ers}:
+      ms
+
+# an affine unit: plain when unused, the copies of its one user, an error
+# when used twice
+def mult.aff(n: Nat, +x: U32, +rs: List<&2, Ru>, +obs: List<&2, Ob>, +us: List<&2, Un>, +s: Ms) -> Ms:
+  match n:
+    case 0n:
+      s
+    case 1n+k:
+      match k:
+        case 0n:
+          when(Ms, U32.is_gt(mu.m(mu.at(ms.ms(s), ru.user(rs))), 1), v => ms.set(s, x, Mu{mu.m(mu.at(ms.ms(s), ru.user(rs))), 2}), v => s)
+        case _:
+          ms.er(s, er.affine(obs, us, x, rs))
+
+# x's copies, its users' known: a copied unit's uses, an affine unit's one
+# user's copies, an affine unit used twice an error
+def mult.of(+x: U32, +share: U32, +rs: List<&2, Ru>, +obs: List<&2, Ob>, +us: List<&2, Un>, +s: Ms) -> Ms:
+  match share:
+    case 1:
+      s
+    case 2:
+      when(Ms, U32.is_eq(uses.m(rs, ms.ms(s)), 0), v => s, v => ms.set(s, x, Mu{uses.m(rs, ms.ms(s)), 1}))
+    case _:
+      mult.aff(List.length(&2, Ru, rs), x, rs, obs, us, s)
+
+# from the last emitted to the first: each unit's users before it
+def mults(xs: List<&2, U32>, +es: List<&2, U32>, +rss: List<&2, List<&2, Ru>>, +obs: List<&2, Ob>, +us: List<&2, Un>, s: Ms) -> Ms:
+  match xs:
+    case Nil{}:
+      s
+    case Con{+x, t}:
+      mults(t, es, rss, obs, us, mult.of(x, node.share(un.node(un.at(us, x))), uses.of(es, rss, x), obs, us, s))
+
+def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
+  match us:
+    case Nil{}:
+      Nil{}
+    case Con{u, t}:
+      Con{Mu{1, 0}, mus.one(t)}
+
+# Text
+# ----
+
+# what emission reads: the objects, the units, how each is emitted
+type Ec is Data:
+  Ec{obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>}
+
+def ec.obs(e: Ec) -> List<&2, Ob>:
+  match e:
+    case Ec{obs, us, mus}:
+      obs
+
+def ec.us(e: Ec) -> List<&2, Un>:
+  match e:
+    case Ec{obs, us, mus}:
+      us
+
+def ec.mu(e: Ec, +i: U32) -> Mu:
+  match e:
+    case Ec{obs, us, mus}:
+      mu.at(mus, i)
+
+# the text so far, its bytes reversed, and each copied unit's next number
+type Tb is Data:
+  Tb{acc: List<&2, U32>, ctrs: List<&2, U32>}
+
+def rev.onto(xs: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      rev.onto(t, Con{h, acc})
+
+def tb.put(b: Tb, xs: List<&2, U32>) -> Tb:
+  match b:
+    case Tb{acc, ctrs}:
+      Tb{rev.onto(xs, acc), ctrs}
+
+def tok.bytes(t: Tok) -> List<&2, U32>:
+  match t:
+    case TName{x}:
+      x
+    case TNum{x}:
+      x
+    case TStr{x}:
+      x
+    case TCom{x}:
+      x
+    case TSp{x}:
+      x
+    case TSym{+c}:
+      [c]
+
+def copy.name(base: List<&2, U32>, +j: U32) -> List<&2, U32>:
+  List.append(&2, U32, base, List.append(&2, U32, codes(".c"), codes(U32.show(j))))
+
+def unit.text(+e: Ec, +x: U32) -> List<&2, U32>:
+  un.name(ec.obs(e), ec.us(e), x)
+
+# a unit's own name in its j-th copy
+def own.name(+e: Ec, +x: U32, +j: U32) -> List<&2, U32>:
+  when(List<&2, U32>, U32.is_eq(mu.kind(ec.mu(e, x)), 0), u => unit.text(e, x), u => copy.name(unit.text(e, x), j))
+
+def ctr.or(m: Maybe<&2, U32>) -> U32:
+  match m:
+    case None{}:
+      1
+    case Some{+x}:
+      x
+
+def ctr.at(+cs: List<&2, U32>, +i: U32) -> U32:
+  ctr.or(List.get(&2, U32, cs, U32.to_nat(i)))
+
+# a use of y from the j-th copy: plain, the next of y's copies, or the
+# copy of y that goes with the user's j-th
+def ref.kind(+kind: U32, +e: Ec, +y: U32, +j: U32, b: Tb) -> Tb:
+  match kind:
+    case 0:
+      tb.put(b, unit.text(e, y))
+    case 1:
+      match b:
+        case Tb{acc, +ctrs}:
+          Tb{rev.onto(copy.name(unit.text(e, y), ctr.at(ctrs, y)), acc), List.set(&2, U32, ctrs, U32.to_nat(y), (ctr.at(ctrs, y) + 1 : U32))}
+    case _:
+      tb.put(b, copy.name(unit.text(e, y), j))
+
+def ref.self(+self: Bool, +e: Ec, +x: U32, +j: U32, +y: U32, b: Tb) -> Tb:
+  match self:
+    case True{}:
+      tb.put(b, own.name(e, x, j))
+    case False{}:
+      ref.kind(mu.kind(ec.mu(e, y)), e, y, j, b)
+
+def mark.put(+mark: U32, b: Tb) -> Tb:
+  match mark:
+    case 126:
+      tb.put(b, [126])
+    case _:
+      b
+
+def ref.put(+e: Ec, +x: U32, +j: U32, +mark: U32, m: Maybe<&2, U32>, b: Tb) -> Tb:
+  match m:
+    case None{}:
+      b
+    case Some{+y}:
+      ref.self(U32.is_eq(y, x), e, x, j, y, mark.put(mark, b))
+
+def rts.put(ts: List<&2, Rt>, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
+  match ts:
+    case Nil{}:
+      b
+    case Con{t, r}:
+      match t:
+        case RT{tk}:
+          rts.put(r, e, x, j, tb.put(b, tok.bytes(tk)))
+        case RR{+mark, ref}:
+          rts.put(r, e, x, j, ref.put(e, x, j, mark, un.find(ec.us(e), ref, 0), b))
+
+def spaces(n: Nat) -> List<&2, U32>:
+  List.replicate(U32, n, 32)
+
+# a body line, its indentation the definition's subtracted
+def rl.put(l: Rl, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb:
+  match l:
+    case Rl{+no, +ind, ts}:
+      match ts:
+        case Nil{}:
+          tb.put(b, [10])
+        case Con{t, r}:
+          rts.put(Con{t, r}, e, x, j,
+            tb.put(b, Con{10, spaces(U32.to_nat(when(U32, U32.is_gt(ind, dind), u => (ind - dind : U32), u => 0)))}))
+
+def rls.put(ls: List<&2, Rl>, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb:
+  match ls:
+    case Nil{}:
+      b
+    case Con{l, t}:
+      rls.put(t, e, x, j, dind, rl.put(l, e, x, j, dind, b))
+
+# a definition's j-th copy, after a blank line: `def NAME(...) -> T:` and
+# its body
+def unit.put(+e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
+  tb.put(rls.put(un.lines(un.at(ec.us(e), x)), e, x, j, node.ind(un.node(un.at(ec.us(e), x))),
+    tb.put(b, List.append(&2, U32, codes("\ndef "), List.append(&2, U32, own.name(e, x, j), node.rest(un.node(un.at(ec.us(e), x))))))),
+    [10])
+
+def copies.put(n: Nat, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
+  match n:
+    case 0n:
+      b
+    case 1n+k:
+      copies.put(k, e, x, (j + 1 : U32), unit.put(e, x, j, b))
+
+def unit.all(+e: Ec, +x: U32, +mu: Mu, b: Tb) -> Tb:
+  match mu:
+    case Mu{+m, +kind}:
+      match kind:
+        case 0:
+          unit.put(e, x, 0, b)
+        case _:
+          copies.put(U32.to_nat(m), e, x, 1, b)
+
+def order.put(xs: List<&2, U32>, +e: Ec, b: Tb) -> Tb:
+  match xs:
+    case Nil{}:
+      b
+    case Con{+x, t}:
+      order.put(t, e, unit.all(e, x, ec.mu(e, x), b))
+
+def imports(ns: List<&2, Node>) -> List<&2, U32>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, t}:
+      match nd:
+        case NImport{txt, +no}:
+          List.append(&2, U32, txt, Con{10, imports(t)})
+        case _:
+          imports(t)
+
+# bytes as UTF-8, to the String printed; need, the continuation bytes
+# still due, cp the code point so far
+def utf8(xs: List<&2, U32>, +need: U32, +cp: U32) -> String:
+  match xs:
+    case Nil{}:
+      SNil{}
+    case Con{+b, +t}:
+      when(String, U32.is_gt(need, 0),
+        u => when(String, U32.is_eq(need, 1),
+          v => SCon{Char.from_u32(((cp << 6n) .|. (b .&. 63) : U32)), utf8(t, 0, 0)},
+          v => utf8(t, (need - 1 : U32), ((cp << 6n) .|. (b .&. 63) : U32))),
+        u => when(String, U32.is_lt(b, 128), v => SCon{Char.from_u32(b), utf8(t, 0, 0)},
+          v => when(String, U32.is_lt(b, 224), w => utf8(t, 1, (b .&. 31 : U32)),
+            w => when(String, U32.is_lt(b, 240), z => utf8(t, 2, (b .&. 15 : U32)), z => utf8(t, 3, (b .&. 7 : U32))))))
+
+def zeros(us: List<&2, Un>) -> List<&2, U32>:
+  match us:
+    case Nil{}:
+      Nil{}
+    case Con{u, t}:
+      Con{1, zeros(t)}
+
+def tb.text(b: Tb) -> String:
+  match b:
+    case Tb{acc, ctrs}:
+      utf8(List.reverse(&2, U32, List.tail(&2, U32, acc)), 0, 0)
+
+# the emitted module: its header, Bend's imports, each unit's copies in
+# order, the last newline left to IO.print
+def module.text(+file: String, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>) -> String:
+  tb.text(order.put(order, e, Tb{rev.onto(List.append(&2, U32, codes("# Written by Blend from " ++ file ++ "; do not edit.\n"),
+    imports(tree)), Nil{}), zeros(ec.us(e))}))
+
+def ds.order(d: Ds) -> List<&2, U32>:
+  match d:
+    case Ds{stack, roots, path, done, order, ers}:
+      order
+
+def ds.ers(d: Ds) -> List<&2, Er>:
+  match d:
+    case Ds{stack, roots, path, done, order, ers}:
+      ers
+
+def ms.ers(s: Ms) -> List<&2, Er>:
+  match s:
+    case Ms{ms, ers}:
+      ers
+
+def roots.of(rs: List<&2, List<&2, U32>>, +cx: Cx, +us: List<&2, Un>) -> List<&2, U32>:
+  match rs:
+    case Nil{}:
+      roots.all(cx, us)
+    case Con{r, t}:
+      roots.named(Con{r, t}, cx.obs(cx), us)
+
+def emit.out(+file: String, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>, es: List<&2, Er>) -> Out:
+  match es:
+    case Nil{}:
+      Out{True{}, module.text(file, e, List.reverse(&2, U32, order), tree)}
+    case Con{x, t}:
+      ers.out(file, Con{x, t})
+
+# the emitted module, or its errors
+def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
+  +obs = cx.obs(cx)
+  +us = units(os)
+  +rss = refss(us, us, 0)
+  +d = walk(roots.of(roots, cx, us), calls(rss), obs, us)
+  +order = ds.order(d)
+  +ms = mults(order, List.reverse(&2, U32, order), rss, obs, us, Ms{mus.one(us), Nil{}})
+  emit.out(file, Ec{obs, us, ms.ms(ms)}, order, ob.mems(ob.at(obs, 0)),
+    List.append(&2, Er, er.roots(roots, obs, us), List.append(&2, Er, ds.ers(d), ms.ers(ms))))
 
 # Stages
 # ======
 #
-# A stage runs when the one before it found no error: the objects, then
-# the references.
+# A stage runs when the one before it found no error: the objects, the
+# references, then emission.
 
-def objects.next(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
+def resolved.next(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
+  match cmd:
+    case 3:
+      resolved(file, cx.obs(cx), os)
+    case _:
+      when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, ocs.ers(os))), u => resolved(file, cx.obs(cx), os), u => emitted(file, roots, cx, os))
+
+def objects.next(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
   match cmd:
     case 2:
-      show.obs(obs, ls, fs, obs)
+      Out{True{}, show.obs(obs, ls, fs, obs)}
     case _:
-      resolved(file, obs, module.copies(obs, Cx{obs, ls, fs}))
+      resolved.next(cmd, file, roots, Cx{obs, ls, fs}, module.copies(obs, Cx{obs, ls, fs}))
 
-def objects.out(+cmd: U32, +file: String, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> String:
+def objects.out(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> Out:
   match es:
     case Nil{}:
-      objects.next(cmd, file, obs, ls, fs)
+      objects.next(cmd, file, roots, obs, ls, fs)
     case Con{e, t}:
-      show.ers(file, List.sort(~Er, ~er.le, Con{e, t}))
+      ers.out(file, Con{e, t})
 
-def objects.k(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> String:
-  objects.out(cmd, file, obs, ls, fs,
+def objects.k(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>) -> Out:
+  objects.out(cmd, file, roots, obs, ls, fs,
     List.append(&2, Er, er.obs(obs, obs), List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs))))
 
-def objects.l(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> String:
-  objects.k(cmd, file, obs, pss, ls, folds(ls, obs))
+def objects.l(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> Out:
+  objects.k(cmd, file, roots, obs, pss, ls, folds(ls, obs))
 
-def objects.p(+cmd: U32, +file: String, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> String:
-  objects.l(cmd, file, obs, pss, lins(pss))
+def objects.p(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> Out:
+  objects.l(cmd, file, roots, obs, pss, lins(pss))
 
-def objects.o(+cmd: U32, +file: String, +obs: List<&2, Ob>) -> String:
-  objects.p(cmd, file, obs, pids(obs, obs))
+def objects.o(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +obs: List<&2, Ob>) -> Out:
+  objects.p(cmd, file, roots, obs, pids(obs, obs))
 
-# the module's objects (cmd 2) or their copies (3), or the errors of the
-# first stage that has them, each `FILE:LINE: message`
-def objects(+cmd: U32, +file: String, +tree: List<&2, Node>) -> String:
-  objects.o(cmd, file, obs(tree))
+# the module's objects (cmd 2), their copies (3) or the emitted module
+# (4), or the errors of the first stage that has them, each
+# `FILE:LINE: message`
+def objects(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +tree: List<&2, Node>) -> Out:
+  objects.o(cmd, file, roots, obs(tree))
 
 # The command line
 # ================
@@ -2711,6 +3507,12 @@ def objects(+cmd: U32, +file: String, +tree: List<&2, Node>) -> String:
 #   bend blend.bend resolve FILE.blend    each concrete object's copies
 #                                         and what their names reach
 #                                         (`blend-resolve`)
+#   bend blend.bend emit FILE.blend [ROOT...]
+#                                         the emitted module, all of it or
+#                                         what the roots reach, by their
+#                                         emitted names (`blend-emit`)
+#
+# blend/run.sh runs the same, built once (blend/build.sh).
 
 def base.k(r: List<&2, U32> & List<&2, U32>) -> String:
   (a, b) = r
@@ -2721,70 +3523,89 @@ def basename(path: String) -> String:
   base.k(until(List.reverse(&2, U32, codes(path)), 47))
 
 def usage() -> String:
-  "usage: bend blend.bend read|objects|resolve FILE.blend"
+  "usage: bend blend.bend read|objects|resolve FILE.blend, or emit FILE.blend [ROOT...]"
 
-# 1 read, 2 objects, 3 resolve
-def run(+cmd: U32, +file: String, +bs: List<&2, U32>) -> String:
+# 1 read, 2 objects, 3 resolve, 4 emit
+def run(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, +bs: List<&2, U32>) -> Out:
   match cmd:
     case 1:
-      show(read(bs), List.length(&2, U32, bs))
-    case 2:
-      objects(2, file, read(bs))
-    case 3:
-      objects(3, file, read(bs))
+      Out{True{}, show(read(bs), List.length(&2, U32, bs))}
+    case 0:
+      Out{False{}, usage()}
     case _:
-      usage()
+      objects(cmd, file, roots, read(bs))
 
-def main.read(+cmd: U32, +file: String, fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
+# the output printed; errors to stderr, and the exit status 1
+def main.out(o: Out) -> IO(Unit):
+  match o:
+    case Out{+ok, text}:
+      match ok:
+        case True{}:
+          IO.print(text)
+        case False{}:
+          do IO<Unit>:
+            IO.print_err(text)
+            IO.exit(1)
+
+def main.read(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, fr: File & Result<&1, &1, U32 & String, List<&2, U32>>) -> IO(Unit):
   (f, r) = fr
   match r:
     case Done{bs}:
       do IO<Unit>:
         File.close(f)
-        IO.print(run(cmd, file, bs))
+        main.out(run(cmd, file, roots, bs))
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
-        IO.print("blend: cannot read the file")
+        main.out(Out{False{}, "blend: cannot read the file"})
 
-def main.size(+cmd: U32, +file: String, fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
+def main.size(+cmd: U32, +file: String, +roots: List<&2, List<&2, U32>>, fs: File & Result<&1, &1, U32 & String, U32>) -> IO(Unit):
   (f, r) = fs
   match r:
     case Done{+n}:
       do IO<Unit>:
         fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
-        main.read(cmd, file, fr)
+        main.read(cmd, file, roots, fr)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
-        IO.print("blend: cannot size the file")
+        main.out(Out{False{}, "blend: cannot size the file"})
 
-def main.file(+cmd: U32, +path: String) -> IO(Unit):
+def main.file(+cmd: U32, +path: String, +roots: List<&2, List<&2, U32>>) -> IO(Unit):
   do IO<Unit>:
     f : File <- IO.try(File, File.open(path, "r"))
     fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
-    main.size(cmd, basename(path), fs)
+    main.size(cmd, basename(path), roots, fs)
+
+def args.names(xs: List<String>) -> List<&2, List<&2, U32>>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      Con{codes(x), args.names(t)}
 
 def main.cmd(+cmd: U32, xs: List<String>) -> IO(Unit):
   match cmd:
     case 0:
-      IO.print(usage())
+      main.out(Out{False{}, usage()})
     case _:
       match xs:
         case Con{path, r}:
-          main.file(cmd, path)
+          main.file(cmd, path, args.names(r))
         case Nil{}:
-          IO.print(usage())
+          main.out(Out{False{}, usage()})
 
-def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool) -> U32:
-  match rd ob rs:
-    case True{} _ _:
+def cmd.of(+rd: Bool, +ob: Bool, +rs: Bool, +em: Bool) -> U32:
+  match rd ob rs em:
+    case True{} _ _ _:
       1
-    case False{} True{} _:
+    case False{} True{} _ _:
       2
-    case False{} False{} True{}:
+    case False{} False{} True{} _:
       3
-    case False{} False{} False{}:
+    case False{} False{} False{} True{}:
+      4
+    case False{} False{} False{} False{}:
       0
 
 def main.args(xs: List<String>) -> IO(Unit):
@@ -2792,11 +3613,11 @@ def main.args(xs: List<String>) -> IO(Unit):
     case Con{p, r}:
       match r:
         case Con{+flag, r2}:
-          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve")), r2)
+          main.cmd(cmd.of(String.eq(flag, "read"), String.eq(flag, "objects"), String.eq(flag, "resolve"), String.eq(flag, "emit")), r2)
         case Nil{}:
-          IO.print(usage())
+          main.out(Out{False{}, usage()})
     case Nil{}:
-      IO.print(usage())
+      main.out(Out{False{}, usage()})
 
 def main() -> IO(Unit):
   do IO<Unit>:
