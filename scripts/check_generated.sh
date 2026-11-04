@@ -40,6 +40,6 @@ blend/samples nested.bend blend nested.blend
 blend/samples override.bend blend override.blend
 blend/samples prior.bend blend prior.blend
 blend/samples sharing.bend blend sharing.blend
-blend/samples static.bend blend static.blend
+blend/samples choice.bend blend choice.blend
 EOF
 exit "$status"

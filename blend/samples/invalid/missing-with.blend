@@ -1,0 +1,7 @@
+# `with` ends an object's header before its members; an object with none
+# may leave it out.
+import Base
+
+object Greeter
+  def greet() -> String:
+    "hello"

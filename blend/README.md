@@ -36,7 +36,7 @@ Bend's imports pass through.
     import Base
     import ./kprim.bend as P
 
-    object Name extends Parent1, Parent2 with
+    object Name extends Parent1, Parent2 with   # `with` before members
       def f(+x: U32) -> U32:        # introduces f: an error if Name has f
         g(x)
       upd g(+x: U32) -> U32:        # updates g: an error if Name has none
@@ -48,6 +48,8 @@ Bend's imports pass through.
 
     abstract object Family with     # emitted only through its children
       declare after                 # a name a concrete child must define
+
+    object Both extends Name, Family    # no members: no `with`
 
 - **Definitions** are Bend definitions, `def` introducing a name and
   `upd` replacing one the object has, glam's `=` and `:=`. A body is Bend.
@@ -120,33 +122,40 @@ program prints.
   family, in place of a template argument; a definition calling itself.
 - `sharing`: affine by default, `shared` and `copied`.
 - `nested`: nested objects, `^name`, the module's definitions as Bend's.
-- `static`: a family's static choice as a constant definition, the branch
+- `choice`: a family's choice as a constant definition, the branch
   on it left to the C compiler to fold.
 
 `blend/samples/invalid/`: each `.blend` beside the error it must raise
 (`.err`): an update of nothing, an introduction of a name inherited, an
 affine definition used twice, mutual recursion, a declared name left
 undefined, a parameter shadowing a definition, parents with no C3
-linearization, `^` in a definition of the module.
+linearization, `^` in a definition of the module, members after a header
+that leaves out `with`.
 
 ## Open questions
 
 - Partial evaluation: a constant definition and the C compiler cover
-  static choices (`static`); next, `static` definitions substituted where
-  used and a `static match` pruning arms; at most, definitions computed
-  by running Bend when generating, as `spike/tools/gen_krules.bend` does.
-- Type parameters, a family's state type: an alias definition
-  substituted where used, or the family's types left to Bend's `~`.
+  static choices (the sample `choice`); next, `static` definitions
+  substituted where used and a `static match` pruning arms; at most,
+  definitions computed by running Bend when generating, as
+  `spike/tools/gen_krules.bend` does.
+- Types in objects, so that no family threads type parameters: type
+  members, introduced, updated and declared as definitions are, emitted
+  as definitions returning their types (`docs/plans/Blend_2026-11-04.md`,
+  `blend-types`).
 - Imports between `.blend` files. A plain `.bend` file names an object's
   definitions by their emitted names, `Eager.go` (the maintainer,
   2026-11-04), and which definitions are emitted, every concrete
   object's or those reachable from roots, is the command line's to say.
-  Several files given as roots could confuse where they extend one
-  imported object; the maintainer leans to an import system that lets
-  one root module do a dozen jobs (2026-11-04).
-- Macros, explicit in the source: the maintainer allows that Blend may
-  support them (2026-11-04).
-- Types, laws and proofs overridden or specialized per family: Bend's
-  for now, to revisit once Blend matures (the maintainer, 2026-11-04).
+  An object means the same however an import reaches it, the module
+  being no object (`blend-imports`); the maintainer leans to one root
+  module doing a dozen jobs by its imports (2026-11-04).
+- Nested objects inherited and extended, `extend Inner with ...`
+  (`blend-nested`).
+- Laws and proofs as members, each family its own instance
+  (`blend-object-laws`); Blend's own laws (`blend-laws`).
+- Macros, explicit in the source, marked apart from Bend's templates
+  (`~~name`): the maintainer allows that Blend may support them
+  (2026-11-04, `blend-macros`).
 - Blend's own home: written in Bend (`generated-sources`), here first,
   perhaps shared beyond this project.

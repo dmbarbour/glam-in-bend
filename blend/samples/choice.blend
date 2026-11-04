@@ -1,4 +1,4 @@
-# A family's static choice as a constant definition: each family gives
+# A family's choice as a constant definition: each family gives
 # verbose its value, and the branch on it is decided where Bend's C is
 # compiled, the call to a constant folded away (no partial evaluation in
 # Blend needed for this much). A definition may hold dots in its name, as

@@ -16,7 +16,7 @@ object Loud extends Plain with
   upd tag() -> String:
     _tag() ++ "!"
 
-object BoldLoud extends Bold, Loud with
+object BoldLoud extends Bold, Loud
 
 def main() -> IO(Unit):
   IO.print(Plain.tag() ++ " " ++ Bold.tag() ++ " " ++ Loud.tag() ++ " " ++ BoldLoud.tag())

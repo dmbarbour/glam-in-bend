@@ -488,7 +488,7 @@ def toks.lines(ls: List<&2, Ln>) -> List<&2, Bl>:
 # sharing: 0 affine, the default; 1 shared; 2 copied
 type Item is Data:
   IImport{txt: List<&2, U32>, +no: U32, +ind: U32}
-  IObj{+abs: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, +no: U32, +ind: U32}
+  IObj{+abs: Bool, +with: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, +no: U32, +ind: U32}
   IDecl{names: List<&2, List<&2, U32>>, +no: U32, +ind: U32}
   IDef{+share: U32, +upd: Bool, name: List<&2, U32>, rest: List<&2, U32>, params: List<&2, List<&2, U32>>, body: List<&2, Ln>, +no: U32, +ind: U32}
   IBad{txt: List<&2, U32>, +no: U32, +ind: U32}
@@ -609,24 +609,26 @@ def obj.parents.e(+e: Bool, rest: List<&2, U32>) -> List<&2, List<&2, U32>>:
 def obj.parents(+rest: List<&2, U32>) -> List<&2, List<&2, U32>>:
   obj.parents.e(starts(rest, codes("extends ")), rest)
 
-def obj.named(+ok: Bool, name: List<&2, U32>, ps: List<&2, List<&2, U32>>, xs: List<&2, U32>, +abs: Bool, +no: U32, +ind: U32) -> Item:
+def obj.named(+ok: Bool, +with: Bool, name: List<&2, U32>, ps: List<&2, List<&2, U32>>, xs: List<&2, U32>, +abs: Bool, +no: U32, +ind: U32) -> Item:
   match ok:
     case True{}:
-      IObj{abs, name, ps, no, ind}
+      IObj{abs, with, name, ps, no, ind}
     case False{}:
       IBad{xs, no, ind}
 
-# after the name: `with`, or `extends A, B with`, each parent a name
+# after the name: `extends A, B`, each parent a name, or nothing, then
+# `with` before members; an object with none may leave it out
 def obj.rest(+rest: List<&2, U32>, +name: List<&2, U32>, xs: List<&2, U32>, +abs: Bool, +no: U32, +ind: U32) -> Item:
-  obj.named(name.ok(name) && (same(rest, codes("with")) ||
-      (starts(rest, codes("extends ")) && starts(List.reverse(&2, U32, rest), codes("htiw ")) && names.ok(obj.parents(rest)))),
+  obj.named(name.ok(name) && (blank(rest) || same(rest, codes("with")) ||
+      (starts(rest, codes("extends ")) && names.ok(obj.parents(rest)))),
+    same(rest, codes("with")) || starts(List.reverse(&2, U32, rest), codes("htiw ")),
     name, obj.parents(rest), xs, abs, no, ind)
 
 def obj.ext(r: List<&2, U32> & List<&2, U32>, xs: List<&2, U32>, +abs: Bool, +no: U32, +ind: U32) -> Item:
   (name, rest) = r
   obj.rest(rtrim(rest), name, xs, abs, no, ind)
 
-# `object Name [extends A, B] with`, `abstract` before it or not
+# `object Name [extends A, B] [with]`, `abstract` before it or not
 def obj.item(xs: List<&2, U32>, line: List<&2, U32>, +abs: Bool, +no: U32, +ind: U32) -> Item:
   obj.ext(until(xs, 32), line, abs, no, ind)
 
@@ -728,16 +730,17 @@ type Node is Data:
   NDef{+share: U32, +upd: Bool, name: List<&2, U32>, rest: List<&2, U32>, params: List<&2, List<&2, U32>>, body: List<&2, Bl>, +no: U32, +ind: U32}
   NObj{+abs: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, kids: List<&2, Node>, +no: U32}
   NBad{txt: List<&2, U32>, +no: U32}
+  NErr{msg: List<&2, U32>, +no: U32}
 
 # an object being read: its header and its members so far, reversed; the
 # module is the frame at the stack's bottom, never closed
 type Fr is Data:
-  Fr{+top: Bool, +ind: U32, +abs: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, kids: List<&2, Node>, +no: U32}
+  Fr{+top: Bool, +ind: U32, +abs: Bool, +with: Bool, name: List<&2, U32>, parents: List<&2, List<&2, U32>>, kids: List<&2, Node>, +no: U32}
 
 def fr.add(f: Fr, n: Node) -> Fr:
   match f:
-    case Fr{+top, +ind, +abs, name, parents, kids, +no}:
-      Fr{top, ind, abs, name, parents, Con{n, kids}, no}
+    case Fr{+top, +ind, +abs, +with, name, parents, kids, +no}:
+      Fr{top, ind, abs, with, name, parents, Con{n, kids}, no}
 
 def close.into(st: List<&2, Fr>, n: Node) -> List<&2, Fr>:
   match st:
@@ -745,6 +748,15 @@ def close.into(st: List<&2, Fr>, n: Node) -> List<&2, Fr>:
       Nil{}
     case Con{f, rest}:
       Con{fr.add(f, n), rest}
+
+# an object with members whose header leaves out `with`: an error there
+def close.with(+with: Bool, kids: List<&2, Node>, +name: List<&2, U32>, +no: U32, st: List<&2, Fr>) -> List<&2, Fr>:
+  match with kids:
+    case False{} Con{k, t}:
+      close.into(st, NErr{List.append(&2, U32, codes("object "), List.append(&2, U32, name,
+        codes(" has members, so its header ends with `with`"))), no})
+    case _ _:
+      st
 
 # objects closed while the top one starts at or right of column i; fuel,
 # the stack's height
@@ -758,10 +770,10 @@ def close.go(n: Nat, st: List<&2, Fr>, +i: U32) -> List<&2, Fr>:
           Nil{}
         case Con{f, +rest}:
           match f:
-            case Fr{+top, +ind, +abs, +name, +parents, +kids, +no}:
+            case Fr{+top, +ind, +abs, +with, +name, +parents, +kids, +no}:
               when(List<&2, Fr>, Bool.not(top) && U32.is_ge(ind, i),
-                u => close.go(k, close.into(rest, NObj{abs, name, parents, List.reverse(&2, Node, kids), no}), i),
-                u => Con{Fr{top, ind, abs, name, parents, kids, no}, rest})
+                u => close.go(k, close.into(close.with(with, kids, name, no, rest), NObj{abs, name, parents, List.reverse(&2, Node, kids), no}), i),
+                u => Con{Fr{top, ind, abs, with, name, parents, kids, no}, rest})
 
 def close(+st: List<&2, Fr>, +i: U32) -> List<&2, Fr>:
   close.go(List.length(&2, Fr, st), st, i)
@@ -770,8 +782,8 @@ def item.ind(it: Item) -> U32 & Item:
   match it:
     case IImport{txt, +no, +ind}:
       (ind, IImport{txt, no, ind})
-    case IObj{+abs, name, parents, +no, +ind}:
-      (ind, IObj{abs, name, parents, no, ind})
+    case IObj{+abs, +with, name, parents, +no, +ind}:
+      (ind, IObj{abs, with, name, parents, no, ind})
     case IDecl{names, +no, +ind}:
       (ind, IDecl{names, no, ind})
     case IDef{+share, +upd, name, rest, params, body, +no, +ind}:
@@ -783,8 +795,8 @@ def tree.put(st: List<&2, Fr>, it: Item) -> List<&2, Fr>:
   match it:
     case IImport{txt, +no, +ind}:
       close.into(st, NImport{txt, no})
-    case IObj{+abs, name, parents, +no, +ind}:
-      Con{Fr{False{}, ind, abs, name, parents, Nil{}, no}, st}
+    case IObj{+abs, +with, name, parents, +no, +ind}:
+      Con{Fr{False{}, ind, abs, with, name, parents, Nil{}, no}, st}
     case IDecl{names, +no, +ind}:
       close.into(st, NDecl{names, no})
     case IDef{+share, +upd, name, rest, params, body, +no, +ind}:
@@ -809,12 +821,12 @@ def tree.fin(st: List<&2, Fr>) -> List<&2, Node>:
       Nil{}
     case Con{f, rest}:
       match f:
-        case Fr{+top, +ind, +abs, name, parents, kids, +no}:
+        case Fr{+top, +ind, +abs, +with, name, parents, kids, +no}:
           List.reverse(&2, Node, kids)
 
 # the module's members, its objects nested
 def tree(its: List<&2, Item>) -> List<&2, Node>:
-  tree.fin(tree.go(its, [Fr{True{}, 0, False{}, Nil{}, Nil{}, Nil{}, 0}]))
+  tree.fin(tree.go(its, [Fr{True{}, 0, False{}, True{}, Nil{}, Nil{}, Nil{}, 0}]))
 
 def read(bs: List<&2, U32>) -> List<&2, Node>:
   tree(flat(lines(bs)))
@@ -919,6 +931,8 @@ def show.go(n: Nat, ns: List<&2, Node>, +ind: String) -> String:
                 show.go(k, kids, ind ++ "  ") ++ show.go(k, t, ind)
             case NBad{txt, +no}:
               ind ++ "? " ++ text(txt) ++ show.line(no) ++ "\n" ++ show.go(k, t, ind)
+            case NErr{msg, +no}:
+              ind ++ "! " ++ text(msg) ++ show.line(no) ++ "\n" ++ show.go(k, t, ind)
 
 def show(ns: List<&2, Node>, +n: Nat) -> String:
   show.go(n, ns, "")
@@ -1163,6 +1177,8 @@ def er.mems(ns: List<&2, Node>, +top: Bool) -> List<&2, Er>:
       match nd:
         case NBad{txt, +no}:
           Con{Er{no, "Blend cannot read this line: " ++ text(txt)}, er.mems(t, top)}
+        case NErr{msg, +no}:
+          Con{Er{no, text(msg)}, er.mems(t, top)}
         case NImport{txt, +no}:
           when(List<&2, Er>, top, u => er.mems(t, top),
             u => Con{Er{no, "an import belongs to the module, outside every object"}, er.mems(t, top)})
@@ -3372,6 +3388,50 @@ def emit.out(+file: String, +e: Ec, +order: List<&2, U32>, +tree: List<&2, Node>
     case Con{x, t}:
       ers.out(file, Con{x, t})
 
+# Names
+# -----
+
+# an emitted name, and the unit and line it is given for
+type Nm is Data:
+  Nm{name: List<&2, U32>, +u: U32, +no: U32}
+
+def names.copies(n: Nat, +e: Ec, +x: U32, +j: U32) -> List<&2, Nm>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{Nm{own.name(e, x, j), x, node.no(un.node(un.at(ec.us(e), x)))}, names.copies(k, e, x, (j + 1 : U32))}
+
+# every emitted definition's name, a unit's copies after it
+def names.all(xs: List<&2, U32>, +e: Ec) -> List<&2, Nm>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, t}:
+      List.append(&2, Nm, names.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), e, x, 0), names.all(t, e))
+
+def nm.find(ns: List<&2, Nm>, +n: List<&2, U32>) -> Maybe<&2, U32>:
+  match ns:
+    case Nil{}:
+      None{}
+    case Con{m, t}:
+      match m:
+        case Nm{+name, +u, +no}:
+          when(Maybe<&2, U32>, same(name, n), v => Some{no}, v => nm.find(t, n))
+
+# a name two definitions would be emitted by, a prior's or a copy's and a
+# definition's whose name has dots (`tag.Plain` beside `_tag` from Plain)
+def er.names(ns: List<&2, Nm>, +seen: List<&2, Nm>) -> List<&2, Er>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{+m, +t}:
+      match m:
+        case Nm{+name, +u, +no}:
+          on.maybe(U32, List<&2, Er>, nm.find(seen, name), v => er.names(t, Con{m, seen}),
+            +l => Con{Er{no, text(name) ++ " would name two emitted definitions, those of lines " ++ U32.show(l) ++ " and " ++
+              U32.show(no) ++ ": rename one"}, er.names(t, Con{m, seen})})
+
 # the emitted module, or its errors
 def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +obs = cx.obs(cx)
@@ -3380,8 +3440,10 @@ def emitted(+file: String, +roots: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&
   +d = walk(roots.of(roots, cx, us), calls(rss), obs, us)
   +order = ds.order(d)
   +ms = mults(order, List.reverse(&2, U32, order), rss, obs, us, Ms{mus.one(us), Nil{}})
-  emit.out(file, Ec{codes(file), obs, us, ms.ms(ms)}, order, ob.mems(ob.at(obs, 0)),
-    List.append(&2, Er, er.roots(roots, obs, us), List.append(&2, Er, ds.ers(d), ms.ers(ms))))
+  +e = {Ec{codes(file), obs, us, ms.ms(ms)} : Ec}
+  emit.out(file, e, order, ob.mems(ob.at(obs, 0)),
+    List.append(&2, Er, er.roots(roots, obs, us), List.append(&2, Er, ds.ers(d),
+      List.append(&2, Er, ms.ers(ms), er.names(names.all(List.reverse(&2, U32, order), e), Nil{})))))
 
 # Stages
 # ======
