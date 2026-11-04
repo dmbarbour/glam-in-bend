@@ -1,0 +1,9 @@
+# A definition is affine unless marked: inc has two uses, so Bend would
+# make it a segment of its own, a call at each.
+import Base
+
+object Arith with
+  def inc(+n: U32) -> U32:
+    (n + 1 : U32)
+  def twice(+n: U32) -> U32:
+    inc(inc(n))

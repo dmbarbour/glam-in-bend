@@ -1,0 +1,9 @@
+# A concrete object must define what its parents declare.
+import Base
+
+abstract object Machine with
+  declare after
+  def step(+n: U32) -> U32:
+    after(n)
+
+object Plain extends Machine with

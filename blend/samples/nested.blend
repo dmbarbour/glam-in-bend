@@ -1,0 +1,19 @@
+# The module is an object too, its definitions emitted without a prefix;
+# objects nest, each emitted with its path as a prefix. `^name` steps out
+# of the innermost object to its host, as in glam, `^^name` two steps.
+import Base
+
+def unit() -> String:
+  "m"
+
+object Outer with
+  def name() -> String:
+    "outer"
+  object Inner with
+    def name() -> String:
+      "inner"
+    def path() -> String:
+      ^name() ++ "." ++ name() ++ "." ++ ^^unit()
+
+def main() -> IO(Unit):
+  IO.print(Outer.Inner.path())

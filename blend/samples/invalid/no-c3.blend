@@ -1,0 +1,16 @@
+# Parents in conflicting orders have no C3 linearization.
+import Base
+
+object X with
+  def x() -> U32:
+    1
+
+object Y with
+  def y() -> U32:
+    2
+
+object A extends X, Y with
+
+object B extends Y, X with
+
+object C extends A, B with

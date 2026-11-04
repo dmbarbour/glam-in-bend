@@ -1,0 +1,28 @@
+# Families as objects: an abstract object declares the hook its
+# definitions call, and each family introduces it. Where a template took
+# the hook as a `~` argument through every signature, a family overrides
+# one definition, and gets its own copy of every definition that calls
+# it. A definition may call itself; Bend checks that it terminates.
+import Base
+
+abstract object Machine with
+  declare after
+  def step(+n: U32) -> U32:
+    after((n * 2 : U32))
+  def run(k: Nat, +n: U32) -> U32:
+    match k:
+      case 0n:
+        n
+      case 1n+p:
+        run(p, step(n))
+
+object Plain extends Machine with
+  def after(+n: U32) -> U32:
+    n
+
+object Counted extends Machine with
+  def after(+n: U32) -> U32:
+    (n + 1 : U32)
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Plain.run(3n, 1)) ++ " " ++ U32.show(Counted.run(3n, 1)))

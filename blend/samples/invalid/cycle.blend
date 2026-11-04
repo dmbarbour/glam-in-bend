@@ -1,0 +1,17 @@
+# Bend has no mutual recursion, and its definitions come callees first:
+# two definitions calling each other have no order to emit.
+import Base
+
+object Ping with
+  def ping(k: Nat) -> Nat:
+    match k:
+      case 0n:
+        0n
+      case 1n+p:
+        pong(p)
+  def pong(k: Nat) -> Nat:
+    match k:
+      case 0n:
+        1n
+      case 1n+p:
+        ping(p)

@@ -1,0 +1,16 @@
+# Introductions, overrides and late binding: a bare name binds to the
+# final object's definition, so Loud's show calls Loud's greet.
+import Base
+
+object Greeter with
+  def greet() -> String:
+    "hello"
+  def show() -> String:
+    greet() ++ ", world"
+
+object Loud extends Greeter with
+  upd greet() -> String:
+    "HELLO"
+
+def main() -> IO(Unit):
+  IO.print(Greeter.show() ++ " / " ++ Loud.show())

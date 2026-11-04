@@ -1,0 +1,5 @@
+# `^name` steps out of the innermost object; the module has no host.
+import Base
+
+def greet() -> String:
+  ^name()

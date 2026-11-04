@@ -1,0 +1,9 @@
+# A bare name is a local or a definition, never both
+# (shadowing-is-an-error): a parameter named greet hides the definition.
+import Base
+
+object Greeter with
+  def greet() -> String:
+    "hello"
+  def show(greet: String) -> String:
+    greet ++ "!"

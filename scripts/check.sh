@@ -2,7 +2,7 @@
 # The gate: run before every commit, from anywhere in the repository.
 # Checks the docs, the law history, the proofs (each `PROOF.bend`, by bend
 # and by BendTT's proven kernel), that
-# generated code matches its generator, the library of nets
+# generated code matches its generator, Blend's samples, the library of nets
 # (spike/library.txt), then that every other Bend file still typechecks.
 # Exits nonzero on any
 # failure, and names the tree it checked so a stale pass can't pass for new.
@@ -45,6 +45,11 @@ fi
 echo "== generated code"
 # every generated file matches its generator (generated-sources)
 BEND=$BEND scripts/check_generated.sh || status=1
+
+echo "== blend samples"
+# Blend's samples (blend/README.md): each emitted form runs and prints
+# what its sample says
+BEND=$BEND blend/check.sh || status=1
 
 echo "== library"
 # every net of spike/library.txt through every strategy, its checks

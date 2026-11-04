@@ -1,0 +1,6 @@
+# `upd` replaces a definition the object has; there is none to replace.
+import Base
+
+object Loud with
+  upd greet() -> String:
+    "HELLO"

@@ -1,0 +1,28 @@
+# A family's static choice as a constant definition: each family gives
+# verbose its value, and the branch on it is decided where Bend's C is
+# compiled, the call to a constant folded away (no partial evaluation in
+# Blend needed for this much). A definition may hold dots in its name, as
+# Bend's do; a reference takes the longest name defined.
+import Base
+
+abstract object Log with
+  declare verbose
+  def note(+n: U32, s: String) -> String:
+    note.go(verbose(), n, s)
+  def note.go(+v: Bool, +n: U32, s: String) -> String:
+    match v:
+      case True{}:
+        s ++ " #" ++ U32.show(n)
+      case False{}:
+        s
+
+object Quiet extends Log with
+  def verbose() -> Bool:
+    False{}
+
+object Chatty extends Log with
+  def verbose() -> Bool:
+    True{}
+
+def main() -> IO(Unit):
+  IO.print(Quiet.note(3, "done") ++ " / " ++ Chatty.note(3, "done"))

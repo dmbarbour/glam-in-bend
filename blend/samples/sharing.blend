@@ -1,0 +1,19 @@
+# Sharing, stated per definition: affine by default, one use in the
+# emitted program, so that Bend folds it into its caller; `shared`, one
+# copy however many use it; `copied`, a copy for each use, each folding
+# into its own caller. Here inc is copied for its two uses in twice, and
+# show is shared by its two uses in report.
+import Base
+
+object Arith with
+  copied def inc(+n: U32) -> U32:
+    (n + 1 : U32)
+  shared def show(+n: U32) -> String:
+    U32.show(n)
+  def twice(+n: U32) -> U32:
+    inc(inc(n))
+  def report(+n: U32) -> String:
+    show(n) ++ " -> " ++ show(twice(n))
+
+def main() -> IO(Unit):
+  IO.print(Arith.report(5))

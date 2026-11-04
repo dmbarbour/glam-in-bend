@@ -1,0 +1,22 @@
+# Prior definitions and multiple inheritance: `_tag` is the definition
+# an `upd` replaces, the next in the object's C3 linearization. BoldLoud
+# linearizes as BoldLoud, Bold, Loud, Plain, so its tag is Bold's, whose
+# prior is Loud's, whose prior is Plain's.
+import Base
+
+object Plain with
+  def tag() -> String:
+    "plain"
+
+object Bold extends Plain with
+  upd tag() -> String:
+    "*" ++ _tag() ++ "*"
+
+object Loud extends Plain with
+  upd tag() -> String:
+    _tag() ++ "!"
+
+object BoldLoud extends Bold, Loud with
+
+def main() -> IO(Unit):
+  IO.print(Plain.tag() ++ " " ++ Bold.tag() ++ " " ++ Loud.tag() ++ " " ++ BoldLoud.tag())

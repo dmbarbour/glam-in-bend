@@ -1,0 +1,10 @@
+# `def` introduces a name; Loud has greet already, from Greeter.
+import Base
+
+object Greeter with
+  def greet() -> String:
+    "hello"
+
+object Loud extends Greeter with
+  def greet() -> String:
+    "HELLO"
