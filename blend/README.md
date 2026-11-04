@@ -12,7 +12,8 @@ threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 
 Status: the tool emits. `blend/run.sh emit FILE.blend` prints the
 `.bend` a `.blend` file makes, every concrete object's definitions, or
-its errors (on stderr, the status 1). The
+its errors (on stderr, the status 1); `laws` and `proof` print its laws
+and its proofs, each a file of its own beside the code. The
 stages before it print what they find: `read` the structure, `objects`
 each object's linearization and definitions, `resolve` each copy and
 what its names reach. `blend/run.sh` runs the tool built once for each
@@ -52,6 +53,18 @@ Bend's imports pass through.
       declare after                 # a name a concrete child must define
 
     object Both extends Name, Family    # no members: no `with`
+
+    abstract object Monoid with
+      declare type T
+      declare zero, op
+      law right_id:                 # a claim, each family its own
+        for +x: T()
+        {op(x, zero()) == x : T()}
+
+    object NatAdd extends Monoid with
+      ...
+      proof right_id(x):            # its proof, Bend's def of the law
+        ...
 
 - **Definitions** are Bend definitions, `def` introducing a name and
   `upd def` replacing one the object has, glam's `=` and `:=`; `upd`
@@ -109,6 +122,17 @@ Bend's imports pass through.
   transparent, the type it computes: `Sum.S()` is `U32` wherever it
   meets one, no type of its own as a datatype is (Bend's datatypes are
   nominal, by file and name).
+- **Laws and proofs** are members too (`blend-proofs-beside-code`):
+  `law name:` with its `for` lines and its claim, Bend's, stated over
+  the object's definitions and types, each concrete object getting its
+  own instance, `NatAdd.right_id`, bound to its own finals; `proof
+  name(params):` proves the law `name`, where the law is stated or in
+  any object below it, and `upd proof` proves it again where a family
+  needs its own. A proof naming a law, its own in an induction or
+  another as a lemma, calls that law's proof. A law is a claim stated
+  once: never updated, and never named by code. An unproved law is an
+  open claim, which the gate's proof step reports. The module's own
+  laws and proofs are Bend's, as its definitions are.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).
@@ -153,6 +177,16 @@ its own copy, bound to its own finals: no sharing between objects.
   copied definition by its own name. The samples hold the tool to its
   present order.
 - An abstract object emits nothing of its own.
+- Laws and proofs go into files of their own beside the code, as Bend's
+  convention keeps them, so that the programs built carry no proofs and
+  no open law stops them: `blend/run.sh laws X.blend` prints
+  `X_LAWS.bend`, every law, importing the code `X.bend` as `Blend_0`;
+  `blend/run.sh proof X.blend` prints `X_PROOF.bend`, every proof, as
+  `def Blend_Laws.NatAdd.right_id(...)`, importing the code and the
+  laws, as `Blend_Laws`, each proof after those it uses. Bend imports
+  only plain names, so `_`, not a dot. The gate checks every
+  `*PROOF.bend` with `--verdict`, and that each `X_LAWS.bend` has its
+  `X_PROOF.bend`.
 - Before each definition, a marker names where it is written,
   `# blend: FILE:LINE`; its lines follow as they are there, so the line
   k lines below a marker is the source's k lines below LINE.
@@ -182,6 +216,10 @@ program prints.
   one, the library's definitions named through its alias.
 - `choice`: a family's choice as a constant definition, the branch
   on it left to the C compiler to fold.
+- `laws`, with `laws_LAWS.bend` and `laws_PROOF.bend`: laws an abstract
+  family states, proved by each family by induction or cases, or once
+  for all by the family stating them, `upd proof` where a family's
+  update of a definition needs its own.
 
 `blend/samples/invalid/`: each `.blend` beside the error it must raise
 (`.err`): an update of nothing, an introduction of a name inherited, an
@@ -192,7 +230,9 @@ that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
 file, a name beginning `Blend_`, an extension of nothing inherited, a
 nested object introduced where one is inherited, `extend` at the top
-level, two nested objects made of one mixin inherited together.
+level, two nested objects made of one mixin inherited together, a proof
+of no law, code naming a law, `upd law`, a proof introduced where one
+is inherited, `upd proof` with no proof to update.
 
 ## Known issues
 
@@ -215,8 +255,12 @@ level, two nested objects made of one mixin inherited together.
 - Several files on one command line, and how their outputs are written;
   the maintainer leans to one root module doing a dozen jobs by its
   imports (2026-11-04).
-- Laws and proofs as members, each family its own instance
-  (`blend-object-laws`); Blend's own laws (`blend-laws`).
+- Blend's own laws (`blend-laws`); what a declared definition must be,
+  checked by a witness in the proof file (`blend-typed-declares`).
+- A lemma's own statement as a member: a definition typed as an
+  equality goes with the code, where an open one would stop the
+  program; a typed `proof` may come. The prior of a proof (`_name` in
+  an `upd proof`) is emitted as an untyped def, which Bend refuses.
 - Macros, explicit in the source, marked apart from Bend's templates
   (`~~name`): the maintainer allows that Blend may support them
   (2026-11-04, `blend-macros`).

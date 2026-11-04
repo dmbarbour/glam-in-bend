@@ -1,0 +1,14 @@
+# A law is a claim, not a definition: only a proof may name it, which
+# Bend reads as the law's proof.
+import Base
+
+object Counter with
+  def next(+n: Nat) -> Nat:
+    1n+n
+  law grows:
+    for +n: Nat
+    {next(n) == 1n+n : Nat}
+  proof grows(n):
+    {==}
+  def twice(+n: Nat) -> Nat:
+    grows(n)

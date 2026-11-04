@@ -1,0 +1,9 @@
+# `upd proof` replaces a proof the object has; there is none to replace.
+import Base
+
+object Three with
+  law tri:
+    for +n: Nat
+    {n == n : Nat}
+  upd proof tri(n):
+    {==}

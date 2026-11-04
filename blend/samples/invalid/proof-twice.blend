@@ -1,0 +1,17 @@
+# A proof is a member like a definition: a family that proves a law
+# its parent proved already says so with `upd proof`.
+import Base
+
+abstract object Sized with
+  declare size
+  law same:
+    for +n: Nat
+    {size(n) == size(n) : Nat}
+  proof same(n):
+    {==}
+
+object One extends Sized with
+  def size(+n: Nat) -> Nat:
+    1n
+  proof same(n):
+    {==}
