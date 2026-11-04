@@ -44,3 +44,7 @@ def Blend_Laws.AnyOf.double_op(x):
       {==}
     case False{}:
       {==}
+
+# blend: laws.blend:80
+def Blend_Laws.double_three():
+  {==}

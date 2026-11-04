@@ -10,11 +10,17 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: the tool emits. `blend/run.sh emit FILE.blend [DIR]` writes the
-`.bend` a `.blend` file makes, every concrete object's definitions, and
-where it has laws its laws and its proofs, each a file of its own beside
-the code, into DIR or beside FILE, printing each path; or, writing
-nothing, its errors (on stderr, the status 1). The
+Status: the tool emits. `blend/run.sh emit FILE.blend... [DIR]` writes,
+for each module named, the `.bend` it makes, every concrete object's
+definitions, and where it has laws its laws and its proofs, each a file
+of its own beside the code, beside the module or into DIR, printing
+each path; or, writing nothing at all, the errors of any (on stderr,
+the status 1). A module's emission depends on nothing that imports it
+(every definition emitted, no top-level object extended), so modules
+emit independently: those named are written, their imports read and
+checked, not written; a module an import reaches is written where it is
+named itself. DIR takes every file flat, for checking: two modules
+writing one name there are an error. The
 stages before it print what they find: `read` the structure, `objects`
 each object's linearization and definitions, `resolve` each copy and
 what its names reach. `blend/run.sh` runs the tool built once for each
@@ -140,7 +146,8 @@ Bend's imports pass through.
   checked against the family's finals, as any inherited body is: a
   family that changes what a proof relies on proves it again. An
   unproved law is an open claim, which the gate's proof step reports.
-  The module's own laws and proofs are Bend's, as its definitions are.
+  The module's own laws and proofs, at its top level, are Bend's, as
+  its definitions are, written beside the code as an object's are.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).
@@ -188,14 +195,20 @@ its own copy, bound to its own finals: no sharing between objects.
 - Laws and proofs go into files of their own beside the code, as Bend's
   convention keeps them, so that the programs built carry no proofs and
   no open law stops them, written by the same emission as the code:
-  `X_LAWS.bend`, every law, importing the code `X.bend` as `Blend_0`,
-  and a law stated again by the name of each prior proof reached
-  (`AnyOf.double_op.Monoid`); `X_PROOF.bend`, every proof, as
+  `X_LAWS.bend`, every law, importing the code `X.bend` as `Blend_0`;
+  `X_PROOF.bend`, every proof, as
   `def Blend_Laws.NatAdd.right_id(...)`, and every lemma, as
   `def NatAdd.add_succ(...) -> ...`, importing the code and the laws, as
   `Blend_Laws`, each after those it uses. Bend imports only plain names,
   so `_`, not a dot. The gate checks every `*PROOF.bend` with
   `--verdict`, and that each `X_LAWS.bend` has its `X_PROOF.bend`.
+- A prior proof is written only where a proof reaches it by `_name`:
+  replaced and not named, it is gone, and nothing checks it. Reached, it
+  is a def of its own, `Blend_Laws.AnyOf.double_op.Monoid`, proving its
+  law for the family's finals; Bend gives an untyped def the type of the
+  law of its name, so the laws' file states that law again by the
+  prior's name. It is no new claim, the same law named twice, and the
+  prior must hold for the family as the proof relying on it does.
 - Before each definition, a marker names where it is written,
   `# blend: FILE:LINE`; its lines follow as they are there, so the line
   k lines below a marker is the source's k lines below LINE.
@@ -228,7 +241,8 @@ program prints.
 - `laws`, with `laws_LAWS.bend` and `laws_PROOF.bend`: laws an abstract
   family states, proved by each family by induction or cases, or once
   for all by the family stating them, `upd proof` where a family's
-  update of a definition needs its own; a lemma.
+  update of a definition needs its own; a lemma; the module's own law
+  and proof at its top level.
 - `laws-imported`, with `lib/adds.blend`: laws a library states and
   proves for every family, a family's own law proved with an inherited
   one, and a prior proof reached across modules.
@@ -266,9 +280,11 @@ lemma, `upd proof` of a definition.
   names, `Eager.go` (the maintainer, 2026-11-04). A module emits every
   definition, not only those some roots reach, so that a module several
   import is emitted once (the maintainer, 2026-11-04).
-- Several files on one command line, and how their outputs are written;
-  the maintainer leans to one root module doing a dozen jobs by its
-  imports (2026-11-04).
+- A `blend` command of its own, so that no script stands between the
+  user and the tool (`blend-cli`).
+- Emitting a root's imports with it, one root doing a dozen jobs
+  (`blend-cli`): writing files a command did not name, a package's
+  among them once packages come, against writing only those named.
 - Blend's own laws (`blend-laws`); what a declared definition must be,
   checked by a witness in the proof file (`blend-typed-declares`).
 - Theories, `theory` declarations as objects, should something more

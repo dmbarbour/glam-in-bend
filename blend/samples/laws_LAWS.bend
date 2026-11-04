@@ -27,3 +27,7 @@ law AnyOf.right_id:
 law AnyOf.double_op:
   for +x: Blend_0.AnyOf.T()
   {Blend_0.AnyOf.double(x) == Blend_0.AnyOf.op(x, x) : Blend_0.AnyOf.T()}
+
+# blend: laws.blend:77
+law double_three:
+  {Blend_0.NatAdd.double(3n) == 6n : Nat}

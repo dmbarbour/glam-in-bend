@@ -72,5 +72,13 @@ object AnyOf extends Monoid with
       case False{}:
         {==}
 
+# the module's own law and proof, at its top level, Bend's as its
+# definitions are
+law double_three:
+  {NatAdd.double(3n) == 6n : Nat}
+
+proof double_three():
+  {==}
+
 def main() -> IO(Unit):
   IO.print(Nat.show(NatAdd.double(3n)) ++ " " ++ Bool.show(AnyOf.double(True{})))
