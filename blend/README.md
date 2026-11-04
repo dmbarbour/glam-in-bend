@@ -27,8 +27,11 @@ and the kernel's move onto it: `docs/plans/Blend_2026-11-04.md`.
 
 ## The model
 
-A `.blend` file is a module, and the module is an object: its own
-definitions are emitted with no prefix. Bend's imports pass through.
+A `.blend` file is a module of Bend's kind, holding its imports, its own
+definitions and its objects. The module is no object
+(`blend-module-is-bend`): its own definitions are plain Bend, emitted as
+written, with no prefix, no `upd`, no `declare` and no sharing marks.
+Bend's imports pass through.
 
     import Base
     import ./kprim.bend as P
@@ -53,10 +56,11 @@ definitions are emitted with no prefix. Bend's imports pass through.
   that calls it; a reference takes the longest name defined, dots
   included (`note.go`). `_name` is the prior definition, the one this
   `upd` replaces. `^name` steps out of the innermost object to its host,
-  `^^name` two steps; the module has no host. `Obj.name` or
-  `Outer.Inner.name` is that object's final definition. Any other name is
-  Bend's. A bare name is a local or a definition, never both
-  (`shadowing-is-an-error`).
+  `^^name` two steps; a top-level object has no host. `Obj.name` or
+  `Outer.Inner.name` is that object's final definition. A bare name that
+  no object in reach defines may be one of the module's definitions,
+  Bend's, its text kept; any other name is Bend's. A bare name is a local
+  or an object's definition, never both (`shadowing-is-an-error`).
 - **Inheritance** is multiple, linearized by C3 as glam's is: a parent
   named twice is one parent. An object's definitions apply after its
   parents', so that an `upd`'s prior is the definition the next object
@@ -66,8 +70,10 @@ definitions are emitted with no prefix. Bend's imports pass through.
   - affine, the default: one use at most (a definition's calls to itself
     aside), so that Bend folds it into its caller;
   - `shared`: one copy, however many use it;
-  - `copied`: a copy for each use, each folding into its own caller; an
+  - `copied`: emitted by its own name, and a copy more for each use, each
+    folding into its own caller (`blend-copies-keep-their-name`); an
     affine definition a copy alone reaches is copied with it.
+  The module's definitions are Bend's, and shared; their uses count.
 - **Nothing at run time.** Types stay in plain Bend: they make no code to
   specialize, and Bend's constructor names are global.
 - **No Bend logic of its own.** Blend translates objects; what a
@@ -83,17 +89,16 @@ its own copy, bound to its own finals: no sharing between objects.
 
 - The final definition of `f` in `Obj` is `Obj.f`; a definition it
   replaced, where reached through `_f`, is `Obj.f.Origin`, after the
-  object that defined it; the copies of a copied `f` are `Obj.f.c1`,
-  `Obj.f.c2`, in the order their uses appear. A nested object's prefix is
-  its path, `Outer.Inner.f`.
+  object that defined it; a copied `f` is `Obj.f`, and its copies for its
+  uses `Obj.f.c1`, `Obj.f.c2`, in the order the uses are emitted; the
+  module's definitions call `Obj.f`. A nested object's prefix is its
+  path, `Outer.Inner.f`.
 - Definitions come callees first, as Bend requires, source order between
   the unrelated: the module's definitions and its concrete objects by
   their lines, an object's members in its linearization's order, its own
   first, a definition's callees in the order its body names them. Two
   definitions calling each other have no such order: an error, as Bend
   has no mutual recursion.
-- A copied definition no definition uses is emitted once, by its own
-  name, for a plain `.bend` file to call.
 - An abstract object emits nothing of its own.
 
 ## The samples
@@ -106,7 +111,7 @@ its own copy, bound to its own finals: no sharing between objects.
 - `family`: an abstract object's declared hook, introduced by each
   family, in place of a template argument; a definition calling itself.
 - `sharing`: affine by default, `shared` and `copied`.
-- `nested`: the module as an object, nested objects, `^name`.
+- `nested`: nested objects, `^name`, the module's definitions as Bend's.
 - `static`: a family's static choice as a constant definition, the branch
   on it left to the C compiler to fold.
 
@@ -114,7 +119,7 @@ its own copy, bound to its own finals: no sharing between objects.
 (`.err`): an update of nothing, an introduction of a name inherited, an
 affine definition used twice, mutual recursion, a declared name left
 undefined, a parameter shadowing a definition, parents with no C3
-linearization, `^` out of the module.
+linearization, `^` in a definition of the module.
 
 ## Open questions
 

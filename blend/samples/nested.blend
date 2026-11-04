@@ -1,6 +1,7 @@
-# The module is an object too, its definitions emitted without a prefix;
-# objects nest, each emitted with its path as a prefix. `^name` steps out
-# of the innermost object to its host, as in glam, `^^name` two steps.
+# The module is no object: its definitions are Bend's, emitted as they
+# are, and an object's body calls them by their names. Objects nest, each
+# emitted with its path as a prefix; `^name` steps out of the innermost
+# object to its host, as in glam, and a top-level object has none.
 import Base
 
 def unit() -> String:
@@ -13,7 +14,7 @@ object Outer with
     def name() -> String:
       "inner"
     def path() -> String:
-      ^name() ++ "." ++ name() ++ "." ++ ^^unit()
+      ^name() ++ "." ++ name() ++ "." ++ unit()
 
 def main() -> IO(Unit):
   IO.print(Outer.Inner.path())

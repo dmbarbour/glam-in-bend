@@ -926,8 +926,10 @@ def show(ns: List<&2, Node>, +n: Nat) -> String:
 # Objects
 # =======
 #
-# The module and its objects, numbered in source order, the module 0;
-# each object's parents found by name, its linearization by C3 as glam
+# The module and its objects, numbered in source order, the module 0.
+# The module is no object (`blend-module-is-bend`): it holds Bend's
+# definitions, its imports and its objects, and carries number 0 for
+# their checks alone. Each object's parents found by name, its linearization by C3 as glam
 # linearizes, and the definitions each has by applying the members of its
 # linearization from the last, its base, to itself (`blend-objects`).
 # Errors are found per object, each reported once: where an object's
@@ -972,7 +974,7 @@ def parts(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
   parts.go(xs, Nil{}, Nil{})
 
 # an object: its number, its host's, its path from the module, its
-# parents as written, its members (the module's: the whole file)
+# parents as written, its members (the module, number 0: the whole file)
 type Ob is Data:
   Ob{+id: U32, +host: U32, path: List<&2, List<&2, U32>>, +abs: Bool, parents: List<&2, List<&2, U32>>, mems: List<&2, Node>, +no: U32}
 
@@ -1164,6 +1166,15 @@ def er.mems(ns: List<&2, Node>, +top: Bool) -> List<&2, Er>:
         case NImport{txt, +no}:
           when(List<&2, Er>, top, u => er.mems(t, top),
             u => Con{Er{no, "an import belongs to the module, outside every object"}, er.mems(t, top)})
+        case NDef{+share, +upd, +name, rest, params, body, +no, +ind}:
+          when(List<&2, Er>, top && Bool.not(U32.is_eq(share, 0)),
+            u => Con{Er{no, show.share(share) ++ "def " ++ text(name) ++ ": the module is no object; its definitions are Bend's, shared as Bend shares them"},
+              er.mems(t, top)},
+            u => er.mems(t, top))
+        case NDecl{names, +no}:
+          when(List<&2, Er>, top,
+            u => Con{Er{no, "declare " ++ show.names(names) ++ ": the module is no object; declare names in an abstract object"}, er.mems(t, top)},
+            u => er.mems(t, top))
         case _:
           er.mems(t, top)
 
@@ -1599,7 +1610,9 @@ def fe.msg(+obs: List<&2, Ob>, +id: U32, f: Fe) -> Er:
         case 1:
           Er{mno, text(name) ++ " is given twice in " ++ ob.name(obs, q) ++ ", at lines " ++ U32.show(ono) ++ " and " ++ U32.show(mno)}
         case 2:
-          Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has no " ++ text(name) ++ " to update (introduce it with def)"}
+          when(Er, U32.is_eq(q, 0),
+            u => Er{mno, kw(upd) ++ text(name) ++ ": the module is no object, so it has nothing to update (introduce it with def)"},
+            u => Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has no " ++ text(name) ++ " to update (introduce it with def)"})
         case _:
           when(Er, U32.is_eq(q, id),
             u => Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has " ++ text(name) ++ " already, from " ++
@@ -1650,10 +1663,8 @@ def decl.obs(qs: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, Dn>:
       List.append(&2, Dn, decl.names(ob.mems(ob.at(obs, q)), q), decl.obs(t, obs))
 
 def decl.missing(+obs: List<&2, Ob>, +id: U32, +n: List<&2, U32>, +q: U32, +no: U32) -> Er:
-  when(Er, U32.is_eq(id, 0),
-    u => Er{no, "the module declares " ++ text(n) ++ " and defines none"},
-    u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " defines no " ++ text(n) ++ ", which " ++ ob.name(obs, q) ++
-      " declares (or mark " ++ ob.name(obs, id) ++ " abstract)"})
+  Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " defines no " ++ text(n) ++ ", which " ++ ob.name(obs, q) ++
+    " declares (or mark " ++ ob.name(obs, id) ++ " abstract)"}
 
 def decl.check.k(+obs: List<&2, Ob>, +id: U32, +map: List<&2, En>, +done: List<&2, List<&2, U32>>, +n: List<&2, U32>, +q: U32, +no: U32) -> List<&2, Er>:
   when(List<&2, Er>, names.has(done, n) || Maybe.is_some(&2, En, en.find(map, n)), u => Nil{},
@@ -1678,7 +1689,7 @@ def decl.go(ds: List<&2, Dn>, +obs: List<&2, Ob>, +id: U32, +map: List<&2, En>, 
 
 # a concrete object's declared names it gives no definition, each once
 def er.decls(+obs: List<&2, Ob>, +id: U32, +ord: List<&2, U32>, +map: List<&2, En>) -> List<&2, Er>:
-  when(List<&2, Er>, ob.abs(ob.at(obs, id)), u => Nil{}, u => decl.go(decl.obs(List.reverse(&2, U32, ord), obs), obs, id, map, Nil{}))
+  when(List<&2, Er>, ob.abs(ob.at(obs, id)) || U32.is_eq(id, 0), u => Nil{}, u => decl.go(decl.obs(List.reverse(&2, U32, ord), obs), obs, id, map, Nil{}))
 
 def er.def.k(+obs: List<&2, Ob>, +id: U32, +ps: List<&2, U32>, +fds: List<&2, Maybe<&2, Fd>>, +ord: List<&2, U32>, m: Maybe<&2, Fd>) -> List<&2, Er>:
   match m:
@@ -1749,6 +1760,25 @@ def show.fd(+obs: List<&2, Ob>, m: Maybe<&2, Fd>) -> String:
         case Fd{map, fes}:
           show.ens(obs, map)
 
+def show.en.names(es: List<&2, En>) -> String:
+  match es:
+    case Nil{}:
+      ""
+    case Con{e, t}:
+      match e:
+        case En{name, chain, +no}:
+          "  " ++ text(name) ++ "\n" ++ show.en.names(t)
+
+# the module's definitions, Bend's, by name alone
+def show.fd.names(m: Maybe<&2, Fd>) -> String:
+  match m:
+    case None{}:
+      ""
+    case Some{d}:
+      match d:
+        case Fd{map, fes}:
+          show.en.names(map)
+
 def show.abs.of(+a: Bool) -> String:
   match a:
     case True{}:
@@ -1756,11 +1786,11 @@ def show.abs.of(+a: Bool) -> String:
     case False{}:
       ""
 
-def show.ob(+obs: List<&2, Ob>, o: Ob, l: Maybe<&2, Lz>, f: Maybe<&2, Fd>) -> String:
+def show.ob(+obs: List<&2, Ob>, o: Ob, l: Maybe<&2, Lz>, +f: Maybe<&2, Fd>) -> String:
   match o:
     case Ob{+id, +host, path, +abs, parents, mems, +no}:
-      when(String, U32.is_eq(id, 0), u => "the module",
-        u => show.abs.of(abs) ++ ob.name(obs, id) ++ ": " ++ show.ids(obs, lz.ord(l))) ++ "\n" ++ show.fd(obs, f)
+      when(String, U32.is_eq(id, 0), u => "module\n" ++ show.fd.names(f),
+        u => show.abs.of(abs) ++ ob.name(obs, id) ++ ": " ++ show.ids(obs, lz.ord(l)) ++ "\n" ++ show.fd(obs, f))
 
 # each object, its linearization, and each definition it has with the
 # objects that gave it, the final first
@@ -1801,13 +1831,16 @@ def show.ers(+file: String, es: List<&2, Er>) -> String:
 # Each concrete object's definitions, its own copies, their bodies'
 # names bound (`blend-resolve`): a bare name to the final definition of
 # the innermost object that has it, the concrete object itself first,
-# then the hosts of the object that wrote the body; a dotted name to an
-# object's definition (`Outer.Inner.path`), the longest object path
-# first; `_name` to the definition the writer's replaced, `^name` to its
-# host's, `~name` as a bare name, the mark kept. A body's locals are its
-# parameters and binders; a local named as a definition is an error
+# then the hosts of the object that wrote the body, then the module's
+# definitions, Bend's, their names kept; a dotted name to an object's
+# definition (`Outer.Inner.path`), the longest object path first; `_name`
+# to the definition the writer's replaced, `^name` to its host's, `~name`
+# as a bare name, the mark kept. A body's locals are its parameters and
+# binders; a local named as an object's definition is an error
 # (`shadowing-is-an-error`), so any other name a definition has is a
-# reference. The rest is Bend's.
+# reference. The rest is Bend's. The module's definitions are Bend's
+# (`blend-module-is-bend`): their names are bound only to order them, and
+# to find the objects' definitions they use.
 
 # the module, its objects, their linearizations and definitions
 type Cx is Data:
@@ -1840,13 +1873,14 @@ def cx.ord(c: Cx, +id: U32) -> List<&2, U32>:
 def has.def(+map: List<&2, En>, +n: List<&2, U32>) -> Bool:
   Maybe.is_some(&2, En, en.find(map, n))
 
-# an object's hosts, innermost first, the module last; the module's none
+# an object's hosts, innermost first, to its top-level object: the module
+# is no object (`blend-module-is-bend`)
 def hosts.go(n: Nat, +obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
   match n:
     case 0n:
       Nil{}
     case 1n++k:
-      when(List<&2, U32>, U32.is_eq(id, 0), u => Nil{},
+      when(List<&2, U32>, U32.is_eq(id, 0) || U32.is_eq(ob.host(ob.at(obs, id)), 0), u => Nil{},
         u => Con{ob.host(ob.at(obs, id)), hosts.go(k, obs, ob.host(ob.at(obs, id)))})
 
 def hosts(+obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
@@ -2098,10 +2132,11 @@ def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32
     u => rr.tok(t),
     f => rr.rf(cx, mark, t, no, f))
 
-# a name with no mark, or after `~`: a local, a definition, or Bend's
+# a name with no mark, or after `~`: a local, an object's definition, a
+# definition of the module (Bend's, its text kept), or Bend's
 def rr.plain(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
   when(Rr, names.has(locals, n), u => rr.tok(t),
-    u => on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
+    u => on.maybe(U32, Rr, look(cx, Con{o, List.append(&2, U32, hosts(cx.obs(cx), q), [0])}, n),
       v => rr.dotted(cx, q, mark, n, t, no),
       +h => rr.final(cx, h, mark, n, t, no)))
 
@@ -2138,9 +2173,16 @@ def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) ->
     +c => Rr{RR{0, Rf{o, n, True{}, c}}, Nil{}, [In{n, c, True{}}]})
 
 # `^n`, k carets: the k-th host's final n
+def top.of(+obs: List<&2, Ob>, +q: U32) -> U32:
+  on.maybe(U32, U32, List.last(&2, U32, hosts(obs, q)), u => q, x => x)
+
+def host.none(+obs: List<&2, Ob>, +q: U32, +whole: List<&2, U32>) -> String:
+  when(String, U32.is_eq(q, 0), u => text(whole) ++ " is in a definition of the module, which is no object",
+    u => text(whole) ++ " steps out of " ++ ob.name(obs, top.of(obs, q)) ++ ", which has no host")
+
 def rr.host(+cx: Cx, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whole: List<&2, U32>, +no: U32) -> Rr:
   on.maybe(U32, Rr, List.get(&2, U32, hosts(cx.obs(cx), q), Nat.sub(k, 1n)),
-    u => rr.er(t, no, text(whole) ++ " steps out of the module, which has no host"),
+    u => rr.er(t, no, host.none(cx.obs(cx), q, whole)),
     +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
       v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
 
@@ -2151,7 +2193,7 @@ def rr.mark(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32
     case 126:
       rr.plain(cx, o, q, locals, 126, r, t, no)
     case 95:
-      when(Rr, blank(r) || names.has(locals, Con{h, r}), u => rr.tok(t), u => rr.prior(cx, o, q, r, t, no))
+      when(Rr, blank(r) || names.has(locals, Con{h, r}) || U32.is_eq(o, 0), u => rr.tok(t), u => rr.prior(cx, o, q, r, t, no))
     case _:
       rr.plain(cx, o, q, locals, 0, Con{h, r}, t, no)
 
@@ -2335,8 +2377,9 @@ def copy.node(+cx: Cx, +o: U32, i: In, +nd: Node) -> Rd & Rb:
       match nd:
         case NDef{+share, +upd, +name, +rest, +params, +body, +no, +ind}:
           copy.k(In{n, q, prior}, nd, rb.lines(body, cx, o, q, List.append(&2, List<&2, U32>, unmarks(params), lc.names(body.binders(body)))),
-            List.append(&2, Er, shadow.params(unmarks(params), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))), no),
-              shadow.locals(body.binders(body), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))))))
+            when(List<&2, Er>, U32.is_eq(o, 0), u => Nil{},
+              u => List.append(&2, Er, shadow.params(unmarks(params), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior}))), no),
+                shadow.locals(body.binders(body), cx, o, q, text(rf.text(cx.obs(cx), in.ref(o, In{n, q, prior})))))))
         case _:
           (Rd{In{n, q, prior}, nd, Nil{}}, Rb{Nil{}, Nil{}, Nil{}})
 
@@ -2470,7 +2513,8 @@ def cp.rds(c: Cp) -> List<&2, Rd>:
 type Oc is Data:
   Oc{+id: U32, cp: Cp}
 
-# every concrete object's copies, the module's first
+# every concrete object's copies, the module's first; an abstract
+# object's none
 def module.copies(os: List<&2, Ob>, +cx: Cx) -> List<&2, Oc>:
   match os:
     case Nil{}:
@@ -2478,7 +2522,7 @@ def module.copies(os: List<&2, Ob>, +cx: Cx) -> List<&2, Oc>:
     case Con{o, +t}:
       match o:
         case Ob{+id, +host, path, +abs, parents, mems, +no}:
-          when(List<&2, Oc>, abs, u => module.copies(t, cx), u => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)})
+          when(List<&2, Oc>, abs, u => Con{Oc{id, Cp{Nil{}, Nil{}, Nil{}}}, module.copies(t, cx)}, u => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)})
 
 def ocs.ers(os: List<&2, Oc>) -> List<&2, Er>:
   match os:
@@ -2496,7 +2540,8 @@ def show.ocs(+obs: List<&2, Ob>, os: List<&2, Oc>) -> String:
     case Con{o, t}:
       match o:
         case Oc{+id, c}:
-          ob.name(obs, id) ++ "\n" ++ show.rds(obs, id, cp.rds(c)) ++ show.ocs(obs, t)
+          when(String, U32.is_eq(id, 0), u => "module", u => show.abs.of(ob.abs(ob.at(obs, id))) ++ ob.name(obs, id)) ++ "\n" ++
+            show.rds(obs, id, cp.rds(c)) ++ show.ocs(obs, t)
 
 def er.same(a: Er, b: Er) -> Bool:
   match a b:
@@ -2543,9 +2588,12 @@ def resolved(+file: String, +obs: List<&2, Ob>, +os: List<&2, Oc>) -> Out:
 # roots the command line names; two units calling each other an error,
 # as Bend has no mutual recursion (`blend-adds-no-bend-logic`). Then the
 # sharing: an affine unit has one use at most, a call to itself aside; a
-# copied unit is emitted once for each use, `Obj.f.c1` and on in the
-# order the uses are emitted, and an affine unit only a multiplied unit
-# uses goes with each of its copies, numbered alike.
+# copied unit is emitted by its own name and once more for each use,
+# `Obj.f.c1` and on in the order the uses are emitted
+# (`blend-copies-keep-their-name`), the module's definitions calling it
+# by its own name; an affine unit only a multiplied unit uses goes with
+# each of its copies, numbered alike. The module's definitions are shared,
+# as Bend's.
 
 # a unit: one definition of the emitted program, before copies, and the
 # concrete object it is emitted in
@@ -2909,15 +2957,16 @@ def walk(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob
 # Sharing
 # -------
 
-# how a unit is emitted: m copies, plain (0), numbered by its uses
-# (copied, 1) or by its one user's copies (2)
+# how a unit is emitted: by its own name, and m numbered copies more,
+# numbered by its uses (copied, 1) or by its one user's copies (2); a
+# plain unit (0) has none
 type Mu is Data:
   Mu{+m: U32, +kind: U32}
 
 def mu.or(x: Maybe<&2, Mu>) -> Mu:
   match x:
     case None{}:
-      Mu{1, 0}
+      Mu{0, 0}
     case Some{v}:
       v
 
@@ -2951,14 +3000,22 @@ def uses.of(es: List<&2, U32>, +rss: List<&2, List<&2, Ru>>, +x: U32) -> List<&2
     case Con{+e, t}:
       List.append(&2, Ru, uses.in(rus.at(rss, e), e, x), uses.of(t, rss, x))
 
-def uses.m(us: List<&2, Ru>, +ms: List<&2, Mu>) -> U32:
-  match us:
+def un.o(u: Un) -> U32:
+  match u:
+    case Un{+o, i, nd, ls}:
+      o
+
+# the copies a copied unit's uses need: one for each copy of each user,
+# its own name's included; none for the module's definitions, Bend's,
+# which call it by its own name
+def uses.m(rs: List<&2, Ru>, +ms: List<&2, Mu>, +us: List<&2, Un>) -> U32:
+  match rs:
     case Nil{}:
       0
     case Con{r, t}:
       match r:
         case Ru{+u, +no}:
-          (mu.m(mu.at(ms, u)) + uses.m(t, ms) : U32)
+          (when(U32, U32.is_eq(un.o(un.at(us, u)), 0), v => 0, v => (1 + mu.m(mu.at(ms, u)) : U32)) + uses.m(t, ms, us) : U32)
 
 def ru.user(rs: List<&2, Ru>) -> U32:
   match rs:
@@ -3021,7 +3078,7 @@ def mult.aff(n: Nat, +x: U32, +rs: List<&2, Ru>, +obs: List<&2, Ob>, +us: List<&
     case 1n+k:
       match k:
         case 0n:
-          when(Ms, U32.is_gt(mu.m(mu.at(ms.ms(s), ru.user(rs))), 1), v => ms.set(s, x, Mu{mu.m(mu.at(ms.ms(s), ru.user(rs))), 2}), v => s)
+          when(Ms, U32.is_gt(mu.m(mu.at(ms.ms(s), ru.user(rs))), 0), v => ms.set(s, x, Mu{mu.m(mu.at(ms.ms(s), ru.user(rs))), 2}), v => s)
         case _:
           ms.er(s, er.affine(obs, us, x, rs))
 
@@ -3032,24 +3089,26 @@ def mult.of(+x: U32, +share: U32, +rs: List<&2, Ru>, +obs: List<&2, Ob>, +us: Li
     case 1:
       s
     case 2:
-      when(Ms, U32.is_eq(uses.m(rs, ms.ms(s)), 0), v => s, v => ms.set(s, x, Mu{uses.m(rs, ms.ms(s)), 1}))
+      ms.set(s, x, Mu{uses.m(rs, ms.ms(s), us), 1})
     case _:
       mult.aff(List.length(&2, Ru, rs), x, rs, obs, us, s)
 
-# from the last emitted to the first: each unit's users before it
+# from the last emitted to the first: each unit's users before it; the
+# module's definitions shared, as Bend's
 def mults(xs: List<&2, U32>, +es: List<&2, U32>, +rss: List<&2, List<&2, Ru>>, +obs: List<&2, Ob>, +us: List<&2, Un>, s: Ms) -> Ms:
   match xs:
     case Nil{}:
       s
     case Con{+x, t}:
-      mults(t, es, rss, obs, us, mult.of(x, node.share(un.node(un.at(us, x))), uses.of(es, rss, x), obs, us, s))
+      mults(t, es, rss, obs, us, mult.of(x, when(U32, U32.is_eq(un.o(un.at(us, x)), 0), u => 1, u => node.share(un.node(un.at(us, x)))),
+        uses.of(es, rss, x), obs, us, s))
 
 def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
   match us:
     case Nil{}:
       Nil{}
     case Con{u, t}:
-      Con{Mu{1, 0}, mus.one(t)}
+      Con{Mu{0, 0}, mus.one(t)}
 
 # Text
 # ----
@@ -3110,9 +3169,9 @@ def copy.name(base: List<&2, U32>, +j: U32) -> List<&2, U32>:
 def unit.text(+e: Ec, +x: U32) -> List<&2, U32>:
   un.name(ec.obs(e), ec.us(e), x)
 
-# a unit's own name in its j-th copy
+# a unit's own name in its j-th copy, the copy by its own name the 0th
 def own.name(+e: Ec, +x: U32, +j: U32) -> List<&2, U32>:
-  when(List<&2, U32>, U32.is_eq(mu.kind(ec.mu(e, x)), 0), u => unit.text(e, x), u => copy.name(unit.text(e, x), j))
+  when(List<&2, U32>, U32.is_eq(j, 0), u => unit.text(e, x), u => copy.name(unit.text(e, x), j))
 
 def ctr.or(m: Maybe<&2, U32>) -> U32:
   match m:
@@ -3124,25 +3183,30 @@ def ctr.or(m: Maybe<&2, U32>) -> U32:
 def ctr.at(+cs: List<&2, U32>, +i: U32) -> U32:
   ctr.or(List.get(&2, U32, cs, U32.to_nat(i)))
 
-# a use of y from the j-th copy: plain, the next of y's copies, or the
-# copy of y that goes with the user's j-th
-def ref.kind(+kind: U32, +e: Ec, +y: U32, +j: U32, b: Tb) -> Tb:
+# the next of y's copies, counted
+def ref.next(+e: Ec, +y: U32, b: Tb) -> Tb:
+  match b:
+    case Tb{acc, +ctrs}:
+      Tb{rev.onto(copy.name(unit.text(e, y), ctr.at(ctrs, y)), acc), List.set(&2, U32, ctrs, U32.to_nat(y), (ctr.at(ctrs, y) + 1 : U32))}
+
+# a use of y from x's j-th copy: y's own name, the next of y's copies, or
+# the copy of y that goes with x's j-th; a definition of the module's
+# calls y by its own name
+def ref.kind(+kind: U32, +e: Ec, +x: U32, +y: U32, +j: U32, +b: Tb) -> Tb:
   match kind:
     case 0:
       tb.put(b, unit.text(e, y))
     case 1:
-      match b:
-        case Tb{acc, +ctrs}:
-          Tb{rev.onto(copy.name(unit.text(e, y), ctr.at(ctrs, y)), acc), List.set(&2, U32, ctrs, U32.to_nat(y), (ctr.at(ctrs, y) + 1 : U32))}
+      when(Tb, U32.is_eq(un.o(un.at(ec.us(e), x)), 0), u => tb.put(b, unit.text(e, y)), u => ref.next(e, y, b))
     case _:
-      tb.put(b, copy.name(unit.text(e, y), j))
+      tb.put(b, own.name(e, y, j))
 
 def ref.self(+self: Bool, +e: Ec, +x: U32, +j: U32, +y: U32, b: Tb) -> Tb:
   match self:
     case True{}:
       tb.put(b, own.name(e, x, j))
     case False{}:
-      ref.kind(mu.kind(ec.mu(e, y)), e, y, j, b)
+      ref.kind(mu.kind(ec.mu(e, y)), e, x, y, j, b)
 
 def mark.put(+mark: U32, b: Tb) -> Tb:
   match mark:
@@ -3204,14 +3268,11 @@ def copies.put(n: Nat, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
     case 1n+k:
       copies.put(k, e, x, (j + 1 : U32), unit.put(e, x, j, b))
 
+# a unit by its own name, then its numbered copies
 def unit.all(+e: Ec, +x: U32, +mu: Mu, b: Tb) -> Tb:
   match mu:
     case Mu{+m, +kind}:
-      match kind:
-        case 0:
-          unit.put(e, x, 0, b)
-        case _:
-          copies.put(U32.to_nat(m), e, x, 1, b)
+      copies.put(U32.to_nat(m), e, x, 1, unit.put(e, x, 0, b))
 
 def order.put(xs: List<&2, U32>, +e: Ec, b: Tb) -> Tb:
   match xs:

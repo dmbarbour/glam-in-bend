@@ -1,4 +1,5 @@
-# `^name` steps out of the innermost object; the module has no host.
+# `^name` steps out of the innermost object to its host; a definition of
+# the module is in no object (the module is no object).
 import Base
 
 def greet() -> String:

@@ -1,7 +1,8 @@
 # Sharing, stated per definition: affine by default, one use in the
 # emitted program, so that Bend folds it into its caller; `shared`, one
 # copy however many use it; `copied`, a copy for each use, each folding
-# into its own caller. Here inc is copied for its two uses in twice, and
+# into its own caller, besides the copy by its own name, for a plain
+# `.bend` file to call. Here inc is copied for its two uses in twice, and
 # show is shared by its two uses in report.
 import Base
 

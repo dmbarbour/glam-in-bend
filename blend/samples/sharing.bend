@@ -1,6 +1,9 @@
 # Written by Blend from sharing.blend; do not edit.
 import Base
 
+def Arith.inc(+n: U32) -> U32:
+  (n + 1 : U32)
+
 def Arith.inc.c1(+n: U32) -> U32:
   (n + 1 : U32)
 
