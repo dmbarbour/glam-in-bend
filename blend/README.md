@@ -14,7 +14,9 @@ Status: a design and its samples, no tool yet. Each valid sample's
 emitted form is written by hand and checked to run under Bend;
 `blend/check.sh` checks them, and the gate runs it. The maintainer's
 direction (2026-11-04): `def` and `upd` for introduction and override,
-definitions affine unless marked.
+definitions affine unless marked; the samples may change to fit the
+implementation, keeping their intention. The tool and the kernel's move
+onto it: `docs/plans/Blend_2026-11-04.md`.
 
 ## The model
 
