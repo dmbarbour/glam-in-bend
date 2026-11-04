@@ -17,6 +17,11 @@ change adds or moves are where to look.
     sharing.py segs PROGRAM OUT             one tree's segments, to OUT.segs
     sharing.py diff A.segs B.segs           compare two lists
     sharing.py callers MODULE FUNCTION      a function's call sites
+    sharing.py audit OUT [PROGRAM]          one tree's latent sharing: the
+                                            calls clang leaves out of line
+                                            from the kernel's segments, the
+                                            leaves named, and the functions
+                                            with two call sites or more
 
 PROGRAM is a Bend file under spike/, runmode.bend by default (the kernel
 and its strategies, no test nets: about 15 s and 1.8 GB to C). OUT is a
@@ -170,6 +175,181 @@ def cmd_compare(base, out, program="runmode.bend"):
         subprocess.run(["git", "worktree", "remove", "--force", wt], cwd=ROOT, check=True)
 
 
+# The audit: every leaf (`spin_N`, Bend's functions too small for a
+# segment, unnamed in its C) named by matching it to the Bend definitions
+# with the same parameters, narrowed by what each calls; clang's own
+# record of the calls it leaves out of line (-Rpass-missed=inline); and
+# the functions with two call sites or more in the sources.
+
+BASE_BEND = os.path.expanduser("~/.bend/bend2/base.bend")
+SPIN = re.compile(r"^(?:INLINE|DFAR) Term (spin_\d+)\(", re.M)
+SEG = re.compile(r"^WL_FN (WL_FID_\w+)\(", re.M)
+
+
+def split_params(text):
+    """A definition's parameter list, split at its top-level commas."""
+    out, depth, cur = [], 0, ""
+    for ch in text:
+        if ch in "(<{[":
+            depth += 1
+        elif ch in ")>}]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur.strip())
+    return out
+
+
+def bend_defs(path, mod):
+    """{name: (params, callee names, module)} of a Bend file: a parameter
+    kept where the C keeps one (no template, erased or kind parameter)."""
+    src = open(path).read()
+    aliases = {a: m for m, a in IMPORT.findall(src)}
+    defs = {}
+    starts = [(m.start(), m.group(1)) for m in DEF.finditer(src)]
+    for i, (at, name) in enumerate(starts):
+        end = starts[i + 1][0] if i + 1 < len(starts) else len(src)
+        body = src[at:end]
+        open_at = body.index("(")
+        depth, j = 0, open_at
+        while True:
+            if body[j] == "(":
+                depth += 1
+            elif body[j] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        params = []
+        for prm in split_params(body[open_at + 1:j]):
+            if not prm or prm[0] in "~-@" or ":" not in prm:
+                continue
+            nm = prm.lstrip("+").split(":")[0].strip()
+            ty = prm.split(":", 1)[1].strip()
+            if ty.startswith(("Type", "Kind")):
+                continue
+            params.append(nm)
+        calls = set()
+        for m in re.finditer(r"(?<![\w.])((?:[A-Z][A-Za-z0-9]*\.)?[a-z_][\w.]*?)\(", body[j:]):
+            ref = m.group(1)
+            al, _, rest = ref.partition(".")
+            if al in aliases and rest:
+                calls.add((aliases[al], rest))
+            else:
+                calls.add((mod, ref))
+        defs[(mod, name)] = params
+        defs[(mod, name, "calls")] = calls
+    return defs
+
+
+def c_spins(c_src):
+    """{spin: (parameter names, consecutive repeats joined; callees; lines)}"""
+    out = {}
+    starts = [(m.start(), m.group(1)) for m in SPIN.finditer(c_src)]
+    for i, (at, name) in enumerate(starts):
+        end = c_src.index("\n}\n", at)
+        body = c_src[at:end]
+        ps = re.findall(r"^\s+(?:u32|Term) _([a-z0-9_]+?)_\d+ = r(\d+);", body, re.M)
+        names = []
+        for nm, _ in sorted(ps, key=lambda t: int(t[1])):
+            if not names or names[-1] != nm:
+                names.append(nm)
+        callees = set(re.findall(r"\b(spin_\d+|WL_FID_\w+)\(", body[body.index("{"):])) - {name}
+        out[name] = (tuple(names), callees, body.count("\n"))
+    return out
+
+
+def name_spins(spins, defs):
+    """Each spin's candidate Bend functions: those whose parameters it has,
+    then pruned to those calling a candidate of each spin it calls, until
+    nothing changes."""
+    by_sig = {}
+    for k, v in defs.items():
+        if len(k) == 2:
+            sig = []
+            for p in v:
+                if not sig or sig[-1] != p:
+                    sig.append(p)
+            by_sig.setdefault(tuple(sig), set()).add(k)
+    cand = {sp: set(by_sig.get(sig, ())) for sp, (sig, _, _) in spins.items()}
+    changed = True
+    while changed:
+        changed = False
+        for sp, (_, callees, _) in spins.items():
+            keep = set()
+            for d in cand[sp]:
+                calls = defs.get(d + ("calls",), set())
+                ok = True
+                for c in callees:
+                    if c in cand and cand[c] and len(cand[c]) <= 3 and not (cand[c] & calls):
+                        ok = False
+                if ok:
+                    keep.add(d)
+            if keep != cand[sp] and keep:
+                cand[sp] = keep
+                changed = True
+    return cand
+
+
+def label(cand, sp):
+    c = cand.get(sp) or set()
+    if not c:
+        return sp
+    if len(c) == 1:
+        m, n = next(iter(c))
+        return f"{sp} {m}.{n}"
+    return f"{sp} one of " + ", ".join(f"{m}.{n}" for m, n in sorted(c)[:3]) + (" ..." if len(c) > 3 else "")
+
+
+def cmd_audit(out, program="runmode.bend"):
+    out = os.path.abspath(out)
+    os.makedirs(out, exist_ok=True)
+    c = os.path.join(out, "prog.c")
+    emit(SPIKE, program, c)
+    rem = subprocess.run([CAPPED] + CAP + ["clang", "-std=c11", "-O3", "-c", c, "-o", os.path.join(out, "prog.o"),
+                          "-Rpass-missed=inline"], capture_output=True, text=True)
+    missed = re.findall(r"remark: '(\w+)' not inlined into '(\w+)' because (.*?) \[", rem.stderr)
+    src = open(c).read()
+    spins = c_spins(src)
+    defs = {}
+    for f in sorted(os.listdir(SPIKE)):
+        if f.endswith(".bend") and f not in ("PROOF.bend", "LAWS.bend"):
+            defs.update(bend_defs(os.path.join(SPIKE, f), f[:-5]))
+    if os.path.exists(BASE_BEND):
+        defs.update(bend_defs(BASE_BEND, "Base"))
+    cand = name_spins(spins, defs)
+    named = sum(1 for v in cand.values() if len(v) == 1)
+    print(f"{program}: {len(spins)} leaves, {named} named alone, "
+          f"{sum(1 for v in cand.values() if len(v) > 1)} among a few, {sum(1 for v in cand.values() if not v)} not")
+    # calls left out of line, by segment of the kernel
+    print("\ncalls clang leaves out of line from the kernel's segments (caller, callee, sites, why):")
+    rows = {}
+    for callee, caller, why in missed:
+        if not re.match(r"WL_FID_(knet|kstrat|kprim|krules|kernel)_", caller):
+            continue
+        key = (caller, callee, "never" if "never" in why else "costly")
+        rows[key] = rows.get(key, 0) + 1
+    for (caller, callee, why), n in sorted(rows.items(), key=lambda kv: (kv[0][0], -kv[1])):
+        if callee.startswith("spin_") or callee.startswith("WL_FID_"):
+            size = f" ({spins[callee][2]} lines)" if callee in spins else ""
+            print(f"  {caller}: {label(cand, callee)}{size} x{n} {why}")
+    # functions with two call sites or more
+    print("\nBend functions with two call sites or more (spike sources):")
+    sites = {}
+    for k in list(defs):
+        if len(k) == 2 and k[0] != "Base":
+            n = len(callers(SPIKE, k[0], k[1]))
+            if n >= 2:
+                sites[k] = n
+    for (m, n), cnt in sorted(sites.items(), key=lambda kv: (kv[0][0], -kv[1])):
+        print(f"  {m}.{n} {cnt}")
+    return 0
+
+
 def main(argv):
     if len(argv) >= 3 and argv[0] == "compare":
         return cmd_compare(*argv[1:4])
@@ -177,6 +357,8 @@ def main(argv):
         return cmd_segs(argv[1], argv[2])
     if len(argv) == 3 and argv[0] == "diff":
         return report(read_segs(argv[1]), read_segs(argv[2]), SPIKE)
+    if len(argv) in (2, 3) and argv[0] == "audit":
+        return cmd_audit(*argv[1:3])
     if len(argv) == 3 and argv[0] == "callers":
         for f, line, cur in callers(SPIKE, argv[1], argv[2]):
             print(f"{f}:{line} in {cur}")

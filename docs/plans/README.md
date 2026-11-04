@@ -48,6 +48,10 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   for the assembler's larger structure on Bend 2: the shell and
   concurrency, values and large structures, the store and reclamation,
   parallelism. Drafted for the maintainer's review.
+- [`Codegen_2026-11-04.md`](Codegen_2026-11-04.md): `codegen-` steps for
+  generation and specialization: how Bend compiles our code, an audit of
+  the kernel's sharing, what must be specialized and by which vehicle.
+  Drafted for the maintainer's review.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
   sharing and fixpoints, parallelism, fast paths), ending in a

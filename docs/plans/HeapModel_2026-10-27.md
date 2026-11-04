@@ -3218,7 +3218,8 @@ takes from it:
        that raised it, the rewrite written out by hand in `kstrat.bend`
        for the collecting demand, retired with `.reserve`; the next such
        case takes it up.
-       - `heap-strategies.generate.revisit` — tentative — the maintainer
+       - `heap-strategies.generate.revisit` — tentative, carried to
+         `codegen-review` (Codegen_2026-11-04.md) — the maintainer
          (2026-11-03): revisit our approach to generators at some point.
          Now one generator, `spike/tools/gen_krules.bend` (1,922 lines),
          writes the kernel's rewrites, `spike/krules.bend` (3,394 lines),
@@ -3252,7 +3253,8 @@ takes from it:
          (2026-11-04), as it would flag every helper with two callers,
          most of them leaves Bend makes no segment of, where the
          comparison answers what the compiler did in half a minute.
-       - `heap-strategies.generate.specialize` — tentative — the
+       - `heap-strategies.generate.specialize` — tentative, carried to
+         `codegen-vehicle` — the
          maintainer (2026-11-03): a preprocessor of our own, in Bend
          (`generated-sources`), to specialize code and avoid accidental
          sharing: a copy per caller where Bend's templates cannot make
