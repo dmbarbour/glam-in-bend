@@ -1,1 +1,1 @@
-nested-diamond.blend:16: Z inherits the nested object Inner of line 8 bound to two hosts, through Outer2.Inner and Outer3.Inner: its `^` would mean both; inherit one
+nested-diamond.blend:17: Z has a from both Outer3.Inner and Outer2.Inner, each introducing it with def

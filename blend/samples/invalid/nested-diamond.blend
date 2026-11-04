@@ -1,5 +1,6 @@
-# Outer's Inner is made for Outer2 and for Outer3, its `^` bound to each;
-# Z inherits both, Inner's bodies once, their `^` both hosts at once.
+# Outer's Inner made for Outer2 and for Outer3: two objects, each its
+# own copy of Inner, bound to its host. Z inherits both, so a is
+# introduced twice, as two parents each introducing it would.
 import Base
 
 object Outer with

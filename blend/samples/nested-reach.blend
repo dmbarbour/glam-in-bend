@@ -1,8 +1,10 @@
-# `^` with frozen hosts: a nested object's mixins are bound to the host
-# of the nested object made of them, and inheritance never binds them
-# again. Y inherits Outer2.Inner as it is, its `^` Outer2's in every body,
-# as a call of Outer2.foo would be; `extends In` in a nested object names
-# the In of the host it is made for; a diamond of hosts is one host.
+# `^` with frozen hosts: a nested object made for a host binds its own
+# copy of each mixin it is made of to that host, and inheritance never
+# binds them again. Y inherits Outer2.Inner as it is, its `^` Outer2's in
+# every body, as a call of Outer2.foo would be; `extends Inner` in a
+# nested object names the Inner of the host it is made for; a diamond of
+# hosts is one host; W inherits two nested objects of two hosts, each
+# with its own copies, names disjoint, each bound to its own host.
 import Base
 
 object Outer with
@@ -14,6 +16,9 @@ object Outer with
   object Sub extends Inner with
     def s() -> String:
       a() ++ "+"
+  object Tag with
+    def tag() -> String:
+      "#" ++ ^name()
 
 object Outer2 extends Outer with
   shared upd name() -> String:
@@ -32,5 +37,9 @@ object Y extends Outer2.Inner with
   def ab() -> String:
     a() ++ "/" ++ b()
 
+object W extends Outer2.Inner, Outer3.Tag with
+  def at() -> String:
+    a() ++ tag()
+
 def main() -> IO(Unit):
-  IO.print(Y.ab() ++ " " ++ Outer2.Sub.s() ++ " " ++ Outer3.Sub.s() ++ " " ++ Both.Inner.a())
+  IO.print(Y.ab() ++ " " ++ Outer2.Sub.s() ++ " " ++ Outer3.Sub.s() ++ " " ++ Both.Inner.a() ++ " " ++ W.at())

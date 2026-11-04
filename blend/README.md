@@ -78,13 +78,14 @@ Bend's imports pass through.
   the top level (`blend-namespaces-as-bends`).
 - **`^` is frozen** (`blend-frozen-host`), glam's semantics: a bare name
   binds to the final object's definition; a nested object made for host
-  X binds its mixins to X, `^` in their bodies X and `^^` X's host, a
-  bare name in the introducing mixin's `extends` found from X as well;
-  inheritance never binds again. So `Outer2.Inner` sees Outer2, being
-  made again for each host, and an object inheriting `Outer2.Inner`
-  sees Outer2 in every body, as a call of `Outer2.foo` would. A mixin
-  brought into one object by two made objects of different hosts would
-  see both: an error.
+  X binds a copy of each mixin it is made of to X, `^` in their bodies X
+  and `^^` X's host, a bare name in the introducing mixin's `extends`
+  found from X as well; inheritance never binds again. So `Outer2.Inner`
+  sees Outer2, being made again for each host, and an object inheriting
+  `Outer2.Inner` sees Outer2 in every body, as a call of `Outer2.foo`
+  would. Each made object's copies are its own: inheriting
+  `Outer2.Inner` and `Outer.Inner` together introduces their shared
+  names twice, an error as any two introductions are.
 - **Inheritance** is multiple, linearized by C3 as glam's is: a parent
   named twice is one parent. An object's definitions apply after its
   parents', so that an `upd`'s prior is the definition the next object
@@ -191,7 +192,7 @@ that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
 file, a name beginning `Blend_`, an extension of nothing inherited, a
 nested object introduced where one is inherited, `extend` at the top
-level, a nested object's mixin inherited bound to two hosts.
+level, two nested objects made of one mixin inherited together.
 
 ## Known issues
 

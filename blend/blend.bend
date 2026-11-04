@@ -1118,12 +1118,13 @@ def parts(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
 # an object: its number, its host's, its path from the module, its
 # parents as written, its members (the module, number 0: the whole file)
 type Ob is Data:
-  Ob{+id: U32, +host: U32, path: List<&2, List<&2, U32>>, +abs: Bool, parents: List<&2, List<&2, U32>>, mems: List<&2, Node>, +no: U32, +kind: U32}
+  Ob{+id: U32, +host: U32, path: List<&2, List<&2, U32>>, +abs: Bool, parents: List<&2, List<&2, U32>>, mems: List<&2, Node>, +no: U32, +kind: U32, +tpl: U32}
 
 # an object's kind: 0 a top-level object (or a module's root), 1 a nested
 # object as written, 2 an extension, `extend N with` (both mixins, never
 # emitted nor named by path: Nested objects, below), 3 a nested object
-# made for its host
+# made for its host. Its tpl, the mixin as written a bound mixin copies
+# (a copy's host the one it is bound to), else its own number
 def ob.kind.of(+ext: Bool, +path: List<&2, List<&2, U32>>) -> U32:
   when(U32, ext, u => 2, u => when(U32, blank.parts(path), v => 0, v => 1))
 
@@ -1162,7 +1163,7 @@ def obs.go(n: Nat, st: List<&2, Wf>, +next: U32, out: List<&2, Ob>) -> List<&2, 
                   match nd:
                     case NObj{+abs, +ext, +name, parents, +kids, +no}:
                       obs.go(k, Con{Wf{next, List.append(&2, List<&2, U32>, path, [name]), kids}, Con{Wf{host, path, t}, rest}},
-                        (next + 1 : U32), Con{Ob{next, host, List.append(&2, List<&2, U32>, path, [name]), abs, parents, kids, no, ob.kind.of(ext, path)}, out})
+                        (next + 1 : U32), Con{Ob{next, host, List.append(&2, List<&2, U32>, path, [name]), abs, parents, kids, no, ob.kind.of(ext, path), next}, out})
                     case _:
                       obs.go(k, Con{Wf{host, path, t}, rest}, next, out)
 
@@ -1172,7 +1173,8 @@ def obs.go(n: Nat, st: List<&2, Wf>, +next: U32, out: List<&2, Ob>) -> List<&2, 
 def obs.mod(+tree: List<&2, Node>, +k: U32, +out: List<&2, Ob>) -> List<&2, Ob>:
   obs.go(Nat.add(Nat.add(count(tree), count(tree)), 2n), [Wf{U32.from_nat(List.length(&2, Ob, out)), Nil{}, tree}],
     (U32.from_nat(List.length(&2, Ob, out)) + 1 : U32),
-    Con{Ob{U32.from_nat(List.length(&2, Ob, out)), U32.from_nat(List.length(&2, Ob, out)), Nil{}, False{}, Nil{}, tree, (k * 1000000 : U32), 0}, out})
+    Con{Ob{U32.from_nat(List.length(&2, Ob, out)), U32.from_nat(List.length(&2, Ob, out)), Nil{}, False{}, Nil{}, tree, (k * 1000000 : U32), 0,
+      U32.from_nat(List.length(&2, Ob, out))}, out})
 
 def obs.mods(ts: List<&2, List<&2, Node>>, +k: U32, +out: List<&2, Ob>) -> List<&2, Ob>:
   match ts:
@@ -1188,7 +1190,7 @@ def obs(+trees: List<&2, List<&2, Node>>) -> List<&2, Ob>:
 def ob.or(m: Maybe<&2, Ob>) -> Ob:
   match m:
     case None{}:
-      Ob{0, 0, Nil{}, False{}, Nil{}, Nil{}, 0, 0}
+      Ob{0, 0, Nil{}, False{}, Nil{}, Nil{}, 0, 0, 0}
     case Some{o}:
       o
 
@@ -1197,27 +1199,27 @@ def ob.at(+obs: List<&2, Ob>, +id: U32) -> Ob:
 
 def ob.path(o: Ob) -> List<&2, List<&2, U32>>:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       path
 
 def ob.host(o: Ob) -> U32:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       host
 
 def ob.abs(o: Ob) -> Bool:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       abs
 
 def ob.no(o: Ob) -> U32:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       no
 
 def ob.mems(o: Ob) -> List<&2, Node>:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       mems
 
 def dots(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
@@ -1242,12 +1244,36 @@ def ob.name.of(+path: List<&2, List<&2, U32>>) -> String:
 def ob.name(+obs: List<&2, Ob>, +id: U32) -> String:
   ob.name.of(ob.path(ob.at(obs, id)))
 
-def loc.mod(+no: U32) -> U32:
-  (no / 1000000 : U32)
-
 # whether an object of this kind is one, not a mixin
 def is.object(+kind: U32) -> Bool:
   U32.is_eq(kind, 0) || U32.is_eq(kind, 3)
+
+def ob.tpl(o: Ob) -> U32:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
+      tpl
+
+# whether an object is a mixin as written (not a bound copy of one)
+def is.written(+obs: List<&2, Ob>, +id: U32) -> Bool:
+  U32.is_eq(ob.tpl(ob.at(obs, id)), id)
+
+def ob.kind(o: Ob) -> U32:
+  match o:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
+      kind
+
+def path.last(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
+  on.maybe(List<&2, U32>, List<&2, U32>, List.last(&2, List<&2, U32>, ps), u => Nil{}, x => x)
+
+# an object's name as a message of two objects gives it: a bound copy,
+# the nested object it serves (`Outer2.Inner`)
+def ob.say(+obs: List<&2, Ob>, +id: U32) -> String:
+  when(String, Bool.not(is.object(ob.kind(ob.at(obs, id)))) && Bool.not(is.written(obs, id)),
+    u => ob.name.of(List.append(&2, List<&2, U32>, ob.path(ob.at(obs, ob.host(ob.at(obs, id)))), [path.last(ob.path(ob.at(obs, id)))])),
+    u => ob.name(obs, id))
+
+def loc.mod(+no: U32) -> U32:
+  (no / 1000000 : U32)
 
 # the first object at path p
 # the first object of module m at path p
@@ -1257,13 +1283,8 @@ def find.path(+obs: List<&2, Ob>, +m: U32, +p: List<&2, List<&2, U32>>) -> Maybe
       None{}
     case Con{+o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
           when(Maybe<&2, U32>, names.eq(path, p) && U32.is_eq(loc.mod(no), m) && is.object(kind), u => Some{id}, u => find.path(t, m, p))
-
-def ob.kind(o: Ob) -> U32:
-  match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
-      kind
 
 # whether id is a module's root
 def is.root(+obs: List<&2, Ob>, +id: U32) -> Bool:
@@ -1319,18 +1340,15 @@ def uniq(xs: List<&2, U32>, +seen: List<&2, U32>) -> List<&2, U32>:
     case Con{+x, +t}:
       when(List<&2, U32>, has(seen, x), u => uniq(t, seen), u => Con{x, uniq(t, Con{x, seen})})
 
-def path.last(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
-  on.maybe(List<&2, U32>, List<&2, U32>, List.last(&2, List<&2, U32>, ps), u => Nil{}, x => x)
-
-# the mixins named n whose host is q
+# the mixins as written named n whose host is q
 def mixins.in(os: List<&2, Ob>, +q: U32, +n: List<&2, U32>) -> List<&2, U32>:
   match os:
     case Nil{}:
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
-          when(List<&2, U32>, U32.is_eq(host, q) && Bool.not(is.object(kind)) && same(path.last(path), n),
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(List<&2, U32>, U32.is_eq(host, q) && Bool.not(is.object(kind)) && U32.is_eq(tpl, id) && same(path.last(path), n),
             u => Con{id, mixins.in(t, q, n)}, u => mixins.in(t, q, n))
 
 # the mixins named n of the objects in a linearization, in its order
@@ -1339,7 +1357,7 @@ def mixins.of(qs: List<&2, U32>, +obs: List<&2, Ob>, +n: List<&2, U32>) -> List<
     case Nil{}:
       Nil{}
     case Con{+q, t}:
-      List.append(&2, U32, mixins.in(obs, q, n), mixins.of(t, obs, n))
+      List.append(&2, U32, mixins.in(obs, ob.tpl(ob.at(obs, q)), n), mixins.of(t, obs, n))
 
 # a linearization found: whether it is sound (its parents' too), and its order
 type Lz is Data:
@@ -1366,7 +1384,7 @@ def lz.ord(m: Maybe<&2, Lz>) -> List<&2, U32>:
 
 def ob.parents(o: Ob) -> List<&2, List<&2, U32>>:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       parents
 
 def last.id(xs: List<&2, U32>) -> Maybe<&2, U32>:
@@ -1378,16 +1396,34 @@ def last.id(xs: List<&2, U32>) -> Maybe<&2, U32>:
 def intro.parents(+chain: List<&2, U32>, +als: List<&2, Al>, +obs: List<&2, Ob>, +x: U32) -> List<&2, U32>:
   on.maybe(U32, List<&2, U32>, last.id(chain), u => Nil{}, +i => uniq(pids.go(ob.parents(ob.at(obs, i)), als, obs, x), Nil{}))
 
+# the copy of mixin t bound to x, if made
+def copy.find(os: List<&2, Ob>, +t: U32, +x: U32) -> Maybe<&2, U32>:
+  match os:
+    case Nil{}:
+      None{}
+    case Con{o, +r}:
+      match o:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(Maybe<&2, U32>, U32.is_eq(tpl, t) && U32.is_eq(host, x) && Bool.not(U32.is_eq(id, t)), u => Some{id}, u => copy.find(r, t, x))
+
+# the copies bound to x of mixins ts, those made so far
+def copies.for(ts: List<&2, U32>, +obs: List<&2, Ob>, +x: U32) -> List<&2, U32>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{+t, +r}:
+      on.maybe(U32, List<&2, U32>, copy.find(obs, t, x), u => copies.for(r, obs, x), +c => Con{c, copies.for(r, obs, x)})
+
 # a parent named twice is one parent. A nested object made for host x has
 # x's mixins of its name, down x's linearization as last found, then the
 # parents of the one introducing it, found from x (Nested objects, below);
 # a mixin, none of its own
 def pids.of(o: Ob, +als: List<&2, Al>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>) -> List<&2, U32>:
   match o:
-    case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
       match kind:
         case 3:
-          List.append(&2, U32, mixins.of(lz.ord(lz.at(ls, host)), obs, path.last(path)),
+          List.append(&2, U32, copies.for(mixins.of(lz.ord(lz.at(ls, host)), obs, path.last(path)), obs, host),
             intro.parents(mixins.of(lz.ord(lz.at(ls, host)), obs, path.last(path)), als, obs, host))
         case 0:
           uniq(pids.go(parents, als, obs, host), Nil{})
@@ -1427,8 +1463,8 @@ def mixin.other(os: List<&2, Ob>, +id: U32, +host: U32, +n: List<&2, U32>, +k: U
       None{}
     case Con{o, +t}:
       match o:
-        case Ob{+x, +h, +path, +abs, parents, mems, +no, +kind}:
-          when(Maybe<&2, U32>, U32.is_eq(h, host) && U32.is_eq(kind, k) && Bool.not(U32.is_eq(x, id)) && same(path.last(path), n),
+        case Ob{+x, +h, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(Maybe<&2, U32>, U32.is_eq(h, host) && U32.is_eq(kind, k) && Bool.not(U32.is_eq(x, id)) && U32.is_eq(tpl, x) && same(path.last(path), n),
             u => Some{x}, u => mixin.other(t, id, host, n, k))
 
 def loc.line(+no: U32) -> U32:
@@ -1497,10 +1533,10 @@ def er.obs(os: List<&2, Ob>, +als: List<&2, Al>, +obs: List<&2, Ob>) -> List<&2,
       Nil{}
     case Con{o, t}:
       match o:
-        case Ob{+id, +host, +path, +abs, +parents, mems, +no, +kind}:
-          List.append(&2, Er, er.mems(mems, U32.is_eq(id, host)),
-            List.append(&2, Er, when(List<&2, Er>, U32.is_eq(id, host), u => Nil{}, u => er.twice(obs, id, path, no, kind, host)),
-              List.append(&2, Er, er.ext(obs, id, host, path, parents, no, kind),
+        case Ob{+id, +host, +path, +abs, +parents, mems, +no, +kind, +tpl}:
+          List.append(&2, Er, when(List<&2, Er>, U32.is_eq(tpl, id), u => er.mems(mems, U32.is_eq(id, host)), u => Nil{}),
+            List.append(&2, Er, when(List<&2, Er>, U32.is_eq(id, host) || Bool.not(U32.is_eq(tpl, id)), u => Nil{}, u => er.twice(obs, id, path, no, kind, host)),
+              List.append(&2, Er, when(List<&2, Er>, U32.is_eq(tpl, id), u => er.ext(obs, id, host, path, parents, no, kind), u => Nil{}),
                 List.append(&2, Er, when(List<&2, Er>, U32.is_eq(kind, 0), u => er.parents(parents, als, obs, id, host, no), u => Nil{}),
                   er.obs(t, als, obs)))))
 
@@ -1853,14 +1889,14 @@ def fold(+obs: List<&2, Ob>, l: Maybe<&2, Lz>) -> Maybe<&2, Fd>:
         case Lz{+ok, ord}:
           when(Maybe<&2, Fd>, ok, u => Some{fd.obs(List.reverse(&2, U32, ord), obs, Fd{Nil{}, Nil{}})}, u => None{})
 
-# each object's definitions, an extension's none: it means something only
-# down a nested object's linearization
+# each object's definitions, a mixin's none: it means something only in
+# the nested objects made of it
 def folds.go(ls: List<&2, Maybe<&2, Lz>>, +obs: List<&2, Ob>, +bad: List<&2, U32>, +id: U32) -> List<&2, Maybe<&2, Fd>>:
   match ls:
     case Nil{}:
       Nil{}
     case Con{l, t}:
-      Con{when(Maybe<&2, Fd>, U32.is_eq(ob.kind(ob.at(obs, id)), 2) || has(bad, id), u => None{}, u => fold(obs, l)), folds.go(t, obs, bad, (id + 1 : U32))}
+      Con{when(Maybe<&2, Fd>, Bool.not(is.object(ob.kind(ob.at(obs, id)))) || has(bad, id), u => None{}, u => fold(obs, l)), folds.go(t, obs, bad, (id + 1 : U32))}
 
 # each object's definitions; none for a nested object whose contributors
 # are wrong already (bad), its error enough
@@ -1924,8 +1960,8 @@ def fe.msg(+obs: List<&2, Ob>, +id: U32, f: Fe) -> Er:
           when(Er, U32.is_eq(q, id),
             u => Er{mno, kw(upd) ++ text(name) ++ ": " ++ ob.name(obs, q) ++ " has " ++ text(name) ++ " already, from " ++
               ob.name(obs, origin) ++ " (update it with upd)"},
-            u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has " ++ text(name) ++ " from both " ++ ob.name(obs, origin) ++
-              " and " ++ ob.name(obs, q) ++ ", each introducing it with def"})
+            u => Er{ob.no(ob.at(obs, id)), ob.name(obs, id) ++ " has " ++ text(name) ++ " from both " ++ ob.say(obs, origin) ++
+              " and " ++ ob.say(obs, q) ++ ", each introducing it with def"})
 
 def er.fes(fes: List<&2, Fe>, +skip: List<&2, U32>, +obs: List<&2, Ob>, +id: U32) -> List<&2, Er>:
   match fes:
@@ -2084,20 +2120,20 @@ def show.abs.of(+a: Bool) -> String:
     case False{}:
       ""
 
-def show.kind.of(+k: U32) -> String:
+def show.kind.of(+k: U32, +bound: Bool) -> String:
   match k:
     case 1:
-      "mixin "
+      when(String, bound, u => "mixin bound ", u => "mixin ")
     case 2:
-      "mixin, an extension, "
+      when(String, bound, u => "extension bound ", u => "extension ")
     case _:
       ""
 
 def show.ob(+obs: List<&2, Ob>, o: Ob, l: Maybe<&2, Lz>, +f: Maybe<&2, Fd>) -> String:
   match o:
-    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+    case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
       when(String, U32.is_eq(id, host), u => "module\n" ++ show.fd.names(f),
-        u => show.kind.of(kind) ++ show.abs.of(abs) ++ ob.name(obs, id) ++ ": " ++ show.ids(obs, lz.ord(l)) ++ "\n" ++ show.fd(obs, f))
+        u => show.kind.of(kind, Bool.not(U32.is_eq(tpl, id))) ++ show.abs.of(abs) ++ ob.say(obs, id) ++ ": " ++ show.ids(obs, lz.ord(l)) ++ "\n" ++ show.fd(obs, f))
 
 # each object, its linearization, and each definition it has with the
 # objects that gave it, the final first
@@ -2224,27 +2260,6 @@ def ids.or(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
 
 def ids.at(+xss: List<&2, List<&2, U32>>, +i: U32) -> List<&2, U32>:
   ids.or(List.get(&2, List<&2, U32>, xss, U32.to_nat(i)))
-
-# the made objects of a linearization that hold mixin q among their
-# parents: those binding q, in its order
-def binders(ord: List<&2, U32>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +q: U32) -> List<&2, U32>:
-  match ord:
-    case Nil{}:
-      Nil{}
-    case Con{+m, +t}:
-      when(List<&2, U32>, U32.is_eq(ob.kind(ob.at(obs, m)), 3) && has(ids.at(pss, m), q), u => Con{m, binders(t, obs, pss, q)},
-        u => binders(t, obs, pss, q))
-
-# the hosts a body written in q sees, copied into o, the host frozen
-# (blend-frozen-host): a mixin's body sees the host chain of the made
-# nested object that binds it, `Outer2.Inner`'s host Outer2, and
-# inheritance never binds it again, so that an object inheriting
-# `Outer2.Inner` sees Outer2, as calling `Outer2.foo` would; any other
-# body sees its own object's hosts
-def eff.hosts(+cx: Cx, +o: U32, +q: U32) -> List<&2, U32>:
-  when(List<&2, U32>, is.object(ob.kind(ob.at(cx.obs(cx), q))), u => hosts(cx.obs(cx), q),
-    u => on.maybe(U32, List<&2, U32>, List.head(&2, U32, binders(cx.ord(cx, o), cx.obs(cx), cx.pss(cx), q)), v => hosts(cx.obs(cx), q),
-      +m => hosts(cx.obs(cx), m)))
 
 # A body's locals
 # ---------------
@@ -2539,7 +2554,7 @@ def root.find(obs: List<&2, Ob>, +m: U32) -> U32:
       0
     case Con{o, t}:
       match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(U32, U32.is_eq(id, host) && U32.is_eq(loc.mod(no), m), u => id, u => root.find(t, m))
 
 # an import: its path as written, its alias, whether it is Blend's
@@ -2680,7 +2695,7 @@ def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32
 # definition of the module (Bend's, its text kept), or Bend's
 def rr.plain(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
   when(Rr, names.has(locals, n), u => rr.tok(t),
-    u => on.maybe(U32, Rr, look(cx, Con{o, eff.hosts(cx, o, q)}, n),
+    u => on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
       v => rr.dotted(cx, q, mark, n, t, no),
       +h => rr.final(cx, h, mark, n, t, no)))
 
@@ -2719,7 +2734,7 @@ def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) ->
 # `^n`, k carets: the k-th host's final n, the module's definition at
 # the top
 def rr.host(+cx: Cx, +o: U32, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whole: List<&2, U32>, +no: U32) -> Rr:
-  on.maybe(U32, Rr, List.get(&2, U32, eff.hosts(cx, o, q), Nat.sub(k, 1n)),
+  on.maybe(U32, Rr, List.get(&2, U32, hosts(cx.obs(cx), q), Nat.sub(k, 1n)),
     u => rr.er(t, no, text(whole) ++ " steps out of the module, which has no host"),
     +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
       v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
@@ -2850,7 +2865,7 @@ def objs.only(xs: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, U32>:
 # whether n names an object's definition a bare name would reach; the
 # module's, Bend's, a local may shadow
 def visible(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>) -> Bool:
-  Maybe.is_some(&2, U32, look(cx, objs.only(Con{o, eff.hosts(cx, o, q)}, cx.obs(cx)), n))
+  Maybe.is_some(&2, U32, look(cx, objs.only(Con{o, hosts(cx.obs(cx), q)}, cx.obs(cx)), n))
 
 def shadow.params(ps: List<&2, List<&2, U32>>, +cx: Cx, +o: U32, +q: U32, +dn: String, +no: U32) -> List<&2, Er>:
   match ps:
@@ -3070,7 +3085,7 @@ def module.copies(os: List<&2, Ob>, +cx: Cx) -> List<&2, Oc>:
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(List<&2, Oc>, Bool.not(U32.is_eq(loc.mod(no), 0)) || Bool.not(is.object(kind)), u => module.copies(t, cx),
             u => when(List<&2, Oc>, abs, v => Con{Oc{id, Cp{Nil{}, Nil{}, Nil{}}}, module.copies(t, cx)}, v => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)}))
 
@@ -3335,7 +3350,7 @@ def slots.obs(os: List<&2, Ob>) -> List<&2, Sl>:
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(List<&2, Sl>, abs || U32.is_eq(id, host) || Bool.not(U32.is_eq(loc.mod(no), 0)) || Bool.not(is.object(kind)), u => slots.obs(t),
             u => Con{Sl{no, 1, Nil{}, id}, slots.obs(t)})
 
@@ -4235,8 +4250,8 @@ def mixin.names.in(os: List<&2, Ob>, +q: U32) -> List<&2, List<&2, U32>>:
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
-          when(List<&2, List<&2, U32>>, U32.is_eq(host, q) && Bool.not(is.object(kind)),
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(List<&2, List<&2, U32>>, U32.is_eq(host, q) && Bool.not(is.object(kind)) && U32.is_eq(tpl, id),
             u => Con{path.last(path), mixin.names.in(t, q)}, u => mixin.names.in(t, q))
 
 def names.fresh(ns: List<&2, List<&2, U32>>, +seen: List<&2, List<&2, U32>>, +acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
@@ -4252,7 +4267,7 @@ def mixin.names(qs: List<&2, U32>, +obs: List<&2, Ob>, +seen: List<&2, List<&2, 
     case Nil{}:
       Nil{}
     case Con{+q, t}:
-      +ns = names.fresh(mixin.names.in(obs, q), seen, Nil{})
+      +ns = names.fresh(mixin.names.in(obs, ob.tpl(ob.at(obs, q))), seen, Nil{})
       List.append(&2, List<&2, U32>, ns, mixin.names(t, obs, List.append(&2, List<&2, U32>, ns, seen)))
 
 # whether X.N is made already
@@ -4262,7 +4277,7 @@ def made.has(os: List<&2, Ob>, +x: U32, +n: List<&2, U32>) -> Bool:
       False{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
           (U32.is_eq(kind, 3) && U32.is_eq(host, x) && same(path.last(path), n)) || made.has(t, x, n)
 
 # the nested objects to make for x: one for each name its mixins have
@@ -4274,7 +4289,7 @@ def syn.x(ns: List<&2, List<&2, U32>>, +x: U32, +obs: List<&2, Ob>, +made: List<
     case Con{+n, +t}:
       when(List<&2, Ob>, made.has(obs, x, n) || made.has(made, x, n), u => syn.x(t, x, obs, made, next),
         u => syn.x(t, x, obs, Con{Ob{next, x, List.append(&2, List<&2, U32>, ob.path(ob.at(obs, x)), [n]), ob.abs(ob.at(obs, x)), Nil{}, Nil{},
-          ob.no(ob.at(obs, x)), 3}, made}, (next + 1 : U32)))
+          ob.no(ob.at(obs, x)), 3, next}, made}, (next + 1 : U32)))
 
 # a round: for each object, its nested objects not yet made
 def syn.round(os: List<&2, Ob>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +made: List<&2, Ob>) -> List<&2, Ob>:
@@ -4283,11 +4298,38 @@ def syn.round(os: List<&2, Ob>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>
       made
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(List<&2, Ob>, is.object(kind) && Bool.not(U32.is_eq(id, host)),
             u => syn.round(t, obs, ls, syn.x(mixin.names(lz.ord(lz.at(ls, id)), obs, Nil{}), id, obs, made,
               (U32.from_nat(List.length(&2, Ob, obs)) + U32.from_nat(List.length(&2, Ob, made)) : U32))),
             u => syn.round(t, obs, ls, made))
+
+def copy.has(+os: List<&2, Ob>, +more: List<&2, Ob>, +t: U32, +x: U32) -> Bool:
+  Maybe.is_some(&2, U32, copy.find(os, t, x)) || Maybe.is_some(&2, U32, copy.find(more, t, x))
+
+# the copies x's mixins ts call for, bound to x: the template's members
+# and line, its kind, x its host
+def copies.t(ts: List<&2, U32>, +x: U32, +obs: List<&2, Ob>, +made: List<&2, Ob>, +next: U32) -> List<&2, Ob>:
+  match ts:
+    case Nil{}:
+      made
+    case Con{+t, +r}:
+      when(List<&2, Ob>, copy.has(obs, made, t, x), u => copies.t(r, x, obs, made, next),
+        u => copies.t(r, x, obs, Con{Ob{next, x, ob.path(ob.at(obs, t)), ob.abs(ob.at(obs, t)), Nil{}, ob.mems(ob.at(obs, t)), ob.no(ob.at(obs, t)),
+          ob.kind(ob.at(obs, t)), t}, made}, (next + 1 : U32)))
+
+# for each made object x.n, the copies its host's mixins of n call for
+def syn.copies(os: List<&2, Ob>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +made: List<&2, Ob>) -> List<&2, Ob>:
+  match os:
+    case Nil{}:
+      made
+    case Con{o, +t}:
+      match o:
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(List<&2, Ob>, U32.is_eq(kind, 3),
+            u => syn.copies(t, obs, ls, copies.t(mixins.of(lz.ord(lz.at(ls, host)), obs, path.last(path)), host, obs, made,
+              (U32.from_nat(List.length(&2, Ob, obs)) + U32.from_nat(List.length(&2, Ob, made)) : U32))),
+            u => syn.copies(t, obs, ls, made))
 
 def pss.eq(a: List<&2, List<&2, U32>>, b: List<&2, List<&2, U32>>) -> Bool:
   match a b:
@@ -4319,7 +4361,7 @@ def syn.go(n: Nat, +als: List<&2, Al>, +obs: List<&2, Ob>, +pss: List<&2, List<&
     case 1n++k:
       +npss = pids(obs, als, obs, ls)
       +nls = lins(npss)
-      +made = syn.round(obs, obs, nls, Nil{})
+      +made = syn.copies(obs, obs, nls, syn.round(obs, obs, nls, Nil{}))
       when(Sy, obs.none(made) && pss.eq(npss, pss), u => Sy{obs, npss, nls},
         u => syn.go(k, als, List.append(&2, Ob, obs, List.reverse(&2, Ob, made)), npss, nls))
 
@@ -4354,9 +4396,16 @@ def made.abs(os: List<&2, Ob>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           Con{Ob{id, host, path, when(Bool, U32.is_eq(kind, 3), u => ob.abs(ob.at(obs, host)) || first.abs(obs, ids.at(pss, id)), u => abs),
-            parents, mems, no, kind}, made.abs(t, obs, pss)}
+            parents, mems, no, kind, tpl}, made.abs(t, obs, pss)}
+
+def tpls(xs: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, t}:
+      Con{ob.tpl(ob.at(obs, x)), tpls(t, obs)}
 
 # a made object's parents that are mixins: its contributors, the parents
 # of the one introducing it after them
@@ -4400,8 +4449,8 @@ def chains.bad(os: List<&2, Ob>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
-          when(List<&2, U32>, U32.is_eq(kind, 3) && Bool.not(blank.ers(chain.check(mixins.only(ids.at(pss, id), obs), obs, path.last(path)))),
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(List<&2, U32>, U32.is_eq(kind, 3) && Bool.not(blank.ers(chain.check(tpls(mixins.only(ids.at(pss, id), obs), obs), obs, path.last(path)))),
             u => Con{id, chains.bad(t, obs, pss)}, u => chains.bad(t, obs, pss))
 
 def chains(os: List<&2, Ob>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) -> List<&2, Er>:
@@ -4410,73 +4459,9 @@ def chains(os: List<&2, Ob>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>) 
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
-          when(List<&2, Er>, U32.is_eq(kind, 3), u => List.append(&2, Er, chain.check(mixins.only(ids.at(pss, id), obs), obs, path.last(path)), chains(t, obs, pss)),
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
+          when(List<&2, Er>, U32.is_eq(kind, 3), u => List.append(&2, Er, chain.check(tpls(mixins.only(ids.at(pss, id), obs), obs), obs, path.last(path)), chains(t, obs, pss)),
             u => chains(t, obs, pss))
-
-def hosts.of(ms: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, U32>:
-  match ms:
-    case Nil{}:
-      Nil{}
-    case Con{+m, t}:
-      Con{ob.host(ob.at(obs, m)), hosts.of(t, obs)}
-
-# whether xs holds anything but x
-def other.in(xs: List<&2, U32>, +x: U32) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{+y, t}:
-      Bool.not(U32.is_eq(y, x)) || other.in(t, x)
-
-def two.hosts(xs: List<&2, U32>) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{+x, +t}:
-      other.in(t, x) || two.hosts(t)
-
-# whether o's linearization brings mixin q bound to two hosts
-def bind.split(+obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +o: U32, +q: U32) -> Bool:
-  two.hosts(hosts.of(binders(lz.ord(lz.at(ls, o)), obs, pss, q), obs))
-
-def split.any(ps: List<&2, U32>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +q: U32) -> Bool:
-  match ps:
-    case Nil{}:
-      False{}
-    case Con{+p, t}:
-      bind.split(obs, pss, ls, p, q) || split.any(t, obs, pss, ls, q)
-
-def names.and(ms: List<&2, U32>, +obs: List<&2, Ob>) -> List<&2, String>:
-  match ms:
-    case Nil{}:
-      Nil{}
-    case Con{+m, t}:
-      Con{ob.name(obs, m), names.and(t, obs)}
-
-# a mixin o's linearization brings bound to two hosts, through two made
-# objects (`extends Outer2.Inner, Outer3.Inner`): its `^` would mean both,
-# as glam refuses one name for two specifications; where o's parents do
-# not each bring it so already
-def er.binds.q(qs: List<&2, U32>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>, +o: U32) -> List<&2, Er>:
-  match qs:
-    case Nil{}:
-      Nil{}
-    case Con{+q, +t}:
-      when(List<&2, Er>, Bool.not(is.object(ob.kind(ob.at(obs, q)))) && bind.split(obs, pss, ls, o, q) && Bool.not(split.any(ids.at(pss, o), obs, pss, ls, q)),
-        u => Con{Er{ob.no(ob.at(obs, o)), ob.name(obs, o) ++ " inherits the nested object " ++ text(path.last(ob.path(ob.at(obs, q)))) ++ " of line " ++
-          U32.show(loc.line(ob.no(ob.at(obs, q)))) ++ " bound to two hosts, through " ++ strs.and(names.and(binders(lz.ord(lz.at(ls, o)), obs, pss, q), obs)) ++
-          ": its `^` would mean both; inherit one"}, er.binds.q(t, obs, pss, ls, o)},
-        u => er.binds.q(t, obs, pss, ls, o))
-
-def er.binds(os: List<&2, Ob>, +obs: List<&2, Ob>, +pss: List<&2, List<&2, U32>>, +ls: List<&2, Maybe<&2, Lz>>) -> List<&2, Er>:
-  match os:
-    case Nil{}:
-      Nil{}
-    case Con{o, +t}:
-      match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no, +kind}:
-          List.append(&2, Er, er.binds.q(lz.ord(lz.at(ls, id)), obs, pss, ls, id), er.binds(t, obs, pss, ls))
 
 # the parents a nested object's introducing mixin names that name no
 # object from a host it is made for
@@ -4486,11 +4471,24 @@ def er.made.parents(os: List<&2, Ob>, +als: List<&2, Al>, +obs: List<&2, Ob>, +l
       Nil{}
     case Con{o, +t}:
       match o:
-        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind}:
+        case Ob{+id, +host, +path, +abs, parents, mems, +no, +kind, +tpl}:
           when(List<&2, Er>, U32.is_eq(kind, 3),
             u => on.maybe(U32, List<&2, Er>, last.id(mixins.of(lz.ord(lz.at(ls, host)), obs, path.last(path))), v => er.made.parents(t, als, obs, ls),
               +i => List.append(&2, Er, er.parents(ob.parents(ob.at(obs, i)), als, obs, i, host, ob.no(ob.at(obs, i))), er.made.parents(t, als, obs, ls))),
             u => er.made.parents(t, als, obs, ls))
+
+# Modules
+# =======
+#
+# A `.blend` file imports others, `import ./lib/x.blend as M`, each read
+# once however many import it, its objects the same however reached
+# (`blend-imports`): the command line reads the DAG of files from the
+# root, a module a place, the root's 0, and each module's lines are
+# numbered from its place times a million (Locations).
+
+# the modules' objects (cmd 2), the root's copies (3) or the root module
+# emitted (4), or the errors of the first stage that has them, each
+# `FILE:LINE: message`
 
 # Modules
 # =======
@@ -4513,9 +4511,9 @@ def objects(+cmd: U32, +files: List<&2, List<&2, U32>>, +paths: List<&2, List<&2
   +obs = made.abs(sy.obs(sy), sy.obs(sy), pss)
   +fs = folds(ls, obs, chains.bad(obs, obs, pss))
   objects.out(cmd, files, als, paths, pss, obs, ls, fs,
-    List.append(&2, Er, er.cycles(als, als), List.append(&2, Er, chains(obs, obs, pss), List.append(&2, Er, er.binds(obs, obs, pss, ls),
+    List.append(&2, Er, er.cycles(als, als), List.append(&2, Er, chains(obs, obs, pss), 
       List.append(&2, Er, er.obs(obs, als, obs), List.append(&2, Er, er.made.parents(obs, als, obs, ls),
-      List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs))))))))
+      List.append(&2, Er, er.lins(pss, ls, 0, obs, ls), er.defs(pss, fs, ls, 0, obs, fs)))))))
 
 # Nested objects
 # --------------
@@ -4528,8 +4526,9 @@ def objects(+cmd: U32, +files: List<&2, List<&2, U32>>, +paths: List<&2, List<&2
 # found from X, so that C3 gives the contributors from X's end to the
 # introducer, then those parents: N folded down X's linearization as a
 # definition is, `object N` introducing it and `extend N` updating it,
-# glam's `extend` a mixin on the named object. X.N binds its mixins to
-# X: their bodies' `^` is X's, never bound again (blend-frozen-host).
+# glam's `extend` a mixin on the named object. X.N binds its own copy of
+# each mixin to X, an identity of its own in C3: their bodies' `^` is
+# X's, never bound again (blend-frozen-host).
 # Made in rounds, as X.N's own nested objects come of its mixins'
 # children and a parent may name a nested object made in a round before;
 # until a round makes no object and moves no parent.
