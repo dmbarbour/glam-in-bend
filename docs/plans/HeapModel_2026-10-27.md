@@ -620,6 +620,16 @@ takes from it:
        it goes on reducing a corrupted net, with pairs no polarized net
        has (a freed node and data, two merges): reported, not crashed,
        but work wasted on a net already failed.
+     - `heap-strategies.net.payload-store` — tentative — a node made
+       writes its header and its payload word (word 3 but for data),
+       which a node of three ports then overwrites with port 2's link:
+       one store of no use per such node, a function, an application or
+       a fan; the generated rewrites know each new node's kind. Found
+       2026-11-04, when the maintainer asked what writing nil as debug
+       information costs: nothing, since no state stores nil (an
+       in-memory marker for a port a rule or a node lacks, told by its
+       arity where it matters, as the events' worklist now does), and the
+       audit reads a live node's ports below its arity.
    - `heap-strategies.stack` — built 2026-10-28 — no
      pairs kept in the net (the maintainer, 2026-10-28): every active pair
      is in such a set once, every strategy but one would clear it, and
@@ -1727,8 +1737,10 @@ takes from it:
            the free list keeping its old ones. What excludes both is the
            wiring: the models prove every rewrite keeps a wired net wired
            (`rewrite_wired`, `kernel_rewrite_wired`), and the library
-           audits the kernel's nets for it (`KN.wired_ok`, which a nil
-           link fails); that the kernel's rewrites do what the model's do
+           audits the kernel's nets for it (`KN.wired_ok`, which a stale
+           link fails; nil is the static eraser's value since
+           `.links.dead-ports`, and no state writes it for a lost link);
+           that the kernel's rewrites do what the model's do
            is a draft (`kernel_rewrite_refines`). Once it is a law, the
            net goes or stays as the maintainer chooses.
          - `heap-strategies.erasure.load.cycle.walk.directed` — active —
@@ -2190,8 +2202,9 @@ takes from it:
                  lands on a principal to demand (lazy) or notes it
                  (eager).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.native`
-                 — active — built 2026-11-03 on branch `links-native`
-                 (eaec5cb), unmerged, the maintainer to decide: the rules
+                 — built 2026-11-03 on branch `links-native` (eaec5cb),
+                 merged to main 2026-11-04 with `.links.propagate` (the
+                 maintainer's approval): the rules
                  that make erasers make them static. Every eraser a rule
                  makes faces an external peer, or another of its erasers,
                  and a rule making one makes nothing else (31 rules: 21
