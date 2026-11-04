@@ -1,0 +1,44 @@
+# Types as members, so that no family threads type parameters through its
+# signatures: `type S = T` is sugar for a shared definition returning the
+# type, `shared def S() -> Type: T`, and `type S: Data = T` for one of
+# kind Data, reusable. An abstract object declares the type its
+# definitions name (`declare type S`), each family gives it, and a name
+# of it is a call, `S()`, bound as any definition's is. Bend erases the
+# definitions, and a datatype of the module's, Bend's, takes them as its
+# arguments.
+import Base
+
+type Box<-A: Data> is Data:
+  Box{+x: A}
+
+abstract object Tally with
+  declare type S
+  declare start, add, count
+  type Boxed: Data = Box<S()>
+  def boxed(+n: U32) -> Boxed():
+    Box{add(start(), n)}
+  def total(b: Boxed()) -> U32:
+    match b:
+      case Box{+x}:
+        count(x)
+
+object Sum extends Tally with
+  type S: Data = U32
+  def start() -> S():
+    7
+  def add(+st: S(), +n: U32) -> S():
+    (st + n : U32)
+  def count(+st: S()) -> U32:
+    st
+
+object Seen extends Tally with
+  type S: Data = List<&2, U32>
+  def start() -> S():
+    [1, 2]
+  def add(+st: S(), +n: U32) -> S():
+    Con{n, st}
+  def count(st: S()) -> U32:
+    U32.from_nat(List.length(&2, U32, st))
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Sum.total(Sum.boxed(5))) ++ " " ++ U32.show(Seen.total(Seen.boxed(5))))

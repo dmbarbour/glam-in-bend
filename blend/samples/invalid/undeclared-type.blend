@@ -1,0 +1,10 @@
+# A type an abstract object declares, each concrete one must give, as it
+# must a declared definition.
+import Base
+
+abstract object Tally with
+  declare type S
+  def keep(st: S()) -> S():
+    st
+
+object Sum extends Tally

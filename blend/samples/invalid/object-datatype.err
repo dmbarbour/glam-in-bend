@@ -1,0 +1,1 @@
+object-datatype.blend:6: a datatype belongs to the module; an object's types are members, `type S = ...`

@@ -1,0 +1,7 @@
+# A datatype is Bend's, the module's; an object's types are members,
+# `type S = T`, definitions returning a type.
+import Base
+
+object Tally with
+  type Box<-A: Data> is Data:
+    Box{+x: A}

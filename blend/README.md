@@ -77,8 +77,16 @@ Bend's imports pass through.
     folding into its own caller (`blend-copies-keep-their-name`); an
     affine definition a copy alone reaches is copied with it.
   The module's definitions are Bend's, and shared; their uses count.
-- **Nothing at run time.** Types stay in plain Bend: they make no code to
-  specialize, and Bend's constructor names are global.
+- **Types** are members too: `type S = T` is sugar for a shared
+  definition returning the type, `shared def S() -> Type: T`, and
+  `type S: Data = T` for one of kind Data; `type Pair(A: Data) = A & A`
+  takes parameters; `upd type` and `declare type` as for any definition
+  (the maintainer, 2026-11-04). A name of one is a call, `S()`, bound as
+  a definition's is, in signatures as in bodies, so that no family
+  threads type parameters. Bend erases them.
+- **Nothing at run time.** Datatypes stay in plain Bend, the module's,
+  passed through as written (`type Box<A> is Data:`): Bend's constructor
+  names are global; a type member can be one's argument (`Box<S()>`).
 - **No Bend logic of its own.** Blend translates objects; what a
   definition says in Bend means what Bend makes of it, so two
   definitions calling each other are an error, as in Bend
@@ -122,6 +130,8 @@ program prints.
   family, in place of a template argument; a definition calling itself.
 - `sharing`: affine by default, `shared` and `copied`.
 - `nested`: nested objects, `^name`, the module's definitions as Bend's.
+- `types`: type members declared, given by each family and named in
+  signatures, a datatype of the module's taking one as its argument.
 - `choice`: a family's choice as a constant definition, the branch
   on it left to the C compiler to fold.
 
@@ -130,7 +140,8 @@ program prints.
 affine definition used twice, mutual recursion, a declared name left
 undefined, a parameter shadowing a definition, parents with no C3
 linearization, `^` in a definition of the module, members after a header
-that leaves out `with`.
+that leaves out `with`, a declared type left undefined, a datatype in an
+object.
 
 ## Open questions
 
@@ -139,10 +150,6 @@ that leaves out `with`.
   substituted where used and a `static match` pruning arms; at most,
   definitions computed by running Bend when generating, as
   `spike/tools/gen_krules.bend` does.
-- Types in objects, so that no family threads type parameters: type
-  members, introduced, updated and declared as definitions are, emitted
-  as definitions returning their types (`docs/plans/Blend_2026-11-04.md`,
-  `blend-types`).
 - Imports between `.blend` files. A plain `.bend` file names an object's
   definitions by their emitted names, `Eager.go` (the maintainer,
   2026-11-04). A module emits every definition, not only those some
