@@ -1,7 +1,8 @@
 #!/bin/sh
 # Every generated file matches what its generator writes now
 # (`generated-sources`): generators are Bend programs that print the file,
-# or Blend emitting a .blend file (blend/README.md), run from the generated
+# or Blend emitting a .blend file's code or its laws and proofs
+# (blend/README.md), run from the generated
 # file's directory. Checks, never writes: a stale file fails, and
 # regenerating it is the developer's step. Run by scripts/check.sh and by
 # the pre-commit hook in .githooks/ (with the other quick checks). Blend
@@ -16,14 +17,19 @@ BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 status=0
 
 # one line each: the directory, the generated file, the generator's kind
-# (`bend`, a Bend program; `blend`, Blend's emission) and its arguments,
-# relative to the directory
+# (`bend`, a Bend program; `blend`, Blend's emission of the code;
+# `blend-laws`, of the laws; `blend-proof`, of the proofs) and its
+# arguments, relative to the directory
 while read -r dir file kind args; do
   [ -n "$dir" ] || continue
   case $kind in
     bend) run="$BEND $args"; again="bend $args" ;;
     blend) run="$root/blend/run.sh emit $args"
       again="$(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh emit $args" ;;
+    blend-laws) run="$root/blend/run.sh laws $args"
+      again="$(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh laws $args" ;;
+    blend-proof) run="$root/blend/run.sh proof $args"
+      again="$(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh proof $args" ;;
     *) echo "$dir/$file: no generator of kind $kind"; status=1; continue ;;
   esac
   # shellcheck disable=SC2086 # the arguments split as written
@@ -45,6 +51,9 @@ blend/samples types.bend blend types.blend
 blend/samples imports.bend blend imports.blend
 blend/samples family-nested.bend blend family-nested.blend
 blend/samples nested-reach.bend blend nested-reach.blend
+blend/samples laws.bend blend laws.blend
+blend/samples laws_LAWS.bend blend-laws laws.blend
+blend/samples laws_PROOF.bend blend-proof laws.blend
 blend/samples/lib shapes.bend blend shapes.blend
 EOF
 exit "$status"

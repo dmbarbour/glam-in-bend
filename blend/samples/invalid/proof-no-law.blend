@@ -1,0 +1,9 @@
+# A proof proves a law of its object's; Counter states none named
+# `bounded`, so the proof proves nothing.
+import Base
+
+object Counter with
+  def next(+n: Nat) -> Nat:
+    1n+n
+  proof bounded(n):
+    {==}

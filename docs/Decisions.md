@@ -55,8 +55,8 @@ IO shell.
   script editing sources.
 - [`blend-adds-no-bend-logic`](decisions/blend-adds-no-bend-logic.md):
   Blend translates objects and adds no Bend logic of its own; mutual
-  recursion is an error as in Bend; types, laws and proofs stay Bend's
-  for now.
+  recursion is an error as in Bend; types, laws and proofs are members,
+  emitted as Bend.
 - [`blend-module-is-bend`](decisions/blend-module-is-bend.md): a Blend
   module is no object; its own definitions are plain Bend, as Bend's
   static modules are.
@@ -69,6 +69,10 @@ IO shell.
 - [`blend-copies-keep-their-name`](decisions/blend-copies-keep-their-name.md):
   a copied definition is always emitted by its own name, and once more
   for each use.
+- [`blend-proofs-beside-code`](decisions/blend-proofs-beside-code.md): a
+  Blend module's laws and proofs are written into files of their own
+  beside its code, `X_LAWS.bend` and `X_PROOF.bend`; a law is a claim
+  stated once, its proof a member `upd proof` may replace.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.

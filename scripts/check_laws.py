@@ -1,14 +1,17 @@
 """Law checks: every law changed on main is named in its commit.
 
 A law is a `law <name>:` block in a file named LAWS.bend: the `law` line at
-column 0 and the indented lines after it. Comments and spacing aside, adding,
+column 0 and the indented lines after it. A Blend module's law members are
+laws too (blend/README.md): in a `.blend` file, a `law <name>:` line at any
+indentation and the lines indented deeper after it, named by the objects
+it sits in, `Monoid.right_id`. Comments and spacing aside, adding,
 changing or removing one is a law change. Each commit on main's first-parent
 history that changes laws must name every one of them in `Law: <name>`
 trailers. Side branches are free: land law work on main with a merge
 (`--no-ff`) or squash commit that names the laws.
 
-Comments in LAWS.bend may cite decision records as `# Record: <slug>`; each
-cited record must exist.
+Comments in LAWS.bend and in `.blend` files may cite decision records as
+`# Record: <slug>`; each cited record must exist.
 
 Run from the repository root:
   python3 -I scripts/check_laws.py                    check main's history and
@@ -24,6 +27,8 @@ import subprocess
 import sys
 
 LAW = re.compile(r"^law\s+([A-Za-z0-9_.-]+)\s*:")
+MEMBER = re.compile(r"^(\s*)law\s+([A-Za-z0-9_.-]+)\s*:")
+OBJECT = re.compile(r"^(\s*)(?:abstract\s+)?(?:object|extend)\s+(?:abstract\s+)?([A-Za-z0-9_.]+)")
 TRAILER = re.compile(r"^Law:\s*(\S+)\s*$", re.M)
 CITATION = re.compile(r"#\s*Record:\s*(.+)$")
 
@@ -49,6 +54,10 @@ def strip_comment(line):
     return line
 
 
+def normalized(body):
+    return " ".join(" ".join(strip_comment(l) for l in body).split())
+
+
 def laws(text):
     """{name: normalized text} of the law blocks in one LAWS.bend."""
     found, name, body = {}, None, []
@@ -59,15 +68,41 @@ def laws(text):
             body.append(line)
             continue
         if name is not None:
-            found[name] = " ".join(" ".join(strip_comment(l) for l in body).split())
+            found[name] = normalized(body)
             name = None
         if start:
             name, body = start.group(1), [line]
     return found
 
 
+def blend_laws(text):
+    """{name: normalized text} of the law members in one .blend file, each
+    named by the objects it sits in."""
+    found, objects, name, depth, body = {}, [], None, 0, []
+    for line in text.splitlines() + ["<end>"]:
+        at = len(line) - len(line.lstrip())
+        if name is not None and (not line.strip() or at > depth):
+            body.append(line)
+            continue
+        if name is not None:
+            found[name] = normalized(body)
+            name = None
+        if not strip_comment(line).strip():
+            continue
+        while objects and objects[-1][0] >= at:
+            objects.pop()
+        start, header = MEMBER.match(line), OBJECT.match(line)
+        if start:
+            name = ".".join([o for _, o in objects] + [start.group(2)])
+            depth, body = at, [line]
+        elif header:
+            objects.append((at, header.group(2)))
+    return found
+
+
 def tree_laws(tree):
-    """{(path, name): text} for every LAWS.bend at a tree-ish, or the index (":")."""
+    """{(path, name): text} for every LAWS.bend and .blend file at a
+    tree-ish, or the index (":")."""
     if tree == ":":
         paths = git("ls-files").stdout.split()
     elif tree is None:
@@ -76,9 +111,10 @@ def tree_laws(tree):
         paths = git("ls-tree", "-r", "--name-only", tree).stdout.split()
     found = {}
     for path in paths:
-        if path == "LAWS.bend" or path.endswith("/LAWS.bend"):
+        read = laws if path == "LAWS.bend" or path.endswith("/LAWS.bend") else blend_laws if path.endswith(".blend") else None
+        if read:
             text = git("show", f"{tree}{path}" if tree == ":" else f"{tree}:{path}").stdout
-            for name, body in laws(text).items():
+            for name, body in read(text).items():
                 found[(path, name)] = body
     return found
 
@@ -98,7 +134,7 @@ def check_named(where, names, message):
 def check_history():
     if git("rev-parse", "--verify", "-q", "main").returncode != 0:
         return
-    log = git("log", "--first-parent", "--format=%H", "main", "--", ":(glob)**/LAWS.bend")
+    log = git("log", "--first-parent", "--format=%H", "main", "--", ":(glob)**/LAWS.bend", ":(glob)**/*.blend")
     for commit in log.stdout.split():
         parent = commit + "^1"
         has_parent = git("rev-parse", "--verify", "-q", parent).returncode == 0
@@ -108,7 +144,7 @@ def check_history():
 
 
 def check_citations():
-    for path in pathlib.Path(".").glob("**/LAWS.bend"):
+    for path in [*pathlib.Path(".").glob("**/LAWS.bend"), *pathlib.Path(".").glob("**/*.blend")]:
         for number, line in enumerate(path.read_text().splitlines(), 1):
             citation = CITATION.search(line)
             if not citation:

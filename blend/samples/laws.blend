@@ -1,0 +1,60 @@
+# Laws as members: `law name:` states a claim over its object's
+# definitions and types, and each concrete object gets its own instance,
+# bound to its own finals, as a definition does; `proof name(...)` proves
+# it, where the law is stated or in any object below, and `upd proof`
+# proves it again where a family needs its own. Blend writes the laws
+# and proofs into a file of their own, laws.PROOF.bend, beside the code,
+# so that the program built carries none.
+import Base
+
+abstract object Monoid with
+  declare type T
+  declare zero, op
+  def double(+x: T()) -> T():
+    op(x, x)
+  law right_id:
+    for +x: T()
+    {op(x, zero()) == x : T()}
+  law double_op:
+    for +x: T()
+    {double(x) == op(x, x) : T()}
+  proof double_op(x):
+    {==}
+
+object NatAdd extends Monoid with
+  type T: Data = Nat
+  def zero() -> T():
+    0n
+  def op(+a: T(), +b: T()) -> T():
+    Nat.add(a, b)
+  proof right_id(x):
+    match x:
+      case 0n:
+        {==}
+      case 1n+p:
+        %right_id(p) : {1n+Nat.add(p, 0n) == 1n+_ : Nat}
+        {==}
+
+object AnyOf extends Monoid with
+  type T: Data = Bool
+  def zero() -> T():
+    False{}
+  def op(+a: T(), +b: T()) -> T():
+    a || b
+  upd def double(+x: T()) -> T():
+    x
+  proof right_id(x):
+    match x:
+      case True{}:
+        {==}
+      case False{}:
+        {==}
+  upd proof double_op(x):
+    match x:
+      case True{}:
+        {==}
+      case False{}:
+        {==}
+
+def main() -> IO(Unit):
+  IO.print(Nat.show(NatAdd.double(3n)) ++ " " ++ Bool.show(AnyOf.double(True{})))

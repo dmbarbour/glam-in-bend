@@ -25,10 +25,11 @@ echo "== proofs"
 # without the system's headers, which native builds must not find first
 PATH="$PATH:$HOME/.lean/bin"
 command -v lean >/dev/null 2>&1 || { echo "no lean for --verdict: run scripts/dev-setup.sh"; status=1; }
-# every PROOF.bend outside bench/, and one beside every LAWS.bend
+# every PROOF.bend outside bench/, and one beside every LAWS.bend: X_LAWS.bend
+# beside X_PROOF.bend, as Blend writes a module's (blend/README.md)
 proofs=$(git ls-files --cached --others --exclude-standard -- '*PROOF.bend' ':!bench/')
 for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' ':!bench/'); do
-  [ -f "$(dirname "$laws")/PROOF.bend" ] || { echo "$laws has no PROOF.bend beside it"; status=1; }
+  [ -f "${laws%LAWS.bend}PROOF.bend" ] || { echo "$laws has no ${laws%LAWS.bend}PROOF.bend beside it"; status=1; }
 done
 if [ -n "$proofs" ]; then
   for f in $proofs; do

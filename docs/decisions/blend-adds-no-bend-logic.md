@@ -25,7 +25,8 @@ members (`blend-object-laws`), each emitted as Bend.
 - The sample `cycle` stays an error, and no step rewrites recursion.
 - Any expansion beyond objects is a construct of Blend's own, named where
   it is used (macros; `static` definitions, `blend-partial`).
-- Until those steps, a type, law or proof in a `.blend` file passes
-  through as Bend, unprefixed and shared by every object.
+- Until those steps, a type, law or proof in a `.blend` file passed
+  through as Bend, unprefixed and shared by every object; each is now a
+  member (`blend-proofs-beside-code` for laws and proofs).
 
 **Rule lives in:** `blend/README.md`, The model.
