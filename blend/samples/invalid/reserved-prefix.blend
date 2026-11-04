@@ -1,0 +1,7 @@
+# Names beginning Blend_ are Blend's own: the aliases of the imports a
+# module's emission needs for what it inherits, which no name the user
+# writes may reach.
+import Base
+
+def main() -> U32:
+  Blend_1.x()

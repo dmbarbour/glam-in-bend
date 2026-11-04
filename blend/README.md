@@ -89,8 +89,8 @@ Bend's imports pass through.
   a definition's is, in signatures as in bodies, so that no family
   threads type parameters. Bend erases them.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
-  passed through as written (`type Box<A> is Data:`): Bend's constructor
-  names are global; a type member can be one's argument (`Box<S()>`).
+  passed through as written (`type Box<A> is Data:`); a type member can
+  be one's argument (`Box<S()>`).
 - **Imports** of other `.blend` files, `import ./lib/shapes.blend as
   S`, name their objects `S.Square`, to extend and to call. Imports form
   a DAG, each file read once, a cycle an error, and an object means the
@@ -98,9 +98,15 @@ Bend's imports pass through.
   (`blend-module-is-bend`). Each module emits its own `.bend`; the
   root's import of one names it. An object extending another module's
   copies what it inherits, and the bodies copied name that module's
-  definitions through its alias; the imports they need, that module and
-  its own, are carried into the root's emission, where the root has none
-  of that alias, an alias two imports give two files an error.
+  definitions through its alias.
+- **Namespaces are Bend's** (`blend-namespaces-as-bends`): a file's
+  definitions, datatypes and constructors by their names, another's
+  through an alias it imports, local to it and passed through no
+  import. A body copied from another module keeps its meaning: its
+  module's aliases and datatypes are named in the copy through the
+  root's own alias for the file, else one Blend reserves (`Blend_1`),
+  which no name the user writes may begin. `extend` stays out of the top
+  level.
 - **No Bend logic of its own.** Blend translates objects; what a
   definition says in Bend means what Bend makes of it, so two
   definitions calling each other are an error, as in Bend
@@ -158,7 +164,7 @@ undefined, a parameter shadowing a definition, parents with no C3
 linearization, `^` in a definition of the module, members after a header
 that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
-file.
+file, a name beginning `Blend_`.
 
 ## Open questions
 

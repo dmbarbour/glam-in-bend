@@ -8,8 +8,8 @@ import Base
 import ./lib/shapes.blend as S
 
 object Big extends S.Square with
-  upd side() -> U32:
+  shared upd side() -> U32:
     (_side() * 10 : U32)
 
 def main() -> IO(Unit):
-  IO.print(U32.show(S.Square.perimeter()) ++ " " ++ U32.show(Big.perimeter()))
+  IO.print(U32.show(S.Square.perimeter()) ++ " " ++ U32.show(Big.perimeter()) ++ " " ++ U32.show(Big.area()))

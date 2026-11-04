@@ -1,7 +1,13 @@
 # A library the sample `imports` imports: a module emits its own `.bend`
 # (`lib/shapes.bend`), and a module extending its objects copies what it
-# inherits.
+# inherits, its names kept: its datatypes and its imports, named in the
+# copy through the importer's own alias for the file, else one Blend
+# reserves (`Blend_1`).
 import Base
+import ./units.bend as U
+
+type Dim is Data:
+  Dim{+w: U32, +h: U32}
 
 def twice(+n: U32) -> U32:
   (n * 2 : U32)
@@ -10,7 +16,15 @@ abstract object Shape with
   declare side
   def perimeter() -> U32:
     twice(twice(side()))
+  def dims.of(+s: U32) -> Dim:
+    Dim{s, s}
+  def area.of(d: Dim) -> U32:
+    match d:
+      case Dim{+w, +h}:
+        U.cm2((w * h : U32))
+  def area() -> U32:
+    area.of(dims.of(side()))
 
 object Square extends Shape with
-  def side() -> U32:
+  shared def side() -> U32:
     3

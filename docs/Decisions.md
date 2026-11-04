@@ -60,6 +60,10 @@ IO shell.
 - [`blend-module-is-bend`](decisions/blend-module-is-bend.md): a Blend
   module is no object; its own definitions are plain Bend, as Bend's
   static modules are.
+- [`blend-namespaces-as-bends`](decisions/blend-namespaces-as-bends.md):
+  Blend's namespaces are Bend's, a file's own names and its imports' by
+  local aliases, the same however imports reach them; `extend` stays out
+  of the top level.
 - [`blend-copies-keep-their-name`](decisions/blend-copies-keep-their-name.md):
   a copied definition is always emitted by its own name, and once more
   for each use.

@@ -2251,10 +2251,14 @@ def line.names(+ts: List<&2, Tok>) -> List<&2, List<&2, U32>>:
 type Rf is Data:
   Rf{+obj: U32, name: List<&2, U32>, +prior: Bool, +origin: U32}
 
-# a body's token, a reference resolved or as written
+# a body's token, a reference resolved or as written; or a name of Bend's
+# a body copied from another module wrote through one of that module's
+# imports, or a datatype's of that module: its file, and the name after
+# its alias (Namespaces, below)
 type Rt is Data:
   RT{t: Tok}
   RR{+mark: U32, ref: Rf}
+  RX{+mark: U32, path: List<&2, U32>, rest: List<&2, U32>}
 
 type Rl is Data:
   Rl{+no: U32, +ind: U32, ts: List<&2, Rt>}
@@ -2328,9 +2332,189 @@ def rr.rf(+cx: Cx, +mark: U32, +t: Tok, +no: U32, f: Rf) -> Rr:
     case Rf{+obj, +name, +prior, +origin}:
       rr.final(cx, obj, mark, name, t, no)
 
+# Namespaces
+#
+# A module's names are its own: a file's definitions, datatypes and
+# constructors by their names, another's through an alias the file
+# imports, an alias local to the file that imports it, as Bend's are
+# (tried 2026-11-04). So a body copied from another module keeps its
+# meaning: its module's aliases, and its module's datatypes and
+# constructors, named in the root's emission through the root's own
+# alias for that file, else one Blend reserves, `Blend_1` and on, which
+# no name the user writes may begin (the maintainer, 2026-11-04: no
+# surprises, the root's namespace no larger for what it inherits).
+
+def lines.names(ls: List<&2, Ln>) -> List<&2, List<&2, U32>>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Ln{+no, +ind, +txt}:
+          Con{param.first(until(trim(txt), 123)), lines.names(t)}
+
+# a datatype's name, and its constructors', each the name its line opens
+def bend.names(ls: List<&2, Ln>) -> List<&2, List<&2, U32>>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Ln{+no, +ind, +txt}:
+          Con{param.first(until(param.first(until(drop(5n, txt), 60)), 32)), lines.names(t)}
+
+def tree.types(ns: List<&2, Node>) -> List<&2, List<&2, U32>>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, t}:
+      match nd:
+        case NBend{lines, +no}:
+          List.append(&2, List<&2, U32>, bend.names(lines), tree.types(t))
+        case _:
+          tree.types(t)
+
+def root.find(obs: List<&2, Ob>, +m: U32) -> U32:
+  match obs:
+    case Nil{}:
+      0
+    case Con{o, t}:
+      match o:
+        case Ob{+id, +host, path, +abs, parents, mems, +no}:
+          when(U32, U32.is_eq(id, host) && U32.is_eq(loc.mod(no), m), u => id, u => root.find(t, m))
+
+# an import: its path as written, its alias, whether it is Blend's
+type Im is Data:
+  Im{path: List<&2, U32>, alias: List<&2, U32>, +blend: Bool, +no: U32}
+
+def ends(+xs: List<&2, U32>, +p: List<&2, U32>) -> Bool:
+  starts(List.reverse(&2, U32, xs), List.reverse(&2, U32, p))
+
+def im.made(r: List<&2, U32> & List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
+  (+path, +rest) = r
+  when(Maybe<&2, Im>, starts(rest, codes("as ")) && name.ok(trim(drop(3n, rest))),
+    u => Some{Im{path, trim(drop(3n, rest)), ends(path, codes(".blend")), no}}, u => None{})
+
+# `import PATH as ALIAS`; Bend's other forms (by a package's hash or name)
+# are Bend's alone
+def im.of(+txt: List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
+  im.made(until(drop(7n, txt), 32), no)
+
+def ims.of(ns: List<&2, Node>) -> List<&2, Im>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{nd, +t}:
+      match nd:
+        case NImport{+txt, +no}:
+          on.maybe(Im, List<&2, Im>, im.of(txt, no), u => ims.of(t), x => Con{x, ims.of(t)})
+        case _:
+          ims.of(t)
+
+def path.at(+ps: List<&2, List<&2, U32>>, +k: U32) -> List<&2, U32>:
+  on.maybe(List<&2, U32>, List<&2, U32>, List.get(&2, List<&2, U32>, ps, U32.to_nat(k)), u => Nil{}, x => x)
+
+def mod.tree(+cx: Cx, +m: U32) -> List<&2, Node>:
+  ob.mems(ob.at(cx.obs(cx), root.find(cx.obs(cx), m)))
+
+# an import carried: its alias, its file as a path from where the root
+# was read, and the line that gives it
+type Ci is Data:
+  Ci{alias: List<&2, U32>, path: List<&2, U32>, +no: U32}
+
+def bendify(+p: List<&2, U32>, +blend: Bool) -> List<&2, U32>:
+  when(List<&2, U32>, blend, u => List.append(&2, U32, List.take(&2, U32, p, Nat.sub(List.length(&2, U32, p), 5n)), codes("bend")), u => p)
+
+# whether the last part kept is a `..` itself, which another cannot take
+def path.up(xs: List<&2, List<&2, U32>>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{x, t}:
+      same(x, codes(".."))
+
+def path.norm(ps: List<&2, List<&2, U32>>, +acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ps:
+    case Nil{}:
+      List.reverse(&2, List<&2, U32>, acc)
+    case Con{+p, +t}:
+      when(List<&2, List<&2, U32>>, same(p, codes(".")) || blank(p), u => path.norm(t, acc),
+        u => when(List<&2, List<&2, U32>>, same(p, codes("..")) && Bool.not(blank.parts(acc)) && Bool.not(path.up(acc)),
+          v => path.norm(t, List.tail(&2, List<&2, U32>, acc)), v => path.norm(t, Con{p, acc})))
+
+def slashes(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{p, t}:
+      match t:
+        case Nil{}:
+          p
+        case Con{h, r}:
+          List.append(&2, U32, p, Con{47, slashes(Con{h, r})})
+
+def split.slash(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match xs:
+    case Nil{}:
+      List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
+    case Con{+h, t}:
+      match h:
+        case 47:
+          split.slash(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
+        case _:
+          split.slash(t, Con{h, cur}, out)
+
+# a file's directory's parts
+def path.dir(+path: List<&2, U32>) -> List<&2, List<&2, U32>>:
+  List.reverse(&2, List<&2, U32>, List.tail(&2, List<&2, U32>, List.reverse(&2, List<&2, U32>, split.slash(path, Nil{}, Nil{}))))
+
+# rel, written in a file at path, as a path from where the root was read
+def path.from(+path: List<&2, U32>, +rel: List<&2, U32>) -> List<&2, U32>:
+  slashes(path.norm(List.append(&2, List<&2, U32>, path.dir(path), split.slash(rel, Nil{}, Nil{})), Nil{}))
+
+def cis.of(xs: List<&2, Im>, +mpath: List<&2, U32>) -> List<&2, Ci>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{i, t}:
+      match i:
+        case Im{+p, +alias, +blend, +no}:
+          Con{Ci{alias, bendify(path.from(mpath, p), blend), no}, cis.of(t, mpath)}
+
+# module m's imports, by alias and file
+def mod.cis(+cx: Cx, +m: U32) -> List<&2, Ci>:
+  cis.of(ims.of(mod.tree(cx, m)), path.at(cx.paths(cx), m))
+
+def ci.find(cs: List<&2, Ci>, +a: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match cs:
+    case Nil{}:
+      None{}
+    case Con{c, t}:
+      match c:
+        case Ci{+alias, +path, +no}:
+          when(Maybe<&2, List<&2, U32>>, same(alias, a), u => Some{path}, u => ci.find(t, a))
+
+# a Bend name another module's body wrote: through one of that module's
+# imports, or one of its datatypes' names, else Bend's own (Base's)
+def rr.foreign(+cx: Cx, +m: U32, +mark: U32, +n: List<&2, U32>, +t: Tok) -> Rr:
+  when(Rr, Bool.not(blank.parts(List.tail(&2, List<&2, U32>, parts(n)))),
+    u => on.maybe(List<&2, U32>, Rr, ci.find(mod.cis(cx, m), List.head.or(parts(n))), v => rr.tok(t),
+      +p => Rr{RX{mark, p, drop(1n+List.length(&2, U32, List.head.or(parts(n))), n)}, Nil{}, Nil{}}),
+    u => when(Rr, names.has(tree.types(mod.tree(cx, m)), n),
+      v => Rr{RX{mark, bendify(path.at(cx.paths(cx), m), True{}), n}, Nil{}, Nil{}},
+      v => rr.tok(t)))
+
+# a name no definition of Blend's has: Bend's, in the root's own bodies,
+# but for the prefix Blend reserves; another module's names in a body
+# copied from it
+def rr.bend(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  when(Rr, U32.is_eq(loc.mod(ob.no(ob.at(cx.obs(cx), q))), 0),
+    u => when(Rr, starts(n, codes("Blend_")), v => rr.er(t, no, text(n) ++ ": names beginning Blend_ are Blend's own"), v => rr.tok(t)),
+    u => rr.foreign(cx, loc.mod(ob.no(ob.at(cx.obs(cx), q))), mark, n, t))
+
 def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
   on.maybe(Rf, Rr, look.obj(List.length(&2, List<&2, U32>, List.tail(&2, List<&2, U32>, parts(n))), cx, q, parts(n)),
-    u => rr.tok(t),
+    u => rr.bend(cx, q, mark, n, t, no),
     f => rr.rf(cx, mark, t, no, f))
 
 # a name with no mark, or after `~`: a local, an object's definition, a
@@ -3306,21 +3490,22 @@ def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
 # what emission reads: the file's name, the objects, the units, how each
 # is emitted
 type Ec is Data:
-  Ec{files: List<&2, List<&2, U32>>, obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>, als: List<&2, Al>}
+  Ec{files: List<&2, List<&2, U32>>, obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>, als: List<&2, Al>, own: List<&2, Ci>,
+    res: List<&2, List<&2, U32>>, paths: List<&2, List<&2, U32>>}
 
 def ec.obs(e: Ec) -> List<&2, Ob>:
   match e:
-    case Ec{files, obs, us, mus, als}:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
       obs
 
 def ec.us(e: Ec) -> List<&2, Un>:
   match e:
-    case Ec{files, obs, us, mus, als}:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
       us
 
 def ec.mu(e: Ec, +i: U32) -> Mu:
   match e:
-    case Ec{files, obs, us, mus, als}:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
       mu.at(mus, i)
 
 # the text so far, its bytes reversed, and each copied unit's next number
@@ -3408,35 +3593,8 @@ def mark.put(+mark: U32, b: Tb) -> Tb:
 
 def ec.als(e: Ec) -> List<&2, Al>:
   match e:
-    case Ec{files, obs, us, mus, als}:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
       als
-
-# an alias of the module whose root is r: the root module's import of it
-# first, else the first import of it met
-def alias.pick(als: List<&2, Al>, +r: U32, +first: List<&2, U32>) -> List<&2, U32>:
-  match als:
-    case Nil{}:
-      first
-    case Con{a, t}:
-      match a:
-        case Al{+name, +from, +to, +no}:
-          when(List<&2, U32>, U32.is_eq(to, r) && U32.is_eq(from, 0), u => name,
-            u => alias.pick(t, r, when(List<&2, U32>, U32.is_eq(to, r) && blank(first), v => name, v => first)))
-
-# the root of module m, found among the objects
-def root.find(obs: List<&2, Ob>, +m: U32) -> U32:
-  match obs:
-    case Nil{}:
-      0
-    case Con{o, t}:
-      match o:
-        case Ob{+id, +host, path, +abs, parents, mems, +no}:
-          when(U32, U32.is_eq(id, host) && U32.is_eq(loc.mod(no), m), u => id, u => root.find(t, m))
-
-# the alias module m goes by in the root's emission: the root's own import
-# of it, else another importer's, carried (Imports, below)
-def alias.name.of(als: List<&2, Al>, +obs: List<&2, Ob>, +m: U32) -> List<&2, U32>:
-  alias.pick(als, root.find(obs, m), Nil{})
 
 def rf.obj(r: Rf) -> U32:
   match r:
@@ -3444,9 +3602,52 @@ def rf.obj(r: Rf) -> U32:
       obj
 
 # a reference outside the root module: its module's alias, then its name
+def ci.path.find(cs: List<&2, Ci>, +p: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match cs:
+    case Nil{}:
+      None{}
+    case Con{c, t}:
+      match c:
+        case Ci{+alias, +path, +no}:
+          when(Maybe<&2, List<&2, U32>>, same(path, p), u => Some{alias}, u => ci.path.find(t, p))
+
+def res.index(ps: List<&2, List<&2, U32>>, +p: List<&2, U32>, +k: U32) -> U32:
+  match ps:
+    case Nil{}:
+      k
+    case Con{+x, t}:
+      when(U32, same(x, p), u => k, u => res.index(t, p, (k + 1 : U32)))
+
+def res.alias(+k: U32) -> List<&2, U32>:
+  List.append(&2, U32, codes("Blend_"), codes(U32.show(k)))
+
+def ec.own(e: Ec) -> List<&2, Ci>:
+  match e:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
+      own
+
+def ec.res(e: Ec) -> List<&2, List<&2, U32>>:
+  match e:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
+      res
+
+def ec.paths(e: Ec) -> List<&2, List<&2, U32>>:
+  match e:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
+      paths
+
+# the alias the root's emission gives a file: the root's own import of it,
+# else the one Blend reserves for it
+def alias.of(+e: Ec, +p: List<&2, U32>) -> List<&2, U32>:
+  on.maybe(List<&2, U32>, List<&2, U32>, ci.path.find(ec.own(e), p), u => res.alias((res.index(ec.res(e), p, 0) + 1 : U32)), x => x)
+
+def mod.bend(+paths: List<&2, List<&2, U32>>, +m: U32) -> List<&2, U32>:
+  bendify(path.at(paths, m), True{})
+
+# a reference outside the root module: its module's alias, then its name
 def rf.ext(+e: Ec, +r: Rf) -> List<&2, U32>:
   when(List<&2, U32>, U32.is_eq(loc.mod(ob.no(ob.at(ec.obs(e), rf.obj(r)))), 0), u => rf.text(ec.obs(e), r),
-    u => List.append(&2, U32, alias.name.of(ec.als(e), ec.obs(e), loc.mod(ob.no(ob.at(ec.obs(e), rf.obj(r))))),
+    u => List.append(&2, U32, alias.of(e, mod.bend(ec.paths(e), loc.mod(ob.no(ob.at(ec.obs(e), rf.obj(r)))))),
       Con{46, rf.text(ec.obs(e), r)}))
 
 def ref.put(+e: Ec, +x: U32, +j: U32, +mark: U32, +r: Rf, m: Maybe<&2, U32>, b: Tb) -> Tb:
@@ -3466,6 +3667,8 @@ def rts.put(ts: List<&2, Rt>, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
           rts.put(r, e, x, j, tb.put(b, tok.bytes(tk)))
         case RR{+mark, +ref}:
           rts.put(r, e, x, j, ref.put(e, x, j, mark, ref, un.find(ec.us(e), ref, 0), b))
+        case RX{+mark, +path, +rest}:
+          rts.put(r, e, x, j, tb.put(mark.put(mark, b), List.append(&2, U32, alias.of(e, path), Con{46, rest})))
 
 def spaces(n: Nat) -> List<&2, U32>:
   List.replicate(U32, n, 32)
@@ -3492,7 +3695,7 @@ def rls.put(ls: List<&2, Rl>, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb
 
 def ec.files(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als}:
+    case Ec{files, obs, us, mus, als, own, res, paths}:
       files
 
 # the line before a definition naming where it is written,
@@ -3543,30 +3746,10 @@ def order.put(xs: List<&2, U32>, +e: Ec, b: Tb) -> Tb:
 # the root has no import of that alias, an alias two imports give two
 # files an error.
 
-def bendify(+p: List<&2, U32>, +blend: Bool) -> List<&2, U32>:
-  when(List<&2, U32>, blend, u => List.append(&2, U32, List.take(&2, U32, p, Nat.sub(List.length(&2, U32, p), 5n)), codes("bend")), u => p)
-
-# an import: its path as written, its alias, whether it is Blend's
-type Im is Data:
-  Im{path: List<&2, U32>, alias: List<&2, U32>, +blend: Bool, +no: U32}
-
 def im.line(i: Im) -> List<&2, U32>:
   match i:
     case Im{+path, +alias, +blend, +no}:
       List.append(&2, U32, codes("import "), List.append(&2, U32, bendify(path, blend), List.append(&2, U32, codes(" as "), alias)))
-
-def ends(+xs: List<&2, U32>, +p: List<&2, U32>) -> Bool:
-  starts(List.reverse(&2, U32, xs), List.reverse(&2, U32, p))
-
-def im.made(r: List<&2, U32> & List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
-  (+path, +rest) = r
-  when(Maybe<&2, Im>, starts(rest, codes("as ")) && name.ok(trim(drop(3n, rest))),
-    u => Some{Im{path, trim(drop(3n, rest)), ends(path, codes(".blend")), no}}, u => None{})
-
-# `import PATH as ALIAS`; Bend's other forms (by a package's hash or name)
-# are Bend's alone
-def im.of(+txt: List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
-  im.made(until(drop(7n, txt), 32), no)
 
 def imports(ns: List<&2, Node>) -> List<&2, U32>:
   match ns:
@@ -3578,186 +3761,6 @@ def imports(ns: List<&2, Node>) -> List<&2, U32>:
           List.append(&2, U32, on.maybe(Im, List<&2, U32>, im.of(txt, no), u => txt, i => im.line(i)), Con{10, imports(t)})
         case _:
           imports(t)
-
-# an import carried: its alias, its file as a path from where the root
-# was read, and the line that gives it
-type Ci is Data:
-  Ci{alias: List<&2, U32>, path: List<&2, U32>, +no: U32}
-
-# whether the last part kept is a `..` itself, which another cannot take
-def path.up(xs: List<&2, List<&2, U32>>) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{x, t}:
-      same(x, codes(".."))
-
-def path.norm(ps: List<&2, List<&2, U32>>, +acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match ps:
-    case Nil{}:
-      List.reverse(&2, List<&2, U32>, acc)
-    case Con{+p, +t}:
-      when(List<&2, List<&2, U32>>, same(p, codes(".")) || blank(p), u => path.norm(t, acc),
-        u => when(List<&2, List<&2, U32>>, same(p, codes("..")) && Bool.not(blank.parts(acc)) && Bool.not(path.up(acc)),
-          v => path.norm(t, List.tail(&2, List<&2, U32>, acc)), v => path.norm(t, Con{p, acc})))
-
-def slashes(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
-  match ps:
-    case Nil{}:
-      Nil{}
-    case Con{p, t}:
-      match t:
-        case Nil{}:
-          p
-        case Con{h, r}:
-          List.append(&2, U32, p, Con{47, slashes(Con{h, r})})
-
-def split.slash(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match xs:
-    case Nil{}:
-      List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
-    case Con{+h, t}:
-      match h:
-        case 47:
-          split.slash(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
-        case _:
-          split.slash(t, Con{h, cur}, out)
-
-# a file's directory's parts
-def path.dir(+path: List<&2, U32>) -> List<&2, List<&2, U32>>:
-  List.reverse(&2, List<&2, U32>, List.tail(&2, List<&2, U32>, List.reverse(&2, List<&2, U32>, split.slash(path, Nil{}, Nil{}))))
-
-# rel, written in a file at path, as a path from where the root was read
-def path.from(+path: List<&2, U32>, +rel: List<&2, U32>) -> List<&2, U32>:
-  slashes(path.norm(List.append(&2, List<&2, U32>, path.dir(path), split.slash(rel, Nil{}, Nil{})), Nil{}))
-
-def cis.of(xs: List<&2, Im>, +mpath: List<&2, U32>) -> List<&2, Ci>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{i, t}:
-      match i:
-        case Im{+p, +alias, +blend, +no}:
-          Con{Ci{alias, bendify(path.from(mpath, p), blend), no}, cis.of(t, mpath)}
-
-def ci.find(cs: List<&2, Ci>, +a: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  match cs:
-    case Nil{}:
-      None{}
-    case Con{c, t}:
-      match c:
-        case Ci{+alias, +path, +no}:
-          when(Maybe<&2, List<&2, U32>>, same(alias, a), u => Some{path}, u => ci.find(t, a))
-
-# the imports to add, and their clashes, the root's and those added so far
-# known
-type Cm is Data:
-  Cm{known: List<&2, Ci>, add: List<&2, Ci>, ers: List<&2, Er>}
-
-def cm.put(c: Ci, m: Cm) -> Cm:
-  match c m:
-    case Ci{+alias, +path, +no} Cm{+known, +add, +ers}:
-      on.maybe(List<&2, U32>, Cm, ci.find(known, alias),
-        u => Cm{Con{Ci{alias, path, no}, known}, Con{Ci{alias, path, no}, add}, ers},
-        +p => when(Cm, same(p, path), v => Cm{known, add, ers},
-          v => Cm{known, add, Con{Er{no, "the import of " ++ text(alias) ++ ", which the root's emission carries for the bodies it copies, " ++
-            "names another file than the root's own " ++ text(alias)}, ers}}))
-
-def cm.all(cs: List<&2, Ci>, m: Cm) -> Cm:
-  match cs:
-    case Nil{}:
-      m
-    case Con{c, t}:
-      cm.all(t, cm.put(c, m))
-
-def mod.of.in(+obs: List<&2, Ob>, i: In) -> U32:
-  match i:
-    case In{n, +q, +prior}:
-      loc.mod(ob.no(ob.at(obs, q)))
-
-def mods.rts(ts: List<&2, Rt>, +obs: List<&2, Ob>) -> List<&2, U32>:
-  match ts:
-    case Nil{}:
-      Nil{}
-    case Con{t, r}:
-      match t:
-        case RR{+mark, ref}:
-          Con{loc.mod(ob.no(ob.at(obs, rf.obj(ref)))), mods.rts(r, obs)}
-        case _:
-          mods.rts(r, obs)
-
-def mods.rls(ls: List<&2, Rl>, +obs: List<&2, Ob>) -> List<&2, U32>:
-  match ls:
-    case Nil{}:
-      Nil{}
-    case Con{l, t}:
-      match l:
-        case Rl{+no, +ind, ts}:
-          List.append(&2, U32, mods.rts(ts, obs), mods.rls(t, obs))
-
-def mods.add(xs: List<&2, U32>, +acc: List<&2, U32>) -> List<&2, U32>:
-  match xs:
-    case Nil{}:
-      acc
-    case Con{+x, t}:
-      mods.add(t, when(List<&2, U32>, U32.is_eq(x, 0) || has(acc, x), u => acc, u => Con{x, acc}))
-
-# the modules, but the root, whose definitions the units copy (their
-# members' objects) or name (their references' objects)
-def mods.used(us: List<&2, Un>, +obs: List<&2, Ob>, +acc: List<&2, U32>) -> List<&2, U32>:
-  match us:
-    case Nil{}:
-      acc
-    case Con{u, t}:
-      match u:
-        case Un{+o, i, nd, hd, ls}:
-          mods.used(t, obs, mods.add(List.append(&2, U32, [mod.of.in(obs, i)], List.append(&2, U32, mods.rts(hd, obs), mods.rls(ls, obs))), acc))
-
-# a module's line of the import that first names it, by its alias
-def al.line(als: List<&2, Al>, +r: U32) -> U32:
-  match als:
-    case Nil{}:
-      0
-    case Con{a, t}:
-      match a:
-        case Al{name, +from, +to, +no}:
-          when(U32, U32.is_eq(to, r), u => no, u => al.line(t, r))
-
-def path.at(+ps: List<&2, List<&2, U32>>, +k: U32) -> List<&2, U32>:
-  on.maybe(List<&2, U32>, List<&2, U32>, List.get(&2, List<&2, U32>, ps, U32.to_nat(k)), u => Nil{}, x => x)
-
-def ims.of(ns: List<&2, Node>) -> List<&2, Im>:
-  match ns:
-    case Nil{}:
-      Nil{}
-    case Con{nd, +t}:
-      match nd:
-        case NImport{+txt, +no}:
-          on.maybe(Im, List<&2, Im>, im.of(txt, no), u => ims.of(t), x => Con{x, ims.of(t)})
-        case _:
-          ims.of(t)
-
-# what the root's emission carries for module m: m itself by its alias,
-# and m's own imports where it copies from m
-def cis.mod(+cx: Cx, +copied: Bool, +m: U32) -> List<&2, Ci>:
-  Con{Ci{alias.name.of(cx.als(cx), cx.obs(cx), m), bendify(path.at(cx.paths(cx), m), True{}), al.line(cx.als(cx), root.find(cx.obs(cx), m))},
-    when(List<&2, Ci>, copied, u => cis.of(ims.of(ob.mems(ob.at(cx.obs(cx), root.find(cx.obs(cx), m)))), path.at(cx.paths(cx), m)), u => Nil{})}
-
-def cis.mods(ms: List<&2, U32>, +cx: Cx, +copied: List<&2, U32>) -> List<&2, Ci>:
-  match ms:
-    case Nil{}:
-      Nil{}
-    case Con{+m, t}:
-      List.append(&2, Ci, cis.mod(cx, has(copied, m), m), cis.mods(t, cx, copied))
-
-def mods.copied(us: List<&2, Un>, +obs: List<&2, Ob>, +acc: List<&2, U32>) -> List<&2, U32>:
-  match us:
-    case Nil{}:
-      acc
-    case Con{u, t}:
-      match u:
-        case Un{+o, i, nd, hd, ls}:
-          mods.copied(t, obs, mods.add([mod.of.in(obs, i)], acc))
 
 def path.ups.rest(from: List<&2, List<&2, U32>>, to: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
   match from:
@@ -3786,33 +3789,55 @@ def md.name(+root: List<&2, U32>, +path: List<&2, U32>) -> List<&2, U32>:
 def rel.import(+root: List<&2, U32>, +path: List<&2, U32>) -> List<&2, U32>:
   when(List<&2, U32>, starts(md.name(root, path), codes("..")), u => md.name(root, path), u => List.append(&2, U32, codes("./"), md.name(root, path)))
 
-def ci.line(+root: List<&2, U32>, c: Ci) -> List<&2, U32>:
-  match c:
-    case Ci{+alias, +path, +no}:
-      List.append(&2, U32, codes("import "), List.append(&2, U32, rel.import(root, path),
-        List.append(&2, U32, codes(" as "), List.append(&2, U32, alias, [10]))))
-
-def ci.lines(+root: List<&2, U32>, cs: List<&2, Ci>) -> List<&2, U32>:
-  match cs:
+def need.rts(ts: List<&2, Rt>, +obs: List<&2, Ob>, +paths: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ts:
     case Nil{}:
       Nil{}
-    case Con{c, t}:
-      List.append(&2, U32, ci.line(root, c), ci.lines(root, t))
+    case Con{t, +r}:
+      match t:
+        case RR{+mark, +ref}:
+          when(List<&2, List<&2, U32>>, U32.is_eq(loc.mod(ob.no(ob.at(obs, rf.obj(ref)))), 0), u => need.rts(r, obs, paths),
+            u => Con{mod.bend(paths, loc.mod(ob.no(ob.at(obs, rf.obj(ref))))), need.rts(r, obs, paths)})
+        case RX{+mark, path, rest}:
+          Con{path, need.rts(r, obs, paths)}
+        case _:
+          need.rts(r, obs, paths)
 
-def cm.add(m: Cm) -> List<&2, Ci>:
-  match m:
-    case Cm{known, add, ers}:
-      List.reverse(&2, Ci, add)
+def need.rls(ls: List<&2, Rl>, +obs: List<&2, Ob>, +paths: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match l:
+        case Rl{+no, +ind, ts}:
+          List.append(&2, List<&2, U32>, need.rts(ts, obs, paths), need.rls(t, obs, paths))
 
-def cm.ers(m: Cm) -> List<&2, Er>:
-  match m:
-    case Cm{known, add, ers}:
-      ers
+def need.us(us: List<&2, Un>, +obs: List<&2, Ob>, +paths: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match us:
+    case Nil{}:
+      Nil{}
+    case Con{u, t}:
+      match u:
+        case Un{+o, i, nd, hd, ls}:
+          List.append(&2, List<&2, U32>, need.rts(hd, obs, paths), List.append(&2, List<&2, U32>, need.rls(ls, obs, paths), need.us(t, obs, paths)))
 
-# the imports the root's emission carries, and their clashes
-def carried(+cx: Cx, +us: List<&2, Un>) -> Cm:
-  cm.all(cis.mods(mods.used(us, cx.obs(cx), Nil{}), cx, mods.copied(us, cx.obs(cx), Nil{})),
-    Cm{cis.of(ims.of(ob.mems(ob.at(cx.obs(cx), 0))), path.at(cx.paths(cx), 0)), Nil{}, Nil{}})
+# each file once, in order, the root's own imports left out
+def need.uniq(ps: List<&2, List<&2, U32>>, +own: List<&2, Ci>, +seen: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, +t}:
+      when(List<&2, List<&2, U32>>, names.has(seen, p) || Maybe.is_some(&2, List<&2, U32>, ci.path.find(own, p)), u => need.uniq(t, own, seen),
+        u => Con{p, need.uniq(t, own, Con{p, seen})})
+
+# the reserved imports, `import ./lib/util.bend as Blend_1`
+def res.lines(+root: List<&2, U32>, ps: List<&2, List<&2, U32>>, +k: U32) -> List<&2, U32>:
+  match ps:
+    case Nil{}:
+      Nil{}
+    case Con{+p, t}:
+      List.append(&2, U32, codes("import "), List.append(&2, U32, rel.import(root, p),
+        List.append(&2, U32, codes(" as "), List.append(&2, U32, res.alias(k), Con{10, res.lines(root, t, (k + 1 : U32))}))))
 
 # bytes as UTF-8, to the String printed; need, the continuation bytes
 # still due, cp the code point so far
@@ -3944,11 +3969,11 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +d = walk(roots.all(cx, us), calls(rss), obs, us)
   +order = ds.order(d)
   +ms = mults(order, List.reverse(&2, U32, order), rss, obs, us, Ms{mus.one(us), Nil{}})
-  +e = {Ec{files, obs, us, ms.ms(ms), cx.als(cx)} : Ec}
-  +cm = carried(cx, us)
-  emit.out(files, e, order, ob.mems(ob.at(obs, 0)), ci.lines(path.at(cx.paths(cx), 0), cm.add(cm)),
-    List.append(&2, Er, cm.ers(cm), List.append(&2, Er, ds.ers(d),
-      List.append(&2, Er, ms.ers(ms), er.names(names.all(List.reverse(&2, U32, order), e), Nil{})))))
+  +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
+  +res = need.uniq(need.us(us, obs, cx.paths(cx)), own, Nil{})
+  +e = {Ec{files, obs, us, ms.ms(ms), cx.als(cx), own, res, cx.paths(cx)} : Ec}
+  emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1),
+    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), er.names(names.all(List.reverse(&2, U32, order), e), Nil{}))))
 
 # Stages
 # ======
