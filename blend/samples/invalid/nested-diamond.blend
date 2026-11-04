@@ -1,0 +1,16 @@
+# Outer's Inner is made for Outer2 and for Outer3, its `^` bound to each;
+# Z inherits both, Inner's bodies once, their `^` both hosts at once.
+import Base
+
+object Outer with
+  shared def name() -> String:
+    "outer"
+  object Inner with
+    def a() -> String:
+      ^name()
+
+object Outer2 extends Outer
+
+object Outer3 extends Outer
+
+object Z extends Outer2.Inner, Outer3.Inner

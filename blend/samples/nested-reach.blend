@@ -1,0 +1,36 @@
+# `^` with frozen hosts: a nested object's mixins are bound to the host
+# of the nested object made of them, and inheritance never binds them
+# again. Y inherits Outer2.Inner as it is, its `^` Outer2's in every body,
+# as a call of Outer2.foo would be; `extends In` in a nested object names
+# the In of the host it is made for; a diamond of hosts is one host.
+import Base
+
+object Outer with
+  shared def name() -> String:
+    "outer"
+  object Inner with
+    def a() -> String:
+      ^name()
+  object Sub extends Inner with
+    def s() -> String:
+      a() ++ "+"
+
+object Outer2 extends Outer with
+  shared upd name() -> String:
+    "outer2"
+  extend Inner with
+    def b() -> String:
+      ^name()
+
+object Outer3 extends Outer with
+  shared upd name() -> String:
+    "outer3"
+
+object Both extends Outer2, Outer3
+
+object Y extends Outer2.Inner with
+  def ab() -> String:
+    a() ++ "/" ++ b()
+
+def main() -> IO(Unit):
+  IO.print(Y.ab() ++ " " ++ Outer2.Sub.s() ++ " " ++ Outer3.Sub.s() ++ " " ++ Both.Inner.a())

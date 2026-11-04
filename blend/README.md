@@ -74,11 +74,17 @@ Bend's imports pass through.
   object), `extend abstract Inner` keeps it abstract, a plain `extend`
   instantiating it. An object has its parents' nested objects, each its
   own (`Outer2.Inner`), linearized from the contributors nearest it to
-  the one introducing it, then that one's parents. A body inherited
-  with its host sees the final host through `^` (glam's `self`, the
-  final instance); one reached by its path (`extends Outer.In`) sees
-  the host it was reached through. `extend` stays out of the top level
-  (`blend-namespaces-as-bends`).
+  the one introducing it, then that one's parents. `extend` stays out of
+  the top level (`blend-namespaces-as-bends`).
+- **`^` is frozen** (`blend-frozen-host`), glam's semantics: a bare name
+  binds to the final object's definition; a nested object made for host
+  X binds its mixins to X, `^` in their bodies X and `^^` X's host, a
+  bare name in the introducing mixin's `extends` found from X as well;
+  inheritance never binds again. So `Outer2.Inner` sees Outer2, being
+  made again for each host, and an object inheriting `Outer2.Inner`
+  sees Outer2 in every body, as a call of `Outer2.foo` would. A mixin
+  brought into one object by two made objects of different hosts would
+  see both: an error.
 - **Inheritance** is multiple, linearized by C3 as glam's is: a parent
   named twice is one parent. An object's definitions apply after its
   parents', so that an `upd`'s prior is the definition the next object
@@ -166,6 +172,9 @@ program prints.
 - `nested`: nested objects, `^name`, the module's definitions as Bend's.
 - `family-nested`: nested objects inherited and extended down their
   hosts' linearizations, `^` seeing the final host.
+- `nested-reach`: frozen hosts, an object inheriting `Outer2.Inner` by
+  its path, a nested object's `extends` found from its host, a diamond
+  of hosts.
 - `types`: type members declared, given by each family and named in
   signatures, a datatype of the module's taking one as its argument.
 - `imports`, with `lib/shapes.blend`: an object extending an imported
@@ -182,7 +191,7 @@ that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
 file, a name beginning `Blend_`, an extension of nothing inherited, a
 nested object introduced where one is inherited, `extend` at the top
-level.
+level, a nested object's mixin inherited bound to two hosts.
 
 ## Known issues
 

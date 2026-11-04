@@ -44,6 +44,7 @@ blend/samples choice.bend blend choice.blend
 blend/samples types.bend blend types.blend
 blend/samples imports.bend blend imports.blend
 blend/samples family-nested.bend blend family-nested.blend
+blend/samples nested-reach.bend blend nested-reach.blend
 blend/samples/lib shapes.bend blend shapes.blend
 EOF
 exit "$status"
