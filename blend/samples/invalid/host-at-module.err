@@ -1,1 +1,1 @@
-host-at-module.blend:6: ^name is in a definition of the module, which is no object
+host-at-module.blend:6: ^name steps out of the module, which has no host

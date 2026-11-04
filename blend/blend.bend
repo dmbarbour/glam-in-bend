@@ -1831,8 +1831,8 @@ def show.ers(+file: String, es: List<&2, Er>) -> String:
 # Each concrete object's definitions, its own copies, their bodies'
 # names bound (`blend-resolve`): a bare name to the final definition of
 # the innermost object that has it, the concrete object itself first,
-# then the hosts of the object that wrote the body, then the module's
-# definitions, Bend's, their names kept; a dotted name to an object's
+# then the hosts of the object that wrote the body, the module's
+# definitions last, Bend's, their names kept; a dotted name to an object's
 # definition (`Outer.Inner.path`), the longest object path first; `_name`
 # to the definition the writer's replaced, `^name` to its host's, `~name`
 # as a bare name, the mark kept. A body's locals are its parameters and
@@ -1873,14 +1873,15 @@ def cx.ord(c: Cx, +id: U32) -> List<&2, U32>:
 def has.def(+map: List<&2, En>, +n: List<&2, U32>) -> Bool:
   Maybe.is_some(&2, En, en.find(map, n))
 
-# an object's hosts, innermost first, to its top-level object: the module
-# is no object (`blend-module-is-bend`)
+# an object's hosts, innermost first, the module last: `^name` names the
+# host's scope, the module's at the top, though the module is no object
+# (`blend-module-is-bend`); the module has none
 def hosts.go(n: Nat, +obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
   match n:
     case 0n:
       Nil{}
     case 1n++k:
-      when(List<&2, U32>, U32.is_eq(id, 0) || U32.is_eq(ob.host(ob.at(obs, id)), 0), u => Nil{},
+      when(List<&2, U32>, U32.is_eq(id, 0), u => Nil{},
         u => Con{ob.host(ob.at(obs, id)), hosts.go(k, obs, ob.host(ob.at(obs, id)))})
 
 def hosts(+obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
@@ -2136,7 +2137,7 @@ def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32
 # definition of the module (Bend's, its text kept), or Bend's
 def rr.plain(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
   when(Rr, names.has(locals, n), u => rr.tok(t),
-    u => on.maybe(U32, Rr, look(cx, Con{o, List.append(&2, U32, hosts(cx.obs(cx), q), [0])}, n),
+    u => on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
       v => rr.dotted(cx, q, mark, n, t, no),
       +h => rr.final(cx, h, mark, n, t, no)))
 
@@ -2172,17 +2173,11 @@ def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) ->
       ob.name(cx.obs(cx), q) ++ "'s"),
     +c => Rr{RR{0, Rf{o, n, True{}, c}}, Nil{}, [In{n, c, True{}}]})
 
-# `^n`, k carets: the k-th host's final n
-def top.of(+obs: List<&2, Ob>, +q: U32) -> U32:
-  on.maybe(U32, U32, List.last(&2, U32, hosts(obs, q)), u => q, x => x)
-
-def host.none(+obs: List<&2, Ob>, +q: U32, +whole: List<&2, U32>) -> String:
-  when(String, U32.is_eq(q, 0), u => text(whole) ++ " is in a definition of the module, which is no object",
-    u => text(whole) ++ " steps out of " ++ ob.name(obs, top.of(obs, q)) ++ ", which has no host")
-
+# `^n`, k carets: the k-th host's final n, the module's definition at
+# the top
 def rr.host(+cx: Cx, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whole: List<&2, U32>, +no: U32) -> Rr:
   on.maybe(U32, Rr, List.get(&2, U32, hosts(cx.obs(cx), q), Nat.sub(k, 1n)),
-    u => rr.er(t, no, host.none(cx.obs(cx), q, whole)),
+    u => rr.er(t, no, text(whole) ++ " steps out of the module, which has no host"),
     +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
       v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
 
@@ -2302,9 +2297,17 @@ def unmarks(ns: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
     case Con{n, t}:
       Con{unmark(n), unmarks(t)}
 
-# whether n names a definition a bare name would reach
+def objs.only(xs: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +t}:
+      when(List<&2, U32>, U32.is_eq(x, 0), u => objs.only(t), u => Con{x, objs.only(t)})
+
+# whether n names an object's definition a bare name would reach; the
+# module's, Bend's, a local may shadow
 def visible(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>) -> Bool:
-  Maybe.is_some(&2, U32, look(cx, Con{o, hosts(cx.obs(cx), q)}, n))
+  Maybe.is_some(&2, U32, look(cx, objs.only(Con{o, hosts(cx.obs(cx), q)}), n))
 
 def shadow.params(ps: List<&2, List<&2, U32>>, +cx: Cx, +o: U32, +q: U32, +dn: String, +no: U32) -> List<&2, Er>:
   match ps:

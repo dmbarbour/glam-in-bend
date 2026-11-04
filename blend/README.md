@@ -55,8 +55,9 @@ Bend's imports pass through.
   final object's definition, so that an update reaches every definition
   that calls it; a reference takes the longest name defined, dots
   included (`note.go`). `_name` is the prior definition, the one this
-  `upd` replaces. `^name` steps out of the innermost object to its host,
-  `^^name` two steps; a top-level object has no host. `Obj.name` or
+  `upd` replaces. `^name` steps out of the innermost object to its
+  host's scope, `^^name` two steps: a top-level object's host is the
+  module, the outermost scope, with no host of its own. `Obj.name` or
   `Outer.Inner.name` is that object's final definition. A bare name that
   no object in reach defines may be one of the module's definitions,
   Bend's, its text kept; any other name is Bend's. A bare name is a local
@@ -90,15 +91,16 @@ its own copy, bound to its own finals: no sharing between objects.
 - The final definition of `f` in `Obj` is `Obj.f`; a definition it
   replaced, where reached through `_f`, is `Obj.f.Origin`, after the
   object that defined it; a copied `f` is `Obj.f`, and its copies for its
-  uses `Obj.f.c1`, `Obj.f.c2`, in the order the uses are emitted; the
+  uses `Obj.f.c1`, `Obj.f.c2`, one for each use; the
   module's definitions call `Obj.f`. A nested object's prefix is its
   path, `Outer.Inner.f`.
-- Definitions come callees first, as Bend requires, source order between
-  the unrelated: the module's definitions and its concrete objects by
-  their lines, an object's members in its linearization's order, its own
-  first, a definition's callees in the order its body names them. Two
-  definitions calling each other have no such order: an error, as Bend
-  has no mutual recursion.
+- Definitions come callees first, as Bend requires. Two definitions
+  calling each other have no such order: an error, as Bend has no mutual
+  recursion. Any other order, and which copy of a copied definition takes
+  which number, is the tool's, not Blend's: they change nothing Bend
+  observes (the maintainer, 2026-11-04), and a plain `.bend` file calls a
+  copied definition by its own name. The samples hold the tool to its
+  present order.
 - An abstract object emits nothing of its own.
 
 ## The samples
