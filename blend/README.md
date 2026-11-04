@@ -87,7 +87,10 @@ Bend's imports pass through.
   takes parameters; `upd type` and `declare type` as for any definition
   (the maintainer, 2026-11-04). A name of one is a call, `S()`, bound as
   a definition's is, in signatures as in bodies, so that no family
-  threads type parameters. Bend erases them.
+  threads type parameters. Bend erases them. A type member is
+  transparent, the type it computes: `Sum.S()` is `U32` wherever it
+  meets one, no type of its own as a datatype is (Bend's datatypes are
+  nominal, by file and name).
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).

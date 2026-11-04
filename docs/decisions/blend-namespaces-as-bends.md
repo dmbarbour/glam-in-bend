@@ -8,8 +8,14 @@
   `TA.T`, `TA.K{...}`); same names in two files do not clash.
 - An alias is local to the file that imports it, and passes through no
   import: a file cannot name what its imports import.
-- A file is one module however it is reached: a type reached by two
-  routes is one type.
+- A file is one module however it is reached, by the file it resolves to:
+  a type reached by two routes, or through a symlink, is one type, and a
+  function so reached is compiled once (`FID_a_foo`, named by its
+  file's path), one function with as many callers as call it.
+- Datatypes are nominal, by file and name: one shape declared in two
+  files makes two types, a byte-identical copy at another path too. A
+  type a definition computes is transparent: two definitions computing
+  `List<&2, U32>` interchange.
 - Import paths are plain: `./x.bend`, or `../x.bend` leading.
 
 Blend's first imports carried, into the root's emitted file, the aliases
@@ -20,7 +26,9 @@ constructors being no more global than definitions.
 
 **Decision.** The maintainer (2026-11-04): if Bend's top-level namespace
 does not depend on the path of imports, neither does Blend's; no
-surprises.
+surprises. A module made an object, copied for each importer, would
+also make its datatypes as many distinct types, values of one copy's
+refused by another's: the module stays one, as a Bend file is.
 - A module's names are its own definitions and objects, and through the
   aliases it imports, theirs.
 - An object is one however reached.
