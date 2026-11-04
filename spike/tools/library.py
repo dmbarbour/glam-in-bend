@@ -78,17 +78,24 @@ interactions and the profile too; a term's value its evaluator's
 (terms.py).
 
 The build and the run go under scripts/capped.sh, each capped near its
-cost so that a run going astray fails in minutes: the build peaks at
-3.5 GB in 76 s, the run at a few dozen MB in under a minute (2026-11-03).
+cost so that a run going astray fails in minutes: the build about 55 s,
+its peak 3.3 to 4.5 GB as Bend's compiler collects its heap, the run a
+few dozen MB in under a minute (2026-11-04). The nets are read at run
+time from OUT/nets.txt: compiled in, they took Bend's compiler 1.1 GB
+and 12 s more and clang 10 s (heap-strategies.measure.library-nets); the
+rest is the kernel, compiled once for each strategy's family.
 LIBRARY_BUILD_CAP and LIBRARY_RUN_CAP override them, "MEGABYTES SECONDS".
-Run one library at a time: two builds at once need 7 GB. OUT/library K
+Run one library at a time: two builds at once need 7 GB. The program
+reads its cases at run time from OUT/nets.txt; OUT/library OUT/nets.txt K
 runs case K alone (the K of its `#K:` line in OUT/out.txt, the cases in
 the entries' order, each entry's modes in turn), printing its line, and
-OUT/library K I its strategy I alone (STRATEGIES: 0 spike, 1 ref, 2 fast,
+OUT/library OUT/nets.txt K I its strategy I alone (STRATEGIES: 0 spike, 1 ref, 2 fast,
 3 lazy, 4 two, 5 ev, 6 evref, 7 evlazy, 8 evtwo, 9 evprof, 10 prof,
 11 dc, 12 dcs): a run that hangs, each case under a short cap, shows
 which case, then which strategy.
 """
+import contextlib
+import io
 import os
 import re
 import subprocess
@@ -104,7 +111,7 @@ ROOT = os.path.dirname(SPIKE)
 LIBRARY = os.environ.get("LIBRARY_FILE", os.path.join(SPIKE, "library.txt"))
 MODES = ("levels", "labels", "unfused")
 FUEL = 1280000
-BUILD_CAP = "5000 240"
+BUILD_CAP = "6000 240"
 RUN_CAP = "1000 120"
 
 
@@ -195,19 +202,19 @@ def cases(es, only):
 # the strategies a case runs through, in its line's order: each its name
 # and the Bend expression giving its result's text
 STRATEGIES = [
-    ("spike", "spike_str(T.result(T.run(tpl_of(k), fuel_of(k, 1n))))"),
-    ("ref", "res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), False{}))"),
-    ("fast", "res_str(K.run_t(tpl_of(k), fuel_of(k, 0n), True{}))"),
-    ("lazy", "lazy_str(K.run_d(tpl_of(k), fuel_of(k, 2n), []))"),
-    ("two", "res_str(K.run_two(tpl_of(k), fuel_of(k, 0n), True{}))"),
-    ("ev", "ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), True{}))"),
-    ("evref", "ev_str(K.run_ev(tpl_of(k), fuel_of(k, 0n), False{}))"),
-    ("evlazy", "evlazy_str(K.run_dev(tpl_of(k), fuel_of(k, 2n), []))"),
-    ("evtwo", "ev_str(K.run_two_ev(tpl_of(k), fuel_of(k, 0n), True{}))"),
-    ("evprof", "K.profile_ev(tpl_of(k), fuel_of(k, 0n), True{})"),
-    ("prof", "K.profile_t(tpl_of(k), fuel_of(k, 0n), True{})"),
-    ("dc", "dc_str(K.run_dc(tpl_of(k), fuel_of(k, 2n), []))"),
-    ("dcs", "dc_str(K.run_ds.s(tpl_of(k), fuel_of(k, 2n), []))"),
+    ("spike", "spike_str(T.result(T.run(t, fuel_of(f, 1n))))"),
+    ("ref", "res_str(K.run_t(t, fuel_of(f, 0n), False{}))"),
+    ("fast", "res_str(K.run_t(t, fuel_of(f, 0n), True{}))"),
+    ("lazy", "lazy_str(K.run_d(t, fuel_of(f, 2n), []))"),
+    ("two", "res_str(K.run_two(t, fuel_of(f, 0n), True{}))"),
+    ("ev", "ev_str(K.run_ev(t, fuel_of(f, 0n), True{}))"),
+    ("evref", "ev_str(K.run_ev(t, fuel_of(f, 0n), False{}))"),
+    ("evlazy", "evlazy_str(K.run_dev(t, fuel_of(f, 2n), []))"),
+    ("evtwo", "ev_str(K.run_two_ev(t, fuel_of(f, 0n), True{}))"),
+    ("evprof", "K.profile_ev(t, fuel_of(f, 0n), True{})"),
+    ("prof", "K.profile_t(t, fuel_of(f, 0n), True{})"),
+    ("dc", "dc_str(K.run_dc(t, fuel_of(f, 2n), []))"),
+    ("dcs", "dc_str(K.run_ds.s(t, fuel_of(f, 2n), []))"),
 ]
 
 
@@ -216,10 +223,10 @@ def one_defs():
     the strategy of index i alone (STRATEGIES), any other index all of them."""
     line = ' ++\n    " | '.join(f'{n} " ++ {e}' for n, e in STRATEGIES)
     arms = "".join(f'    case {i}:\n      "#" ++ U32.show(k) ++ ": {n} " ++ {e}\n' for i, (n, e) in enumerate(STRATEGIES))
-    return ("# a case through every strategy\ndef one(+k: U32) -> String:\n"
+    return ("# a case through every strategy\ndef one(+k: U32, +t: T.Tpl, +f: U32) -> String:\n"
             f'  "#" ++ U32.show(k) ++ ": {line}\n\n'
             "# a case through strategy i alone (library.py's STRATEGIES)\n"
-            f"def one.m(+k: U32, +i: U32) -> String:\n  match i:\n{arms}    case _:\n      one(k)\n\n")
+            f"def one.m(+k: U32, +i: U32, +t: T.Tpl, +f: U32) -> String:\n  match i:\n{arms}    case _:\n      one(k, t, f)\n\n")
 
 
 MAIN = r'''
@@ -272,36 +279,103 @@ def dc_str(r: K.CRes) -> String:
     case K.CRes{k, +cyc, +citrs, +cevs, +scan}:
       lazy_str(k) ++ " cyc " ++ U32.show(cyc) ++ " itrs " ++ U32.show(citrs) ++ " ev " ++ U32.show(cevs) ++ " scan " ++ U32.show(scan)
 
-ONE
-def all(n: Nat, +k: U32) -> String:
-  match n:
+# case k's fuel for the full reductions (0), the spike (1), whose fuel
+# counts rounds of 64 interactions (tpl.bend's run), and demand (2): a
+# row's wanted value, the fuel library.py wrote there
+def fuel_of(+f: U32, +who: Nat) -> Nat:
+  match who:
     case 0n:
-      ""
-    case 1n+p:
-      one(k) ++ "\n" ++ all(p, (k + 1 : U32))
+      U32.to_nat(f)
+    case 1n:
+      Nat.div(U32.to_nat(f), 64n)
+    case _:
+      Nat.mul(U32.to_nat(f), 2n)
 
-def main.all() -> IO(Unit):
-  IO.print(all(COUNT, 0) ++ "events tables: " ++ KN.ev_tables() ++ "\nbuiltin fields: " ++ KN.builtin_fields())
+ONE
+def one.r(+k: U32, r: LD.Row) -> String:
+  match r:
+    case LD.Row{+t, +want, name}:
+      one(k, t, want)
 
-def main.case(+k: U32, xs: List<String>) -> IO(Unit):
-  match xs:
-    case Con{a, r}:
-      IO.print(one.m(k, Maybe.default(&2, U32, U32.read(a), 99)))
+def all(rs: List<&2, LD.Row>, +k: U32) -> String:
+  match rs:
     case Nil{}:
-      IO.print(one(k))
+      ""
+    case Con{r, t}:
+      one.r(k, r) ++ "\n" ++ all(t, (k + 1 : U32))
 
-# with an argument K, case K alone, and with I its strategy I alone (its
-# line, to trace a hang)
+def one.i(+k: U32, +i: U32, r: LD.Row) -> String:
+  match r:
+    case LD.Row{+t, +want, name}:
+      one.m(k, i, t, want)
+
+# row k of rs, by strategy i (99 every one)
+def at(rs: List<&2, LD.Row>, +j: U32, +k: U32, +i: U32) -> String:
+  match rs:
+    case Nil{}:
+      "no case " ++ U32.show(k)
+    case Con{r, t}:
+      match j:
+        case 0:
+          one.i(k, i, r)
+        case _:
+          at(t, (j - 1 : U32), k, i)
+
+# every case, or with K case K alone, and with I its strategy I alone
+# (its line, to trace a hang)
+def run.rows(rs: List<&2, LD.Row>, xs: List<String>) -> String:
+  match xs:
+    case Con{+a, r}:
+      match r:
+        case Con{b, r2}:
+          at(rs, Maybe.default(&2, U32, U32.read(a), 0), Maybe.default(&2, U32, U32.read(a), 0), Maybe.default(&2, U32, U32.read(b), 99))
+        case Nil{}:
+          at(rs, Maybe.default(&2, U32, U32.read(a), 0), Maybe.default(&2, U32, U32.read(a), 0), 99)
+    case Nil{}:
+      all(rs, 0) ++ "events tables: " ++ KN.ev_tables() ++ "\nbuiltin fields: " ++ KN.builtin_fields()
+
+def main.read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, xs: List<String>) -> IO(Unit):
+  (f, r) = fr
+  match r:
+    case Done{bs}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print(run.rows(LD.rows(bs), xs))
+    case Fail{e}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print("library: cannot read the nets")
+
+def main.size(fs: File & Result<&1, &1, U32 & String, U32>, xs: List<String>) -> IO(Unit):
+  (f, r) = fs
+  match r:
+    case Done{+n}:
+      do IO<Unit>:
+        fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
+        main.read(fr, xs)
+    case Fail{e}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print("library: cannot size the nets")
+
+def main.file(path: String, xs: List<String>) -> IO(Unit):
+  do IO<Unit>:
+    f : File <- IO.try(File, File.open(path, "r"))
+    fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
+    main.size(fs, xs)
+
+# the nets file (load.bend's format, each row's wanted value its fuel),
+# then K and I if given
 def main.args(xs: List<String>) -> IO(Unit):
   match xs:
     case Con{p, r}:
       match r:
-        case Con{a, r2}:
-          main.case(Maybe.default(&2, U32, U32.read(a), 0), r2)
+        case Con{path, r2}:
+          main.file(path, r2)
         case Nil{}:
-          main.all()
+          IO.print("usage: library NETS [K [I]]")
     case Nil{}:
-      main.all()
+      IO.print("usage: library NETS [K [I]]")
 
 def main() -> IO(Unit):
   do IO<Unit>:
@@ -311,29 +385,23 @@ def main() -> IO(Unit):
 
 
 def program(cs, out):
+    """OUT/library.bend, a program reading its nets at run time, and
+    OUT/nets.txt, the cases in load.bend's format, each row's wanted value
+    its fuel: the nets compiled in cost Bend's compiler 1.3 GB and 24 s a
+    build (heap-strategies.measure.library-nets)."""
     rel = os.path.relpath(SPIKE, out)
     lines = ["import Base"]
-    for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("kernel", "K"), ("knet", "KN")]:
+    for mod, alias in [("val", "V"), ("net", "N"), ("tpl", "T"), ("nets", "X"), ("kernel", "K"), ("knet", "KN"),
+                       ("load", "LD")]:
         lines.append(f"import {rel}/{mod}.bend as {alias}")
-    lines += ["", "# Written by spike/tools/library.py from spike/library.txt; do not edit.", ""]
-    for i, c in enumerate(cs):
-        lines.append(f"# {c.entry}, {c.mode}\ndef t{i}() -> T.Tpl:\n  {terms.bend_tpl(c.net, c.root)}\n")
-    lines.append("def tpl_of(+k: U32) -> T.Tpl:\n  match k:")
-    for i in range(len(cs)):
-        lines.append(f"    case {i}:\n      t{i}()")
-    lines.append(f"    case _:\n      t{len(cs) - 1}()\n")
-    # case k's fuel for the full reductions (0), the spike (1), whose fuel
-    # counts rounds of 64 interactions (tpl.bend's run), and demand (2)
-    lines.append("def fuel.go(+f: Nat, +who: Nat) -> Nat:\n  match who:\n    case 0n:\n      f\n"
-                 "    case 1n:\n      Nat.div(f, 64n)\n    case _:\n      Nat.mul(f, 2n)\n")
-    lines.append("def fuel_of(+k: U32, +who: Nat) -> Nat:\n  match k:")
-    for i, c in enumerate(cs):
-        lines.append(f"    case {i}:\n      fuel.go({c.fuel}n, who)")
-    lines.append(f"    case _:\n      fuel.go({FUEL}n, who)\n")
-    lines.append(MAIN.replace("COUNT", f"{len(cs)}n").replace("ONE\n", one_defs()))
+    lines += ["", "# Written by spike/tools/library.py; do not edit. Its cases are in nets.txt.", ""]
+    lines.append(MAIN.replace("ONE\n", one_defs()))
     path = os.path.join(out, "library.bend")
     with open(path, "w") as f:
         f.write("\n".join(lines))
+    rows = [(f"{c.entry} {c.mode}", c.fuel, c.net, c.root) for c in cs]
+    with contextlib.redirect_stdout(io.StringIO()):
+        terms.write_nets(out, rows)
     return path
 
 
@@ -534,7 +602,8 @@ def main(argv):
     capped = os.path.join(ROOT, "scripts", "capped.sh")
     subprocess.run([capped] + cap("LIBRARY_BUILD_CAP", BUILD_CAP) + [bend, os.path.basename(path), "-o", "library"],
                    cwd=out, check=True, stdout=subprocess.DEVNULL)
-    res = subprocess.run([capped] + cap("LIBRARY_RUN_CAP", RUN_CAP) + [exe], capture_output=True, text=True)
+    res = subprocess.run([capped] + cap("LIBRARY_RUN_CAP", RUN_CAP) + [exe, os.path.join(out, "nets.txt")],
+                         capture_output=True, text=True)
     if res.returncode == 137:
         failing += 1
         print("FAIL the run: " + (res.stderr.strip().splitlines() or ["killed"])[-1])

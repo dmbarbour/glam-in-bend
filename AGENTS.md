@@ -99,9 +99,10 @@ Lessons carried over from the Rust bootstrap:
   native builds (`bend x.bend -o x`) for spike runs.
 - Cap a run near its normal cost, so that one going astray shows in
   minutes, and stop it there: a hang is a fault to trace, not to wait
-  out. A large generated program's build peaks near 3.5 GB (the
-  library's, 2026-11-03): build one at a time, and keep the caps of
-  runs that overlap below the machine's free memory. Run
+  out. A build of the kernel with every strategy peaks at 3 to 4.5 GB
+  (the library's, 2026-11-04; the compiler's heap varies): build one at
+  a time, and keep the caps of runs that overlap below the machine's
+  free memory. Run
   `scripts/cgroup-delegate.sh` first, or the caps only poll.
 - Bend folds a chain of functions into one compiled segment only while
   each has one caller; a second caller splits a function into a segment

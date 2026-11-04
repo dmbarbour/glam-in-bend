@@ -3639,9 +3639,17 @@ takes from it:
        too on programs that behave like real ones (the library's
        mixins, searches, parsers): random terms and the standard
        workloads never make the best profiles.
-     - `heap-strategies.measure.library-nets` — tentative — the library's
-       nets read at run time rather than built into its program (the
-       maintainer, 2026-11-03, for later). Measured that day: Bend's
+     - `heap-strategies.measure.library-nets` — built 2026-11-04 — the
+       library's nets read at run time rather than built into its program
+       (the maintainer, 2026-11-03, for later). Built: library.py writes
+       its cases as loader rows (OUT/nets.txt, each row's wanted value its
+       fuel), and its program, the same text whatever the cases, reads
+       them as runterms does. Its C 4.7 MB against 12.7 MB; Bend's step
+       27 s at 2.0 GB against 39 s at 3.1 GB, clang's 24 s against 34 s;
+       the build 51 s to 55 s against 76 s, its peak 3.3 to 4.5 GB, as
+       the compiler's heap goes (the cap now 6 GB). The rest of the cost
+       is the kernel compiled once for each strategy's family: runmode,
+       demand's families alone, builds at 1.9 GB. Measured that day: Bend's
        compiler takes the kernel alone (spike/runmode.bend) to C in 15 s
        at a 1.8 GB peak, 3.1 MB of C, which clang builds in 16 s at
        0.23 GB; the library's program, its 156 nets as literal
