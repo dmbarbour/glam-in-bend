@@ -1146,3 +1146,96 @@ def Laws.order.once(roots, cal, obs, us):
   inv_order(B.walk(roots, cal, obs, us),
     go_once(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
       B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
+
+# The walk's order, nothing walked lost
+# -------------------------------------
+#
+# The invariant: an error is reported, or every unit walked is in the
+# order. A unit held back reports an error where none was, and errors
+# are never taken back.
+
+def jinv(s: B.Ds) -> Bool:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      Bool.or(Bool.not(List.is_empty(&2, B.Er, ers)), B.all.in(done, order))
+
+def done_walked(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {Bool.or(Bool.not(List.is_empty(&2, B.Er, ers)), B.all.in(done, order)) == True{} : Bool}) ->
+    {jinv(B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  match ok:
+    case True{}:
+      match ers:
+        case Nil{}:
+          and_intro(B.has(Con{u, order}, u), B.all.in(done, Con{u, order}), has_self(order, u), all_in_mono(done, order, u, h))
+        case Con{e, es}:
+          {==}
+    case False{}:
+      match ers:
+        case Nil{}:
+          {==}
+        case Con{e, es}:
+          {==}
+
+def root_walked(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>,
+    +h: {Bool.or(Bool.not(List.is_empty(&2, B.Er, ers)), B.all.in(done, order)) == True{} : Bool}) ->
+    {jinv(B.ds.root.k(seen, r, rt, done, order, ers, cal)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      h
+
+def call_walked(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {Bool.or(Bool.not(List.is_empty(&2, B.Er, ers)), B.all.in(done, order)) == True{} : Bool}) ->
+    {jinv(B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      match cyc:
+        case True{}:
+          {==}
+        case False{}:
+          h
+
+def step_walked(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {jinv(s) == True{} : Bool}) ->
+    {jinv(B.ds.step(s, cal, obs, us)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              h
+            case Con{+r, +rt}:
+              root_walked(B.has(done, r), r, rt, done, order, ers, cal, h)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_walked(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, h)
+                case Con{+c, +rs}:
+                  call_walked(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, h)
+
+def go_walked(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {jinv(s) == True{} : Bool}) ->
+    {jinv(B.ds.go(n, s, cal, obs, us)) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_walked(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_walked(s, cal, obs, us, h))
+
+# no error reported: every unit walked in the order
+def jinv_out(s: B.Ds, h: {jinv(s) == True{} : Bool}, +e: {List.is_empty(&2, B.Er, B.ds.ers(s)) == True{} : Bool}) ->
+    {B.all.in(B.ds.walked(s), B.ds.order(s)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, +done, +order, +ers}:
+      ME.subst(Bool, x => {Bool.or(Bool.not(x), B.all.in(done, order)) == True{} : Bool}, List.is_empty(&2, B.Er, ers), True{}, e, h)
+
+def Laws.order.walked(roots, cal, obs, us, h):
+  jinv_out(B.walk(roots, cal, obs, us),
+    go_walked(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)

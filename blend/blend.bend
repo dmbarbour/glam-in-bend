@@ -4568,6 +4568,12 @@ def ds.order(d: Ds) -> List<&2, U32>:
     case Ds{stack, roots, done, order, ers}:
       order
 
+# the units walked (blend/LAWS.bend, `order.walked`)
+def ds.walked(d: Ds) -> List<&2, U32>:
+  match d:
+    case Ds{stack, roots, done, order, ers}:
+      done
+
 def ds.ers(d: Ds) -> List<&2, Er>:
   match d:
     case Ds{stack, roots, done, order, ers}:
