@@ -16,7 +16,7 @@ at N, 2N and 4N, as one size hides superlinear growth.
   `perf`) and seconds, recording them in the analysis store
   (`scripts/results.py`: a run, each size a row of `counts`, its seconds
   a metric). The modules and what Blend writes go to
-  `results/blend/bench` (out of git).
+  `blend/results/bench` (out of git).
 
       blend/bench/measure.sh chain|fan|dense N [MB SECONDS]
 

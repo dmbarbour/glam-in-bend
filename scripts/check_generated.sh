@@ -18,13 +18,13 @@ status=0
 
 # Blend's emission of a directory's modules, all of it at once: each
 # module's code, and its laws and proofs beside it where it has any
-# (`blend-proofs-beside-code`), written into results/ (out of git, each
+# (`blend-proofs-beside-code`), written into blend/results/ (out of git, each
 # file overwritten, none removed) and compared with the files in dir; a
 # laws or proofs file the emission no longer writes is stale
 blend_check() {
   dir=$1
   shift
-  out=$root/results/blend/generated/$dir
+  out=$root/blend/results/generated/$dir
   again="(cd $dir && $(echo "$dir" | sed 's#[^/][^/]*#..#g')/blend/run.sh emit $*)"
   mkdir -p "$out" || return 1
   if ! wrote=$(cd "$dir" && "$root/blend/run.sh" emit "$@" "$out"); then

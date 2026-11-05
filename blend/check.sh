@@ -9,8 +9,10 @@
 #   blend/check.sh
 set -u
 cd "$(dirname "$0")/samples" || exit 1
+BLEND_ROOT=$(cd .. && pwd)
+. "$BLEND_ROOT/tools.sh"
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
-CAPPED=$PWD/../../scripts/capped.sh
+CAPPED=$TOOLS/capped.sh
 # Blend's executable, built once for each version of its sources
 BLEND=$(BEND=$BEND ../build.sh) || { echo "blend: no executable to check with"; exit 1; }
 status=0
@@ -32,7 +34,7 @@ done
 m=0
 # an invalid sample that emits writes into results/ (out of git), never
 # beside the sample
-out=../../results/blend/invalid
+out=../results/invalid
 mkdir -p "$out" || exit 1
 for src in invalid/*.blend; do
   m=$((m + 1))
@@ -47,7 +49,7 @@ for src in invalid/*.blend; do
   fi
 done
 k=0
-r=../../results/blend/refused
+r=../results/refused
 mkdir -p "$r" || exit 1
 for src in refused/*.blend; do
   k=$((k + 1))
@@ -69,7 +71,7 @@ done
 # emission: a stale one fails the command, which writes nothing, and
 # `--alone` leaves it unverified; a module named by its absolute path
 # finds its imports (results/, fixed paths, overwritten each run)
-v=../../results/blend/verify
+v=../results/verify
 mkdir -p "$v/lib" || exit 1
 cp imports.blend "$v/" && cp lib/shapes.blend "$v/lib/" && echo "# stale" > "$v/lib/shapes.bend" || exit 1
 want="blend: lib/shapes.bend is stale: it is not what lib/shapes.blend emits
@@ -82,8 +84,8 @@ elif [ "$got" != "$want" ]; then
   status=1
 fi
 (cd "$v" && "$CAPPED" 500 30 "$BLEND" emit --alone imports.blend >/dev/null) || { echo "blend: emit --alone fails"; status=1; }
-mkdir -p ../../results/blend/absolute || exit 1
-"$CAPPED" 500 30 "$BLEND" emit "$PWD/imports.blend" ../../results/blend/absolute >/dev/null ||
+mkdir -p ../results/absolute || exit 1
+"$CAPPED" 500 30 "$BLEND" emit "$PWD/imports.blend" ../results/absolute >/dev/null ||
   { echo "blend: a module named by its absolute path fails"; status=1; }
 [ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, $k refused: ok"
 exit "$status"
