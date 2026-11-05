@@ -168,11 +168,22 @@ Bend's imports pass through.
 - **Templates** are Bend's, passed through: a `~` parameter binds as any
   parameter, and a `~` argument is a reference as any, bound to the
   final object's definition (`~inc` emitted `~Twice.inc`), or a closed
-  lambda. Bend compiles each distinct set of `~` arguments to a copy of
-  its own, so a template used more than once is marked `shared`, Bend
-  making its copies; the affine default counts its call sites as any
-  definition's. A typed declaration's witness passes a template's
-  parameter on as `~f` and an erased one as `A`.
+  lambda. A typed declaration's witness passes a template's parameter
+  on as `~f` and an erased one as `A`. A template is affine by default,
+  as any definition (`blend-templates-affine`): used twice, it is an
+  error until marked. Bend compiles each distinct set of `~` arguments
+  to a copy of its own, so the choice is:
+  - `shared`: one definition, Bend making a copy for each distinct set
+    of `~` arguments; the least code. But two sites passing the same
+    arguments share one copy, two callers, and an affine definition the
+    template's body calls has a caller in each of Bend's copies, which
+    Blend, counting the one call in the body, does not see.
+  - `copied`: a copy for each use, `T.c1`, `T.c2`, each instantiated by
+    Bend once and folding into its caller; and an affine definition only
+    the template reaches is copied with it, transitively, each copy of
+    the template calling its own. The affine guarantee holds throughout,
+    at the cost of a copy of the template and of its affine callees for
+    each use.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).
@@ -275,9 +286,9 @@ program prints.
 - `declares`: typed declarations of a definition, of its short form and
   of a type's kind, each family's checked by its witnesses; an untyped
   declaration beside them.
-- `templates`: a template in a family, shared, called with a definition
-  and with a lambda; typed declarations taking a template's parameter
-  and an erased one.
+- `templates`: a template in a family, marked shared, called with a
+  definition and with a lambda; typed declarations taking a template's
+  parameter and an erased one.
 - `laws-imported`, with `lib/adds.blend`: laws a library states and
   proves for every family, a family's own law proved with an inherited
   one, and a prior proof reached across modules.

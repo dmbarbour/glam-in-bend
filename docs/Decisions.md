@@ -72,6 +72,9 @@ IO shell.
 - [`blend-declares-witnessed`](decisions/blend-declares-witnessed.md): a
   typed declaration is bound in each concrete object to its own types
   and checked by a witness Bend checks, in the proofs' file.
+- [`blend-templates-affine`](decisions/blend-templates-affine.md): a
+  template is affine by default, as any definition; the guide explains
+  `shared` against `copied` for templates.
 - [`blend-emit-verifies-imports`](decisions/blend-emit-verifies-imports.md):
   emission writes only the modules a command names, and verifies each
   import none names against its emission, unless `--alone`.

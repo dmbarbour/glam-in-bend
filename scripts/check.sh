@@ -6,21 +6,42 @@
 # (spike/library.txt), then that every other Bend file still typechecks.
 # Exits nonzero on any
 # failure, and names the tree it checked so a stale pass can't pass for new.
+# Each section's time follows it, each proof file's too, and a summary of
+# them ends the run: a gate slow to run is a cost on every commit.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 status=0
 
-echo "== docs"
+# the seconds since a mark, to a tenth
+since() { awk -v a="$1" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }'; }
+start=$(date +%s.%N)
+times=""
+section=""
+mark=$start
+# a section begun, the one before it timed
+section() {
+  if [ -n "$section" ]; then
+    t=$(since "$mark")
+    echo "   ($section: $t s)"
+    times="$times $section $t s,"
+  fi
+  section=$1
+  mark=$(date +%s.%N)
+  [ -z "$1" ] || echo "== $1"
+}
+
+section docs
 python3 -I scripts/check_docs.py || status=1
 
-echo "== laws"
+section laws
 python3 -I scripts/check_laws.py || status=1
 
-echo "== proofs"
+section proofs
 # each PROOF.bend checked by bend, then rechecked by BendTT's kernel, which
-# has a proof in Lean (`bend --verdict`); Lean as scripts/dev-setup.sh
+# has a proof in Lean (`bend --verdict`), a pass kept for inputs unchanged
+# (scripts/verdict.py: the file, its imports, Bend and Lean); Lean as scripts/dev-setup.sh
 # installs it, last on the path: its toolchain carries a clang of its own,
 # without the system's headers, which native builds must not find first
 PATH="$PATH:$HOME/.lean/bin"
@@ -34,7 +55,9 @@ done
 if [ -n "$proofs" ]; then
   for f in $proofs; do
     echo "-- $f"
-    "$BEND" "$f" --verdict || status=1
+    at=$(date +%s.%N)
+    BEND=$BEND python3 -I scripts/verdict.py "$f" || status=1
+    echo "   ($f: $(since "$at") s)"
   done
 elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | grep -q .; then
   echo "Bend sources exist but no PROOF.bend does"
@@ -43,16 +66,16 @@ else
   echo "no Bend sources yet"
 fi
 
-echo "== generated code"
+section "generated code"
 # every generated file matches its generator (generated-sources)
 BEND=$BEND scripts/check_generated.sh || status=1
 
-echo "== blend samples"
+section "blend samples"
 # Blend's samples (blend/README.md): each emitted form runs and prints
 # what its sample says
 BEND=$BEND blend/check.sh || status=1
 
-echo "== library"
+section library
 # every net of spike/library.txt through every strategy, its checks
 # (pairing-library); the program and its output go to results/library
 if [ -f spike/library.txt ]; then
@@ -61,12 +84,15 @@ if [ -f spike/library.txt ]; then
   tail -n 1 results/library.log
 fi
 
-echo "== bend files"
+section "bend files"
 failed=0
 for f in $(git ls-files --cached --others --exclude-standard -- '*.bend' ':!*LAWS.bend' ':!*PROOF.bend'); do
   out=$("$BEND" "$f" --check-only 2>&1) || { echo "$f:"; echo "$out"; failed=$((failed + 1)); }
 done
 if [ "$failed" -eq 0 ]; then echo "bend files: ok"; else echo "bend files: $failed failed"; status=1; fi
+
+section ""
+echo "times:${times%,}; total $(since "$start") s"
 
 changes=$(git status --porcelain | wc -l)
 tree="$(git rev-parse --short HEAD) with $changes changed path(s)"
