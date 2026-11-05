@@ -97,3 +97,14 @@ law order.callees_first:
   for +obs: List<&2, B.Ob>
   for +us: List<&2, B.Un>
   {B.ordered(B.ds.order(B.walk(roots, cal, obs, us)), cal) == True{} : Bool}
+
+# LAW: the walk's order holds each unit once at most: with
+# order.callees_first, each definition is emitted after its callees and
+# none twice.
+# Record: blend-adds-no-bend-logic
+law order.once:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  {B.distinct(B.ds.order(B.walk(roots, cal, obs, us))) == True{} : Bool}
