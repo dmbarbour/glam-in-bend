@@ -69,6 +69,9 @@ IO shell.
 - [`blend-copies-keep-their-name`](decisions/blend-copies-keep-their-name.md):
   a copied definition is always emitted by its own name, and once more
   for each use.
+- [`blend-emit-verifies-imports`](decisions/blend-emit-verifies-imports.md):
+  emission writes only the modules a command names, and verifies each
+  import none names against its emission, unless `--alone`.
 - [`blend-proofs-beside-code`](decisions/blend-proofs-beside-code.md): a
   Blend module's laws and proofs are written into files of their own
   beside its code, `X_LAWS.bend` and `X_PROOF.bend`, by the emission

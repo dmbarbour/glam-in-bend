@@ -8,7 +8,7 @@
 set -u
 cd "$(dirname "$0")/samples" || exit 1
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
-CAPPED=../../scripts/capped.sh
+CAPPED=$PWD/../../scripts/capped.sh
 # Blend's executable, built once for each version of its sources
 BLEND=$(BEND=$BEND ../build.sh) || { echo "blend: no executable to check with"; exit 1; }
 status=0
@@ -44,5 +44,25 @@ for src in invalid/*.blend; do
     status=1
   fi
 done
+# an import no argument names is verified, its files compared with its
+# emission: a stale one fails the command, which writes nothing, and
+# `--alone` leaves it unverified; a module named by its absolute path
+# finds its imports (results/, fixed paths, overwritten each run)
+v=../../results/blend/verify
+mkdir -p "$v/lib" || exit 1
+cp imports.blend "$v/" && cp lib/shapes.blend "$v/lib/" && echo "# stale" > "$v/lib/shapes.bend" || exit 1
+want="blend: lib/shapes.bend is stale: it is not what lib/shapes.blend emits
+blend: name each such import too, or emit --alone to leave the imports unverified"
+if got=$(cd "$v" && "$CAPPED" 500 30 "$BLEND" emit imports.blend 2>&1); then
+  echo "blend: a stale import passes unverified"
+  status=1
+elif [ "$got" != "$want" ]; then
+  echo "blend: a stale import gives '$got', not '$want'"
+  status=1
+fi
+(cd "$v" && "$CAPPED" 500 30 "$BLEND" emit --alone imports.blend >/dev/null) || { echo "blend: emit --alone fails"; status=1; }
+mkdir -p ../../results/blend/absolute || exit 1
+"$CAPPED" 500 30 "$BLEND" emit "$PWD/imports.blend" ../../results/blend/absolute >/dev/null ||
+  { echo "blend: a module named by its absolute path fails"; status=1; }
 [ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid: ok"
 exit "$status"
