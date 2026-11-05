@@ -28,6 +28,9 @@
 #   the fuel is its value at the start (`fuel_pot`), and induction on the
 #   fuel ends the walk (`ends`). Each unit's calls count once, by its
 #   position (`taken`, `psw_drop`), so that the fuel is linear.
+# - A fast walk proved against the walk (`order.fast`): a state lifted
+#   with the tries its lists make, a step from it the lifted step
+#   (`step_lift`); the tries on U32's own bits (`has_put`, `put_comm`).
 # - Mutate the code after a proof passes: a law that survives a mutation
 #   claims less than meant.
 
@@ -2010,3 +2013,415 @@ def walk_ends(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&
 
 def Laws.order.ends(roots, cal, obs, us):
   walk_ends(roots, cal, obs, us)
+
+# The walk the tool runs
+# ----------------------
+#
+# The fast walk (`walk.fast`) is the walk above with each set its lists
+# make kept beside them: lifted, a state gains those sets (`lift`), and
+# from a lifted state a step of the fast walk is the lifted step of the
+# walk, whatever the state, so that walking the lifted start is lifting
+# the walk. The sets are tries on the units' bits: a word put is found
+# where it equals the word asked for (`has_put`), whatever was there.
+
+# an empty trie holds no word
+def has_none(n: Nat, c: Word(n)) -> {B.wt.has(n, c, B.WtNone{}) == False{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match c:
+        case WCon{b, r}:
+          match b:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+
+# words equal: their tails, and their last bits
+def fin_eq(+a: Bool, +b: Bool, k: Cmp) -> {Bool.and(Cmp.is_eq(k), Cmp.is_eq(Bool.cmp(a, b))) == Cmp.is_eq(Word.cmp.fin(a, b, k)) : Bool}:
+  match k:
+    case LT{}:
+      {==}
+    case EQ{}:
+      {==}
+    case GT{}:
+      {==}
+
+def has_put.k(a: Bool, b: Bool, +p: Nat, +xr: Word(p), +cr: Word(p), t: B.Wt,
+    ih: @s:B.Wt -> {B.wt.has(p, cr, B.wt.put(p, xr, s)) == Bool.or(Cmp.is_eq(Word.cmp(p, xr, cr)), B.wt.has(p, cr, s)) : Bool}) ->
+    {B.wt.has(1n+p, WCon{b, cr}, B.wt.put(1n+p, WCon{a, xr}, t)) ==
+      Bool.or(Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), Cmp.is_eq(Bool.cmp(a, b))), B.wt.has(1n+p, WCon{b, cr}, t)) : Bool}:
+  match a b:
+    case True{} True{}:
+      match t:
+        case B.WtNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtNode{f, tt})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtNode{f, tt})) : Bool}
+          ih(tt)
+        case B.WtNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtNone{})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtNone{})) : Bool}
+          %has_none(p, cr) : {B.wt.has(p, cr, B.wt.put(p, xr, B.WtNone{})) == Bool.or(Cmp.is_eq(Word.cmp(p, xr, cr)), _) : Bool}
+          ih(B.WtNone{})
+        case B.WtLeaf{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtLeaf{})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtLeaf{})) : Bool}
+          %has_none(p, cr) : {B.wt.has(p, cr, B.wt.put(p, xr, B.WtNone{})) == Bool.or(Cmp.is_eq(Word.cmp(p, xr, cr)), _) : Bool}
+          ih(B.WtNone{})
+    case True{} False{}:
+      match t:
+        case B.WtNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtNode{f, tt})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtNode{f, tt})) : Bool}
+          {==}
+        case B.WtNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtNone{})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtNone{})) : Bool}
+          has_none(p, cr)
+        case B.WtLeaf{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{True{}, xr}, B.WtLeaf{})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtLeaf{})) : Bool}
+          has_none(p, cr)
+    case False{} True{}:
+      match t:
+        case B.WtNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtNode{f, tt})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtNode{f, tt})) : Bool}
+          {==}
+        case B.WtNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtNone{})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtNone{})) : Bool}
+          has_none(p, cr)
+        case B.WtLeaf{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{True{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtLeaf{})) == Bool.or(_, B.wt.has(1n+p, WCon{True{}, cr}, B.WtLeaf{})) : Bool}
+          has_none(p, cr)
+    case False{} False{}:
+      match t:
+        case B.WtNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtNode{f, tt})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtNode{f, tt})) : Bool}
+          ih(f)
+        case B.WtNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtNone{})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtNone{})) : Bool}
+          %has_none(p, cr) : {B.wt.has(p, cr, B.wt.put(p, xr, B.WtNone{})) == Bool.or(Cmp.is_eq(Word.cmp(p, xr, cr)), _) : Bool}
+          ih(B.WtNone{})
+        case B.WtLeaf{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wt.has(1n+p, WCon{False{}, cr}, B.wt.put(1n+p, WCon{False{}, xr}, B.WtLeaf{})) == Bool.or(_, B.wt.has(1n+p, WCon{False{}, cr}, B.WtLeaf{})) : Bool}
+          %has_none(p, cr) : {B.wt.has(p, cr, B.wt.put(p, xr, B.WtNone{})) == Bool.or(Cmp.is_eq(Word.cmp(p, xr, cr)), _) : Bool}
+          ih(B.WtNone{})
+
+# a word put, then one asked for: found where they are equal, or where it
+# was found before
+def has_put(n: Nat, x: Word(n), c: Word(n), t: B.Wt) ->
+    {B.wt.has(n, c, B.wt.put(n, x, t)) == Bool.or(Cmp.is_eq(Word.cmp(n, x, c)), B.wt.has(n, c, t)) : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+(+p):
+      match x:
+        case WCon{+a, +xr}:
+          match c:
+            case WCon{+b, +cr}:
+              %fin_eq(a, b, Word.cmp(p, xr, cr)) :
+                {B.wt.has(1n+p, WCon{b, cr}, B.wt.put(1n+p, WCon{a, xr}, t)) == Bool.or(_, B.wt.has(1n+p, WCon{b, cr}, t)) : Bool}
+              has_put.k(a, b, p, xr, cr, t, s => has_put(p, xr, cr, s))
+
+def vs_put(+t: B.Wt, x: U32, c: U32) -> {B.vs.has(B.vs.put(t, x), c) == Bool.or(U32.is_eq(x, c), B.vs.has(t, c)) : Bool}:
+  match x c:
+    case U32{xw} U32{cw}:
+      has_put(32n, xw, cw, t)
+
+# the set a list makes holds what the list has
+def vs_of(xs: List<&2, U32>, +c: U32) -> {B.vs.has(B.vs.of(xs), c) == B.has(xs, c) : Bool}:
+  match xs:
+    case Nil{}:
+      match c:
+        case U32{w}:
+          has_none(32n, w)
+    case Con{+x, +t}:
+      %Equal.sym(Bool, B.vs.has(B.vs.put(B.vs.of(t), x), c), Bool.or(U32.is_eq(x, c), B.vs.has(B.vs.of(t), c)), vs_put(B.vs.of(t), x, c)) :
+        {_ == Bool.or(U32.is_eq(x, c), B.has(t, c)) : Bool}
+      %vs_of(t, c) : {Bool.or(U32.is_eq(x, c), B.vs.has(B.vs.of(t), c)) == Bool.or(U32.is_eq(x, c), _) : Bool}
+      {==}
+
+def vs_all(xs: List<&2, U32>, +ys: List<&2, U32>) -> {B.vs.all(xs, B.vs.of(ys)) == B.all.in(xs, ys) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      %vs_of(ys, x) : {Bool.and(B.vs.has(B.vs.of(ys), x), B.vs.all(r, B.vs.of(ys))) == Bool.and(_, B.all.in(r, ys)) : Bool}
+      %vs_all(r, ys) : {Bool.and(B.vs.has(B.vs.of(ys), x), B.vs.all(r, B.vs.of(ys))) == Bool.and(B.vs.has(B.vs.of(ys), x), _) : Bool}
+      {==}
+
+# words put in either order make one trie: its shape is its set's
+def put_comm.k(a: Bool, b: Bool, +p: Nat, +xr: Word(p), +yr: Word(p), t: B.Wt,
+    ih: @s:B.Wt -> {B.wt.put(p, xr, B.wt.put(p, yr, s)) == B.wt.put(p, yr, B.wt.put(p, xr, s)) : B.Wt}) ->
+    {B.wt.put(1n+p, WCon{a, xr}, B.wt.put(1n+p, WCon{b, yr}, t)) == B.wt.put(1n+p, WCon{b, yr}, B.wt.put(1n+p, WCon{a, xr}, t)) : B.Wt}:
+  match a b:
+    case True{} True{}:
+      match t:
+        case B.WtNode{+f, tt}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{f, z}, B.wt.put(p, xr, B.wt.put(p, yr, tt)), B.wt.put(p, yr, B.wt.put(p, xr, tt)), ih(tt))
+        case B.WtNone{}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{B.WtNone{}, z}, B.wt.put(p, xr, B.wt.put(p, yr, B.WtNone{})), B.wt.put(p, yr, B.wt.put(p, xr, B.WtNone{})), ih(B.WtNone{}))
+        case B.WtLeaf{}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{B.WtNone{}, z}, B.wt.put(p, xr, B.wt.put(p, yr, B.WtNone{})), B.wt.put(p, yr, B.wt.put(p, xr, B.WtNone{})), ih(B.WtNone{}))
+    case True{} False{}:
+      match t:
+        case B.WtNode{f, tt}:
+          {==}
+        case B.WtNone{}:
+          {==}
+        case B.WtLeaf{}:
+          {==}
+    case False{} True{}:
+      match t:
+        case B.WtNode{f, tt}:
+          {==}
+        case B.WtNone{}:
+          {==}
+        case B.WtLeaf{}:
+          {==}
+    case False{} False{}:
+      match t:
+        case B.WtNode{f, +tt}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{z, tt}, B.wt.put(p, xr, B.wt.put(p, yr, f)), B.wt.put(p, yr, B.wt.put(p, xr, f)), ih(f))
+        case B.WtNone{}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{z, B.WtNone{}}, B.wt.put(p, xr, B.wt.put(p, yr, B.WtNone{})), B.wt.put(p, yr, B.wt.put(p, xr, B.WtNone{})), ih(B.WtNone{}))
+        case B.WtLeaf{}:
+          Equal.cong(B.Wt, B.Wt, z => B.WtNode{z, B.WtNone{}}, B.wt.put(p, xr, B.wt.put(p, yr, B.WtNone{})), B.wt.put(p, yr, B.wt.put(p, xr, B.WtNone{})), ih(B.WtNone{}))
+
+def put_comm(n: Nat, x: Word(n), y: Word(n), t: B.Wt) -> {B.wt.put(n, x, B.wt.put(n, y, t)) == B.wt.put(n, y, B.wt.put(n, x, t)) : B.Wt}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+(+p):
+      match x:
+        case WCon{a, +xr}:
+          match y:
+            case WCon{b, +yr}:
+              put_comm.k(a, b, p, xr, yr, t, s => put_comm(p, xr, yr, s))
+
+def vs_comm(t: B.Wt, x: U32, y: U32) -> {B.vs.put(B.vs.put(t, y), x) == B.vs.put(B.vs.put(t, x), y) : B.Wt}:
+  match x y:
+    case U32{xw} U32{yw}:
+      put_comm(32n, xw, yw, t)
+
+# a unit moved within the list: the same set
+def of_app(a: List<&2, U32>, +u: U32, +d: List<&2, U32>) ->
+    {B.vs.of(List.append(&2, U32, a, Con{u, d})) == B.vs.put(B.vs.of(List.append(&2, U32, a, d)), u) : B.Wt}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      Equal.trans(B.Wt, B.vs.put(B.vs.of(List.append(&2, U32, t, Con{u, d})), h), B.vs.put(B.vs.put(B.vs.of(List.append(&2, U32, t, d)), u), h),
+        B.vs.put(B.vs.put(B.vs.of(List.append(&2, U32, t, d)), h), u),
+        Equal.cong(B.Wt, B.Wt, z => B.vs.put(z, h), B.vs.of(List.append(&2, U32, t, Con{u, d})), B.vs.put(B.vs.of(List.append(&2, U32, t, d)), u), of_app(t, u, d)),
+        vs_comm(B.vs.of(List.append(&2, U32, t, d)), h, u))
+
+# The calls by position: a list split in two, its even positions first,
+# read back as the list at double the position, and one more
+
+def e_cons(+x: List<&2, U32>, p: B.Eo) -> {Con{x, B.eo.o(p)} == B.eo.e(B.eo.cons(x, p)) : List<&2, List<&2, U32>>}:
+  match p:
+    case B.Eo{e, o}:
+      {==}
+
+def o_cons(+x: List<&2, U32>, p: B.Eo) -> {B.eo.e(p) == B.eo.o(B.eo.cons(x, p)) : List<&2, List<&2, U32>>}:
+  match p:
+    case B.Eo{e, o}:
+      {==}
+
+def e_get.k(+x: List<&2, U32>, +y: List<&2, U32>, +r: List<&2, List<&2, U32>>, i: Nat,
+    ih: @j:Nat -> {List.get(&2, List<&2, U32>, B.eo.e(B.eo.split(r)), j) == List.get(&2, List<&2, U32>, r, Nat.double(j)) : Maybe<&2, List<&2, U32>>}) ->
+    {List.get(&2, List<&2, U32>, Con{x, B.eo.e(B.eo.split(r))}, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+j:
+      ih(j)
+
+def e_get(xs: List<&2, List<&2, U32>>, i: Nat) -> {List.get(&2, List<&2, U32>, B.eo.e(B.eo.split(xs)), i) == List.get(&2, List<&2, U32>, xs, Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, t}:
+      match t:
+        case Nil{}:
+          match i:
+            case 0n:
+              {==}
+            case 1n+j:
+              {==}
+        case Con{+y, +r}:
+          %e_cons(x, B.eo.cons(y, B.eo.split(r))) :
+            {List.get(&2, List<&2, U32>, _, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}
+          %o_cons(y, B.eo.split(r)) :
+            {List.get(&2, List<&2, U32>, Con{x, _}, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}
+          e_get.k(x, y, r, i, j => e_get(r, j))
+
+def o_get(xs: List<&2, List<&2, U32>>, +i: Nat) -> {List.get(&2, List<&2, U32>, B.eo.o(B.eo.split(xs)), i) == List.get(&2, List<&2, U32>, xs, 1n+Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %o_cons(x, B.eo.split(t)) :
+        {List.get(&2, List<&2, U32>, _, i) == List.get(&2, List<&2, U32>, Con{x, t}, 1n+Nat.double(i)) : Maybe<&2, List<&2, U32>>}
+      e_get(t, i)
+
+# the calls table answers as the list at the position the word reads
+def ct_at(n: Nat, w: Word(n), xs: List<&2, List<&2, U32>>) -> {B.ct.at(n, w, B.ct.build(n, xs)) == B.ids.or(List.get(&2, List<&2, U32>, xs, Word.to_nat(n, w))) : List<&2, U32>}:
+  match n:
+    case 0n:
+      match xs:
+        case Nil{}:
+          {==}
+        case Con{x, t}:
+          {==}
+    case 1n+(+p):
+      match w:
+        case WCon{b, +r}:
+          match b:
+            case True{}:
+              match xs:
+                case Nil{}:
+                  {==}
+                case Con{+x, +t}:
+                  %o_get(Con{x, t}, Word.to_nat(p, r)) : {B.ct.at(p, r, B.ct.build(p, B.eo.o(B.eo.split(Con{x, t})))) == B.ids.or(_) : List<&2, U32>}
+                  ct_at(p, r, B.eo.o(B.eo.split(Con{x, t})))
+            case False{}:
+              match xs:
+                case Nil{}:
+                  {==}
+                case Con{+x, +t}:
+                  %e_get(Con{x, t}, Word.to_nat(p, r)) : {B.ct.at(p, r, B.ct.build(p, B.eo.e(B.eo.split(Con{x, t})))) == B.ids.or(_) : List<&2, U32>}
+                  ct_at(p, r, B.eo.e(B.eo.split(Con{x, t})))
+
+# the calls table answers as ids.at
+def cs_at(+cal: List<&2, List<&2, U32>>, c: U32) -> {B.cs.at(B.ct.of(cal), c) == B.ids.at(cal, c) : List<&2, U32>}:
+  match c:
+    case U32{w}:
+      ct_at(32n, w, cal)
+
+# The walk and the fast walk, step by step
+
+# a state with the sets its lists make: those walked, those ordered, and
+# those entered (the stack's units, then those walked)
+def lift(s: B.Ds) -> B.Df:
+  match s:
+    case B.Ds{+stack, roots, +done, +order, ers}:
+      B.Df{stack, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(List.append(&2, U32, B.fms.units(stack), done))}
+
+def ds_lift(s: B.Ds) -> {B.df.ds(lift(s)) == s : B.Ds}:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      {==}
+
+def root_lift.k(seen: Bool, +r: U32, +rt: List<&2, U32>, +d: List<&2, U32>, +o: List<&2, U32>, +e: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>) ->
+    {B.df.root.k(seen, r, rt, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(d), B.ct.of(cal)) == lift(B.ds.root.k(seen, r, rt, d, o, e, cal)) : B.Df}:
+  match seen:
+    case True{}:
+      {==}
+    case False{}:
+      %cs_at(cal, r) : {B.df.root.k(False{}, r, rt, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(d), B.ct.of(cal)) ==
+        B.Df{[B.Fm{r, _}], rt, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.put(B.vs.of(d), r)} : B.Df}
+      {==}
+
+# the lifted state a unit held back leaves, its entered set given
+def lift.done.f(+u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +d: List<&2, U32>, +o: List<&2, U32>, +e: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, ve: B.Wt) -> B.Df:
+  B.Df{st, roots, Con{u, d}, o,
+    B.when(List<&2, B.Er>, List.is_empty(&2, B.Er, e),
+      w => [B.Er{B.node.no(B.un.node(B.un.at(us, u))), B.text(B.un.name(obs, us, u)) ++ ": Blend's walk reached it before its callees, a fault of Blend's"}],
+      w => e), B.vs.put(B.vs.of(d), u), B.vs.of(o), ve}
+
+def done_lift.k(ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +d: List<&2, U32>, +o: List<&2, U32>, +e: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>) ->
+    {B.df.done.k(ok, u, st, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), obs, us) == lift(B.ds.done.k(ok, u, st, roots, d, o, e, obs, us)) : B.Df}:
+  match ok:
+    case True{}:
+      %Equal.sym(B.Wt, B.vs.of(List.append(&2, U32, B.fms.units(st), Con{u, d})), B.vs.put(B.vs.of(List.append(&2, U32, B.fms.units(st), d)), u), of_app(B.fms.units(st), u, d)) :
+        {B.df.done.k(True{}, u, st, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), obs, us) ==
+          B.Df{st, roots, Con{u, d}, Con{u, o}, e, B.vs.put(B.vs.of(d), u), B.vs.put(B.vs.of(o), u), _} : B.Df}
+      {==}
+    case False{}:
+      %Equal.sym(B.Wt, B.vs.of(List.append(&2, U32, B.fms.units(st), Con{u, d})), B.vs.put(B.vs.of(List.append(&2, U32, B.fms.units(st), d)), u), of_app(B.fms.units(st), u, d)) :
+        {B.df.done.k(False{}, u, st, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), obs, us) ==
+          lift.done.f(u, st, roots, d, o, e, obs, us, _) : B.Df}
+      {==}
+
+def call_lift.k(seen: Bool, cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +d: List<&2, U32>, +o: List<&2, U32>,
+    +e: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>) ->
+    {B.df.call.k(seen, Bool.or(cyc, seen), c, u, rs, st, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), B.ct.of(cal), obs, us) ==
+      lift(B.ds.call.k(seen, cyc, c, u, rs, st, roots, d, o, e, cal, obs, us)) : B.Df}:
+  match seen cyc:
+    case True{} True{}:
+      {==}
+    case True{} False{}:
+      {==}
+    case False{} True{}:
+      {==}
+    case False{} False{}:
+      %cs_at(cal, c) : {B.df.call.k(False{}, False{}, c, u, rs, st, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), B.ct.of(cal), obs, us) ==
+        B.Df{Con{B.Fm{c, _}, Con{B.Fm{u, rs}, st}}, roots, d, o, e, B.vs.of(d), B.vs.of(o), B.vs.put(B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), d)}), c)} : B.Df}
+      {==}
+
+# from a lifted state, a step of the fast walk is the lifted step of the
+# walk: each of its lookups answers as the search it stands for
+def step_lift(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>) ->
+    {B.df.step(lift(s), B.ct.of(cal), obs, us) == lift(B.ds.step(s, cal, obs, us)) : B.Df}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              {==}
+            case Con{+r, +rt}:
+              %Equal.sym(Bool, B.vs.has(B.vs.of(done), r), B.has(done, r), vs_of(done, r)) :
+                {B.df.root.k(_, r, rt, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(done), B.ct.of(cal)) ==
+                  lift(B.ds.root.k(B.has(done, r), r, rt, done, order, ers, cal)) : B.Df}
+              root_lift.k(B.has(done, r), r, rt, done, order, ers, cal)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  %Equal.sym(List<&2, U32>, B.cs.at(B.ct.of(cal), u), B.ids.at(cal, u), cs_at(cal, u)) :
+                    {B.df.done.k(B.vs.all(_, B.vs.of(order)), u, st, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), obs, us) ==
+                      lift(B.ds.done.k(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us)) : B.Df}
+                  %Equal.sym(Bool, B.vs.all(B.ids.at(cal, u), B.vs.of(order)), B.all.in(B.ids.at(cal, u), order), vs_all(B.ids.at(cal, u), order)) :
+                    {B.df.done.k(_, u, st, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), obs, us) ==
+                      lift(B.ds.done.k(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us)) : B.Df}
+                  done_lift.k(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us)
+                case Con{+c, +rs}:
+                  %Equal.sym(Bool, B.vs.has(B.vs.of(done), c), B.has(done, c), vs_of(done, c)) :
+                    {B.df.call.k(_, B.vs.has(B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), c), c, u, rs, st, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), B.ct.of(cal), obs, us) ==
+                      lift(B.ds.call.k(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us)) : B.Df}
+                  %Equal.sym(Bool, B.vs.has(B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), c), B.has(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c), vs_of(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c)) :
+                    {B.df.call.k(B.has(done, c), _, c, u, rs, st, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), B.ct.of(cal), obs, us) ==
+                      lift(B.ds.call.k(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us)) : B.Df}
+                  %has_app(Con{u, B.fms.units(st)}, done, c) :
+                    {B.df.call.k(B.has(done, c), _, c, u, rs, st, roots, done, order, ers, B.vs.of(done), B.vs.of(order), B.vs.of(Con{u, List.append(&2, U32, B.fms.units(st), done)}), B.ct.of(cal), obs, us) ==
+                      lift(B.ds.call.k(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us)) : B.Df}
+                  call_lift.k(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us)
+
+# walking a lifted state is lifting the walk
+def go_lift(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>) ->
+    {B.df.go(n, lift(s), B.ct.of(cal), obs, us) == lift(B.ds.go(n, s, cal, obs, us)) : B.Df}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+(+k):
+      %Equal.sym(B.Df, B.df.step(lift(s), B.ct.of(cal), obs, us), lift(B.ds.step(s, cal, obs, us)), step_lift(s, cal, obs, us)) :
+        {B.df.go(k, _, B.ct.of(cal), obs, us) == lift(B.ds.go(k, B.ds.step(s, cal, obs, us), cal, obs, us)) : B.Df}
+      go_lift(k, B.ds.step(s, cal, obs, us), cal, obs, us)
+
+def Laws.order.fast(roots, cal, obs, us):
+  %Equal.sym(B.Df, B.df.go(B.walk.fuel(roots, cal), lift(B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}), B.ct.of(cal), obs, us),
+      lift(B.ds.go(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)),
+      go_lift(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)) :
+    {B.df.ds(_) == B.walk(roots, cal, obs, us) : B.Ds}
+  ds_lift(B.ds.go(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us))

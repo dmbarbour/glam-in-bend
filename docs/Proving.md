@@ -98,6 +98,23 @@ it alone taught. Add to this file what a new proof teaches.
   index where an index exists, the index of a `U32` its `U32.to_nat`
   (the hub's `u32_is_eq_to_nat` ties `U32.is_eq` to it), and the
   potential needs no invariant naming the candidates.
+- **Prove a fast version against a proved one.** Where a state's lists
+  must become lookups, keep the proved code as the specification and
+  run a version beside it that adds its indexes, then prove one law:
+  dropping the indexes, its result is the specification's. Lift a
+  specification state with the indexes its lists make; show that a step
+  from a lifted state is the lifted step, for every state, no
+  hypothesis; induct on the fuel. An index whose shape is a function of
+  its set (a trie on a key's bits) makes the lift a computation, the
+  lists' order aside: prove that putting commutes.
+- **A trie on a `U32`'s own word** (`U32{Word(32n)}`, the lowest bit
+  first) is structural all the way down: a lookup and a put recurse on
+  the word, and `Word.cmp`'s last step splits into the tails and the
+  bits, so that no arithmetic, and no bound of 2^32, is met. A table by
+  position is the same trie over a list split by its positions' bits:
+  `List.get(xs, double(i))` and `List.get(xs, 1+double(i))`.
+- **A rewrite is a local statement**: no `match` may follow it. Match
+  first, then rewrite in each branch.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
