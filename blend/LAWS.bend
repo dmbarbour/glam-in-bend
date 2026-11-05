@@ -108,3 +108,15 @@ law order.once:
   for +obs: List<&2, B.Ob>
   for +us: List<&2, B.Un>
   {B.distinct(B.ds.order(B.walk(roots, cal, obs, us))) == True{} : Bool}
+
+# LAW: where the walk reports no error, every unit it walked is in its
+# order: the order's guard (a unit joins once its callees have) held none
+# back, and nothing walked is lost.
+# Record: blend-adds-no-bend-logic
+law order.walked:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  for h: {List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))) == True{} : Bool}
+  {B.all.in(B.ds.walked(B.walk(roots, cal, obs, us)), B.ds.order(B.walk(roots, cal, obs, us))) == True{} : Bool}
