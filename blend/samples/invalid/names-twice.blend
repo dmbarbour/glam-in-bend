@@ -1,0 +1,13 @@
+# Two definitions emitted by one name: the module's A.f, and object A's
+# f, emitted as A.f; the error names the lines of both.
+import Base
+
+def A.f(+n: U32) -> U32:
+  n
+
+object A with
+  def f(+n: U32) -> U32:
+    (n + 1 : U32)
+
+def main() -> IO(Unit):
+  IO.print(U32.show(A.f(1)))

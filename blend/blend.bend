@@ -2582,21 +2582,21 @@ def ht.leaf(-A: Data, t: Ht<A>, +b: U32, +h: U32) -> List<&2, A>:
 # the module, its objects, their linearizations and definitions
 type Cx is Data:
   Cx{obs: List<&2, Ob>, ls: List<&2, Maybe<&2, Lz>>, fs: List<&2, Maybe<&2, Fd>>, als: List<&2, Al>, paths: List<&2, List<&2, U32>>,
-    pss: List<&2, List<&2, U32>>, nxs: List<&2, Ht<En>>}
+    pss: List<&2, List<&2, U32>>, nxs: List<&2, Ht<En>>, mds: List<&2, Ht<Node>>}
 
 def cx.obs(c: Cx) -> List<&2, Ob>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       obs
 
 def cx.paths(c: Cx) -> List<&2, List<&2, U32>>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       paths
 
 def cx.als(c: Cx) -> List<&2, Al>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       als
 
 def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
@@ -2610,12 +2610,12 @@ def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
 
 def cx.map(c: Cx, +id: U32) -> List<&2, En>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       fd.map(fd.at(fs, id))
 
 def cx.ord(c: Cx, +id: U32) -> List<&2, U32>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       lz.ord(lz.at(ls, id))
 
 def has.def(+map: List<&2, En>, +n: List<&2, U32>) -> Bool:
@@ -2660,7 +2660,7 @@ def nx.find(+t: Ht<En>, +n: List<&2, U32>) -> Maybe<&2, En>:
 
 def cx.nx(c: Cx, +id: U32) -> Ht<En>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       nx.or(List.get(&2, Ht<En>, nxs, U32.to_nat(id)))
 
 def cx.find(+c: Cx, +id: U32, +n: List<&2, U32>) -> Maybe<&2, En>:
@@ -2685,7 +2685,7 @@ def hosts(+obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
 
 def cx.pss(c: Cx) -> List<&2, List<&2, U32>>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
       pss
 
 def ids.or(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
@@ -3368,6 +3368,54 @@ def mem.find(ns: List<&2, Node>, +n: List<&2, U32>) -> Maybe<&2, Node>:
 
 # the name a definition is emitted by: `Obj.f`, a prior `Obj.f.Origin`,
 # the module's own unprefixed
+def node.def(n: Node) -> Bool:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind, +what}:
+      True{}
+    case _:
+      False{}
+
+def node.name(n: Node) -> List<&2, U32>:
+  match n:
+    case NDef{+share, +upd, name, rest, params, body, +no, +ind, +what}:
+      name
+    case _:
+      Nil{}
+
+def md.put(t: Ht<Node>, +nd: Node) -> Ht<Node>:
+  +h = hash.name(node.name(nd))
+  ht.put(Node, t, (h .&. 1 : U32), h, nd)
+
+# an object's definitions' nodes by name (`blend-scale.copies`), the last
+# put first, so that a leaf keeps their order
+def md.puts(ns: List<&2, Node>, +t: Ht<Node>) -> Ht<Node>:
+  match ns:
+    case Nil{}:
+      t
+    case Con{+nd, +r}:
+      when(Ht<Node>, node.def(nd), u => md.put(md.puts(r, t), nd), u => md.puts(r, t))
+
+def mds.of(obs: List<&2, Ob>) -> List<&2, Ht<Node>>:
+  match obs:
+    case Nil{}:
+      Nil{}
+    case Con{+o, t}:
+      Con{md.puts(ob.mems(o), ht.for(Node, List.length(&2, Node, ob.mems(o)))), mds.of(t)}
+
+def md.or(m: Maybe<&2, Ht<Node>>) -> Ht<Node>:
+  match m:
+    case None{}:
+      HLeaf{Nil{}}
+    case Some{t}:
+      t
+
+# q's definition n, as mem.find finds it among q's members
+def cx.mem(c: Cx, +q: U32, +n: List<&2, U32>) -> Maybe<&2, Node>:
+  match c:
+    case Cx{obs, ls, fs, als, paths, pss, nxs, mds}:
+      +h = hash.name(n)
+      mem.find(ht.leaf(Node, md.or(List.get(&2, Ht<Node>, mds, U32.to_nat(q))), (h .&. 1 : U32), h), n)
+
 def path.name(+path: List<&2, List<&2, U32>>, +n: List<&2, U32>) -> List<&2, U32>:
   match path:
     case Nil{}:
@@ -3410,7 +3458,7 @@ def copy.node(+cx: Cx, +o: U32, i: In, +nd: Node) -> Rd & Rb:
 def copy.of(+cx: Cx, +o: U32, +i: In) -> Rd & Rb:
   match i:
     case In{+n, +q, +prior}:
-      on.maybe(Node, Rd & Rb, mem.find(ob.mems(ob.at(cx.obs(cx), q)), n),
+      on.maybe(Node, Rd & Rb, cx.mem(cx, q, n),
         u => (Rd{i, NBad{Nil{}, 0}, Nil{}, Nil{}}, Rb{Nil{}, Nil{}, Nil{}}),
         nd => copy.node(cx, o, i, nd))
 
@@ -3428,7 +3476,29 @@ def ins.has(+xs: List<&2, In>, +i: In) -> Bool:
 
 # the copies made so far, their errors
 type Cp is Data:
-  Cp{rds: List<&2, Rd>, ers: List<&2, Er>, done: List<&2, In>}
+  Cp{rds: List<&2, Rd>, ers: List<&2, Er>, done: Ht<In>}
+
+def in.hash(i: In) -> U32:
+  match i:
+    case In{n, +q, +p}:
+      hash.word(hash.word(hash.name(n), q), when(U32, p, u => 1, u => 0))
+
+# the instances copied so far (`blend-scale.copies`)
+def done.has(+t: Ht<In>, +i: In) -> Bool:
+  +h = in.hash(i)
+  ins.has(ht.leaf(In, t, (h .&. 1 : U32), h), i)
+
+def done.put(t: Ht<In>, +i: In) -> Ht<In>:
+  +h = in.hash(i)
+  ht.put(In, t, (h .&. 1 : U32), h, i)
+
+# xs after t, t untouched where xs is empty, as it most often is
+def ins.then(t: List<&2, In>, xs: List<&2, In>) -> List<&2, In>:
+  match xs:
+    case Nil{}:
+      t
+    case Con{x, r}:
+      List.append(&2, In, t, Con{x, r})
 
 def cp.add(rd: Rd, b: Rb, c: Cp) -> Cp:
   match b c:
@@ -3453,9 +3523,9 @@ def copies.go(n: Nat, +cx: Cx, +o: U32, todo: List<&2, In>, +c: Cp) -> Cp:
         case Con{+i, +t}:
           match c:
             case Cp{+rds, +ers, +done}:
-              when(Cp, ins.has(done, i), u => copies.go(k, cx, o, t, Cp{rds, ers, done}),
+              when(Cp, done.has(done, i), u => copies.go(k, cx, o, t, Cp{rds, ers, done}),
                 u => on.pair(Rd, Rb, Cp, copy.of(cx, o, i),
-                  rd => +b => copies.go(k, cx, o, List.append(&2, In, t, rb.ins(b)), cp.add(rd, b, Cp{rds, ers, Con{i, done}}))))
+                  rd => +b => copies.go(k, cx, o, ins.then(t, rb.ins(b)), cp.add(rd, b, Cp{rds, ers, done.put(done, i)}))))
 
 def ins.finals(es: List<&2, En>) -> List<&2, In>:
   match es:
@@ -3468,7 +3538,8 @@ def ins.finals(es: List<&2, En>) -> List<&2, In>:
 
 # a concrete object's copies: its finals, then each prior they reach
 def copies(+cx: Cx, +o: U32) -> Cp:
-  copies.go(1n+count(ob.mems(ob.at(cx.obs(cx), 0))), cx, o, ins.finals(cx.map(cx, o)), Cp{Nil{}, Nil{}, Nil{}})
+  copies.go(1n+count(ob.mems(ob.at(cx.obs(cx), 0))), cx, o, ins.finals(cx.map(cx, o)),
+    Cp{Nil{}, Nil{}, ht.for(In, 1n+count(ob.mems(ob.at(cx.obs(cx), 0))))})
 
 # The copies, printed
 # -------------------
@@ -3548,7 +3619,7 @@ def module.copies(os: List<&2, Ob>, +cx: Cx) -> List<&2, Oc>:
       match o:
         case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(List<&2, Oc>, Bool.not(U32.is_eq(loc.mod(no), 0)) || Bool.not(is.object(kind)), u => module.copies(t, cx),
-            u => when(List<&2, Oc>, abs, v => Con{Oc{id, Cp{Nil{}, Nil{}, Nil{}}}, module.copies(t, cx)}, v => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)}))
+            u => when(List<&2, Oc>, abs, v => Con{Oc{id, Cp{Nil{}, Nil{}, HLeaf{Nil{}}}}, module.copies(t, cx)}, v => Con{Oc{id, copies(cx, id)}, module.copies(t, cx)}))
 
 def ocs.ers(os: List<&2, Oc>) -> List<&2, Er>:
   match os:
@@ -4891,16 +4962,30 @@ def nm.find(ns: List<&2, Nm>, +n: List<&2, U32>) -> Maybe<&2, U32>:
 
 # a name two definitions would be emitted by, a prior's or a copy's and a
 # definition's whose name has dots (`tag.Plain` beside `_tag` from Plain)
-def er.names(ns: List<&2, Nm>, +seen: List<&2, Nm>) -> List<&2, Er>:
+def nm.put(t: Ht<Nm>, +m: Nm) -> Ht<Nm>:
+  match m:
+    case Nm{+name, +u, +no}:
+      +h = hash.name(name)
+      ht.put(Nm, t, (h .&. 1 : U32), h, Nm{name, u, no})
+
+def nm.seen(+t: Ht<Nm>, +n: List<&2, U32>) -> Maybe<&2, U32>:
+  +h = hash.name(n)
+  nm.find(ht.leaf(Nm, t, (h .&. 1 : U32), h), n)
+
+# the names seen so far, the latest first (`blend-scale.copies`)
+def er.names(ns: List<&2, Nm>, +seen: Ht<Nm>) -> List<&2, Er>:
   match ns:
     case Nil{}:
       Nil{}
     case Con{+m, +t}:
       match m:
         case Nm{+name, +u, +no}:
-          on.maybe(U32, List<&2, Er>, nm.find(seen, name), v => er.names(t, Con{m, seen}),
+          on.maybe(U32, List<&2, Er>, nm.seen(seen, name), v => er.names(t, nm.put(seen, m)),
             +l => Con{Er{no, text(name) ++ " would name two emitted definitions, those of lines " ++ U32.show(l) ++ " and " ++
-              U32.show(no) ++ ": rename one"}, er.names(t, Con{m, seen})})
+              U32.show(no) ++ ": rename one"}, er.names(t, nm.put(seen, m))})
+
+def er.names.of(+ns: List<&2, Nm>) -> List<&2, Er>:
+  er.names(ns, ht.for(Nm, List.length(&2, Nm, ns)))
 
 # a law, a proof or a lemma named where a definition is wanted: a law is
 # a claim, and its proof and a lemma are Bend's alone to call
@@ -5006,7 +5091,7 @@ def proof.parts(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +all: List
   +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
   +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0))), ux} : Ec}
   Pf{e, order.what(order, us, mode), res.lines(path.at(cx.paths(cx), 0), res, 1),
-    List.append(&2, Er, ds.ers(d), er.names(names.all(order.what(order, us, mode), e), Nil{}))}
+    List.append(&2, Er, ds.ers(d), er.names.of(names.all(order.what(order, us, mode), e)))}
 
 # Stages
 # ======
@@ -5031,7 +5116,7 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +pf = proof.parts(2, files, cx, all)
   emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1), lw, pf,
     List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), List.append(&2, Er, er.laws(all, all, ux.of(all)),
-      List.append(&2, Er, er.names(names.all(List.reverse(&2, U32, order), e), Nil{}), List.append(&2, Er, pf.ers(lw), pf.ers(pf)))))))
+      List.append(&2, Er, er.names.of(names.all(List.reverse(&2, U32, order), e)), List.append(&2, Er, pf.ers(lw), pf.ers(pf)))))))
 
 # The laws and the proofs
 # -----------------------
@@ -5057,7 +5142,7 @@ def objects.next(+cmd: U32, +files: List<&2, List<&2, U32>>, +als: List<&2, Al>,
     case 2:
       Out{True{}, show.obs(obs, ls, fs, obs)}
     case _:
-      +cx = {Cx{obs, ls, fs, als, paths, pss, nxs.of(fs)} : Cx}
+      +cx = {Cx{obs, ls, fs, als, paths, pss, nxs.of(fs), mds.of(obs)} : Cx}
       resolved.next(cmd, files, cx, module.copies(obs, cx))
 
 def objects.out(+cmd: U32, +files: List<&2, List<&2, U32>>, +als: List<&2, Al>, +paths: List<&2, List<&2, U32>>, +pss: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> Out:
