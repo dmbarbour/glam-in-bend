@@ -2425,3 +2425,77 @@ def Laws.order.fast(roots, cal, obs, us):
       go_lift(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)) :
     {B.df.ds(_) == B.walk(roots, cal, obs, us) : B.Ds}
   ds_lift(B.ds.go(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us))
+
+# What is emitted
+# ---------------
+#
+# The writer and the names check, each a loop of its own over the order,
+# against one list of the definitions emitted (`defs.of`).
+
+def defs_app(a: List<&2, B.Dp>, +c: List<&2, B.Dp>, +e: B.Ec, b: B.Tb) ->
+    {B.defs.put(List.append(&2, B.Dp, a, c), e, b) == B.defs.put(c, e, B.defs.put(a, e, b)) : B.Tb}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{d, t}:
+      match d:
+        case B.Dp{+x, +j}:
+          defs_app(t, c, e, B.unit.put(e, x, j, b))
+
+def defs_copies(n: Nat, +e: B.Ec, +x: U32, +j: U32, b: B.Tb) -> {B.defs.put(B.dps.copies(n, x, j), e, b) == B.copies.put(n, e, x, j, b) : B.Tb}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+k:
+      defs_copies(k, e, x, (j + 1 : U32), B.unit.put(e, x, j, b))
+
+def unit_all(+e: B.Ec, +x: U32, mu: B.Mu, b: B.Tb) ->
+    {B.copies.put(U32.to_nat(B.mu.m(mu)), e, x, 1, B.unit.put(e, x, 0, b)) == B.unit.all(e, x, mu, b) : B.Tb}:
+  match mu:
+    case B.Mu{+m, +kind}:
+      {==}
+
+def Laws.emit.defs(xs, e, b):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %unit_all(e, x, B.ec.mu(e, x), b) :
+        {B.order.put(t, e, _) == B.defs.put(B.defs.of(Con{x, t}, e), e, b) : B.Tb}
+      %Equal.sym(B.Tb, B.defs.put(List.append(&2, B.Dp, B.dps.copies(U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 1), B.defs.of(t, e)), e, B.unit.put(e, x, 0, b)), B.defs.put(B.defs.of(t, e), e, B.defs.put(B.dps.copies(U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 1), e, B.unit.put(e, x, 0, b))), defs_app(B.dps.copies(U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 1), B.defs.of(t, e), e, B.unit.put(e, x, 0, b))) :
+        {B.order.put(t, e, B.copies.put(U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 1, B.unit.put(e, x, 0, b))) == _ : B.Tb}
+      %Equal.sym(B.Tb, B.defs.put(B.dps.copies(U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 1), e, B.unit.put(e, x, 0, b)), B.copies.put(U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 1, B.unit.put(e, x, 0, b)), defs_copies(U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 1, B.unit.put(e, x, 0, b))) :
+        {B.order.put(t, e, B.copies.put(U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 1, B.unit.put(e, x, 0, b))) == B.defs.put(B.defs.of(t, e), e, _) : B.Tb}
+      Laws.emit.defs(t, e, B.copies.put(U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 1, B.unit.put(e, x, 0, b)))
+
+def names_app(a: List<&2, B.Dp>, +c: List<&2, B.Dp>, +e: B.Ec) ->
+    {List.append(&2, B.Nm, B.defs.names(a, e), B.defs.names(c, e)) == B.defs.names(List.append(&2, B.Dp, a, c), e) : List<&2, B.Nm>}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{d, t}:
+      match d:
+        case B.Dp{+x, +j}:
+          %names_app(t, c, e) : {Con{B.Nm{B.own.name(e, x, j), x, B.node.no(B.un.node(B.ec.un(e, x)))}, List.append(&2, B.Nm, B.defs.names(t, e), B.defs.names(c, e))} ==
+            Con{B.Nm{B.own.name(e, x, j), x, B.node.no(B.un.node(B.ec.un(e, x)))}, _} : List<&2, B.Nm>}
+          {==}
+
+def names_copies(n: Nat, +e: B.Ec, +x: U32, +j: U32) -> {B.names.copies(n, e, x, j) == B.defs.names(B.dps.copies(n, x, j), e) : List<&2, B.Nm>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+k:
+      %names_copies(k, e, x, (j + 1 : U32)) : {Con{B.Nm{B.own.name(e, x, j), x, B.node.no(B.un.node(B.ec.un(e, x)))}, B.names.copies(k, e, x, (j + 1 : U32))} ==
+        Con{B.Nm{B.own.name(e, x, j), x, B.node.no(B.un.node(B.ec.un(e, x)))}, _} : List<&2, B.Nm>}
+      {==}
+
+def Laws.emit.names(xs, e):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(List<&2, B.Nm>, B.names.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 0), B.defs.names(B.dps.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 0), e), names_copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), e, x, 0)) :
+        {List.append(&2, B.Nm, _, B.names.all(t, e)) == B.defs.names(B.defs.of(Con{x, t}, e), e) : List<&2, B.Nm>}
+      %Equal.sym(List<&2, B.Nm>, B.names.all(t, e), B.defs.names(B.defs.of(t, e), e), Laws.emit.names(t, e)) :
+        {List.append(&2, B.Nm, B.defs.names(B.dps.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 0), e), _) == B.defs.names(B.defs.of(Con{x, t}, e), e) : List<&2, B.Nm>}
+      names_app(B.dps.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 0), B.defs.of(t, e), e)

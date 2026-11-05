@@ -5253,6 +5253,52 @@ def emit.out(+files: List<&2, List<&2, U32>>, +e: Ec, +order: List<&2, U32>, +tr
 type Nm is Data:
   Nm{name: List<&2, U32>, +u: U32, +no: U32}
 
+# Definitions emitted
+# -------------------
+#
+# What the writer writes and what the names check checks, one list:
+# each unit of the order, its own definition (copy 0), then each of the
+# numbered copies its sharing asks for (blend/LAWS.bend, `emit.defs`,
+# `emit.names`)
+
+type Dp is Data:
+  Dp{+x: U32, +j: U32}
+
+# n of x's definitions from its j-th
+def dps.copies(n: Nat, +x: U32, +j: U32) -> List<&2, Dp>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{Dp{x, j}, dps.copies(k, x, (j + 1 : U32))}
+
+def defs.of(xs: List<&2, U32>, +e: Ec) -> List<&2, Dp>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, t}:
+      List.append(&2, Dp, dps.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), x, 0), defs.of(t, e))
+
+# the definitions written, one after another
+def defs.put(ds: List<&2, Dp>, +e: Ec, b: Tb) -> Tb:
+  match ds:
+    case Nil{}:
+      b
+    case Con{d, t}:
+      match d:
+        case Dp{+x, +j}:
+          defs.put(t, e, unit.put(e, x, j, b))
+
+# the names they are written by
+def defs.names(ds: List<&2, Dp>, +e: Ec) -> List<&2, Nm>:
+  match ds:
+    case Nil{}:
+      Nil{}
+    case Con{d, t}:
+      match d:
+        case Dp{+x, +j}:
+          Con{Nm{own.name(e, x, j), x, node.no(un.node(ec.un(e, x)))}, defs.names(t, e)}
+
 def names.copies(n: Nat, +e: Ec, +x: U32, +j: U32) -> List<&2, Nm>:
   match n:
     case 0n:

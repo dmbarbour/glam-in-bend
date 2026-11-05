@@ -167,3 +167,21 @@ law order.fast:
   for +obs: List<&2, B.Ob>
   for +us: List<&2, B.Un>
   {B.df.ds(B.walk.fast(roots, cal, obs, us)) == B.walk(roots, cal, obs, us) : B.Ds}
+
+# LAW: the writer writes each unit of an order by its own name, then
+# once for each copy its sharing asks for, and nothing else, in order:
+# with the order's laws, each definition once, after its callees.
+# Record: blend-copies-keep-their-name
+law emit.defs:
+  for xs: List<&2, U32>
+  for +e: B.Ec
+  for +b: B.Tb
+  {B.order.put(xs, e, b) == B.defs.put(B.defs.of(xs, e), e, b) : B.Tb}
+
+# LAW: and the names the check of names emitted twice examines are the
+# names of those definitions, so that it checks what is written.
+# Record: blend-copies-keep-their-name
+law emit.names:
+  for xs: List<&2, U32>
+  for +e: B.Ec
+  {B.names.all(xs, e) == B.defs.names(B.defs.of(xs, e), e) : List<&2, B.Nm>}
