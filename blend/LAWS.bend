@@ -131,3 +131,15 @@ law order.roots:
   for +us: List<&2, B.Un>
   for h: {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
   {B.all.in(roots, B.ds.walked(B.walk(roots, cal, obs, us))) == True{} : Bool}
+
+# LAW: once the walk has finished, every unit a walked unit calls has been
+# walked: with order.roots, every unit a root reaches, so that nothing a
+# definition calls is left out.
+# Record: blend-adds-no-bend-logic
+law order.closed:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  for h: {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
+  {B.calls.in(B.ds.walked(B.walk(roots, cal, obs, us)), cal, B.ds.walked(B.walk(roots, cal, obs, us))) == True{} : Bool}

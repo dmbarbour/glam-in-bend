@@ -1421,3 +1421,220 @@ def Laws.order.roots(roots, cal, obs, us, h):
   roots_out(B.walk(roots, cal, obs, us), roots,
     go_roots(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
       B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots)), h)
+
+# The walk's calls, every one walked
+# ----------------------------------
+#
+# The invariant, c the stack's units then those walked: every walked
+# unit's callees among c; each frame's callees among c or still to follow
+# (its rest). A call followed joins c (walked, on the stack, or pushed);
+# a unit popped has followed all, so its callees are among c.
+
+def frames_ok(st: List<&2, B.Fm>, +cal: List<&2, List<&2, U32>>, +c: List<&2, U32>) -> Bool:
+  match st:
+    case Nil{}:
+      True{}
+    case Con{f, t}:
+      match f:
+        case B.Fm{+u, rest}:
+          Bool.and(B.all.in(B.ids.at(cal, u), List.append(&2, U32, c, rest)), frames_ok(t, cal, c))
+
+def kinv4(+cal: List<&2, List<&2, U32>>, +done: List<&2, U32>, +stack: List<&2, B.Fm>) -> Bool:
+  Bool.and(B.calls.in(done, cal, List.append(&2, U32, B.fms.units(stack), done)), frames_ok(stack, cal, List.append(&2, U32, B.fms.units(stack), done)))
+
+def kinv(+cal: List<&2, List<&2, U32>>, s: B.Ds) -> Bool:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      kinv4(cal, done, stack)
+
+def calls_mono(d: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, +y: List<&2, U32>,
+    +h: {B.calls.in(d, cal, x) == True{} : Bool}, +s: {B.all.in(x, y) == True{} : Bool}) -> {B.calls.in(d, cal, y) == True{} : Bool}:
+  match d:
+    case Nil{}:
+      {==}
+    case Con{+v, +t}:
+      and_intro(B.all.in(B.ids.at(cal, v), y), B.calls.in(t, cal, y),
+        sub_trans(B.ids.at(cal, v), x, y, MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, v), x), B.calls.in(t, cal, x), h), s),
+        calls_mono(t, cal, x, y, MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, v), x), B.calls.in(t, cal, x), h), s))
+
+def app_mono(+x: List<&2, U32>, +y: List<&2, U32>, +r: List<&2, U32>, +s: {B.all.in(x, y) == True{} : Bool}) ->
+    {B.all.in(List.append(&2, U32, x, r), List.append(&2, U32, y, r)) == True{} : Bool}:
+  sub_app(x, r, List.append(&2, U32, y, r), sub_trans(x, y, List.append(&2, U32, y, r), s, sub_l(y, r)), sub_r(y, r))
+
+def frames_mono(st: List<&2, B.Fm>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, +y: List<&2, U32>,
+    +h: {frames_ok(st, cal, x) == True{} : Bool}, +s: {B.all.in(x, y) == True{} : Bool}) -> {frames_ok(st, cal, y) == True{} : Bool}:
+  match st:
+    case Nil{}:
+      {==}
+    case Con{f, +t}:
+      match f:
+        case B.Fm{+u, +rest}:
+          and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, y, rest)), frames_ok(t, cal, y),
+            sub_trans(B.ids.at(cal, u), List.append(&2, U32, x, rest), List.append(&2, U32, y, rest),
+              MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, u), List.append(&2, U32, x, rest)), frames_ok(t, cal, x), h), app_mono(x, y, rest, s)),
+            frames_mono(t, cal, x, y, MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, u), List.append(&2, U32, x, rest)), frames_ok(t, cal, x), h), s))
+
+# a call followed, its unit among c already
+def follow_sub(+c: List<&2, U32>, +x: U32, +rs: List<&2, U32>, +hc: {B.has(c, x) == True{} : Bool}) ->
+    {B.all.in(List.append(&2, U32, c, Con{x, rs}), List.append(&2, U32, c, rs)) == True{} : Bool}:
+  sub_app(c, Con{x, rs}, List.append(&2, U32, c, rs), sub_l(c, rs),
+    and_intro(B.has(List.append(&2, U32, c, rs), x), B.all.in(rs, List.append(&2, U32, c, rs)), in_l(c, rs, x, hc), sub_r(c, rs)))
+
+# a call followed, its unit pushed
+def push_sub(+c: List<&2, U32>, +x: U32, +rs: List<&2, U32>) ->
+    {B.all.in(List.append(&2, U32, c, Con{x, rs}), Con{x, List.append(&2, U32, c, rs)}) == True{} : Bool}:
+  sub_app(c, Con{x, rs}, Con{x, List.append(&2, U32, c, rs)}, all_in_mono(c, List.append(&2, U32, c, rs), x, sub_l(c, rs)),
+    and_intro(B.has(Con{x, List.append(&2, U32, c, rs)}, x), B.all.in(rs, Con{x, List.append(&2, U32, c, rs)}),
+      has_self(List.append(&2, U32, c, rs), x), all_in_mono(rs, List.append(&2, U32, c, rs), x, sub_r(c, rs))))
+
+def root_closed(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>,
+    +h: {kinv4(cal, done, Nil{}) == True{} : Bool}) ->
+    {kinv(cal, B.ds.root.k(seen, r, rt, done, order, ers, cal)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      and_intro(B.calls.in(done, cal, Con{r, done}), frames_ok([B.Fm{r, B.ids.at(cal, r)}], cal, Con{r, done}),
+        calls_mono(done, cal, done, Con{r, done}, MB.eq_true_of_and_left(B.calls.in(done, cal, done), frames_ok(Nil{}, cal, done), h), sub_cons(done, r)),
+        and_intro(B.all.in(B.ids.at(cal, r), List.append(&2, U32, Con{r, done}, B.ids.at(cal, r))), True{}, sub_r(Con{r, done}, B.ids.at(cal, r)), {==}))
+
+def call_closed.k(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +e1: {seen == B.has(done, c) : Bool}, +e2: {cyc == B.has(Con{u, B.fms.units(st)}, c) : Bool},
+    +hcalls: {B.calls.in(done, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}) == True{} : Bool},
+    +hu: {B.all.in(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, rs})) == True{} : Bool},
+    +hst: {frames_ok(st, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}) == True{} : Bool}) ->
+    {kinv(cal, B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      and_intro(B.calls.in(done, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}),
+        frames_ok(Con{B.Fm{u, rs}, st}, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}), hcalls,
+        and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, rs)),
+          frames_ok(st, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}),
+          sub_trans(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, rs}),
+            List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, rs), hu,
+            follow_sub(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c, rs,
+              has_sub(done, Con{u, List.append(&2, U32, B.fms.units(st), done)}, c,
+                all_in_mono(done, List.append(&2, U32, B.fms.units(st), done), u, sub_r(B.fms.units(st), done)),
+                Equal.sym(Bool, True{}, B.has(done, c), e1)))),
+          hst))
+    case False{}:
+      match cyc:
+        case True{}:
+          and_intro(B.calls.in(done, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}),
+            frames_ok(Con{B.Fm{u, rs}, st}, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}), hcalls,
+            and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, rs)),
+              frames_ok(st, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}),
+              sub_trans(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, rs}),
+                List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, rs), hu,
+                follow_sub(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c, rs,
+                  in_l(Con{u, B.fms.units(st)}, done, c, Equal.sym(Bool, True{}, B.has(Con{u, B.fms.units(st)}, c), e2)))),
+              hst))
+        case False{}:
+          and_intro(B.calls.in(done, cal, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}),
+            frames_ok(Con{B.Fm{c, B.ids.at(cal, c)}, Con{B.Fm{u, rs}, st}}, cal, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}),
+            calls_mono(done, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}, hcalls,
+              sub_cons(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c)),
+            and_intro(B.all.in(B.ids.at(cal, c), List.append(&2, U32, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}, B.ids.at(cal, c))),
+              frames_ok(Con{B.Fm{u, rs}, st}, cal, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}),
+              sub_r(Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}, B.ids.at(cal, c)),
+              and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}, rs)),
+                frames_ok(st, cal, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}),
+                sub_trans(B.ids.at(cal, u), List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, rs}),
+                  Con{c, List.append(&2, U32, Con{u, List.append(&2, U32, B.fms.units(st), done)}, rs)}, hu,
+                  push_sub(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c, rs)),
+                frames_mono(st, cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}, hst,
+                  sub_cons(Con{u, List.append(&2, U32, B.fms.units(st), done)}, c)))))
+
+def call_closed(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +e1: {seen == B.has(done, c) : Bool}, +e2: {cyc == B.has(Con{u, B.fms.units(st)}, c) : Bool},
+    +h: {kinv4(cal, done, Con{B.Fm{u, Con{c, rs}}, st}) == True{} : Bool}) ->
+    {kinv(cal, B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)) == True{} : Bool}:
+  +cc = {Con{u, List.append(&2, U32, B.fms.units(st), done)} : List<&2, U32>}
+  +hcalls = MB.eq_true_of_and_left(B.calls.in(done, cal, cc), frames_ok(Con{B.Fm{u, Con{c, rs}}, st}, cal, cc), h)
+  +hfr = MB.eq_true_of_and_right(B.calls.in(done, cal, cc), frames_ok(Con{B.Fm{u, Con{c, rs}}, st}, cal, cc), h)
+  +hu = MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, u), List.append(&2, U32, cc, Con{c, rs})), frames_ok(st, cal, cc), hfr)
+  +hst = MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, u), List.append(&2, U32, cc, Con{c, rs})), frames_ok(st, cal, cc), hfr)
+  call_closed.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us, e1, e2, hcalls, hu, hst)
+
+def done_closed.k(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +cal: List<&2, List<&2, U32>>,
+    +hu: {B.all.in(B.ids.at(cal, u), List.append(&2, U32, B.fms.units(st), Con{u, done})) == True{} : Bool},
+    +hd: {B.calls.in(done, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})) == True{} : Bool},
+    +hf: {frames_ok(st, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})) == True{} : Bool}) ->
+    {kinv(cal, B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  match ok:
+    case True{}:
+      and_intro(B.calls.in(Con{u, done}, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), frames_ok(st, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})),
+        and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, B.fms.units(st), Con{u, done})), B.calls.in(done, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), hu, hd),
+        hf)
+    case False{}:
+      and_intro(B.calls.in(Con{u, done}, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), frames_ok(st, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})),
+        and_intro(B.all.in(B.ids.at(cal, u), List.append(&2, U32, B.fms.units(st), Con{u, done})), B.calls.in(done, cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), hu, hd),
+        hf)
+
+# a unit popped: its callees among c, all followed; c the same units
+def done_closed(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +cal: List<&2, List<&2, U32>>,
+    +h: {kinv4(cal, done, Con{B.Fm{u, Nil{}}, st}) == True{} : Bool}) ->
+    {kinv(cal, B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  +cc = {Con{u, List.append(&2, U32, B.fms.units(st), done)} : List<&2, U32>}
+  +cn = List.append(&2, U32, B.fms.units(st), Con{u, done})
+  +sb = pop_sub(u, B.fms.units(st), done)
+  +hcalls = MB.eq_true_of_and_left(B.calls.in(done, cal, cc), frames_ok(Con{B.Fm{u, Nil{}}, st}, cal, cc), h)
+  +hfr = MB.eq_true_of_and_right(B.calls.in(done, cal, cc), frames_ok(Con{B.Fm{u, Nil{}}, st}, cal, cc), h)
+  +hu = MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, u), List.append(&2, U32, cc, Nil{})), frames_ok(st, cal, cc), hfr)
+  +hst = MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, u), List.append(&2, U32, cc, Nil{})), frames_ok(st, cal, cc), hfr)
+  done_closed.k(ok, u, st, roots, done, order, ers, obs, us, cal,
+    sub_trans(B.ids.at(cal, u), List.append(&2, U32, cc, Nil{}), cn, hu, sub_app(cc, Nil{}, cn, sb, {==})),
+    calls_mono(done, cal, cc, cn, hcalls, sb),
+    frames_mono(st, cal, cc, cn, hst, sb))
+
+def step_closed(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {kinv(cal, s) == True{} : Bool}) ->
+    {kinv(cal, B.ds.step(s, cal, obs, us)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              h
+            case Con{+r, +rt}:
+              root_closed(B.has(done, r), r, rt, done, order, ers, cal, h)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_closed(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, cal, h)
+                case Con{+c, +rs}:
+                  call_closed(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, {==}, {==}, h)
+
+def go_closed(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {kinv(cal, s) == True{} : Bool}) ->
+    {kinv(cal, B.ds.go(n, s, cal, obs, us)) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_closed(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_closed(s, cal, obs, us, h))
+
+# finished: no stack, so every walked unit's callees walked
+def closed_out(s: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {kinv(cal, s) == True{} : Bool}, e: {B.ds.finished(s) == True{} : Bool}) ->
+    {B.calls.in(B.ds.walked(s), cal, B.ds.walked(s)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, +done, order, ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              MB.eq_true_of_and_left(B.calls.in(done, cal, done), frames_ok(Nil{}, cal, done), h)
+            case Con{r, rt}:
+              Empty.absurd({B.calls.in(done, cal, done) == True{} : Bool}, MB.false_ne_true()(e))
+        case Con{f, st}:
+          Empty.absurd({B.calls.in(done, cal, done) == True{} : Bool}, MB.false_ne_true()(e))
+
+def Laws.order.closed(roots, cal, obs, us, h):
+  closed_out(B.walk(roots, cal, obs, us), cal,
+    go_closed(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)

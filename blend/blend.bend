@@ -3798,6 +3798,14 @@ def all.in(xs: List<&2, U32>, +order: List<&2, U32>) -> Bool:
     case Con{+x, t}:
       has(order, x) && all.in(t, order)
 
+# each unit's calls among ys (blend/LAWS.bend, `order.closed`)
+def calls.in(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +ys: List<&2, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+x, t}:
+      all.in(ids.at(cal, x), ys) && calls.in(t, cal, ys)
+
 # units each once (blend/LAWS.bend, `order.once`)
 def distinct(xs: List<&2, U32>) -> Bool:
   match xs:
