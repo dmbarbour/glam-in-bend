@@ -1,7 +1,17 @@
 """Docs checks for scripts/check.sh: links, decision records, plan lists.
 
+A project's docs: its top-level Markdown, `docs/` (`docs/Decisions.md`
+indexing `docs/decisions/`, `docs/plans/` and `docs/reviews/` each
+listed by its README), `samples/`, `vendor/` and `bench/`. The
+repository is a project, and so is each directory directly in it that
+has a `docs/plans/README.md` of its own, a project arranged to become a
+repository of its own (Blend, `blend-home.arrange`): each is checked
+alone, and their step names are unique across them all, as they share a
+history, a commit naming a step of any of them.
+
 Run from the repository root:
-  python3 -I scripts/check_docs.py                    check the docs
+  python3 -I scripts/check_docs.py                    check every project's docs
+  python3 -I scripts/check_docs.py --root DIR         check DIR's alone
   python3 -I scripts/check_docs.py --commit-msg FILE  check FILE's Plan-Step
                                                       trailers (commit-msg hook)
 """
@@ -11,7 +21,6 @@ import re
 import subprocess
 import sys
 
-ROOT = pathlib.Path(".")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"^```.*?^```", re.S | re.M)
 HEADER = re.compile(r"^`([a-z0-9-]+)` · (maintainer|agent) · rev ([0-9a-f]{7,40})$")
@@ -40,8 +49,17 @@ def git_ok(*args):
     return git(*args).returncode == 0
 
 
-def markdown_files():
-    files = set(ROOT.glob("*.md")) | set(ROOT.glob("docs/**/*.md")) | set(ROOT.glob("samples/**/*.md")) | set(ROOT.glob("vendor/**/*.md"))
+def projects():
+    """The repository's projects: itself, and each directory directly in it
+    with docs/plans of its own."""
+    top = pathlib.Path(".")
+    return [top, *sorted(p.parent.parent for p in top.glob("*/docs/plans/README.md"))]
+
+
+def markdown_files(root):
+    files = set()
+    for pattern in ("*.md", "docs/**/*.md", "samples/**/*.md", "vendor/**/*.md", "bench/**/*.md"):
+        files |= set(root.glob(pattern))
     return sorted(files)
 
 
@@ -54,17 +72,19 @@ def links(path):
         yield target.split("#")[0]
 
 
-def check_links():
-    for path in markdown_files():
+def check_links(root):
+    for path in markdown_files(root):
         for target in links(path):
             if not (path.parent / target).exists():
                 fail(path, f"dead link {target}")
 
 
-def check_decisions():
-    index = ROOT / "docs/Decisions.md"
+def check_decisions(root):
+    index = root / "docs/Decisions.md"
+    if not index.exists():
+        return
     listed = {(index.parent / t).resolve() for t in links(index)}
-    for record in sorted(ROOT.glob("docs/decisions/*.md")):
+    for record in sorted(root.glob("docs/decisions/*.md")):
         lines = [line for line in record.read_text().splitlines() if line.strip()]
         if len(lines) < 2 or not lines[0].startswith("# "):
             fail(record, "must start with '# <title>', then its header line")
@@ -81,12 +101,14 @@ def check_decisions():
         elif not git_ok("merge-base", "--is-ancestor", rev, "HEAD"):
             fail(record, f"rev {rev} is not an ancestor of HEAD")
         if record.resolve() not in listed:
-            fail(record, "not listed in docs/Decisions.md")
+            fail(record, f"not listed in {index}")
 
 
-def check_index_stays_an_index():
+def check_index_stays_an_index(root):
     """Outside "Records", the index holds paragraphs and one line per record."""
-    index = ROOT / "docs/Decisions.md"
+    index = root / "docs/Decisions.md"
+    if not index.exists():
+        return
     section = None
     for number, line in enumerate(index.read_text().splitlines(), 1):
         if line.startswith("## "):
@@ -100,42 +122,47 @@ def check_index_stays_an_index():
 
 
 def check_listed(directory):
-    readme = ROOT / directory / "README.md"
+    readme = directory / "README.md"
+    if not readme.exists():
+        return
     listed = {(readme.parent / t).resolve() for t in links(readme)}
-    for doc in sorted((ROOT / directory).glob("*.md")):
+    for doc in sorted(directory.glob("*.md")):
         if doc.name != "README.md" and doc.resolve() not in listed:
             fail(doc, f"not listed in {readme}")
 
 
-def history_docs(tree):
-    """(path, text) of each plan and review, in the working tree or at HEAD."""
-    if tree == "work":
-        for directory in ("docs/plans", "docs/reviews"):
-            for doc in sorted((ROOT / directory).glob("*.md")):
-                if doc.name != "README.md":
-                    yield str(doc), doc.read_text()
-        return
-    listing = git("ls-tree", "-r", "--name-only", tree, "--", "docs/plans", "docs/reviews")
-    for path in listing.stdout.split():
-        if path.endswith(".md") and not path.endswith("README.md"):
-            yield path, git("show", f"{tree}:{path}").stdout
+def history_docs(roots, tree):
+    """(path, text) of each plan and review of the projects at roots, in
+    the working tree or at a tree-ish."""
+    for root in roots:
+        if tree == "work":
+            for directory in ("docs/plans", "docs/reviews"):
+                for doc in sorted((root / directory).glob("*.md")):
+                    if doc.name != "README.md":
+                        yield str(doc), doc.read_text()
+            continue
+        # paths relative to the project, as git lists and shows them there
+        listing = git("-C", str(root), "ls-tree", "-r", "--name-only", tree, "--", "docs/plans", "docs/reviews")
+        for path in listing.stdout.split():
+            if path.endswith(".md") and not path.endswith("README.md"):
+                yield str(root / path), git("-C", str(root), "show", f"{tree}:./{path}").stdout
 
 
-def steps(tree):
+def steps(roots, tree):
     found = {}
-    for path, text in history_docs(tree):
+    for path, text in history_docs(roots, tree):
         for name, _ in STEP.findall(text):
             found.setdefault(name, []).append(path)
     return found
 
 
-def check_step_names():
-    known = steps("work")
+def check_step_names(roots, mine_only):
+    known = steps(roots, "work")
     for name, paths in sorted(known.items()):
         if len(paths) > 1:
             fail(", ".join(paths), f"step `{name}` is named more than once")
     # a sub-step sits in its parent's plan, with a disposition naming real steps
-    for path, text in history_docs("work"):
+    for path, text in history_docs(mine_only, "work"):
         mine = {name for name, _ in STEP.findall(text)}
         for m in STEP.finditer(text):
             name, rest, end = m.group(1), m.group(2), m.end()
@@ -159,25 +186,31 @@ def check_commit_msg(message_file):
     """Every Plan-Step trailer names a step of a plan or review, now or at HEAD."""
     message = pathlib.Path(message_file).read_text()
     message = "\n".join(line for line in message.splitlines() if not line.startswith("#"))
-    known = set(steps("work"))
+    known = set(steps(projects(), "work"))
     if git_ok("rev-parse", "--verify", "-q", "HEAD"):
-        known |= set(steps("HEAD"))
+        known |= set(steps(projects(), "HEAD"))
     for name in PLAN_STEP.findall(message):
         if name not in known:
-            fail(message_file, f"Plan-Step `{name}` names no step in docs/plans or docs/reviews")
+            fail(message_file, f"Plan-Step `{name}` names no step in any project's docs/plans or docs/reviews")
 
 
 if len(sys.argv) == 3 and sys.argv[1] == "--commit-msg":
     check_commit_msg(sys.argv[2])
     label = "plan steps"
 else:
-    check_links()
-    check_decisions()
-    check_index_stays_an_index()
-    check_listed("docs/plans")
-    check_listed("docs/reviews")
-    check_step_names()
-    label = "docs"
+    if len(sys.argv) == 3 and sys.argv[1] == "--root":
+        roots = [pathlib.Path(sys.argv[2])]
+        label = f"docs of {sys.argv[2]}"
+    else:
+        roots = projects()
+        label = "docs"
+    for root in roots:
+        check_links(root)
+        check_decisions(root)
+        check_index_stays_an_index(root)
+        check_listed(root / "docs/plans")
+        check_listed(root / "docs/reviews")
+    check_step_names(roots, roots)
 
 for error in errors:
     print(error)

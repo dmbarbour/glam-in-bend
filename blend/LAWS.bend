@@ -43,7 +43,7 @@ law locals.not_name:
 # LAW: a name a local binds, a parameter or a binding of the body, is
 # emitted as it is written, bound to no definition; a name beginning `^`
 # (a host's) or `~` (a template's argument) aside.
-# Record: shadowing-is-an-error
+# Record: blend-no-shadowing
 law locals.kept:
   for +cx: B.Cx
   for +o: U32
@@ -58,7 +58,7 @@ law locals.kept:
   {B.rr.of(cx, o, q, locals, B.TName{Con{h, r}}, no) == B.rr.tok(B.TName{Con{h, r}}) : B.Rr}
 
 # LAW: and a local passed on as a template's argument, `~f`, likewise.
-# Record: shadowing-is-an-error
+# Record: blend-no-shadowing
 law locals.template:
   for +cx: B.Cx
   for +o: U32

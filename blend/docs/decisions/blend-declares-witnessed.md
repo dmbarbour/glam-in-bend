@@ -36,9 +36,9 @@ checker and adds no Bend logic of its own (`blend-adds-no-bend-logic`).
 **Consequences.**
 - A misfit is Bend's error at the witness, expected and observed types
   printed, found by the gate's proof step; the samples Blend emits and
-  Bend refuses live in `blend/samples/refused/`, held to Bend's output.
+  Bend refuses live in `samples/refused/`, held to Bend's output.
 - A module with witnesses and no laws writes its proofs' file alone.
 - The samples `declares`, `declare-twice`, `declare-no-type`,
   `declare-misfit`, `declare-kind`.
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

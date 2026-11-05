@@ -3,7 +3,7 @@
 `blend-module-is-bend` · maintainer · rev c2147be
 
 **Context.** Blend's first design made the module an object
-(`blend/README.md`): its definitions were the outermost scope, reached
+(`README.md`): its definitions were the outermost scope, reached
 from an object's body by a bare name or by enough `^`, and checked as an
 object's are, with `upd`, `declare` and sharing marks allowed. Bend's
 own modules are static: a file of definitions, imported by path under a
@@ -31,4 +31,4 @@ is independent of the module being one (the maintainer, 2026-11-04).
   nested object; `host-at-module` fails for `^` in a definition of the
   module.
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

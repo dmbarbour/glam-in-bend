@@ -53,39 +53,14 @@ IO shell.
   generated into files of its own, by Bend programs, and checked current;
   no external macro processor (one of our own, in Bend, may come), no
   script editing sources.
-- [`blend-adds-no-bend-logic`](decisions/blend-adds-no-bend-logic.md):
-  Blend translates objects and adds no Bend logic of its own; mutual
-  recursion is an error as in Bend; types, laws and proofs are members,
-  emitted as Bend.
-- [`blend-module-is-bend`](decisions/blend-module-is-bend.md): a Blend
-  module is no object; its own definitions are plain Bend, as Bend's
-  static modules are.
-- [`blend-namespaces-as-bends`](decisions/blend-namespaces-as-bends.md):
-  Blend's namespaces are Bend's, a file's own names and its imports' by
-  local aliases, the same however imports reach them; `extend` stays out
-  of the top level.
-- [`blend-frozen-host`](decisions/blend-frozen-host.md): `^` sees the host a
-  nested object is made for, and inheritance never binds it again.
-- [`blend-copies-keep-their-name`](decisions/blend-copies-keep-their-name.md):
-  a copied definition is always emitted by its own name, and once more
-  for each use.
-- [`blend-declares-witnessed`](decisions/blend-declares-witnessed.md): a
-  typed declaration is bound in each concrete object to its own types
-  and checked by a witness Bend checks, in the proofs' file.
-- [`blend-templates-affine`](decisions/blend-templates-affine.md): a
-  template is affine by default, as any definition; the guide explains
-  `shared` against `copied` for templates.
-- [`blend-emit-verifies-imports`](decisions/blend-emit-verifies-imports.md):
-  emission writes only the modules a command names, and verifies each
-  import none names against its emission, unless `--alone`.
-- [`blend-proofs-beside-code`](decisions/blend-proofs-beside-code.md): a
-  Blend module's laws and proofs are written into files of their own
-  beside its code, `X_LAWS.bend` and `X_PROOF.bend`, by the emission
-  that writes the code; a law is a claim stated once, its proof a member
-  `upd proof` may replace, a typed proof a lemma.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.
+
+Blend, the preprocessor of static objects for Bend that `generated-sources`
+allows, keeps its records with it, arranged as its own repository would
+hold them: [`blend/docs/Decisions.md`](../blend/docs/Decisions.md)
+(`blend-own-repository`).
 
 ## Language
 

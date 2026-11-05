@@ -13,9 +13,11 @@ trailers. Side branches are free: land law work on main with a merge
 (`--no-ff`) or squash commit that names the laws.
 
 Comments in LAWS.bend and in `.blend` files may cite decision records as
-`# Record: <slug>`; each cited record must exist.
+`# Record: <slug>`; each cited record must exist, in `docs/decisions/` or
+in a project's directly within it (scripts/check_docs.py, Blend's).
 
-Run from the repository root:
+Run from the repository root, or from a project's within it to check
+that project's alone:
   python3 -I scripts/check_laws.py                    check main's history and
                                                       the record citations
   python3 -I scripts/check_laws.py --commit-msg FILE  on main, check the staged
@@ -121,7 +123,8 @@ def tree_laws(tree):
         read = (None if invalid(path) else laws if path == "LAWS.bend" or path.endswith("/LAWS.bend")
                 else blend_laws if path.endswith(".blend") else None)
         if read:
-            text = git("show", f"{tree}{path}" if tree == ":" else f"{tree}:{path}").stdout
+            # the path relative to here, as git lists it
+            text = git("show", f":./{path}" if tree == ":" else f"{tree}:./{path}").stdout
             for name, body in read(text).items():
                 found[(path, name)] = body
     return found
@@ -151,6 +154,10 @@ def check_history():
         check_named(commit[:7], names, message)
 
 
+# where records are: here, and in each project directly within
+RECORDS = [pathlib.Path("docs/decisions"), *sorted(pathlib.Path(".").glob("*/docs/decisions"))]
+
+
 def check_citations():
     for path in [*pathlib.Path(".").glob("**/LAWS.bend"), *pathlib.Path(".").glob("**/*.blend")]:
         if invalid(path.as_posix()):
@@ -160,7 +167,7 @@ def check_citations():
             if not citation:
                 continue
             for slug in re.split(r"[,\s]+", citation.group(1).strip()):
-                if slug and not pathlib.Path(f"docs/decisions/{slug}.md").exists():
+                if slug and not any((d / f"{slug}.md").exists() for d in RECORDS):
                     fail(f"{path}:{number}", f"cites missing record `{slug}`")
 
 

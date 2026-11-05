@@ -12,7 +12,7 @@ Whether `Obj.f` existed then depended on its uses elsewhere.
 never emitted by its own name or always, never conditionally; always is
 the less surprising. Blend emits `Obj.f` always, and a numbered copy more
 for each use. An affine definition that only a copied definition reaches
-is copied with it (as `blend/README.md` had it), the copy by its own name
+is copied with it (as `README.md` had it), the copy by its own name
 included: `Obj.h` with `Obj.f`, `Obj.h.c1` with `Obj.f.c1`.
 
 **Consequences.**
@@ -21,4 +21,4 @@ included: `Obj.h` with `Obj.f`, `Obj.h.c1` with `Obj.f.c1`.
 - The sample `sharing` emits `Arith.inc` beside `Arith.inc.c1` and
   `Arith.inc.c2`.
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

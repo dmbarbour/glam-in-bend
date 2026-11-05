@@ -4,7 +4,7 @@
 
 **Context.** A module's emission depends on nothing that imports it:
 every definition is emitted and no top-level object can be extended, so
-`emit` takes several modules at once (`blend/README.md`). Emitting a
+`emit` takes several modules at once (`README.md`). Emitting a
 root's imports with it, one root doing a dozen jobs, was weighed. But
 writing files a command did not name cannot last once packages come: a
 package's emitted files are its own (`blend-packages`). Left alone, an
@@ -26,7 +26,7 @@ imports unverified.
 - `bend blend.bend -- emit --alone ...` under Bend, whose CLI takes a
   dashed argument as its own; the built tool takes it directly.
 - scripts/check_generated.sh, emitting each directory's modules,
-  verifies the imports the other directories emit; blend/check.sh holds
+  verifies the imports the other directories emit; check.sh holds
   a stale import to its error and `--alone` to its bypass.
 
-**Rule lives in:** `blend/README.md`, Status.
+**Rule lives in:** `README.md`, Status.

@@ -2506,7 +2506,7 @@ def show.ers(+files: List<&2, List<&2, U32>>, es: List<&2, Er>) -> String:
 # to the definition the writer's replaced, `^name` to its host's, `~name`
 # as a bare name, the mark kept. A body's locals are its parameters and
 # binders; a local named as an object's definition is an error
-# (`shadowing-is-an-error`), so any other name a definition has is a
+# (`blend-no-shadowing`), so any other name a definition has is a
 # reference. The rest is Bend's. The module's definitions are Bend's
 # (`blend-module-is-bend`): their names are bound only to order them, and
 # to find the objects' definitions they use.

@@ -3,7 +3,7 @@
 `blend-adds-no-bend-logic` · maintainer · rev b8e32bc
 
 **Context.** Blend reads `.blend` files and writes `.bend` files, its
-objects vanishing in the translation (`blend/README.md`). Writing its
+objects vanishing in the translation (`README.md`). Writing its
 reader in Bend, the agent turned each pair of functions that would call
 each other into one loop over a state record, as Bend has no mutual
 recursion, and suggested that Blend might one day do that for its users.
@@ -29,4 +29,4 @@ members (`blend-object-laws`), each emitted as Bend.
   through as Bend, unprefixed and shared by every object; each is now a
   member (`blend-proofs-beside-code` for laws and proofs).
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

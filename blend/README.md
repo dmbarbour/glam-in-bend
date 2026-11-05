@@ -10,7 +10,7 @@ wants to be a definition it overrides rather than a template argument
 threaded through every signature (`docs/plans/Codegen_2026-11-04.md`,
 `codegen-vehicle.blend`).
 
-Status: the tool emits. `blend/run.sh emit [--alone] FILE.blend...
+Status: the tool emits. `run.sh emit [--alone] FILE.blend...
 [DIR]` writes, for each module named, the `.bend` it makes, every
 concrete object's definitions, and where it has laws its laws and its
 proofs, each a file of its own beside the code, beside the module or
@@ -27,10 +27,10 @@ argument as its own). DIR takes every file flat, for checking: two
 modules writing one name there are an error. The
 stages before it print what they find: `read` the structure, `objects`
 each object's linearization and definitions, `resolve` each copy and
-what its names reach. `blend/run.sh` runs the tool built once for each
-version of its sources (`blend/build.sh`); `bend blend.bend COMMAND ...`
-runs the same, checked and compiled each time. `blend/check.sh`, in the
-gate, holds every sample to its `.bend` or its `.err`. `blend/bench/`
+what its names reach. `run.sh` runs the tool built once for each
+version of its sources (`build.sh`); `bend blend.bend COMMAND ...`
+runs the same, checked and compiled each time. `check.sh`, in the
+gate, holds every sample to its `.bend` or its `.err`. `bench/`
 measures how Blend's cost grows with a module (its README).
 
 The maintainer's direction (2026-11-04): `def` and `upd` for
@@ -93,7 +93,7 @@ Bend's imports pass through.
   `Outer.Inner.name` is that object's final definition. A bare name that
   no object in reach defines may be one of the module's definitions,
   Bend's, its text kept; any other name is Bend's. A bare name is a local
-  or an object's definition, never both (`shadowing-is-an-error`).
+  or an object's definition, never both (`blend-no-shadowing`).
 - **Nested objects** are members too, folded down their host's
   linearization as a definition is: `object Inner` introduces one,
   `extend Inner with` updates it (glam's `extend`, a mixin on the named
@@ -253,12 +253,12 @@ its own copy, bound to its own finals: no sharing between objects.
 - Before each definition, a marker names where it is written,
   `# blend: FILE:LINE`; its lines follow as they are there, so the line
   k lines below a marker is the source's k lines below LINE.
-  `blend/where.sh FILE.bend LINE` finds it, for Bend's errors on emitted
+  `where.sh FILE.bend LINE` finds it, for Bend's errors on emitted
   code.
 
 ## The samples
 
-`blend/samples/`: each `.blend` beside the `.bend` it emits, a generated
+`samples/`: each `.blend` beside the `.bend` it emits, a generated
 file checked current by `scripts/check_generated.sh`, and the `.out` its
 program prints.
 
@@ -294,7 +294,7 @@ program prints.
   proves for every family, a family's own law proved with an inherited
   one, and a prior proof reached across modules.
 
-`blend/samples/invalid/`: each `.blend` beside the error it must raise
+`samples/invalid/`: each `.blend` beside the error it must raise
 (`.err`): an update of nothing, an introduction of a name inherited, an
 affine definition used twice, mutual recursion, a declared name left
 undefined, a parameter shadowing a definition, parents with no C3
@@ -310,7 +310,7 @@ inherited law, a definition meeting an inherited law, code naming a
 lemma, `upd proof` of a definition, a declaration made again below, a
 typed declaration with no return type.
 
-`blend/samples/refused/`: each `.blend` Blend emits and Bend refuses,
+`samples/refused/`: each `.blend` Blend emits and Bend refuses,
 its proofs' file failing as its `.err` says: a family's definition that
 does not fit its declaration, a type of another kind than declared.
 

@@ -2,7 +2,7 @@
 
 `blend-templates-affine` · maintainer · rev e8e6dfb
 
-**Context.** Templates are Bend's, passed through (`blend/README.md`).
+**Context.** Templates are Bend's, passed through (`README.md`).
 Blend's affine default counts a template's call sites as any
 definition's, so a template used twice is an error until marked
 `shared` or `copied`, though Bend compiles each distinct set of `~`
@@ -25,4 +25,4 @@ callees copied with it, transitively.
 - No rule keyed on `~`; the README's Templates and the planned
   `blend guide` carry the trade-offs.
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

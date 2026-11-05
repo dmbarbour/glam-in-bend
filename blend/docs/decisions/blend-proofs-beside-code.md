@@ -20,7 +20,7 @@ Bend's `LAWS.bend` and `PROOF.bend` are.
 1. Three files, as Bend's convention keeps laws and proofs apart from
    the code and from each other (the maintainer, 2026-11-04), written
    by one emission, never one without the others (the maintainer,
-   2026-11-04): `blend/run.sh emit X.blend... [DIR]` writes, for each
+   2026-11-04): `run.sh emit X.blend... [DIR]` writes, for each
    module named, the code `X.bend` and, where the module has laws or
    proofs, `X_LAWS.bend`,
    every law of the module, its concrete objects' instances and its
@@ -85,4 +85,4 @@ Bend's `LAWS.bend` and `PROOF.bend` are.
   `upd-proof-undefined`, `law-updated`, `law-shadowed`, `lemma-named`,
   `upd-proof-def`.
 
-**Rule lives in:** `blend/README.md`, The model and What it emits.
+**Rule lives in:** `README.md`, The model and What it emits.

@@ -48,10 +48,11 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   for the assembler's larger structure on Bend 2: the shell and
   concurrency, values and large structures, the store and reclamation,
   parallelism. Drafted for the maintainer's review.
-- [`Blend_2026-11-04.md`](Blend_2026-11-04.md): `blend-` steps for Blend,
-  our preprocessor of static objects for Bend: the tool, in Bend, its
-  samples its tests, then the kernel's strategy families moved onto it.
-  Reviewed by the maintainer, 2026-11-04.
+- [`Blend_2026-11-04.md`](Blend_2026-11-04.md): `blend-` steps moving the
+  kernel's strategy families onto Blend, our preprocessor of static
+  objects for Bend. Blend's own plans, the tool's among them, live with
+  it ([`blend/docs/plans/`](../../blend/docs/plans/README.md),
+  `blend-own-repository`). Reviewed by the maintainer, 2026-11-04.
 - [`Codegen_2026-11-04.md`](Codegen_2026-11-04.md): `codegen-` steps for
   generation and specialization: how Bend compiles our code, an audit of
   the kernel's sharing, what must be specialized and by which vehicle.

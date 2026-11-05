@@ -40,4 +40,4 @@ surprises. Three rules, glam's `.g` semantics:
   host.
 - The samples `nested-reach` and `nested-diamond`.
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.

@@ -53,4 +53,4 @@ refused by another's: the module stays one, as a Bend file is.
   `.blend` file is two modules to Blend and its emission one to Bend
   (`blend-symlinks`).
 
-**Rule lives in:** `blend/README.md`, The model.
+**Rule lives in:** `README.md`, The model.
