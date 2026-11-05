@@ -43,3 +43,50 @@ one turn for each root and call, where a root with no calls takes two
       2n+walk.turns(t)
 +++
       1n+walk.turns(t)
+
+=== fast_seen_order order.fast
+a root found walked by the order's set, which a unit held back is not in
+--- blend.bend
+              df.root.k(vs.has(vd, r), r, rt, done, order, ers, vd, vo, ve, ct)
++++
+              df.root.k(vs.has(vo, r), r, rt, done, order, ers, vd, vo, ve, ct)
+
+=== fast_unentered order.fast
+a unit pushed and not entered, so that a cycle through it goes unseen
+--- blend.bend
+      Df{Con{Fm{c, cs.at(ct, c)}, Con{Fm{u, rs}, st}}, roots, done, order, ers, vd, vo, vs.put(ve, c)}
++++
+      Df{Con{Fm{c, cs.at(ct, c)}, Con{Fm{u, rs}, st}}, roots, done, order, ers, vd, vo, ve}
+
+=== fast_unwalked order.fast
+a unit popped into the order but not into the set of those walked
+--- blend.bend
+      Df{st, roots, Con{u, done}, Con{u, order}, ers, vs.put(vd, u), vs.put(vo, u), ve}
++++
+      Df{st, roots, Con{u, done}, Con{u, order}, ers, vd, vs.put(vo, u), ve}
+
+=== fast_calls_swapped order.fast
+the calls table reading the even half where a bit is set
+--- blend.bend
+                case CtNode{e, o}:
+                  ct.at(p, r, o)
++++
+                case CtNode{e, o}:
+                  ct.at(p, r, e)
+
+=== fast_trie_full order.fast
+a trie answering yes at an empty leaf
+--- blend.bend
+    case 0n:
+      match t:
+        case WtLeaf{}:
+          True{}
+        case _:
+          False{}
++++
+    case 0n:
+      match t:
+        case WtLeaf{}:
+          True{}
+        case _:
+          True{}

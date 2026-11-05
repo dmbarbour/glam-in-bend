@@ -156,3 +156,14 @@ law order.ends:
   for +obs: List<&2, B.Ob>
   for +us: List<&2, B.Un>
   {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
+
+# LAW: the walk the tool runs is the walk the laws above follow: with
+# its sets dropped, its state is walk's, so that each of those laws holds
+# of the order Blend emits (`blend-scale.walk`).
+# Record: blend-adds-no-bend-logic
+law order.fast:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  {B.df.ds(B.walk.fast(roots, cal, obs, us)) == B.walk(roots, cal, obs, us) : B.Ds}

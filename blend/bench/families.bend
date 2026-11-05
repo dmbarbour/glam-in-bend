@@ -3,30 +3,34 @@
 # definition i calling earlier ones, and a main calling the last. Each is
 # measured at N, 2N and 4N (bench/README.md).
 #
-#   bend bench/families.bend chain|fan|dense N > module.blend
+#   bend bench/families.bend chain|fan|dense|down N > module.blend
 import Base
 
 # a family's shape: i calling i-1 (chain); i-1, i-2, i/2 and i/3 (fan);
-# every earlier definition (dense)
+# every earlier definition (dense); the next, i+1, written top down, so
+# that the walk's stack holds the whole chain (down)
 type Sh is Data:
   Chain{}
   Fan{}
   Dense{}
+  Down{}
   Unknown{}
 
-def sh.of.k(chain: Bool, fan: Bool, dense: Bool) -> Sh:
-  match chain fan dense:
-    case True{} _ _:
+def sh.of.k(chain: Bool, fan: Bool, dense: Bool, down: Bool) -> Sh:
+  match chain fan dense down:
+    case True{} _ _ _:
       Chain{}
-    case False{} True{} _:
+    case False{} True{} _ _:
       Fan{}
-    case False{} False{} True{}:
+    case False{} False{} True{} _:
       Dense{}
-    case False{} False{} False{}:
+    case False{} False{} False{} True{}:
+      Down{}
+    case False{} False{} False{} False{}:
       Unknown{}
 
 def sh.of(+w: String) -> Sh:
-  sh.of.k(String.eq(w, "chain"), String.eq(w, "fan"), String.eq(w, "dense"))
+  sh.of.k(String.eq(w, "chain"), String.eq(w, "fan"), String.eq(w, "dense"), String.eq(w, "down"))
 
 def before.k(keep: Bool, +j: U32, rest: List<&2, U32>) -> List<&2, U32>:
   match keep:
@@ -51,8 +55,8 @@ def upto(k: Nat, +j: U32) -> List<&2, U32>:
     case 1n+p:
       Con{j, upto(p, (j + 1 : U32))}
 
-# the definitions i calls, the first innermost
-def calls(sh: Sh, +i: U32) -> List<&2, U32>:
+# the definitions i calls, the first innermost; n the family's size
+def calls(sh: Sh, +n: U32, +i: U32) -> List<&2, U32>:
   match sh:
     case Chain{}:
       before([(i - 1 : U32)], i)
@@ -60,6 +64,8 @@ def calls(sh: Sh, +i: U32) -> List<&2, U32>:
       before([(i - 1 : U32), (i - 2 : U32), (i / 2 : U32), (i / 3 : U32)], i)
     case Dense{}:
       upto(U32.to_nat(i), 0)
+    case Down{}:
+      before([(i + 1 : U32)], n)
     case Unknown{}:
       Nil{}
 
@@ -81,21 +87,21 @@ def closes(js: List<&2, U32>) -> String:
 def body(+js: List<&2, U32>) -> String:
   opens(js, "") ++ "n" ++ closes(js)
 
-def defn(sh: Sh, +i: U32) -> String:
-  "def f" ++ U32.show(i) ++ "(+n: U32) -> U32:\n  " ++ body(calls(sh, i)) ++ "\n\n"
+def defn(sh: Sh, +n: U32, +i: U32) -> String:
+  "def f" ++ U32.show(i) ++ "(+n: U32) -> U32:\n  " ++ body(calls(sh, n, i)) ++ "\n\n"
 
 # definitions i to i + k - 1, each printed as it is made
-def defs(k: Nat, +sh: Sh, +i: U32) -> IO(Unit):
+def defs(k: Nat, +sh: Sh, +n: U32, +i: U32) -> IO(Unit):
   match k:
     case 0n:
       IO.pure(Unit, Unit{})
     case 1n+p:
       do IO<Unit>:
-        IO.write(defn(sh, i))
-        defs(p, sh, (i + 1 : U32))
+        IO.write(defn(sh, n, i))
+        defs(p, sh, n, (i + 1 : U32))
 
 def usage() -> IO(Unit):
-  IO.die(Unit, 2, "usage: bend bench/families.bend chain|fan|dense N")
+  IO.die(Unit, 2, "usage: bend bench/families.bend chain|fan|dense|down N")
 
 def module(+sh: Sh, +n: U32) -> IO(Unit):
   match sh:
@@ -104,7 +110,7 @@ def module(+sh: Sh, +n: U32) -> IO(Unit):
     case _:
       do IO<Unit>:
         IO.write("import Base\n\n")
-        defs(U32.to_nat(n), sh, 0)
+        defs(U32.to_nat(n), sh, n, 0)
         IO.write("def main() -> IO(Unit):\n  IO.print(U32.show(f" ++ U32.show((n - 1 : U32)) ++ "(1)))\n\n")
 
 # the arguments after the program's name: the shape, then N

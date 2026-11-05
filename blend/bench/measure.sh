@@ -11,9 +11,9 @@
 # seconds a metric (`<shape> <size> s`). The modules and what Blend
 # writes go to results/bench (out of git).
 #
-#   bench/measure.sh chain|fan|dense N [MB SECONDS]
+#   bench/measure.sh chain|fan|dense|down N [MB SECONDS]
 set -u
-[ $# -ge 2 ] || { echo "usage: $0 chain|fan|dense N [MB SECONDS]" >&2; exit 2; }
+[ $# -ge 2 ] || { echo "usage: $0 chain|fan|dense|down N [MB SECONDS]" >&2; exit 2; }
 cd "$(dirname "$0")/.." || exit 1
 BLEND_ROOT=$PWD
 . ./tools.sh

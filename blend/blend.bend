@@ -4229,6 +4229,253 @@ def walk.fuel(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> Nat:
 def walk(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
   ds.go(walk.fuel(roots, cal), Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)
 
+# The walk, fast
+# --------------
+#
+# The walk the tool runs: the one above, which Blend's laws follow, each
+# of its searches of a list made a lookup in a trie on the units' bits
+# (`blend-scale.walk`): the units walked, the units ordered and the units
+# entered (on the stack or walked), each a set kept beside what it
+# stands for, and each unit's calls by its position. A trie's shape is
+# that of its set, whatever order its units came in, so that each set is
+# the trie its list makes; and with the sets dropped, the state is the
+# walk above's, step by step (blend/LAWS.bend, `order.fast`).
+
+# a set of words, by their bits, the lowest first
+type Wt is Data:
+  WtNone{}
+  WtLeaf{}
+  WtNode{f: Wt, t: Wt}
+
+def wt.put(n: Nat, w: Word(n), t: Wt) -> Wt:
+  match n:
+    case 0n:
+      WtLeaf{}
+    case 1n+p:
+      match w:
+        case WCon{b, r}:
+          match b:
+            case True{}:
+              match t:
+                case WtNode{f, tt}:
+                  WtNode{f, wt.put(p, r, tt)}
+                case _:
+                  WtNode{WtNone{}, wt.put(p, r, WtNone{})}
+            case False{}:
+              match t:
+                case WtNode{f, tt}:
+                  WtNode{wt.put(p, r, f), tt}
+                case _:
+                  WtNode{wt.put(p, r, WtNone{}), WtNone{}}
+
+def wt.has(n: Nat, w: Word(n), t: Wt) -> Bool:
+  match n:
+    case 0n:
+      match t:
+        case WtLeaf{}:
+          True{}
+        case _:
+          False{}
+    case 1n+p:
+      match w:
+        case WCon{b, r}:
+          match b:
+            case True{}:
+              match t:
+                case WtNode{f, tt}:
+                  wt.has(p, r, tt)
+                case _:
+                  False{}
+            case False{}:
+              match t:
+                case WtNode{f, tt}:
+                  wt.has(p, r, f)
+                case _:
+                  False{}
+
+def vs.put(t: Wt, x: U32) -> Wt:
+  match x:
+    case U32{w}:
+      wt.put(32n, w, t)
+
+def vs.has(+t: Wt, x: U32) -> Bool:
+  match x:
+    case U32{w}:
+      wt.has(32n, w, t)
+
+# every unit of xs in the set
+def vs.all(xs: List<&2, U32>, +t: Wt) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+x, r}:
+      vs.has(t, x) && vs.all(r, t)
+
+# the set a list makes
+def vs.of(xs: List<&2, U32>) -> Wt:
+  match xs:
+    case Nil{}:
+      WtNone{}
+    case Con{+x, t}:
+      vs.put(vs.of(t), x)
+
+# a list split by position: the even, then the odd
+type Eo is Data:
+  Eo{e: List<&2, List<&2, U32>>, o: List<&2, List<&2, U32>>}
+
+def eo.cons(+x: List<&2, U32>, p: Eo) -> Eo:
+  match p:
+    case Eo{e, o}:
+      Eo{Con{x, o}, e}
+
+def eo.split(xs: List<&2, List<&2, U32>>) -> Eo:
+  match xs:
+    case Nil{}:
+      Eo{Nil{}, Nil{}}
+    case Con{+x, t}:
+      eo.cons(x, eo.split(t))
+
+def eo.e(p: Eo) -> List<&2, List<&2, U32>>:
+  match p:
+    case Eo{e, o}:
+      e
+
+def eo.o(p: Eo) -> List<&2, List<&2, U32>>:
+  match p:
+    case Eo{e, o}:
+      o
+
+# each unit's calls by its position: a trie on the positions' bits, the
+# lowest first, n bits deep
+type Ct is Data:
+  CtNone{}
+  CtLeaf{xs: List<&2, U32>}
+  CtNode{e: Ct, o: Ct}
+
+def ct.build(n: Nat, xs: List<&2, List<&2, U32>>) -> Ct:
+  match n:
+    case 0n:
+      match xs:
+        case Nil{}:
+          CtNone{}
+        case Con{x, t}:
+          CtLeaf{x}
+    case 1n+(+p):
+      match xs:
+        case Nil{}:
+          CtNone{}
+        case Con{+x, +t}:
+          CtNode{ct.build(p, eo.e(eo.split(Con{x, t}))), ct.build(p, eo.o(eo.split(Con{x, t})))}
+
+def ct.at(n: Nat, w: Word(n), t: Ct) -> List<&2, U32>:
+  match n:
+    case 0n:
+      match t:
+        case CtLeaf{xs}:
+          xs
+        case _:
+          Nil{}
+    case 1n+p:
+      match w:
+        case WCon{b, r}:
+          match b:
+            case True{}:
+              match t:
+                case CtNode{e, o}:
+                  ct.at(p, r, o)
+                case _:
+                  Nil{}
+            case False{}:
+              match t:
+                case CtNode{e, o}:
+                  ct.at(p, r, e)
+                case _:
+                  Nil{}
+
+def ct.of(cal: List<&2, List<&2, U32>>) -> Ct:
+  ct.build(32n, cal)
+
+# unit x's calls, as ids.at finds them
+def cs.at(+t: Ct, x: U32) -> List<&2, U32>:
+  match x:
+    case U32{w}:
+      ct.at(32n, w, t)
+
+# the walk's state, and the sets of those walked (vd), ordered (vo) and
+# entered (ve: on the stack or walked)
+type Df is Data:
+  Df{stack: List<&2, Fm>, roots: List<&2, U32>, done: List<&2, U32>, order: List<&2, U32>, ers: List<&2, Er>, vd: Wt, vo: Wt, ve: Wt}
+
+# the state without its sets
+def df.ds(d: Df) -> Ds:
+  match d:
+    case Df{stack, roots, done, order, ers, vd, vo, ve}:
+      Ds{stack, roots, done, order, ers}
+
+# a call followed, as ds.call.k: a unit not walked is on the stack where
+# it was entered
+def df.call.k(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, Er>, +vd: Wt, +vo: Wt, +ve: Wt, +ct: Ct, +obs: List<&2, Ob>,
+    +us: List<&2, Un>) -> Df:
+  match seen cyc:
+    case True{} _:
+      Df{Con{Fm{u, rs}, st}, roots, done, order, ers, vd, vo, ve}
+    case False{} True{}:
+      Df{Con{Fm{u, rs}, st}, roots, done, order, Con{er.cycle(obs, us, Con{u, fms.units(st)}, c), ers}, vd, vo, ve}
+    case False{} False{}:
+      Df{Con{Fm{c, cs.at(ct, c)}, Con{Fm{u, rs}, st}}, roots, done, order, ers, vd, vo, vs.put(ve, c)}
+
+# a unit popped, as ds.done.k
+def df.done.k(+ok: Bool, +u: U32, +st: List<&2, Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, Er>, +vd: Wt, +vo: Wt, +ve: Wt, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Df:
+  match ok:
+    case True{}:
+      Df{st, roots, Con{u, done}, Con{u, order}, ers, vs.put(vd, u), vs.put(vo, u), ve}
+    case False{}:
+      Df{st, roots, Con{u, done}, order,
+        when(List<&2, Er>, List.is_empty(&2, Er, ers),
+          w => [Er{node.no(un.node(un.at(us, u))), text(un.name(obs, us, u)) ++ ": Blend's walk reached it before its callees, a fault of Blend's"}],
+          w => ers), vs.put(vd, u), vo, ve}
+
+# a root, as ds.root.k
+def df.root.k(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, Er>,
+    +vd: Wt, +vo: Wt, +ve: Wt, +ct: Ct) -> Df:
+  match seen:
+    case True{}:
+      Df{Nil{}, rt, done, order, ers, vd, vo, ve}
+    case False{}:
+      Df{[Fm{r, cs.at(ct, r)}], rt, done, order, ers, vd, vo, vs.put(ve, r)}
+
+def df.step(s: Df, +ct: Ct, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Df:
+  match s:
+    case Df{stack, roots, +done, +order, +ers, +vd, +vo, +ve}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              Df{Nil{}, Nil{}, done, order, ers, vd, vo, ve}
+            case Con{+r, +rt}:
+              df.root.k(vs.has(vd, r), r, rt, done, order, ers, vd, vo, ve, ct)
+        case Con{f, st}:
+          match f:
+            case Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  df.done.k(vs.all(cs.at(ct, u), vo), u, st, roots, done, order, ers, vd, vo, ve, obs, us)
+                case Con{+c, rs}:
+                  df.call.k(vs.has(vd, c), vs.has(ve, c), c, u, rs, st, roots, done, order, ers, vd, vo, ve, ct, obs, us)
+
+def df.go(n: Nat, s: Df, +ct: Ct, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Df:
+  match n:
+    case 0n:
+      s
+    case 1n+k:
+      df.go(k, df.step(s, ct, obs, us), ct, obs, us)
+
+# the walk the tool runs, as walk walks it (`order.fast`)
+def walk.fast(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Df:
+  df.go(walk.fuel(roots, cal), Df{Nil{}, roots, Nil{}, Nil{}, Nil{}, WtNone{}, WtNone{}, WtNone{}}, ct.of(cal), obs, us)
+
 # Sharing
 # -------
 
@@ -5135,7 +5382,7 @@ def proof.parts(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +all: List
   +obs = cx.obs(cx)
   +us = units.of(all, True{})
   +ux = ux.of(us)
-  +d = walk(roots.all(cx, ux), calls.laws(calls(refss(us, ux, 0)), pt.of(Un, us), ux, 0), obs, us)
+  +d = df.ds(walk.fast(roots.all(cx, ux), calls.laws(calls(refss(us, ux, 0)), pt.of(Un, us), ux, 0), obs, us))
   +order = List.reverse(&2, U32, ds.order(d))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
@@ -5158,7 +5405,7 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +ux = ux.of(us)
   +ut = pt.of(Un, us)
   +rss = refss(us, ux, 0)
-  +d = walk(roots.all(cx, ux), calls(rss), obs, us)
+  +d = df.ds(walk.fast(roots.all(cx, ux), calls(rss), obs, us))
   +order = ds.order(d)
   +ms = mults(order, pt.of(List<&2, Ru>, rss), ut, obs, us, Ms{pt.of(Mu, mus.one(us)), Nil{}}, ht.for(List<&2, Pu>, List.length(&2, Un, us)))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
