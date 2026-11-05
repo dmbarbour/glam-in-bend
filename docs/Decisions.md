@@ -58,8 +58,8 @@ IO shell.
   its license and origin, indexed.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
-allows, keeps its records with it, arranged as its own repository would
-hold them: [`blend/docs/Decisions.md`](../blend/docs/Decisions.md)
+allows, is a repository of its own, a submodule here, and keeps its
+records with it: [`blend/docs/Decisions.md`](../blend/docs/Decisions.md)
 (`blend-own-repository`).
 
 ## Language

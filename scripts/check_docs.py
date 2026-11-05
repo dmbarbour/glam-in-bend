@@ -5,9 +5,11 @@ indexing `docs/decisions/`, `docs/plans/` and `docs/reviews/` each
 listed by its README), `samples/`, `vendor/` and `bench/`. The
 repository is a project, and so is each directory directly in it that
 has a `docs/plans/README.md` of its own, a project arranged to become a
-repository of its own (Blend, `blend-home.arrange`): each is checked
-alone, and their step names are unique across them all, as they share a
-history, a commit naming a step of any of them.
+repository of its own (as Blend was, `blend-home.arrange`): each is
+checked alone, and their step names are unique across them all, as they
+share a history, a commit naming a step of any of them. A submodule is a
+repository of its own (Blend, `blend-own-repository`), its docs checked
+by its own gate, not here.
 
 Run from the repository root:
   python3 -I scripts/check_docs.py                    check every project's docs
@@ -51,9 +53,10 @@ def git_ok(*args):
 
 def projects():
     """The repository's projects: itself, and each directory directly in it
-    with docs/plans of its own."""
+    with docs/plans of its own, but a submodule (its `.git` its own)."""
     top = pathlib.Path(".")
-    return [top, *sorted(p.parents[2] for p in top.glob("*/docs/plans/README.md"))]
+    return [top, *sorted(p.parents[2] for p in top.glob("*/docs/plans/README.md")
+                         if not (p.parents[2] / ".git").exists())]
 
 
 def markdown_files(root):

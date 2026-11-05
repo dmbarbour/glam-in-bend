@@ -5,7 +5,7 @@
 # checked: a stale file fails, and regenerating it is the developer's
 # step. Run by scripts/check.sh and by the pre-commit hook in .githooks/
 # (with the other quick checks). Blend's generated samples are Blend's to
-# check (blend/check_generated.sh, which the hook runs too).
+# check (blend/check_generated.sh, which its gate and hooks run).
 #
 #   scripts/check_generated.sh
 set -u

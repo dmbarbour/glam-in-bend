@@ -1,1 +1,0 @@
-declare-twice.blend:10: declare push: Narrow has a declaration of push already, from Stack: a declaration is fixed where it is first made, the families varying by their types

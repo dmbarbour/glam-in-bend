@@ -5,7 +5,8 @@
 # (spike/tools/inline_build.sh); `perf` for instruction counts
 # (scripts/count.sh); Node, to run Bend's JavaScript output; Lean at a
 # pinned release, checked by hash, for `bend --verdict`; GCC 16, built
-# from source (scripts/gcc-setup.sh); the commit hooks.
+# from source (scripts/gcc-setup.sh); the Blend submodule; the commit
+# hooks, Blend's too.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu
@@ -84,6 +85,14 @@ grep -qxF "$line" "$HOME/.bashrc" 2>/dev/null || echo "$line" >> "$HOME/.bashrc"
 sh scripts/gcc-setup.sh
 
 git config core.hooksPath .githooks
+# Blend, a submodule (blend-own-repository), checked out once: on its main
+# where that is the commit pinned, and with its own hooks
+if [ ! -e blend/.git ]; then
+  git submodule update --init blend
+  [ "$(git -C blend rev-parse HEAD)" = "$(git -C blend rev-parse -q --verify main)" ] &&
+    git -C blend switch -q main
+fi
+git -C blend config core.hooksPath .githooks
 "$BEND_HOME/bin/bend" version
 "$LEAN_HOME/bin/lean" --version
 clang --version | head -n 1

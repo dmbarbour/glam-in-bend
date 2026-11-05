@@ -32,8 +32,9 @@ Contingent:
   `docs/DirectStyleAssembly.md`, `docs/CLI.md`
 - When proving: `docs/Proving.md`, what the proofs so far have taught
 - When working on Blend, the preprocessor in `blend/`: `blend/AGENTS.md`;
-  Blend is arranged as a repository of its own (`blend-own-repository`),
-  with its own docs, plans and gate
+  Blend is a repository of its own (github.com/dmbarbour/blend,
+  `blend-own-repository`), a submodule here, with its own docs, plans and
+  gate
 - When Bend falls short: `docs/BendIssues.md` tracks shortfalls with their
   upstream issues; `bench/` holds programs that measure and reproduce them.
   Comment upstream only when the maintainer asks.
@@ -43,8 +44,9 @@ Contingent:
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
 links `clang`, installs `perf`, the LLVM profile tools, Node and Lean
 (for `--verdict`), builds
-GCC 16 from source (the first time, a quarter of an hour or more), and
-enables the commit hooks; run it once per container.
+GCC 16 from source (the first time, a quarter of an hour or more),
+checks out the Blend submodule and enables the commit hooks, Blend's
+too; run it once per container.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
 kernel instead of polling; run it at each container start.
 
@@ -58,6 +60,14 @@ kernel instead of polling; run it at each container start.
   plan retires.
 - Keep slices narrow and testable. Check a claim relayed from another agent
   against its source before acting on it.
+- Blend is a submodule at `blend/`, pinned to a commit of its own
+  repository. A change to Blend is committed there, on its `main`, by its
+  own rules and gate, and pushed; only then is the new commit recorded
+  here (`git add blend`, with its message). Never commit a pointer to a
+  commit not pushed: every other clone breaks on it. A fresh clone wants
+  `git submodule update --init` (`scripts/dev-setup.sh` does it); the
+  submodule's HEAD is then detached, so `git -C blend switch main` before
+  working there.
 
 ## Working Rules
 
@@ -166,9 +176,10 @@ Bend file's typecheck, the library's whole run; `scripts/kept.py`,
 `spike/tools/library.py`), never a failure: 16 s when only Blend or the
 docs change, near 200 s when the spike does, its verdict 57 s and the
 library 96 s (2026-11-05). Blend has its own gate,
-`blend/check.sh`, which this one runs as a section, leaving `blend/` out of
-its others. Report its result as
-it is: a check skipped or too slow to finish is not a pass.
+`blend/check.sh`, which this one runs as a section at the commit the
+submodule has checked out; git leaves Blend's files out of the others.
+Report its result as it is: a check skipped or too slow to finish is not
+a pass.
 
 The library holds small nets kept for what they exercise, each with what
 must hold. Add an entry for each fault or costly case found, shrunk first;

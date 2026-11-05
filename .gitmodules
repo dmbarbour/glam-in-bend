@@ -1,0 +1,3 @@
+[submodule "blend"]
+	path = blend
+	url = ../blend.git

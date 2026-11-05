@@ -154,12 +154,18 @@ def check_history():
         check_named(commit[:7], names, message)
 
 
-# where records are: here, and in each project directly within
-RECORDS = [pathlib.Path("docs/decisions"), *sorted(pathlib.Path(".").glob("*/docs/decisions"))]
+# where records are: here, and in each project directly within, but a
+# submodule (its `.git` its own), a repository checked by its own gate
+RECORDS = [pathlib.Path("docs/decisions"),
+           *sorted(d for d in pathlib.Path(".").glob("*/docs/decisions") if not (d.parents[1] / ".git").exists())]
 
 
 def check_citations():
-    for path in [*pathlib.Path(".").glob("**/LAWS.bend"), *pathlib.Path(".").glob("**/*.blend")]:
+    # this repository's files, tracked or not but not ignored, as git lists
+    # them: a submodule's are its own repository's
+    listed = git("ls-files", "--cached", "--others", "--exclude-standard", "--",
+                 ":(glob)**/LAWS.bend", ":(glob)**/*.blend").stdout.split()
+    for path in [pathlib.Path(p) for p in listed if pathlib.Path(p).exists()]:
         if invalid(path.as_posix()):
             continue
         for number, line in enumerate(path.read_text().splitlines(), 1):
