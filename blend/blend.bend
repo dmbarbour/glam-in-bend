@@ -499,7 +499,8 @@ type Item is Data:
   IBend{lines: List<&2, Ln>, +no: U32, +ind: U32}
 
 # a parameter's name: its marks (+ - ~ @) dropped, up to its colon; a
-# template's (~) or an erased one's (-) marked by a leading ~ kept
+# template's (~) or an erased one's (-) mark kept, for a witness to pass
+# it on as Bend takes it
 def param.first(r: List<&2, U32> & List<&2, U32>) -> List<&2, U32>:
   (nm, rest) = r
   trim(nm)
@@ -516,7 +517,7 @@ def param.m(+h: U32, t: List<&2, U32>) -> List<&2, U32>:
     case 126:
       Con{126, param.plain(t)}
     case 45:
-      Con{126, param.plain(t)}
+      Con{45, param.plain(t)}
     case _:
       param.plain(Con{h, t})
 
@@ -3093,6 +3094,8 @@ def unmark(xs: List<&2, U32>) -> List<&2, U32>:
       match h:
         case 126:
           t
+        case 45:
+          t
         case _:
           Con{h, t}
 
@@ -4202,6 +4205,11 @@ def node.params(n: Node) -> List<&2, List<&2, U32>>:
     case _:
       Nil{}
 
+# a parameter passed on as Bend takes it: a template's `~f`, an erased
+# one's `A` plainly
+def arg.of(+p: List<&2, U32>) -> List<&2, U32>:
+  when(List<&2, U32>, starts(p, [45]), u => List.tail(&2, U32, p), u => p)
+
 def args.joined(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
   match ps:
     case Nil{}:
@@ -4209,9 +4217,9 @@ def args.joined(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
     case Con{p, t}:
       match t:
         case Nil{}:
-          p
+          arg.of(p)
         case Con{h, r}:
-          List.append(&2, U32, p, List.append(&2, U32, codes(", "), args.joined(Con{h, r})))
+          List.append(&2, U32, arg.of(p), List.append(&2, U32, codes(", "), args.joined(Con{h, r})))
 
 def rf.name(r: Rf) -> List<&2, U32>:
   match r:

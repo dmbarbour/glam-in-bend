@@ -1,0 +1,27 @@
+# Templates, Bend's: a `~` parameter takes its argument as syntax, each
+# distinct set of `~` arguments compiling to a copy of its own, so a
+# template is marked shared and Bend makes its copies. A `~` argument is
+# a reference as any, bound to the final object's definition (`~inc` is
+# `~Twice.inc`), or a closed lambda. A typed declaration may take a
+# template's parameter or an erased one, its witness passing each on as
+# Bend takes it, `~f` and `A`.
+import Base
+
+abstract object Ops with
+  declare def apply(~f: U32 -> U32, x: U32) -> U32
+  declare def count(-A: Data, xs: List<&2, A>) -> U32
+  def inc(x: U32) -> U32:
+    (x + 1 : U32)
+  def bumped(x: U32) -> U32:
+    apply(~inc, x)
+  def doubled(x: U32) -> U32:
+    apply(~(y => (y * 2 : U32)), x)
+
+object Twice extends Ops with
+  shared def apply(~f: U32 -> U32, x: U32) -> U32:
+    f(f(x))
+  def count(-A: Data, xs: List<&2, A>) -> U32:
+    U32.from_nat(List.length(&2, A, xs))
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Twice.bumped(1)) ++ " " ++ U32.show(Twice.doubled(1)) ++ " " ++ U32.show(Twice.count(U32, [7, 8])))

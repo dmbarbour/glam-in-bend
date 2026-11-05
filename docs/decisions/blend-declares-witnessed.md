@@ -27,6 +27,12 @@ checker and adds no Bend logic of its own (`blend-adds-no-bend-logic`).
    segment of its own. `--verdict` accepts a witness as any total def
    (tried 2026-11-05).
 
+4. The maintainer (2026-11-05): the name `f.as_declared` is accepted.
+   Two parents each declaring a name conflict, even where their
+   declarations agree: introducing a name pins its meaning or purpose,
+   and two parents need not mean the same by it; the rule errs on the
+   side of caution.
+
 **Consequences.**
 - A misfit is Bend's error at the witness, expected and observed types
   printed, found by the gate's proof step; the samples Blend emits and

@@ -165,6 +165,14 @@ Bend's imports pass through.
   Blend_0.Listed.S(): Blend_0.Listed.push(st, x)`, and Bend checks it;
   never into the program, where a witness would be a second caller,
   splitting the definition into a segment of its own.
+- **Templates** are Bend's, passed through: a `~` parameter binds as any
+  parameter, and a `~` argument is a reference as any, bound to the
+  final object's definition (`~inc` emitted `~Twice.inc`), or a closed
+  lambda. Bend compiles each distinct set of `~` arguments to a copy of
+  its own, so a template used more than once is marked `shared`, Bend
+  making its copies; the affine default counts its call sites as any
+  definition's. A typed declaration's witness passes a template's
+  parameter on as `~f` and an erased one as `A`.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).
@@ -267,6 +275,9 @@ program prints.
 - `declares`: typed declarations of a definition, of its short form and
   of a type's kind, each family's checked by its witnesses; an untyped
   declaration beside them.
+- `templates`: a template in a family, shared, called with a definition
+  and with a lambda; typed declarations taking a template's parameter
+  and an erased one.
 - `laws-imported`, with `lib/adds.blend`: laws a library states and
   proves for every family, a family's own law proved with an inherited
   one, and a prior proof reached across modules.
