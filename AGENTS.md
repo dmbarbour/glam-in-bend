@@ -64,7 +64,10 @@ kernel instead of polling; run it at each container start.
   repository. A change to Blend is committed there, on its `main`, by its
   own rules and gate, and pushed; only then is the new commit recorded
   here (`git add blend`, with its message). Never commit a pointer to a
-  commit not pushed: every other clone breaks on it. A fresh clone wants
+  commit not pushed: every other clone breaks on it. Blend's gate covers
+  its own commits; this one runs when a commit here records a new Blend
+  commit, so Blend's commits between need not pass through it (the
+  maintainer, 2026-11-05). A fresh clone wants
   `git submodule update --init` (`scripts/dev-setup.sh` does it); the
   submodule's HEAD is then detached, so `git -C blend switch main` before
   working there.
