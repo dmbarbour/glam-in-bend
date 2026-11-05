@@ -2494,6 +2494,74 @@ def show.ers(+files: List<&2, List<&2, U32>>, es: List<&2, Er>) -> String:
         case Er{+no, msg}:
           text(loc.file(files, no)) ++ er.at(no) ++ ": " ++ msg ++ show.ers.more(t) ++ show.ers(files, t)
 
+# Indexes
+# -------
+#
+# A lookup by reference or by name is made for each reference resolved,
+# collected, emitted and checked, which a search of a list made
+# quadratic in the definitions (`blend-scale.units`,
+# `blend-scale.names`). An index: a trie on the keys' hashes, as deep as
+# its entries' count has bits, so that a leaf holds an entry or a few; a
+# leaf keeps its entries in their order and is searched as the list was,
+# so that the entry found is the one the search found.
+
+type Ht<-A: Data> is Data:
+  HLeaf{es: List<&2, A>}
+  HNode{z: Ht<A>, o: Ht<A>}
+
+# FNV-1a, a word at a time
+def hash.word(+h: U32, +x: U32) -> U32:
+  (U32.xor(h, x) * 16777619 : U32)
+
+def hash.bytes(xs: List<&2, U32>, +h: U32) -> U32:
+  match xs:
+    case Nil{}:
+      h
+    case Con{+x, t}:
+      hash.bytes(t, hash.word(h, x))
+
+def hash.name(xs: List<&2, U32>) -> U32:
+  hash.bytes(xs, 2166136261)
+
+# the bits of n
+def ht.depth(fuel: Nat, +n: U32) -> Nat:
+  match fuel:
+    case 0n:
+      0n
+    case 1n+k:
+      when(Nat, U32.is_eq(n, 0), u => 0n, u => 1n+ht.depth(k, (n >> 1n : U32)))
+
+def ht.empty(-A: Data, d: Nat) -> Ht<A>:
+  match d:
+    case 0n:
+      HLeaf{Nil{}}
+    case 1n+(+k):
+      HNode{ht.empty(A, k), ht.empty(A, k)}
+
+# a trie for n entries
+def ht.for(-A: Data, +n: Nat) -> Ht<A>:
+  ht.empty(A, ht.depth(32n, U32.from_nat(n)))
+
+# e put first in its leaf, b the hash's next bit
+def ht.put(-A: Data, t: Ht<A>, +b: U32, +h: U32, +e: A) -> Ht<A>:
+  match t b:
+    case HLeaf{es} _:
+      HLeaf{Con{e, es}}
+    case HNode{z, o} 0:
+      HNode{ht.put(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e), o}
+    case HNode{z, o} _:
+      HNode{z, ht.put(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e)}
+
+# the leaf of a hash
+def ht.leaf(-A: Data, t: Ht<A>, +b: U32, +h: U32) -> List<&2, A>:
+  match t b:
+    case HLeaf{es} _:
+      es
+    case HNode{z, o} 0:
+      ht.leaf(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
+    case HNode{z, o} _:
+      ht.leaf(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
+
 # References
 # ==========
 #
@@ -2514,21 +2582,21 @@ def show.ers(+files: List<&2, List<&2, U32>>, es: List<&2, Er>) -> String:
 # the module, its objects, their linearizations and definitions
 type Cx is Data:
   Cx{obs: List<&2, Ob>, ls: List<&2, Maybe<&2, Lz>>, fs: List<&2, Maybe<&2, Fd>>, als: List<&2, Al>, paths: List<&2, List<&2, U32>>,
-    pss: List<&2, List<&2, U32>>}
+    pss: List<&2, List<&2, U32>>, nxs: List<&2, Ht<En>>}
 
 def cx.obs(c: Cx) -> List<&2, Ob>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       obs
 
 def cx.paths(c: Cx) -> List<&2, List<&2, U32>>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       paths
 
 def cx.als(c: Cx) -> List<&2, Al>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       als
 
 def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
@@ -2542,16 +2610,64 @@ def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
 
 def cx.map(c: Cx, +id: U32) -> List<&2, En>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       fd.map(fd.at(fs, id))
 
 def cx.ord(c: Cx, +id: U32) -> List<&2, U32>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       lz.ord(lz.at(ls, id))
 
 def has.def(+map: List<&2, En>, +n: List<&2, U32>) -> Bool:
   Maybe.is_some(&2, En, en.find(map, n))
+
+def en.name(e: En) -> List<&2, U32>:
+  match e:
+    case En{name, chain, +no, +what}:
+      name
+
+# an object's definitions by name (`blend-scale.names`): its map's
+# entries, the last put first, so that a leaf keeps their order
+def nx.puts(es: List<&2, En>, t: Ht<En>) -> Ht<En>:
+  match es:
+    case Nil{}:
+      t
+    case Con{+e, rest}:
+      +h = hash.name(en.name(e))
+      ht.put(En, nx.puts(rest, t), (h .&. 1 : U32), h, e)
+
+def nx.of(+es: List<&2, En>) -> Ht<En>:
+  nx.puts(es, ht.for(En, List.length(&2, En, es)))
+
+def nxs.of(fs: List<&2, Maybe<&2, Fd>>) -> List<&2, Ht<En>>:
+  match fs:
+    case Nil{}:
+      Nil{}
+    case Con{m, t}:
+      Con{nx.of(fd.map(m)), nxs.of(t)}
+
+def nx.or(m: Maybe<&2, Ht<En>>) -> Ht<En>:
+  match m:
+    case None{}:
+      HLeaf{Nil{}}
+    case Some{t}:
+      t
+
+# the entry of n, as en.find finds it in the map
+def nx.find(+t: Ht<En>, +n: List<&2, U32>) -> Maybe<&2, En>:
+  +h = hash.name(n)
+  en.find(ht.leaf(En, t, (h .&. 1 : U32), h), n)
+
+def cx.nx(c: Cx, +id: U32) -> Ht<En>:
+  match c:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
+      nx.or(List.get(&2, Ht<En>, nxs, U32.to_nat(id)))
+
+def cx.find(+c: Cx, +id: U32, +n: List<&2, U32>) -> Maybe<&2, En>:
+  nx.find(cx.nx(c, id), n)
+
+def cx.has(+c: Cx, +id: U32, +n: List<&2, U32>) -> Bool:
+  Maybe.is_some(&2, En, cx.find(c, id, n))
 
 # an object's hosts, innermost first, the module last: `^name` names the
 # host's scope, the module's at the top, though the module is no object
@@ -2569,7 +2685,7 @@ def hosts(+obs: List<&2, Ob>, +id: U32) -> List<&2, U32>:
 
 def cx.pss(c: Cx) -> List<&2, List<&2, U32>>:
   match c:
-    case Cx{obs, ls, fs, als, paths, pss}:
+    case Cx{obs, ls, fs, als, paths, pss, nxs}:
       pss
 
 def ids.or(m: Maybe<&2, List<&2, U32>>) -> List<&2, U32>:
@@ -2819,7 +2935,7 @@ def look(+cx: Cx, hs: List<&2, U32>, +n: List<&2, U32>) -> Maybe<&2, U32>:
     case Nil{}:
       None{}
     case Con{+h, t}:
-      when(Maybe<&2, U32>, has.def(cx.map(cx, h), n), u => Some{h}, u => look(cx, t, n))
+      when(Maybe<&2, U32>, cx.has(cx, h, n), u => Some{h}, u => look(cx, t, n))
 
 # a dotted name as an object's path and one of its definitions, the
 # longest path first; k, the path's length tried
@@ -2830,7 +2946,7 @@ def look.obj(k: Nat, +cx: Cx, +q: U32, +ps: List<&2, List<&2, U32>>) -> Maybe<&2
     case 1n++j:
       on.maybe(U32, Maybe<&2, Rf>, resolve(List.length(&2, Ob, cx.obs(cx)), cx.als(cx), cx.obs(cx), q, List.take(&2, List<&2, U32>, ps, k)),
         u => look.obj(j, cx, q, ps),
-        +x => when(Maybe<&2, Rf>, has.def(cx.map(cx, x), dots(List.drop(&2, List<&2, U32>, ps, k))),
+        +x => when(Maybe<&2, Rf>, cx.has(cx, x, dots(List.drop(&2, List<&2, U32>, ps, k))),
           v => Some{Rf{x, dots(List.drop(&2, List<&2, U32>, ps, k)), False{}, x}},
           v => look.obj(j, cx, q, ps)))
 
@@ -3046,7 +3162,7 @@ def en.chain(m: Maybe<&2, En>) -> List<&2, U32>:
           chain
 
 def rr.prior.of(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
-  on.maybe(U32, Rr, prior.find(en.chain(en.find(cx.map(cx, o), n)), after(cx.ord(cx, o), q)),
+  on.maybe(U32, Rr, prior.find(en.chain(cx.find(cx, o, n)), after(cx.ord(cx, o), q)),
     u => rr.er(t, no, "_" ++ text(name.plain(n)) ++ ": " ++ ob.name(cx.obs(cx), o) ++ " has no " ++
       when(String, ends(n, [35]), v => "proof of ", v => "definition of ") ++ text(name.plain(n)) ++ " before " ++ ob.name(cx.obs(cx), q) ++ "'s"),
     +c => Rr{RR{0, Rf{o, n, True{}, c}}, Nil{}, [In{n, c, True{}}]})
@@ -3054,7 +3170,7 @@ def rr.prior.of(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32)
 # `_n`: the definition of n that q's replaced in o's copy; a law has no
 # prior, so `_n` of a law n is its proof's, `n#`
 def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
-  when(Rr, has.def(cx.map(cx, o), List.append(&2, U32, n, [35])), u => rr.prior.of(cx, o, q, List.append(&2, U32, n, [35]), t, no),
+  when(Rr, cx.has(cx, o, List.append(&2, U32, n, [35])), u => rr.prior.of(cx, o, q, List.append(&2, U32, n, [35]), t, no),
     u => rr.prior.of(cx, o, q, n, t, no))
 
 # `^n`, k carets: the k-th host's final n, the module's definition at
@@ -3062,7 +3178,7 @@ def rr.prior(+cx: Cx, +o: U32, +q: U32, +n: List<&2, U32>, +t: Tok, +no: U32) ->
 def rr.host(+cx: Cx, +o: U32, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whole: List<&2, U32>, +no: U32) -> Rr:
   on.maybe(U32, Rr, List.get(&2, U32, hosts(cx.obs(cx), q), Nat.sub(k, 1n)),
     u => rr.er(t, no, text(whole) ++ " steps out of the module, which has no host"),
-    +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
+    +h => when(Rr, cx.has(cx, h, n), v => rr.final(cx, h, 0, n, t, no),
       v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
 
 # `_n`: a local, or `_` alone, or in a module's definition, as written
@@ -3585,13 +3701,44 @@ def un.or(m: Maybe<&2, Un>) -> Un:
 def un.at(+us: List<&2, Un>, +i: U32) -> Un:
   un.or(List.get(&2, Un, us, U32.to_nat(i)))
 
-# a unit's index
-def un.find(+us: List<&2, Un>, +r: Rf, +k: U32) -> Maybe<&2, U32>:
+# Units by reference: the first unit of a reference, as a search of the
+# units found it
+
+type Xe is Data:
+  Xe{r: Rf, +k: U32}
+
+# a reference's hash, alike wherever `rf.eq` holds: the origin counts only
+# for a prior
+def rf.hash(r: Rf) -> U32:
+  match r:
+    case Rf{+obj, name, +prior, +origin}:
+      hash.word(hash.word(hash.bytes(name, hash.word(2166136261, obj)), when(U32, prior, u => 1, u => 0)),
+        when(U32, prior, u => origin, u => 0))
+
+# the units from k on, the last put first, so that a leaf keeps their order
+def ux.puts(us: List<&2, Un>, +k: U32, t: Ht<Xe>) -> Ht<Xe>:
   match us:
     case Nil{}:
+      t
+    case Con{+u, rest}:
+      +h = rf.hash(un.ref(u))
+      ht.put(Xe, ux.puts(rest, (k + 1 : U32), t), (h .&. 1 : U32), h, Xe{un.ref(u), k})
+
+def ux.of(+us: List<&2, Un>) -> Ht<Xe>:
+  ux.puts(us, 0, ht.for(Xe, List.length(&2, Un, us)))
+
+def xe.find(es: List<&2, Xe>, +r: Rf) -> Maybe<&2, U32>:
+  match es:
+    case Nil{}:
       None{}
-    case Con{+u, +t}:
-      when(Maybe<&2, U32>, rf.eq(un.ref(u), r), v => Some{k}, v => un.find(t, r, (k + 1 : U32)))
+    case Con{e, t}:
+      match e:
+        case Xe{q, +k}:
+          when(Maybe<&2, U32>, rf.eq(q, r), u => Some{k}, u => xe.find(t, r))
+
+def ux.find(+t: Ht<Xe>, +r: Rf) -> Maybe<&2, U32>:
+  +h = rf.hash(r)
+  xe.find(ht.leaf(Xe, t, (h .&. 1 : U32), h), r)
 
 def node.no(n: Node) -> U32:
   match n:
@@ -3631,34 +3778,34 @@ def un.name(+obs: List<&2, Ob>, +us: List<&2, Un>, +i: U32) -> List<&2, U32>:
 type Ru is Data:
   Ru{+u: U32, +no: U32}
 
-def refs.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +self: U32, +no: U32) -> List<&2, Ru>:
+def refs.rts(ts: List<&2, Rt>, +ux: Ht<Xe>, +self: U32, +no: U32) -> List<&2, Ru>:
   match ts:
     case Nil{}:
       Nil{}
     case Con{t, +r}:
       match t:
         case RR{+mark, ref}:
-          on.maybe(U32, List<&2, Ru>, un.find(us, ref, 0), v => refs.rts(r, us, self, no),
-            +x => when(List<&2, Ru>, U32.is_eq(x, self), v => refs.rts(r, us, self, no), v => Con{Ru{x, no}, refs.rts(r, us, self, no)}))
+          on.maybe(U32, List<&2, Ru>, ux.find(ux, ref), v => refs.rts(r, ux, self, no),
+            +x => when(List<&2, Ru>, U32.is_eq(x, self), v => refs.rts(r, ux, self, no), v => Con{Ru{x, no}, refs.rts(r, ux, self, no)}))
         case _:
-          refs.rts(r, us, self, no)
+          refs.rts(r, ux, self, no)
 
-def refs.rls(ls: List<&2, Rl>, +us: List<&2, Un>, +self: U32) -> List<&2, Ru>:
+def refs.rls(ls: List<&2, Rl>, +ux: Ht<Xe>, +self: U32) -> List<&2, Ru>:
   match ls:
     case Nil{}:
       Nil{}
     case Con{l, t}:
       match l:
         case Rl{+no, +ind, ts}:
-          List.append(&2, Ru, refs.rts(ts, us, self, no), refs.rls(t, us, self))
+          List.append(&2, Ru, refs.rts(ts, ux, self, no), refs.rls(t, ux, self))
 
 # each unit's uses of others, in its body's order, calls to itself aside
-def refss(xs: List<&2, Un>, +us: List<&2, Un>, +k: U32) -> List<&2, List<&2, Ru>>:
+def refss(xs: List<&2, Un>, +ux: Ht<Xe>, +k: U32) -> List<&2, List<&2, Ru>>:
   match xs:
     case Nil{}:
       Nil{}
     case Con{+x, t}:
-      Con{List.append(&2, Ru, refs.rts(un.hd(x), us, k, node.no(un.node(x))), refs.rls(un.lines(x), us, k)), refss(t, us, (k + 1 : U32))}
+      Con{List.append(&2, Ru, refs.rts(un.hd(x), ux, k, node.no(un.node(x))), refs.rls(un.lines(x), ux, k)), refss(t, ux, (k + 1 : U32))}
 
 def ru.us(rs: List<&2, Ru>) -> List<&2, U32>:
   match rs:
@@ -3721,24 +3868,24 @@ def slots.obs(os: List<&2, Ob>) -> List<&2, Sl>:
             u => Con{Sl{no, 1, Nil{}, id}, slots.obs(t)})
 
 # q's members that are o's finals, as references
-def roots.q(ns: List<&2, Node>, +o: U32, +q: U32, +map: List<&2, En>) -> List<&2, Rf>:
+def roots.q(ns: List<&2, Node>, +o: U32, +q: U32, +nx: Ht<En>) -> List<&2, Rf>:
   match ns:
     case Nil{}:
       Nil{}
     case Con{nd, +t}:
       match nd:
         case NDef{+share, +upd, +name, rest, params, body, +no, +ind, +what}:
-          when(List<&2, Rf>, U32.is_eq(en.head(en.chain(en.find(map, name))), q),
-            u => Con{Rf{o, name, False{}, o}, roots.q(t, o, q, map)}, u => roots.q(t, o, q, map))
+          when(List<&2, Rf>, U32.is_eq(en.head(en.chain(nx.find(nx, name))), q),
+            u => Con{Rf{o, name, False{}, o}, roots.q(t, o, q, nx)}, u => roots.q(t, o, q, nx))
         case _:
-          roots.q(t, o, q, map)
+          roots.q(t, o, q, nx)
 
 def roots.ord(qs: List<&2, U32>, +cx: Cx, +o: U32) -> List<&2, Rf>:
   match qs:
     case Nil{}:
       Nil{}
     case Con{+q, t}:
-      List.append(&2, Rf, roots.q(ob.mems(ob.at(cx.obs(cx), q)), o, q, cx.map(cx, o)), roots.ord(t, cx, o))
+      List.append(&2, Rf, roots.q(ob.mems(ob.at(cx.obs(cx), q)), o, q, cx.nx(cx, o)), roots.ord(t, cx, o))
 
 def roots.sl(s: Sl, +cx: Cx) -> List<&2, Rf>:
   match s:
@@ -3756,16 +3903,16 @@ def roots.sls(ss: List<&2, Sl>, +cx: Cx) -> List<&2, Rf>:
     case Con{s, t}:
       List.append(&2, Rf, roots.sl(s, cx), roots.sls(t, cx))
 
-def roots.ids(rs: List<&2, Rf>, +us: List<&2, Un>) -> List<&2, U32>:
+def roots.ids(rs: List<&2, Rf>, +ux: Ht<Xe>) -> List<&2, U32>:
   match rs:
     case Nil{}:
       Nil{}
     case Con{r, +t}:
-      on.maybe(U32, List<&2, U32>, un.find(us, r, 0), u => roots.ids(t, us), x => Con{x, roots.ids(t, us)})
+      on.maybe(U32, List<&2, U32>, ux.find(ux, r), u => roots.ids(t, ux), x => Con{x, roots.ids(t, ux)})
 
 # every unit in source order
-def roots.all(+cx: Cx, +us: List<&2, Un>) -> List<&2, U32>:
-  roots.ids(roots.sls(List.sort(~Sl, ~sl.le, List.append(&2, Sl, slots.mod(ob.mems(ob.at(cx.obs(cx), 0))), slots.obs(cx.obs(cx)))), cx), us)
+def roots.all(+cx: Cx, +ux: Ht<Xe>) -> List<&2, U32>:
+  roots.ids(roots.sls(List.sort(~Sl, ~sl.le, List.append(&2, Sl, slots.mod(ob.mems(ob.at(cx.obs(cx), 0))), slots.obs(cx.obs(cx)))), cx), ux)
 
 # The walk
 # --------
@@ -4171,21 +4318,26 @@ def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
 # is emitted
 type Ec is Data:
   Ec{files: List<&2, List<&2, U32>>, obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>, als: List<&2, Al>, own: List<&2, Ci>,
-    res: List<&2, List<&2, U32>>, paths: List<&2, List<&2, U32>>, +mode: U32, rtypes: List<&2, List<&2, U32>>}
+    res: List<&2, List<&2, U32>>, paths: List<&2, List<&2, U32>>, +mode: U32, rtypes: List<&2, List<&2, U32>>, ux: Ht<Xe>}
+
+def ec.ux(e: Ec) -> Ht<Xe>:
+  match e:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
+      ux
 
 def ec.obs(e: Ec) -> List<&2, Ob>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       obs
 
 def ec.us(e: Ec) -> List<&2, Un>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       us
 
 def ec.mu(e: Ec, +i: U32) -> Mu:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       mu.at(mus, i)
 
 # the text so far, its bytes reversed, and each copied unit's next number
@@ -4258,7 +4410,7 @@ def mark.put(+mark: U32, b: Tb) -> Tb:
 
 def ec.als(e: Ec) -> List<&2, Al>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       als
 
 def rf.obj(r: Rf) -> U32:
@@ -4289,27 +4441,27 @@ def res.alias(+k: U32) -> List<&2, U32>:
 # the file written: 0 the code, 1 the laws, 2 the proofs
 def ec.mode(e: Ec) -> U32:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       mode
 
 def ec.rtypes(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       rtypes
 
 def ec.own(e: Ec) -> List<&2, Ci>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       own
 
 def ec.res(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       res
 
 def ec.paths(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       paths
 
 # the alias the root's emission gives a file: the root's own import of it,
@@ -4371,7 +4523,7 @@ def rts.put(ts: List<&2, Rt>, +e: Ec, +x: U32, +j: U32, b: Tb) -> Tb:
         case RT{tk}:
           rts.put(r, e, x, j, tb.put(b, tok.in.proof(e, tk)))
         case RR{+mark, +ref}:
-          rts.put(r, e, x, j, ref.put(e, x, j, mark, ref, un.find(ec.us(e), ref, 0), b))
+          rts.put(r, e, x, j, ref.put(e, x, j, mark, ref, ux.find(ec.ux(e), ref), b))
         case RX{+mark, +path, +rest}:
           rts.put(r, e, x, j, tb.put(mark.put(mark, b), List.append(&2, U32, alias.of(e, path), Con{46, rest})))
 
@@ -4400,7 +4552,7 @@ def rls.put(ls: List<&2, Rl>, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb
 
 def ec.files(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes}:
+    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux}:
       files
 
 # the line before a definition naming where it is written,
@@ -4425,7 +4577,7 @@ def unit.kw(+e: Ec, +x: U32) -> List<&2, U32>:
 # file a proof's prior's, its law's
 def unit.src(+e: Ec, +x: U32) -> U32:
   when(U32, U32.is_eq(ec.mode(e), 1) && U32.is_eq(un.what(ec.us(e), x), 2),
-    u => on.maybe(U32, U32, un.find(ec.us(e), rf.law(un.ref(un.at(ec.us(e), x))), 0), v => x, y => y), u => x)
+    u => on.maybe(U32, U32, ux.find(ec.ux(e), rf.law(un.ref(un.at(ec.us(e), x)))), v => x, y => y), u => x)
 
 def node.params(n: Node) -> List<&2, List<&2, U32>>:
   match n:
@@ -4752,40 +4904,40 @@ def er.names(ns: List<&2, Nm>, +seen: List<&2, Nm>) -> List<&2, Er>:
 
 # a law, a proof or a lemma named where a definition is wanted: a law is
 # a claim, and its proof and a lemma are Bend's alone to call
-def er.law.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +no: U32) -> List<&2, Er>:
+def er.law.rts(ts: List<&2, Rt>, +us: List<&2, Un>, +ux: Ht<Xe>, +no: U32) -> List<&2, Er>:
   match ts:
     case Nil{}:
       Nil{}
     case Con{t, +r}:
       match t:
         case RR{+mark, +ref}:
-          on.maybe(U32, List<&2, Er>, un.find(us, ref, 0), v => er.law.rts(r, us, no),
-            +x => when(List<&2, Er>, U32.is_eq(un.what(us, x), 0), v => er.law.rts(r, us, no),
+          on.maybe(U32, List<&2, Er>, ux.find(ux, ref), v => er.law.rts(r, us, ux, no),
+            +x => when(List<&2, Er>, U32.is_eq(un.what(us, x), 0), v => er.law.rts(r, us, ux, no),
               v => Con{Er{no, when(String, U32.is_eq(un.what(us, x), 1), w => "law " ++ text(rf.name(ref)) ++ " is a claim, not a definition",
-                w => "proof " ++ text(name.plain(rf.name(ref))) ++ " belongs to the proofs, not the code") ++ ": only a proof may name it"}, er.law.rts(r, us, no)}))
+                w => "proof " ++ text(name.plain(rf.name(ref))) ++ " belongs to the proofs, not the code") ++ ": only a proof may name it"}, er.law.rts(r, us, ux, no)}))
         case _:
-          er.law.rts(r, us, no)
+          er.law.rts(r, us, ux, no)
 
-def er.law.rls(ls: List<&2, Rl>, +us: List<&2, Un>) -> List<&2, Er>:
+def er.law.rls(ls: List<&2, Rl>, +us: List<&2, Un>, +ux: Ht<Xe>) -> List<&2, Er>:
   match ls:
     case Nil{}:
       Nil{}
     case Con{l, t}:
       match l:
         case Rl{+no, +ind, ts}:
-          List.append(&2, Er, er.law.rts(ts, us, no), er.law.rls(t, us))
+          List.append(&2, Er, er.law.rts(ts, us, ux, no), er.law.rls(t, us, ux))
 
 # the laws' errors: a definition naming a law, a proof of no law
-def er.laws(xs: List<&2, Un>, +us: List<&2, Un>) -> List<&2, Er>:
+def er.laws(xs: List<&2, Un>, +us: List<&2, Un>, +ux: Ht<Xe>) -> List<&2, Er>:
   match xs:
     case Nil{}:
       Nil{}
     case Con{+x, +t}:
       when(List<&2, Er>, U32.is_eq(node.what(un.node(x)), 0),
-        u => List.append(&2, Er, er.law.rts(un.hd(x), us, node.no(un.node(x))), List.append(&2, Er, er.law.rls(un.lines(x), us), er.laws(t, us))),
-        u => when(List<&2, Er>, U32.is_eq(node.what(un.node(x)), 2) && Bool.not(on.maybe(U32, Bool, un.find(us, rf.law(un.ref(x)), 0), v => False{}, +y => U32.is_eq(un.what(us, y), 1))),
-          v => Con{Er{node.no(un.node(x)), "proof " ++ text(name.plain(rf.name(un.ref(x)))) ++ " proves no law: its object states none of that name"}, er.laws(t, us)},
-          v => er.laws(t, us)))
+        u => List.append(&2, Er, er.law.rts(un.hd(x), us, ux, node.no(un.node(x))), List.append(&2, Er, er.law.rls(un.lines(x), us, ux), er.laws(t, us, ux))),
+        u => when(List<&2, Er>, U32.is_eq(node.what(un.node(x)), 2) && Bool.not(on.maybe(U32, Bool, ux.find(ux, rf.law(un.ref(x))), v => False{}, +y => U32.is_eq(un.what(us, y), 1))),
+          v => Con{Er{node.no(un.node(x)), "proof " ++ text(name.plain(rf.name(un.ref(x)))) ++ " proves no law: its object states none of that name"}, er.laws(t, us, ux)},
+          v => er.laws(t, us, ux)))
 
 def pf.ers(p: Pf) -> List<&2, Er>:
   match p:
@@ -4798,23 +4950,23 @@ def rf.proof(r: Rf) -> Rf:
       Rf{obj, List.append(&2, U32, name, [35]), prior, origin}
 
 # a unit's calls, a law called its proof's, unit k's own law left out
-def calls.law(cs: List<&2, U32>, +us: List<&2, Un>, +k: U32) -> List<&2, U32>:
+def calls.law(cs: List<&2, U32>, +us: List<&2, Un>, +ux: Ht<Xe>, +k: U32) -> List<&2, U32>:
   match cs:
     case Nil{}:
       Nil{}
     case Con{+c, +t}:
-      when(List<&2, U32>, proves.own(us, k, c), u => calls.law(t, us, k),
+      when(List<&2, U32>, proves.own(us, k, c), u => calls.law(t, us, ux, k),
         u => when(List<&2, U32>, U32.is_eq(un.what(us, c), 1),
-          v => on.maybe(U32, List<&2, U32>, un.find(us, rf.proof(un.ref(un.at(us, c))), 0), w => calls.law(t, us, k),
-            +p => when(List<&2, U32>, U32.is_eq(p, k), w => calls.law(t, us, k), w => Con{p, calls.law(t, us, k)})),
-          v => Con{c, calls.law(t, us, k)}))
+          v => on.maybe(U32, List<&2, U32>, ux.find(ux, rf.proof(un.ref(un.at(us, c)))), w => calls.law(t, us, ux, k),
+            +p => when(List<&2, U32>, U32.is_eq(p, k), w => calls.law(t, us, ux, k), w => Con{p, calls.law(t, us, ux, k)})),
+          v => Con{c, calls.law(t, us, ux, k)}))
 
-def calls.laws(css: List<&2, List<&2, U32>>, +us: List<&2, Un>, +k: U32) -> List<&2, List<&2, U32>>:
+def calls.laws(css: List<&2, List<&2, U32>>, +us: List<&2, Un>, +ux: Ht<Xe>, +k: U32) -> List<&2, List<&2, U32>>:
   match css:
     case Nil{}:
       Nil{}
     case Con{cs, t}:
-      Con{calls.law(cs, us, k), calls.laws(t, us, (k + 1 : U32))}
+      Con{calls.law(cs, us, ux, k), calls.laws(t, us, ux, (k + 1 : U32))}
 
 def rf.prior(r: Rf) -> Bool:
   match r:
@@ -4847,11 +4999,12 @@ def order.what(xs: List<&2, U32>, +us: List<&2, Un>, +mode: U32) -> List<&2, U32
 def proof.parts(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +all: List<&2, Un>) -> Pf:
   +obs = cx.obs(cx)
   +us = units.of(all, True{})
-  +d = walk(roots.all(cx, us), calls.laws(calls(refss(us, us, 0)), us, 0), obs, us)
+  +ux = ux.of(us)
+  +d = walk(roots.all(cx, ux), calls.laws(calls(refss(us, ux, 0)), us, ux, 0), obs, us)
   +order = List.reverse(&2, U32, ds.order(d))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
-  +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0)))} : Ec}
+  +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0))), ux} : Ec}
   Pf{e, order.what(order, us, mode), res.lines(path.at(cx.paths(cx), 0), res, 1),
     List.append(&2, Er, ds.ers(d), er.names(names.all(order.what(order, us, mode), e), Nil{}))}
 
@@ -4866,17 +5019,18 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +obs = cx.obs(cx)
   +all = units(os)
   +us = units.of(all, False{})
-  +rss = refss(us, us, 0)
-  +d = walk(roots.all(cx, us), calls(rss), obs, us)
+  +ux = ux.of(us)
+  +rss = refss(us, ux, 0)
+  +d = walk(roots.all(cx, ux), calls(rss), obs, us)
   +order = ds.order(d)
   +ms = mults(order, rss, obs, us, Ms{mus.one(us), Nil{}}, pends.none(us))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(us, obs, cx.paths(cx)), own, Nil{})
-  +e = {Ec{files, obs, us, ms.ms(ms), cx.als(cx), own, res, cx.paths(cx), 0, Nil{}} : Ec}
+  +e = {Ec{files, obs, us, ms.ms(ms), cx.als(cx), own, res, cx.paths(cx), 0, Nil{}, ux} : Ec}
   +lw = proof.parts(1, files, cx, all)
   +pf = proof.parts(2, files, cx, all)
   emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1), lw, pf,
-    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), List.append(&2, Er, er.laws(all, all),
+    List.append(&2, Er, ds.ers(d), List.append(&2, Er, ms.ers(ms), List.append(&2, Er, er.laws(all, all, ux.of(all)),
       List.append(&2, Er, er.names(names.all(List.reverse(&2, U32, order), e), Nil{}), List.append(&2, Er, pf.ers(lw), pf.ers(pf)))))))
 
 # The laws and the proofs
@@ -4903,7 +5057,8 @@ def objects.next(+cmd: U32, +files: List<&2, List<&2, U32>>, +als: List<&2, Al>,
     case 2:
       Out{True{}, show.obs(obs, ls, fs, obs)}
     case _:
-      resolved.next(cmd, files, Cx{obs, ls, fs, als, paths, pss}, module.copies(obs, Cx{obs, ls, fs, als, paths, pss}))
+      +cx = {Cx{obs, ls, fs, als, paths, pss, nxs.of(fs)} : Cx}
+      resolved.next(cmd, files, cx, module.copies(obs, cx))
 
 def objects.out(+cmd: U32, +files: List<&2, List<&2, U32>>, +als: List<&2, Al>, +paths: List<&2, List<&2, U32>>, +pss: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +ls: List<&2, Maybe<&2, Lz>>, +fs: List<&2, Maybe<&2, Fd>>, es: List<&2, Er>) -> Out:
   match es:
