@@ -28,7 +28,8 @@ it names is tried, as the gate does (scripts/check.sh, through
 scripts/kept.py). Exits 0 where each control passes and every mutation
 fails, 1 otherwise, 2 on bad usage.
 
-Run from the repository root:
+Run from the root of the project the proof file is in (the repository, or
+Blend's directory), its copies written under that project's results/:
   python3 -I scripts/one_law.py PROOF LAW              the law checked alone
   python3 -I scripts/one_law.py PROOF LAW --mutants FILE
                                                        and each of FILE's
@@ -176,7 +177,7 @@ def copy(files, proof, law, dest, mutation=None):
 def check(path, cap):
     """Bend's check of the copied proof file: whether it passes, and the
     first failure's location or else the start of Bend's output."""
-    capped = os.path.abspath(os.path.join("scripts", "capped.sh"))
+    capped = os.path.join(os.path.dirname(os.path.abspath(__file__)), "capped.sh")
     run = subprocess.run([capped, cap[0], cap[1], os.environ.get("BEND", "bend"),
                           os.path.basename(path)],
                          cwd=os.path.dirname(path), capture_output=True, text=True)

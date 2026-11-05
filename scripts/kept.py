@@ -17,7 +17,8 @@ start: a path to a local file is followed; one to none (a hub package's,
 named by its hash or its name) is keyed by the path as written, the hub's
 own content being fixed by it.
 
-Run from the repository root:
+Run from the root of the project the files are in (the repository, or
+Blend's directory), its passes kept under that project's results/kept/:
   python3 -I scripts/kept.py verdict FILE...   each file's verdict, a kept
                                                pass where its inputs are
                                                unchanged, Bend's output shown
@@ -41,7 +42,9 @@ IMPORT = re.compile(r"^import\s+(\S+)", re.M)
 CACHE = os.path.join("results", "kept")
 FLAGS = {"verdict": "--verdict", "check": "--check-only"}
 MODES = list(FLAGS) + ["mutants"]
-TRIES = [os.path.join("scripts", "one_law.py"), os.path.join("scripts", "capped.sh")]
+# the scripts that try a mutants file, beside this one
+HERE = os.path.dirname(os.path.abspath(__file__))
+TRIES = [os.path.join(HERE, "one_law.py"), os.path.join(HERE, "capped.sh")]
 
 
 def bend_exe():

@@ -2,7 +2,9 @@
 # The gate: run before every commit, from anywhere in the repository.
 # Checks the docs, the law history, the proofs (each `PROOF.bend`, by bend
 # and by BendTT's proven kernel), the mutations each law must fail, that
-# generated code matches its generator, Blend's samples, the library of nets
+# generated code matches its generator, Blend (its own gate, blend/check.sh:
+# Blend is arranged as a repository of its own, `blend-own-repository`, so
+# the sections here leave blend/ to it), the library of nets
 # (spike/library.txt), then that every other Bend file still typechecks.
 # Exits nonzero on any
 # failure, and names the tree it checked so a stale pass can't pass for new.
@@ -48,8 +50,8 @@ PATH="$PATH:$HOME/.lean/bin"
 command -v lean >/dev/null 2>&1 || { echo "no lean for --verdict: run scripts/dev-setup.sh"; status=1; }
 # every PROOF.bend outside bench/, and one beside every LAWS.bend: X_LAWS.bend
 # beside X_PROOF.bend, as Blend writes a module's (blend/README.md)
-proofs=$(git ls-files --cached --others --exclude-standard -- '*PROOF.bend' ':!bench/')
-for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' ':!bench/'); do
+proofs=$(git ls-files --cached --others --exclude-standard -- '*PROOF.bend' ':!bench/' ':!blend/')
+for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' ':!bench/' ':!blend/'); do
   [ -f "${laws%LAWS.bend}PROOF.bend" ] || { echo "$laws has no ${laws%LAWS.bend}PROOF.bend beside it"; status=1; }
 done
 if [ -n "$proofs" ]; then
@@ -71,7 +73,7 @@ section mutants
 # its mutations tried against the laws they name, each expected to fail
 # them (scripts/one_law.py), a pass kept for inputs unchanged
 # (scripts/kept.py)
-for m in $(git ls-files --cached --others --exclude-standard -- '*MUTANTS.txt' ':!bench/'); do
+for m in $(git ls-files --cached --others --exclude-standard -- '*MUTANTS.txt' ':!bench/' ':!blend/'); do
   BEND=$BEND python3 -I scripts/kept.py mutants "$m" || status=1
 done
 
@@ -79,10 +81,15 @@ section "generated code"
 # every generated file matches its generator (generated-sources)
 BEND=$BEND scripts/check_generated.sh || status=1
 
-section "blend samples"
-# Blend's samples (blend/README.md): each emitted form runs and prints
-# what its sample says
-BEND=$BEND blend/check.sh || status=1
+section blend
+# Blend's own gate: its docs, laws, proofs, mutants, generated samples,
+# samples and Bend files (blend/check.sh)
+if BEND=$BEND blend/check.sh > results/blend.log 2>&1; then
+  grep -E '^blend( times|: )' results/blend.log
+else
+  grep -v ': matches blend$' results/blend.log
+  status=1
+fi
 
 section library
 # every net of spike/library.txt through every strategy, its checks
@@ -98,7 +105,7 @@ section "bend files"
 # every other Bend file typechecks, a pass kept for inputs unchanged
 # (scripts/kept.py)
 # shellcheck disable=SC2046 # one argument a file
-BEND=$BEND python3 -I scripts/kept.py check $(git ls-files --cached --others --exclude-standard -- '*.bend' ':!*LAWS.bend' ':!*PROOF.bend') ||
+BEND=$BEND python3 -I scripts/kept.py check $(git ls-files --cached --others --exclude-standard -- '*.bend' ':!*LAWS.bend' ':!*PROOF.bend' ':!blend/') ||
   status=1
 
 section ""

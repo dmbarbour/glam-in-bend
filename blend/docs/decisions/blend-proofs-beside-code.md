@@ -72,7 +72,7 @@ Bend's `LAWS.bend` and `PROOF.bend` are.
   (`Monoid.right_id`): changing one on main needs its `Law:` trailer.
   An invalid sample's laws are none, the sample held only to its error
   (the maintainer, 2026-11-04).
-- scripts/check_generated.sh checks a module's files together, from one
+- check_generated.sh checks a module's files together, from one
   emission into results/, and a laws or proofs file the emission no
   longer writes is stale. Bend's IO cannot rename, so the files are
   written one after another: a write failing midway leaves the set

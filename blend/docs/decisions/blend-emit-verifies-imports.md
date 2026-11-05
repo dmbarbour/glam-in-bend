@@ -25,8 +25,8 @@ imports unverified.
   (`blend-cli`).
 - `bend blend.bend -- emit --alone ...` under Bend, whose CLI takes a
   dashed argument as its own; the built tool takes it directly.
-- scripts/check_generated.sh, emitting each directory's modules,
-  verifies the imports the other directories emit; check.sh holds
+- check_generated.sh, emitting each directory's modules, verifies
+  the imports the other directories emit; samples/check.sh holds
   a stale import to its error and `--alone` to its bypass.
 
 **Rule lives in:** `README.md`, Status.

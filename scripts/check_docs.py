@@ -53,7 +53,7 @@ def projects():
     """The repository's projects: itself, and each directory directly in it
     with docs/plans of its own."""
     top = pathlib.Path(".")
-    return [top, *sorted(p.parent.parent for p in top.glob("*/docs/plans/README.md"))]
+    return [top, *sorted(p.parents[2] for p in top.glob("*/docs/plans/README.md"))]
 
 
 def markdown_files(root):

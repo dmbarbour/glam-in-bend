@@ -29,9 +29,14 @@ stages before it print what they find: `read` the structure, `objects`
 each object's linearization and definitions, `resolve` each copy and
 what its names reach. `run.sh` runs the tool built once for each
 version of its sources (`build.sh`); `bend blend.bend COMMAND ...`
-runs the same, checked and compiled each time. `check.sh`, in the
-gate, holds every sample to its `.bend` or its `.err`. `bench/`
-measures how Blend's cost grows with a module (its README).
+runs the same, checked and compiled each time. `check.sh` is Blend's
+gate, run before every commit: its docs, its laws, its proofs and the
+mutations they must fail, its generated samples current
+(`check_generated.sh`), its samples (`samples/check.sh`, holding every
+sample to its `.bend` or its `.err`) and its Bend files. `bench/`
+measures how Blend's cost grows with a module (its README). Blend is
+arranged as a repository of its own (`blend-own-repository`, and
+`AGENTS.md` for working on it).
 
 The maintainer's direction (2026-11-04): `def` and `upd` for
 introduction and override, definitions affine unless marked; the samples
@@ -259,7 +264,7 @@ its own copy, bound to its own finals: no sharing between objects.
 ## The samples
 
 `samples/`: each `.blend` beside the `.bend` it emits, a generated
-file checked current by `scripts/check_generated.sh`, and the `.out` its
+file checked current by `check_generated.sh`, and the `.out` its
 program prints.
 
 - `override`: introduction, update, late binding.
