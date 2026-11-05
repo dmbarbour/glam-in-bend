@@ -20,7 +20,13 @@ it alone taught. Add to this file what a new proof teaches.
 - **Confidence, not only cheapness.** A guard that makes a law hold by
   computation (AGENTS.md, Laws) is a fine shape, but prove too that the
   guard never fires where it should not, or say plainly that the law does
-  not claim it.
+  not claim it. Once a stronger law proves a guard never fires, the guard
+  is redundant work, not a boundary: remove it, and prove its law from
+  the stronger one.
+- **Termination where feasible.** A walk bounded by fuel can carry a law
+  that a walk cut short reports an error; a proof that the fuel suffices
+  is stronger, and often feasible by a potential (below). Try it before
+  settling for the weaker law.
 - **Mutate the code after a proof passes**: break what the law is about
   in a copy, and see the proofs fail. A law that survives the mutation
   claims less than meant.
@@ -54,7 +60,8 @@ it alone taught. Add to this file what a new proof teaches.
   where `_` stands, and becomes `P` with `a`. State lemmas so that `a` is
   the simple form and `b` the complex one, so that a rewrite turns the
   complex form in a goal into the simple; wrap a lemma that runs the
-  other way in `Equal.sym` once.
+  other way in `Equal.sym` once: `Equal.sym(T, a, b, e)` takes
+  `e : {a == b}` and gives `{b == a}`.
 - **Mark what a proof reuses**: `+` on a law's `for` binders, a proof's
   parameters and its patterns (`case Con{+h, +t}`, `case 1n+(+k)`).
 - **An absurd case names its type**: `Empty.absurd(T, e)`, `T` written
@@ -74,6 +81,15 @@ it alone taught. Add to this file what a new proof teaches.
   with a lemma building it from its parts and one taking each part out
   (the hub's `eq_true_of_and_left`, `eq_true_of_and_right`), so that a
   step lemma takes and returns one equation.
+- **Termination by a potential**: a `Nat` the state determines, what is
+  left to do each counted by what it will cost, that each step lowers by
+  one at least, under an invariant the steps keep. Give the walk that
+  potential at the start as its fuel, and prove by induction on the fuel,
+  from `le(pot(s), n)`, that it finishes: at `0n` the potential's being
+  positive refutes the unfinished states. Over-approximate where exact
+  costs more: a list of candidates, duplicates and all, each counted
+  while not yet done, only overcounts, and makes a step's descent a lemma
+  on one removal.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
@@ -82,3 +98,7 @@ it alone taught. Add to this file what a new proof teaches.
 - **Find a failing lemma by bisecting** the proof file into prefixes,
   each its own file, checked in turn: Bend reports the first failure, or
   only that its stack overflowed.
+- **Mutate against one law at a time**: Bend reports only the first
+  failure, often of an earlier law the mutation breaks too; to see a
+  mutation fail the law it is aimed at, cut a copy of the laws file to
+  that law and the proof file to its proof and the defs it reaches.

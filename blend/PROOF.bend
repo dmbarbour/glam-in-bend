@@ -24,6 +24,9 @@
 #   exactly (`to32`, `top_bound`): Bend unfolds the power otherwise, and
 #   its checker overflows.
 # - Templates prove as code does: a proof def may take `~p` (`while_s`).
+# - Termination by a potential (`pot`): each step lowers it (`step_desc`),
+#   the fuel is its value at the start (`fuel_pot`), and induction on the
+#   fuel ends the walk (`ends`).
 # - Mutate the code after a proof passes: a law that survives a mutation
 #   claims less than meant.
 
@@ -907,25 +910,9 @@ def go_keeps(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.O
     case 1n+k:
       go_keeps(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_keeps(s, cal, obs, us, h))
 
-# The walk's end
-#
-# A walk its fuel cut short reports a fault of Blend's (ds.end.k), which
-# changes nothing else: each invariant holds through it.
-
-def end_keeps(+fin: Bool, d: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {B.ordered(B.ds.order(d), cal) == True{} : Bool}) ->
-    {B.ordered(B.ds.order(B.ds.end.k(fin, d)), cal) == True{} : Bool}:
-  match fin:
-    case True{}:
-      h
-    case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          h
-
 def Laws.order.callees_first(roots, cal, obs, us):
-  end_keeps(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), cal,
-    go_keeps(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
+  go_keeps(B.walk.fuel(roots, cal),
+    B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})
 
 # The walk's order, each unit once
 # --------------------------------
@@ -1158,20 +1145,10 @@ def inv_order(s: B.Ds, h: {inv(s) == True{} : Bool}) -> {B.distinct(B.ds.order(s
     case B.Ds{stack, roots, +done, +order, ers}:
       get_a(order, done, stack, h)
 
-def end_once(+fin: Bool, d: B.Ds, +h: {inv(d) == True{} : Bool}) -> {inv(B.ds.end.k(fin, d)) == True{} : Bool}:
-  match fin:
-    case True{}:
-      h
-    case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          h
-
 def Laws.order.once(roots, cal, obs, us):
   inv_order(B.walk(roots, cal, obs, us),
-    end_once(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us),
-      go_once(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})))
+    go_once(B.walk.fuel(roots, cal),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
 
 # The walk's order, nothing walked lost
 # -------------------------------------
@@ -1261,20 +1238,10 @@ def jinv_out(s: B.Ds, h: {jinv(s) == True{} : Bool}, +e: {List.is_empty(&2, B.Er
     case B.Ds{stack, roots, +done, +order, +ers}:
       ME.subst(Bool, x => {Bool.or(Bool.not(x), B.all.in(done, order)) == True{} : Bool}, List.is_empty(&2, B.Er, ers), True{}, e, h)
 
-def end_walked(+fin: Bool, d: B.Ds, +h: {jinv(d) == True{} : Bool}) -> {jinv(B.ds.end.k(fin, d)) == True{} : Bool}:
-  match fin:
-    case True{}:
-      h
-    case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          {==}
-
 def Laws.order.walked(roots, cal, obs, us, h):
   jinv_out(B.walk(roots, cal, obs, us),
-    end_walked(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us),
-      go_walked(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})), h)
+    go_walked(B.walk.fuel(roots, cal),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)
 
 # The walk's roots, every one walked
 # ----------------------------------
@@ -1453,21 +1420,10 @@ def roots_out(s: B.Ds, +rs0: List<&2, U32>, +h: {B.all.in(rs0, cov(s)) == True{}
         case Con{f, st}:
           Empty.absurd({B.all.in(rs0, done) == True{} : Bool}, MB.false_ne_true()(e))
 
-def end_roots(+fin: Bool, d: B.Ds, +rs0: List<&2, U32>, +h: {B.all.in(rs0, cov(d)) == True{} : Bool}) ->
-    {B.all.in(rs0, cov(B.ds.end.k(fin, d))) == True{} : Bool}:
-  match fin:
-    case True{}:
-      h
-    case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          h
-
 def Laws.order.roots(roots, cal, obs, us, h):
   roots_out(B.walk(roots, cal, obs, us), roots,
-    end_roots(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), roots,
-      go_roots(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots))), h)
+    go_roots(B.walk.fuel(roots, cal),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots)), h)
 
 # The walk's calls, every one walked
 # ----------------------------------
@@ -1681,37 +1637,427 @@ def closed_out(s: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {kinv(cal, s) == True
         case Con{f, st}:
           Empty.absurd({B.calls.in(done, cal, done) == True{} : Bool}, MB.false_ne_true()(e))
 
-def end_closed(+fin: Bool, d: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {kinv(cal, d) == True{} : Bool}) ->
-    {kinv(cal, B.ds.end.k(fin, d)) == True{} : Bool}:
-  match fin:
-    case True{}:
-      h
-    case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          h
-
 def Laws.order.closed(roots, cal, obs, us, h):
   closed_out(B.walk(roots, cal, obs, us), cal,
-    end_closed(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), cal,
-      go_closed(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})), h)
+    go_closed(B.walk.fuel(roots, cal),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)
 
-# The walk's fuel
-# ---------------
+# The walk ends within its fuel
+# -----------------------------
 #
-# Not that the fuel suffices: that a walk it cut short reports an error.
+# A potential: the roots left; a turn for each frame and each of its
+# calls left; and each candidate's weight (its push, its pop and a turn
+# for each of its calls), a candidate a root or a callee, while it is
+# neither walked nor on the stack. Each step lowers it by one at least,
+# a push by its unit's weight, which the frame it pushes gives back less
+# one; the fuel is the potential at the start.
 
-def end_fuel(+fin: Bool, +d: B.Ds, +e: {fin == B.ds.finished(d) : Bool}) ->
-    {Bool.or(B.ds.finished(B.ds.end.k(fin, d)), Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.ds.end.k(fin, d))))) == True{} : Bool}:
+def wt(+cal: List<&2, List<&2, U32>>, +x: U32) -> Nat:
+  2n+List.length(&2, U32, B.ids.at(cal, x))
+
+def cost(+b: Bool, +n: Nat) -> Nat:
+  match b:
+    case True{}:
+      0n
+    case False{}:
+      n
+
+# the weight of the candidates xs not among x
+def sw(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{+y, t}:
+      Nat.add(cost(B.has(x, y), wt(cal, y)), sw(t, cal, x))
+
+def sw_nil(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> {sw(xs, cal, Nil{}) == B.walk.weight(xs, cal) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      %sw_nil(t, cal) : {Nat.add(wt(cal, y), sw(t, cal, Nil{})) == Nat.add(wt(cal, y), _) : Nat}
+      {==}
+
+def cost_le(+b: Bool, +n: Nat) -> MNat.le(cost(b, n), n):
+  match b:
+    case True{}:
+      MNat.zero_le(n)
+    case False{}:
+      MNat.le_refl(n)
+
+def cost_mono(+a: Bool, +b: Bool, +n: Nat) -> MNat.le(cost(Bool.or(a, b), n), cost(b, n)):
+  match a:
+    case True{}:
+      MNat.zero_le(cost(b, n))
+    case False{}:
+      MNat.le_refl(cost(b, n))
+
+# more excluded, no more weight
+def sw_mono(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, +c: U32) -> MNat.le(sw(xs, cal, Con{c, x}), sw(xs, cal, x)):
+  match xs:
+    case Nil{}:
+      MNat.le_refl(0n)
+    case Con{+y, +t}:
+      MNat.add_le_add(cost(Bool.or(U32.is_eq(c, y), B.has(x, y)), wt(cal, y)), sw(t, cal, Con{c, x}), cost(B.has(x, y), wt(cal, y)), sw(t, cal, x),
+        cost_mono(U32.is_eq(c, y), B.has(x, y), wt(cal, y)), sw_mono(t, cal, x, c))
+
+# a candidate c of xs, not yet among x: adding it to x takes its weight
+# from xs's, one copy at least
+def drop_step(+c: U32, +y: U32, +t: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, b: Bool, +e: {b == U32.is_eq(c, y) : Bool},
+    +hc: {Bool.or(U32.is_eq(y, c), B.has(t, c)) == True{} : Bool}, +hn: {B.has(x, c) == False{} : Bool},
+    ih: {B.has(t, c) == True{} : Bool} -> MNat.le(Nat.add(wt(cal, c), sw(t, cal, Con{c, x})), sw(t, cal, x))) ->
+    MNat.le(Nat.add(wt(cal, c), Nat.add(cost(Bool.or(b, B.has(x, y)), wt(cal, y)), sw(t, cal, Con{c, x}))), Nat.add(cost(B.has(x, y), wt(cal, y)), sw(t, cal, x))):
+  match b:
+    case True{}:
+      %u32_eq_of_is_eq(c, y, Equal.sym(Bool, True{}, U32.is_eq(c, y), e)) :
+        MNat.le(Nat.add(wt(cal, c), sw(t, cal, Con{c, x})), Nat.add(cost(B.has(x, _), wt(cal, _)), sw(t, cal, x)))
+      %Equal.sym(Bool, B.has(x, c), False{}, hn) :
+        MNat.le(Nat.add(wt(cal, c), sw(t, cal, Con{c, x})), Nat.add(cost(_, wt(cal, c)), sw(t, cal, x)))
+      MNat.add_le_add_left(sw(t, cal, Con{c, x}), sw(t, cal, x), wt(cal, c), sw_mono(t, cal, x, c))
+    case False{}:
+      %MNat.add_left_comm(cost(B.has(x, y), wt(cal, y)), wt(cal, c), sw(t, cal, Con{c, x})) :
+        MNat.le(_, Nat.add(cost(B.has(x, y), wt(cal, y)), sw(t, cal, x)))
+      MNat.add_le_add_left(Nat.add(wt(cal, c), sw(t, cal, Con{c, x})), sw(t, cal, x), cost(B.has(x, y), wt(cal, y)),
+        ih(ME.subst(Bool, z => {Bool.or(z, B.has(t, c)) == True{} : Bool}, U32.is_eq(y, c), False{},
+          Equal.trans(Bool, U32.is_eq(y, c), U32.is_eq(c, y), False{}, u32_is_eq_comm(y, c), Equal.sym(Bool, False{}, U32.is_eq(c, y), e)), hc)))
+
+def sw_drop(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, +c: U32,
+    +hc: {B.has(xs, c) == True{} : Bool}, +hn: {B.has(x, c) == False{} : Bool}) ->
+    MNat.le(Nat.add(wt(cal, c), sw(xs, cal, Con{c, x})), sw(xs, cal, x)):
+  match xs:
+    case Nil{}:
+      Empty.absurd(MNat.le(Nat.add(wt(cal, c), 0n), 0n), MB.false_ne_true()(hc))
+    case Con{+y, +t}:
+      drop_step(c, y, t, cal, x, U32.is_eq(c, y), {==}, hc, hn, h => sw_drop(t, cal, x, c, h, hn))
+
+# a unit's calls are among all the calls
+def get_in(cal: List<&2, List<&2, U32>>, n: Nat) ->
+    {B.all.in(B.ids.or(List.get(&2, List<&2, U32>, cal, n)), List.concat(&2, U32, cal)) == True{} : Bool}:
+  match cal:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      match n:
+        case 0n:
+          sub_l(h, List.concat(&2, U32, t))
+        case 1n+(+k):
+          sub_trans(B.ids.or(List.get(&2, List<&2, U32>, t, k)), List.concat(&2, U32, t), List.append(&2, U32, h, List.concat(&2, U32, t)),
+            get_in(t, k), sub_r(h, List.concat(&2, U32, t)))
+
+def cands(+roots0: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> List<&2, U32>:
+  List.append(&2, U32, roots0, List.concat(&2, U32, cal))
+
+def at_cand(+roots0: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: U32) -> {B.all.in(B.ids.at(cal, x), cands(roots0, cal)) == True{} : Bool}:
+  sub_trans(B.ids.at(cal, x), List.concat(&2, U32, cal), cands(roots0, cal), get_in(cal, U32.to_nat(x)), sub_r(roots0, List.concat(&2, U32, cal)))
+
+def cost_sub(+z: U32, +x: List<&2, U32>, +y: List<&2, U32>, +h: {B.all.in(x, y) == True{} : Bool}, +n: Nat, b: Bool, +e: {b == B.has(x, z) : Bool}) ->
+    MNat.le(cost(B.has(y, z), n), cost(b, n)):
+  match b:
+    case True{}:
+      %Equal.sym(Bool, B.has(y, z), True{}, has_sub(x, y, z, h, Equal.sym(Bool, True{}, B.has(x, z), e))) : MNat.le(cost(_, n), 0n)
+      MNat.le_refl(0n)
+    case False{}:
+      cost_le(B.has(y, z), n)
+
+# more excluded, no more weight
+def sw_sub(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +x: List<&2, U32>, +y: List<&2, U32>, +h: {B.all.in(x, y) == True{} : Bool}) ->
+    MNat.le(sw(xs, cal, y), sw(xs, cal, x)):
+  match xs:
+    case Nil{}:
+      MNat.le_refl(0n)
+    case Con{+z, +t}:
+      MNat.add_le_add(cost(B.has(y, z), wt(cal, z)), sw(t, cal, y), cost(B.has(x, z), wt(cal, z)), sw(t, cal, x),
+        cost_sub(z, x, y, h, wt(cal, z), B.has(x, z), {==}), sw_sub(t, cal, x, y, h))
+
+# a turn for each frame and each of its calls left
+def frs(st: List<&2, B.Fm>) -> Nat:
+  match st:
+    case Nil{}:
+      0n
+    case Con{f, t}:
+      match f:
+        case B.Fm{+u, rest}:
+          1n+Nat.add(List.length(&2, U32, rest), frs(t))
+
+def pot(+u0: List<&2, U32>, +cal: List<&2, List<&2, U32>>, s: B.Ds) -> Nat:
+  match s:
+    case B.Ds{+stack, roots, done, order, ers}:
+      Nat.add(List.length(&2, U32, roots), Nat.add(frs(stack), sw(u0, cal, List.append(&2, U32, B.fms.units(stack), done))))
+
+# the roots left and every frame's calls are candidates
+def frames_in(st: List<&2, B.Fm>, +u0: List<&2, U32>) -> Bool:
+  match st:
+    case Nil{}:
+      True{}
+    case Con{f, t}:
+      match f:
+        case B.Fm{+u, rest}:
+          Bool.and(B.all.in(rest, u0), frames_in(t, u0))
+
+def pinv(+u0: List<&2, U32>, s: B.Ds) -> Bool:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      Bool.and(B.all.in(roots, u0), frames_in(stack, u0))
+
+# The arithmetic of each step's descent
+
+def ar_succ(+l: Nat, +y: Nat) -> MNat.le(1n+Nat.add(l, y), Nat.add(l, 1n+y)):
+  %MNat.add_succ(l, y) : MNat.le(_, Nat.add(l, 1n+y))
+  MNat.le_refl(Nat.add(l, 1n+y))
+
+def ar_root(+l: Nat, +r: Nat, +s1: Nat, +s: Nat, +h: MNat.le(Nat.add(2n+r, s1), s)) ->
+    MNat.le(1n+Nat.add(l, 1n+Nat.add(Nat.add(r, 0n), s1)), 1n+Nat.add(l, s)):
+  %MNat.add_zero_sym(r) : MNat.le(1n+Nat.add(l, 1n+Nat.add(_, s1)), 1n+Nat.add(l, s))
+  MNat.succ_le_succ(Nat.add(l, 1n+Nat.add(r, s1)), Nat.add(l, s),
+    MNat.add_le_add_left(1n+Nat.add(r, s1), s, l, MNat.le_trans(1n+Nat.add(r, s1), 1n+1n+Nat.add(r, s1), s, MNat.le_succ(1n+Nat.add(r, s1)), h)))
+
+def ar_push.k(+r: Nat, +g: Nat, +s1: Nat, +s: Nat, +h: MNat.le(Nat.add(2n+r, s1), s)) -> MNat.le(Nat.add(Nat.add(r, 1n+g), s1), Nat.add(g, s)):
+  %MNat.add_succ_sym(r, g) : MNat.le(Nat.add(_, s1), Nat.add(g, s))
+  %MNat.add_assoc_sym(r, g, s1) : MNat.le(1n+_, Nat.add(g, s))
+  %MNat.add_left_comm(g, r, s1) : MNat.le(1n+_, Nat.add(g, s))
+  %MNat.add_succ(g, Nat.add(r, s1)) : MNat.le(_, Nat.add(g, s))
+  MNat.add_le_add_left(1n+Nat.add(r, s1), s, g, MNat.le_trans(1n+Nat.add(r, s1), 1n+1n+Nat.add(r, s1), s, MNat.le_succ(1n+Nat.add(r, s1)), h))
+
+def ar_push(+l: Nat, +r: Nat, +g: Nat, +s1: Nat, +s: Nat, +h: MNat.le(Nat.add(2n+r, s1), s)) ->
+    MNat.le(1n+Nat.add(l, 1n+Nat.add(Nat.add(r, 1n+g), s1)), Nat.add(l, 1n+1n+Nat.add(g, s))):
+  MNat.le_trans(1n+Nat.add(l, 1n+Nat.add(Nat.add(r, 1n+g), s1)), Nat.add(l, 1n+1n+Nat.add(Nat.add(r, 1n+g), s1)), Nat.add(l, 1n+1n+Nat.add(g, s)),
+    ar_succ(l, 1n+Nat.add(Nat.add(r, 1n+g), s1)),
+    MNat.add_le_add_left(1n+1n+Nat.add(Nat.add(r, 1n+g), s1), 1n+1n+Nat.add(g, s), l,
+      MNat.succ_le_succ(1n+Nat.add(Nat.add(r, 1n+g), s1), 1n+Nat.add(g, s),
+        MNat.succ_le_succ(Nat.add(Nat.add(r, 1n+g), s1), Nat.add(g, s), ar_push.k(r, g, s1, s, h)))))
+
+def has_app(p: List<&2, U32>, +q: List<&2, U32>, +x: U32) -> {Bool.or(B.has(p, x), B.has(q, x)) == B.has(List.append(&2, U32, p, q), x) : Bool}:
+  match p:
+    case Nil{}:
+      {==}
+    case Con{+a, +t}:
+      %has_app(t, q, x) : {Bool.or(Bool.or(U32.is_eq(a, x), B.has(t, x)), B.has(q, x)) == Bool.or(U32.is_eq(a, x), _) : Bool}
+      MB.or_assoc(U32.is_eq(a, x), B.has(t, x), B.has(q, x))
+
+def not_in_app(+p: List<&2, U32>, +q: List<&2, U32>, +x: U32, +hp: {B.has(p, x) == False{} : Bool}, +hq: {B.has(q, x) == False{} : Bool}) ->
+    {B.has(List.append(&2, U32, p, q), x) == False{} : Bool}:
+  %has_app(p, q, x) : {_ == False{} : Bool}
+  %Equal.sym(Bool, B.has(p, x), False{}, hp) : {Bool.or(_, B.has(q, x)) == False{} : Bool}
+  hq
+
+# Each step keeps the candidates and lowers the potential
+
+def root_desc(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>,
+    +cal: List<&2, List<&2, U32>>, +roots0: List<&2, U32>, +e: {seen == B.has(done, r) : Bool},
+    +hp: {pinv(cands(roots0, cal), B.Ds{Nil{}, Con{r, rt}, done, order, ers}) == True{} : Bool}) ->
+    MNat.le(1n+pot(cands(roots0, cal), cal, B.ds.root.k(seen, r, rt, done, order, ers, cal)), pot(cands(roots0, cal), cal, B.Ds{Nil{}, Con{r, rt}, done, order, ers})):
+  match seen:
+    case True{}:
+      MNat.le_refl(1n+Nat.add(List.length(&2, U32, rt), sw(cands(roots0, cal), cal, done)))
+    case False{}:
+      ar_root(List.length(&2, U32, rt), List.length(&2, U32, B.ids.at(cal, r)), sw(cands(roots0, cal), cal, Con{r, done}), sw(cands(roots0, cal), cal, done),
+        sw_drop(cands(roots0, cal), cal, done, r,
+          MB.eq_true_of_and_left(B.has(cands(roots0, cal), r), B.all.in(rt, cands(roots0, cal)),
+            MB.eq_true_of_and_left(B.all.in(Con{r, rt}, cands(roots0, cal)), True{}, hp)),
+          Equal.sym(Bool, False{}, B.has(done, r), e)))
+
+def root_pinv(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>,
+    +cal: List<&2, List<&2, U32>>, +roots0: List<&2, U32>,
+    +hp: {pinv(cands(roots0, cal), B.Ds{Nil{}, Con{r, rt}, done, order, ers}) == True{} : Bool}) ->
+    {pinv(cands(roots0, cal), B.ds.root.k(seen, r, rt, done, order, ers, cal)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      and_intro(B.all.in(rt, cands(roots0, cal)), True{}, MB.eq_true_of_and_right(B.has(cands(roots0, cal), r), B.all.in(rt, cands(roots0, cal)),
+        MB.eq_true_of_and_left(B.all.in(Con{r, rt}, cands(roots0, cal)), True{}, hp)), {==})
+    case False{}:
+      and_intro(B.all.in(rt, cands(roots0, cal)), Bool.and(B.all.in(B.ids.at(cal, r), cands(roots0, cal)), True{}), MB.eq_true_of_and_right(B.has(cands(roots0, cal), r), B.all.in(rt, cands(roots0, cal)),
+        MB.eq_true_of_and_left(B.all.in(Con{r, rt}, cands(roots0, cal)), True{}, hp)),
+        and_intro(B.all.in(B.ids.at(cal, r), cands(roots0, cal)), True{}, at_cand(roots0, cal, r), {==}))
+
+def call_desc(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +roots0: List<&2, U32>, +e1: {seen == B.has(done, c) : Bool}, +e2: {cyc == B.has(Con{u, B.fms.units(st)}, c) : Bool},
+    +hp: {pinv(cands(roots0, cal), B.Ds{Con{B.Fm{u, Con{c, rs}}, st}, roots, done, order, ers}) == True{} : Bool}) ->
+    MNat.le(1n+pot(cands(roots0, cal), cal, B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)), pot(cands(roots0, cal), cal, B.Ds{Con{B.Fm{u, Con{c, rs}}, st}, roots, done, order, ers})):
+  match seen:
+    case True{}:
+      ar_succ(List.length(&2, U32, roots), 1n+Nat.add(Nat.add(List.length(&2, U32, rs), frs(st)), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})))
+    case False{}:
+      match cyc:
+        case True{}:
+          ar_succ(List.length(&2, U32, roots), 1n+Nat.add(Nat.add(List.length(&2, U32, rs), frs(st)), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})))
+        case False{}:
+          ar_push(List.length(&2, U32, roots), List.length(&2, U32, B.ids.at(cal, c)), Nat.add(List.length(&2, U32, rs), frs(st)), sw(cands(roots0, cal), cal, Con{c, Con{u, List.append(&2, U32, B.fms.units(st), done)}}), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}),
+            sw_drop(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}, c, MB.eq_true_of_and_left(B.has(cands(roots0, cal), c), B.all.in(rs, cands(roots0, cal)), MB.eq_true_of_and_left(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))),
+              not_in_app(Con{u, B.fms.units(st)}, done, c, Equal.sym(Bool, False{}, B.has(Con{u, B.fms.units(st)}, c), e2),
+                Equal.sym(Bool, False{}, B.has(done, c), e1))))
+
+def call_pinv(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +roots0: List<&2, U32>, +hp: {pinv(cands(roots0, cal), B.Ds{Con{B.Fm{u, Con{c, rs}}, st}, roots, done, order, ers}) == True{} : Bool}) ->
+    {pinv(cands(roots0, cal), B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      and_intro(B.all.in(roots, cands(roots0, cal)), Bool.and(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal))), MB.eq_true_of_and_left(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp),
+        and_intro(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.has(cands(roots0, cal), c), B.all.in(rs, cands(roots0, cal)), MB.eq_true_of_and_left(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))), MB.eq_true_of_and_right(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))))
+    case False{}:
+      match cyc:
+        case True{}:
+          and_intro(B.all.in(roots, cands(roots0, cal)), Bool.and(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal))), MB.eq_true_of_and_left(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp),
+            and_intro(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.has(cands(roots0, cal), c), B.all.in(rs, cands(roots0, cal)), MB.eq_true_of_and_left(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))), MB.eq_true_of_and_right(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))))
+        case False{}:
+          and_intro(B.all.in(roots, cands(roots0, cal)), Bool.and(B.all.in(B.ids.at(cal, c), cands(roots0, cal)), Bool.and(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal)))), MB.eq_true_of_and_left(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp),
+            and_intro(B.all.in(B.ids.at(cal, c), cands(roots0, cal)), Bool.and(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal))), at_cand(roots0, cal, c),
+              and_intro(B.all.in(rs, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.has(cands(roots0, cal), c), B.all.in(rs, cands(roots0, cal)), MB.eq_true_of_and_left(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp))), MB.eq_true_of_and_right(B.all.in(Con{c, rs}, cands(roots0, cal)), frames_in(st, cands(roots0, cal)), MB.eq_true_of_and_right(B.all.in(roots, cands(roots0, cal)), frames_in(Con{B.Fm{u, Con{c, rs}}, st}, cands(roots0, cal)), hp)))))
+
+def done_desc(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +cal: List<&2, List<&2, U32>>, +roots0: List<&2, U32>) ->
+    MNat.le(1n+pot(cands(roots0, cal), cal, B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)), pot(cands(roots0, cal), cal, B.Ds{Con{B.Fm{u, Nil{}}, st}, roots, done, order, ers})):
+  match ok:
+    case True{}:
+      MNat.le_trans(1n+Nat.add(List.length(&2, U32, roots), Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))), Nat.add(List.length(&2, U32, roots), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))), Nat.add(List.length(&2, U32, roots), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}))),
+        ar_succ(List.length(&2, U32, roots), Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))),
+        MNat.add_le_add_left(1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done}))), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})), List.length(&2, U32, roots),
+          MNat.succ_le_succ(Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done}))), Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})),
+            MNat.add_le_add_left(sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}), frs(st), sw_sub(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}, List.append(&2, U32, B.fms.units(st), Con{u, done}), pop_sub(u, B.fms.units(st), done))))))
+    case False{}:
+      MNat.le_trans(1n+Nat.add(List.length(&2, U32, roots), Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))), Nat.add(List.length(&2, U32, roots), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))), Nat.add(List.length(&2, U32, roots), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}))),
+        ar_succ(List.length(&2, U32, roots), Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})))),
+        MNat.add_le_add_left(1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done}))), 1n+Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})), List.length(&2, U32, roots),
+          MNat.succ_le_succ(Nat.add(frs(st), sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done}))), Nat.add(frs(st), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)})),
+            MNat.add_le_add_left(sw(cands(roots0, cal), cal, List.append(&2, U32, B.fms.units(st), Con{u, done})), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}), frs(st), sw_sub(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}, List.append(&2, U32, B.fms.units(st), Con{u, done}), pop_sub(u, B.fms.units(st), done))))))
+
+def done_pinv(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +cal: List<&2, List<&2, U32>>, +roots0: List<&2, U32>,
+    +hp: {pinv(cands(roots0, cal), B.Ds{Con{B.Fm{u, Nil{}}, st}, roots, done, order, ers}) == True{} : Bool}) ->
+    {pinv(cands(roots0, cal), B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  match ok:
+    case True{}:
+      hp
+    case False{}:
+      hp
+
+def step_desc(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +roots0: List<&2, U32>,
+    +hp: {pinv(cands(roots0, cal), s) == True{} : Bool}, +nf: {B.ds.finished(s) == False{} : Bool}) ->
+    MNat.le(1n+pot(cands(roots0, cal), cal, B.ds.step(s, cal, obs, us)), pot(cands(roots0, cal), cal, s)):
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              Empty.absurd(MNat.le(1n+pot(cands(roots0, cal), cal, B.Ds{Nil{}, Nil{}, done, order, ers}), pot(cands(roots0, cal), cal, B.Ds{Nil{}, Nil{}, done, order, ers})),
+                MB.true_ne_false()(nf))
+            case Con{+r, +rt}:
+              root_desc(B.has(done, r), r, rt, done, order, ers, cal, roots0, {==}, hp)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_desc(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, cal, roots0)
+                case Con{+c, +rs}:
+                  call_desc(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, roots0, {==}, {==}, hp)
+
+def step_pinv(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +roots0: List<&2, U32>,
+    +hp: {pinv(cands(roots0, cal), s) == True{} : Bool}) -> {pinv(cands(roots0, cal), B.ds.step(s, cal, obs, us)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              hp
+            case Con{+r, +rt}:
+              root_pinv(B.has(done, r), r, rt, done, order, ers, cal, roots0, hp)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_pinv(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, cal, roots0, hp)
+                case Con{+c, +rs}:
+                  call_pinv(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, roots0, hp)
+
+# a finished walk stays finished
+def step_fin(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {B.ds.finished(s) == True{} : Bool}) ->
+    {B.ds.finished(B.ds.step(s, cal, obs, us)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              {==}
+            case Con{r, rt}:
+              Empty.absurd({B.ds.finished(B.ds.step(B.Ds{Nil{}, Con{r, rt}, done, order, ers}, cal, obs, us)) == True{} : Bool}, MB.false_ne_true()(h))
+        case Con{f, st}:
+          Empty.absurd({B.ds.finished(B.ds.step(B.Ds{Con{f, st}, roots, done, order, ers}, cal, obs, us)) == True{} : Bool}, MB.false_ne_true()(h))
+
+def go_fin(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {B.ds.finished(s) == True{} : Bool}) ->
+    {B.ds.finished(B.ds.go(n, s, cal, obs, us)) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_fin(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_fin(s, cal, obs, us, h))
+
+# a walk unfinished at the bound 0: its potential is not 0
+def pot_pos(s: B.Ds, +cal: List<&2, List<&2, U32>>, +roots0: List<&2, U32>, +hf: MNat.le(pot(cands(roots0, cal), cal, s), 0n)) -> {B.ds.finished(s) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              {==}
+            case Con{r, rt}:
+              Empty.absurd({B.ds.finished(B.Ds{Nil{}, Con{r, rt}, done, order, ers}) == True{} : Bool}, MB.false_ne_true()(hf))
+        case Con{f, st}:
+          match f:
+            case B.Fm{u, rest}:
+              Empty.absurd({B.ds.finished(B.Ds{Con{B.Fm{u, rest}, st}, roots, done, order, ers}) == True{} : Bool},
+                MB.false_ne_true()(ME.subst(Nat, z => MNat.le(z, 0n),
+                  Nat.add(List.length(&2, U32, roots), 1n+Nat.add(Nat.add(List.length(&2, U32, rest), frs(st)), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}))),
+                  1n+Nat.add(List.length(&2, U32, roots), Nat.add(Nat.add(List.length(&2, U32, rest), frs(st)), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}))),
+                  MNat.add_succ(List.length(&2, U32, roots), Nat.add(Nat.add(List.length(&2, U32, rest), frs(st)), sw(cands(roots0, cal), cal, Con{u, List.append(&2, U32, B.fms.units(st), done)}))), hf)))
+
+def ends_k(+fin: Bool, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +roots0: List<&2, U32>, +k: Nat,
+    +e: {fin == B.ds.finished(s) : Bool}, +hp: {pinv(cands(roots0, cal), s) == True{} : Bool}, +hf: MNat.le(pot(cands(roots0, cal), cal, s), 1n+k),
+    ih: {pinv(cands(roots0, cal), B.ds.step(s, cal, obs, us)) == True{} : Bool} -> MNat.le(pot(cands(roots0, cal), cal, B.ds.step(s, cal, obs, us)), k) ->
+      {B.ds.finished(B.ds.go(k, B.ds.step(s, cal, obs, us), cal, obs, us)) == True{} : Bool}) ->
+    {B.ds.finished(B.ds.go(k, B.ds.step(s, cal, obs, us), cal, obs, us)) == True{} : Bool}:
   match fin:
     case True{}:
-      %e : {Bool.or(_, Bool.not(List.is_empty(&2, B.Er, B.ds.ers(d)))) == True{} : Bool}
-      {==}
+      go_fin(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_fin(s, cal, obs, us, Equal.sym(Bool, True{}, B.ds.finished(s), e)))
     case False{}:
-      match d:
-        case B.Ds{stack, roots, done, order, ers}:
-          MB.or_true(B.ds.finished(B.Ds{stack, roots, done, order, Con{B.Er{0, "Blend's walk ran out of fuel before it finished, a fault of Blend's"}, ers}}))
+      ih(step_pinv(s, cal, obs, us, roots0, hp),
+        MNat.le_of_succ_le_succ(pot(cands(roots0, cal), cal, B.ds.step(s, cal, obs, us)), k,
+          MNat.le_trans(1n+pot(cands(roots0, cal), cal, B.ds.step(s, cal, obs, us)), pot(cands(roots0, cal), cal, s), 1n+k,
+            step_desc(s, cal, obs, us, roots0, hp, Equal.sym(Bool, False{}, B.ds.finished(s), e)), hf)))
 
+# within fuel no less than its potential, the walk finishes
+def ends(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +roots0: List<&2, U32>,
+    +hp: {pinv(cands(roots0, cal), s) == True{} : Bool}, +hf: MNat.le(pot(cands(roots0, cal), cal, s), n)) -> {B.ds.finished(B.ds.go(n, s, cal, obs, us)) == True{} : Bool}:
+  match n:
+    case 0n:
+      pot_pos(s, cal, roots0, hf)
+    case 1n+(+k):
+      ends_k(B.ds.finished(s), s, cal, obs, us, roots0, k, {==}, hp, hf,
+        p => q => ends(k, B.ds.step(s, cal, obs, us), cal, obs, us, roots0, p, q))
+
+# the fuel is the potential at the start
+def fuel_pot(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>) ->
+    MNat.le(pot(cands(roots, cal), cal, B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}), B.walk.fuel(roots, cal)):
+  %Equal.sym(Nat, sw(cands(roots, cal), cal, Nil{}), B.walk.weight(cands(roots, cal), cal), sw_nil(cands(roots, cal), cal)) : MNat.le(Nat.add(List.length(&2, U32, roots), _), B.walk.fuel(roots, cal))
+  MNat.le_refl(B.walk.fuel(roots, cal))
+
+def walk_ends(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>) ->
+    {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}:
+  ends(B.walk.fuel(roots, cal), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots,
+    and_intro(B.all.in(roots, cands(roots, cal)), True{}, sub_l(roots, List.concat(&2, U32, cal)), {==}),
+    fuel_pot(roots, cal))
+
+def Laws.order.ends(roots, cal, obs, us):
+  walk_ends(roots, cal, obs, us)
+
+# finished, the walk passes for no failure it has not reported
 def Laws.order.fuel(roots, cal, obs, us):
-  end_fuel(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), {==})
+  %Equal.sym(Bool, B.ds.finished(B.walk(roots, cal, obs, us)), True{}, walk_ends(roots, cal, obs, us)) :
+    {Bool.or(_, Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))))) == True{} : Bool}
+  {==}
