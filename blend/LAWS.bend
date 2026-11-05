@@ -145,9 +145,8 @@ law order.closed:
   {B.calls.in(B.ds.walked(B.walk(roots, cal, obs, us)), cal, B.ds.walked(B.walk(roots, cal, obs, us))) == True{} : Bool}
 
 # LAW: the walk finishes, or reports an error: a walk its fuel cut short
-# never passes for a success. With the laws above, a walk reporting no
-# error has walked every root and every unit one reaches, each in its
-# order once, after its callees.
+# never passes for a success. Since `order.ends` below, which proves it,
+# the walk always finishes.
 # Record: blend-adds-no-bend-logic
 law order.fuel:
   for +roots: List<&2, U32>
@@ -155,3 +154,16 @@ law order.fuel:
   for +obs: List<&2, B.Ob>
   for +us: List<&2, B.Un>
   {Bool.or(B.ds.finished(B.walk(roots, cal, obs, us)), Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))))) == True{} : Bool}
+
+# LAW: the walk finishes within its fuel, whatever its roots and calls,
+# so that `order.roots` and `order.closed` hold always: every root and
+# every unit one reaches is walked, each in its order once
+# (`order.once`), after its callees (`order.callees_first`), and in it
+# where no error is reported (`order.walked`).
+# Record: blend-adds-no-bend-logic
+law order.ends:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
