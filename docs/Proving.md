@@ -91,7 +91,11 @@ it alone taught. Add to this file what a new proof teaches.
   positive refutes the unfinished states. Over-approximate where exact
   costs more: a list of candidates, duplicates and all, each counted
   while not yet done, only overcounts, and makes a step's descent a lemma
-  on one removal.
+  on one removal. But an overcount can make the fuel superlinear, and a
+  walk run to its fuel pays all of it: count each item once by its
+  index where an index exists, the index of a `U32` its `U32.to_nat`
+  (the hub's `u32_is_eq_to_nat` ties `U32.is_eq` to it), and the
+  potential needs no invariant naming the candidates.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`

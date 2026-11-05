@@ -3936,20 +3936,27 @@ def ds.finished(d: Ds) -> Bool:
     case Ds{stack, roots, done, order, ers}:
       List.is_empty(&2, Fm, stack) && List.is_empty(&2, U32, roots)
 
-# each unit's weight in the walk's fuel: its push, its pop and a turn for
-# each of its calls
-def walk.weight(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> Nat:
+# two turns for each root or call: the step that takes it, and the pop
+# of the frame it may push
+def walk.turns(xs: List<&2, U32>) -> Nat:
   match xs:
     case Nil{}:
       0n
-    case Con{+x, t}:
-      Nat.add(2n+List.length(&2, U32, ids.at(cal, x)), walk.weight(t, cal))
+    case Con{x, t}:
+      2n+walk.turns(t)
 
-# the walk's fuel: a turn for each root, and each unit's weight for every
-# root and every call that may push it, enough for any roots and calls
-# (blend/LAWS.bend, `order.ends`)
+# the turns of every unit's calls
+def walk.calls(cal: List<&2, List<&2, U32>>) -> Nat:
+  match cal:
+    case Nil{}:
+      0n
+    case Con{xs, t}:
+      Nat.add(walk.turns(xs), walk.calls(t))
+
+# the walk's fuel: the turns of its roots and of every unit's calls,
+# enough for any roots and calls (blend/LAWS.bend, `order.ends`)
 def walk.fuel(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> Nat:
-  Nat.add(List.length(&2, U32, roots), walk.weight(List.append(&2, U32, roots, List.concat(&2, U32, cal)), cal))
+  Nat.add(walk.turns(roots), walk.calls(cal))
 
 # the walk from the roots: each step pushes, pops or follows a call
 def walk(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
