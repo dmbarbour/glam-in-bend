@@ -3953,9 +3953,6 @@ def rus.or(m: Maybe<&2, List<&2, Ru>>) -> List<&2, Ru>:
     case Some{x}:
       x
 
-def rus.at(+rss: List<&2, List<&2, Ru>>, +i: U32) -> List<&2, Ru>:
-  rus.or(List.get(&2, List<&2, Ru>, rss, U32.to_nat(i)))
-
 # Order
 # -----
 
@@ -4248,9 +4245,6 @@ def mu.or(x: Maybe<&2, Mu>) -> Mu:
     case Some{v}:
       v
 
-def mu.at(+ms: List<&2, Mu>, +i: U32) -> Mu:
-  mu.or(List.get(&2, Mu, ms, U32.to_nat(i)))
-
 def mu.m(x: Mu) -> U32:
   match x:
     case Mu{+m, +kind}:
@@ -4309,36 +4303,24 @@ def pus.or(m: Maybe<&2, List<&2, Pu>>) -> List<&2, Pu>:
     case Some{x}:
       x
 
-# each unit's uses so far, by unit: a use put first in its unit's
-def pend.cons(p: List<&2, List<&2, Pu>>, n: Nat, +x: Pu) -> List<&2, List<&2, Pu>>:
-  match p n:
-    case Nil{} _:
-      Nil{}
-    case Con{h, t} 0n:
-      Con{Con{x, h}, t}
-    case Con{+h, t} 1n+k:
-      Con{h, pend.cons(t, k, x)}
+def pend.at(+p: Ht<List<&2, Pu>>, +i: U32) -> List<&2, Pu>:
+  pus.or(pt.at(List<&2, Pu>, p, i))
 
-def pend.at(+p: List<&2, List<&2, Pu>>, +i: U32) -> List<&2, Pu>:
-  pus.or(List.get(&2, List<&2, Pu>, p, U32.to_nat(i)))
+# each unit's uses so far, by position (`blend-scale.mults`): a use put
+# first in its unit's
+def pend.cons(+p: Ht<List<&2, Pu>>, +c: U32, +x: Pu) -> Ht<List<&2, Pu>>:
+  ht.put(List<&2, Pu>, p, (c .&. 1 : U32), c, Con{x, pend.at(p, c)})
 
 # u's uses of others, each put first in its unit's, the last first, so
 # that each unit's keep u's order
-def pend.uses(rs: List<&2, Ru>, +u: U32, +w: U32, +m: U32, p: List<&2, List<&2, Pu>>) -> List<&2, List<&2, Pu>>:
+def pend.uses(rs: List<&2, Ru>, +u: U32, +w: U32, +m: U32, p: Ht<List<&2, Pu>>) -> Ht<List<&2, Pu>>:
   match rs:
     case Nil{}:
       p
     case Con{r, t}:
       match r:
         case Ru{+c, +no}:
-          pend.cons(pend.uses(t, u, w, m, p), U32.to_nat(c), Pu{u, no, w, m})
-
-def pends.none(us: List<&2, Un>) -> List<&2, List<&2, Pu>>:
-  match us:
-    case Nil{}:
-      Nil{}
-    case Con{u, t}:
-      Con{Nil{}, pends.none(t)}
+          pend.cons(pend.uses(t, u, w, m, p), c, Pu{u, no, w, m})
 
 def times(+n: U32) -> String:
   match n:
@@ -4365,23 +4347,28 @@ def er.affine(+obs: List<&2, Ob>, +us: List<&2, Un>, +x: U32, +rs: List<&2, Ru>)
   Er{node.no(un.node(un.at(us, x))), text(un.name(obs, us, x)) ++ " is affine and has " ++ U32.show(U32.from_nat(List.length(&2, Ru, rs))) ++
     " uses, in " ++ show.strs(uses.say(rs, obs, us, 0, 0, 0)) ++ ": mark it shared or copied"}
 
+# each unit's copies by position (`blend-scale.mults`), a unit's latest
+# put first in its leaf, so that it is the one read
 type Ms is Data:
-  Ms{ms: List<&2, Mu>, ers: List<&2, Er>}
+  Ms{ms: Ht<Mu>, ers: List<&2, Er>}
 
 def ms.set(s: Ms, +x: U32, +mu: Mu) -> Ms:
   match s:
     case Ms{ms, ers}:
-      Ms{List.set(&2, Mu, ms, U32.to_nat(x), mu), ers}
+      Ms{ht.put(Mu, ms, (x .&. 1 : U32), x, mu), ers}
 
 def ms.er(s: Ms, e: Er) -> Ms:
   match s:
     case Ms{ms, ers}:
       Ms{ms, Con{e, ers}}
 
-def ms.ms(s: Ms) -> List<&2, Mu>:
+def ms.ms(s: Ms) -> Ht<Mu>:
   match s:
     case Ms{ms, ers}:
       ms
+
+def ms.mu(+s: Ms, +x: U32) -> Mu:
+  mu.or(pt.at(Mu, ms.ms(s), x))
 
 # an affine unit: plain when unused, the copies of its one user, an error
 # when used twice
@@ -4409,23 +4396,23 @@ def mult.of(+x: U32, +share: U32, +ps: List<&2, Pu>, +obs: List<&2, Ob>, +us: Li
 
 # the copies each use by x needs: none from the module's definitions,
 # else one for each of x's copies, its own name's included
-def use.w(+x: U32, +us: List<&2, Un>, +s: Ms) -> U32:
-  when(U32, U32.is_eq(un.o(un.at(us, x)), 0), v => 0, v => (1 + mu.m(mu.at(ms.ms(s), x)) : U32))
+def use.w(+x: U32, +ut: Ht<Un>, +s: Ms) -> U32:
+  when(U32, U32.is_eq(un.o(ut.un(ut, x)), 0), v => 0, v => (1 + mu.m(ms.mu(s, x)) : U32))
 
 # from the last emitted to the first, the module's definitions shared, as
 # Bend's: each unit's users come before it, in the order emitted
 # (`order.callees_first`), so that each hands its uses on to the units
 # it uses, its copies known, and a unit has all its uses when its turn
 # comes (p, each unit's so far)
-def mults(xs: List<&2, U32>, +rss: List<&2, List<&2, Ru>>, +obs: List<&2, Ob>, +us: List<&2, Un>, s: Ms,
-    +p: List<&2, List<&2, Pu>>) -> Ms:
+def mults(xs: List<&2, U32>, +rt: Ht<List<&2, Ru>>, +ut: Ht<Un>, +obs: List<&2, Ob>, +us: List<&2, Un>, s: Ms,
+    +p: Ht<List<&2, Pu>>) -> Ms:
   match xs:
     case Nil{}:
       s
     case Con{+x, t}:
-      +s2 = mult.of(x, when(U32, U32.is_eq(un.o(un.at(us, x)), 0), u => 1, u => node.share(un.node(un.at(us, x)))),
+      +s2 = mult.of(x, when(U32, U32.is_eq(un.o(ut.un(ut, x)), 0), u => 1, u => node.share(un.node(ut.un(ut, x)))),
         pend.at(p, x), obs, us, s)
-      mults(t, rss, obs, us, s2, pend.uses(rus.at(rss, x), x, use.w(x, us, s2), mu.m(mu.at(ms.ms(s2), x)), p))
+      mults(t, rt, ut, obs, us, s2, pend.uses(rus.or(pt.at(List<&2, Ru>, rt, x)), x, use.w(x, ut, s2), mu.m(ms.mu(s2, x)), p))
 
 def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
   match us:
@@ -4440,38 +4427,38 @@ def mus.one(us: List<&2, Un>) -> List<&2, Mu>:
 # what emission reads: the file's name, the objects, the units, how each
 # is emitted
 type Ec is Data:
-  Ec{files: List<&2, List<&2, U32>>, obs: List<&2, Ob>, us: List<&2, Un>, mus: List<&2, Mu>, als: List<&2, Al>, own: List<&2, Ci>,
+  Ec{files: List<&2, List<&2, U32>>, obs: List<&2, Ob>, us: List<&2, Un>, als: List<&2, Al>, own: List<&2, Ci>,
     res: List<&2, List<&2, U32>>, paths: List<&2, List<&2, U32>>, +mode: U32, rtypes: List<&2, List<&2, U32>>, ux: Ht<Xe>, ut: Ht<Un>,
     mt: Ht<Mu>}
 
 def ec.ux(e: Ec) -> Ht<Xe>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       ux
 
 def ec.obs(e: Ec) -> List<&2, Ob>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       obs
 
 def ec.us(e: Ec) -> List<&2, Un>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       us
 
 def ec.mu(e: Ec, +i: U32) -> Mu:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       mu.or(pt.at(Mu, mt, i))
 
 def ec.ut(e: Ec) -> Ht<Un>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       ut
 
 def ec.un(e: Ec, +i: U32) -> Un:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       ut.un(ut, i)
 
 # the text so far, its bytes reversed, and each copied unit's next number
@@ -4544,7 +4531,7 @@ def mark.put(+mark: U32, b: Tb) -> Tb:
 
 def ec.als(e: Ec) -> List<&2, Al>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       als
 
 def rf.obj(r: Rf) -> U32:
@@ -4575,27 +4562,27 @@ def res.alias(+k: U32) -> List<&2, U32>:
 # the file written: 0 the code, 1 the laws, 2 the proofs
 def ec.mode(e: Ec) -> U32:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       mode
 
 def ec.rtypes(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       rtypes
 
 def ec.own(e: Ec) -> List<&2, Ci>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       own
 
 def ec.res(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       res
 
 def ec.paths(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       paths
 
 # the alias the root's emission gives a file: the root's own import of it,
@@ -4686,7 +4673,7 @@ def rls.put(ls: List<&2, Rl>, +e: Ec, +x: U32, +j: U32, +dind: U32, b: Tb) -> Tb
 
 def ec.files(e: Ec) -> List<&2, List<&2, U32>>:
   match e:
-    case Ec{files, obs, us, mus, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
+    case Ec{files, obs, us, als, own, res, paths, +mode, rtypes, ux, ut, mt}:
       files
 
 # the line before a definition naming where it is written,
@@ -5152,7 +5139,7 @@ def proof.parts(+mode: U32, +files: List<&2, List<&2, U32>>, +cx: Cx, +all: List
   +order = List.reverse(&2, U32, ds.order(d))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(units.what(us, mode), obs, cx.paths(cx)), own, Nil{})
-  +e = {Ec{files, obs, us, mus.one(us), cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0))), ux,
+  +e = {Ec{files, obs, us, cx.als(cx), own, res, cx.paths(cx), mode, tree.types(ob.mems(ob.at(obs, 0))), ux,
     pt.of(Un, us), pt.of(Mu, mus.one(us))} : Ec}
   Pf{e, order.what(order, us, mode), res.lines(path.at(cx.paths(cx), 0), res, 1),
     List.append(&2, Er, ds.ers(d), er.names.of(names.all(order.what(order, us, mode), e)))}
@@ -5169,14 +5156,14 @@ def emitted(+files: List<&2, List<&2, U32>>, +cx: Cx, +os: List<&2, Oc>) -> Out:
   +all = units(os)
   +us = units.of(all, False{})
   +ux = ux.of(us)
+  +ut = pt.of(Un, us)
   +rss = refss(us, ux, 0)
   +d = walk(roots.all(cx, ux), calls(rss), obs, us)
   +order = ds.order(d)
-  +ms = mults(order, rss, obs, us, Ms{mus.one(us), Nil{}}, pends.none(us))
+  +ms = mults(order, pt.of(List<&2, Ru>, rss), ut, obs, us, Ms{pt.of(Mu, mus.one(us)), Nil{}}, ht.for(List<&2, Pu>, List.length(&2, Un, us)))
   +own = cis.of(ims.of(ob.mems(ob.at(obs, 0))), path.at(cx.paths(cx), 0))
   +res = need.uniq(need.us(us, obs, cx.paths(cx)), own, Nil{})
-  +mus = ms.ms(ms)
-  +e = {Ec{files, obs, us, mus, cx.als(cx), own, res, cx.paths(cx), 0, Nil{}, ux, pt.of(Un, us), pt.of(Mu, mus)} : Ec}
+  +e = {Ec{files, obs, us, cx.als(cx), own, res, cx.paths(cx), 0, Nil{}, ux, ut, ms.ms(ms)} : Ec}
   +lw = proof.parts(1, files, cx, all)
   +pf = proof.parts(2, files, cx, all)
   emit.out(files, e, order, ob.mems(ob.at(obs, 0)), res.lines(path.at(cx.paths(cx), 0), res, 1), lw, pf,
