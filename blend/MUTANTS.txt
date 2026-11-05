@@ -33,6 +33,13 @@ a unit popped is not marked walked, so may be walked again
 === fuel_short order.ends
 a fuel of the roots alone
 --- blend.bend
-  Nat.add(List.length(&2, U32, roots), walk.weight(List.append(&2, U32, roots, List.concat(&2, U32, cal)), cal))
+  Nat.add(walk.turns(roots), walk.calls(cal))
 +++
-  List.length(&2, U32, roots)
+  walk.turns(roots)
+
+=== turns_one order.ends
+one turn for each root and call, where a root with no calls takes two
+--- blend.bend
+      2n+walk.turns(t)
++++
+      1n+walk.turns(t)
