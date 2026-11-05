@@ -1239,3 +1239,185 @@ def Laws.order.walked(roots, cal, obs, us, h):
   jinv_out(B.walk(roots, cal, obs, us),
     go_walked(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
       B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)
+
+# The walk's roots, every one walked
+# ----------------------------------
+#
+# The invariant: every root is among the units on the stack, those
+# walked and the roots left (cov); each step keeps every unit of the one
+# among the next's. Containment is a Bool (all.in), reusable where a
+# proof function is not.
+
+def or_cases(+a: Bool, +b: Bool, +c: Bool, h: {Bool.or(a, b) == True{} : Bool},
+    fa: {a == True{} : Bool} -> {c == True{} : Bool}, fb: {b == True{} : Bool} -> {c == True{} : Bool}) -> {c == True{} : Bool}:
+  match a:
+    case True{}:
+      fa({==})
+    case False{}:
+      fb(h)
+
+def has_sub(xs: List<&2, U32>, +ys: List<&2, U32>, +x: U32, +hs: {B.all.in(xs, ys) == True{} : Bool}, hx: {B.has(xs, x) == True{} : Bool}) ->
+    {B.has(ys, x) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      Empty.absurd({B.has(ys, x) == True{} : Bool}, MB.false_ne_true()(hx))
+    case Con{+y, +t}:
+      +hy = MB.eq_true_of_and_left(B.has(ys, y), B.all.in(t, ys), hs)
+      +ht = MB.eq_true_of_and_right(B.has(ys, y), B.all.in(t, ys), hs)
+      or_cases(U32.is_eq(y, x), B.has(t, x), B.has(ys, x), hx,
+        e => ME.subst(U32, z => {B.has(ys, z) == True{} : Bool}, y, x, u32_eq_of_is_eq(y, x, e), hy),
+        hh => has_sub(t, ys, x, ht, hh))
+
+def sub_trans(r: List<&2, U32>, +xs: List<&2, U32>, +ys: List<&2, U32>, +h1: {B.all.in(r, xs) == True{} : Bool}, +h2: {B.all.in(xs, ys) == True{} : Bool}) ->
+    {B.all.in(r, ys) == True{} : Bool}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+a, +t}:
+      and_intro(B.has(ys, a), B.all.in(t, ys), has_sub(xs, ys, a, h2, MB.eq_true_of_and_left(B.has(xs, a), B.all.in(t, xs), h1)),
+        sub_trans(t, xs, ys, MB.eq_true_of_and_right(B.has(xs, a), B.all.in(t, xs), h1), h2))
+
+def sub_refl(xs: List<&2, U32>) -> {B.all.in(xs, xs) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+a, +t}:
+      and_intro(B.has(Con{a, t}, a), B.all.in(t, Con{a, t}), has_self(t, a), all_in_mono(t, t, a, sub_refl(t)))
+
+def sub_cons(+xs: List<&2, U32>, +u: U32) -> {B.all.in(xs, Con{u, xs}) == True{} : Bool}:
+  all_in_mono(xs, xs, u, sub_refl(xs))
+
+def sub_l(p: List<&2, U32>, +q: List<&2, U32>) -> {B.all.in(p, List.append(&2, U32, p, q)) == True{} : Bool}:
+  match p:
+    case Nil{}:
+      {==}
+    case Con{+a, +t}:
+      and_intro(B.has(Con{a, List.append(&2, U32, t, q)}, a), B.all.in(t, Con{a, List.append(&2, U32, t, q)}),
+        has_self(List.append(&2, U32, t, q), a), all_in_mono(t, List.append(&2, U32, t, q), a, sub_l(t, q)))
+
+def sub_r(p: List<&2, U32>, +q: List<&2, U32>) -> {B.all.in(q, List.append(&2, U32, p, q)) == True{} : Bool}:
+  match p:
+    case Nil{}:
+      sub_refl(q)
+    case Con{+a, +t}:
+      all_in_mono(q, List.append(&2, U32, t, q), a, sub_r(t, q))
+
+def sub_app(p: List<&2, U32>, +q: List<&2, U32>, +ys: List<&2, U32>, +hp: {B.all.in(p, ys) == True{} : Bool}, +hq: {B.all.in(q, ys) == True{} : Bool}) ->
+    {B.all.in(List.append(&2, U32, p, q), ys) == True{} : Bool}:
+  match p:
+    case Nil{}:
+      hq
+    case Con{+a, +t}:
+      and_intro(B.has(ys, a), B.all.in(List.append(&2, U32, t, q), ys), MB.eq_true_of_and_left(B.has(ys, a), B.all.in(t, ys), hp),
+        sub_app(t, q, ys, MB.eq_true_of_and_right(B.has(ys, a), B.all.in(t, ys), hp), hq))
+
+# a unit in p is in p ++ q
+def in_l(+p: List<&2, U32>, +q: List<&2, U32>, +x: U32, +h: {B.has(p, x) == True{} : Bool}) -> {B.has(List.append(&2, U32, p, q), x) == True{} : Bool}:
+  has_sub(p, List.append(&2, U32, p, q), x, sub_l(p, q), h)
+
+def cov(s: B.Ds) -> List<&2, U32>:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      List.append(&2, U32, B.fms.units(stack), List.append(&2, U32, done, roots))
+
+def root_roots(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>,
+    +e: {seen == B.has(done, r) : Bool}, +rs0: List<&2, U32>, +h: {B.all.in(rs0, List.append(&2, U32, done, Con{r, rt})) == True{} : Bool}) ->
+    {B.all.in(rs0, cov(B.ds.root.k(seen, r, rt, done, order, ers, cal))) == True{} : Bool}:
+  match seen:
+    case True{}:
+      sub_trans(rs0, List.append(&2, U32, done, Con{r, rt}), List.append(&2, U32, done, rt), h,
+        sub_app(done, Con{r, rt}, List.append(&2, U32, done, rt), sub_l(done, rt),
+          and_intro(B.has(List.append(&2, U32, done, rt), r), B.all.in(rt, List.append(&2, U32, done, rt)),
+            in_l(done, rt, r, Equal.sym(Bool, True{}, B.has(done, r), e)), sub_r(done, rt))))
+    case False{}:
+      sub_trans(rs0, List.append(&2, U32, done, Con{r, rt}), Con{r, List.append(&2, U32, done, rt)}, h,
+        sub_app(done, Con{r, rt}, Con{r, List.append(&2, U32, done, rt)},
+          all_in_mono(done, List.append(&2, U32, done, rt), r, sub_l(done, rt)),
+          and_intro(B.has(Con{r, List.append(&2, U32, done, rt)}, r), B.all.in(rt, Con{r, List.append(&2, U32, done, rt)}),
+            has_self(List.append(&2, U32, done, rt), r), all_in_mono(rt, List.append(&2, U32, done, rt), r, sub_r(done, rt)))))
+
+def call_roots(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +rs0: List<&2, U32>, +h: {B.all.in(rs0, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))}) == True{} : Bool}) ->
+    {B.all.in(rs0, cov(B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us))) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      match cyc:
+        case True{}:
+          h
+        case False{}:
+          sub_trans(rs0, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))},
+            Con{c, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))}}, h,
+            sub_cons(Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))}, c))
+
+# a unit popped: from the stack to those walked
+def pop_sub(+u: U32, +a: List<&2, U32>, +d: List<&2, U32>) ->
+    {B.all.in(Con{u, List.append(&2, U32, a, d)}, List.append(&2, U32, a, Con{u, d})) == True{} : Bool}:
+  and_intro(B.has(List.append(&2, U32, a, Con{u, d}), u), B.all.in(List.append(&2, U32, a, d), List.append(&2, U32, a, Con{u, d})),
+    has_sub(Con{u, d}, List.append(&2, U32, a, Con{u, d}), u, sub_r(a, Con{u, d}), has_self(d, u)),
+    sub_app(a, d, List.append(&2, U32, a, Con{u, d}), sub_l(a, Con{u, d}),
+      sub_trans(d, Con{u, d}, List.append(&2, U32, a, Con{u, d}), sub_cons(d, u), sub_r(a, Con{u, d}))))
+
+def done_roots(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +rs0: List<&2, U32>, +h: {B.all.in(rs0, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))}) == True{} : Bool}) ->
+    {B.all.in(rs0, cov(B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us))) == True{} : Bool}:
+  match ok:
+    case True{}:
+      sub_trans(rs0, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))},
+        List.append(&2, U32, B.fms.units(st), Con{u, List.append(&2, U32, done, roots)}), h,
+        pop_sub(u, B.fms.units(st), List.append(&2, U32, done, roots)))
+    case False{}:
+      sub_trans(rs0, Con{u, List.append(&2, U32, B.fms.units(st), List.append(&2, U32, done, roots))},
+        List.append(&2, U32, B.fms.units(st), Con{u, List.append(&2, U32, done, roots)}), h,
+        pop_sub(u, B.fms.units(st), List.append(&2, U32, done, roots)))
+
+def step_roots(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +rs0: List<&2, U32>,
+    +h: {B.all.in(rs0, cov(s)) == True{} : Bool}) -> {B.all.in(rs0, cov(B.ds.step(s, cal, obs, us))) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              h
+            case Con{+r, +rt}:
+              root_roots(B.has(done, r), r, rt, done, order, ers, cal, {==}, rs0, h)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_roots(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, rs0, h)
+                case Con{+c, +rs}:
+                  call_roots(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, rs0, h)
+
+def go_roots(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +rs0: List<&2, U32>,
+    +h: {B.all.in(rs0, cov(s)) == True{} : Bool}) -> {B.all.in(rs0, cov(B.ds.go(n, s, cal, obs, us))) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_roots(k, B.ds.step(s, cal, obs, us), cal, obs, us, rs0, step_roots(s, cal, obs, us, rs0, h))
+
+# finished: no stack, no roots, so every root walked
+def roots_out(s: B.Ds, +rs0: List<&2, U32>, +h: {B.all.in(rs0, cov(s)) == True{} : Bool}, e: {B.ds.finished(s) == True{} : Bool}) ->
+    {B.all.in(rs0, B.ds.walked(s)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, +done, order, ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              sub_trans(rs0, List.append(&2, U32, done, Nil{}), done, h, sub_app(done, Nil{}, done, sub_refl(done), {==}))
+            case Con{r, rt}:
+              Empty.absurd({B.all.in(rs0, done) == True{} : Bool}, MB.false_ne_true()(e))
+        case Con{f, st}:
+          Empty.absurd({B.all.in(rs0, done) == True{} : Bool}, MB.false_ne_true()(e))
+
+def Laws.order.roots(roots, cal, obs, us, h):
+  roots_out(B.walk(roots, cal, obs, us), roots,
+    go_roots(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots)), h)

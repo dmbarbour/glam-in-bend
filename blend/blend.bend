@@ -4568,6 +4568,13 @@ def ds.order(d: Ds) -> List<&2, U32>:
     case Ds{stack, roots, done, order, ers}:
       order
 
+# whether the walk has finished, its stack and its roots spent
+# (blend/LAWS.bend, `order.roots`)
+def ds.finished(d: Ds) -> Bool:
+  match d:
+    case Ds{stack, roots, done, order, ers}:
+      List.is_empty(&2, Fm, stack) && List.is_empty(&2, U32, roots)
+
 # the units walked (blend/LAWS.bend, `order.walked`)
 def ds.walked(d: Ds) -> List<&2, U32>:
   match d:
