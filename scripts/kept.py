@@ -1,7 +1,10 @@
 """Bend's checks of files, a pass kept for unchanged inputs: `verdict`,
 `bend FILE --verdict`, a proof file's proofs rechecked by BendTT's kernel,
 proved in Lean, far costlier than Bend's own check; `check`, `bend FILE
---check-only`, a file typechecked. Each depends only on its inputs, so a
+--check-only`, a file typechecked; `mutants`, a mutants file's mutations
+tried against the laws they name (scripts/one_law.py), its inputs those
+of the proof file beside it, the file itself and the scripts that try
+it. Each depends only on its inputs, so a
 pass is kept, keyed on them, and a file whose inputs are unchanged is not
 checked again: the file and every file it imports, transitively, by their
 contents; Bend (its version, its executable's size, time and inode, Base and
@@ -21,6 +24,8 @@ Run from the repository root:
   python3 -I scripts/kept.py check FILE...     each file typechecked, a
                                                failure's output shown, then
                                                a count
+  python3 -I scripts/kept.py mutants FILE...   each mutants file tried, its
+                                               output shown
   --fresh after the mode checks every file again, the kept passes ignored
   (passes still kept)
 """
@@ -35,6 +40,8 @@ import sys
 IMPORT = re.compile(r"^import\s+(\S+)", re.M)
 CACHE = os.path.join("results", "kept")
 FLAGS = {"verdict": "--verdict", "check": "--check-only"}
+MODES = list(FLAGS) + ["mutants"]
+TRIES = [os.path.join("scripts", "one_law.py"), os.path.join("scripts", "capped.sh")]
 
 
 def bend_exe():
@@ -82,8 +89,20 @@ def closure(path):
     return files, others
 
 
+def beside(path):
+    """The proof file beside a mutants file, as scripts/one_law.py finds it."""
+    d, b = os.path.split(os.path.normpath(path))
+    return os.path.join(d, b.removesuffix("MUTANTS.txt") + "PROOF.bend")
+
+
 def key(path, tools, mode):
-    files, others = closure(path)
+    if mode == "mutants":
+        files, others = closure(beside(path))
+        for p in [path] + TRIES:
+            with open(p, "rb") as f:
+                files[os.path.normpath(p)] = f.read()
+    else:
+        files, others = closure(path)
     h = hashlib.sha256(tools + mode.encode() + b"\0")
     h.update(os.path.normpath(path).encode() + b"\0")
     for p in sorted(files):
@@ -97,22 +116,31 @@ def main(args):
     mode = args[0] if args else ""
     fresh = len(args) > 1 and args[1] == "--fresh"
     paths = args[2:] if fresh else args[1:]
-    if mode not in FLAGS or not paths:
-        print("usage: python3 -I scripts/kept.py verdict|check [--fresh] FILE...", file=sys.stderr)
+    if mode not in MODES or not paths:
+        print("usage: python3 -I scripts/kept.py verdict|check|mutants [--fresh] FILE...", file=sys.stderr)
         return 2
     bend = bend_exe()
     tools = tool_key(bend)
     os.makedirs(CACHE, exist_ok=True)
     status, kept, ran = 0, 0, 0
     for path in paths:
+        if mode == "mutants" and not os.path.isfile(beside(path)):
+            print(f"{path} has no {beside(path)} beside it")
+            status = 1
+            continue
         mark = os.path.join(CACHE, key(path, tools, mode))
         if not fresh and os.path.exists(mark):
             kept += 1
             if mode == "verdict":
                 print(f"ALL PROOFS CHECK (kept: {path} and its imports unchanged)")
+            elif mode == "mutants":
+                print(f"{path}: every mutation fails (kept: its inputs unchanged)")
             continue
         ran += 1
-        if mode == "verdict":
+        if mode == "mutants":
+            run = subprocess.run([sys.executable, "-I", TRIES[0], "--mutants", path],
+                                 env=dict(os.environ, BEND=bend))
+        elif mode == "verdict":
             run = subprocess.run([bend, path, FLAGS[mode]])
         else:
             run = subprocess.run([bend, path, FLAGS[mode]], capture_output=True, text=True)

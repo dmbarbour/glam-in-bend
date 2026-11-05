@@ -154,7 +154,8 @@ decision records and their index, plan and review lists, step names), the
 law history, then runs `bend PROOF.bend --verdict` (the proofs rechecked
 by BendTT's kernel, itself proved in Lean; a pass kept while the file, its
 imports, Bend and Lean are unchanged, `scripts/kept.py`, as each Bend
-file's typecheck is) and the library of nets
+file's typecheck is), each `MUTANTS.txt`'s mutations against the laws
+they name (`scripts/one_law.py`, kept the same way) and the library of nets
 (`spike/library.txt`), and names the tree it checked. It times each
 section and ends with their summary: watch it, a slow gate costing every
 commit. A check whose inputs are unchanged keeps its pass (a verdict, a
@@ -196,7 +197,8 @@ write both.
   in the plan beside it (`docs/Proving.md`, What to claim).
 - Mutate the code a new law follows, and keep the mutations in a
   `MUTANTS.txt` beside the proof file; `scripts/one_law.py` checks one
-  law alone, and tries them against it.
+  law alone, and tries them against it, as the gate does for every
+  mutants file.
 - Prefer state shapes in which an invariant holds by computation; then its
   law costs a case split.
 

@@ -30,7 +30,8 @@ each object's linearization and definitions, `resolve` each copy and
 what its names reach. `blend/run.sh` runs the tool built once for each
 version of its sources (`blend/build.sh`); `bend blend.bend COMMAND ...`
 runs the same, checked and compiled each time. `blend/check.sh`, in the
-gate, holds every sample to its `.bend` or its `.err`.
+gate, holds every sample to its `.bend` or its `.err`. `blend/bench/`
+measures how Blend's cost grows with a module (its README).
 
 The maintainer's direction (2026-11-04): `def` and `upd` for
 introduction and override, definitions affine unless marked; the samples

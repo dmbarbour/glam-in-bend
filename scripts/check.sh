@@ -1,7 +1,7 @@
 #!/bin/sh
 # The gate: run before every commit, from anywhere in the repository.
 # Checks the docs, the law history, the proofs (each `PROOF.bend`, by bend
-# and by BendTT's proven kernel), that
+# and by BendTT's proven kernel), the mutations each law must fail, that
 # generated code matches its generator, Blend's samples, the library of nets
 # (spike/library.txt), then that every other Bend file still typechecks.
 # Exits nonzero on any
@@ -65,6 +65,15 @@ elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | 
 else
   echo "no Bend sources yet"
 fi
+
+section mutants
+# each MUTANTS.txt beside a proof file (X_MUTANTS.txt beside X_PROOF.bend),
+# its mutations tried against the laws they name, each expected to fail
+# them (scripts/one_law.py), a pass kept for inputs unchanged
+# (scripts/kept.py)
+for m in $(git ls-files --cached --others --exclude-standard -- '*MUTANTS.txt' ':!bench/'); do
+  BEND=$BEND python3 -I scripts/kept.py mutants "$m" || status=1
+done
 
 section "generated code"
 # every generated file matches its generator (generated-sources)

@@ -21,14 +21,21 @@ survives a mutation of what it is about claims less than meant
     its replacement, verbatim
 
 PATH relative to the proof file's directory, the code found there exactly
-once; lines before the first `===` are comments. Exits 0 where the
-control passes and every mutation fails, 1 otherwise, 2 on bad usage.
+once; lines before the first `===` are comments. A mutants file sits
+beside its proof file, as a laws file does: MUTANTS.txt beside PROOF.bend,
+X_MUTANTS.txt beside X_PROOF.bend. Given only the mutants file, every law
+it names is tried, as the gate does (scripts/check.sh, through
+scripts/kept.py). Exits 0 where each control passes and every mutation
+fails, 1 otherwise, 2 on bad usage.
 
 Run from the repository root:
   python3 -I scripts/one_law.py PROOF LAW              the law checked alone
   python3 -I scripts/one_law.py PROOF LAW --mutants FILE
                                                        and each of FILE's
                                                        mutations naming it
+  python3 -I scripts/one_law.py --mutants FILE         every law FILE
+                                                       names, against the
+                                                       proof file beside it
   --cap MB SECONDS   each run's cap (scripts/capped.sh), 3000 MB 300 s by
                      default
 """
@@ -179,20 +186,15 @@ def check(path, cap):
     return ok, loc[0] if loc else " / ".join(lines[:3])
 
 
-def main(args):
-    cap = ("3000", "300")
-    muts = None
-    if "--cap" in args:
-        i = args.index("--cap")
-        cap, args = tuple(args[i + 1:i + 3]), args[:i] + args[i + 3:]
-    if "--mutants" in args:
-        i = args.index("--mutants")
-        muts, args = args[i + 1], args[:i] + args[i + 2:]
-    if len(args) != 2 or len(cap) != 2:
-        print(__doc__.split("Run from")[1], file=sys.stderr)
-        return 2
-    proof, law = os.path.normpath(args[0]), args[1]
-    files = closure(proof)
+def beside(muts):
+    """The proof file beside a mutants file."""
+    d, b = os.path.split(os.path.normpath(muts))
+    return os.path.join(d, b.removesuffix("MUTANTS.txt") + "PROOF.bend")
+
+
+def try_law(files, proof, law, muts, cap):
+    """The law checked alone, then each mutation naming it: 0 where the
+    control passes and every mutation fails."""
     tag = proof.replace(os.sep, "_").removesuffix(".bend")
     status = 0
     print(f"-- {law} alone")
@@ -207,6 +209,33 @@ def main(args):
         ok, where = check(copy(files, proof, law, os.path.join(OUT, tag, law, name), m), cap)
         print(f"{name}: {'SURVIVES' if ok else 'fails ' + law + ' at ' + where}")
         status |= 1 if ok else 0
+    return status
+
+
+def main(args):
+    cap = ("3000", "300")
+    muts = None
+    if "--cap" in args:
+        i = args.index("--cap")
+        cap, args = tuple(args[i + 1:i + 3]), args[:i] + args[i + 3:]
+    if "--mutants" in args:
+        i = args.index("--mutants")
+        muts, args = args[i + 1], args[:i] + args[i + 2:]
+    if len(cap) != 2 or not (len(args) == 2 or (not args and muts)):
+        print(__doc__.split("Run from")[1], file=sys.stderr)
+        return 2
+    if args:
+        proof, laws = os.path.normpath(args[0]), [args[1]]
+    else:
+        proof = beside(muts)
+        laws = list(dict.fromkeys(law for m in mutants(muts) for law in m[1]))
+        if not os.path.isfile(proof):
+            print(f"one_law: {muts} has no {proof} beside it", file=sys.stderr)
+            return 2
+    files = closure(proof)
+    status = 0
+    for law in laws:
+        status |= try_law(files, proof, law, muts, cap)
     return status
 
 

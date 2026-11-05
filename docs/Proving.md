@@ -30,8 +30,10 @@ it alone taught. Add to this file what a new proof teaches.
 - **Mutate the code after a proof passes**: break what the law is about
   in a copy, and see the proofs fail. A law that survives the mutation
   claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
-  the proof file, each naming the laws it should fail, and try them with
-  `scripts/one_law.py` (below) when the proof or its code changes.
+  the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
+  laws it should fail: the gate tries each against them
+  (`scripts/one_law.py`, below), its pass kept while its inputs are
+  unchanged.
 
 ## Shaping the code a law follows
 
