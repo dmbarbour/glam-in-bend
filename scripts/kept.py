@@ -1,11 +1,13 @@
-"""Bend's verdict on proof files, cached: `bend FILE --verdict` rechecks a
-proof file's proofs by BendTT's kernel, proved in Lean, and costs far more
-than Bend's own check. A verdict depends only on its inputs, so a pass is
-kept, keyed on them, and a file whose inputs are unchanged is not rechecked:
-the file and every file it imports, transitively, by their contents; Bend
-(its version, its executable's size, time and inode, Base and its effects
-beside it, as blend/build.sh keys its build); and Lean's version. A failure
-is never kept. The passes live in results/verdicts/ (out of git).
+"""Bend's checks of files, a pass kept for unchanged inputs: `verdict`,
+`bend FILE --verdict`, a proof file's proofs rechecked by BendTT's kernel,
+proved in Lean, far costlier than Bend's own check; `check`, `bend FILE
+--check-only`, a file typechecked. Each depends only on its inputs, so a
+pass is kept, keyed on them, and a file whose inputs are unchanged is not
+checked again: the file and every file it imports, transitively, by their
+contents; Bend (its version, its executable's size, time and inode, Base and
+its effects beside it, as blend/build.sh keys its build); Lean's version;
+and the check. A failure is never kept. The passes live in results/kept/
+(out of git).
 
 An import is read as Bend reads it, `import PATH [as ALIAS]` at a line's
 start: a path to a local file is followed; one to none (a hub package's,
@@ -13,11 +15,14 @@ named by its hash or its name) is keyed by the path as written, the hub's
 own content being fixed by it.
 
 Run from the repository root:
-  python3 -I scripts/verdict.py FILE...           each file's verdict, a
-                                                  kept pass where its inputs
-                                                  are unchanged
-  python3 -I scripts/verdict.py --fresh FILE...   each rechecked, the cache
-                                                  ignored (passes still kept)
+  python3 -I scripts/kept.py verdict FILE...   each file's verdict, a kept
+                                               pass where its inputs are
+                                               unchanged, Bend's output shown
+  python3 -I scripts/kept.py check FILE...     each file typechecked, a
+                                               failure's output shown, then
+                                               a count
+  --fresh after the mode checks every file again, the kept passes ignored
+  (passes still kept)
 """
 
 import hashlib
@@ -28,7 +33,8 @@ import subprocess
 import sys
 
 IMPORT = re.compile(r"^import\s+(\S+)", re.M)
-CACHE = os.path.join("results", "verdicts")
+CACHE = os.path.join("results", "kept")
+FLAGS = {"verdict": "--verdict", "check": "--check-only"}
 
 
 def bend_exe():
@@ -76,9 +82,9 @@ def closure(path):
     return files, others
 
 
-def key(path, tools):
+def key(path, tools, mode):
     files, others = closure(path)
-    h = hashlib.sha256(tools)
+    h = hashlib.sha256(tools + mode.encode() + b"\0")
     h.update(os.path.normpath(path).encode() + b"\0")
     for p in sorted(files):
         h.update(p.encode() + b"\0" + hashlib.sha256(files[p]).digest())
@@ -88,26 +94,37 @@ def key(path, tools):
 
 
 def main(args):
-    fresh = bool(args) and args[0] == "--fresh"
-    paths = args[1:] if fresh else args
-    if not paths:
-        print("usage: python3 -I scripts/verdict.py [--fresh] FILE...", file=sys.stderr)
+    mode = args[0] if args else ""
+    fresh = len(args) > 1 and args[1] == "--fresh"
+    paths = args[2:] if fresh else args[1:]
+    if mode not in FLAGS or not paths:
+        print("usage: python3 -I scripts/kept.py verdict|check [--fresh] FILE...", file=sys.stderr)
         return 2
     bend = bend_exe()
     tools = tool_key(bend)
     os.makedirs(CACHE, exist_ok=True)
-    status = 0
+    status, kept, ran = 0, 0, 0
     for path in paths:
-        mark = os.path.join(CACHE, key(path, tools))
+        mark = os.path.join(CACHE, key(path, tools, mode))
         if not fresh and os.path.exists(mark):
-            print(f"ALL PROOFS CHECK (kept: {path} and its imports unchanged)")
+            kept += 1
+            if mode == "verdict":
+                print(f"ALL PROOFS CHECK (kept: {path} and its imports unchanged)")
             continue
-        run = subprocess.run([bend, path, "--verdict"])
+        ran += 1
+        if mode == "verdict":
+            run = subprocess.run([bend, path, FLAGS[mode]])
+        else:
+            run = subprocess.run([bend, path, FLAGS[mode]], capture_output=True, text=True)
+            if run.returncode != 0:
+                print(f"{path}:\n{run.stdout}{run.stderr}", end="")
         if run.returncode == 0:
             with open(mark, "w") as f:
-                f.write(path + "\n")
+                f.write(f"{mode} {path}\n")
         else:
             status = 1
+    if mode == "check":
+        print(f"bend files: {'ok' if status == 0 else 'failures'} ({ran} checked, {kept} kept)")
     return status
 
 

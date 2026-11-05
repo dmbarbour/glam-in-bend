@@ -148,11 +148,15 @@ Run `scripts/check.sh` before every commit. It checks the docs (links,
 decision records and their index, plan and review lists, step names), the
 law history, then runs `bend PROOF.bend --verdict` (the proofs rechecked
 by BendTT's kernel, itself proved in Lean; a pass kept while the file, its
-imports, Bend and Lean are unchanged, `scripts/verdict.py`) and the library of nets
+imports, Bend and Lean are unchanged, `scripts/kept.py`, as each Bend
+file's typecheck is) and the library of nets
 (`spike/library.txt`), and names the tree it checked. It times each
 section and ends with their summary: watch it, a slow gate costing every
-commit (205 s on 2026-11-05, the library 96 s, the spike's verdict 57 s,
-`--check-only` over the Bend files 38 s). Report its result as
+commit. A check whose inputs are unchanged keeps its pass (a verdict, a
+Bend file's typecheck, the library's whole run; `scripts/kept.py`,
+`spike/tools/library.py`), never a failure: 16 s when only Blend or the
+docs change, near 200 s when the spike does, its verdict 57 s and the
+library 96 s (2026-11-05). Report its result as
 it is: a check skipped or too slow to finish is not a pass.
 
 The library holds small nets kept for what they exercise, each with what

@@ -41,7 +41,7 @@ python3 -I scripts/check_laws.py || status=1
 section proofs
 # each PROOF.bend checked by bend, then rechecked by BendTT's kernel, which
 # has a proof in Lean (`bend --verdict`), a pass kept for inputs unchanged
-# (scripts/verdict.py: the file, its imports, Bend and Lean); Lean as scripts/dev-setup.sh
+# (scripts/kept.py: the file, its imports, Bend and Lean); Lean as scripts/dev-setup.sh
 # installs it, last on the path: its toolchain carries a clang of its own,
 # without the system's headers, which native builds must not find first
 PATH="$PATH:$HOME/.lean/bin"
@@ -56,7 +56,7 @@ if [ -n "$proofs" ]; then
   for f in $proofs; do
     echo "-- $f"
     at=$(date +%s.%N)
-    BEND=$BEND python3 -I scripts/verdict.py "$f" || status=1
+    BEND=$BEND python3 -I scripts/kept.py verdict "$f" || status=1
     echo "   ($f: $(since "$at") s)"
   done
 elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | grep -q .; then
@@ -77,7 +77,8 @@ BEND=$BEND blend/check.sh || status=1
 
 section library
 # every net of spike/library.txt through every strategy, its checks
-# (pairing-library); the program and its output go to results/library
+# (pairing-library); the program and its output go to results/library, a
+# whole run's pass kept for its inputs unchanged (library.py says which)
 if [ -f spike/library.txt ]; then
   BEND=$BEND python3 -I spike/tools/library.py results/library > results/library.log 2>&1 || {
     grep -v '^ok ' results/library.log; status=1; }
@@ -85,11 +86,11 @@ if [ -f spike/library.txt ]; then
 fi
 
 section "bend files"
-failed=0
-for f in $(git ls-files --cached --others --exclude-standard -- '*.bend' ':!*LAWS.bend' ':!*PROOF.bend'); do
-  out=$("$BEND" "$f" --check-only 2>&1) || { echo "$f:"; echo "$out"; failed=$((failed + 1)); }
-done
-if [ "$failed" -eq 0 ]; then echo "bend files: ok"; else echo "bend files: $failed failed"; status=1; fi
+# every other Bend file typechecks, a pass kept for inputs unchanged
+# (scripts/kept.py)
+# shellcheck disable=SC2046 # one argument a file
+BEND=$BEND python3 -I scripts/kept.py check $(git ls-files --cached --others --exclude-standard -- '*.bend' ':!*LAWS.bend' ':!*PROOF.bend') ||
+  status=1
 
 section ""
 echo "times:${times%,}; total $(since "$start") s"

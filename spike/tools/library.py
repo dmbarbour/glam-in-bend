@@ -11,12 +11,21 @@ profiled, its logical interactions those of the interactions made, its
 events by kind apart. What must hold is checked; interactions and events
 are measurements, recorded in the analysis store when asked.
 
-    library.py OUT [--update] [--store NOTE] [NAME...]
+    library.py OUT [--update] [--store NOTE] [--fresh] [NAME...]
 
 OUT holds the program written and its output; NAME runs those entries
 alone. --update writes each mode's logical interactions and peels into
 the library from the run, never its value. --store records every case in
 the store (scripts/results.py library). Exits 1 if any check fails.
+
+A whole run's pass is kept, as scripts/kept.py keeps Bend's checks, keyed
+on what it depends on: the library, the program written and every Bend file
+it imports, the nets file, this tool and its helpers (terms.py,
+polarity.py), Bend (as kept.py keys it), clang, scripts/capped.sh and the
+caps. A run with its inputs unchanged prints its count, kept, and builds
+nothing; --fresh runs it all the same. A run of named entries, or with
+--update or --store, is never kept nor skipped. The passes live in
+results/kept/ (out of git).
 
 spike/library.txt holds the entries, separated by blank lines, each a few
 `key: value` lines, a line starting with a blank continuing the last:
@@ -95,6 +104,7 @@ OUT/library OUT/nets.txt K I its strategy I alone (STRATEGIES: 0 spike, 1 ref, 2
 which case, then which strategy.
 """
 import contextlib
+import hashlib
 import io
 import os
 import re
@@ -384,6 +394,22 @@ def main() -> IO(Unit):
 '''
 
 
+def library_key(out):
+    """What a run of the whole library depends on, as a key (above)."""
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import kept  # noqa: E402
+    bend = os.environ.get("BEND", "bend")
+    h = hashlib.sha256(kept.key(os.path.join(out, "library.bend"), kept.tool_key(bend), "library").encode())
+    here = os.path.dirname(os.path.abspath(__file__))
+    for path in [os.path.join(out, "nets.txt"), LIBRARY, os.path.abspath(__file__), os.path.join(here, "terms.py"),
+                 os.path.join(here, "polarity.py"), os.path.join(ROOT, "scripts", "capped.sh")]:
+        with open(path, "rb") as f:
+            h.update(path.encode() + b"\0" + hashlib.sha256(f.read()).digest())
+    h.update(subprocess.run(["clang", "--version"], capture_output=True).stdout)
+    h.update(" ".join(cap("LIBRARY_BUILD_CAP", BUILD_CAP) + cap("LIBRARY_RUN_CAP", RUN_CAP)).encode())
+    return h.hexdigest()
+
+
 def program(cs, out):
     """OUT/library.bend, a program reading its nets at run time, and
     OUT/nets.txt, the cases in load.bend's format, each row's wanted value
@@ -567,7 +593,8 @@ def main(argv):
         i = argv.index("--store")
         note = argv[i + 1]
         argv = argv[:i] + argv[i + 2:]
-    argv = [a for a in argv if a != "--update"]
+    fresh = "--fresh" in argv
+    argv = [a for a in argv if a not in ("--update", "--fresh")]
     if not argv:
         print(__doc__.strip())
         return 2
@@ -597,6 +624,12 @@ def main(argv):
     if failing:
         return 1
     path = program(cs, out)
+    mark = None
+    if not update and note is None and not argv[1:]:
+        mark = os.path.join(ROOT, "results", "kept", "library-" + library_key(out))
+        if not fresh and os.path.exists(mark):
+            print(f"{len(cs)} cases, 0 failing (kept: the library, its program and its tools unchanged)")
+            return 0
     exe = os.path.join(out, "library")
     bend = os.environ.get("BEND", "bend")
     capped = os.path.join(ROOT, "scripts", "capped.sh")
@@ -656,6 +689,10 @@ def main(argv):
     if note is not None and runs:
         print("store run", store(note, out, runs))
     print(f"{len(cs)} cases, {failing} failing")
+    if mark and not failing:
+        os.makedirs(os.path.dirname(mark), exist_ok=True)
+        with open(mark, "w") as f:
+            f.write(f"{len(cs)} cases\n")
     return 1 if failing else 0
 
 
