@@ -31,6 +31,9 @@
 # - A fast walk proved against the walk (`order.fast`): a state lifted
 #   with the tries its lists make, a step from it the lifted step
 #   (`step_lift`); the tries on U32's own bits (`has_put`, `put_comm`).
+# - The dispositions (`mults.uses`): a specification sharing `mult.of`,
+#   the uses waiting characterized after the units taken (`pa_at`), the
+#   induction's order the specification's reversal's accumulator.
 # - Mutate the code after a proof passes: a law that survives a mutation
 #   claims less than meant.
 
@@ -2223,29 +2226,30 @@ def of_app(a: List<&2, U32>, +u: U32, +d: List<&2, U32>) ->
         Equal.cong(B.Wt, B.Wt, z => B.vs.put(z, h), B.vs.of(List.append(&2, U32, t, Con{u, d})), B.vs.put(B.vs.of(List.append(&2, U32, t, d)), u), of_app(t, u, d)),
         vs_comm(B.vs.of(List.append(&2, U32, t, d)), h, u))
 
-# The calls by position: a list split in two, its even positions first,
-# read back as the list at double the position, and one more
+# A list by position: split in two, its even positions first, read back
+# as the list at double the position, and one more (`Pw`, each unit's
+# calls in the fast walk, its uses in the dispositions)
 
-def e_cons(+x: List<&2, U32>, p: B.Eo) -> {Con{x, B.eo.o(p)} == B.eo.e(B.eo.cons(x, p)) : List<&2, List<&2, U32>>}:
+def e_cons(-A: Data, +x: A, p: B.Eo<A>) -> {Con{x, B.eo.o(A, p)} == B.eo.e(A, B.eo.cons(A, x, p)) : List<&2, A>}:
   match p:
     case B.Eo{e, o}:
       {==}
 
-def o_cons(+x: List<&2, U32>, p: B.Eo) -> {B.eo.e(p) == B.eo.o(B.eo.cons(x, p)) : List<&2, List<&2, U32>>}:
+def o_cons(-A: Data, +x: A, p: B.Eo<A>) -> {B.eo.e(A, p) == B.eo.o(A, B.eo.cons(A, x, p)) : List<&2, A>}:
   match p:
     case B.Eo{e, o}:
       {==}
 
-def e_get.k(+x: List<&2, U32>, +y: List<&2, U32>, +r: List<&2, List<&2, U32>>, i: Nat,
-    ih: @j:Nat -> {List.get(&2, List<&2, U32>, B.eo.e(B.eo.split(r)), j) == List.get(&2, List<&2, U32>, r, Nat.double(j)) : Maybe<&2, List<&2, U32>>}) ->
-    {List.get(&2, List<&2, U32>, Con{x, B.eo.e(B.eo.split(r))}, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+def e_get.k(-A: Data, +x: A, +y: A, +r: List<&2, A>, i: Nat,
+    ih: @j:Nat -> {List.get(&2, A, B.eo.e(A, B.eo.split(A, r)), j) == List.get(&2, A, r, Nat.double(j)) : Maybe<&2, A>}) ->
+    {List.get(&2, A, Con{x, B.eo.e(A, B.eo.split(A, r))}, i) == List.get(&2, A, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, A>}:
   match i:
     case 0n:
       {==}
     case 1n+j:
       ih(j)
 
-def e_get(xs: List<&2, List<&2, U32>>, i: Nat) -> {List.get(&2, List<&2, U32>, B.eo.e(B.eo.split(xs)), i) == List.get(&2, List<&2, U32>, xs, Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+def e_get(-A: Data, xs: List<&2, A>, i: Nat) -> {List.get(&2, A, B.eo.e(A, B.eo.split(A, xs)), i) == List.get(&2, A, xs, Nat.double(i)) : Maybe<&2, A>}:
   match xs:
     case Nil{}:
       {==}
@@ -2258,23 +2262,23 @@ def e_get(xs: List<&2, List<&2, U32>>, i: Nat) -> {List.get(&2, List<&2, U32>, B
             case 1n+j:
               {==}
         case Con{+y, +r}:
-          %e_cons(x, B.eo.cons(y, B.eo.split(r))) :
-            {List.get(&2, List<&2, U32>, _, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}
-          %o_cons(y, B.eo.split(r)) :
-            {List.get(&2, List<&2, U32>, Con{x, _}, i) == List.get(&2, List<&2, U32>, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, List<&2, U32>>}
-          e_get.k(x, y, r, i, j => e_get(r, j))
+          %e_cons(A, x, B.eo.cons(A, y, B.eo.split(A, r))) :
+            {List.get(&2, A, _, i) == List.get(&2, A, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, A>}
+          %o_cons(A, y, B.eo.split(A, r)) :
+            {List.get(&2, A, Con{x, _}, i) == List.get(&2, A, Con{x, Con{y, r}}, Nat.double(i)) : Maybe<&2, A>}
+          e_get.k(A, x, y, r, i, j => e_get(A, r, j))
 
-def o_get(xs: List<&2, List<&2, U32>>, +i: Nat) -> {List.get(&2, List<&2, U32>, B.eo.o(B.eo.split(xs)), i) == List.get(&2, List<&2, U32>, xs, 1n+Nat.double(i)) : Maybe<&2, List<&2, U32>>}:
+def o_get(-A: Data, xs: List<&2, A>, +i: Nat) -> {List.get(&2, A, B.eo.o(A, B.eo.split(A, xs)), i) == List.get(&2, A, xs, 1n+Nat.double(i)) : Maybe<&2, A>}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      %o_cons(x, B.eo.split(t)) :
-        {List.get(&2, List<&2, U32>, _, i) == List.get(&2, List<&2, U32>, Con{x, t}, 1n+Nat.double(i)) : Maybe<&2, List<&2, U32>>}
-      e_get(t, i)
+      %o_cons(A, x, B.eo.split(A, t)) :
+        {List.get(&2, A, _, i) == List.get(&2, A, Con{x, t}, 1n+Nat.double(i)) : Maybe<&2, A>}
+      e_get(A, t, i)
 
-# the calls table answers as the list at the position the word reads
-def ct_at(n: Nat, w: Word(n), xs: List<&2, List<&2, U32>>) -> {B.ct.at(n, w, B.ct.build(n, xs)) == B.ids.or(List.get(&2, List<&2, U32>, xs, Word.to_nat(n, w))) : List<&2, U32>}:
+# the tree answers as the list at the position the word reads
+def pw_at(-A: Data, n: Nat, w: Word(n), xs: List<&2, A>) -> {B.pw.at(A, n, w, B.pw.build(A, n, xs)) == List.get(&2, A, xs, Word.to_nat(n, w)) : Maybe<&2, A>}:
   match n:
     case 0n:
       match xs:
@@ -2291,21 +2295,27 @@ def ct_at(n: Nat, w: Word(n), xs: List<&2, List<&2, U32>>) -> {B.ct.at(n, w, B.c
                 case Nil{}:
                   {==}
                 case Con{+x, +t}:
-                  %o_get(Con{x, t}, Word.to_nat(p, r)) : {B.ct.at(p, r, B.ct.build(p, B.eo.o(B.eo.split(Con{x, t})))) == B.ids.or(_) : List<&2, U32>}
-                  ct_at(p, r, B.eo.o(B.eo.split(Con{x, t})))
+                  %o_get(A, Con{x, t}, Word.to_nat(p, r)) : {B.pw.at(A, p, r, B.pw.build(A, p, B.eo.o(A, B.eo.split(A, Con{x, t})))) == _ : Maybe<&2, A>}
+                  pw_at(A, p, r, B.eo.o(A, B.eo.split(A, Con{x, t})))
             case False{}:
               match xs:
                 case Nil{}:
                   {==}
                 case Con{+x, +t}:
-                  %e_get(Con{x, t}, Word.to_nat(p, r)) : {B.ct.at(p, r, B.ct.build(p, B.eo.e(B.eo.split(Con{x, t})))) == B.ids.or(_) : List<&2, U32>}
-                  ct_at(p, r, B.eo.e(B.eo.split(Con{x, t})))
+                  %e_get(A, Con{x, t}, Word.to_nat(p, r)) : {B.pw.at(A, p, r, B.pw.build(A, p, B.eo.e(A, B.eo.split(A, Con{x, t})))) == _ : Maybe<&2, A>}
+                  pw_at(A, p, r, B.eo.e(A, B.eo.split(A, Con{x, t})))
 
-# the calls table answers as ids.at
-def cs_at(+cal: List<&2, List<&2, U32>>, c: U32) -> {B.cs.at(B.ct.of(cal), c) == B.ids.at(cal, c) : List<&2, U32>}:
+# the tree of a list answers as List.get at a U32's value
+def pw_get(-A: Data, xs: List<&2, A>, c: U32) -> {B.pw.get(A, B.pw.of(A, xs), c) == List.get(&2, A, xs, U32.to_nat(c)) : Maybe<&2, A>}:
   match c:
     case U32{w}:
-      ct_at(32n, w, cal)
+      pw_at(A, 32n, w, xs)
+
+# the calls table answers as ids.at
+def cs_at(+cal: List<&2, List<&2, U32>>, +c: U32) -> {B.cs.at(B.ct.of(cal), c) == B.ids.at(cal, c) : List<&2, U32>}:
+  %Equal.sym(Maybe<&2, List<&2, U32>>, B.pw.get(List<&2, U32>, B.pw.of(List<&2, U32>, cal), c), List.get(&2, List<&2, U32>, cal, U32.to_nat(c)), pw_get(List<&2, U32>, cal, c)) :
+    {B.ids.or(_) == B.ids.at(cal, c) : List<&2, U32>}
+  {==}
 
 # The walk and the fast walk, step by step
 
@@ -2499,3 +2509,308 @@ def Laws.emit.names(xs, e):
       %Equal.sym(List<&2, B.Nm>, B.names.all(t, e), B.defs.names(B.defs.of(t, e), e), Laws.emit.names(t, e)) :
         {List.append(&2, B.Nm, B.defs.names(B.dps.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 0), e), _) == B.defs.names(B.defs.of(Con{x, t}, e), e) : List<&2, B.Nm>}
       names_app(B.dps.copies(1n+U32.to_nat(B.mu.m(B.ec.mu(e, x))), x, 0), B.defs.of(t, e), e)
+
+# The dispositions
+# ----------------
+#
+# mults hands each unit's uses on to the units it uses, in a table on the
+# units' bits; the specification searches the units emitted for them. At
+# a unit's turn the table holds its uses by the units already taken
+# (`pa_at`), and in a callee-first order no unit yet to come uses it
+# (`rev_none`), nor does it use itself (`self_none`), so that both see
+# the same uses, and make the same disposition.
+
+def mpick(-A: Data, b: Bool, x: Maybe<&2, A>, y: Maybe<&2, A>) -> Maybe<&2, A>:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
+def get_none(-A: Data, n: Nat, c: Word(n)) -> {B.wm.get(A, n, c, B.WmNone{}) == None{} : Maybe<&2, A>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      match c:
+        case WCon{b, r}:
+          match b:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+
+def get_put.k(-A: Data, a: Bool, b: Bool, +p: Nat, +xr: Word(p), +cr: Word(p), +v: A, t: B.Wm<A>,
+    ih: @s:B.Wm<A> -> {B.wm.get(A, p, cr, B.wm.put(A, p, xr, v, s)) == mpick(A, Cmp.is_eq(Word.cmp(p, xr, cr)), Some{v}, B.wm.get(A, p, cr, s)) : Maybe<&2, A>}) ->
+    {B.wm.get(A, 1n+p, WCon{b, cr}, B.wm.put(A, 1n+p, WCon{a, xr}, v, t)) ==
+      mpick(A, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), Cmp.is_eq(Bool.cmp(a, b))), Some{v}, B.wm.get(A, 1n+p, WCon{b, cr}, t)) : Maybe<&2, A>}:
+  match a b:
+    case True{} True{}:
+      match t:
+        case B.WmNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmNode{f, tt})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmNode{f, tt})) : Maybe<&2, A>}
+          ih(tt)
+        case B.WmNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmNone{})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmNone{})) : Maybe<&2, A>}
+          %get_none(A, p, cr) : {B.wm.get(A, p, cr, B.wm.put(A, p, xr, v, B.WmNone{})) == mpick(A, Cmp.is_eq(Word.cmp(p, xr, cr)), Some{v}, _) : Maybe<&2, A>}
+          ih(B.WmNone{})
+        case B.WmLeaf{l}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmLeaf{l})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmLeaf{l})) : Maybe<&2, A>}
+          %get_none(A, p, cr) : {B.wm.get(A, p, cr, B.wm.put(A, p, xr, v, B.WmNone{})) == mpick(A, Cmp.is_eq(Word.cmp(p, xr, cr)), Some{v}, _) : Maybe<&2, A>}
+          ih(B.WmNone{})
+    case True{} False{}:
+      match t:
+        case B.WmNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmNode{f, tt})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmNode{f, tt})) : Maybe<&2, A>}
+          {==}
+        case B.WmNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmNone{})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmNone{})) : Maybe<&2, A>}
+          get_none(A, p, cr)
+        case B.WmLeaf{l}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{True{}, xr}, v, B.WmLeaf{l})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmLeaf{l})) : Maybe<&2, A>}
+          get_none(A, p, cr)
+    case False{} True{}:
+      match t:
+        case B.WmNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmNode{f, tt})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmNode{f, tt})) : Maybe<&2, A>}
+          {==}
+        case B.WmNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmNone{})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmNone{})) : Maybe<&2, A>}
+          get_none(A, p, cr)
+        case B.WmLeaf{l}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), False{}), False{}, MB.and_false(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{True{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmLeaf{l})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{True{}, cr}, B.WmLeaf{l})) : Maybe<&2, A>}
+          get_none(A, p, cr)
+    case False{} False{}:
+      match t:
+        case B.WmNode{f, tt}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmNode{f, tt})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmNode{f, tt})) : Maybe<&2, A>}
+          ih(f)
+        case B.WmNone{}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmNone{})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmNone{})) : Maybe<&2, A>}
+          %get_none(A, p, cr) : {B.wm.get(A, p, cr, B.wm.put(A, p, xr, v, B.WmNone{})) == mpick(A, Cmp.is_eq(Word.cmp(p, xr, cr)), Some{v}, _) : Maybe<&2, A>}
+          ih(B.WmNone{})
+        case B.WmLeaf{l}:
+          %Equal.sym(Bool, Bool.and(Cmp.is_eq(Word.cmp(p, xr, cr)), True{}), Cmp.is_eq(Word.cmp(p, xr, cr)), MB.and_true(Cmp.is_eq(Word.cmp(p, xr, cr)))) :
+            {B.wm.get(A, 1n+p, WCon{False{}, cr}, B.wm.put(A, 1n+p, WCon{False{}, xr}, v, B.WmLeaf{l})) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{False{}, cr}, B.WmLeaf{l})) : Maybe<&2, A>}
+          %get_none(A, p, cr) : {B.wm.get(A, p, cr, B.wm.put(A, p, xr, v, B.WmNone{})) == mpick(A, Cmp.is_eq(Word.cmp(p, xr, cr)), Some{v}, _) : Maybe<&2, A>}
+          ih(B.WmNone{})
+
+# a value put at a word, then one asked for: the value where they are
+# equal, else what was there
+def get_put(-A: Data, n: Nat, x: Word(n), c: Word(n), +v: A, t: B.Wm<A>) ->
+    {B.wm.get(A, n, c, B.wm.put(A, n, x, v, t)) == mpick(A, Cmp.is_eq(Word.cmp(n, x, c)), Some{v}, B.wm.get(A, n, c, t)) : Maybe<&2, A>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+(+p):
+      match x:
+        case WCon{+a, +xr}:
+          match c:
+            case WCon{+b, +cr}:
+              %fin_eq(a, b, Word.cmp(p, xr, cr)) :
+                {B.wm.get(A, 1n+p, WCon{b, cr}, B.wm.put(A, 1n+p, WCon{a, xr}, v, t)) == mpick(A, _, Some{v}, B.wm.get(A, 1n+p, WCon{b, cr}, t)) : Maybe<&2, A>}
+              get_put.k(A, a, b, p, xr, cr, v, t, s => get_put(A, p, xr, cr, v, s))
+
+def um_get_put(-A: Data, +t: B.Wm<A>, x: U32, c: U32, +v: A) ->
+    {B.um.get(A, B.um.put(A, t, x, v), c) == mpick(A, U32.is_eq(x, c), Some{v}, B.um.get(A, t, c)) : Maybe<&2, A>}:
+  match x c:
+    case U32{xw} U32{cw}:
+      get_put(A, 32n, xw, cw, v, t)
+
+def um_get_none(-A: Data, c: U32) -> {B.um.get(A, B.WmNone{}, c) == None{} : Maybe<&2, A>}:
+  match c:
+    case U32{w}:
+      get_none(A, 32n, w)
+
+# a user's uses handed on: each its callee's, first, in the user's order
+def pend_uses.k(hit: Bool, +c: U32, +y: U32, +u: U32, +no: U32, +t: List<&2, B.Ru>, +pp: B.Wm<List<&2, B.Ru>>, +p: B.Wm<List<&2, B.Ru>>,
+    +e: {hit == U32.is_eq(c, y) : Bool},
+    +ih: {B.pend.at(pp, y) == List.append(&2, B.Ru, B.uses.in(t, u, y), B.pend.at(p, y)) : List<&2, B.Ru>}) ->
+    {B.rus.or(mpick(List<&2, B.Ru>, hit, Some{Con{B.Ru{u, no}, B.pend.at(pp, c)}}, B.um.get(List<&2, B.Ru>, pp, y))) ==
+      List.append(&2, B.Ru, B.uses.in.k(hit, u, no, B.uses.in(t, u, y)), B.pend.at(p, y)) : List<&2, B.Ru>}:
+  match hit:
+    case True{}:
+      %Equal.sym(U32, c, y, u32_eq_of_is_eq(c, y, Equal.sym(Bool, True{}, U32.is_eq(c, y), e))) :
+        {Con{B.Ru{u, no}, B.pend.at(pp, _)} == Con{B.Ru{u, no}, List.append(&2, B.Ru, B.uses.in(t, u, y), B.pend.at(p, y))} : List<&2, B.Ru>}
+      Equal.cong(List<&2, B.Ru>, List<&2, B.Ru>, z => Con{B.Ru{u, no}, z}, B.pend.at(pp, y), List.append(&2, B.Ru, B.uses.in(t, u, y), B.pend.at(p, y)), ih)
+    case False{}:
+      ih
+
+def pend_uses(rs: List<&2, B.Ru>, +u: U32, +p: B.Wm<List<&2, B.Ru>>, +y: U32) ->
+    {B.pend.at(B.pend.uses(rs, u, p), y) == List.append(&2, B.Ru, B.uses.in(rs, u, y), B.pend.at(p, y)) : List<&2, B.Ru>}:
+  match rs:
+    case Nil{}:
+      {==}
+    case Con{r, +t}:
+      match r:
+        case B.Ru{+c, +no}:
+          %Equal.sym(Maybe<&2, List<&2, B.Ru>>, B.um.get(List<&2, B.Ru>, B.um.put(List<&2, B.Ru>, B.pend.uses(t, u, p), c, Con{B.Ru{u, no}, B.pend.at(B.pend.uses(t, u, p), c)}), y),
+              mpick(List<&2, B.Ru>, U32.is_eq(c, y), Some{Con{B.Ru{u, no}, B.pend.at(B.pend.uses(t, u, p), c)}}, B.um.get(List<&2, B.Ru>, B.pend.uses(t, u, p), y)),
+              um_get_put(List<&2, B.Ru>, B.pend.uses(t, u, p), c, y, Con{B.Ru{u, no}, B.pend.at(B.pend.uses(t, u, p), c)})) :
+            {B.rus.or(_) == List.append(&2, B.Ru, B.uses.in(Con{B.Ru{c, no}, t}, u, y), B.pend.at(p, y)) : List<&2, B.Ru>}
+          pend_uses.k(U32.is_eq(c, y), c, y, u, no, t, B.pend.uses(t, u, p), p, {==}, pend_uses(t, u, p, y))
+
+# the table after the units q, the last taken first
+def pa(q: List<&2, U32>, +rt: B.Pw<List<&2, B.Ru>>) -> B.Wm<List<&2, B.Ru>>:
+  match q:
+    case Nil{}:
+      B.WmNone{}
+    case Con{+x, t}:
+      B.pend.uses(B.rus.or(B.pw.get(List<&2, B.Ru>, rt, x)), x, pa(t, rt))
+
+# it holds each unit's uses by the units q, in q's order
+def pa_at(q: List<&2, U32>, +rss: List<&2, List<&2, B.Ru>>, +y: U32) -> {B.pend.at(pa(q, B.pw.of(List<&2, B.Ru>, rss)), y) == B.uses.of(q, rss, y) : List<&2, B.Ru>}:
+  match q:
+    case Nil{}:
+      %Equal.sym(Maybe<&2, List<&2, B.Ru>>, B.um.get(List<&2, B.Ru>, B.WmNone{}, y), None{}, um_get_none(List<&2, B.Ru>, y)) : {B.rus.or(_) == Nil{} : List<&2, B.Ru>}
+      {==}
+    case Con{+e, +t}:
+      %Equal.sym(List<&2, B.Ru>, B.pend.at(B.pend.uses(B.rus.or(B.pw.get(List<&2, B.Ru>, B.pw.of(List<&2, B.Ru>, rss), e)), e, pa(t, B.pw.of(List<&2, B.Ru>, rss))), y),
+          List.append(&2, B.Ru, B.uses.in(B.rus.or(B.pw.get(List<&2, B.Ru>, B.pw.of(List<&2, B.Ru>, rss), e)), e, y), B.pend.at(pa(t, B.pw.of(List<&2, B.Ru>, rss)), y)),
+          pend_uses(B.rus.or(B.pw.get(List<&2, B.Ru>, B.pw.of(List<&2, B.Ru>, rss), e)), e, pa(t, B.pw.of(List<&2, B.Ru>, rss)), y)) :
+        {_ == B.uses.of(Con{e, t}, rss, y) : List<&2, B.Ru>}
+      %Equal.sym(Maybe<&2, List<&2, B.Ru>>, B.pw.get(List<&2, B.Ru>, B.pw.of(List<&2, B.Ru>, rss), e), List.get(&2, List<&2, B.Ru>, rss, U32.to_nat(e)), pw_get(List<&2, B.Ru>, rss, e)) :
+        {List.append(&2, B.Ru, B.uses.in(B.rus.or(_), e, y), B.pend.at(pa(t, B.pw.of(List<&2, B.Ru>, rss)), y)) == B.uses.of(Con{e, t}, rss, y) : List<&2, B.Ru>}
+      %Equal.sym(List<&2, B.Ru>, B.pend.at(pa(t, B.pw.of(List<&2, B.Ru>, rss)), y), B.uses.of(t, rss, y), pa_at(t, rss, y)) :
+        {List.append(&2, B.Ru, B.uses.in(B.rus.at(rss, e), e, y), _) == B.uses.of(Con{e, t}, rss, y) : List<&2, B.Ru>}
+      {==}
+
+# a unit's calls are those of its uses
+def calls_at(rss: List<&2, List<&2, B.Ru>>, n: Nat) -> {B.ids.or(List.get(&2, List<&2, U32>, B.calls(rss), n)) == B.ru.us(B.rus.or(List.get(&2, List<&2, B.Ru>, rss, n))) : List<&2, U32>}:
+  match rss:
+    case Nil{}:
+      {==}
+    case Con{rs, t}:
+      match n:
+        case 0n:
+          {==}
+        case 1n+k:
+          calls_at(t, k)
+
+def uses_in_none.k(hit: Bool, +e: U32, +x: U32, +no: U32, +t: List<&2, B.Ru>,
+    +h: {Bool.or(hit, B.has(B.ru.us(t), x)) == False{} : Bool},
+    ih: {B.has(B.ru.us(t), x) == False{} : Bool} -> {B.uses.in(t, e, x) == Nil{} : List<&2, B.Ru>}) ->
+    {B.uses.in.k(hit, e, no, B.uses.in(t, e, x)) == Nil{} : List<&2, B.Ru>}:
+  match hit:
+    case True{}:
+      Empty.absurd({B.uses.in.k(True{}, e, no, B.uses.in(t, e, x)) == Nil{} : List<&2, B.Ru>}, MB.true_ne_false()(h))
+    case False{}:
+      ih(h)
+
+# no use of x among uses that do not call x
+def uses_in_none(rs: List<&2, B.Ru>, +e: U32, +x: U32, +h: {B.has(B.ru.us(rs), x) == False{} : Bool}) -> {B.uses.in(rs, e, x) == Nil{} : List<&2, B.Ru>}:
+  match rs:
+    case Nil{}:
+      {==}
+    case Con{r, +t}:
+      match r:
+        case B.Ru{+u, +no}:
+          uses_in_none.k(U32.is_eq(u, x), e, x, no, t, h, g => uses_in_none(t, e, x, g))
+
+def not_has_sub.k(b: Bool, +xs: List<&2, U32>, +ys: List<&2, U32>, +x: U32, +e: {b == B.has(xs, x) : Bool}, +hs: {B.all.in(xs, ys) == True{} : Bool},
+    +hn: {B.has(ys, x) == False{} : Bool}) -> {B.has(xs, x) == False{} : Bool}:
+  match b:
+    case True{}:
+      Empty.absurd({B.has(xs, x) == False{} : Bool},
+        MB.true_ne_false()(Equal.trans(Bool, True{}, B.has(ys, x), False{}, Equal.sym(Bool, B.has(ys, x), True{}, has_sub(xs, ys, x, hs, Equal.sym(Bool, True{}, B.has(xs, x), e))), hn)))
+    case False{}:
+      Equal.sym(Bool, False{}, B.has(xs, x), e)
+
+# x, missing from ys, is missing from what ys holds
+def not_has_sub(+xs: List<&2, U32>, +ys: List<&2, U32>, +x: U32, +hs: {B.all.in(xs, ys) == True{} : Bool}, +hn: {B.has(ys, x) == False{} : Bool}) ->
+    {B.has(xs, x) == False{} : Bool}:
+  not_has_sub.k(B.has(xs, x), xs, ys, x, {==}, hs, hn)
+
+def calls_in_mono(r: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +ys: List<&2, U32>, +zs: List<&2, U32>, +h: {B.calls.in(r, cal, ys) == True{} : Bool}, +s: {B.all.in(ys, zs) == True{} : Bool}) ->
+    {B.calls.in(r, cal, zs) == True{} : Bool}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+u, +t}:
+      and_intro(B.all.in(B.ids.at(cal, u), zs), B.calls.in(t, cal, zs),
+        sub_trans(B.ids.at(cal, u), ys, zs, MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, u), ys), B.calls.in(t, cal, ys), h), s),
+        calls_in_mono(t, cal, ys, zs, MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, u), ys), B.calls.in(t, cal, ys), h), s))
+
+# in a callee-first order, each unit's calls are among the order
+def ordered_closed(r: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +h: {B.ordered(r, cal) == True{} : Bool}) -> {B.calls.in(r, cal, r) == True{} : Bool}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+u, +t}:
+      and_intro(B.all.in(B.ids.at(cal, u), Con{u, t}), B.calls.in(t, cal, Con{u, t}),
+        all_in_mono(B.ids.at(cal, u), t, u, MB.eq_true_of_and_left(B.all.in(B.ids.at(cal, u), t), B.ordered(t, cal), h)),
+        calls_in_mono(t, cal, t, Con{u, t}, ordered_closed(t, cal, MB.eq_true_of_and_right(B.all.in(B.ids.at(cal, u), t), B.ordered(t, cal), h)), sub_cons(t, u)))
+
+# a unit's uses of y, where its calls are among ys and y is not
+def use_none(+rss: List<&2, List<&2, B.Ru>>, +e: U32, +y: U32, +ys: List<&2, U32>, +h: {B.all.in(B.ids.at(B.calls(rss), e), ys) == True{} : Bool},
+    +hy: {B.has(ys, y) == False{} : Bool}) -> {B.uses.in(B.rus.at(rss, e), e, y) == Nil{} : List<&2, B.Ru>}:
+  uses_in_none(B.rus.at(rss, e), e, y,
+    ME.subst(List<&2, U32>, z => {B.has(z, y) == False{} : Bool}, B.ids.at(B.calls(rss), e), B.ru.us(B.rus.at(rss, e)),
+      calls_at(rss, U32.to_nat(e)), not_has_sub(B.ids.at(B.calls(rss), e), ys, y, h, hy)))
+
+# the units r, reversed onto a, use y no more than a does, where their
+# calls are among ys and y is not
+def rev_none(r: List<&2, U32>, +a: List<&2, U32>, +rss: List<&2, List<&2, B.Ru>>, +y: U32, +ys: List<&2, U32>, +h: {B.calls.in(r, B.calls(rss), ys) == True{} : Bool},
+    +hy: {B.has(ys, y) == False{} : Bool}) -> {B.uses.of(List.reverse.go(&2, U32, r, a), rss, y) == B.uses.of(a, rss, y) : List<&2, B.Ru>}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      Equal.trans(List<&2, B.Ru>, B.uses.of(List.reverse.go(&2, U32, t, Con{e, a}), rss, y), B.uses.of(Con{e, a}, rss, y), B.uses.of(a, rss, y),
+        rev_none(t, Con{e, a}, rss, y, ys, MB.eq_true_of_and_right(B.all.in(B.ids.at(B.calls(rss), e), ys), B.calls.in(t, B.calls(rss), ys), h), hy),
+        Equal.cong(List<&2, B.Ru>, List<&2, B.Ru>, z => List.append(&2, B.Ru, z, B.uses.of(a, rss, y)), B.uses.in(B.rus.at(rss, e), e, y), Nil{},
+          use_none(rss, e, y, ys, MB.eq_true_of_and_left(B.all.in(B.ids.at(B.calls(rss), e), ys), B.calls.in(t, B.calls(rss), ys), h), hy)))
+
+# at x's turn, the uses of x by the units the order emits are those by
+# the units already taken
+def at_turn(+x: U32, +r: List<&2, U32>, +q: List<&2, U32>, +rss: List<&2, List<&2, B.Ru>>, +h1: {B.ordered(Con{x, r}, B.calls(rss)) == True{} : Bool},
+    +h2: {B.distinct(Con{x, r}) == True{} : Bool}) ->
+    {B.uses.of(List.reverse.go(&2, U32, r, Con{x, q}), rss, x) == B.uses.of(q, rss, x) : List<&2, B.Ru>}:
+  Equal.trans(List<&2, B.Ru>, B.uses.of(List.reverse.go(&2, U32, r, Con{x, q}), rss, x), B.uses.of(Con{x, q}, rss, x), B.uses.of(q, rss, x),
+    rev_none(r, Con{x, q}, rss, x, r, ordered_closed(r, B.calls(rss), MB.eq_true_of_and_right(B.all.in(B.ids.at(B.calls(rss), x), r), B.ordered(r, B.calls(rss)), h1)),
+      not_true(B.has(r, x), MB.eq_true_of_and_left(Bool.not(B.has(r, x)), B.distinct(r), h2))),
+    Equal.cong(List<&2, B.Ru>, List<&2, B.Ru>, z => List.append(&2, B.Ru, z, B.uses.of(q, rss, x)), B.uses.in(B.rus.at(rss, x), x, x), Nil{},
+      use_none(rss, x, x, r, MB.eq_true_of_and_left(B.all.in(B.ids.at(B.calls(rss), x), r), B.ordered(r, B.calls(rss)), h1),
+        not_true(B.has(r, x), MB.eq_true_of_and_left(Bool.not(B.has(r, x)), B.distinct(r), h2)))))
+
+# mults from the units q taken equals the specification, the order the
+# rest reversed onto q
+def disp(rest: List<&2, U32>, +q: List<&2, U32>, +rss: List<&2, List<&2, B.Ru>>, +ut: B.Ht<B.Un>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, s: B.Ms,
+    +h1: {B.ordered(rest, B.calls(rss)) == True{} : Bool}, +h2: {B.distinct(rest) == True{} : Bool}) ->
+    {B.mults(rest, B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, s, pa(q, B.pw.of(List<&2, B.Ru>, rss))) == B.mults.spec(rest, List.reverse.go(&2, U32, rest, q), rss, ut, obs, us, s) : B.Ms}:
+  match rest:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      %Equal.sym(List<&2, B.Ru>, B.pend.at(pa(q, B.pw.of(List<&2, B.Ru>, rss)), x), B.uses.of(q, rss, x), pa_at(q, rss, x)) :
+        {B.mults(r, B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, B.mult.of(x, B.mult.share(x, ut), _, obs, us, ut, s), pa(Con{x, q}, B.pw.of(List<&2, B.Ru>, rss))) ==
+          B.mults.spec(r, List.reverse.go(&2, U32, r, Con{x, q}), rss, ut, obs, us,
+            B.mult.of(x, B.mult.share(x, ut), B.uses.of(List.reverse.go(&2, U32, r, Con{x, q}), rss, x), obs, us, ut, s)) : B.Ms}
+      %Equal.sym(List<&2, B.Ru>, B.uses.of(List.reverse.go(&2, U32, r, Con{x, q}), rss, x), B.uses.of(q, rss, x), at_turn(x, r, q, rss, h1, h2)) :
+        {B.mults(r, B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, B.mult.of(x, B.mult.share(x, ut), B.uses.of(q, rss, x), obs, us, ut, s), pa(Con{x, q}, B.pw.of(List<&2, B.Ru>, rss))) ==
+          B.mults.spec(r, List.reverse.go(&2, U32, r, Con{x, q}), rss, ut, obs, us,
+            B.mult.of(x, B.mult.share(x, ut), _, obs, us, ut, s)) : B.Ms}
+      disp(r, Con{x, q}, rss, ut, obs, us, B.mult.of(x, B.mult.share(x, ut), B.uses.of(q, rss, x), obs, us, ut, s),
+        MB.eq_true_of_and_right(B.all.in(B.ids.at(B.calls(rss), x), r), B.ordered(r, B.calls(rss)), h1),
+        MB.eq_true_of_and_right(Bool.not(B.has(r, x)), B.distinct(r), h2))
+
+def Laws.mults.uses(xs, rss, ut, obs, us, s, h1, h2):
+  disp(xs, Nil{}, rss, ut, obs, us, s, h1, h2)
+
+def Laws.mults.walked(roots, rss, ut, obs, us, s):
+  %Equal.sym(B.Ds, B.df.ds(B.walk.fast(roots, B.calls(rss), obs, us)), B.walk(roots, B.calls(rss), obs, us), Laws.order.fast(roots, B.calls(rss), obs, us)) :
+    {B.mults(B.ds.order(_), B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, s, B.WmNone{}) ==
+      B.mults.spec(B.ds.order(_), List.reverse(&2, U32, B.ds.order(_)), rss, ut, obs, us, s) : B.Ms}
+  Laws.mults.uses(B.ds.order(B.walk(roots, B.calls(rss), obs, us)), rss, ut, obs, us, s,
+    Laws.order.callees_first(roots, B.calls(rss), obs, us), Laws.order.once(roots, B.calls(rss), obs, us))

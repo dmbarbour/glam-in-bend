@@ -68,11 +68,11 @@ a unit popped into the order but not into the set of those walked
 === fast_calls_swapped order.fast
 the calls table reading the even half where a bit is set
 --- blend.bend
-                case CtNode{e, o}:
-                  ct.at(p, r, o)
+                case PwNode{e, o}:
+                  pw.at(A, p, r, o)
 +++
-                case CtNode{e, o}:
-                  ct.at(p, r, e)
+                case PwNode{e, o}:
+                  pw.at(A, p, r, e)
 
 === fast_trie_full order.fast
 a trie answering yes at an empty leaf
@@ -111,3 +111,25 @@ the names check counting a unit's names from its first copy, not its own
       List.append(&2, Nm, names.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), e, x, 0), names.all(t, e))
 +++
       List.append(&2, Nm, names.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), e, x, 1), names.all(t, e))
+
+=== hand_reversed mults.uses
+a user's uses handed on the first first, so that each callee's are in
+the reverse of the user's order
+--- blend.bend
+          pend.cons(pend.uses(t, u, p), c, Ru{u, no})
++++
+          pend.uses(t, u, pend.cons(p, c, Ru{u, no}))
+
+=== hand_forgets mults.uses
+a use handed on replacing the uses waiting, not joining them
+--- blend.bend
+  um.put(List<&2, Ru>, p, c, Con{r, pend.at(p, c)})
++++
+  um.put(List<&2, Ru>, p, c, [r])
+
+=== hand_none mults.uses mults.walked
+a unit not handing its uses on
+--- blend.bend
+        pend.uses(rus.or(pw.get(List<&2, Ru>, rt, x)), x, p))
++++
+        p)
