@@ -25,3 +25,46 @@ law names.same_refl:
 law names.dots_parts:
   for +x: List<&2, U32>
   {B.dots(B.parts(x)) == x : List<&2, U32>}
+
+# LAW: a token that names nothing, a number, a string, a comment, a space,
+# a symbol or an empty name, is emitted as it is written: a body is Bend,
+# its references aside.
+# Record: blend-adds-no-bend-logic
+law locals.not_name:
+  for +cx: B.Cx
+  for +o: U32
+  for +q: U32
+  for +locals: List<&2, List<&2, U32>>
+  for +t: B.Tok
+  for +no: U32
+  for h: {B.tok.txt(t) == Nil{} : List<&2, U32>}
+  {B.rr.of(cx, o, q, locals, t, no) == B.rr.tok(t) : B.Rr}
+
+# LAW: a name a local binds, a parameter or a binding of the body, is
+# emitted as it is written, bound to no definition; a name beginning `^`
+# (a host's) or `~` (a template's argument) aside.
+# Record: shadowing-is-an-error
+law locals.kept:
+  for +cx: B.Cx
+  for +o: U32
+  for +q: U32
+  for +locals: List<&2, List<&2, U32>>
+  for +h: U32
+  for +r: List<&2, U32>
+  for +no: U32
+  for a: {U32.is_eq(h, 94) == False{} : Bool}
+  for b: {U32.is_eq(h, 126) == False{} : Bool}
+  for +l: {B.names.has(locals, Con{h, r}) == True{} : Bool}
+  {B.rr.of(cx, o, q, locals, B.TName{Con{h, r}}, no) == B.rr.tok(B.TName{Con{h, r}}) : B.Rr}
+
+# LAW: and a local passed on as a template's argument, `~f`, likewise.
+# Record: shadowing-is-an-error
+law locals.template:
+  for +cx: B.Cx
+  for +o: U32
+  for +q: U32
+  for +locals: List<&2, List<&2, U32>>
+  for +r: List<&2, U32>
+  for +no: U32
+  for l: {B.names.has(locals, r) == True{} : Bool}
+  {B.rr.of(cx, o, q, locals, B.TName{Con{126, r}}, no) == B.rr.tok(B.TName{Con{126, r}}) : B.Rr}
