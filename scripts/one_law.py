@@ -4,8 +4,9 @@ Bend reports only the first proof that fails, often of an earlier law a
 mutation breaks too; and a whole proof file is slow to recheck while one
 law is being written. This copies a proof file and every local file it
 imports, transitively, into results/one_law/ (out of git), cuts the laws
-file it imports to the one law, and the proof file to that law's proof
-and the defs it reaches, then runs `bend` on the copy. A proof file that
+file it imports to the one law (and those whose proofs its proof calls),
+and the proof file to that law's proof and the defs it reaches, then
+runs `bend` on the copy. A proof file that
 imports no laws file is cut to the def LAW names.
 
 With --mutants FILE, each mutation of FILE naming the law is tried on a
@@ -107,16 +108,18 @@ def cut_proof(text, root):
         keep.add(n)
         todo += [t for t in NAME.findall(body[n]) if t in body and t not in keep]
     kept = [t for n, t in its if n is None or n in keep]
-    return "\n".join([head] + kept), len(keep), len(body)
+    return "\n".join([head] + kept), keep, len(body)
 
 
-def cut_laws(text, law):
-    """The laws file cut to the one law; anything not a law kept."""
+def cut_laws(text, law, also):
+    """The laws file cut to the one law, and those whose proofs its proof
+    uses (also); anything not a law kept."""
     head, its = items(text)
     laws = [t for _, t in its if re.search(r"(?m)^law ", t)]
-    mine = [t for t in laws if re.search(r"(?m)^law " + re.escape(law) + r":", t)]
-    if not mine:
+    if not any(re.search(r"(?m)^law " + re.escape(law) + r":", t) for t in laws):
         sys.exit(f"one_law: no law {law} in the laws file")
+    wanted = {law} | also
+    mine = [t for t in laws if re.search(r"(?m)^law (\S+):", t).group(1) in wanted]
     rest = [t for _, t in its if not re.search(r"(?m)^law ", t)]
     return "\n".join([head] + rest + mine)
 
@@ -151,12 +154,15 @@ def copy(files, proof, law, dest, mutation=None):
     else:
         lpath, rootdef = None, law
     out = {}
+    cut, keep, total = cut_proof(files[proof], rootdef)
+    print(f"   ({len(keep)} of {total} defs kept)")
+    prefix = rootdef[:len(rootdef) - len(law)]
+    also = {n[len(prefix):] for n in keep if laws and n.startswith(prefix)}
     for p, t in files.items():
         if p == proof:
-            t, kept, total = cut_proof(t, rootdef)
-            print(f"   ({kept} of {total} defs kept)")
+            t = cut
         elif p == lpath:
-            t = cut_laws(t, law)
+            t = cut_laws(t, law, also)
         out[p] = t
     if mutation:
         name, _, _, file, old, new = mutation

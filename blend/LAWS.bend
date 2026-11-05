@@ -185,3 +185,35 @@ law emit.names:
   for xs: List<&2, U32>
   for +e: B.Ec
   {B.names.all(xs, e) == B.defs.names(B.defs.of(xs, e), e) : List<&2, B.Nm>}
+
+# LAW: mults, which hands each unit's uses on to the units it uses as it
+# goes, gives each unit the copies its uses by all the units emitted ask
+# for, as a search of them gathers them (mults.spec), where the order is
+# callee-first and holds each unit once, as the walk's is
+# (`order.callees_first`, `order.once`).
+# Record: blend-copies-keep-their-name
+law mults.uses:
+  for xs: List<&2, U32>
+  for +rss: List<&2, List<&2, B.Ru>>
+  for +ut: B.Ht<B.Un>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  for s: B.Ms
+  for +h1: {B.ordered(xs, B.calls(rss)) == True{} : Bool}
+  for +h2: {B.distinct(xs) == True{} : Bool}
+  {B.mults(xs, B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, s, {B.WmNone{} : B.Wm<List<&2, B.Ru>>}) ==
+    B.mults.spec(xs, List.reverse(&2, U32, xs), rss, ut, obs, us, s) : B.Ms}
+
+# LAW: so for the order Blend walks: each unit's copies are those its uses
+# by all the units emitted ask for.
+# Record: blend-copies-keep-their-name
+law mults.walked:
+  for +roots: List<&2, U32>
+  for +rss: List<&2, List<&2, B.Ru>>
+  for +ut: B.Ht<B.Un>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  for s: B.Ms
+  {B.mults(B.ds.order(B.df.ds(B.walk.fast(roots, B.calls(rss), obs, us))), B.pw.of(List<&2, B.Ru>, rss), ut, obs, us, s, {B.WmNone{} : B.Wm<List<&2, B.Ru>>}) ==
+    B.mults.spec(B.ds.order(B.df.ds(B.walk.fast(roots, B.calls(rss), obs, us))), List.reverse(&2, U32, B.ds.order(B.df.ds(B.walk.fast(roots, B.calls(rss), obs, us)))),
+      rss, ut, obs, us, s) : B.Ms}

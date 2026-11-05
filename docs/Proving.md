@@ -113,6 +113,18 @@ it alone taught. Add to this file what a new proof teaches.
   bits, so that no arithmetic, and no bound of 2^32, is met. A table by
   position is the same trie over a list split by its positions' bits:
   `List.get(xs, double(i))` and `List.get(xs, 1+double(i))`.
+- **A specification sharing the decisions**: where a law pins an
+  optimization, write the specification beside the code to share every
+  function the optimization left alone, so that the law claims what
+  changed and no more, and list what the shared functions decide among
+  its missing pieces.
+- **A law's proof may call another law's** (`Laws.x(...)`, typed by its
+  law), so that a law for the case the tool meets composes the general
+  law with the laws of what feeds it.
+- **Induct with the accumulator a definition has**: a list reversed
+  onto an accumulator (`List.reverse.go(rest, q)`) steps by computation
+  (`reverse.go(Con{x, r}, q)` is `reverse.go(r, Con{x, q})`), where the
+  reversal of an append wants lemmas.
 - **A rewrite is a local statement**: no `match` may follow it. Match
   first, then rewrite in each branch.
 - **Templates prove as code does**: a proof def may take `~p`, and
