@@ -2934,13 +2934,20 @@ def rr.dotted(+cx: Cx, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32
     u => rr.bend(cx, q, mark, n, t, no),
     f => rr.rf(cx, mark, t, no, f))
 
-# a name with no mark, or after `~`: a local, an object's definition, a
-# definition of the module (Bend's, its text kept), or Bend's
+# a name with no mark, or after `~`: a local, as written (local), else an
+# object's definition, a definition of the module (Bend's, its text
+# kept), or Bend's
+def rr.plain.k(+local: Bool, +cx: Cx, +o: U32, +q: U32, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  match local:
+    case True{}:
+      rr.tok(t)
+    case False{}:
+      on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
+        v => rr.dotted(cx, q, mark, n, t, no),
+        +h => rr.final(cx, h, mark, n, t, no))
+
 def rr.plain(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +mark: U32, +n: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
-  when(Rr, names.has(locals, n), u => rr.tok(t),
-    u => on.maybe(U32, Rr, look(cx, Con{o, hosts(cx.obs(cx), q)}, n),
-      v => rr.dotted(cx, q, mark, n, t, no),
-      +h => rr.final(cx, h, mark, n, t, no)))
+  rr.plain.k(names.has(locals, n), cx, o, q, mark, n, t, no)
 
 # the first of the definers, latest first, that comes after q in o's
 # linearization
@@ -2987,16 +2994,33 @@ def rr.host(+cx: Cx, +o: U32, +q: U32, k: Nat, +n: List<&2, U32>, +t: Tok, +whol
     +h => when(Rr, has.def(cx.map(cx, h), n), v => rr.final(cx, h, 0, n, t, no),
       v => rr.er(t, no, text(whole) ++ ": " ++ ob.name(cx.obs(cx), h) ++ " has no " ++ text(n))))
 
-def rr.mark(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32, +r: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
-  match h:
-    case 94:
+# `_n`: a local, or `_` alone, or in a module's definition, as written
+# (local); else a prior
+def rr.under(+local: Bool, +cx: Cx, +o: U32, +q: U32, +r: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  match local:
+    case True{}:
+      rr.tok(t)
+    case False{}:
+      rr.prior(cx, o, q, r, t, no)
+
+# a name by its first byte's tests: `^` a host's (up), `~` a template's
+# argument (tpl), `_` a prior or a local (under), else plain. The bytes
+# are tested, not matched, and the tests branched on here, so that a law
+# can follow it (blend/LAWS.bend, `locals`): a byte's match leaves a
+# proof stuck
+def rr.mark.k(+up: Bool, +tpl: Bool, +under: Bool, +cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32, +r: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  match up tpl under:
+    case True{} _ _:
       rr.host(cx, o, q, carets(Con{h, r}), List.drop(&2, U32, Con{h, r}, carets(Con{h, r})), t, Con{h, r}, no)
-    case 126:
+    case False{} True{} _:
       rr.plain(cx, o, q, locals, 126, r, t, no)
-    case 95:
-      when(Rr, blank(r) || names.has(locals, Con{h, r}) || is.root(cx.obs(cx), o), u => rr.tok(t), u => rr.prior(cx, o, q, r, t, no))
-    case _:
+    case False{} False{} True{}:
+      rr.under(blank(r) || names.has(locals, Con{h, r}) || is.root(cx.obs(cx), o), cx, o, q, r, t, no)
+    case False{} False{} False{}:
       rr.plain(cx, o, q, locals, 0, Con{h, r}, t, no)
+
+def rr.mark(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32, +r: List<&2, U32>, +t: Tok, +no: U32) -> Rr:
+  rr.mark.k(U32.is_eq(h, 94), U32.is_eq(h, 126), U32.is_eq(h, 95), cx, o, q, locals, h, r, t, no)
 
 def rr.of(+cx: Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +t: Tok, +no: U32) -> Rr:
   match t:

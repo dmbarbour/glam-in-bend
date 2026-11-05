@@ -160,3 +160,89 @@ def parts_spec(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U
 
 def Laws.names.dots_parts(x):
   Equal.sym(List<&2, U32>, x, B.dots(B.parts(x)), parts_spec(x, Nil{}, Nil{}))
+
+# Locals
+# ------
+
+def list_disc(xs: List<&2, U32>) -> Type:
+  match xs:
+    case Nil{}:
+      Unit
+    case Con{c, cs}:
+      Empty
+
+def cons_ne_nil(+c: U32, +cs: List<&2, U32>, e: {Con{c, cs} == Nil{} : List<&2, U32>}) -> Empty:
+  %Equal.sym(List<&2, U32>, Con{c, cs}, Nil{}, e) : list_disc(_)
+  Unit{}
+
+def Laws.locals.not_name(cx, o, q, locals, t, no, h):
+  match t:
+    case B.TName{x}:
+      match x:
+        case Nil{}:
+          {==}
+        case Con{c, cs}:
+          Empty.absurd({B.rr.of(cx, o, q, locals, B.TName{Con{c, cs}}, no) == B.rr.tok(B.TName{Con{c, cs}}) : B.Rr}, cons_ne_nil(c, cs, h))
+    case B.TNum{x}:
+      {==}
+    case B.TStr{x}:
+      {==}
+    case B.TCom{x}:
+      {==}
+    case B.TSp{x}:
+      {==}
+    case B.TSym{c}:
+      {==}
+
+# the middle of three, true, makes them true
+def or3_mid(+a: Bool, +b: Bool, +c: Bool, e: {b == True{} : Bool}) -> {Bool.or(Bool.or(a, b), c) == True{} : Bool}:
+  %Equal.sym(Bool, b, True{}, e) : {Bool.or(Bool.or(a, _), c) == True{} : Bool}
+  %MB.or_true_sym(a) : {Bool.or(_, c) == True{} : Bool}
+  {==}
+
+# a local, found, is kept: rr.plain's test and rr.under's, each a Bool
+# the hypothesis says is True
+def plain_kept(+local: Bool, +e: {local == True{} : Bool}, +cx: B.Cx, +o: U32, +q: U32, +mark: U32, +n: List<&2, U32>, +t: B.Tok, +no: U32) ->
+    {B.rr.plain.k(local, cx, o, q, mark, n, t, no) == B.rr.tok(t) : B.Rr}:
+  match local:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({B.rr.plain.k(False{}, cx, o, q, mark, n, t, no) == B.rr.tok(t) : B.Rr}, MB.false_ne_true()(e))
+
+def under_kept(+local: Bool, +e: {local == True{} : Bool}, +cx: B.Cx, +o: U32, +q: U32, +r: List<&2, U32>, +t: B.Tok, +no: U32) ->
+    {B.rr.under(local, cx, o, q, r, t, no) == B.rr.tok(t) : B.Rr}:
+  match local:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({B.rr.under(False{}, cx, o, q, r, t, no) == B.rr.tok(t) : B.Rr}, MB.false_ne_true()(e))
+
+# a plain name or `_n`, its first byte's tests split: `^` and `~` false
+# by the hypotheses, `_` either way
+def mark_kept(+up: Bool, a: {up == False{} : Bool}, +tpl: Bool, b: {tpl == False{} : Bool}, +under: Bool,
+    +cx: B.Cx, +o: U32, +q: U32, +locals: List<&2, List<&2, U32>>, +h: U32, +r: List<&2, U32>, +no: U32,
+    +l: {B.names.has(locals, Con{h, r}) == True{} : Bool}) ->
+    {B.rr.mark.k(up, tpl, under, cx, o, q, locals, h, r, B.TName{Con{h, r}}, no) == B.rr.tok(B.TName{Con{h, r}}) : B.Rr}:
+  match up:
+    case True{}:
+      Empty.absurd({B.rr.mark.k(True{}, tpl, under, cx, o, q, locals, h, r, B.TName{Con{h, r}}, no) == B.rr.tok(B.TName{Con{h, r}}) : B.Rr},
+        MB.true_ne_false()(a))
+    case False{}:
+      match tpl:
+        case True{}:
+          Empty.absurd({B.rr.mark.k(False{}, True{}, under, cx, o, q, locals, h, r, B.TName{Con{h, r}}, no) == B.rr.tok(B.TName{Con{h, r}}) : B.Rr},
+            MB.true_ne_false()(b))
+        case False{}:
+          match under:
+            case True{}:
+              under_kept(Bool.or(Bool.or(B.blank(r), B.names.has(locals, Con{h, r})), B.is.root(B.cx.obs(cx), o)),
+                or3_mid(B.blank(r), B.names.has(locals, Con{h, r}), B.is.root(B.cx.obs(cx), o), l), cx, o, q, r, B.TName{Con{h, r}}, no)
+            case False{}:
+              plain_kept(B.names.has(locals, Con{h, r}), l, cx, o, q, 0, Con{h, r}, B.TName{Con{h, r}}, no)
+
+def Laws.locals.kept(cx, o, q, locals, h, r, no, a, b, l):
+  mark_kept(U32.is_eq(h, 94), a, U32.is_eq(h, 126), b, U32.is_eq(h, 95), cx, o, q, locals, h, r, no, l)
+
+def Laws.locals.template(cx, o, q, locals, r, no, l):
+  plain_kept(B.names.has(locals, r), l, cx, o, q, 126, r, B.TName{Con{126, r}}, no)
