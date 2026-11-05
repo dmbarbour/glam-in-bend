@@ -34,6 +34,7 @@ note. Results hang off runs:
     results.py library RUN FILE                  import library.py's rows
     results.py library_ev RUN FILE               and its erasure modes' rows
     results.py count RUN BUILD WORKLOAD K LAZY ITRS INSTRUCTIONS [CYCLES]
+                                                 (ITRS empty where none)
     results.py metric RUN NAME VALUE
     results.py sql QUERY                         print rows, tab-separated
     results.py summary RUN                       the differential's verdicts
@@ -159,7 +160,7 @@ def cmd_run(tool, params, note=None):
 
 
 def num(s):
-    return None if s is None else int(s)
+    return None if s is None or s == "" else int(s)
 
 
 TERM_COLS = ["run_id", "ending", "mode", "seed", "term", "name", "want", "spike_v", "spike_i", "spike_e",

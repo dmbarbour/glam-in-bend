@@ -3,7 +3,11 @@
 # (blend/bench/README.md): each module printed by families.bend, built
 # natively once for each version of it, then emitted by Blend's built
 # executable (blend/build.sh) under perf (scripts/count.sh), each run
-# capped (scripts/capped.sh); its instructions and seconds printed. The
+# capped (scripts/capped.sh); its instructions and seconds printed, and
+# recorded in the analysis store (scripts/results.py): a run of tool
+# `blend/bench/measure.sh`, its shape and N its parameters, each size a
+# row of `counts` (build `blend`, the shape its workload, the size its
+# k, no interactions) and its seconds a metric (`<shape> <size> s`). The
 # modules and what Blend writes go to results/blend/bench (out of git).
 #
 #   blend/bench/measure.sh chain|fan|dense N [MB SECONDS]
@@ -19,6 +23,7 @@ if [ ! -x "$gen" ] || [ blend/bench/families.bend -nt "$gen" ]; then
   scripts/capped.sh 1500 300 "$BEND" blend/bench/families.bend -o "$gen" >&2 || exit 1
 fi
 blend=$(blend/build.sh) || exit 1
+run=$(python3 -I scripts/results.py run blend/bench/measure.sh "{\"shape\": \"$shape\", \"n\": $n}") || exit 1
 for k in "$n" $((2 * n)) $((4 * n)); do
   mod=$out/$shape$k.blend
   "$gen" "$shape" "$k" > "$mod" || exit 1
@@ -27,7 +32,11 @@ for k in "$n" $((2 * n)) $((4 * n)); do
   ok=$?
   t=$(awk -v a="$start" -v b="$(date +%s.%N)" 'BEGIN { printf "%.2f", b - a }')
   ins=$(sed -n 's/^count.sh: \([0-9]*\) instructions.*/\1/p' "$out/run.err")
+  cyc=$(sed -n 's/^count.sh: .* \([0-9]*\) cycles.*/\1/p' "$out/run.err")
   [ "$ok" -eq 0 ] && [ -n "$ins" ] || {
     echo "$shape $k: the run failed or ran past its cap ($t s)"; cat "$out/run.err" >&2; exit 1; }
+  python3 -I scripts/results.py count "$run" blend "$shape" "$k" 0 "" "$ins" "$cyc" || exit 1
+  python3 -I scripts/results.py metric "$run" "$shape $k s" "$t" || exit 1
   echo "$shape $k: $ins instructions, $t s"
 done
+echo "run $run in the analysis store (scripts/results.py)"

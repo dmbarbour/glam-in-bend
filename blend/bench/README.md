@@ -13,7 +13,9 @@ at N, 2N and 4N, as one size hides superlinear growth.
 - `measure.sh` emits a family at N, 2N and 4N with Blend's built
   executable, each run capped (`scripts/capped.sh`, 4,000 MB and 600 s
   by default), and prints its instructions (`scripts/count.sh`, under
-  `perf`) and seconds. The modules and what Blend writes go to
+  `perf`) and seconds, recording them in the analysis store
+  (`scripts/results.py`: a run, each size a row of `counts`, its seconds
+  a metric). The modules and what Blend writes go to
   `results/blend/bench` (out of git).
 
       blend/bench/measure.sh chain|fan|dense N [MB SECONDS]
