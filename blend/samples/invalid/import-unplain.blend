@@ -1,0 +1,6 @@
+# An import's path is as Bend's: `./` and `../` leading only, then plain
+# names; `lib/../lib` names a directory after a name, which Bend refuses.
+import Base
+import ../lib/../lib/shapes.blend as S
+
+object Big extends S.Square

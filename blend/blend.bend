@@ -1527,6 +1527,90 @@ def er.twice(+obs: List<&2, Ob>, +id: U32, +path: List<&2, List<&2, U32>>, +no: 
     case _:
       on.maybe(U32, List<&2, Er>, mixin.other(obs, id, host, path.last(path), kind), u => Nil{}, +x => er.twice.k(obs, id, x, no))
 
+# Import paths, as Bend's (tried 2026-11-05): `./` and `../` leading
+# only, then names of letters, digits, `_` and `-`, the last the file's
+# with its extension; no absolute path, no `.` or `..` after a name, no
+# empty part between names.
+
+def ch.plain(+c: U32) -> Bool:
+  (U32.is_gt(c, 47) && U32.is_lt(c, 58)) || (U32.is_gt(c, 64) && U32.is_lt(c, 91)) || (U32.is_gt(c, 96) && U32.is_lt(c, 123)) ||
+    U32.is_eq(c, 95) || U32.is_eq(c, 45)
+
+def chars.plain(xs: List<&2, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+c, t}:
+      ch.plain(c) && chars.plain(t)
+
+def part.plain(+s: List<&2, U32>) -> Bool:
+  Bool.not(List.is_empty(&2, U32, s)) && chars.plain(s)
+
+def ends(+xs: List<&2, U32>, +p: List<&2, U32>) -> Bool:
+  starts(List.reverse(&2, U32, xs), List.reverse(&2, U32, p))
+
+# the names after the leading part, the last with its extension
+def parts.plain(ss: List<&2, List<&2, U32>>, +ext: List<&2, U32>) -> Bool:
+  match ss:
+    case Nil{}:
+      False{}
+    case Con{+s, +t}:
+      match t:
+        case Nil{}:
+          ends(s, ext) && part.plain(List.take(&2, U32, s, Nat.sub(List.length(&2, U32, s), List.length(&2, U32, ext))))
+        case Con{x, r}:
+          part.plain(s) && parts.plain(t, ext)
+
+def parts.lead(ss: List<&2, List<&2, U32>>, +ext: List<&2, U32>) -> Bool:
+  match ss:
+    case Nil{}:
+      False{}
+    case Con{+s, +t}:
+      when(Bool, same(s, codes(".")) || same(s, codes("..")) || List.is_empty(&2, U32, s), u => parts.lead(t, ext), u => parts.plain(Con{s, t}, ext))
+
+def split.slash(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match xs:
+    case Nil{}:
+      List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
+    case Con{+h, t}:
+      match h:
+        case 47:
+          split.slash(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
+        case _:
+          split.slash(t, Con{h, cur}, out)
+
+def import.parts(ss: List<&2, List<&2, U32>>, +ext: List<&2, U32>) -> Bool:
+  match ss:
+    case Nil{}:
+      False{}
+    case Con{+s, +t}:
+      when(Bool, List.is_empty(&2, U32, s), u => False{},
+        u => when(Bool, same(s, codes(".")) || same(s, codes("..")), v => parts.lead(t, ext), v => parts.plain(Con{s, t}, ext)))
+
+def import.plain(+p: List<&2, U32>, +ext: List<&2, U32>) -> Bool:
+  import.parts(split.slash(p, Nil{}, Nil{}), ext)
+
+# an import: its path as written, its alias, whether it is Blend's
+type Im is Data:
+  Im{path: List<&2, U32>, alias: List<&2, U32>, +blend: Bool, +no: U32}
+
+def im.plain.ers(i: Im) -> List<&2, Er>:
+  match i:
+    case Im{+path, alias, +blend, +no}:
+      when(List<&2, Er>, blend && Bool.not(import.plain(path, codes(".blend"))),
+        u => [Er{no, "import " ++ text(path) ++ ": an import path is plain names, letters, digits, _ and -, with ./ and ../ leading only, as Bend's"}],
+        u => Nil{})
+
+def im.made(r: List<&2, U32> & List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
+  (+path, +rest) = r
+  when(Maybe<&2, Im>, starts(rest, codes("as ")) && name.ok(trim(drop(3n, rest))),
+    u => Some{Im{path, trim(drop(3n, rest)), ends(path, codes(".blend")), no}}, u => None{})
+
+# `import PATH as ALIAS`; Bend's other forms (by a package's hash or name)
+# are Bend's alone
+def im.of(+txt: List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
+  im.made(until(drop(7n, txt), 32), no)
+
 # a member list's lines Blend cannot read, and imports inside an object
 def er.mems(ns: List<&2, Node>, +top: Bool) -> List<&2, Er>:
   match ns:
@@ -1995,9 +2079,6 @@ def kw(+upd: Bool) -> String:
       "upd "
     case False{}:
       "def "
-
-def ends(+xs: List<&2, U32>, +p: List<&2, U32>) -> Bool:
-  starts(List.reverse(&2, U32, xs), List.reverse(&2, U32, p))
 
 # a proof's name, its law's: the `#` that keeps them apart dropped
 def name.plain(+n: List<&2, U32>) -> List<&2, U32>:
@@ -2684,20 +2765,6 @@ def root.find(obs: List<&2, Ob>, +m: U32) -> U32:
         case Ob{+id, +host, path, +abs, parents, mems, +no, +kind, +tpl}:
           when(U32, U32.is_eq(id, host) && U32.is_eq(loc.mod(no), m), u => id, u => root.find(t, m))
 
-# an import: its path as written, its alias, whether it is Blend's
-type Im is Data:
-  Im{path: List<&2, U32>, alias: List<&2, U32>, +blend: Bool, +no: U32}
-
-def im.made(r: List<&2, U32> & List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
-  (+path, +rest) = r
-  when(Maybe<&2, Im>, starts(rest, codes("as ")) && name.ok(trim(drop(3n, rest))),
-    u => Some{Im{path, trim(drop(3n, rest)), ends(path, codes(".blend")), no}}, u => None{})
-
-# `import PATH as ALIAS`; Bend's other forms (by a package's hash or name)
-# are Bend's alone
-def im.of(+txt: List<&2, U32>, +no: U32) -> Maybe<&2, Im>:
-  im.made(until(drop(7n, txt), 32), no)
-
 def ims.of(ns: List<&2, Node>) -> List<&2, Im>:
   match ns:
     case Nil{}:
@@ -2750,17 +2817,6 @@ def slashes(ps: List<&2, List<&2, U32>>) -> List<&2, U32>:
           p
         case Con{h, r}:
           List.append(&2, U32, p, Con{47, slashes(Con{h, r})})
-
-def split.slash(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match xs:
-    case Nil{}:
-      List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
-    case Con{+h, t}:
-      match h:
-        case 47:
-          split.slash(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
-        case _:
-          split.slash(t, Con{h, cur}, out)
 
 # a file's directory's parts
 def path.dir(+path: List<&2, U32>) -> List<&2, List<&2, U32>>:
@@ -4557,7 +4613,7 @@ def ims.blend(xs: List<&2, Im>) -> List<&2, Im>:
     case Con{+i, +t}:
       match i:
         case Im{path, alias, +blend, +no}:
-          when(List<&2, Im>, blend, u => Con{i, ims.blend(t)}, u => ims.blend(t))
+          when(List<&2, Im>, blend && import.plain(path, codes(".blend")), u => Con{i, ims.blend(t)}, u => ims.blend(t))
 
 # Paths
 #
@@ -5022,16 +5078,36 @@ def run(+cmd: U32, +files: List<&2, List<&2, U32>>, +paths: List<&2, List<&2, U3
     case _:
       objects(cmd, files, paths, trees)
 
-# a command over the modules read, the root first; one an import reached
-# and none could read an error
+def ims.plain.ers(xs: List<&2, Im>) -> List<&2, Er>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{i, t}:
+      List.append(&2, Er, im.plain.ers(i), ims.plain.ers(t))
+
+# each module's Blend imports whose paths Bend would refuse
+def trees.plain.ers(ts: List<&2, List<&2, Node>>) -> List<&2, Er>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{x, t}:
+      List.append(&2, Er, ims.plain.ers(ims.of(x)), trees.plain.ers(t))
+
+# the modules' errors as read: an import none could read, one whose path
+# Bend would refuse
+def load.ers(+r: Md, +t: List<&2, Md>) -> List<&2, Er>:
+  List.append(&2, Er, mds.ers(t, md.path(r)), trees.plain.ers(mds.trees(Con{r, t}, 0)))
+
+# a command over the modules read, the root first; the modules' errors as
+# read first
 def run.mods(+cmd: U32, +ms: List<&2, Md>) -> Out:
   match ms:
     case Nil{}:
       Out{False{}, usage()}
     case Con{+r, +t}:
       when(Out, md.ok(r),
-        u => when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, mds.ers(t, md.path(r)))),
-          v => ers.out(mds.names(Con{r, t}, md.path(r)), mds.ers(t, md.path(r))),
+        u => when(Out, Maybe.is_some(&2, Er, List.head(&2, Er, load.ers(r, t))),
+          v => ers.out(mds.names(Con{r, t}, md.path(r)), load.ers(r, t)),
           v => run(cmd, mds.names(Con{r, t}, md.path(r)), mds.paths(Con{r, t}), mds.trees(Con{r, t}, 0))),
         u => Out{False{}, "blend: cannot read " ++ text(md.path(r))})
 

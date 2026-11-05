@@ -159,7 +159,9 @@ Bend's imports pass through.
   S`, name their objects `S.Square`, to extend and to call. Imports form
   a DAG, each file read once, a cycle an error, and an object means the
   same however an import reaches it, the module being no object
-  (`blend-module-is-bend`). Each module emits its own `.bend`; the
+  (`blend-module-is-bend`). An import's path is as Bend's: `./` and
+  `../` leading only, then plain names (letters, digits, `_`, `-`), no
+  absolute path; Blend refuses the paths Bend would. Each module emits its own `.bend`; the
   root's import of one names it. An object extending another module's
   copies what it inherits, and the bodies copied name that module's
   definitions through its alias.
@@ -258,7 +260,7 @@ undefined, a parameter shadowing a definition, parents with no C3
 linearization, `^` in a definition of the module, members after a header
 that leaves out `with`, a declared type left undefined, a datatype in an
 object, an import reaching the module importing it, an import of no
-file, a name beginning `Blend_`, an extension of nothing inherited, a
+file, an import's path Bend would refuse, a name beginning `Blend_`, an extension of nothing inherited, a
 nested object introduced where one is inherited, `extend` at the top
 level, two nested objects made of one mixin inherited together, a proof
 of no law, code naming a law, `upd law`, a proof introduced where one
