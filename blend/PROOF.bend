@@ -2055,9 +2055,3 @@ def walk_ends(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&
 
 def Laws.order.ends(roots, cal, obs, us):
   walk_ends(roots, cal, obs, us)
-
-# finished, the walk passes for no failure it has not reported
-def Laws.order.fuel(roots, cal, obs, us):
-  %Equal.sym(Bool, B.ds.finished(B.walk(roots, cal, obs, us)), True{}, walk_ends(roots, cal, obs, us)) :
-    {Bool.or(_, Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))))) == True{} : Bool}
-  {==}

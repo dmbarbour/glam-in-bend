@@ -144,17 +144,6 @@ law order.closed:
   for h: {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
   {B.calls.in(B.ds.walked(B.walk(roots, cal, obs, us)), cal, B.ds.walked(B.walk(roots, cal, obs, us))) == True{} : Bool}
 
-# LAW: the walk finishes, or reports an error: a walk its fuel cut short
-# never passes for a success. Since `order.ends` below, which proves it,
-# the walk always finishes.
-# Record: blend-adds-no-bend-logic
-law order.fuel:
-  for +roots: List<&2, U32>
-  for +cal: List<&2, List<&2, U32>>
-  for +obs: List<&2, B.Ob>
-  for +us: List<&2, B.Un>
-  {Bool.or(B.ds.finished(B.walk(roots, cal, obs, us)), Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))))) == True{} : Bool}
-
 # LAW: the walk finishes within its fuel, whatever its roots and calls,
 # so that `order.roots` and `order.closed` hold always: every root and
 # every unit one reaches is walked, each in its order once
