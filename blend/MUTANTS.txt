@@ -90,3 +90,24 @@ a trie answering yes at an empty leaf
           True{}
         case _:
           True{}
+
+=== copies_from_two emit.defs
+a unit's numbered copies written from the second on, the first missing
+--- blend.bend
+      copies.put(U32.to_nat(m), e, x, 1, unit.put(e, x, 0, b))
++++
+      copies.put(U32.to_nat(m), e, x, 2, unit.put(e, x, 0, b))
+
+=== unit_dropped emit.defs
+a unit of the order not written
+--- blend.bend
+      order.put(t, e, unit.all(e, x, ec.mu(e, x), b))
++++
+      order.put(t, e, b)
+
+=== names_shifted emit.names
+the names check counting a unit's names from its first copy, not its own
+--- blend.bend
+      List.append(&2, Nm, names.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), e, x, 0), names.all(t, e))
++++
+      List.append(&2, Nm, names.copies(1n+U32.to_nat(mu.m(ec.mu(e, x))), e, x, 1), names.all(t, e))
