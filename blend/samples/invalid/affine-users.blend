@@ -1,0 +1,16 @@
+# An affine definition used by several definitions, one of them twice:
+# the error lists each use, by user and line, in the order emitted.
+import Base
+
+object Arith with
+  def inc(+n: U32) -> U32:
+    (n + 1 : U32)
+  def first(+n: U32) -> U32:
+    inc(n)
+  def both(+n: U32) -> U32:
+    inc(inc(n))
+  def last(+n: U32) -> U32:
+    first(inc(n))
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Arith.last(Arith.both(1))))

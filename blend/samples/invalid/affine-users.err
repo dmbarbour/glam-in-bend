@@ -1,0 +1,1 @@
+affine-users.blend:6: Arith.inc is affine and has 4 uses, in Arith.first (line 9), Arith.both (line 11, twice), Arith.last (line 13): mark it shared or copied
