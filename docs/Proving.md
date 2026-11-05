@@ -64,6 +64,12 @@ it alone taught. Add to this file what a new proof teaches.
   `{N == Nat.pow(2n, 32n)}`, the power met only against a symbolic value
   or where both forms match exactly (BendIssues.md, "Big constants in
   proofs").
+- **A proof function is used once.** A function cannot be `+`-marked, so
+  a lemma taking one (`@x:A -> P(x)`, Bend's dependent function) cannot
+  both use it and pass it on. State a reusable fact as a `Bool`
+  equation instead (containment as `all.in(xs, ys) == True`), and keep
+  function arguments to a case split, each branch used once
+  (`or_cases(a, b, c, h, fa, fb)`).
 - **Several invariants as one `Bool`**: a conjunction `inv(s) == True`,
   with a lemma building it from its parts and one taking each part out
   (the hub's `eq_true_of_and_left`, `eq_true_of_and_right`), so that a

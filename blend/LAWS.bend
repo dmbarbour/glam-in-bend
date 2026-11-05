@@ -120,3 +120,14 @@ law order.walked:
   for +us: List<&2, B.Un>
   for h: {List.is_empty(&2, B.Er, B.ds.ers(B.walk(roots, cal, obs, us))) == True{} : Bool}
   {B.all.in(B.ds.walked(B.walk(roots, cal, obs, us)), B.ds.order(B.walk(roots, cal, obs, us))) == True{} : Bool}
+
+# LAW: once the walk has finished, its stack and its roots spent, every
+# root has been walked.
+# Record: blend-adds-no-bend-logic
+law order.roots:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  for h: {B.ds.finished(B.walk(roots, cal, obs, us)) == True{} : Bool}
+  {B.all.in(roots, B.ds.walked(B.walk(roots, cal, obs, us))) == True{} : Bool}
