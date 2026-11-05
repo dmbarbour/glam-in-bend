@@ -907,9 +907,25 @@ def go_keeps(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.O
     case 1n+k:
       go_keeps(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_keeps(s, cal, obs, us, h))
 
+# The walk's end
+#
+# A walk its fuel cut short reports a fault of Blend's (ds.end.k), which
+# changes nothing else: each invariant holds through it.
+
+def end_keeps(+fin: Bool, d: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {B.ordered(B.ds.order(d), cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.end.k(fin, d)), cal) == True{} : Bool}:
+  match fin:
+    case True{}:
+      h
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          h
+
 def Laws.order.callees_first(roots, cal, obs, us):
-  go_keeps(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-    B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})
+  end_keeps(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), cal,
+    go_keeps(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
 
 # The walk's order, each unit once
 # --------------------------------
@@ -1142,10 +1158,20 @@ def inv_order(s: B.Ds, h: {inv(s) == True{} : Bool}) -> {B.distinct(B.ds.order(s
     case B.Ds{stack, roots, +done, +order, ers}:
       get_a(order, done, stack, h)
 
+def end_once(+fin: Bool, d: B.Ds, +h: {inv(d) == True{} : Bool}) -> {inv(B.ds.end.k(fin, d)) == True{} : Bool}:
+  match fin:
+    case True{}:
+      h
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          h
+
 def Laws.order.once(roots, cal, obs, us):
   inv_order(B.walk(roots, cal, obs, us),
-    go_once(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
+    end_once(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us),
+      go_once(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})))
 
 # The walk's order, nothing walked lost
 # -------------------------------------
@@ -1235,10 +1261,20 @@ def jinv_out(s: B.Ds, h: {jinv(s) == True{} : Bool}, +e: {List.is_empty(&2, B.Er
     case B.Ds{stack, roots, +done, +order, +ers}:
       ME.subst(Bool, x => {Bool.or(Bool.not(x), B.all.in(done, order)) == True{} : Bool}, List.is_empty(&2, B.Er, ers), True{}, e, h)
 
+def end_walked(+fin: Bool, d: B.Ds, +h: {jinv(d) == True{} : Bool}) -> {jinv(B.ds.end.k(fin, d)) == True{} : Bool}:
+  match fin:
+    case True{}:
+      h
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          {==}
+
 def Laws.order.walked(roots, cal, obs, us, h):
   jinv_out(B.walk(roots, cal, obs, us),
-    go_walked(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)
+    end_walked(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us),
+      go_walked(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})), h)
 
 # The walk's roots, every one walked
 # ----------------------------------
@@ -1417,10 +1453,21 @@ def roots_out(s: B.Ds, +rs0: List<&2, U32>, +h: {B.all.in(rs0, cov(s)) == True{}
         case Con{f, st}:
           Empty.absurd({B.all.in(rs0, done) == True{} : Bool}, MB.false_ne_true()(e))
 
+def end_roots(+fin: Bool, d: B.Ds, +rs0: List<&2, U32>, +h: {B.all.in(rs0, cov(d)) == True{} : Bool}) ->
+    {B.all.in(rs0, cov(B.ds.end.k(fin, d))) == True{} : Bool}:
+  match fin:
+    case True{}:
+      h
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          h
+
 def Laws.order.roots(roots, cal, obs, us, h):
   roots_out(B.walk(roots, cal, obs, us), roots,
-    go_roots(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots)), h)
+    end_roots(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), roots,
+      go_roots(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, roots, sub_refl(roots))), h)
 
 # The walk's calls, every one walked
 # ----------------------------------
@@ -1634,7 +1681,37 @@ def closed_out(s: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {kinv(cal, s) == True
         case Con{f, st}:
           Empty.absurd({B.calls.in(done, cal, done) == True{} : Bool}, MB.false_ne_true()(e))
 
+def end_closed(+fin: Bool, d: B.Ds, +cal: List<&2, List<&2, U32>>, +h: {kinv(cal, d) == True{} : Bool}) ->
+    {kinv(cal, B.ds.end.k(fin, d)) == True{} : Bool}:
+  match fin:
+    case True{}:
+      h
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          h
+
 def Laws.order.closed(roots, cal, obs, us, h):
   closed_out(B.walk(roots, cal, obs, us), cal,
-    go_closed(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}), h)
+    end_closed(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), cal,
+      go_closed(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+        B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})), h)
+
+# The walk's fuel
+# ---------------
+#
+# Not that the fuel suffices: that a walk it cut short reports an error.
+
+def end_fuel(+fin: Bool, +d: B.Ds, +e: {fin == B.ds.finished(d) : Bool}) ->
+    {Bool.or(B.ds.finished(B.ds.end.k(fin, d)), Bool.not(List.is_empty(&2, B.Er, B.ds.ers(B.ds.end.k(fin, d))))) == True{} : Bool}:
+  match fin:
+    case True{}:
+      %e : {Bool.or(_, Bool.not(List.is_empty(&2, B.Er, B.ds.ers(d)))) == True{} : Bool}
+      {==}
+    case False{}:
+      match d:
+        case B.Ds{stack, roots, done, order, ers}:
+          MB.or_true(B.ds.finished(B.Ds{stack, roots, done, order, Con{B.Er{0, "Blend's walk ran out of fuel before it finished, a fault of Blend's"}, ers}}))
+
+def Laws.order.fuel(roots, cal, obs, us):
+  end_fuel(B.ds.finished(B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)), B.ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))), B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us), {==})
