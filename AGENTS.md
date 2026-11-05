@@ -7,10 +7,10 @@ github.com/dmbarbour/glam is reference, not specification (`host-bend2`).
 When using Bend:
 - run `bend guide` to learn it
 - use `LAWS.bend` to keep important rules
-- before proving anything, read `docs/BendIssues.md` (its entries on
-  proofs: U32, big constants) and the lessons the proofs already written
-  record (`blend/PROOF.bend`'s header, `spike/PROOF.bend`): Bend's
-  shortfalls there have workarounds that cost hours to find again
+- before proving anything, read `docs/Proving.md`, `docs/BendIssues.md`
+  and the lessons recorded in the headers of the proof files already
+  written: Bend's shortfalls have workarounds that cost hours to find
+  again
 - run `bend PROOF.bend` before committing
 - parallelize the code whenever possible
 
@@ -30,6 +30,7 @@ Contingent:
   `docs/DesignPrinciples.md`, `docs/Design.md`
 - Macros, direct-style assembly, the command line: `docs/Macros.md`,
   `docs/DirectStyleAssembly.md`, `docs/CLI.md`
+- When proving: `docs/Proving.md`, what the proofs so far have taught
 - When Bend falls short: `docs/BendIssues.md` tracks shortfalls with their
   upstream issues; `bench/` holds programs that measure and reproduce them.
   Comment upstream only when the maintainer asks.
@@ -189,9 +190,10 @@ write both.
 - Never weaken, change or delete an existing law on main without the
   maintainer's explicit approval: a law edited to fit the code proves
   nothing.
-- Before proving, review `docs/BendIssues.md` and the lessons the
-  existing proofs record (`blend/PROOF.bend`'s header,
-  `spike/PROOF.bend`); add what a new proof teaches to them.
+- Before proving, review `docs/Proving.md`, `docs/BendIssues.md` and the
+  lessons in the existing proof files' headers; add what a new proof
+  teaches to them. A law weakened to be cheap lists its missing pieces
+  in the plan beside it (`docs/Proving.md`, What to claim).
 - Prefer state shapes in which an invariant holds by computation; then its
   law costs a case split.
 

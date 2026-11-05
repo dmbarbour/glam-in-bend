@@ -843,10 +843,10 @@ def Laws.lines.join(bs, h):
 # unit whose callees are in it. Each step's choices are Bools its helpers
 # match, which the lemmas split.
 
-def call_keeps(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +path: List<&2, U32>,
+def call_keeps(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
     +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
     +h: {B.ordered(order, cal) == True{} : Bool}) ->
-    {B.ordered(B.ds.order(B.ds.call.k(seen, cyc, c, u, rs, st, roots, path, done, order, ers, cal, obs, us)), cal) == True{} : Bool}:
+    {B.ordered(B.ds.order(B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)), cal) == True{} : Bool}:
   match seen:
     case True{}:
       h
@@ -857,10 +857,10 @@ def call_keeps(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +s
         case False{}:
           h
 
-def done_keeps(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +path: List<&2, U32>,
+def done_keeps(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
     +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
     +e: {ok == B.all.in(B.ids.at(cal, u), order) : Bool}, +h: {B.ordered(order, cal) == True{} : Bool}) ->
-    {B.ordered(B.ds.order(B.ds.done.k(ok, u, st, roots, path, done, order, ers, obs, us)), cal) == True{} : Bool}:
+    {B.ordered(B.ds.order(B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)), cal) == True{} : Bool}:
   match ok:
     case True{}:
       %e : {Bool.and(_, B.ordered(order, cal)) == True{} : Bool}
@@ -868,9 +868,9 @@ def done_keeps(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +
     case False{}:
       h
 
-def root_keeps(+seen: Bool, +r: U32, +rt: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>,
+def root_keeps(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>,
     +cal: List<&2, List<&2, U32>>, +h: {B.ordered(order, cal) == True{} : Bool}) ->
-    {B.ordered(B.ds.order(B.ds.root.k(seen, r, rt, path, done, order, ers, cal)), cal) == True{} : Bool}:
+    {B.ordered(B.ds.order(B.ds.root.k(seen, r, rt, done, order, ers, cal)), cal) == True{} : Bool}:
   match seen:
     case True{}:
       h
@@ -881,22 +881,22 @@ def step_keeps(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us
     +h: {B.ordered(B.ds.order(s), cal) == True{} : Bool}) ->
     {B.ordered(B.ds.order(B.ds.step(s, cal, obs, us)), cal) == True{} : Bool}:
   match s:
-    case B.Ds{stack, +roots, +path, +done, +order, +ers}:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
       match stack:
         case Nil{}:
           match roots:
             case Nil{}:
               h
             case Con{+r, +rt}:
-              root_keeps(B.has(done, r), r, rt, path, done, order, ers, cal, h)
-        case Con{f, st}:
+              root_keeps(B.has(done, r), r, rt, done, order, ers, cal, h)
+        case Con{f, +st}:
           match f:
             case B.Fm{+u, rest}:
               match rest:
                 case Nil{}:
-                  done_keeps(B.all.in(B.ids.at(cal, u), order), u, st, roots, path, done, order, ers, cal, obs, us, {==}, h)
+                  done_keeps(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, cal, obs, us, {==}, h)
                 case Con{+c, rs}:
-                  call_keeps(B.has(done, c), B.has(path, c), c, u, rs, st, roots, path, done, order, ers, cal, obs, us, h)
+                  call_keeps(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, h)
 
 def go_keeps(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
     +h: {B.ordered(B.ds.order(s), cal) == True{} : Bool}) ->
@@ -909,4 +909,240 @@ def go_keeps(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.O
 
 def Laws.order.callees_first(roots, cal, obs, us):
   go_keeps(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
-    B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})
+    B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})
+
+# The walk's order, each unit once
+# --------------------------------
+#
+# The invariant: the order is distinct, every unit in it walked; the
+# units on the stack distinct, none walked. A unit is pushed only when
+# neither walked nor on the stack, and joins the order when popped, so
+# once.
+
+def and_intro(+a: Bool, +b: Bool, pa: {a == True{} : Bool}, pb: {b == True{} : Bool}) -> {Bool.and(a, b) == True{} : Bool}:
+  %Equal.sym(Bool, a, True{}, pa) : {Bool.and(_, b) == True{} : Bool}
+  pb
+
+def or_false_l(+a: Bool, +b: Bool, h: {Bool.or(a, b) == False{} : Bool}) -> {a == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MB.true_ne_false()(h))
+    case False{}:
+      {==}
+
+def or_false_r(+a: Bool, +b: Bool, h: {Bool.or(a, b) == False{} : Bool}) -> {b == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({b == False{} : Bool}, MB.true_ne_false()(h))
+    case False{}:
+      h
+
+def not_true(+b: Bool, h: {Bool.not(b) == True{} : Bool}) -> {b == False{} : Bool}:
+  match b:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(h))
+    case False{}:
+      {==}
+
+def u32_is_eq_comm(+a: U32, +b: U32) -> {U32.is_eq(a, b) == U32.is_eq(b, a) : Bool}:
+  Equal.trans(Bool, U32.is_eq(a, b), Nat.is_eq(U32.to_nat(a), U32.to_nat(b)), U32.is_eq(b, a), MU.u32_is_eq_to_nat(a, b),
+    Equal.trans(Bool, Nat.is_eq(U32.to_nat(a), U32.to_nat(b)), Nat.is_eq(U32.to_nat(b), U32.to_nat(a)), U32.is_eq(b, a),
+      MNat.is_eq_comm(U32.to_nat(a), U32.to_nat(b)), MU.u32_is_eq_to_nat_sym(b, a)))
+
+def has_self(+done: List<&2, U32>, +u: U32) -> {B.has(Con{u, done}, u) == True{} : Bool}:
+  %Equal.sym(Bool, U32.is_eq(u, u), True{}, u32_is_eq_refl(u)) : {Bool.or(_, B.has(done, u)) == True{} : Bool}
+  {==}
+
+def has_mono(+xs: List<&2, U32>, +u: U32, +x: U32, h: {B.has(xs, x) == True{} : Bool}) -> {B.has(Con{u, xs}, x) == True{} : Bool}:
+  %Equal.sym(Bool, B.has(xs, x), True{}, h) : {Bool.or(U32.is_eq(u, x), _) == True{} : Bool}
+  MB.or_true(U32.is_eq(u, x))
+
+def all_in_mono(ys: List<&2, U32>, +done: List<&2, U32>, +u: U32, +h: {B.all.in(ys, done) == True{} : Bool}) -> {B.all.in(ys, Con{u, done}) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      and_intro(B.has(Con{u, done}, y), B.all.in(t, Con{u, done}),
+        has_mono(done, u, y, MB.eq_true_of_and_left(B.has(done, y), B.all.in(t, done), h)),
+        all_in_mono(t, done, u, MB.eq_true_of_and_right(B.has(done, y), B.all.in(t, done), h)))
+
+def none_in(xs: List<&2, U32>, +done: List<&2, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+x, t}:
+      Bool.and(Bool.not(B.has(done, x)), none_in(t, done))
+
+# a unit not walked is not in the order, which holds only units walked
+def sub_step(+y: U32, +t: List<&2, U32>, +done: List<&2, U32>, +u: U32, b: Bool, +e: {b == U32.is_eq(y, u) : Bool},
+    hy: {B.has(done, y) == True{} : Bool}, +hn: {B.has(done, u) == False{} : Bool}, ih: {B.has(t, u) == False{} : Bool}) ->
+    {Bool.or(b, B.has(t, u)) == False{} : Bool}:
+  match b:
+    case True{}:
+      Empty.absurd({Bool.or(True{}, B.has(t, u)) == False{} : Bool},
+        MB.true_ne_false()(Equal.trans(Bool, True{}, B.has(done, u), False{},
+          Equal.sym(Bool, B.has(done, u), True{},
+            ME.subst(U32, x => {B.has(done, x) == True{} : Bool}, y, u, u32_eq_of_is_eq(y, u, Equal.sym(Bool, True{}, U32.is_eq(y, u), e)), hy)),
+          hn)))
+    case False{}:
+      ih
+
+def not_in_of_sub(ys: List<&2, U32>, +done: List<&2, U32>, +u: U32, +hsub: {B.all.in(ys, done) == True{} : Bool}, +hn: {B.has(done, u) == False{} : Bool}) ->
+    {B.has(ys, u) == False{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      sub_step(y, t, done, u, U32.is_eq(y, u), {==}, MB.eq_true_of_and_left(B.has(done, y), B.all.in(t, done), hsub), hn,
+        not_in_of_sub(t, done, u, MB.eq_true_of_and_right(B.has(done, y), B.all.in(t, done), hsub), hn))
+
+# units none walked, u not among them: none walked once u is
+def none_in_extend(xs: List<&2, U32>, +done: List<&2, U32>, +u: U32, +hn: {none_in(xs, done) == True{} : Bool}, +hu: {B.has(xs, u) == False{} : Bool}) ->
+    {none_in(xs, Con{u, done}) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      %Equal.trans(Bool, False{}, U32.is_eq(x, u), U32.is_eq(u, x),
+          Equal.sym(Bool, U32.is_eq(x, u), False{}, or_false_l(U32.is_eq(x, u), B.has(t, u), hu)), u32_is_eq_comm(x, u)) :
+        {Bool.and(Bool.not(Bool.or(_, B.has(done, x))), none_in(t, Con{u, done})) == True{} : Bool}
+      %Equal.sym(Bool, B.has(done, x), False{}, not_true(B.has(done, x), MB.eq_true_of_and_left(Bool.not(B.has(done, x)), none_in(t, done), hn))) :
+        {Bool.and(Bool.not(Bool.or(False{}, _)), none_in(t, Con{u, done})) == True{} : Bool}
+      none_in_extend(t, done, u, MB.eq_true_of_and_right(Bool.not(B.has(done, x)), none_in(t, done), hn), or_false_r(U32.is_eq(x, u), B.has(t, u), hu))
+
+def inv4(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>) -> Bool:
+  Bool.and(B.distinct(order), Bool.and(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)))))
+
+def inv(s: B.Ds) -> Bool:
+  match s:
+    case B.Ds{stack, roots, done, order, ers}:
+      inv4(order, done, stack)
+
+def mk4(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>,
+    pa: {B.distinct(order) == True{} : Bool}, pb: {B.all.in(order, done) == True{} : Bool},
+    pc: {none_in(B.fms.units(st), done) == True{} : Bool}, pd: {B.distinct(B.fms.units(st)) == True{} : Bool}) -> {inv4(order, done, st) == True{} : Bool}:
+  and_intro(B.distinct(order), Bool.and(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)))), pa,
+    and_intro(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st))), pb,
+      and_intro(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)), pc, pd)))
+
+def get_a(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>, h: {inv4(order, done, st) == True{} : Bool}) -> {B.distinct(order) == True{} : Bool}:
+  MB.eq_true_of_and_left(B.distinct(order), Bool.and(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)))), h)
+
+def get_bcd(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>, h: {inv4(order, done, st) == True{} : Bool}) ->
+    {Bool.and(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)))) == True{} : Bool}:
+  MB.eq_true_of_and_right(B.distinct(order), Bool.and(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)))), h)
+
+def get_b(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>, h: {inv4(order, done, st) == True{} : Bool}) -> {B.all.in(order, done) == True{} : Bool}:
+  MB.eq_true_of_and_left(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st))), get_bcd(order, done, st, h))
+
+def get_c(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>, h: {inv4(order, done, st) == True{} : Bool}) -> {none_in(B.fms.units(st), done) == True{} : Bool}:
+  MB.eq_true_of_and_left(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)),
+    MB.eq_true_of_and_right(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st))), get_bcd(order, done, st, h)))
+
+def get_d(+order: List<&2, U32>, +done: List<&2, U32>, +st: List<&2, B.Fm>, h: {inv4(order, done, st) == True{} : Bool}) -> {B.distinct(B.fms.units(st)) == True{} : Bool}:
+  MB.eq_true_of_and_right(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st)),
+    MB.eq_true_of_and_right(B.all.in(order, done), Bool.and(none_in(B.fms.units(st), done), B.distinct(B.fms.units(st))), get_bcd(order, done, st, h)))
+
+def root_once(+seen: Bool, +r: U32, +rt: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>,
+    +e: {seen == B.has(done, r) : Bool}, +h: {inv4(order, done, Nil{}) == True{} : Bool}) ->
+    {inv(B.ds.root.k(seen, r, rt, done, order, ers, cal)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      mk4(order, done, [B.Fm{r, B.ids.at(cal, r)}], get_a(order, done, Nil{}, h), get_b(order, done, Nil{}, h),
+        and_intro(Bool.not(B.has(done, r)), True{}, Equal.sym(Bool, True{}, Bool.not(B.has(done, r)),
+          ME.subst(Bool, x => {True{} == Bool.not(x) : Bool}, False{}, B.has(done, r), e, {==})), {==}),
+        {==})
+
+def call_once(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +e1: {seen == B.has(done, c) : Bool}, +e2: {cyc == B.has(Con{u, B.fms.units(st)}, c) : Bool},
+    +h: {inv4(order, done, Con{B.Fm{u, Con{c, rs}}, st}) == True{} : Bool}) ->
+    {inv(B.ds.call.k(seen, cyc, c, u, rs, st, roots, done, order, ers, cal, obs, us)) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      match cyc:
+        case True{}:
+          h
+        case False{}:
+          mk4(order, done, Con{B.Fm{c, B.ids.at(cal, c)}, Con{B.Fm{u, rs}, st}},
+            get_a(order, done, Con{B.Fm{u, Con{c, rs}}, st}, h), get_b(order, done, Con{B.Fm{u, Con{c, rs}}, st}, h),
+            and_intro(Bool.not(B.has(done, c)), none_in(Con{u, B.fms.units(st)}, done),
+              ME.subst(Bool, x => {Bool.not(x) == True{} : Bool}, False{}, B.has(done, c), e1, {==}),
+              get_c(order, done, Con{B.Fm{u, Con{c, rs}}, st}, h)),
+            and_intro(Bool.not(B.has(Con{u, B.fms.units(st)}, c)), B.distinct(Con{u, B.fms.units(st)}),
+              ME.subst(Bool, x => {Bool.not(x) == True{} : Bool}, False{}, B.has(Con{u, B.fms.units(st)}, c), e2, {==}),
+              get_d(order, done, Con{B.Fm{u, Con{c, rs}}, st}, h)))
+
+# a unit popped: walked now, and joined to the order or held back
+def done_once.k(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +ha: {B.distinct(order) == True{} : Bool}, +hb: {B.all.in(order, done) == True{} : Bool}, +hu: {B.has(done, u) == False{} : Bool},
+    +hst: {none_in(B.fms.units(st), done) == True{} : Bool}, +hnu: {B.has(B.fms.units(st), u) == False{} : Bool},
+    +hds: {B.distinct(B.fms.units(st)) == True{} : Bool}) ->
+    {inv(B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  match ok:
+    case True{}:
+      mk4(Con{u, order}, Con{u, done}, st,
+        and_intro(Bool.not(B.has(order, u)), B.distinct(order),
+          ME.subst(Bool, x => {Bool.not(x) == True{} : Bool}, False{}, B.has(order, u),
+            Equal.sym(Bool, B.has(order, u), False{}, not_in_of_sub(order, done, u, hb, hu)), {==}), ha),
+        and_intro(B.has(Con{u, done}, u), B.all.in(order, Con{u, done}), has_self(done, u), all_in_mono(order, done, u, hb)),
+        none_in_extend(B.fms.units(st), done, u, hst, hnu),
+        hds)
+    case False{}:
+      mk4(order, Con{u, done}, st, ha, all_in_mono(order, done, u, hb), none_in_extend(B.fms.units(st), done, u, hst, hnu), hds)
+
+def done_once(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, B.Er>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {inv4(order, done, Con{B.Fm{u, Nil{}}, st}) == True{} : Bool}) ->
+    {inv(B.ds.done.k(ok, u, st, roots, done, order, ers, obs, us)) == True{} : Bool}:
+  +hc = get_c(order, done, Con{B.Fm{u, Nil{}}, st}, h)
+  +hd = get_d(order, done, Con{B.Fm{u, Nil{}}, st}, h)
+  +hu = not_true(B.has(done, u), MB.eq_true_of_and_left(Bool.not(B.has(done, u)), none_in(B.fms.units(st), done), hc))
+  +hst = MB.eq_true_of_and_right(Bool.not(B.has(done, u)), none_in(B.fms.units(st), done), hc)
+  +hnu = not_true(B.has(B.fms.units(st), u), MB.eq_true_of_and_left(Bool.not(B.has(B.fms.units(st), u)), B.distinct(B.fms.units(st)), hd))
+  +hds = MB.eq_true_of_and_right(Bool.not(B.has(B.fms.units(st), u)), B.distinct(B.fms.units(st)), hd)
+  +hb = get_b(order, done, Con{B.Fm{u, Nil{}}, st}, h)
+  done_once.k(ok, u, st, roots, done, order, ers, obs, us, get_a(order, done, Con{B.Fm{u, Nil{}}, st}, h), hb, hu, hst, hnu, hds)
+
+def step_once(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {inv(s) == True{} : Bool}) ->
+    {inv(B.ds.step(s, cal, obs, us)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              h
+            case Con{+r, +rt}:
+              root_once(B.has(done, r), r, rt, done, order, ers, cal, {==}, h)
+        case Con{f, +st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_once(B.all.in(B.ids.at(cal, u), order), u, st, roots, done, order, ers, obs, us, h)
+                case Con{+c, +rs}:
+                  call_once(B.has(done, c), B.has(Con{u, B.fms.units(st)}, c), c, u, rs, st, roots, done, order, ers, cal, obs, us, {==}, {==}, h)
+
+def go_once(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>, +h: {inv(s) == True{} : Bool}) ->
+    {inv(B.ds.go(n, s, cal, obs, us)) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_once(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_once(s, cal, obs, us, h))
+
+def inv_order(s: B.Ds, h: {inv(s) == True{} : Bool}) -> {B.distinct(B.ds.order(s)) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, roots, +done, +order, ers}:
+      get_a(order, done, stack, h)
+
+def Laws.order.once(roots, cal, obs, us):
+  inv_order(B.walk(roots, cal, obs, us),
+    go_once(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+      B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==}))
