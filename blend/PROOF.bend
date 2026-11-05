@@ -604,3 +604,206 @@ def toks_spell(n: Nat, xs: List<&2, U32>, cs: List<&2, B.Cl>, +out: List<&2, B.T
 def Laws.tokens.spell(xs):
   Equal.sym(List<&2, U32>, xs, B.toks.text(B.toks(xs)),
     toks_spell(List.length(&2, U32, xs), xs, B.classes(xs), Nil{}, len_classes(xs), MNat.le_refl(List.length(&2, U32, xs))))
+
+# Lines
+# -----
+#
+# lines.go keeps the line so far reversed in cur and the lines done
+# reversed in out: the lines done, each with its newline (jl), then the
+# line so far, then what is left less its carriage returns, are what the
+# lines it returns join to. A line's indentation is counted in a Nat and
+# kept in a U32, exact for a file shorter than 2^32 bytes (lim).
+
+def lim_left(+a: Nat, +b: Nat, +N: Nat, h: MNat.lt(Nat.add(a, b), N)) -> MNat.lt(a, N):
+  MNat.lt_of_le_of_lt(a, Nat.add(a, b), N, MNat.le_add_right(a, b), h)
+
+def lim_right(+a: Nat, +b: Nat, +N: Nat, h: MNat.lt(Nat.add(a, b), N)) -> MNat.lt(b, N):
+  MNat.lt_of_le_of_lt(b, Nat.add(a, b), N,
+    ME.subst(Nat, x => MNat.le(b, x), Nat.add(b, a), Nat.add(a, b), MNat.add_comm(b, a), MNat.le_add_right(b, a)), h)
+
+def lim_succ(+a: Nat, +m: Nat, +N: Nat, h: MNat.lt(Nat.add(a, 1n+m), N)) -> MNat.lt(1n+Nat.add(a, m), N):
+  ME.subst(Nat, x => MNat.lt(x, N), Nat.add(a, 1n+m), 1n+Nat.add(a, m), MNat.add_succ(a, m), h)
+
+def lim_pred(+x: Nat, +N: Nat, h: MNat.lt(1n+x, N)) -> MNat.lt(x, N):
+  MNat.lt_of_le_of_lt(x, 1n+x, N, MNat.le_succ(x), h)
+
+def lim_zero(+a: Nat, +N: Nat, h: MNat.lt(Nat.add(a, 0n), N)) -> MNat.lt(a, N):
+  ME.subst(Nat, x => MNat.lt(x, N), Nat.add(a, 0n), a, MNat.add_zero(a), h)
+
+def lim_rev(+cur: List<&2, U32>, +N: Nat, h: MNat.lt(List.length(&2, U32, cur), N)) -> MNat.lt(List.length(&2, U32, List.reverse(&2, U32, cur)), N):
+  ME.subst(Nat, x => MNat.lt(x, N), List.length(&2, U32, cur), List.length(&2, U32, List.reverse(&2, U32, cur)),
+    Equal.sym(Nat, List.length(&2, U32, List.reverse(&2, U32, cur)), List.length(&2, U32, cur), ML.length_reverse(&2, U32, cur)), h)
+
+# a bound abstract, known to be 2^32: a concrete bound behind a successor
+# makes Bend unfold 2^32 when it compares, overflowing its stack
+def to32(+n: Nat, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat}, h: MNat.lt(n, N)) -> MNat.lt(n, Nat.pow(2n, 32n)):
+  ME.subst(Nat, M => MNat.lt(n, M), N, Nat.pow(2n, 32n), hN, h)
+
+# a space after spaces
+def sp_snoc(n: Nat, +t: List<&2, U32>) ->
+    {List.append(&2, U32, List.replicate(U32, n, 32), Con{32, t}) == Con{32, List.append(&2, U32, List.replicate(U32, n, 32), t)} : List<&2, U32>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+k:
+      %sp_snoc(k, t) : {Con{32, List.append(&2, U32, List.replicate(U32, k, 32), Con{32, t})} == Con{32, _} : List<&2, U32>}
+      {==}
+
+def line_step(+c: U32, +t: List<&2, U32>, +n: Nat, +no: U32, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat}, b: Bool, +e: {b == U32.is_eq(c, 32) : Bool},
+    +h: MNat.lt(Nat.add(n, 1n+List.length(&2, U32, t)), N),
+    ih: {List.append(&2, U32, List.replicate(U32, 1n+n, 32), t) == B.ln.text(B.line.of(t, 1n+n, no)) : List<&2, U32>}) ->
+    {List.append(&2, U32, List.replicate(U32, n, 32), Con{c, t}) ==
+      B.ln.text(B.when(B.Ln, b, u => B.line.of(t, 1n+n, no), u => B.Ln{no, U32.from_nat(n), Con{c, t}})) : List<&2, U32>}:
+  match b:
+    case True{}:
+      %Equal.sym(U32, c, 32, u32_eq_of_is_eq(c, 32, Equal.sym(Bool, True{}, U32.is_eq(c, 32), e))) :
+        {List.append(&2, U32, List.replicate(U32, n, 32), Con{_, t}) == B.ln.text(B.line.of(t, 1n+n, no)) : List<&2, U32>}
+      %ih : {List.append(&2, U32, List.replicate(U32, n, 32), Con{32, t}) == _ : List<&2, U32>}
+      sp_snoc(n, t)
+    case False{}:
+      %MU.u32_to_nat_from_nat_sym(n, to32(n, N, hN, lim_left(n, 1n+List.length(&2, U32, t), N, h))) :
+        {List.append(&2, U32, List.replicate(U32, n, 32), Con{c, t}) == List.append(&2, U32, List.replicate(U32, _, 32), Con{c, t}) : List<&2, U32>}
+      {==}
+
+# a line read: its spaces counted, then its text, are its bytes
+def line_text(xs: List<&2, U32>, +n: Nat, +no: U32, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat}, +h: MNat.lt(Nat.add(n, List.length(&2, U32, xs)), N)) ->
+    {List.append(&2, U32, List.replicate(U32, n, 32), xs) == B.ln.text(B.line.of(xs, n, no)) : List<&2, U32>}:
+  match xs:
+    case Nil{}:
+      %MU.u32_to_nat_from_nat_sym(n, to32(n, N, hN, lim_zero(n, N, h))) :
+        {List.append(&2, U32, List.replicate(U32, n, 32), Nil{}) == List.append(&2, U32, List.replicate(U32, _, 32), Nil{}) : List<&2, U32>}
+      {==}
+    case Con{+c, +t}:
+      line_step(c, t, n, no, N, hN, U32.is_eq(c, 32), {==}, h, line_text(t, 1n+n, no, N, hN, lim_succ(n, List.length(&2, U32, t), N, h)))
+
+# lines in order, each followed by its newline
+def jl(ls: List<&2, B.Ln>) -> List<&2, U32>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, r}:
+      List.append(&2, U32, B.ln.text(l), Con{10, jl(r)})
+
+def revsl_snoc(+xs: List<&2, B.Ln>, +y: B.Ln) ->
+    {List.append(&2, B.Ln, List.reverse(&2, B.Ln, xs), [y]) == List.reverse.go(&2, B.Ln, xs, [y]) : List<&2, B.Ln>}:
+  Equal.sym(List<&2, B.Ln>, List.reverse.go(&2, B.Ln, xs, [y]), List.append(&2, B.Ln, List.reverse(&2, B.Ln, xs), [y]),
+    ML.reverse_go_spec(&2, B.Ln, xs, [y]))
+
+def jl_snoc(ls: List<&2, B.Ln>, +x: B.Ln) ->
+    {List.append(&2, U32, jl(ls), List.append(&2, U32, B.ln.text(x), [10])) == jl(List.append(&2, B.Ln, ls, [x])) : List<&2, U32>}:
+  match ls:
+    case Nil{}:
+      {==}
+    case Con{+p, +r}:
+      %jl_snoc(r, x) : {List.append(&2, U32, List.append(&2, U32, B.ln.text(p), Con{10, jl(r)}), List.append(&2, U32, B.ln.text(x), [10])) ==
+        List.append(&2, U32, B.ln.text(p), Con{10, _}) : List<&2, U32>}
+      ML.append_assoc(&2, U32, B.ln.text(p), Con{10, jl(r)}, List.append(&2, U32, B.ln.text(x), [10]))
+
+def text_lsnoc(ls: List<&2, B.Ln>, +x: B.Ln) ->
+    {List.append(&2, U32, jl(ls), B.ln.text(x)) == B.lines.text(List.append(&2, B.Ln, ls, [x])) : List<&2, U32>}:
+  match ls:
+    case Nil{}:
+      {==}
+    case Con{+p, r}:
+      match r:
+        case Nil{}:
+          ML.append_assoc(&2, U32, B.ln.text(p), [10], B.ln.text(x))
+        case Con{+q, +r2}:
+          %text_lsnoc(Con{q, r2}, x) : {List.append(&2, U32, List.append(&2, U32, B.ln.text(p), Con{10, jl(Con{q, r2})}), B.ln.text(x)) ==
+            List.append(&2, U32, B.ln.text(p), Con{10, _}) : List<&2, U32>}
+          ML.append_assoc(&2, U32, B.ln.text(p), Con{10, jl(Con{q, r2})}, B.ln.text(x))
+
+def uncr_k(+b: U32, +t: List<&2, U32>, +b2: Bool) -> List<&2, U32>:
+  B.when(List<&2, U32>, b2, u => B.uncr(t), u => Con{b, B.uncr(t)})
+
+def lines_k(+b: U32, +t: List<&2, U32>, +cur: List<&2, U32>, +no: U32, +out: List<&2, B.Ln>, +b1: Bool, +b2: Bool) -> List<&2, B.Ln>:
+  B.when(List<&2, B.Ln>, b1, u => B.lines.go(t, Nil{}, (no + 1 : U32), Con{B.lines.line(cur, no), out}),
+    u => B.when(List<&2, B.Ln>, b2, v => B.lines.go(t, cur, no, out), v => B.lines.go(t, Con{b, cur}, no, out)))
+
+# the last line
+def lines_end(+cur: List<&2, U32>, +no: U32, +out: List<&2, B.Ln>, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat}, +hl: MNat.lt(List.length(&2, U32, List.reverse(&2, U32, cur)), N)) ->
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Nil{})) ==
+      B.lines.text(B.lines.go(Nil{}, cur, no, out)) : List<&2, U32>}:
+  %revsl_snoc(out, B.lines.line(cur, no)) :
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Nil{})) == B.lines.text(_) : List<&2, U32>}
+  %text_lsnoc(List.reverse(&2, B.Ln, out), B.lines.line(cur, no)) :
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Nil{})) == _ : List<&2, U32>}
+  %line_text(List.reverse(&2, U32, cur), 0n, no, N, hN, hl) :
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Nil{})) == List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), _) : List<&2, U32>}
+  %ML.append_nil(&2, U32, List.reverse(&2, U32, cur)) :
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Nil{})) == List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), _) : List<&2, U32>}
+  {==}
+
+# a byte after the line so far: a newline, a carriage return, or another
+def lines_step(+b: U32, +t: List<&2, U32>, +cur: List<&2, U32>, +no: U32, +out: List<&2, B.Ln>, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat},
+    b1: Bool, +e1: {b1 == U32.is_eq(b, 10) : Bool}, b2: Bool, +e2: {b2 == U32.is_eq(b, 13) : Bool},
+    +hl: MNat.lt(List.length(&2, U32, List.reverse(&2, U32, cur)), N),
+    ih_nl: {List.append(&2, U32, jl(List.reverse(&2, B.Ln, Con{B.lines.line(cur, no), out})), List.append(&2, U32, List.reverse(&2, U32, Nil{}), B.uncr(t))) ==
+      B.lines.text(B.lines.go(t, Nil{}, (no + 1 : U32), Con{B.lines.line(cur, no), out})) : List<&2, U32>},
+    ih_cr: {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), B.uncr(t))) ==
+      B.lines.text(B.lines.go(t, cur, no, out)) : List<&2, U32>},
+    ih_ch: {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, Con{b, cur}), B.uncr(t))) ==
+      B.lines.text(B.lines.go(t, Con{b, cur}, no, out)) : List<&2, U32>}) ->
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), uncr_k(b, t, b2))) ==
+      B.lines.text(lines_k(b, t, cur, no, out, b1, b2)) : List<&2, U32>}:
+  match b1:
+    case True{}:
+      match b2:
+        case True{}:
+          Empty.absurd({List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), uncr_k(b, t, True{}))) ==
+              B.lines.text(lines_k(b, t, cur, no, out, True{}, True{})) : List<&2, U32>},
+            MB.true_ne_false()(ME.subst(U32, x => {True{} == U32.is_eq(x, 13) : Bool}, b, 10,
+              u32_eq_of_is_eq(b, 10, Equal.sym(Bool, True{}, U32.is_eq(b, 10), e1)), e2)))
+        case False{}:
+          %Equal.sym(U32, b, 10, u32_eq_of_is_eq(b, 10, Equal.sym(Bool, True{}, U32.is_eq(b, 10), e1))) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{_, B.uncr(t)})) ==
+              B.lines.text(B.lines.go(t, Nil{}, (no + 1 : U32), Con{B.lines.line(cur, no), out})) : List<&2, U32>}
+          %ih_nl : {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) == _ : List<&2, U32>}
+          %revsl_snoc(out, B.lines.line(cur, no)) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) == List.append(&2, U32, jl(_), B.uncr(t)) : List<&2, U32>}
+          %jl_snoc(List.reverse(&2, B.Ln, out), B.lines.line(cur, no)) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) == List.append(&2, U32, _, B.uncr(t)) : List<&2, U32>}
+          %line_text(List.reverse(&2, U32, cur), 0n, no, N, hN, hl) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) ==
+              List.append(&2, U32, List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, _, [10])), B.uncr(t)) : List<&2, U32>}
+          %assoc_r(jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), [10]), B.uncr(t)) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) == _ : List<&2, U32>}
+          %assoc_r(List.reverse(&2, U32, cur), [10], B.uncr(t)) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{10, B.uncr(t)})) == List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), _) : List<&2, U32>}
+          {==}
+    case False{}:
+      match b2:
+        case True{}:
+          ih_cr
+        case False{}:
+          %ih_ch : {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{b, B.uncr(t)})) == _ : List<&2, U32>}
+          %rev_snoc(cur, b) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{b, B.uncr(t)})) ==
+              List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, _, B.uncr(t))) : List<&2, U32>}
+          %assoc_r(List.reverse(&2, U32, cur), [b], B.uncr(t)) :
+            {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), Con{b, B.uncr(t)})) == List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), _) : List<&2, U32>}
+          {==}
+
+def lines_spec(bs: List<&2, U32>, +cur: List<&2, U32>, +no: U32, +out: List<&2, B.Ln>, +N: Nat, +hN: {N == Nat.pow(2n, 32n) : Nat}, +h: MNat.lt(Nat.add(List.length(&2, U32, cur), List.length(&2, U32, bs)), N)) ->
+    {List.append(&2, U32, jl(List.reverse(&2, B.Ln, out)), List.append(&2, U32, List.reverse(&2, U32, cur), B.uncr(bs))) ==
+      B.lines.text(B.lines.go(bs, cur, no, out)) : List<&2, U32>}:
+  match bs:
+    case Nil{}:
+      lines_end(cur, no, out, N, hN, lim_rev(cur, N, lim_zero(List.length(&2, U32, cur), N, h)))
+    case Con{+b, +t}:
+      lines_step(b, t, cur, no, out, N, hN, U32.is_eq(b, 10), {==}, U32.is_eq(b, 13), {==},
+        lim_rev(cur, N, lim_left(List.length(&2, U32, cur), 1n+List.length(&2, U32, t), N, h)),
+        lines_spec(t, Nil{}, (no + 1 : U32), Con{B.lines.line(cur, no), out}, N, hN,
+          lim_pred(List.length(&2, U32, t), N, lim_right(List.length(&2, U32, cur), 1n+List.length(&2, U32, t), N, h))),
+        lines_spec(t, cur, no, out, N, hN, lim_pred(Nat.add(List.length(&2, U32, cur), List.length(&2, U32, t)), N, lim_succ(List.length(&2, U32, cur), List.length(&2, U32, t), N, h))),
+        lines_spec(t, Con{b, cur}, no, out, N, hN, lim_succ(List.length(&2, U32, cur), List.length(&2, U32, t), N, h)))
+
+# the law's bound in the form lines_spec takes, the bound abstract: Bend
+# compares forms that differ by normalizing them, which unfolds 2^32
+def top_bound(+bs: List<&2, U32>, +N: Nat, h: {Nat.is_lt(List.length(&2, U32, bs), N) == True{} : Bool}) ->
+    MNat.lt(Nat.add(List.length(&2, U32, Nil{}), List.length(&2, U32, bs)), N):
+  h
+
+def Laws.lines.join(bs, h):
+  Equal.sym(List<&2, U32>, B.uncr(bs), B.lines.text(B.lines(bs)),
+    lines_spec(bs, Nil{}, (0 + 1 : U32), Nil{}, Nat.pow(2n, 32n), {==}, top_bound(bs, Nat.pow(2n, 32n), h)))
