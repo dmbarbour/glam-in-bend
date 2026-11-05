@@ -1,17 +1,17 @@
 #!/bin/sh
 # Blend's cost on one family of modules at N, 2N and 4N
-# (blend/bench/README.md): each module printed by families.bend, built
+# (bench/README.md): each module printed by families.bend, built
 # natively once for each version of it, then emitted by Blend's built
-# executable (blend/build.sh) under perf (count.sh), each run capped
+# executable (build.sh) under perf (count.sh), each run capped
 # (capped.sh); its instructions and seconds printed, and recorded in the
-# analysis store (results.py; these three the tools blend/tools.sh
-# finds): a run of tool
-# `blend/bench/measure.sh`, its shape and N its parameters, each size a
-# row of `counts` (build `blend`, the shape its workload, the size its
-# k, no interactions) and its seconds a metric (`<shape> <size> s`). The
-# modules and what Blend writes go to blend/results/bench (out of git).
+# analysis store (results.py; these three tools found by tools.sh). A run
+# of tool `blend/bench/measure.sh` (its name since its first runs), its
+# shape and N its parameters; each size a row of `counts` (build `blend`,
+# the shape its workload, the size its k, no interactions) and its
+# seconds a metric (`<shape> <size> s`). The modules and what Blend
+# writes go to results/bench (out of git).
 #
-#   blend/bench/measure.sh chain|fan|dense N [MB SECONDS]
+#   bench/measure.sh chain|fan|dense N [MB SECONDS]
 set -u
 [ $# -ge 2 ] || { echo "usage: $0 chain|fan|dense N [MB SECONDS]" >&2; exit 2; }
 cd "$(dirname "$0")/.." || exit 1

@@ -1,12 +1,12 @@
 #!/bin/sh
 # Builds Blend natively, once for each version of its sources and of Bend,
-# into blend/results/build/ (out of git), and prints the executable's path. A
+# into results/build/ (out of git), and prints the executable's path. A
 # run of the executable takes milliseconds, where `bend blend.bend ...`
 # checks and compiles the tool again each time (1.3 s a run, 2026-11-04);
 # the build takes 13 s and 0.4 GB.
 #
-#   blend/build.sh          the executable's path, built first if stale
-#   blend/run.sh ARGS...    the executable run (blend/run.sh resolve F.blend)
+#   build.sh          the executable's path, built first if stale
+#   run.sh ARGS...    the executable run (run.sh resolve F.blend)
 set -u
 cd "$(dirname "$0")" || exit 1
 BLEND_ROOT=$PWD

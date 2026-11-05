@@ -1,9 +1,9 @@
 # Families of modules for measuring how Blend's cost grows with a
 # module's definitions: prints a module of N definitions of one shape,
 # definition i calling earlier ones, and a main calling the last. Each is
-# measured at N, 2N and 4N (blend/bench/README.md).
+# measured at N, 2N and 4N (bench/README.md).
 #
-#   bend blend/bench/families.bend chain|fan|dense N > module.blend
+#   bend bench/families.bend chain|fan|dense N > module.blend
 import Base
 
 # a family's shape: i calling i-1 (chain); i-1, i-2, i/2 and i/3 (fan);
@@ -95,7 +95,7 @@ def defs(k: Nat, +sh: Sh, +i: U32) -> IO(Unit):
         defs(p, sh, (i + 1 : U32))
 
 def usage() -> IO(Unit):
-  IO.die(Unit, 2, "usage: bend blend/bench/families.bend chain|fan|dense N")
+  IO.die(Unit, 2, "usage: bend bench/families.bend chain|fan|dense N")
 
 def module(+sh: Sh, +n: U32) -> IO(Unit):
   match sh:

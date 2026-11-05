@@ -31,6 +31,9 @@ Contingent:
 - Macros, direct-style assembly, the command line: `docs/Macros.md`,
   `docs/DirectStyleAssembly.md`, `docs/CLI.md`
 - When proving: `docs/Proving.md`, what the proofs so far have taught
+- When working on Blend, the preprocessor in `blend/`: `blend/AGENTS.md`;
+  Blend is arranged as a repository of its own (`blend-own-repository`),
+  with its own docs, plans and gate
 - When Bend falls short: `docs/BendIssues.md` tracks shortfalls with their
   upstream issues; `bench/` holds programs that measure and reproduce them.
   Comment upstream only when the maintainer asks.
@@ -162,7 +165,9 @@ commit. A check whose inputs are unchanged keeps its pass (a verdict, a
 Bend file's typecheck, the library's whole run; `scripts/kept.py`,
 `spike/tools/library.py`), never a failure: 16 s when only Blend or the
 docs change, near 200 s when the spike does, its verdict 57 s and the
-library 96 s (2026-11-05). Report its result as
+library 96 s (2026-11-05). Blend has its own gate,
+`blend/check.sh`, which this one runs as a section, leaving `blend/` out of
+its others. Report its result as
 it is: a check skipped or too slow to finish is not a pass.
 
 The library holds small nets kept for what they exercise, each with what
