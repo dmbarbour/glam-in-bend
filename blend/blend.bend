@@ -2031,6 +2031,90 @@ def er.lins(ps: List<&2, List<&2, U32>>, ls: List<&2, Maybe<&2, Lz>>, +id: U32, 
     case _ _:
       Nil{}
 
+# Indexes
+# -------
+#
+# A lookup by reference or by name is made for each reference resolved,
+# collected, emitted and checked, which a search of a list made
+# quadratic in the definitions (`blend-scale.units`,
+# `blend-scale.names`). An index: a trie on the keys' hashes, as deep as
+# its entries' count has bits, so that a leaf holds an entry or a few; a
+# leaf keeps its entries in their order and is searched as the list was,
+# so that the entry found is the one the search found.
+
+type Ht<-A: Data> is Data:
+  HLeaf{es: List<&2, A>}
+  HNode{z: Ht<A>, o: Ht<A>}
+
+# FNV-1a, a word at a time
+def hash.word(+h: U32, +x: U32) -> U32:
+  (U32.xor(h, x) * 16777619 : U32)
+
+def hash.bytes(xs: List<&2, U32>, +h: U32) -> U32:
+  match xs:
+    case Nil{}:
+      h
+    case Con{+x, t}:
+      hash.bytes(t, hash.word(h, x))
+
+def hash.name(xs: List<&2, U32>) -> U32:
+  hash.bytes(xs, 2166136261)
+
+# the bits of n
+def ht.depth(fuel: Nat, +n: U32) -> Nat:
+  match fuel:
+    case 0n:
+      0n
+    case 1n+k:
+      when(Nat, U32.is_eq(n, 0), u => 0n, u => 1n+ht.depth(k, (n >> 1n : U32)))
+
+def ht.empty(-A: Data, d: Nat) -> Ht<A>:
+  match d:
+    case 0n:
+      HLeaf{Nil{}}
+    case 1n+(+k):
+      HNode{ht.empty(A, k), ht.empty(A, k)}
+
+# a trie for n entries
+def ht.for(-A: Data, +n: Nat) -> Ht<A>:
+  ht.empty(A, ht.depth(32n, U32.from_nat(n)))
+
+# e put first in its leaf, b the hash's next bit
+def ht.put(-A: Data, t: Ht<A>, +b: U32, +h: U32, +e: A) -> Ht<A>:
+  match t b:
+    case HLeaf{es} _:
+      HLeaf{Con{e, es}}
+    case HNode{z, o} 0:
+      HNode{ht.put(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e), o}
+    case HNode{z, o} _:
+      HNode{z, ht.put(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e)}
+
+# the leaf of a hash
+def ht.leaf(-A: Data, t: Ht<A>, +b: U32, +h: U32) -> List<&2, A>:
+  match t b:
+    case HLeaf{es} _:
+      es
+    case HNode{z, o} 0:
+      ht.leaf(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
+    case HNode{z, o} _:
+      ht.leaf(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
+
+# a list's entries by position (`blend-scale.positions`): the trie keyed
+# by their indexes, as deep as their count has bits, so that a leaf holds
+# the one entry of its index
+def pt.puts(-A: Data, xs: List<&2, A>, +k: U32, t: Ht<A>) -> Ht<A>:
+  match xs:
+    case Nil{}:
+      t
+    case Con{+x, r}:
+      ht.put(A, pt.puts(A, r, (k + 1 : U32), t), (k .&. 1 : U32), k, x)
+
+def pt.of(-A: Data, +xs: List<&2, A>) -> Ht<A>:
+  pt.puts(A, xs, 0, ht.for(A, List.length(&2, A, xs)))
+
+def pt.at(-A: Data, +t: Ht<A>, +i: U32) -> Maybe<&2, A>:
+  List.head(&2, A, ht.leaf(A, t, (i .&. 1 : U32), i))
+
 # Definitions
 # -----------
 #
@@ -2050,8 +2134,11 @@ type En is Data:
 type Fe is Data:
   Fe{+q: U32, +mno: U32, +kind: U32, name: List<&2, U32>, +upd: Bool, +origin: U32, +ono: U32, +what: U32, +was: U32}
 
+# while an object's definitions are folded, its map newest first, an
+# entry put first in its leaf of ix as it comes (`blend-scale.folds`);
+# once folded, its map in order
 type Fd is Data:
-  Fd{map: List<&2, En>, fes: List<&2, Fe>}
+  Fd{map: List<&2, En>, fes: List<&2, Fe>, ix: Ht<En>}
 
 def en.find(es: List<&2, En>, +n: List<&2, U32>) -> Maybe<&2, En>:
   match es:
@@ -2061,6 +2148,16 @@ def en.find(es: List<&2, En>, +n: List<&2, U32>) -> Maybe<&2, En>:
       match e:
         case En{+name, chain, +no, +what}:
           when(Maybe<&2, En>, same(name, n), u => Some{e}, u => en.find(t, n))
+
+def ix.find(+ix: Ht<En>, +n: List<&2, U32>) -> Maybe<&2, En>:
+  +h = hash.name(n)
+  en.find(ht.leaf(En, ix, (h .&. 1 : U32), h), n)
+
+def ix.put(ix: Ht<En>, +e: En) -> Ht<En>:
+  match e:
+    case En{+name, chain, +no, +what}:
+      +h = hash.name(name)
+      ht.put(En, ix, (h .&. 1 : U32), h, En{name, chain, no, what})
 
 def en.set(es: List<&2, En>, +e: En, +n: List<&2, U32>) -> List<&2, En>:
   match es:
@@ -2079,33 +2176,34 @@ def en.head(xs: List<&2, U32>) -> U32:
       h
 
 # an introduction met an entry: twice in one object, or from another
-def fd.def.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, map: List<&2, En>, fes: List<&2, Fe>) -> Fd:
+def fd.def.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, map: List<&2, En>, fes: List<&2, Fe>, ix: Ht<En>) -> Fd:
   match e:
     case En{n, +chain, +eno, +was}:
       Fd{en.set(map, En{name, [q], no, what}, name),
-        Con{Fe{q, no, when(U32, U32.is_eq(en.head(chain), q), u => 1, u => 0), name, False{}, en.head(chain), eno, what, was}, fes}}
+        Con{Fe{q, no, when(U32, U32.is_eq(en.head(chain), q), u => 1, u => 0), name, False{}, en.head(chain), eno, what, was}, fes},
+        ix.put(ix, En{name, [q], no, what})}
 
 # whether an update may replace what it meets: never a law, and a
 # definition only by a definition, a lemma by a lemma
 def upd.fits(+what: U32, +was: U32) -> Bool:
   Bool.not(U32.is_eq(was, 1)) && Bool.not(Bool.xor(U32.is_eq(what, 0), U32.is_eq(was, 0)))
 
-def fd.upd.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, +map: List<&2, En>, +fes: List<&2, Fe>) -> Fd:
+def fd.upd.at(+q: U32, +no: U32, +name: List<&2, U32>, +what: U32, e: En, +map: List<&2, En>, +fes: List<&2, Fe>, +ix: Ht<En>) -> Fd:
   match e:
     case En{n, +chain, +eno, +was}:
-      when(Fd, Bool.not(upd.fits(what, was)), u => Fd{map, Con{Fe{q, no, 3, name, True{}, en.head(chain), eno, what, was}, fes}},
+      when(Fd, Bool.not(upd.fits(what, was)), u => Fd{map, Con{Fe{q, no, 3, name, True{}, en.head(chain), eno, what, was}, fes}, ix},
         u => when(Fd, U32.is_eq(en.head(chain), q),
-          v => Fd{en.set(map, En{name, chain, no, was}, name), Con{Fe{q, no, 1, name, True{}, q, eno, what, was}, fes}},
-          v => Fd{en.set(map, En{name, Con{q, chain}, no, was}, name), fes}))
+          v => Fd{en.set(map, En{name, chain, no, was}, name), Con{Fe{q, no, 1, name, True{}, q, eno, what, was}, fes}, ix.put(ix, En{name, chain, no, was})},
+          v => Fd{en.set(map, En{name, Con{q, chain}, no, was}, name), fes, ix.put(ix, En{name, Con{q, chain}, no, was})}))
 
 def fd.def(+q: U32, +upd: Bool, +name: List<&2, U32>, +no: U32, +what: U32, d: Fd) -> Fd:
   match d:
-    case Fd{+map, +fes}:
-      on.maybe(En, Fd, en.find(map, name),
+    case Fd{+map, +fes, +ix}:
+      on.maybe(En, Fd, ix.find(ix, name),
         u => when(Fd, upd,
-          v => Fd{en.set(map, En{name, [q], no, what}, name), Con{Fe{q, no, 2, name, True{}, q, no, what, what}, fes}},
-          v => Fd{en.set(map, En{name, [q], no, what}, name), fes}),
-        +e => when(Fd, upd, v => fd.upd.at(q, no, name, what, e, map, fes), v => fd.def.at(q, no, name, what, e, map, fes)))
+          v => Fd{Con{En{name, [q], no, what}, map}, Con{Fe{q, no, 2, name, True{}, q, no, what, what}, fes}, ix.put(ix, En{name, [q], no, what})},
+          v => Fd{Con{En{name, [q], no, what}, map}, fes, ix.put(ix, En{name, [q], no, what})}),
+        +e => when(Fd, upd, v => fd.upd.at(q, no, name, what, e, map, fes, ix), v => fd.def.at(q, no, name, what, e, map, fes, ix)))
 
 def fd.mems(ns: List<&2, Node>, +q: U32, d: Fd) -> Fd:
   match ns:
@@ -2125,6 +2223,20 @@ def fd.obs(qs: List<&2, U32>, +obs: List<&2, Ob>, d: Fd) -> Fd:
     case Con{+q, t}:
       fd.obs(t, obs, fd.mems(ob.mems(ob.at(obs, q)), q, d))
 
+# the members of the objects qs
+def mems.count(qs: List<&2, U32>, +obs: List<&2, Ob>) -> Nat:
+  match qs:
+    case Nil{}:
+      0n
+    case Con{+q, t}:
+      Nat.add(List.length(&2, Node, ob.mems(ob.at(obs, q))), mems.count(t, obs))
+
+# the fold done: its map in order
+def fd.done(d: Fd) -> Fd:
+  match d:
+    case Fd{map, fes, ix}:
+      Fd{List.reverse(&2, En, map), fes, ix}
+
 # an object's definitions and its members' errors, its linearization sound
 def fold(+obs: List<&2, Ob>, l: Maybe<&2, Lz>) -> Maybe<&2, Fd>:
   match l:
@@ -2132,8 +2244,9 @@ def fold(+obs: List<&2, Ob>, l: Maybe<&2, Lz>) -> Maybe<&2, Fd>:
       None{}
     case Some{z}:
       match z:
-        case Lz{+ok, ord}:
-          when(Maybe<&2, Fd>, ok, u => Some{fd.obs(List.reverse(&2, U32, ord), obs, Fd{Nil{}, Nil{}})}, u => None{})
+        case Lz{+ok, +ord}:
+          when(Maybe<&2, Fd>, ok, u => Some{fd.done(fd.obs(List.reverse(&2, U32, ord), obs, Fd{Nil{}, Nil{}, ht.for(En, mems.count(ord, obs))}))},
+            u => None{})
 
 # each object's definitions, a mixin's none: it means something only in
 # the nested objects made of it
@@ -2174,7 +2287,7 @@ def fd.lines(m: Maybe<&2, Fd>) -> List<&2, U32>:
       Nil{}
     case Some{d}:
       match d:
-        case Fd{map, fes}:
+        case Fd{map, fes, ix}:
           fe.lines(fes)
 
 # the members' error lines of an object's parents: their own reports
@@ -2361,7 +2474,7 @@ def er.def.k(+obs: List<&2, Ob>, +id: U32, +ps: List<&2, U32>, +fds: List<&2, Ma
       Nil{}
     case Some{d}:
       match d:
-        case Fd{+map, fes}:
+        case Fd{+map, fes, ix}:
           List.append(&2, Er, er.fes(fes, seen(ps, fds), obs, id), er.decls(obs, id, ord, map))
 
 # each object's errors of definition and declaration
@@ -2412,7 +2525,7 @@ def show.fd(+obs: List<&2, Ob>, m: Maybe<&2, Fd>) -> String:
       ""
     case Some{d}:
       match d:
-        case Fd{map, fes}:
+        case Fd{map, fes, ix}:
           show.ens(obs, map)
 
 def show.en.names(es: List<&2, En>) -> String:
@@ -2431,7 +2544,7 @@ def show.fd.names(m: Maybe<&2, Fd>) -> String:
       ""
     case Some{d}:
       match d:
-        case Fd{map, fes}:
+        case Fd{map, fes, ix}:
           show.en.names(map)
 
 def show.abs.of(+a: Bool) -> String:
@@ -2494,90 +2607,6 @@ def show.ers(+files: List<&2, List<&2, U32>>, es: List<&2, Er>) -> String:
         case Er{+no, msg}:
           text(loc.file(files, no)) ++ er.at(no) ++ ": " ++ msg ++ show.ers.more(t) ++ show.ers(files, t)
 
-# Indexes
-# -------
-#
-# A lookup by reference or by name is made for each reference resolved,
-# collected, emitted and checked, which a search of a list made
-# quadratic in the definitions (`blend-scale.units`,
-# `blend-scale.names`). An index: a trie on the keys' hashes, as deep as
-# its entries' count has bits, so that a leaf holds an entry or a few; a
-# leaf keeps its entries in their order and is searched as the list was,
-# so that the entry found is the one the search found.
-
-type Ht<-A: Data> is Data:
-  HLeaf{es: List<&2, A>}
-  HNode{z: Ht<A>, o: Ht<A>}
-
-# FNV-1a, a word at a time
-def hash.word(+h: U32, +x: U32) -> U32:
-  (U32.xor(h, x) * 16777619 : U32)
-
-def hash.bytes(xs: List<&2, U32>, +h: U32) -> U32:
-  match xs:
-    case Nil{}:
-      h
-    case Con{+x, t}:
-      hash.bytes(t, hash.word(h, x))
-
-def hash.name(xs: List<&2, U32>) -> U32:
-  hash.bytes(xs, 2166136261)
-
-# the bits of n
-def ht.depth(fuel: Nat, +n: U32) -> Nat:
-  match fuel:
-    case 0n:
-      0n
-    case 1n+k:
-      when(Nat, U32.is_eq(n, 0), u => 0n, u => 1n+ht.depth(k, (n >> 1n : U32)))
-
-def ht.empty(-A: Data, d: Nat) -> Ht<A>:
-  match d:
-    case 0n:
-      HLeaf{Nil{}}
-    case 1n+(+k):
-      HNode{ht.empty(A, k), ht.empty(A, k)}
-
-# a trie for n entries
-def ht.for(-A: Data, +n: Nat) -> Ht<A>:
-  ht.empty(A, ht.depth(32n, U32.from_nat(n)))
-
-# e put first in its leaf, b the hash's next bit
-def ht.put(-A: Data, t: Ht<A>, +b: U32, +h: U32, +e: A) -> Ht<A>:
-  match t b:
-    case HLeaf{es} _:
-      HLeaf{Con{e, es}}
-    case HNode{z, o} 0:
-      HNode{ht.put(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e), o}
-    case HNode{z, o} _:
-      HNode{z, ht.put(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32), e)}
-
-# the leaf of a hash
-def ht.leaf(-A: Data, t: Ht<A>, +b: U32, +h: U32) -> List<&2, A>:
-  match t b:
-    case HLeaf{es} _:
-      es
-    case HNode{z, o} 0:
-      ht.leaf(A, z, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
-    case HNode{z, o} _:
-      ht.leaf(A, o, ((h >> 1n : U32) .&. 1 : U32), (h >> 1n : U32))
-
-# a list's entries by position (`blend-scale.positions`): the trie keyed
-# by their indexes, as deep as their count has bits, so that a leaf holds
-# the one entry of its index
-def pt.puts(-A: Data, xs: List<&2, A>, +k: U32, t: Ht<A>) -> Ht<A>:
-  match xs:
-    case Nil{}:
-      t
-    case Con{+x, r}:
-      ht.put(A, pt.puts(A, r, (k + 1 : U32), t), (k .&. 1 : U32), k, x)
-
-def pt.of(-A: Data, +xs: List<&2, A>) -> Ht<A>:
-  pt.puts(A, xs, 0, ht.for(A, List.length(&2, A, xs)))
-
-def pt.at(-A: Data, +t: Ht<A>, +i: U32) -> Maybe<&2, A>:
-  List.head(&2, A, ht.leaf(A, t, (i .&. 1 : U32), i))
-
 # References
 # ==========
 #
@@ -2621,7 +2650,7 @@ def fd.map(m: Maybe<&2, Fd>) -> List<&2, En>:
       Nil{}
     case Some{d}:
       match d:
-        case Fd{map, fes}:
+        case Fd{map, fes, ix}:
           map
 
 def cx.map(c: Cx, +id: U32) -> List<&2, En>:
