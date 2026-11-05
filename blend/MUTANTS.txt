@@ -1,0 +1,38 @@
+# Mutations of Blend's code, each a fault a law named should catch
+# (scripts/one_law.py; docs/Proving.md, What to claim). Try them after a
+# proof or the code it follows changes:
+#   python3 -I scripts/one_law.py blend/PROOF.bend LAW --mutants blend/MUTANTS.txt
+
+=== root_kept order.ends
+a root already walked stays among the roots: the walk loops
+--- blend.bend
+    case True{}:
+      Ds{Nil{}, rt, done, order, ers}
++++
+    case True{}:
+      Ds{Nil{}, Con{r, rt}, done, order, ers}
+
+=== call_kept order.ends
+a call to a unit walked is not consumed: the walk loops
+--- blend.bend
+    case True{} _:
+      Ds{Con{Fm{u, rs}, st}, roots, done, order, ers}
++++
+    case True{} _:
+      Ds{Con{Fm{u, Con{c, rs}}, st}, roots, done, order, ers}
+
+=== done_forgets order.ends
+a unit popped is not marked walked, so may be walked again
+--- blend.bend
+    case True{}:
+      Ds{st, roots, Con{u, done}, Con{u, order}, ers}
++++
+    case True{}:
+      Ds{st, roots, done, Con{u, order}, ers}
+
+=== fuel_short order.ends
+a fuel of the roots alone
+--- blend.bend
+  Nat.add(List.length(&2, U32, roots), walk.weight(List.append(&2, U32, roots, List.concat(&2, U32, cal)), cal))
++++
+  List.length(&2, U32, roots)

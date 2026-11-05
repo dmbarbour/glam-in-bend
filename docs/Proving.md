@@ -29,7 +29,9 @@ it alone taught. Add to this file what a new proof teaches.
   settling for the weaker law.
 - **Mutate the code after a proof passes**: break what the law is about
   in a copy, and see the proofs fail. A law that survives the mutation
-  claims less than meant.
+  claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  the proof file, each naming the laws it should fail, and try them with
+  `scripts/one_law.py` (below) when the proof or its code changes.
 
 ## Shaping the code a law follows
 
@@ -98,7 +100,10 @@ it alone taught. Add to this file what a new proof teaches.
 - **Find a failing lemma by bisecting** the proof file into prefixes,
   each its own file, checked in turn: Bend reports the first failure, or
   only that its stack overflowed.
-- **Mutate against one law at a time**: Bend reports only the first
-  failure, often of an earlier law the mutation breaks too; to see a
-  mutation fail the law it is aimed at, cut a copy of the laws file to
-  that law and the proof file to its proof and the defs it reaches.
+- **Check one law at a time**: Bend reports only the first failure,
+  often of an earlier law a mutation breaks too, and a whole proof file
+  is slow to recheck while one law is being written.
+  `python3 -I scripts/one_law.py PROOF LAW` checks a copy cut to the law,
+  its proof and the defs it reaches; with `--mutants FILE`, the copy
+  unmutated and then each mutation naming the law, each expected to fail
+  it, and where.

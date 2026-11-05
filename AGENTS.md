@@ -194,6 +194,9 @@ write both.
   lessons in the existing proof files' headers; add what a new proof
   teaches to them. A law weakened to be cheap lists its missing pieces
   in the plan beside it (`docs/Proving.md`, What to claim).
+- Mutate the code a new law follows, and keep the mutations in a
+  `MUTANTS.txt` beside the proof file; `scripts/one_law.py` checks one
+  law alone, and tries them against it.
 - Prefer state shapes in which an invariant holds by computation; then its
   law costs a case split.
 
