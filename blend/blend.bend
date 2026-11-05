@@ -257,75 +257,143 @@ type Tok is Data:
 type Bl is Data:
   Bl{+no: U32, +ind: U32, toks: List<&2, Tok>}
 
-# a byte's class: 0 a space, 1 a letter or `_`, 2 a digit, 3 `.`, 4 `"`,
-# 5 `#`, 6 `^`, 7 `~`, 8 a backslash, 9 any other, 10 `'`
-def cls.of(+alpha: Bool, +digit: Bool, +h: U32) -> U32:
+# a byte's class, as the tokens go by it: a space or a tab, a letter or
+# `_`, a digit, `.`, `"`, `#`, `^`, `~`, a backslash, `'`, any other. A
+# datatype, so that a law can follow the tokenizer's choices
+# (blend/LAWS.bend, `tokens.spell`): a byte's match leaves a proof stuck
+type Cl is Data:
+  CSp{}
+  CAlpha{}
+  CDigit{}
+  CDot{}
+  CQuote{}
+  CHash{}
+  CCaret{}
+  CTilde{}
+  CBack{}
+  CTick{}
+  COther{}
+
+def cls.of(+alpha: Bool, +digit: Bool, +h: U32) -> Cl:
   match alpha digit:
     case True{} _:
-      1
+      CAlpha{}
     case False{} True{}:
-      2
+      CDigit{}
     case False{} False{}:
       match h:
         case 32:
-          0
+          CSp{}
         case 9:
-          0
+          CSp{}
         case 95:
-          1
+          CAlpha{}
         case 46:
-          3
+          CDot{}
         case 34:
-          4
+          CQuote{}
         case 35:
-          5
+          CHash{}
         case 94:
-          6
+          CCaret{}
         case 126:
-          7
+          CTilde{}
         case 92:
-          8
+          CBack{}
         case 39:
-          10
+          CTick{}
         case _:
-          9
+          COther{}
 
-def cls(+h: U32) -> U32:
+def cls(+h: U32) -> Cl:
   cls.of((U32.is_ge(h, 65) && U32.is_le(h, 90)) || (U32.is_ge(h, 97) && U32.is_le(h, 122)),
     U32.is_ge(h, 48) && U32.is_le(h, 57), h)
 
-def classes(xs: List<&2, U32>) -> List<&2, U32>:
+def classes(xs: List<&2, U32>) -> List<&2, Cl>:
   match xs:
     case Nil{}:
       Nil{}
     case Con{+h, t}:
       Con{cls(h), classes(t)}
 
-def name.rest(cs: List<&2, U32>) -> Bool:
+# the classes' tests: a name's first byte (a letter or `_`), a name's
+# rest (letters, digits, `_` and `.`), a number's rest (letters and
+# digits, its suffix among them), a space, a caret, a backslash, `"`, `'`
+def cl.alpha(c: Cl) -> Bool:
+  match c:
+    case CAlpha{}:
+      True{}
+    case _:
+      False{}
+
+def cl.name(c: Cl) -> Bool:
+  match c:
+    case CAlpha{}:
+      True{}
+    case CDigit{}:
+      True{}
+    case CDot{}:
+      True{}
+    case _:
+      False{}
+
+def cl.alnum(c: Cl) -> Bool:
+  match c:
+    case CAlpha{}:
+      True{}
+    case CDigit{}:
+      True{}
+    case _:
+      False{}
+
+def cl.sp(c: Cl) -> Bool:
+  match c:
+    case CSp{}:
+      True{}
+    case _:
+      False{}
+
+def cl.caret(c: Cl) -> Bool:
+  match c:
+    case CCaret{}:
+      True{}
+    case _:
+      False{}
+
+def cl.back(c: Cl) -> Bool:
+  match c:
+    case CBack{}:
+      True{}
+    case _:
+      False{}
+
+def cl.quote(c: Cl) -> Bool:
+  match c:
+    case CQuote{}:
+      True{}
+    case _:
+      False{}
+
+def cl.tick(c: Cl) -> Bool:
+  match c:
+    case CTick{}:
+      True{}
+    case _:
+      False{}
+
+def name.rest(cs: List<&2, Cl>) -> Bool:
   match cs:
     case Nil{}:
       True{}
-    case Con{+c, t}:
-      match c:
-        case 1:
-          name.rest(t)
-        case 2:
-          name.rest(t)
-        case 3:
-          name.rest(t)
-        case _:
-          False{}
+    case Con{c, t}:
+      cl.name(c) && name.rest(t)
 
-def name.first(cs: List<&2, U32>) -> Bool:
+def name.first(cs: List<&2, Cl>) -> Bool:
   match cs:
     case Nil{}:
       False{}
-    case Con{+c, t}:
-      match c:
-        case 1:
-          name.rest(t)
-        case _:
-          False{}
+    case Con{c, t}:
+      cl.alpha(c) && name.rest(t)
 
 # a name as Bend's: a letter or `_`, then letters, digits, `_` and `.`
 def name.ok(xs: List<&2, U32>) -> Bool:
@@ -339,143 +407,116 @@ def names.ok(ns: List<&2, List<&2, U32>>) -> Bool:
       name.ok(n) && names.ok(t)
 
 # a run read: its bytes, reversed, and the bytes after it with their classes
-type Rn is Type:
-  Rn{acc: List<&2, U32>, xs: List<&2, U32>, cs: List<&2, U32>}
+type Rn is Data:
+  Rn{acc: List<&2, U32>, xs: List<&2, U32>, cs: List<&2, Cl>}
 
-# a name's rest: letters, digits, `_` and `.`
-def run.name(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>) -> Rn:
+def rn.acc(r: Rn) -> List<&2, U32>:
+  match r:
+    case Rn{acc, xs, cs}:
+      acc
+
+def rn.xs(r: Rn) -> List<&2, U32>:
+  match r:
+    case Rn{acc, xs, cs}:
+      xs
+
+def rn.cs(r: Rn) -> List<&2, Cl>:
+  match r:
+    case Rn{acc, xs, cs}:
+      cs
+
+# a run of the bytes whose classes p takes: a name's rest, a number's, the
+# spaces, the carets
+def run.while(~p: Cl -> Bool, xs: List<&2, U32>, cs: List<&2, Cl>, +acc: List<&2, U32>) -> Rn:
   match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 1:
-          run.name(t, ct, Con{h, acc})
-        case 2:
-          run.name(t, ct, Con{h, acc})
-        case 3:
-          run.name(t, ct, Con{h, acc})
-        case _:
-          Rn{acc, Con{h, t}, Con{c, ct}}
+    case Con{+h, +t} Con{+c, +ct}:
+      when(Rn, p(c), u => run.while(~p, t, ct, Con{h, acc}), u => Rn{acc, Con{h, t}, Con{c, ct}})
     case _ _:
       Rn{acc, Nil{}, Nil{}}
 
-# a number's rest: digits and letters, its suffix among them
-def run.num(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>) -> Rn:
+# a quoted run's rest, to its closing quote, whose class shut takes (a
+# string's `"`, a char's `'`), a backslash escaping the byte after it;
+# esc, a backslash read before
+def run.quoted(~shut: Cl -> Bool, xs: List<&2, U32>, cs: List<&2, Cl>, +acc: List<&2, U32>, +esc: Bool) -> Rn:
   match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 1:
-          run.num(t, ct, Con{h, acc})
-        case 2:
-          run.num(t, ct, Con{h, acc})
-        case _:
-          Rn{acc, Con{h, t}, Con{c, ct}}
-    case _ _:
-      Rn{acc, Nil{}, Nil{}}
-
-# a run of spaces
-def run.sp(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>) -> Rn:
-  match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 0:
-          run.sp(t, ct, Con{h, acc})
-        case _:
-          Rn{acc, Con{h, t}, Con{c, ct}}
-    case _ _:
-      Rn{acc, Nil{}, Nil{}}
-
-# a run of `^`
-def run.carets(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>) -> Rn:
-  match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 6:
-          run.carets(t, ct, Con{h, acc})
-        case _:
-          Rn{acc, Con{h, t}, Con{c, ct}}
-    case _ _:
-      Rn{acc, Nil{}, Nil{}}
-
-# a string's rest, to its closing quote; esc, a backslash read before
-def run.str(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>, +esc: Bool) -> Rn:
-  match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 4:
-          match esc:
-            case True{}:
-              run.str(t, ct, Con{h, acc}, False{})
-            case False{}:
-              Rn{Con{h, acc}, t, ct}
-        case 8:
-          run.str(t, ct, Con{h, acc}, Bool.not(esc))
-        case _:
-          run.str(t, ct, Con{h, acc}, False{})
-    case _ _:
-      Rn{acc, Nil{}, Nil{}}
-
-# a char's rest, to its closing quote, as a string's
-def run.chr(xs: List<&2, U32>, cs: List<&2, U32>, acc: List<&2, U32>, +esc: Bool) -> Rn:
-  match xs cs:
-    case Con{+h, t} Con{+c, ct}:
-      match c:
-        case 10:
-          match esc:
-            case True{}:
-              run.chr(t, ct, Con{h, acc}, False{})
-            case False{}:
-              Rn{Con{h, acc}, t, ct}
-        case 8:
-          run.chr(t, ct, Con{h, acc}, Bool.not(esc))
-        case _:
-          run.chr(t, ct, Con{h, acc}, False{})
+    case Con{+h, +t} Con{+c, +ct}:
+      when(Rn, shut(c) && Bool.not(esc), u => Rn{Con{h, acc}, t, ct},
+        u => run.quoted(~shut, t, ct, Con{h, acc}, cl.back(c) && Bool.not(esc)))
     case _ _:
       Rn{acc, Nil{}, Nil{}}
 
 # the name after a run of `^`
-def run.host(r: Rn) -> Rn:
-  match r:
-    case Rn{acc, xs, cs}:
-      run.name(xs, cs, acc)
-
-def on.rn(-R: Type, r: Rn, f: List<&2, U32> -> List<&2, U32> -> List<&2, U32> -> R) -> R:
-  match r:
-    case Rn{acc, xs, cs}:
-      f(acc, xs, cs)
+def run.host(+r: Rn) -> Rn:
+  run.while(~cl.name, rn.xs(r), rn.cs(r), rn.acc(r))
 
 # a line's tokens, one a turn; fuel, the line's length, as each turn
 # takes a byte at least
-def toks.go(n: Nat, xs: List<&2, U32>, cs: List<&2, U32>, +out: List<&2, Tok>) -> List<&2, Tok>:
+def toks.go(n: Nat, xs: List<&2, U32>, cs: List<&2, Cl>, +out: List<&2, Tok>) -> List<&2, Tok>:
   match n:
     case 0n:
       List.reverse(&2, Tok, out)
     case 1n++k:
       match xs cs:
-        case Con{+h, +t} Con{+c, +ct}:
+        case Con{+h, +t} Con{c, +ct}:
           match c:
-            case 0:
-              on.rn(List<&2, Tok>, run.sp(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TSp{List.reverse(&2, U32, acc)}, out}))
-            case 1:
-              on.rn(List<&2, Tok>, run.name(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
-            case 2:
-              on.rn(List<&2, Tok>, run.num(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TNum{List.reverse(&2, U32, acc)}, out}))
-            case 4:
-              on.rn(List<&2, Tok>, run.str(t, ct, [h], False{}), acc => r => rc => toks.go(k, r, rc, Con{TStr{List.reverse(&2, U32, acc)}, out}))
-            case 5:
+            case CSp{}:
+              +r = run.while(~cl.sp, t, ct, [h])
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TSp{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CAlpha{}:
+              +r = run.while(~cl.name, t, ct, [h])
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TName{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CDigit{}:
+              +r = run.while(~cl.alnum, t, ct, [h])
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TNum{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CQuote{}:
+              +r = run.quoted(~cl.quote, t, ct, [h], False{})
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TStr{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CHash{}:
               List.reverse(&2, Tok, Con{TCom{Con{h, t}}, out})
-            case 6:
-              on.rn(List<&2, Tok>, run.host(run.carets(t, ct, [h])), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
-            case 7:
-              on.rn(List<&2, Tok>, run.name(t, ct, [h]), acc => r => rc => toks.go(k, r, rc, Con{TName{List.reverse(&2, U32, acc)}, out}))
-            case 10:
-              on.rn(List<&2, Tok>, run.chr(t, ct, [h], False{}), acc => r => rc => toks.go(k, r, rc, Con{TStr{List.reverse(&2, U32, acc)}, out}))
-            case _:
+            case CCaret{}:
+              +r = run.host(run.while(~cl.caret, t, ct, [h]))
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TName{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CTilde{}:
+              +r = run.while(~cl.name, t, ct, [h])
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TName{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CTick{}:
+              +r = run.quoted(~cl.tick, t, ct, [h], False{})
+              toks.go(k, rn.xs(r), rn.cs(r), Con{TStr{List.reverse(&2, U32, rn.acc(r))}, out})
+            case CDot{}:
+              toks.go(k, t, ct, Con{TSym{h}, out})
+            case CBack{}:
+              toks.go(k, t, ct, Con{TSym{h}, out})
+            case COther{}:
               toks.go(k, t, ct, Con{TSym{h}, out})
         case _ _:
           List.reverse(&2, Tok, out)
 
 def toks(+xs: List<&2, U32>) -> List<&2, Tok>:
   toks.go(List.length(&2, U32, xs), xs, classes(xs), Nil{})
+
+def tok.bytes(t: Tok) -> List<&2, U32>:
+  match t:
+    case TName{x}:
+      x
+    case TNum{x}:
+      x
+    case TStr{x}:
+      x
+    case TCom{x}:
+      x
+    case TSp{x}:
+      x
+    case TSym{+c}:
+      [c]
+
+# the bytes tokens spell, each token's in turn (blend/LAWS.bend,
+# `tokens.spell`)
+def toks.text(ts: List<&2, Tok>) -> List<&2, U32>:
+  match ts:
+    case Nil{}:
+      Nil{}
+    case Con{t, r}:
+      List.append(&2, U32, tok.bytes(t), toks.text(r))
 
 def toks.lines(ls: List<&2, Ln>) -> List<&2, Bl>:
   match ls:
@@ -736,10 +777,10 @@ def decl.type.k(r: List<&2, U32> & List<&2, U32>, +txt: List<&2, U32>, +no: U32,
     u => decl.witness(name, Nil{}, type.kind(trim(after)), txt, no, ind, out))
 
 # a name's letters, and what follows them
-def name.split(xs: List<&2, U32>, cs: List<&2, U32>, +acc: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
+def name.split(xs: List<&2, U32>, cs: List<&2, Cl>, +acc: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
   match xs cs:
-    case Con{+h, +t} Con{+c, +ct}:
-      when(List<&2, U32> & List<&2, U32>, U32.is_eq(c, 1) || U32.is_eq(c, 2) || U32.is_eq(c, 3),
+    case Con{+h, +t} Con{c, +ct}:
+      when(List<&2, U32> & List<&2, U32>, cl.name(c),
         u => name.split(t, ct, Con{h, acc}), u => (List.reverse(&2, U32, acc), Con{h, t}))
     case _ _:
       (List.reverse(&2, U32, acc), Nil{})
@@ -3982,21 +4023,6 @@ def tb.put(b: Tb, xs: List<&2, U32>) -> Tb:
   match b:
     case Tb{acc, ctrs}:
       Tb{rev.onto(xs, acc), ctrs}
-
-def tok.bytes(t: Tok) -> List<&2, U32>:
-  match t:
-    case TName{x}:
-      x
-    case TNum{x}:
-      x
-    case TStr{x}:
-      x
-    case TCom{x}:
-      x
-    case TSp{x}:
-      x
-    case TSym{+c}:
-      [c]
 
 def copy.name(base: List<&2, U32>, +j: U32) -> List<&2, U32>:
   List.append(&2, U32, base, List.append(&2, U32, codes(".c"), codes(U32.show(j))))

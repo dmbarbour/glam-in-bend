@@ -68,3 +68,11 @@ law locals.template:
   for +no: U32
   for l: {B.names.has(locals, r) == True{} : Bool}
   {B.rr.of(cx, o, q, locals, B.TName{Con{126, r}}, no) == B.rr.tok(B.TName{Con{126, r}}) : B.Rr}
+
+# LAW: a line's tokens spell it exactly, every byte in a token, in order,
+# none dropped and none added: a body is emitted as written, its
+# references aside.
+# Record: blend-adds-no-bend-logic
+law tokens.spell:
+  for +xs: List<&2, U32>
+  {B.toks.text(B.toks(xs)) == xs : List<&2, U32>}
