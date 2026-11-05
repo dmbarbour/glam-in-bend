@@ -3775,9 +3775,27 @@ type Fm is Data:
   Fm{+u: U32, rest: List<&2, U32>}
 
 # the walk: its stack, the roots left, the units on the stack (the top
-# first), those done, the order (the last first), its errors
+# first), those walked, the order (the last first), its errors; without
+# a cycle, the order is those walked
 type Ds is Data:
   Ds{stack: List<&2, Fm>, roots: List<&2, U32>, path: List<&2, U32>, done: List<&2, U32>, order: List<&2, U32>, ers: List<&2, Er>}
+
+# every unit of xs in order
+def all.in(xs: List<&2, U32>, +order: List<&2, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+x, t}:
+      has(order, x) && all.in(t, order)
+
+# an order, the last first, each unit's calls after it: emitted reversed,
+# callees first, as Bend requires (blend/LAWS.bend, `order.callees_first`)
+def ordered(xs: List<&2, U32>, +cal: List<&2, List<&2, U32>>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+u, +t}:
+      all.in(ids.at(cal, u), t) && ordered(t, cal)
 
 def path.to(ps: List<&2, U32>, +c: U32) -> List<&2, U32>:
   match ps:
@@ -3813,11 +3831,51 @@ def er.cycle(+obs: List<&2, Ob>, +us: List<&2, Un>, +path: List<&2, U32>, +c: U3
   Er{node.no(un.node(un.at(us, c))),
     strs.and(unit.names(List.reverse(&2, U32, path.to(path, c)), obs, us)) ++ " call each other, which Bend cannot express"}
 
+# a call followed: to a unit walked (seen), one on the stack (a cycle),
+# else a unit pushed. Each step's choices are Bools a helper matches, so
+# that a law can follow the walk (blend/LAWS.bend, `order`)
+def ds.call.k(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, Fm>, +roots: List<&2, U32>, +path: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  match seen cyc:
+    case True{} _:
+      Ds{Con{Fm{u, rs}, st}, roots, path, done, order, ers}
+    case False{} True{}:
+      Ds{Con{Fm{u, rs}, st}, roots, path, done, order, Con{er.cycle(obs, us, path, c), ers}}
+    case False{} False{}:
+      Ds{Con{Fm{c, ids.at(cal, c)}, Con{Fm{u, rs}, st}}, roots, Con{c, path}, done, order, ers}
+
 def ds.call(+c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, Fm>, +roots: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>,
     +order: List<&2, U32>, +ers: List<&2, Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
-  when(Ds, has(done, c), v => Ds{Con{Fm{u, rs}, st}, roots, path, done, order, ers},
-    v => when(Ds, has(path, c), w => Ds{Con{Fm{u, rs}, st}, roots, path, done, order, Con{er.cycle(obs, us, path, c), ers}},
-      w => Ds{Con{Fm{c, ids.at(cal, c)}, Con{Fm{u, rs}, st}}, roots, Con{c, path}, done, order, ers}))
+  ds.call.k(has(done, c), has(path, c), c, u, rs, st, roots, path, done, order, ers, cal, obs, us)
+
+# a unit whose calls are all followed is walked, and joins the order
+# once its callees have, so that the order is callee-first by
+# computation (the law `order.callees_first` a case split); without a
+# cycle they always have, and a cycle has been reported, so that a unit
+# held back otherwise is a fault of Blend's walk
+def ds.done.k(+ok: Bool, +u: U32, +st: List<&2, Fm>, +roots: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>,
+    +ers: List<&2, Er>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  match ok:
+    case True{}:
+      Ds{st, roots, List.tail(&2, U32, path), Con{u, done}, Con{u, order}, ers}
+    case False{}:
+      Ds{st, roots, List.tail(&2, U32, path), Con{u, done}, order,
+        when(List<&2, Er>, List.is_empty(&2, Er, ers),
+          w => [Er{node.no(un.node(un.at(us, u))), text(un.name(obs, us, u)) ++ ": Blend's walk reached it before its callees, a fault of Blend's"}],
+          w => ers)}
+
+def ds.done(+u: U32, +st: List<&2, Fm>, +roots: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, Er>,
+    +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
+  ds.done.k(all.in(ids.at(cal, u), order), u, st, roots, path, done, order, ers, obs, us)
+
+# a root, walked already (seen) or begun
+def ds.root.k(+seen: Bool, +r: U32, +rt: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, Er>,
+    +cal: List<&2, List<&2, U32>>) -> Ds:
+  match seen:
+    case True{}:
+      Ds{Nil{}, rt, path, done, order, ers}
+    case False{}:
+      Ds{[Fm{r, ids.at(cal, r)}], rt, [r], done, order, ers}
 
 def ds.step(s: Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
   match s:
@@ -3828,14 +3886,13 @@ def ds.step(s: Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<
             case Nil{}:
               Ds{Nil{}, Nil{}, path, done, order, ers}
             case Con{+r, +rt}:
-              when(Ds, has(done, r), u => Ds{Nil{}, rt, path, done, order, ers},
-                u => Ds{[Fm{r, ids.at(cal, r)}], rt, [r], done, order, ers})
+              ds.root.k(has(done, r), r, rt, path, done, order, ers, cal)
         case Con{f, st}:
           match f:
             case Fm{+u, rest}:
               match rest:
                 case Nil{}:
-                  Ds{st, roots, List.tail(&2, U32, path), Con{u, done}, Con{u, order}, ers}
+                  ds.done(u, st, roots, path, done, order, ers, cal, obs, us)
                 case Con{+c, rs}:
                   ds.call(c, u, rs, st, roots, path, done, order, ers, cal, obs, us)
 

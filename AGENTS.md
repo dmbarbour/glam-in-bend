@@ -7,6 +7,10 @@ github.com/dmbarbour/glam is reference, not specification (`host-bend2`).
 When using Bend:
 - run `bend guide` to learn it
 - use `LAWS.bend` to keep important rules
+- before proving anything, read `docs/BendIssues.md` (its entries on
+  proofs: U32, big constants) and the lessons the proofs already written
+  record (`blend/PROOF.bend`'s header, `spike/PROOF.bend`): Bend's
+  shortfalls there have workarounds that cost hours to find again
 - run `bend PROOF.bend` before committing
 - parallelize the code whenever possible
 
@@ -185,6 +189,9 @@ write both.
 - Never weaken, change or delete an existing law on main without the
   maintainer's explicit approval: a law edited to fit the code proves
   nothing.
+- Before proving, review `docs/BendIssues.md` and the lessons the
+  existing proofs record (`blend/PROOF.bend`'s header,
+  `spike/PROOF.bend`); add what a new proof teaches to them.
 - Prefer state shapes in which an invariant holds by computation; then its
   law costs a case split.
 

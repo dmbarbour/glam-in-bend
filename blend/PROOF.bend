@@ -1,4 +1,31 @@
 # Blend's own proofs, of the laws LAWS.bend states.
+#
+# Lessons, for the next proof (docs/BendIssues.md has Bend's side):
+# - A byte's match (`case 46:` ... `case _:`) leaves a proof stuck, a
+#   U32 being a word of bits: code a law follows tests its bytes
+#   (`U32.is_eq(h, 46)`) and branches on the Bool, in `when` or in a
+#   named helper matching its Bool parameters (`rr.mark.k`); a class of
+#   bytes is a datatype (`Cl`), its tests Bools.
+# - A recursive proof never matches a computed value: a non-recursive
+#   step lemma takes the Bool as a parameter, with both induction
+#   hypotheses, and splits it (`parts_step`, `while_step_s`); Bend has
+#   no mutual recursion, so the split lives in the step, the recursion in
+#   the caller.
+# - A lemma's type names a `when`'s branches through a helper def that
+#   mirrors them (`while_k`, `lines_k`): Bend infers no lambda.
+# - Lemmas run simple == complex, so that `%e : P` (the goal is P with
+#   e's right side, and becomes P with its left) rewrites the complex form
+#   away; the hub's lemmas run the other way, so wrap them in
+#   `Equal.sym` once (`assoc_r`, `rev_snoc`).
+# - A result read twice is Data, read by projections (`Rn`, `rn.xs`), not
+#   destructured in a lambda (`on.rn`), which sticks a proof.
+# - A bound of 2^32 is reasoned under a variable N with {N == 2^32}, the
+#   power met only against a symbolic count or where both forms match
+#   exactly (`to32`, `top_bound`): Bend unfolds the power otherwise, and
+#   its checker overflows.
+# - Templates prove as code does: a proof def may take `~p` (`while_s`).
+# - Mutate the code after a proof passes: a law that survives a mutation
+#   claims less than meant.
 
 import Base
 import ./LAWS.bend as Laws
@@ -807,3 +834,79 @@ def top_bound(+bs: List<&2, U32>, +N: Nat, h: {Nat.is_lt(List.length(&2, U32, bs
 def Laws.lines.join(bs, h):
   Equal.sym(List<&2, U32>, B.uncr(bs), B.lines.text(B.lines(bs)),
     lines_spec(bs, Nil{}, (0 + 1 : U32), Nil{}, Nat.pow(2n, 32n), {==}, top_bound(bs, Nat.pow(2n, 32n), h)))
+
+# The walk's order
+# ----------------
+#
+# A unit joins the order only once its callees have (ds.done.k), so the
+# order is callee-first after every step: each step keeps it or adds a
+# unit whose callees are in it. Each step's choices are Bools its helpers
+# match, which the lemmas split.
+
+def call_keeps(+seen: Bool, +cyc: Bool, +c: U32, +u: U32, +rs: List<&2, U32>, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +path: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {B.ordered(order, cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.call.k(seen, cyc, c, u, rs, st, roots, path, done, order, ers, cal, obs, us)), cal) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      match cyc:
+        case True{}:
+          h
+        case False{}:
+          h
+
+def done_keeps(+ok: Bool, +u: U32, +st: List<&2, B.Fm>, +roots: List<&2, U32>, +path: List<&2, U32>,
+    +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +e: {ok == B.all.in(B.ids.at(cal, u), order) : Bool}, +h: {B.ordered(order, cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.done.k(ok, u, st, roots, path, done, order, ers, obs, us)), cal) == True{} : Bool}:
+  match ok:
+    case True{}:
+      %e : {Bool.and(_, B.ordered(order, cal)) == True{} : Bool}
+      h
+    case False{}:
+      h
+
+def root_keeps(+seen: Bool, +r: U32, +rt: List<&2, U32>, +path: List<&2, U32>, +done: List<&2, U32>, +order: List<&2, U32>, +ers: List<&2, B.Er>,
+    +cal: List<&2, List<&2, U32>>, +h: {B.ordered(order, cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.root.k(seen, r, rt, path, done, order, ers, cal)), cal) == True{} : Bool}:
+  match seen:
+    case True{}:
+      h
+    case False{}:
+      h
+
+def step_keeps(s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {B.ordered(B.ds.order(s), cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.step(s, cal, obs, us)), cal) == True{} : Bool}:
+  match s:
+    case B.Ds{stack, +roots, +path, +done, +order, +ers}:
+      match stack:
+        case Nil{}:
+          match roots:
+            case Nil{}:
+              h
+            case Con{+r, +rt}:
+              root_keeps(B.has(done, r), r, rt, path, done, order, ers, cal, h)
+        case Con{f, st}:
+          match f:
+            case B.Fm{+u, rest}:
+              match rest:
+                case Nil{}:
+                  done_keeps(B.all.in(B.ids.at(cal, u), order), u, st, roots, path, done, order, ers, cal, obs, us, {==}, h)
+                case Con{+c, rs}:
+                  call_keeps(B.has(done, c), B.has(path, c), c, u, rs, st, roots, path, done, order, ers, cal, obs, us, h)
+
+def go_keeps(n: Nat, +s: B.Ds, +cal: List<&2, List<&2, U32>>, +obs: List<&2, B.Ob>, +us: List<&2, B.Un>,
+    +h: {B.ordered(B.ds.order(s), cal) == True{} : Bool}) ->
+    {B.ordered(B.ds.order(B.ds.go(n, s, cal, obs, us)), cal) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+k:
+      go_keeps(k, B.ds.step(s, cal, obs, us), cal, obs, us, step_keeps(s, cal, obs, us, h))
+
+def Laws.order.callees_first(roots, cal, obs, us):
+  go_keeps(Nat.add(Nat.add(List.length(&2, U32, roots), B.lens(cal)), Nat.add(List.length(&2, B.Un, us), List.length(&2, B.Un, us))),
+    B.Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}, Nil{}}, cal, obs, us, {==})

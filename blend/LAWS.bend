@@ -86,3 +86,14 @@ law lines.join:
   for +bs: List<&2, U32>
   for h: {Nat.is_lt(List.length(&2, U32, bs), Nat.pow(2n, 32n)) == True{} : Bool}
   {B.lines.text(B.lines(bs)) == B.uncr(bs) : List<&2, U32>}
+
+# LAW: the walk's order, emitted reversed, puts each unit after the units
+# it calls, as Bend requires a definition after those it calls; whatever
+# the roots and the calls, a cycle among them reported, never emitted.
+# Record: blend-adds-no-bend-logic
+law order.callees_first:
+  for +roots: List<&2, U32>
+  for +cal: List<&2, List<&2, U32>>
+  for +obs: List<&2, B.Ob>
+  for +us: List<&2, B.Un>
+  {B.ordered(B.ds.order(B.walk(roots, cal, obs, us)), cal) == True{} : Bool}
