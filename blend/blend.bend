@@ -3936,10 +3936,32 @@ def lens(xss: List<&2, List<&2, U32>>) -> Nat:
     case Con{xs, t}:
       Nat.add(List.length(&2, U32, xs), lens(t))
 
+# the walk ended: finished, or a fault of Blend's reported where its fuel
+# ran out first, so that a walk cut short never passes for a success
+# (blend/LAWS.bend, `order.fuel`)
+def ds.end.k(+fin: Bool, d: Ds) -> Ds:
+  match fin:
+    case True{}:
+      d
+    case False{}:
+      match d:
+        case Ds{stack, roots, done, order, ers}:
+          Ds{stack, roots, done, order, Con{Er{0, "Blend's walk ran out of fuel before it finished, a fault of Blend's"}, ers}}
+
+# whether the walk has finished, its stack and its roots spent
+# (blend/LAWS.bend, `order.roots`)
+def ds.finished(d: Ds) -> Bool:
+  match d:
+    case Ds{stack, roots, done, order, ers}:
+      List.is_empty(&2, Fm, stack) && List.is_empty(&2, U32, roots)
+
+def ds.end(+d: Ds) -> Ds:
+  ds.end.k(ds.finished(d), d)
+
 # the walk from the roots: each step pushes, pops or follows a call
 def walk(+roots: List<&2, U32>, +cal: List<&2, List<&2, U32>>, +obs: List<&2, Ob>, +us: List<&2, Un>) -> Ds:
-  ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), lens(cal)), Nat.add(List.length(&2, Un, us), List.length(&2, Un, us))),
-    Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us)
+  ds.end(ds.go(Nat.add(Nat.add(List.length(&2, U32, roots), lens(cal)), Nat.add(List.length(&2, Un, us), List.length(&2, Un, us))),
+    Ds{Nil{}, roots, Nil{}, Nil{}, Nil{}}, cal, obs, us))
 
 # Sharing
 # -------
@@ -4575,13 +4597,6 @@ def ds.order(d: Ds) -> List<&2, U32>:
   match d:
     case Ds{stack, roots, done, order, ers}:
       order
-
-# whether the walk has finished, its stack and its roots spent
-# (blend/LAWS.bend, `order.roots`)
-def ds.finished(d: Ds) -> Bool:
-  match d:
-    case Ds{stack, roots, done, order, ers}:
-      List.is_empty(&2, Fm, stack) && List.is_empty(&2, U32, roots)
 
 # the units walked (blend/LAWS.bend, `order.walked`)
 def ds.walked(d: Ds) -> List<&2, U32>:
