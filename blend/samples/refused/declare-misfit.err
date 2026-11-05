@@ -1,0 +1,12 @@
+SOME PROOFS FAIL
+Error:
+- expected : List<&2, U32>
+- observed : U32
+Context:
+- st : List<&2, U32>
+- x  : U32
+Location: Wrong.push.as_declared
+10 | def Wrong.push.as_declared(st: Blend_0.Wrong.S(), +x: U32) -> Blend_0.Wrong.S():
+11>|   Blend_0.Wrong.push(st, x)
+   |   ^^^^^^^^^^^^^^^^^^^^^^^^^
+12 | 

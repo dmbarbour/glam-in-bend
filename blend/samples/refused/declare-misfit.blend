@@ -1,0 +1,16 @@
+# A family's definition that does not fit its declaration: Blend emits
+# it, and Bend refuses its witness in declare-misfit_PROOF.bend, the
+# declaration bound to the family's S.
+import Base
+
+abstract object Stack with
+  declare type S: Data
+  declare def push(st: S(), +x: U32) -> S()
+
+object Wrong extends Stack with
+  type S: Data = List<&2, U32>
+  def push(st: S(), +x: U32) -> U32:
+    x
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Wrong.push(Nil{}, 1)))

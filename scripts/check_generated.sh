@@ -75,7 +75,7 @@ while read -r kind dir rest; do
   esac
 done <<'EOF'
 bend spike krules.bend tools/gen_krules.bend
-blend blend/samples family.blend nested.blend override.blend prior.blend sharing.blend choice.blend types.blend imports.blend family-nested.blend nested-reach.blend laws.blend laws-imported.blend
+blend blend/samples family.blend nested.blend override.blend prior.blend sharing.blend choice.blend types.blend imports.blend family-nested.blend nested-reach.blend laws.blend laws-imported.blend declares.blend
 blend blend/samples/lib shapes.blend adds.blend
 EOF
 exit "$status"

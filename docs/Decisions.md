@@ -69,6 +69,9 @@ IO shell.
 - [`blend-copies-keep-their-name`](decisions/blend-copies-keep-their-name.md):
   a copied definition is always emitted by its own name, and once more
   for each use.
+- [`blend-declares-witnessed`](decisions/blend-declares-witnessed.md): a
+  typed declaration is bound in each concrete object to its own types
+  and checked by a witness Bend checks, in the proofs' file.
 - [`blend-emit-verifies-imports`](decisions/blend-emit-verifies-imports.md):
   emission writes only the modules a command names, and verifies each
   import none names against its emission, unless `--alone`.

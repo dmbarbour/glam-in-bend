@@ -1,0 +1,12 @@
+# A type member of a kind other than its declaration's: `type S = ...`
+# computes a Type, where Data is declared; Bend refuses the witness.
+import Base
+
+abstract object Stack with
+  declare type S: Data
+
+object Loose extends Stack with
+  type S = U32
+
+def main() -> IO(Unit):
+  IO.print("loose")

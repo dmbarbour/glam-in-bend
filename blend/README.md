@@ -62,6 +62,7 @@ Bend's imports pass through.
 
     abstract object Family with     # emitted only through its children
       declare after                 # a name a concrete child must define
+      declare step(+n: U32) -> U32  # and what it must be, Bend checking
 
     object Both extends Name, Family    # no members: no `with`
 
@@ -152,6 +153,18 @@ Bend's imports pass through.
   unproved law is an open claim, which the gate's proof step reports.
   The module's own laws and proofs, at its top level, are Bend's, as
   its definitions are, written beside the code as an object's are.
+- **Declarations** say what a family must give (`blend-declares-witnessed`):
+  `declare after` a name, untyped; `declare def push(st: S(), +x: U32)
+  -> S()`, or `declare push(...) -> S()` for short, what the definition
+  must be; `declare type S: Data`, the kind a type must have. A typed
+  declaration is bound in each concrete object to its own finals, so
+  that a family's types flow into it, and is fixed where first made, the
+  families varying by their types. Blend has no type checker: for each
+  concrete object it writes a witness into the proofs' file,
+  `def Listed.push.as_declared(st: Blend_0.Listed.S(), +x: U32) ->
+  Blend_0.Listed.S(): Blend_0.Listed.push(st, x)`, and Bend checks it;
+  never into the program, where a witness would be a second caller,
+  splitting the definition into a segment of its own.
 - **Nothing at run time.** Datatypes stay in plain Bend, the module's,
   passed through as written (`type Box<A> is Data:`); a type member can
   be one's argument (`Box<S()>`).
@@ -204,8 +217,10 @@ its own copy, bound to its own finals: no sharing between objects.
   `X_LAWS.bend`, every law, importing the code `X.bend` as `Blend_0`;
   `X_PROOF.bend`, every proof, as
   `def Blend_Laws.NatAdd.right_id(...)`, and every lemma, as
-  `def NatAdd.add_succ(...) -> ...`, importing the code and the laws, as
-  `Blend_Laws`, each after those it uses. Bend imports only plain names,
+  `def NatAdd.add_succ(...) -> ...`, and every typed declaration's
+  witness, `def Listed.push.as_declared(...)`, importing the code, and
+  the laws where there are any, as `Blend_Laws`, each after those it
+  uses. A module with witnesses and no laws writes no laws' file. Bend imports only plain names,
   so `_`, not a dot. The gate checks every `*PROOF.bend` with
   `--verdict`, and that each `X_LAWS.bend` has its `X_PROOF.bend`.
 - A prior proof is written only where a proof reaches it by `_name`:
@@ -249,6 +264,9 @@ program prints.
   for all by the family stating them, `upd proof` where a family's
   update of a definition needs its own; a lemma; the module's own law
   and proof at its top level.
+- `declares`: typed declarations of a definition, of its short form and
+  of a type's kind, each family's checked by its witnesses; an untyped
+  declaration beside them.
 - `laws-imported`, with `lib/adds.blend`: laws a library states and
   proves for every family, a family's own law proved with an inherited
   one, and a prior proof reached across modules.
@@ -266,7 +284,12 @@ level, two nested objects made of one mixin inherited together, a proof
 of no law, code naming a law, `upd law`, a proof introduced where one
 is inherited, `upd proof` with no proof to update, `upd` of an
 inherited law, a definition meeting an inherited law, code naming a
-lemma, `upd proof` of a definition.
+lemma, `upd proof` of a definition, a declaration made again below, a
+typed declaration with no return type.
+
+`blend/samples/refused/`: each `.blend` Blend emits and Bend refuses,
+its proofs' file failing as its `.err` says: a family's definition that
+does not fit its declaration, a type of another kind than declared.
 
 ## Known issues
 

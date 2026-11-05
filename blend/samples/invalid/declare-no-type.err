@@ -1,0 +1,1 @@
+declare-no-type.blend:5: declare def push(st: U32, +x: U32): a typed declaration states its parameters and what it returns, `declare def f(params) -> T`

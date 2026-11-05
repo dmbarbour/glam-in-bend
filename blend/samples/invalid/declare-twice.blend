@@ -1,0 +1,10 @@
+# A declaration is fixed where it is first made: a family below declares
+# `push` again, where its types are what vary.
+import Base
+
+abstract object Stack with
+  declare type S: Data
+  declare def push(st: S(), +x: U32) -> S()
+
+abstract object Narrow extends Stack with
+  declare def push(st: S(), x: U32) -> S()

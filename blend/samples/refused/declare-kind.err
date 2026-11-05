@@ -1,0 +1,9 @@
+SOME PROOFS FAIL
+Error:
+- expected : Data
+- observed : Type
+Location: Loose.S.as_declared
+6 | def Loose.S.as_declared() -> Data:
+7>|   Blend_0.Loose.S()
+  |   ^^^^^^^^^^^^^^^
+8 | 

@@ -1,0 +1,5 @@
+# A typed declaration states what the definition returns: `-> T`.
+import Base
+
+abstract object Stack with
+  declare def push(st: U32, +x: U32)

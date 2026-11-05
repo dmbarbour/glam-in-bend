@@ -2,7 +2,9 @@
 # Blend's samples (blend/README.md): each valid sample's .bend, what
 # Blend emits from its .blend (a generated file, checked current by
 # scripts/check_generated.sh), runs under Bend to print what its .out
-# says; each invalid sample fails, its errors exactly its .err.
+# says; each invalid sample fails, its errors exactly its .err; each
+# refused sample emits, and Bend refuses its proofs' file, its output
+# exactly its .err.
 #
 #   blend/check.sh
 set -u
@@ -44,6 +46,25 @@ for src in invalid/*.blend; do
     status=1
   fi
 done
+k=0
+r=../../results/blend/refused
+mkdir -p "$r" || exit 1
+for src in refused/*.blend; do
+  k=$((k + 1))
+  base=${src#refused/}
+  base=${base%.blend}
+  [ -f "refused/$base.err" ] || { echo "blend: $src has no .err"; status=1; continue; }
+  if ! "$CAPPED" 500 30 "$BLEND" emit --alone "$src" "$r" >/dev/null; then
+    echo "blend: $src does not emit, where Bend must refuse its proofs"
+    status=1
+  elif got=$(cd "$r" && "$CAPPED" 1000 60 "$BEND" "${base}_PROOF.bend" 2>&1); then
+    echo "blend: Bend accepts ${base}_PROOF.bend, where it must refuse it"
+    status=1
+  elif [ "$got" != "$(cat "refused/$base.err")" ]; then
+    echo "blend: Bend gives '$got' on ${base}_PROOF.bend, not '$(cat "refused/$base.err")'"
+    status=1
+  fi
+done
 # an import no argument names is verified, its files compared with its
 # emission: a stale one fails the command, which writes nothing, and
 # `--alone` leaves it unverified; a module named by its absolute path
@@ -64,5 +85,5 @@ fi
 mkdir -p ../../results/blend/absolute || exit 1
 "$CAPPED" 500 30 "$BLEND" emit "$PWD/imports.blend" ../../results/blend/absolute >/dev/null ||
   { echo "blend: a module named by its absolute path fails"; status=1; }
-[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid: ok"
+[ "$status" -eq 0 ] && echo "blend samples: $n valid, $m invalid, $k refused: ok"
 exit "$status"

@@ -1,0 +1,37 @@
+# Typed declarations: an abstract object says what a definition its
+# families give must be, `declare def push(st: S(), +x: U32) -> S()`, or
+# `declare empty() -> S()` for short, and of what kind a type must be,
+# `declare type S: Data`. Each family's definitions are checked against
+# the declaration bound to the family's own types, by witnesses Blend
+# writes into declares_PROOF.bend for Bend to check, never into the
+# program. `declare size` stays untyped, each family's its own.
+import Base
+
+abstract object Stack with
+  declare type S: Data
+  declare def push(st: S(), +x: U32) -> S()
+  declare empty() -> S()
+  declare size
+  def one(+x: U32) -> S():
+    push(empty(), x)
+
+object Listed extends Stack with
+  type S: Data = List<&2, U32>
+  def empty() -> S():
+    Nil{}
+  def push(st: S(), +x: U32) -> S():
+    Con{x, st}
+  def size(st: S()) -> U32:
+    U32.from_nat(List.length(&2, U32, st))
+
+object Counted extends Stack with
+  type S: Data = U32
+  def empty() -> S():
+    0
+  def push(+st: S(), +x: U32) -> S():
+    (st + x : U32)
+  def size(+st: S()) -> U32:
+    st
+
+def main() -> IO(Unit):
+  IO.print(U32.show(Listed.size(Listed.one(5))) ++ " " ++ U32.show(Counted.size(Counted.one(5))))
