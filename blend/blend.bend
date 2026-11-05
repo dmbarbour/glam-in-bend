@@ -1179,16 +1179,15 @@ def names.has(ns: List<&2, List<&2, U32>>, +n: List<&2, U32>) -> Bool:
     case Con{x, t}:
       same(x, n) || names.has(t, n)
 
-def parts.go(xs: List<&2, U32>, cur: List<&2, U32>, out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+# a dot told by a test, not a byte's match, so that a law can follow it
+# (blend/LAWS.bend, `names.dots_parts`)
+def parts.go(xs: List<&2, U32>, +cur: List<&2, U32>, +out: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
   match xs:
     case Nil{}:
       List.reverse(&2, List<&2, U32>, Con{List.reverse(&2, U32, cur), out})
-    case Con{+h, t}:
-      match h:
-        case 46:
-          parts.go(t, Nil{}, Con{List.reverse(&2, U32, cur), out})
-        case _:
-          parts.go(t, Con{h, cur}, out)
+    case Con{+h, +t}:
+      when(List<&2, List<&2, U32>>, U32.is_eq(h, 46), u => parts.go(t, Nil{}, Con{List.reverse(&2, U32, cur), out}),
+        u => parts.go(t, Con{h, cur}, out))
 
 # a dotted name's parts
 def parts(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:

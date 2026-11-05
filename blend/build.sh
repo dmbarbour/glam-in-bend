@@ -13,12 +13,14 @@ BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 out=results/blend
 # the key: Bend itself (its version; its executable's size, time and
 # inode, cheaper than hashing 80 MB on every run; its Base and effects
-# beside it) and every Bend source of Blend's, so that an update of Bend,
-# in place or not, rebuilds the tool
+# beside it) and every Bend source of Blend's, its laws and proofs aside
+# (blend/LAWS.bend, blend/PROOF.bend: no part of the tool), so that an
+# update of Bend, in place or not, rebuilds the tool
 exe=$(command -v "$BEND" 2>/dev/null) || { echo "blend: no bend at $BEND" >&2; exit 1; }
 real=$(readlink -f "$exe")
 lib=$(dirname "$real")/../bend2
-key=$({ "$BEND" version; stat -c '%s %Y %i' "$real"; cat "$lib"/base.bend "$lib"/effs/* 2>/dev/null; cat blend/*.bend; } |
+key=$({ "$BEND" version; stat -c '%s %Y %i' "$real"; cat "$lib"/base.bend "$lib"/effs/* 2>/dev/null
+  for f in blend/*.bend; do case $f in *LAWS.bend | *PROOF.bend) ;; *) cat "$f" ;; esac; done; } |
   sha256sum | cut -d' ' -f1)
 if [ ! -x "$out/blend" ] || [ "$(cat "$out/key" 2>/dev/null)" != "$key" ]; then
   mkdir -p "$out" || exit 1
