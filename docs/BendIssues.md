@@ -128,7 +128,10 @@ of 2026-10-26, Bend 2.0.39.
   31 (`fld_bits`, `off_by_bits`), so the kernel's raise of a decoded
   level is the model's without hypothesis (`lift_decoded`) and fits its
   field whenever the kernel's check passes it (`lift_fits`). The encoders
-  still shift and mask, without laws.
+  still shift and mask, without laws. Blend's laws (`blend/PROOF.bend`,
+  2026-11-05) take the same road: its byte matches became `U32.is_eq`
+  tests branched on in helpers matching their `Bool` parameters, and a
+  byte's class a datatype, so that a step lemma splits the `Bool`s.
 - **Revisit:** before the kernel leaves the spike.
 
 ### Big constants in proofs
@@ -144,10 +147,21 @@ of 2026-10-26, Bend 2.0.39.
   65536n : Nat}`, though 2^14 checks; `Nat.pow(2n, Nat.add(24n, 8n))`
   against `Nat.pow(2n, 32n)` overflows, and so does a field bound whose
   forms differ only in a `U32` call under `MNat.lt(_, Nat.pow(2n, 24n))`.
+  Blend's `lines.join` (2026-11-05) met it twice: a hypothesis
+  `MNat.lt(1n+x, Nat.pow(2n, 32n))`, its first argument a successor,
+  overflows where it is compared, and so does the law's
+  `{Nat.is_lt(len, Nat.pow(2n, 32n)) == True}` against the
+  `MNat.lt(Nat.add(0, len), _)` a lemma takes; and a failing proof near
+  such a bound crashes the checker (`RangeError: Maximum call stack size
+  exceeded`, the status 1) rather than report the goal, so a mutation is
+  caught only by the status.
 - **Workaround:** the one #1291 suggests: each lemma reasons under a
   variable bound and is applied at the power where both forms match
   exactly; a `U32` literal's value comes from its bits, as a word with one
-  bit set (`spike/PROOF.bend`, "Field bounds").
+  bit set (`spike/PROOF.bend`, "Field bounds"). Blend's lemmas take the
+  bound `N` with `{N == Nat.pow(2n, 32n)}`, converting to the power only
+  against a symbolic count, and a helper generic in `N` turns the law's
+  form into the lemma's (`blend/PROOF.bend`, "Lines").
 - **Revisit:** when #957 or #1832 lands.
 
 ### Run-time code generation

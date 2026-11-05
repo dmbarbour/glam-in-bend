@@ -198,25 +198,28 @@ def commas(xs: List<&2, U32>) -> List<&2, List<&2, U32>>:
 type Ln is Data:
   Ln{+no: U32, +ind: U32, txt: List<&2, U32>}
 
-def lines.fin(r: U32 & List<&2, U32>, +no: U32) -> Ln:
-  (+n, xs) = r
-  Ln{no, n, xs}
+# a line read: its indentation's spaces counted in n, a Nat, exact
+# however many, then its text
+def line.of(xs: List<&2, U32>, +n: Nat, +no: U32) -> Ln:
+  match xs:
+    case Nil{}:
+      Ln{no, U32.from_nat(n), Nil{}}
+    case Con{+h, +t}:
+      when(Ln, U32.is_eq(h, 32), u => line.of(t, 1n+n, no), u => Ln{no, U32.from_nat(n), Con{h, t}})
 
 def lines.line(cur: List<&2, U32>, +no: U32) -> Ln:
-  lines.fin(ltrim.go(List.reverse(&2, U32, cur), 0), no)
+  line.of(List.reverse(&2, U32, cur), 0n, no)
 
-def lines.go(bs: List<&2, U32>, cur: List<&2, U32>, +no: U32, out: List<&2, Ln>) -> List<&2, Ln>:
+# the lines, a newline ending each, a carriage return dropped; the bytes
+# tested, not matched, so that a law can follow (blend/LAWS.bend,
+# `lines.join`)
+def lines.go(bs: List<&2, U32>, +cur: List<&2, U32>, +no: U32, +out: List<&2, Ln>) -> List<&2, Ln>:
   match bs:
     case Nil{}:
       List.reverse(&2, Ln, Con{lines.line(cur, no), out})
-    case Con{+b, t}:
-      match b:
-        case 10:
-          lines.go(t, Nil{}, (no + 1 : U32), Con{lines.line(cur, no), out})
-        case 13:
-          lines.go(t, cur, no, out)
-        case _:
-          lines.go(t, Con{b, cur}, no, out)
+    case Con{+b, +t}:
+      when(List<&2, Ln>, U32.is_eq(b, 10), u => lines.go(t, Nil{}, (no + 1 : U32), Con{lines.line(cur, no), out}),
+        u => when(List<&2, Ln>, U32.is_eq(b, 13), v => lines.go(t, cur, no, out), v => lines.go(t, Con{b, cur}, no, out)))
 
 # a file's lines numbered from base + 1 (Locations, below)
 def lines.at(bs: List<&2, U32>, +base: U32) -> List<&2, Ln>:
@@ -224,6 +227,33 @@ def lines.at(bs: List<&2, U32>, +base: U32) -> List<&2, Ln>:
 
 def lines(bs: List<&2, U32>) -> List<&2, Ln>:
   lines.at(bs, 0)
+
+# a line as written: its indentation's spaces, then its text
+# (blend/LAWS.bend, `lines.join`)
+def ln.text(l: Ln) -> List<&2, U32>:
+  match l:
+    case Ln{+no, +ind, txt}:
+      List.append(&2, U32, List.replicate(U32, U32.to_nat(ind), 32), txt)
+
+# lines joined back, a newline between each two
+def lines.text(ls: List<&2, Ln>) -> List<&2, U32>:
+  match ls:
+    case Nil{}:
+      Nil{}
+    case Con{l, t}:
+      match t:
+        case Nil{}:
+          ln.text(l)
+        case Con{h, r}:
+          List.append(&2, U32, ln.text(l), Con{10, lines.text(Con{h, r})})
+
+# bytes, their carriage returns dropped
+def uncr(bs: List<&2, U32>) -> List<&2, U32>:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{+b, +t}:
+      when(List<&2, U32>, U32.is_eq(b, 13), u => uncr(t), u => Con{b, uncr(t)})
 
 def blank(xs: List<&2, U32>) -> Bool:
   match xs:

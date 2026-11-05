@@ -76,3 +76,13 @@ law locals.template:
 law tokens.spell:
   for +xs: List<&2, U32>
   {B.toks.text(B.toks(xs)) == xs : List<&2, U32>}
+
+# LAW: a file's lines, each its indentation's spaces then its text,
+# joined back by newlines, are the file's bytes less carriage returns:
+# Blend reads every byte of a file but those. For a file shorter than
+# 2^32 bytes, as every file Blend reads is (its size a U32).
+# Record: blend-adds-no-bend-logic
+law lines.join:
+  for +bs: List<&2, U32>
+  for h: {Nat.is_lt(List.length(&2, U32, bs), Nat.pow(2n, 32n)) == True{} : Bool}
+  {B.lines.text(B.lines(bs)) == B.uncr(bs) : List<&2, U32>}
