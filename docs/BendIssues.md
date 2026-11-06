@@ -306,7 +306,7 @@ of 2026-10-26, Bend 2.0.39.
 ### Checking every proof at each load
 
 - **Need:** a Blend module's laws and proofs written into its own file
-  (Blend's `blend-laws-in-module`, `docs/reviews/LawsInBend_2026-11-06.md`)
+  (Blend's `blend-laws-in-module`)
   are checked at every run and build that loads it, as every definition
   loaded is.
 - **Upstream:** no issue found; not raised (`host-bend2`).
