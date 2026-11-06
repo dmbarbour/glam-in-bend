@@ -107,6 +107,7 @@ release binary) and tried, 2026-11-06:
 
 ## Next
 
-F1, F2, F4 and F5 settled; the change is Blend's step `blend-laws-in-module`,
+F1, F2, F4 and F5 settled (Blend's record `blend-laws-in-module`); the
+change is Blend's step `blend-module-laws`,
 its laws restated with the maintainer's approval, then glam-in-bend's
 tools after it (F7).
