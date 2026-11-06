@@ -308,12 +308,12 @@ of 2026-10-26, Bend 2.0.39.
 - **Need:** native builds of the kernel and the net library within the
   gate's caps, on a machine of 16 GB; 2.0.40 carries the array fill
   above.
-- **Upstream:** none found among the issues (2026-11-06); the nearest,
-  [#2038](https://github.com/bendlang/bend/issues/2038), the compiler's
-  memory at application scale, measured to 2.0.39, and
+- **Upstream:** [#2076](https://github.com/bendlang/bend/issues/2076),
+  raised by the maintainer (2026-11-06), with the cause and the fix
+  tried. Related: [#2038](https://github.com/bendlang/bend/issues/2038),
+  the compiler's memory at application scale, measured to 2.0.39, and
   [#1262](https://github.com/bendlang/bend/issues/1262), JSC sizing its
-  heap from the machine's memory, closed. An issue drafted at the
-  maintainer's request (2026-11-06), with the cause and a fix tried.
+  heap from the machine's memory, closed.
 - **Evidence:** emitting C for `spike/kernel.bend`, 2.0.39 peaks at
   1,875 MB in 18 s; 2.0.40 passes 6 GB in 20 s, and with JavaScriptCore
   held to a small heap (`BUN_JSC_forceRAMSize=1000000000`) peaks at
