@@ -14,6 +14,10 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
+# no update check: Bend prints a newer release's notice beside its output
+# (2.0.40's, 2026-11-06), and a gate that asks the network is no repeatable
+# check; Blend's gate, run below, sets it too
+export BEND_NO_TELEMETRY=1
 status=0
 
 # the seconds since a mark, to a tenth
