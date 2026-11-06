@@ -53,14 +53,21 @@ release binary) and tried, 2026-11-06:
   and its proof under one name, and `LAW.Name` for one outside any
   object; the separation the files gave comes from inheritance and
   from laws that cannot be overridden; a project keeps its own
-  `LAWS.bend` and `PROOF.bend` where it wants them.
+  `LAWS.bend` and `PROOF.bend` where it wants them. Adopted (the
+  maintainer, 2026-11-06): Blend's `blend-laws-in-module`.
 - **F2** — `blend/docs/decisions/blend-declares-witnessed.md`: a witness
   goes "never in the program: a witness is a second caller, which would
   make Bend split the definition into a segment of its own"; likewise
   `blend/README.md`, Declarations. A def no `main` reaches is not
   compiled, and one calling the code left the C unchanged (above).
-  *Verdict:* the reason does not hold for a small program; to confirm on
-  a module the size of the kernel's before relying on it.
+  *Verdict:* the reason does not hold. Confirmed on the kernel
+  (2026-11-06): `spike/kernel.bend` given four defs no `main` reaches,
+  each a second caller of a function with one (`KS.scan.hdr`,
+  `KS.reduce.pop`, `KS.run`, the hot path's `KN.interact.e`), compiles
+  to the same C, byte for byte, 585 segments in 178 function instances
+  either way (`spike/tools/sharing.py segs`). A witness may sit in the
+  code's file; failing that, the maintainer would have copied affine
+  definitions for the proofs' use.
 - **F3** — The emission's three modes follow F1: `proof.parts`
   (`blend.bend`), the code imported as `Blend_0` and the laws as
   `Blend_Laws`, `ref.put.m`'s paths for the proofs' file, `tok.in.proof`
@@ -72,15 +79,17 @@ release binary) and tried, 2026-11-06:
   each a law change on main for the maintainer to approve.
 - **F4** — A law left open stops a run of every program that loads its
   file. With laws in the module's file, a module with an unproven law
-  cannot be run, nor imported. *Verdict:* a decision for the
-  maintainer: Blend refusing to emit a law no concrete object proves,
-  as an error of its own; or a law not yet proven kept apart until it
-  is; or accepted, a law stated first stopping the program until its
-  proof comes.
+  cannot be run, nor imported. *Verdict:* decided (the maintainer,
+  2026-11-06): a law not yet proven is an abstract object's, abstract
+  laws holding for its families to prove; a concrete object proves
+  every law it has, and a top-level law, which cannot be abstract, is
+  proven. Blend reports a law unproven there as its own error.
 - **F5** — Every run and build that loads a module would check its
   proofs: some 3 s at Blend's scale, on top of a build of 13 s (Blend)
   or about 20 s (the kernel). `--verdict` stays the gate's.
-  *Verdict:* acceptable, measured; recheck once a module's proofs grow.
+  *Verdict:* accepted (the maintainer, 2026-11-06), with incremental
+  checking hoped of Bend later (`docs/BendIssues.md`, "Checking every
+  proof at each load").
 - **F6** — Packages: laws and proofs in the module's file travel with
   it, are checked by whoever imports it, and serve them as lemmas, as
   bend-mathlib's do; publishing needs no file beyond the code's.
@@ -98,6 +107,6 @@ release binary) and tried, 2026-11-06:
 
 ## Next
 
-The maintainer's decisions on F1 and F4; F2 measured on the kernel; then
-a step in Blend's plan for the change, its laws restated with the
-maintainer's approval.
+F1, F2, F4 and F5 settled; the change is Blend's step `blend-laws-in-module`,
+its laws restated with the maintainer's approval, then glam-in-bend's
+tools after it (F7).

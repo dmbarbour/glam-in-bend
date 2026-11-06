@@ -303,6 +303,21 @@ of 2026-10-26, Bend 2.0.39.
   high-water mark instead of the capacity.
 - **Revisit:** at whole-system tuning.
 
+### Checking every proof at each load
+
+- **Need:** a Blend module's laws and proofs written into its own file
+  (Blend's `blend-laws-in-module`, `docs/reviews/LawsInBend_2026-11-06.md`)
+  are checked at every run and build that loads it, as every definition
+  loaded is.
+- **Upstream:** no issue found; not raised (`host-bend2`).
+- **Evidence:** `--check-only`, 2026-11-06, i7-6700: Blend's code 0.8 s
+  alone, 3.6 s with its 14,444 lines of proofs; the kernel 3.7 s, its
+  proofs 5.8 s. Acceptable now (the maintainer, 2026-11-06), with
+  incremental checking hoped of Bend later.
+- **Workaround:** the gate keeps a pass while its inputs are unchanged
+  (`scripts/kept.py`); a run pays the check each time.
+- **Revisit:** when a module's proofs make its runs slow.
+
 ### Memory of native builds
 
 - **Need:** native builds of the kernel and the net library within the
