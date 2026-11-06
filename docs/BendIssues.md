@@ -277,8 +277,10 @@ of 2026-10-26, Bend 2.0.39.
   it is read. Half of it merged as #1928 (b576d5f, 2026-10-29): the fill
   loop in the runtime's `blk_new` written so that clang vectorizes it,
   the larger part for us; it leaves the doubling of the net's data table
-  alone (the maintainer, 2026-10-30). In no release yet: 2.0.39, the
-  pinned one, predates it.
+  alone (the maintainer, 2026-10-30). In 2.0.40, as two loops bounded
+  by `!=`: `zero_fill` 0.22 instructions a word, 0.58M to 2.19M at d 20
+  to 23 (2026-11-06). Not taken yet: 2.0.40's native builds of the
+  kernel take four times the memory ("Memory of native builds").
 - **Evidence:** `bench/bend/zero_fill.bend`: 8 instructions (3 cycles) a
   word; growing the kernel's stores is 14 to 18% of a run at k 18,
   most of it this fill (EvalSpike, `spike-node-layout`). With #1928's
@@ -300,6 +302,49 @@ of 2026-10-26, Bend 2.0.39.
   never-used nodes (the root's search, the table audit) would stop at a
   high-water mark instead of the capacity.
 - **Revisit:** at whole-system tuning.
+
+### Memory of native builds
+
+- **Need:** native builds of the kernel and the net library within the
+  gate's caps, on a machine of 16 GB; 2.0.40 carries the array fill
+  above.
+- **Upstream:** none found among the issues (2026-11-06); the nearest,
+  [#2038](https://github.com/bendlang/bend/issues/2038), the compiler's
+  memory at application scale, measured to 2.0.39, and
+  [#1262](https://github.com/bendlang/bend/issues/1262), JSC sizing its
+  heap from the machine's memory, closed. An issue drafted at the
+  maintainer's request (2026-11-06), with the cause and a fix tried.
+- **Evidence:** emitting C for `spike/kernel.bend`, 2.0.39 peaks at
+  1,875 MB in 18 s; 2.0.40 passes 6 GB in 20 s, and with JavaScriptCore
+  held to a small heap (`BUN_JSC_forceRAMSize=1000000000`) peaks at
+  7,557 MB in 38 s. The net library's program (`spike/tools/library.py`)
+  builds at 2,089 MB under 2.0.39 and passes 8 GB under 2.0.40. Programs
+  calling into the kernel's interaction (`knet.bend`), C of 0.4 to 1.1
+  MB: 2.0.39 1.0 to 1.2 GB, 2.0.40 1.9 to 3.0 GB, so growing faster than
+  the program. The C backend's own: typechecking alone takes 0.9 GB, the
+  JavaScript target of the same program 1.2 GB against 1.1, and the C
+  is of a size and shape with 2.0.39's (the kernel's 2,332 `spin_`
+  functions against 2,327, 587 segments each). The compiler runs on Bun
+  1.3.14, 2.0.39's on 1.4.0; the smaller heap lowers a 3.0 GB peak to
+  2.3 GB and no further, so most of it is live (2026-11-06). The
+  cause, in the compiler's `comp.ts` (the bundle inside the binary):
+  2.0.39 cleared its memo tables (`opens`, `uses`, `folds`, `spines`)
+  for each definition it emitted (`memo_gc`); 2.0.40 clears only
+  `folds`, once per unit, and its `opens`, `uses`, `spines` and
+  `ground`, maps keyed by terms, keep every unit's terms alive: after
+  emitting, a full collection leaves 1,754 MB in use against 459 MB,
+  `ground` 2.28M entries and `opens` 1.02M. Clearing them with `folds`
+  (the bundle patched and run on the binary's own Bun, `BUN_BE_BUN=1`)
+  emits the same C, byte for byte, and builds the kernel at 2.8 to
+  3.0 GB in three runs of four (the fourth 6.2 GB), 30 s; the rest of
+  the gap to 2.0.39 is untraced.
+- **Workaround:** stay on 2.0.39. When taking a later release:
+  `spike/tools/inline_build.sh` forces `spin_` functions inline by
+  number (`spin_\d+`), and 2.0.40 names them for their functions
+  (`spin_vs_has`), so its forced-inline build would force none; the
+  `NEXT_FILL` patch no longer applies, and is no longer needed.
+- **Revisit:** at each release, by building the kernel under
+  `CAPPED_REPORT=1 scripts/capped.sh`.
 
 ## Watch
 
