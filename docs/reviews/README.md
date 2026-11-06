@@ -17,7 +17,8 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 
 ## Active Reviews
 
-None yet.
+- [`LawsInBend_2026-11-06.md`](LawsInBend_2026-11-06.md): where Blend
+  writes laws and proofs, against how Bend checks them.
 
 ## Retired
 
