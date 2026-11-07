@@ -1270,7 +1270,7 @@ def dc.pk.rs(r: P.H & Bool, path: KM.M, +top: U32, +depth: U32, +n: U32, +steps:
 # a chunk: S steps, or those left, from a reserve seen kept; a stress test collects at its end whatever the
 # reserve where the net holds 1024 nodes or fewer, the chunk then 16
 # steps: the walk starting again from the interface after a collection
-# takes a step for each power of two in its depth (wk.push), at most 11
+# takes a step for each power of two in its depth (kdemand.blend's wk.push), at most 11
 # in such a net, so a chunk of 4 made no progress
 def dc.pk(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +left: U32, +stress: Bool) -> Dp:
   (h, hs) = r

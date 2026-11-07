@@ -212,7 +212,7 @@ def force.met(r: KD.D & U32, +vals: List<&2, V.Val>) -> KD.D:
   (d, +lz) = r
   KS.resume(d, val_at(vals, lz))
 
-# demand by mode: 0 plain (KS.demand), 1 running events (KS.demand.v), 2
+# demand by mode: 0 plain (KD.Demand), 1 running events (KD.DemandEv), 2
 # collecting where its net would grow (KS.demand.c), 3 collecting as a
 # stress test (KS.demand.s)
 def demand_ev(+ev: U32, +fuel: Nat, d: KD.D) -> KD.D:
