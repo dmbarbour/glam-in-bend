@@ -3924,6 +3924,57 @@ takes from it:
 7. `heap-measure` — taking and returning nets, freezing and instantiating,
    memory per small net, forcing depth against round latency, at n, 2n and
    4n.
+8. `heap-laws-align` — tentative — the kernel's laws aligned with their
+   intent (the maintainer, 2026-11-07: a law should hold however it is
+   proved, `A -> B` by `not A` or by `B`; every finding of a review of
+   `spike/LAWS.bend`'s 79 laws a tentative rewrite, as Blend's,
+   `blend-laws2.named-builds` and beside it). 17 flagged, 62 sound:
+    - `heap-laws-align.contract-none` — tentative — `R.exact_in.m` and
+      `W.keeps_wired.m` are true where `R.contract` gives none, so that
+      `rules_pairs_exact`, `rewrite_pairs_wired` and
+      `rules_keep_wired_in` hold of a pair the rules cannot contract;
+      `rules_pairs_total` proves it never happens for the table's
+      rules, but `events_exact` and `events_keep_wired_in` have no
+      totality law. Make the None arm false, exactness implying
+      totality (the separate law then retired), or add the events'
+      totality; then the kernel's `P.h_err` in `link_pairs` (knet.bend),
+      dead on the table's rules, may go.
+    - `heap-laws-align.statics` — tentative — the `kernel_*` placement
+      laws (`kernel_slots_ok`, `kernel_free_ok`, `kernel_rewrite_wired`,
+      `kernel_in_step`, `kernel_rules_in_step`,
+      `kernel_events_in_step`) model a kernel that places an eraser as
+      a node: the kernel makes it static (`mk.era`, `erasers_native`),
+      freeing both slots and placing none; an event keeps a static B
+      unfreed (`free_b`, excluded by `hlb`); static erasure frees x
+      alone, under no placement law; and the reserve cut from the free
+      list fails `FL.ok`'s one list. So the drafted
+      `kernel_rewrite_refines` and `kernel_audits_exact` cannot hold as
+      drafted, and the claim above ("the models prove every rewrite
+      keeps a wired net wired (`rewrite_wired`, `kernel_rewrite_wired`)")
+      is of the model, not the kernel. Place only the specs that are
+      not erasers (`R.nv.era`); a static a leaf end in `W.wired`, or a
+      phantom node per static link where kernel nets are read back
+      (`static-links-count-as-nodes`); a reserve in `FL`, or read back
+      as free list then reserve.
+    - `heap-laws-align.lowering` — tentative — `lift_decoded` and
+      `lift_fits` assume a control that raises (`off_up`), `CT.raise`
+      models raises alone, and `lift_wraps` tests raises alone; but
+      lowering controls are reached (`nets.bend`'s `PLift{n, False, 1}`,
+      the loader's tags 6 and 7 reading `up` and `by` from a file,
+      `load.node` checking only `by < 2^31`, the rules calling `P.lift`
+      either way): a lowering by more than the level is checked by
+      neither, a wrap on a loaded file (by reading, not yet run). A
+      premise that a lowering lowers by 1, enforced by the loader and
+      stated as a law; or a model `CT.lower`.
+    - `heap-laws-align.named` — tentative — statements spelling a
+      construction: `kernel_rewrite_wired` and `kernel_in_step` spell
+      `W.rp_kinds`/`W.rp_links` over `KP.kslots(...)` twice each, where
+      `kernel_rules_in_step` names the step (`KP.step_*`): a
+      `KP.step_wired` beside `KP.step_kinds`, the general forms lemmas,
+      not laws. `lift_raise` states `P.lift.go`'s dispatch, not
+      `P.lift`; `payload_past_links` reads `P.node.word.k(N.kcode(k))`,
+      not `node.word` on a header (likely deliberate, masks having no
+      laws).
 
 Later, in EvalSpike's steps: logical copies (`spike-cursors`) if whole
 copies cost too much; the split heap's collector, with identity for shared

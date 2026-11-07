@@ -23,6 +23,19 @@ it alone taught. Add to this file what a new proof teaches.
   not claim it. Once a stronger law proves a guard never fires, the guard
   is redundant work, not a boundary: remove it, and prove its law from
   the stronger one.
+- **State a law over what the program builds, by the names it calls.**
+  A law should hold however it is proved: `A -> B` by `not A`, by `B`,
+  or by `not (A and not B)` (the maintainer, 2026-11-07). A guard ("where
+  no error is reported", an arm true where a step fails) must not stand
+  in for a premise the law leaves out, such as that a state is one the
+  program builds: then a guard proved dead cannot go without the law
+  turning false (`heap-laws-align.contract-none`; Blend's
+  `copies.defined`). Check the domain both ways: broader than the
+  program builds forces defensive code; narrower says nothing of a real
+  case (`heap-laws-align.statics`). And name the construction by the
+  function the program itself calls, never a copy of its body: a law
+  over a copy proves the copy, and a fault in the program's wiring
+  survives it (`heap-laws-align.named`).
 - **Termination where feasible.** A walk bounded by fuel can carry a law
   that a walk cut short reports an error; a proof that the fuel suffices
   is stronger, and often feasible by a potential (below). Try it before
