@@ -2097,7 +2097,10 @@ takes from it:
                  erasers; the library's tools (`library.py`: one case or
                  one strategy alone, LIBRARY_FILE, the caps).
                - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate`
-                 — active — decided 2026-11-03 (`erasure-at-write`), the
+                 — built 2026-11-07 (its `.dispatch`, `.fans` and
+                 `.writers` on 2026-11-04, its `.measure` closing it;
+                 `.writers.moves` left tentative, not pursued) — decided
+                 2026-11-03 (`erasure-at-write`), the
                  maintainer's design of the same day: erasure events
                  travel through auxiliary ports alone, handled where a
                  static is written, never tested on a rewrite's path. A
@@ -2190,9 +2193,18 @@ takes from it:
                    rules, and the writers already make the events' whole
                    measurable saving (9,649,714 against 9,649,584). Taken
                    up if a workload shows statics moved in number.
-                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — active — gcbench runs 226 and 227
-                   against 221 and the library against main so far; spot
-                   against run 211 to come. Collecting demand at 227:
+                 - `heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.measure` — built 2026-11-07 — gcbench runs 226 and 227
+                   against 221 and the library against main; the spot
+                   against run 211, the base before `.links.native`, on
+                   main at 1e5f036, the kernel as `.links.walk`,
+                   `.propagate.writers` and `payload-store` left it (spot
+                   run 282): interactions alike in every workload;
+                   instructions, the default build -1.34% to +0.11%,
+                   forced inline -0.47% to +0.57% (demand with events
+                   +0.49% and +0.57%, the rest at or below run 211's), the
+                   forced-inline events' +1.2% to +2.0% of run 231 gone;
+                   run 237, the same code, reproduced within 0.005%.
+                   Collecting demand at 227:
                    0.42% over plain demand against 0.03%, capacity 20%
                    less in all but 31 cases grown (loop-toggle-1024
                    unfused 2,048 to 32,768 nodes) and 48 shrunk, its
