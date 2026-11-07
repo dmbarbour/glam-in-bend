@@ -9,6 +9,9 @@
 #
 #   scripts/check_generated.sh
 set -u
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 cd "$(dirname "$0")/.." || exit 1
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 status=0

@@ -19,6 +19,9 @@
 # sets are then written and run side by side, JOBS at once (all the
 # cores by default), and recorded in order once all are done.
 set -u
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 
 # one set, as the pool runs it: its nets written, then run; its state in

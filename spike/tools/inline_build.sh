@@ -29,6 +29,9 @@
 #   [GCC_BUILDS=1] spike/tools/inline_build.sh PROGRAM.bend OUT ["TRAIN ARGS" ...]
 #   e.g. spike/tools/inline_build.sh spike/kernel.bend /tmp/k/kernel "14" "14 fma" "14 lvl"
 set -eu
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 [ $# -ge 2 ] || { echo "usage: $0 PROGRAM.bend OUT [\"TRAIN ARGS\" ...]" >&2; exit 2; }
 SRC=$1
 mkdir -p "$(dirname "$2")"

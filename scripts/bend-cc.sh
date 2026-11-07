@@ -10,6 +10,9 @@
 #
 #   scripts/bend-cc.sh DIR
 set -eu
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 [ $# -eq 1 ] || { echo "usage: $0 DIR" >&2; exit 2; }
 mkdir -p "$1"
 D=$(cd "$1" && pwd)

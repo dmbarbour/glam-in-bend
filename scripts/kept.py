@@ -38,6 +38,10 @@ import shutil
 import subprocess
 import sys
 
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+os.environ["BEND_NO_TELEMETRY"] = "1"
+
 IMPORT = re.compile(r"^import\s+(\S+)", re.M)
 CACHE = os.path.join("results", "kept")
 FLAGS = {"verdict": "--verdict", "check": "--check-only"}

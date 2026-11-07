@@ -48,6 +48,10 @@ import shutil
 import subprocess
 import sys
 
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+os.environ["BEND_NO_TELEMETRY"] = "1"
+
 IMPORT = re.compile(r"^import\s+(\S+)(?:\s+as\s+(\S+))?", re.M)
 NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 OUT = os.path.join("results", "one_law")
