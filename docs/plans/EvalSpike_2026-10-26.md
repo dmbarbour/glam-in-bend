@@ -854,6 +854,20 @@ Speed:
       writes, and the generator retire, if the four builds agree.
 16. `spike-verdict` — decide the representation, record it in
     `docs/decisions/`, and retire this plan.
+17. `spike-laws-align` — tentative — this plan's laws aligned with their
+    intent, from the review of `heap-laws-align`:
+    - `spike-laws-align.free-live` — tentative — `free_conserves`
+      quantifies over every `Meta`, and `meta_free`'s arm for nothing
+      live (store.bend, "a double free that would break the count")
+      exists for it alone: the reference interpreter frees only a slot
+      it allocated, so the arm is dead, and is no double-free check (a
+      double free with something live lists the slot twice). A premise
+      that the slot is live (`FL.in_use`), the arm gone.
+    - `spike-laws-align.builtin-args` — tentative — `builtin_last_agrees`
+      fixes `builtin_last`'s branches for three or more arguments, which
+      no value reaches (collected one at a time, `take` building lists
+      of 0 or 1): keep it as the stronger claim, or add the premise of
+      fewer than three.
 
 ## Open questions
 
