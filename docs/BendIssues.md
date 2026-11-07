@@ -359,7 +359,8 @@ of 2026-10-26, Bend 2.0.39.
   (`spin_vs_has`), so its forced-inline build would force none; the
   `NEXT_FILL` patch no longer applies, and is no longer needed.
 - **Revisit:** at each release, by building the kernel under
-  `CAPPED_REPORT=1 scripts/capped.sh`.
+  `CAPPED_REPORT=1 scripts/capped.sh`. Checked 2026-11-07: #2076 open,
+  no comment, 2.0.40 still the latest release.
 
 ## Watch
 
