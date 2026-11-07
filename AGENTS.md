@@ -71,6 +71,12 @@ kernel instead of polling; run it at each container start.
   `git submodule update --init` (`scripts/dev-setup.sh` does it); the
   submodule's HEAD is then detached, so `git -C blend switch main` before
   working there.
+  glam's modules Blend writes are checked by the Blend glam records,
+  a worktree of it under `results/blend-at/` where the submodule is
+  checked out elsewhere (`scripts/check_generated.sh`): Blend's version
+  stamp moves with every change to it, so that a Blend ahead of the
+  pointer would otherwise fail every commit here; moving the pointer
+  writes them again.
 
 ## Working Rules
 
