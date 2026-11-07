@@ -6,6 +6,9 @@
 #
 #   spike/tools/kmem_run.sh OUT    (OUT: a directory to build in)
 set -eu
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 [ $# -eq 1 ] || { echo "usage: $0 OUT" >&2; exit 2; }
 OUT=$1
 T=$(cd "$(dirname "$0")" && pwd)

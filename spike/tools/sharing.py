@@ -35,6 +35,10 @@ import re
 import subprocess
 import sys
 
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+os.environ["BEND_NO_TELEMETRY"] = "1"
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SPIKE = os.path.dirname(HERE)
 ROOT = os.path.dirname(SPIKE)

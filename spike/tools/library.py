@@ -111,6 +111,10 @@ import re
 import subprocess
 import sys
 
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+os.environ["BEND_NO_TELEMETRY"] = "1"
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import polarity  # noqa: E402
 import terms  # noqa: E402

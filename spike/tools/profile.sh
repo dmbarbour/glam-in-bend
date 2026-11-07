@@ -14,6 +14,9 @@
 # copy of the spike, made in OUT, whose kernel never fuses controls
 # (kprim.bend's fuse a no-op).
 set -u
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+export BEND_NO_TELEMETRY=1
 [ $# -ge 1 ] || { echo "usage: $0 OUT [COUNT [NOTE]]" >&2; exit 2; }
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 mkdir -p "$1"

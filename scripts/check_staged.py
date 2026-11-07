@@ -12,6 +12,10 @@ import re
 import subprocess
 import sys
 
+# no update check: Bend's notice of a newer release would print beside
+# what this reads, as scripts/check.sh has it
+os.environ["BEND_NO_TELEMETRY"] = "1"
+
 ROOT = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True,
                       check=True).stdout.strip()
 BEND = os.environ.get("BEND") or "bend"
