@@ -1,5 +1,5 @@
 # Written by Blend from kchain.blend; do not edit.
-# blend stamp: 3428828f8605 1ee479d93b47344b
+# blend stamp: ca201a0f0453 c2bf6f43880b627d
 import Base
 import ./rules.bend as R
 import ./net.bend as N
