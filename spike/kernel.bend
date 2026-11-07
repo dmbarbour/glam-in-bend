@@ -5,6 +5,7 @@ import ./nets.bend as X
 import ./kprim.bend as P
 import ./knet.bend as KN
 import ./kstrat.bend as KS
+import ./kdemand.bend as KD
 import ./kmem_grow.bend as KM
 
 # The kernel as a program, and the entry points tests use: a template
@@ -207,37 +208,37 @@ def val_at(vs: List<&2, V.Val>, +k: U32) -> V.Val:
         case _:
           val_at(t, (k - 1 : U32))
 
-def force.met(r: KS.D & U32, +vals: List<&2, V.Val>) -> KS.D:
+def force.met(r: KD.D & U32, +vals: List<&2, V.Val>) -> KD.D:
   (d, +lz) = r
   KS.resume(d, val_at(vals, lz))
 
-# demand by mode: 0 plain (KS.demand), 1 running events (KS.demand.v), 2
+# demand by mode: 0 plain (KD.Demand), 1 running events (KD.DemandEv), 2
 # collecting where its net would grow (KS.demand.c), 3 collecting as a
 # stress test (KS.demand.s)
-def demand_ev(+ev: U32, +fuel: Nat, d: KS.D) -> KS.D:
+def demand_ev(+ev: U32, +fuel: Nat, d: KD.D) -> KD.D:
   match ev:
     case 0:
-      KS.demand(fuel, d)
+      KD.Demand.demand(fuel, d)
     case 1:
-      KS.demand.v(fuel, d)
+      KD.DemandEv.demand(fuel, d)
     case 2:
       KS.demand.c(fuel, d)
     case _:
       KS.demand.s(fuel, d)
 
 # demand, each need met from vals, at most k times
-def force(k: Nat, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>, d: KS.D) -> KS.D:
+def force(k: Nat, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>, d: KD.D) -> KD.D:
   match k:
     case 0n:
       d
     case 1n+p:
       match d:
-        case KS.D{h, path, +top, +depth, +n, +st}:
+        case KD.D{h, path, +top, +depth, +n, +st}:
           match st:
             case 2:
-              force(p, fuel, ev, vals, demand_ev(ev, fuel, force.met(KS.need(KS.D{h, path, top, depth, n, st}), vals)))
+              force(p, fuel, ev, vals, demand_ev(ev, fuel, force.met(KS.need(KD.D{h, path, top, depth, n, st}), vals)))
             case _:
-              KS.D{h, path, top, depth, n, st}
+              KD.D{h, path, top, depth, n, st}
 
 # a demand's end: the result as reduce_h's, its state, the handle needed,
 # the nodes left, how many nodes the net grew to hold, how many of those
@@ -263,30 +264,30 @@ def dres.au(au: KN.Au, +st: U32, +lz: U32) -> DRes:
 def dres.h(h: P.H, +st: U32, +lz: U32) -> DRes:
   dres.au(live_nodes.st(P.stats(h)), st, lz)
 
-def dres.l(r: KS.D & U32) -> DRes:
+def dres.l(r: KD.D & U32) -> DRes:
   (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       dres.h(P.count(h, n), st, lz)
 
-def dres(d: KS.D) -> DRes:
+def dres(d: KD.D) -> DRes:
   dres.l(KS.need(d))
 
 def dres.sw(r: P.H & U32, +st: U32, +lz: U32) -> DRes:
   (h, +f) = r
   dres.h(h, st, lz)
 
-def dres.sl(r: KS.D & U32) -> DRes:
+def dres.sl(r: KD.D & U32) -> DRes:
   (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       dres.sw(KN.sweep(P.count(h, n)), st, lz)
 
-def dres.s(d: KS.D) -> DRes:
+def dres.s(d: KD.D) -> DRes:
   dres.sl(KS.need(d))
 
 # demand by mode ev, its needs met from vals, at most 64
-def demand_m(t: T.Tpl, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>) -> KS.D:
+def demand_m(t: T.Tpl, +fuel: Nat, +ev: U32, +vals: List<&2, V.Val>) -> KD.D:
   force(64n, fuel, ev, vals, demand_ev(ev, fuel, KS.d.start(KN.load(t))))
 
 # run_d, then every node the interface does not reach freed (KN.sweep)
@@ -304,11 +305,11 @@ type EDRes is Data:
 
 def edres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> EDRes:
   (h, +evs) = r
-  EDRes{dres(KS.D{h, path, top, depth, n, st}), evs}
+  EDRes{dres(KD.D{h, path, top, depth, n, st}), evs}
 
-def edres(d: KS.D) -> EDRes:
+def edres(d: KD.D) -> EDRes:
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       edres.e(P.evs(h), path, top, depth, n, st)
 
 def run_dev(t: T.Tpl, +fuel: Nat, +vals: List<&2, V.Val>) -> EDRes:
@@ -333,7 +334,7 @@ type CRes is Data:
 
 def cres.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +citrs: U32, +scan: U32) -> CRes:
   (h, +cevs) = r
-  CRes{dres(KS.D{h, path, top, depth, (n + citrs : U32), st}), cyc, citrs, cevs, scan}
+  CRes{dres(KD.D{h, path, top, depth, (n + citrs : U32), st}), cyc, citrs, cevs, scan}
 
 def cres.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +cyc: U32, +scan: U32) -> CRes:
   (h, hs) = r
@@ -349,9 +350,9 @@ def cres.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) 
   (h, +cyc) = r
   cres.s(P.rd(h, P.at_scan()), path, top, depth, n, st, cyc)
 
-def cres(d: KS.D) -> CRes:
+def cres(d: KD.D) -> CRes:
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       cres.c(P.rd(h, P.at_cyc()), path, top, depth, n, st)
 
 # demand collecting where its net would grow
@@ -422,27 +423,27 @@ def workload(+w: U32, +k: U32) -> T.Tpl:
 
 # a demand's end as reduce reports a full reduction: its state, the value
 # and the counts, without the audits and the walks the tests' results make
-def bench_d.l(r: KS.D & U32) -> String:
+def bench_d.l(r: KD.D & U32) -> String:
   (d, +lz) = r
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       st_name(st) ++ KN.need_str(U32.is_eq(st, 2), lz) ++ ": " ++ KN.report(KN.result(P.count(h, n)))
 
-def bench_d(d: KS.D) -> String:
+def bench_d(d: KD.D) -> String:
   bench_d.l(KS.need(d))
 
 def bench_dev.e(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> String:
   (h, +evs) = r
-  bench_d(KS.D{h, path, top, depth, n, st}) ++ ", " ++ U32.show(evs) ++ " events"
+  bench_d(KD.D{h, path, top, depth, n, st}) ++ ", " ++ U32.show(evs) ++ " events"
 
-def bench_dev(d: KS.D) -> String:
+def bench_dev(d: KD.D) -> String:
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       bench_dev.e(P.evs(h), path, top, depth, n, st)
 
 def bench_dc.s(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +citrs: U32, +cyc: U32) -> String:
   (h, +scan) = r
-  bench_dev(KS.D{h, path, top, depth, (n + citrs : U32), st}) ++ ", " ++ U32.show(cyc) ++ " collections, " ++
+  bench_dev(KD.D{h, path, top, depth, (n + citrs : U32), st}) ++ ", " ++ U32.show(cyc) ++ " collections, " ++
     U32.show(citrs) ++ " interactions collecting, " ++ U32.show(scan) ++ " nodes scanned"
 
 def bench_dc.c(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +citrs: U32) -> String:
@@ -457,9 +458,9 @@ def bench_dc.i(r: P.H & P.HS, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: 
 
 # demand collecting where its net would grow, its interactions the total,
 # its collections counted
-def bench_dc(d: KS.D) -> String:
+def bench_dc(d: KD.D) -> String:
   match d:
-    case KS.D{h, path, +top, +depth, +n, +st}:
+    case KD.D{h, path, +top, +depth, +n, +st}:
       bench_dc.i(P.stats(h), path, top, depth, n, st)
 
 # reduce the workload fully (how 0), on demand (1), profiled (2) or with

@@ -1,0 +1,278 @@
+# The chain (blend-kernel-chain.slice): a rewrite of an active pair,
+# knet.bend's, as an object every family extends, generic over the family
+# by what it declares: S and its `note`, Res and `fin` its result, `wd`
+# the interpreted table's, `after` what follows each rewrite and `erased`
+# what follows one making erasers. Each family that extends it gets its
+# own copy of the chain, from `interact.f` down to the generated rewrites
+# (krules.bend's, still templates, passed the family's own), every
+# function in it called from one place, which Bend folds
+# (heap-strategies.erasure.kernel.parity). knet.bend keeps its templates
+# for the families not yet moved.
+import Base
+import ./rules.bend as R
+import ./net.bend as N
+import ./kprim.bend as P
+import ./krules.bend as KR
+import ./knet.bend as KN
+
+abstract object Chain with
+  declare type S
+  declare type Res
+  declare note, fin, wd, after, erased
+
+  # the generated rewrite, which calls `after` itself at the external peers
+  # where its rule may make an event (gen_krules.bend's sites)
+  def go.gen(+rn: U32, +t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match x:
+      case N.Ext4{+e0, +e1, +e2, +e3}:
+        KR.rewrite(~S(), ~Res(), ~note, ~fin, ~after, ~erased, P.rk(ha), rn, t, h, st, a, b, ha, hb, pa, pb, e0, e1, e2, e3)
+
+  # a rewrite by the table, then `after` at its sites (wd.sites)
+  # a rule's erasers, which its rewrite makes static
+  def rule_erases(r: R.Rule) -> Bool:
+    match r:
+      case R.RWire{xs, ls}:
+        R.nv.any(xs)
+      case R.RStuck{}:
+        False{}
+
+  def go.wd.w(+er: Bool, w: KN.Wd, st: S()) -> Res():
+    match er w:
+      case True{} KN.Wd{h, ns, +sx}:
+        erased(wd(KN.Wd{h, ns, sx}, st), sx)
+      case False{} KN.Wd{h, ns, +sx}:
+        after(wd(KN.Wd{h, ns, sx}, st), sx)
+
+  # a rewrite by the table, then at its sites `erased` where its rule makes
+  # erasers, as the generated rewrites do, else `after`
+  shared def go.wd(r: R.Rule, w: KN.Wd, st: S()) -> Res():
+    go.wd.w(rule_erases(r), w, st)
+
+  def go.interp.pl(r: P.Pl, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +e1: U32, +e3: U32) -> Res():
+    match r:
+      case P.Pl{h, +t, +pa, +pb, +e0, +e2}:
+        go.wd(R.rule(KN.kof(ha), KN.kof(hb), t), KN.apply_rule(R.rule(KN.kof(ha), KN.kof(hb), t), h, a, b, ha, hb, pa, pb, N.Ext4{e0, e1, e2, e3}), st)
+
+  # the interpreted table, then `after` at all its external peers; a Lift
+  # facing a LiftC is peeled first, as the generated rewrite for the pair
+  # does (kprim.bend's peel_ctl), the peers then those peeling leaves
+  def go.interp(ctl: Bool, +t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match ctl:
+      case True{}:
+        match x:
+          case N.Ext4{+e0, +e1, +e2, +e3}:
+            go.interp.pl(P.peel_ctl(KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, e0, e2), st, a, b, ha, hb, e1, e3)
+      case False{}:
+        go.wd(R.rule(KN.kof(ha), KN.kof(hb), t), KN.apply_rule(R.rule(KN.kof(ha), KN.kof(hb), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, x), st)
+
+  # A meeting the identity, its loop resolved ahead (KR.rewrite_id): the
+  # peers of the function's ports are each other, not looked at after
+  def go.id(+t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match x:
+      case N.Ext4{+e0, +e1, +e2, +e3}:
+        KR.rewrite_id(~S(), ~Res(), ~note, ~fin, ~after, ~erased, P.rk(ha), t, h, st, a, b, ha, hb, pa, pb, e0, e1, P.nil(), P.nil())
+
+  # A meeting the identity by the interpreted table: its rule with the loop
+  # resolved ahead (R.rule_id, law identity_resolved), applied as a plain
+  # rule, the function's ports' peers each other and not looked at after,
+  # as the generated rewrite does (go.id)
+  def go.interp.id(+t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match x:
+      case N.Ext4{+e0, +e1, +e2, +e3}:
+        go.wd(R.rule_id(KN.kof(ha), t), KN.apply_rule(R.rule_id(KN.kof(ha), t), KR.check(P.rk(ha), P.rk(hb), h, ha, hb, pa, pb), a, b, ha, hb, pa, pb, N.Ext4{e0, e1, P.nil(), P.nil()}), st)
+
+  # a redex the generated rewrites do not take, its external peers including
+  # its own ports or `fast` off: A meeting the identity by its rule with the
+  # loop resolved ahead (walk.loops), generated where `fast` is on, else the
+  # interpreted table
+  def go.loop(+id: Bool, +fast: Bool, +t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match id fast:
+      case True{} True{}:
+        go.id(t, h, st, a, b, ha, hb, pa, pb, x)
+      case True{} False{}:
+        go.interp.id(t, h, st, a, b, ha, hb, pa, pb, x)
+      case False{} _:
+        go.interp(U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11), t, h, st, a, b, ha, hb, pa, pb, x)
+
+  # B the identity, a function whose body is its variable, and no other
+  # external peer a port of the redex
+  def is_id(+x: N.Ext, +a: U32, +b: U32, +hb: U32) -> Bool:
+    match x:
+      case N.Ext4{+e0, +e1, +e2, +e3}:
+        U32.is_eq(P.rk(hb), 1) && U32.is_eq(e2, (b + 2 : U32)) && U32.is_eq(e3, (b + 1 : U32)) && Bool.not(KN.own(e0, a, b) || KN.own(e1, a, b))
+
+  def go.which(gen: Bool, +fast: Bool, +rn: U32, +t: Bool, h: P.H, st: S(), +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    match gen:
+      case True{}:
+        go.gen(rn, t, h, st, a, b, ha, hb, pa, pb, x)
+      case False{}:
+        go.loop(is_id(x, a, b, hb), fast, t, h, st, a, b, ha, hb, pa, pb, x)
+
+  # the generated rewrite, or for a redex whose external peers include its
+  # own ports, or when `fast` is off, go.loop
+  def go.rule(r: P.H & Bool, st: S(), +fast: Bool, +rn: U32, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +x: N.Ext) -> Res():
+    (h, +t) = r
+    go.which(fast && Bool.not(KN.any_partner(x, a, b)), fast, rn, t, h, st, a, b, ha, hb, pa, pb, x)
+
+  def go.ext.r(+rn: U32, +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S()) -> Res():
+    go.rule(KR.test(~S(), ~Res(), ~note, ~fin, ~after, ~erased, rn, h, ha, hb, KN.payload(ha, 0, a2), KN.payload(hb, b1, b2)), st, fast, rn, a, b, ha, hb, KN.payload(ha, 0, a2), KN.payload(hb, b1, b2),
+      N.Ext4{KN.aux_or_nil(U32.is_lt(1, KN.arity(ha)), a1), KN.aux_or_nil(U32.is_lt(2, KN.arity(ha)), a2),
+        KN.aux_or_nil(U32.is_lt(1, KN.arity(hb)), b1), KN.aux_or_nil(U32.is_lt(2, KN.arity(hb)), b2)})
+
+  # the pair by its kinds as they are: a static at a link word is read
+  # nowhere on the rewrite's path, every test there costing every rewrite
+  # (erasure-at-write)
+  def go.ext(+fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32, +b2: U32, h: P.H, st: S()) -> Res():
+    go.ext.r(KR.rule_no(P.rk(ha), P.rk(hb)), fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+
+  def go.b2(r: P.H & U32, st: S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32, +b1: U32) -> Res():
+    (h, +b2) = r
+    go.ext(fast, a, b, ha, hb, a1, a2, b1, b2, h, st)
+
+  def go.b1(r: P.H & U32, st: S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32, +a2: U32) -> Res():
+    (h, +b1) = r
+    go.b2(P.rd(h, (b + 3 : U32)), st, fast, a, b, ha, hb, a1, a2, b1)
+
+  def go.a2(r: P.H & U32, st: S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32, +a1: U32) -> Res():
+    (h, +a2) = r
+    go.b1(P.rd(h, (b + 2 : U32)), st, fast, a, b, ha, hb, a1, a2)
+
+  def go.a1(r: P.H & U32, st: S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> Res():
+    (h, +a1) = r
+    go.a2(P.rd(h, (a + 3 : U32)), st, fast, a, b, ha, hb, a1)
+
+  # a's principal is negative. Words 2 and 3 are ports 1 and 2's links, or
+  # a node's payload: a data node's word 2, a call's or a control's word 3.
+  shared def go(h: P.H, st: S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> Res():
+    go.a1(P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
+
+  def ori(neg: Bool, h: P.H, st: S(), +fast: Bool, +x: U32, +y: U32, +hx: U32, +hy: U32) -> Res():
+    match neg:
+      case True{}:
+        go(h, st, fast, x, y, hx, hy)
+      case False{}:
+        go(h, st, fast, y, x, hy, hx)
+
+  def int.y(r: P.H & U32, st: S(), +fast: Bool, +x: U32, +y: U32, +hx: U32) -> Res():
+    (h, +hy) = r
+    ori(KR.kind_neg(P.rk(hx)), h, st, fast, x, y, hx, hy)
+
+  def int.x(r: P.H & U32, st: S(), +fast: Bool, +x: U32, +y: U32) -> Res():
+    (h, +hx) = r
+    int.y(P.rd(h, y), st, fast, x, y, hx)
+
+  # Static erasure (heap-strategies.erasure.load.cycle.walk.directed.
+  # dead-kinds.links.read): node x meeting a static eraser at its principal
+  # is erased with no node made, as its rule does it (law static_erasure):
+  # x freed, its payload dropped, each auxiliary port's peer given a static
+  # eraser, consuming where the port is an input and providing where an
+  # output, its pair or event noted as a rule's are; a peer static or x's
+  # own port given nothing. A pair the rule leaves stuck is left. Nothing
+  # is materialized: a node made for the static would come off the free
+  # list that a collection's eval counts from (kstrat.bend's mq.run).
+
+  def se.put.go(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+    match skip:
+      case True{}:
+        h
+      case False{}:
+        P.wr(h, (e + 1 : U32), s)
+
+  # static s put at peer e of x, unless e is static or x's own
+  shared def se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+    se.put.go(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+  def se.free(+data: Bool, h: P.H, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> P.H:
+    match data:
+      case True{}:
+        P.free(P.drop(h, P.form(hx), KN.payload(hx, w2, w3)), x)
+      case False{}:
+        P.free(h, x)
+
+  shared def se.note(+none: Bool, st: S(), +e: U32, +s: U32) -> S():
+    match none:
+      case True{}:
+        st
+      case False{}:
+        note(st, e, s)
+
+  # the pairs the erasers put on x's peers make, none for a port kind k
+  # lacks (nil, an eraser's value too, so told by k's arity); x's
+  # auxiliary ports linked to each other, the two erasers they get meet, as
+  # two the rule makes would (static-links-count-as-nodes)
+  def se.notes(+loop: Bool, st: S(), +k: U32, +e1: U32, +e2: U32) -> S():
+    match loop:
+      case True{}:
+        note(st, P.era(), P.era())
+      case False{}:
+        se.note(U32.is_lt(KR.kind_arity(k), 3), se.note(U32.is_lt(KR.kind_arity(k), 2), st, e1, P.era()), e2, P.era())
+
+  def se.do(h: P.H, st: S(), +x: U32, +k: U32, +e1: U32, +e2: U32) -> Res():
+    erased(fin(se.put(se.put(h, e1, P.era(), x), e2, P.era(), x),
+        se.notes(Bool.not(P.is_static(e1)) && U32.is_eq(P.base(e1), x), st, k, e1, e2)),
+      N.Ext4{e1, e2, P.nil(), P.nil()})
+
+  # the pair's KR.stuck_by: x as A where its principal is negative, the
+  # static providing (EraP, 7); else as B, the static consuming (EraN, 6)
+  def se.stuck(+neg: Bool, +k: U32) -> U32:
+    match neg:
+      case True{}:
+        KR.stuck_by(k, 7)
+      case False{}:
+        KR.stuck_by(6, k)
+
+  def se.go(+ok: Bool, +stuck: Bool, h: P.H, st: S(), +x: U32, +hx: U32, +k: U32, +w2: U32, +w3: U32) -> Res():
+    match ok stuck:
+      case True{} False{}:
+        se.do(se.free(KR.is_data(P.rk(hx)), h, x, hx, w2, w3), st, x, k,
+          KN.aux_or_nil(U32.is_lt(1, KR.kind_arity(k)), w2), KN.aux_or_nil(U32.is_lt(2, KR.kind_arity(k)), w3))
+      case True{} True{}:
+        fin(h, st)
+      case False{} _:
+        fin(P.h_err(h), st)
+
+  def se.k(+k: U32, h: P.H, st: S(), +x: U32, +s: U32, +hx: U32, +w2: U32, +w3: U32) -> Res():
+    se.go(U32.is_eq(s, P.era()), U32.is_ne(se.stuck(KR.kind_neg(k), k), 0), h, st, x, hx, k, w2, w3)
+
+  def se.w3(r: P.H & U32, st: S(), +x: U32, +s: U32, +hx: U32, +w2: U32) -> Res():
+    (h, +w3) = r
+    se.k(P.rk(hx), h, st, x, s, hx, w2, w3)
+
+  def se.w2(r: P.H & U32, st: S(), +x: U32, +s: U32, +hx: U32) -> Res():
+    (h, +w2) = r
+    se.w3(P.rd(h, (x + 3 : U32)), st, x, s, hx, w2)
+
+  def se.hx(r: P.H & U32, st: S(), +x: U32, +s: U32) -> Res():
+    (h, +hx) = r
+    se.w2(P.rd(h, (x + 2 : U32)), st, x, s, hx)
+
+  # two statics meeting, noted as a pair by x (P.note): nothing to rewrite,
+  # the pair counted where it is taken, as one of allocated erasers
+  def static_meet(h: P.H, st: S()) -> Res():
+    fin(h, st)
+
+  # node x, its principal facing static s: erased by its kind, or
+  # left where stuck; a static other than the eraser is a fault, counted
+  shared def static_erase(h: P.H, st: S(), +x: U32, +s: U32) -> Res():
+    se.hx(P.rd(h, x), st, x, s)
+
+  def int.st(+sx: Bool, h: P.H, st: S(), +x: U32, +y: U32) -> Res():
+    match sx:
+      case True{}:
+        static_meet(h, st)
+      case False{}:
+        static_erase(h, st, x, y)
+
+  def int.s(+sy: Bool, h: P.H, st: S(), +fast: Bool, +x: U32, +y: U32) -> Res():
+    match sy:
+      case True{}:
+        int.st(P.is_static(x), h, st, x, y)
+      case False{}:
+        int.x(P.rd(h, x), st, fast, x, y)
+
+  # rewrite the active pair x >< y: y may be static; x too, a meeting of two
+  # statics noted (P.note), y then whatever x's word reads. Both ports of a
+  # pair are principal, port bits 0 or a static's 3, so x | y has 3 there
+  # just when either is static
+  def interact.f(h: P.H, st: S(), +fast: Bool, +x: U32, +y: U32) -> Res():
+    int.s(U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)

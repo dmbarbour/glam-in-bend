@@ -4,8 +4,10 @@
 # run from the generated file's directory. Checks, never writes the files
 # checked: a stale file fails, and regenerating it is the developer's
 # step. Run by scripts/check.sh and by the pre-commit hook in .githooks/
-# (with the other quick checks). Blend's generated samples are Blend's to
-# check (blend/check_generated.sh, which its gate and hooks run).
+# (with the other quick checks). A `.bend` Blend writes from a `.blend`
+# here is checked by Blend itself, `deps --bytes` over the module's tree
+# (blend-stamps); Blend's generated samples are Blend's to check
+# (blend/check_generated.sh, which its gate and hooks run).
 #
 #   scripts/check_generated.sh
 set -u
@@ -13,11 +15,13 @@ set -u
 # what this reads, as scripts/check.sh has it
 export BEND_NO_TELEMETRY=1
 cd "$(dirname "$0")/.." || exit 1
+root=$PWD
 BEND=${BEND:-$(command -v bend || echo "$HOME/.bend/bin/bend")}
 status=0
 
 # one line each: the generator's kind and the directory it runs in; for
-# `bend`, a Bend program printing a file, the file and its arguments
+# `bend`, a Bend program printing a file, the file and its arguments; for
+# `blend`, the module whose tree Blend writes
 while read -r kind dir rest; do
   [ -n "$kind" ] || continue
   case $kind in
@@ -30,9 +34,18 @@ while read -r kind dir rest; do
         echo "$dir/$file differs from what bend $args writes: regenerate it (cd $dir && bend $args > $file)"
         status=1
       fi ;;
+    blend)
+      if got=$(cd "$dir" && BEND=$BEND "$root/blend/run.sh" deps --bytes "$rest" 2>&1); then
+        echo "$got" | while read -r state mod; do echo "$dir/${mod%.blend}.bend: matches blend"; done
+      else
+        echo "$got"
+        echo "$dir/$rest's tree differs from what blend writes: regenerate it (cd $dir && blend emit --force $rest)"
+        status=1
+      fi ;;
     *) echo "$dir: no generator of kind $kind"; status=1 ;;
   esac
 done <<'EOF'
 bend spike krules.bend tools/gen_krules.bend
+blend spike kdemand.blend
 EOF
 exit "$status"

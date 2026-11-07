@@ -807,8 +807,9 @@ def ev.one(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 ->
 # spike-templates: what a strategy threads beside the net, the chains
 # below generic over it, a copy compiled for each family. The eager
 # strategies' (e): a stack, each link a rewrite makes between two
-# principal ports noted on it, room made on it before an event; the rest,
-# demand's among them: nothing. A template cannot recurse, nor close a
+# principal ports noted on it, room made on it before an event; the rest
+# (demand's, now kdemand.blend's objects, its events' drain still here):
+# nothing. A template cannot recurse, nor close a
 # recursion through its argument (docs/BendIssues.md, "Recursion through
 # templates"), so each loop below, the events' drain, is one per family,
 # its body the generic step.
@@ -819,14 +820,8 @@ def note.u(u: Unit, +x: U32, +y: U32) -> Unit:
 def room.u(u: Unit, +n: U32) -> Unit:
   u
 
-def fin.h(h: P.H, u: Unit) -> P.H:
-  h
-
 def fin.e(h: P.H, st: P.Stk) -> P.E:
   P.E{h, st}
-
-def wd.u(w: Wd, u: Unit) -> P.H:
-  wd.h(w)
 
 # the ends left looked at, until none
 def ev.drain(k: Nat, w: Ev<Unit>) -> P.H:
@@ -888,9 +883,6 @@ def ev.settle.e(r: P.E, +x: N.Ext) -> P.E:
             ev.one(~P.Stk, ~P.note, ~P.room, Ev{h, st, Nil{}}, e0), e1), e2), e3))
 
 # what follows a rewrite: nothing, or (ev.settle) the events it makes
-def go.none(h: P.H, +x: N.Ext) -> P.H:
-  h
-
 def go.none.e(r: P.E, +x: N.Ext) -> P.E:
   r
 
@@ -1161,15 +1153,13 @@ def int.s(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> 
 def interact.f(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.H -> S -> R, ~wd: Wd -> S -> R, ~after: R -> @+x:N.Ext -> R, ~erased: R -> @+x:N.Ext -> R, h: P.H, st: S, +fast: Bool, +x: U32, +y: U32) -> R:
   int.s(~S, ~R, ~note, ~fin, ~wd, ~after, ~erased, U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
 
-# The families' chains: the net alone, and with a strategy's stack, on
-# which each rewrite notes the pairs it makes, in the order it makes them
-# (heap-strategies.stack). Demand's walk calls `go` itself, with the plain
-# family's arguments: a wrapper there, called from two places, would stay
-# a function of its own, a call more for every rewrite on demand (1.3% to
-# 2.4% of its instructions, store run 84).
-
-def interact(~after: P.H -> @+x:N.Ext -> P.H, h: P.H, +fast: Bool, +x: U32, +y: U32) -> P.H:
-  interact.f(~Unit, ~P.H, ~note.u, ~fin.h, ~wd.u, ~after, ~ev.settle, h, Unit{}, fast, x, y)
+# The families' chain here: with a strategy's stack, on which each
+# rewrite notes the pairs it makes, in the order it makes them
+# (heap-strategies.stack). The net alone, demand's, is an object of
+# kdemand.blend over kchain.blend's chain (blend-kernel-chain.slice),
+# whose walk calls `go` itself: a wrapper there, called from two places,
+# would stay a function of its own, a call more for every rewrite on
+# demand (1.3% to 2.4% of its instructions, store run 84).
 
 def interact.e(~after: P.E -> @+x:N.Ext -> P.E, h: P.H, st: P.Stk, +fast: Bool, +x: U32, +y: U32) -> P.E:
   interact.f(~P.Stk, ~P.E, ~P.note, ~fin.e, ~wd.e, ~after, ~ev.settle.e, h, st, fast, x, y)

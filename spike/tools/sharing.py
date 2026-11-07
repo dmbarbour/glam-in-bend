@@ -333,7 +333,7 @@ def cmd_audit(out, program="runmode.bend"):
     print("\ncalls clang leaves out of line from the kernel's segments (caller, callee, sites, why):")
     rows = {}
     for callee, caller, why in missed:
-        if not re.match(r"WL_FID_(knet|kstrat|kprim|krules|kernel)_", caller):
+        if not re.match(r"WL_FID_(knet|kstrat|kprim|krules|kernel|kchain|kdemand)_", caller):
             continue
         key = (caller, callee, "never" if "never" in why else "costly")
         rows[key] = rows.get(key, 0) + 1
