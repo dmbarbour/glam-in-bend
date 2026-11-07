@@ -96,6 +96,119 @@ def d.end(d: D) -> D:
     case D{h, path, +top, +depth, +n, +st}:
       D{h, path, top, depth, n, d.out(st)}
 
+def fw.v(+pos: Bool, h: P.H, path: KM.M, +x: U32, +i: U32) -> Fw:
+  match pos:
+    case True{}:
+      Fw{h, path, x, i}
+    case False{}:
+      Fw{h, path, 0, 0}
+
+def fw.hx(r: P.H & U32, path: KM.M, +x: U32, +i: U32) -> Fw:
+  (h, +hx) = r
+  fw.v(Bool.not(KR.kind_neg(P.rk(hx))), h, path, x, i)
+
+def fw.at(r: KM.M & U32, h: P.H, +i: U32) -> Fw:
+  (path, +x) = r
+  fw.hx(P.rd(h, x), path, x, i)
+
+# path words i on, k of them: the first node whose principal is positive,
+# b, and its word's index (b 0 while none: no node's word is 0)
+def fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Fw{h, path, +b, +j}:
+          match b:
+            case 0:
+              fw.go(p, fw.at(KM.m_get(path, i), h, i), (i + 1 : U32))
+            case _:
+              Fw{h, path, b, j}
+
+# the last node, past the path's words, where none was found below it
+def fw.top(s: Fw, +top: U32, +depth: U32) -> Fw:
+  match s:
+    case Fw{h, path, +b, +j}:
+      match b:
+        case 0:
+          fw.hx(P.rd(h, top), path, top, (depth + 1 : U32))
+        case _:
+          Fw{h, path, b, j}
+
+# stopped at the earliest such node, its path the words below it; with
+# none, as the walk stood, in state st
+def fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+  match s:
+    case Fw{h, path, +b, +i}:
+      match b:
+        case 0:
+          D{h, path, top, depth, n, st}
+        case _:
+          D{h, path, b, (i - 1 : U32), n, 7}
+
+# the path, from the interface at word 1, and the last node scanned
+def fw.scan(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+  fw.end(fw.top(fw.go(U32.to_nat(depth), Fw{h, path, 0, 0}, 1), top, depth), top, depth, n, st)
+
+def sc.step(r: KM.M & U32, +x: U32) -> Sc:
+  (m, +v) = r
+  Sc{m, U32.is_eq(v, x)}
+
+# whether x is in words i .. i + k - 1
+def sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sc{m, +hit}:
+          match hit:
+            case True{}:
+              Sc{m, True{}}
+            case False{}:
+              sc.run(p, sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
+
+def wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
+  match ok:
+    case True{}:
+      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+    case False{}:
+      d.stop(P.h_err(h), path, top, depth, n, 6)
+
+# the array doubled, or out of memory where it could not grow
+def wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  (path, +cap2) = r
+  wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
+
+def wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match s:
+    case Sc{path, +hit}:
+      match hit:
+        case True{}:
+          fw.scan(h, path, top, depth, n, 5)
+        case False{}:
+          wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
+
+def wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match full:
+    case True{}:
+      wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
+    case False{}:
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+
+def wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
+  (path, +cap) = r
+  wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
+
+# top pushed, the walk going on at x
+def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
+  match p2:
+    case True{}:
+      wk.full(KM.m_get(path, 0), h, top, depth, n, x)
+    case False{}:
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+
 # The walk, over the chain, for the net alone: nothing beside it (S),
 # the net its result (Res), the interpreted table's result the net, and
 # the events at the sites where a rule makes erasers (`erased`); `after`
@@ -111,61 +224,6 @@ abstract object Walk extends C.Chain with
     KN.wd.h(w)
   shared def erased(h: Res(), +x: N.Ext) -> Res():
     KN.ev.settle(h, x)
-
-  def fw.v(+pos: Bool, h: P.H, path: KM.M, +x: U32, +i: U32) -> Fw:
-    match pos:
-      case True{}:
-        Fw{h, path, x, i}
-      case False{}:
-        Fw{h, path, 0, 0}
-
-  shared def fw.hx(r: P.H & U32, path: KM.M, +x: U32, +i: U32) -> Fw:
-    (h, +hx) = r
-    fw.v(Bool.not(KR.kind_neg(P.rk(hx))), h, path, x, i)
-
-  def fw.at(r: KM.M & U32, h: P.H, +i: U32) -> Fw:
-    (path, +x) = r
-    fw.hx(P.rd(h, x), path, x, i)
-
-  # path words i on, k of them: the first node whose principal is positive,
-  # b, and its word's index (b 0 while none: no node's word is 0)
-  def fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
-    match k:
-      case 0n:
-        s
-      case 1n+p:
-        match s:
-          case Fw{h, path, +b, +j}:
-            match b:
-              case 0:
-                fw.go(p, fw.at(KM.m_get(path, i), h, i), (i + 1 : U32))
-              case _:
-                Fw{h, path, b, j}
-
-  # the last node, past the path's words, where none was found below it
-  def fw.top(s: Fw, +top: U32, +depth: U32) -> Fw:
-    match s:
-      case Fw{h, path, +b, +j}:
-        match b:
-          case 0:
-            fw.hx(P.rd(h, top), path, top, (depth + 1 : U32))
-          case _:
-            Fw{h, path, b, j}
-
-  # stopped at the earliest such node, its path the words below it; with
-  # none, as the walk stood, in state st
-  def fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
-    match s:
-      case Fw{h, path, +b, +i}:
-        match b:
-          case 0:
-            D{h, path, top, depth, n, st}
-          case _:
-            D{h, path, b, (i - 1 : U32), n, 7}
-
-  # the path, from the interface at word 1, and the last node scanned
-  shared def fw.scan(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
-    fw.end(fw.top(fw.go(U32.to_nat(depth), Fw{h, path, 0, 0}, 1), top, depth), top, depth, n, st)
 
   def wk.pop.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
     (path, +p) = r
@@ -302,64 +360,6 @@ abstract object Walk extends C.Chain with
         wk.root(P.rd(h, y), path, depth, n, y)
       case False{}:
         wk.hx(P.rd(h, top), path, top, depth, n, y)
-
-  def sc.step(r: KM.M & U32, +x: U32) -> Sc:
-    (m, +v) = r
-    Sc{m, U32.is_eq(v, x)}
-
-  # whether x is in words i .. i + k - 1
-  def sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
-    match k:
-      case 0n:
-        s
-      case 1n+p:
-        match s:
-          case Sc{m, +hit}:
-            match hit:
-              case True{}:
-                Sc{m, True{}}
-              case False{}:
-                sc.run(p, sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
-
-  def wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
-    match ok:
-      case True{}:
-        d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-      case False{}:
-        d.stop(P.h_err(h), path, top, depth, n, 6)
-
-  # the array doubled, or out of memory where it could not grow
-  def wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-    (path, +cap2) = r
-    wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
-
-  def wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-    match s:
-      case Sc{path, +hit}:
-        match hit:
-          case True{}:
-            fw.scan(h, path, top, depth, n, 5)
-          case False{}:
-            wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
-
-  def wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-    match full:
-      case True{}:
-        wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
-      case False{}:
-        d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-
-  def wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-    (path, +cap) = r
-    wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
-
-  # top pushed, the walk going on at x
-  def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-    match p2:
-      case True{}:
-        wk.full(KM.m_get(path, 0), h, top, depth, n, x)
-      case False{}:
-        d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
 
   # the path's last node, top, facing a static: erased by it where its
   # principal is negative (KN.static_erase), the walk going back as after

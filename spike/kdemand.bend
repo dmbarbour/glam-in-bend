@@ -1,5 +1,5 @@
 # Written by Blend from kdemand.blend; do not edit.
-# blend stamp: 1 bf7e880c96f0ab4e
+# blend stamp: 1 67ded522a552858a
 import Base
 import ./val.bend as V
 import ./net.bend as N
@@ -48,52 +48,26 @@ def d.end(d: D) -> D:
     case D{h, path, +top, +depth, +n, +st}:
       D{h, path, top, depth, n, d.out(st)}
 
-# blend: kdemand.blend:105
-def Demand.Res() -> Type: P.H
-
-# blend: kdemand.blend:455
-def Demand.after(h: Demand.Res(), +x: N.Ext) -> Demand.Res():
-  h
-
-# blend: kdemand.blend:104
-def Demand.S() -> Type: Unit
-
-# blend: kdemand.blend:106
-def Demand.note(u: Demand.S(), +x: U32, +y: U32) -> Demand.S():
-  u
-
-# blend: kdemand.blend:108
-def Demand.fin(h: P.H, u: Demand.S()) -> Demand.Res():
-  h
-
-# blend: kdemand.blend:110
-def Demand.wd(w: KN.Wd, u: Demand.S()) -> Demand.Res():
-  KN.wd.h(w)
-
-# blend: kdemand.blend:112
-def Demand.erased(h: Demand.Res(), +x: N.Ext) -> Demand.Res():
-  KN.ev.settle(h, x)
-
-# blend: kdemand.blend:115
-def Demand.fw.v(+pos: Bool, h: P.H, path: KM.M, +x: U32, +i: U32) -> Fw:
+# blend: kdemand.blend:99
+def fw.v(+pos: Bool, h: P.H, path: KM.M, +x: U32, +i: U32) -> Fw:
   match pos:
     case True{}:
       Fw{h, path, x, i}
     case False{}:
       Fw{h, path, 0, 0}
 
-# blend: kdemand.blend:122
-def Demand.fw.hx(r: P.H & U32, path: KM.M, +x: U32, +i: U32) -> Fw:
+# blend: kdemand.blend:106
+def fw.hx(r: P.H & U32, path: KM.M, +x: U32, +i: U32) -> Fw:
   (h, +hx) = r
-  Demand.fw.v(Bool.not(KR.kind_neg(P.rk(hx))), h, path, x, i)
+  fw.v(Bool.not(KR.kind_neg(P.rk(hx))), h, path, x, i)
 
-# blend: kdemand.blend:126
-def Demand.fw.at(r: KM.M & U32, h: P.H, +i: U32) -> Fw:
+# blend: kdemand.blend:110
+def fw.at(r: KM.M & U32, h: P.H, +i: U32) -> Fw:
   (path, +x) = r
-  Demand.fw.hx(P.rd(h, x), path, x, i)
+  fw.hx(P.rd(h, x), path, x, i)
 
-# blend: kdemand.blend:132
-def Demand.fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
+# blend: kdemand.blend:116
+def fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
   match k:
     case 0n:
       s
@@ -102,22 +76,22 @@ def Demand.fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
         case Fw{h, path, +b, +j}:
           match b:
             case 0:
-              Demand.fw.go(p, Demand.fw.at(KM.m_get(path, i), h, i), (i + 1 : U32))
+              fw.go(p, fw.at(KM.m_get(path, i), h, i), (i + 1 : U32))
             case _:
               Fw{h, path, b, j}
 
-# blend: kdemand.blend:146
-def Demand.fw.top(s: Fw, +top: U32, +depth: U32) -> Fw:
+# blend: kdemand.blend:130
+def fw.top(s: Fw, +top: U32, +depth: U32) -> Fw:
   match s:
     case Fw{h, path, +b, +j}:
       match b:
         case 0:
-          Demand.fw.hx(P.rd(h, top), path, top, (depth + 1 : U32))
+          fw.hx(P.rd(h, top), path, top, (depth + 1 : U32))
         case _:
           Fw{h, path, b, j}
 
-# blend: kdemand.blend:157
-def Demand.fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+# blend: kdemand.blend:141
+def fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
   match s:
     case Fw{h, path, +b, +i}:
       match b:
@@ -126,16 +100,105 @@ def Demand.fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
         case _:
           D{h, path, b, (i - 1 : U32), n, 7}
 
-# blend: kdemand.blend:167
-def Demand.fw.scan(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
-  Demand.fw.end(Demand.fw.top(Demand.fw.go(U32.to_nat(depth), Fw{h, path, 0, 0}, 1), top, depth), top, depth, n, st)
+# blend: kdemand.blend:151
+def fw.scan(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
+  fw.end(fw.top(fw.go(U32.to_nat(depth), Fw{h, path, 0, 0}, 1), top, depth), top, depth, n, st)
 
-# blend: kdemand.blend:170
+# blend: kdemand.blend:154
+def sc.step(r: KM.M & U32, +x: U32) -> Sc:
+  (m, +v) = r
+  Sc{m, U32.is_eq(v, x)}
+
+# blend: kdemand.blend:159
+def sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
+  match k:
+    case 0n:
+      s
+    case 1n+p:
+      match s:
+        case Sc{m, +hit}:
+          match hit:
+            case True{}:
+              Sc{m, True{}}
+            case False{}:
+              sc.run(p, sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
+
+# blend: kdemand.blend:172
+def wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
+  match ok:
+    case True{}:
+      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+    case False{}:
+      d.stop(P.h_err(h), path, top, depth, n, 6)
+
+# blend: kdemand.blend:180
+def wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  (path, +cap2) = r
+  wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
+
+# blend: kdemand.blend:184
+def wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match s:
+    case Sc{path, +hit}:
+      match hit:
+        case True{}:
+          fw.scan(h, path, top, depth, n, 5)
+        case False{}:
+          wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
+
+# blend: kdemand.blend:193
+def wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
+  match full:
+    case True{}:
+      wk.seen(sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
+    case False{}:
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+
+# blend: kdemand.blend:200
+def wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
+  (path, +cap) = r
+  wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
+
+# blend: kdemand.blend:205
+def wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
+  match p2:
+    case True{}:
+      wk.full(KM.m_get(path, 0), h, top, depth, n, x)
+    case False{}:
+      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
+
+# blend: kdemand.blend:218
+def Demand.Res() -> Type: P.H
+
+# blend: kdemand.blend:455
+def Demand.after(h: Demand.Res(), +x: N.Ext) -> Demand.Res():
+  h
+
+# blend: kdemand.blend:217
+def Demand.S() -> Type: Unit
+
+# blend: kdemand.blend:219
+def Demand.note(u: Demand.S(), +x: U32, +y: U32) -> Demand.S():
+  u
+
+# blend: kdemand.blend:221
+def Demand.fin(h: P.H, u: Demand.S()) -> Demand.Res():
+  h
+
+# blend: kdemand.blend:223
+def Demand.wd(w: KN.Wd, u: Demand.S()) -> Demand.Res():
+  KN.wd.h(w)
+
+# blend: kdemand.blend:225
+def Demand.erased(h: Demand.Res(), +x: N.Ext) -> Demand.Res():
+  KN.ev.settle(h, x)
+
+# blend: kdemand.blend:228
 def Demand.wk.pop.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
   (path, +p) = r
   d.go(h, path, p, (depth - 1 : U32), n)
 
-# blend: kdemand.blend:174
+# blend: kdemand.blend:232
 def Demand.wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match depth:
     case 0:
@@ -143,7 +206,7 @@ def Demand.wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case _:
       Demand.wk.pop.r(KM.m_get(path, depth), h, depth, n)
 
-# blend: kdemand.blend:181
+# blend: kdemand.blend:239
 def Demand.wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
@@ -151,17 +214,17 @@ def Demand.wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U32
     case False{}:
       d.go(h, path, p, depth, n)
 
-# blend: kdemand.blend:188
+# blend: kdemand.blend:246
 def Demand.wk.hp(r: P.H & U32, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   (h, +hp) = r
   Demand.wk.past(U32.is_eq(hp, 0), h, path, p, depth, n)
 
-# blend: kdemand.blend:198
+# blend: kdemand.blend:256
 def Demand.wk.back.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
   (path, +p) = r
   Demand.wk.hp(P.rd(h, p), path, p, (depth - 1 : U32), n)
 
-# blend: kdemand.blend:202
+# blend: kdemand.blend:260
 def Demand.wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match depth:
     case 0:
@@ -169,15 +232,15 @@ def Demand.wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case _:
       Demand.wk.back.r(KM.m_get(path, depth), h, depth, n)
 
-# blend: kdemand.blend:209
+# blend: kdemand.blend:267
 def Demand.wk.hb.go(gone: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
       Demand.wk.back(h, path, depth, (n + 1 : U32))
     case False{}:
-      Demand.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
 
-# blend: kdemand.blend:216
+# blend: kdemand.blend:274
 def Demand.wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +hb) = r
   Demand.wk.hb.go(U32.is_eq(hb, 0), h, path, top, depth, n)
@@ -299,17 +362,17 @@ def Demand.go.a1(r: P.H & U32, st: Demand.S(), +fast: Bool, +a: U32, +b: U32, +h
 def Demand.go(h: P.H, st: Demand.S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> Demand.Res():
   Demand.go.a1(P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
 
-# blend: kdemand.blend:226
+# blend: kdemand.blend:284
 def Demand.wk.rw(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
       Demand.wk.back(Demand.go(h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
     case 1:
-      Demand.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
     case _:
       Demand.wk.hb(P.rd(Demand.go(h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
 
-# blend: kdemand.blend:235
+# blend: kdemand.blend:293
 def Demand.nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:
     case P.Lz{h, +lazy, +k}:
@@ -319,12 +382,12 @@ def Demand.nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, 
         case False{}:
           Demand.wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:244
+# blend: kdemand.blend:302
 def Demand.nd.pb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   (h, +pb) = r
   Demand.nd.lz(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:248
+# blend: kdemand.blend:306
 def Demand.nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match chk:
     case True{}:
@@ -332,29 +395,29 @@ def Demand.nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32,
     case False{}:
       Demand.wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:256
+# blend: kdemand.blend:314
 def Demand.may_need(+ha: U32, +hb: U32) -> Bool:
   (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
-# blend: kdemand.blend:262
+# blend: kdemand.blend:320
 def Demand.wk.ori(neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
   match neg:
     case True{}:
       Demand.nd.go(Demand.may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
     case False{}:
-      Demand.fw.scan(h, path, top, depth, n, 7)
+      fw.scan(h, path, top, depth, n, 7)
 
-# blend: kdemand.blend:269
+# blend: kdemand.blend:327
 def Demand.wk.hy(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
   (h, +hy) = r
   Demand.wk.ori(KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
 
-# blend: kdemand.blend:273
+# blend: kdemand.blend:331
 def Demand.wk.hx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hx) = r
   Demand.wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
 
-# blend: kdemand.blend:281
+# blend: kdemand.blend:339
 def Demand.wk.root.v(+void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match void:
     case True{}:
@@ -488,7 +551,7 @@ def Demand.int.s(+sy: Bool, h: P.H, st: Demand.S(), +fast: Bool, +x: U32, +y: U3
 def Demand.interact.f(h: P.H, st: Demand.S(), +fast: Bool, +x: U32, +y: U32) -> Demand.Res():
   Demand.int.s(U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
 
-# blend: kdemand.blend:288
+# blend: kdemand.blend:346
 def Demand.wk.root.go(c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
@@ -496,12 +559,12 @@ def Demand.wk.root.go(c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n:
     case False{}:
       Demand.wk.root.v(void, h, path, depth, n)
 
-# blend: kdemand.blend:295
+# blend: kdemand.blend:353
 def Demand.wk.root(r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
   Demand.wk.root.go(U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
 
-# blend: kdemand.blend:299
+# blend: kdemand.blend:357
 def Demand.wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:
     case True{}:
@@ -509,78 +572,15 @@ def Demand.wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U
     case False{}:
       Demand.wk.hx(P.rd(h, top), path, top, depth, n, y)
 
-# blend: kdemand.blend:306
-def Demand.sc.step(r: KM.M & U32, +x: U32) -> Sc:
-  (m, +v) = r
-  Sc{m, U32.is_eq(v, x)}
-
-# blend: kdemand.blend:311
-def Demand.sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
-  match k:
-    case 0n:
-      s
-    case 1n+p:
-      match s:
-        case Sc{m, +hit}:
-          match hit:
-            case True{}:
-              Sc{m, True{}}
-            case False{}:
-              Demand.sc.run(p, Demand.sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
-
-# blend: kdemand.blend:324
-def Demand.wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
-  match ok:
-    case True{}:
-      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-    case False{}:
-      d.stop(P.h_err(h), path, top, depth, n, 6)
-
-# blend: kdemand.blend:332
-def Demand.wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  (path, +cap2) = r
-  Demand.wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
-
-# blend: kdemand.blend:336
-def Demand.wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  match s:
-    case Sc{path, +hit}:
-      match hit:
-        case True{}:
-          Demand.fw.scan(h, path, top, depth, n, 5)
-        case False{}:
-          Demand.wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
-
-# blend: kdemand.blend:345
-def Demand.wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  match full:
-    case True{}:
-      Demand.wk.seen(Demand.sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
-    case False{}:
-      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-
-# blend: kdemand.blend:352
-def Demand.wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-  (path, +cap) = r
-  Demand.wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
-
-# blend: kdemand.blend:357
-def Demand.wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-  match p2:
-    case True{}:
-      Demand.wk.full(KM.m_get(path, 0), h, top, depth, n, x)
-    case False{}:
-      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-
 # blend: kdemand.blend:368
 def Demand.wk.sn(+neg: Bool, +stuck: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match neg stuck:
     case True{} False{}:
       Demand.wk.back(Demand.static_erase(h, Unit{}, top, q), path, depth, (n + 1 : U32))
     case True{} True{}:
-      Demand.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
     case False{} _:
-      Demand.fw.scan(h, path, top, depth, n, 7)
+      fw.scan(h, path, top, depth, n, 7)
 
 # blend: kdemand.blend:377
 def Demand.wk.sx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
@@ -603,7 +603,7 @@ def Demand.wk.q.go(st: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth: U
     case False{} True{}:
       Demand.wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
-      Demand.wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
+      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
 # blend: kdemand.blend:400
 def Demand.dn.can(+q: U32, +depth: U32) -> Bool:
@@ -661,94 +661,38 @@ def Demand.demand.go(k: Nat, d: D) -> D:
 def Demand.demand(k: Nat, d: D) -> D:
   d.end(Demand.demand.go(k, d))
 
-# blend: kdemand.blend:105
+# blend: kdemand.blend:218
 def DemandEv.Res() -> Type: P.H
 
 # blend: kdemand.blend:461
 def DemandEv.after(h: DemandEv.Res(), +x: N.Ext) -> DemandEv.Res():
   KN.ev.settle(h, x)
 
-# blend: kdemand.blend:104
+# blend: kdemand.blend:217
 def DemandEv.S() -> Type: Unit
 
-# blend: kdemand.blend:106
+# blend: kdemand.blend:219
 def DemandEv.note(u: DemandEv.S(), +x: U32, +y: U32) -> DemandEv.S():
   u
 
-# blend: kdemand.blend:108
+# blend: kdemand.blend:221
 def DemandEv.fin(h: P.H, u: DemandEv.S()) -> DemandEv.Res():
   h
 
-# blend: kdemand.blend:110
+# blend: kdemand.blend:223
 def DemandEv.wd(w: KN.Wd, u: DemandEv.S()) -> DemandEv.Res():
   KN.wd.h(w)
 
-# blend: kdemand.blend:112
+# blend: kdemand.blend:225
 def DemandEv.erased(h: DemandEv.Res(), +x: N.Ext) -> DemandEv.Res():
   KN.ev.settle(h, x)
 
-# blend: kdemand.blend:115
-def DemandEv.fw.v(+pos: Bool, h: P.H, path: KM.M, +x: U32, +i: U32) -> Fw:
-  match pos:
-    case True{}:
-      Fw{h, path, x, i}
-    case False{}:
-      Fw{h, path, 0, 0}
-
-# blend: kdemand.blend:122
-def DemandEv.fw.hx(r: P.H & U32, path: KM.M, +x: U32, +i: U32) -> Fw:
-  (h, +hx) = r
-  DemandEv.fw.v(Bool.not(KR.kind_neg(P.rk(hx))), h, path, x, i)
-
-# blend: kdemand.blend:126
-def DemandEv.fw.at(r: KM.M & U32, h: P.H, +i: U32) -> Fw:
-  (path, +x) = r
-  DemandEv.fw.hx(P.rd(h, x), path, x, i)
-
-# blend: kdemand.blend:132
-def DemandEv.fw.go(k: Nat, s: Fw, +i: U32) -> Fw:
-  match k:
-    case 0n:
-      s
-    case 1n+p:
-      match s:
-        case Fw{h, path, +b, +j}:
-          match b:
-            case 0:
-              DemandEv.fw.go(p, DemandEv.fw.at(KM.m_get(path, i), h, i), (i + 1 : U32))
-            case _:
-              Fw{h, path, b, j}
-
-# blend: kdemand.blend:146
-def DemandEv.fw.top(s: Fw, +top: U32, +depth: U32) -> Fw:
-  match s:
-    case Fw{h, path, +b, +j}:
-      match b:
-        case 0:
-          DemandEv.fw.hx(P.rd(h, top), path, top, (depth + 1 : U32))
-        case _:
-          Fw{h, path, b, j}
-
-# blend: kdemand.blend:157
-def DemandEv.fw.end(s: Fw, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
-  match s:
-    case Fw{h, path, +b, +i}:
-      match b:
-        case 0:
-          D{h, path, top, depth, n, st}
-        case _:
-          D{h, path, b, (i - 1 : U32), n, 7}
-
-# blend: kdemand.blend:167
-def DemandEv.fw.scan(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32) -> D:
-  DemandEv.fw.end(DemandEv.fw.top(DemandEv.fw.go(U32.to_nat(depth), Fw{h, path, 0, 0}, 1), top, depth), top, depth, n, st)
-
-# blend: kdemand.blend:170
+# blend: kdemand.blend:228
 def DemandEv.wk.pop.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
   (path, +p) = r
   d.go(h, path, p, (depth - 1 : U32), n)
 
-# blend: kdemand.blend:174
+# blend: kdemand.blend:232
 def DemandEv.wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match depth:
     case 0:
@@ -756,7 +700,7 @@ def DemandEv.wk.pop(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case _:
       DemandEv.wk.pop.r(KM.m_get(path, depth), h, depth, n)
 
-# blend: kdemand.blend:181
+# blend: kdemand.blend:239
 def DemandEv.wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
@@ -764,17 +708,17 @@ def DemandEv.wk.past(gone: Bool, h: P.H, path: KM.M, +p: U32, +depth: U32, +n: U
     case False{}:
       d.go(h, path, p, depth, n)
 
-# blend: kdemand.blend:188
+# blend: kdemand.blend:246
 def DemandEv.wk.hp(r: P.H & U32, path: KM.M, +p: U32, +depth: U32, +n: U32) -> D:
   (h, +hp) = r
   DemandEv.wk.past(U32.is_eq(hp, 0), h, path, p, depth, n)
 
-# blend: kdemand.blend:198
+# blend: kdemand.blend:256
 def DemandEv.wk.back.r(r: KM.M & U32, h: P.H, +depth: U32, +n: U32) -> D:
   (path, +p) = r
   DemandEv.wk.hp(P.rd(h, p), path, p, (depth - 1 : U32), n)
 
-# blend: kdemand.blend:202
+# blend: kdemand.blend:260
 def DemandEv.wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match depth:
     case 0:
@@ -782,15 +726,15 @@ def DemandEv.wk.back(h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     case _:
       DemandEv.wk.back.r(KM.m_get(path, depth), h, depth, n)
 
-# blend: kdemand.blend:209
+# blend: kdemand.blend:267
 def DemandEv.wk.hb.go(gone: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   match gone:
     case True{}:
       DemandEv.wk.back(h, path, depth, (n + 1 : U32))
     case False{}:
-      DemandEv.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
 
-# blend: kdemand.blend:216
+# blend: kdemand.blend:274
 def DemandEv.wk.hb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32) -> D:
   (h, +hb) = r
   DemandEv.wk.hb.go(U32.is_eq(hb, 0), h, path, top, depth, n)
@@ -912,17 +856,17 @@ def DemandEv.go.a1(r: P.H & U32, st: DemandEv.S(), +fast: Bool, +a: U32, +b: U32
 def DemandEv.go(h: P.H, st: DemandEv.S(), +fast: Bool, +a: U32, +b: U32, +ha: U32, +hb: U32) -> DemandEv.Res():
   DemandEv.go.a1(P.rd(h, (a + 2 : U32)), st, fast, a, b, ha, hb)
 
-# blend: kdemand.blend:226
+# blend: kdemand.blend:284
 def DemandEv.wk.rw(+sb: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match sb:
     case 0:
       DemandEv.wk.back(DemandEv.go(h, Unit{}, True{}, a, b, ha, hb), path, depth, (n + 1 : U32))
     case 1:
-      DemandEv.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
     case _:
       DemandEv.wk.hb(P.rd(DemandEv.go(h, Unit{}, True{}, a, b, ha, hb), b), path, top, depth, n)
 
-# blend: kdemand.blend:235
+# blend: kdemand.blend:293
 def DemandEv.nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match z:
     case P.Lz{h, +lazy, +k}:
@@ -932,12 +876,12 @@ def DemandEv.nd.lz(z: P.Lz, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32
         case False{}:
           DemandEv.wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:244
+# blend: kdemand.blend:302
 def DemandEv.nd.pb(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   (h, +pb) = r
   DemandEv.nd.lz(P.val_lazy(h, P.form(hb), pb), path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:248
+# blend: kdemand.blend:306
 def DemandEv.nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +a: U32, +b: U32, +ha: U32, +hb: U32) -> D:
   match chk:
     case True{}:
@@ -945,29 +889,29 @@ def DemandEv.nd.go(chk: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U3
     case False{}:
       DemandEv.wk.rw(KR.stuck_by(P.rk(ha), P.rk(hb)), h, path, top, depth, n, a, b, ha, hb)
 
-# blend: kdemand.blend:256
+# blend: kdemand.blend:314
 def DemandEv.may_need(+ha: U32, +hb: U32) -> Bool:
   (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
-# blend: kdemand.blend:262
+# blend: kdemand.blend:320
 def DemandEv.wk.ori(neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
   match neg:
     case True{}:
       DemandEv.nd.go(DemandEv.may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
     case False{}:
-      DemandEv.fw.scan(h, path, top, depth, n, 7)
+      fw.scan(h, path, top, depth, n, 7)
 
-# blend: kdemand.blend:269
+# blend: kdemand.blend:327
 def DemandEv.wk.hy(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32, +hx: U32) -> D:
   (h, +hy) = r
   DemandEv.wk.ori(KR.kind_neg(P.rk(hx)), h, path, top, depth, n, top, y, hx, hy)
 
-# blend: kdemand.blend:273
+# blend: kdemand.blend:331
 def DemandEv.wk.hx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hx) = r
   DemandEv.wk.hy(P.rd(h, y), path, top, depth, n, y, hx)
 
-# blend: kdemand.blend:281
+# blend: kdemand.blend:339
 def DemandEv.wk.root.v(+void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
   match void:
     case True{}:
@@ -1101,7 +1045,7 @@ def DemandEv.int.s(+sy: Bool, h: P.H, st: DemandEv.S(), +fast: Bool, +x: U32, +y
 def DemandEv.interact.f(h: P.H, st: DemandEv.S(), +fast: Bool, +x: U32, +y: U32) -> DemandEv.Res():
   DemandEv.int.s(U32.is_eq(((x .|. y : U32) .&. 3 : U32), 3), h, st, fast, x, y)
 
-# blend: kdemand.blend:288
+# blend: kdemand.blend:346
 def DemandEv.wk.root.go(c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   match c:
     case True{}:
@@ -1109,12 +1053,12 @@ def DemandEv.wk.root.go(c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +
     case False{}:
       DemandEv.wk.root.v(void, h, path, depth, n)
 
-# blend: kdemand.blend:295
+# blend: kdemand.blend:353
 def DemandEv.wk.root(r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
   (h, +hy) = r
   DemandEv.wk.root.go(U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
 
-# blend: kdemand.blend:299
+# blend: kdemand.blend:357
 def DemandEv.wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
   match root:
     case True{}:
@@ -1122,78 +1066,15 @@ def DemandEv.wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n:
     case False{}:
       DemandEv.wk.hx(P.rd(h, top), path, top, depth, n, y)
 
-# blend: kdemand.blend:306
-def DemandEv.sc.step(r: KM.M & U32, +x: U32) -> Sc:
-  (m, +v) = r
-  Sc{m, U32.is_eq(v, x)}
-
-# blend: kdemand.blend:311
-def DemandEv.sc.run(k: Nat, s: Sc, +i: U32, +x: U32) -> Sc:
-  match k:
-    case 0n:
-      s
-    case 1n+p:
-      match s:
-        case Sc{m, +hit}:
-          match hit:
-            case True{}:
-              Sc{m, True{}}
-            case False{}:
-              DemandEv.sc.run(p, DemandEv.sc.step(KM.m_get(m, i), x), (i + 1 : U32), x)
-
-# blend: kdemand.blend:324
-def DemandEv.wk.grown.go(ok: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap2: U32) -> D:
-  match ok:
-    case True{}:
-      d.go(h, KM.m_set(KM.m_set(path, 0, cap2), (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-    case False{}:
-      d.stop(P.h_err(h), path, top, depth, n, 6)
-
-# blend: kdemand.blend:332
-def DemandEv.wk.grown(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  (path, +cap2) = r
-  DemandEv.wk.grown.go(U32.is_gt(cap2, cap), path, h, top, depth, n, x, cap2)
-
-# blend: kdemand.blend:336
-def DemandEv.wk.seen(s: Sc, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  match s:
-    case Sc{path, +hit}:
-      match hit:
-        case True{}:
-          DemandEv.fw.scan(h, path, top, depth, n, 5)
-        case False{}:
-          DemandEv.wk.grown(KM.m_ensure(path, (cap * 2 : U32), cap, P.w_maxd()), h, top, depth, n, x, cap)
-
-# blend: kdemand.blend:345
-def DemandEv.wk.full.go(full: Bool, path: KM.M, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32, +cap: U32) -> D:
-  match full:
-    case True{}:
-      DemandEv.wk.seen(DemandEv.sc.run(U32.to_nat(depth), Sc{path, False{}}, 1, top), h, top, depth, n, x, cap)
-    case False{}:
-      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-
-# blend: kdemand.blend:352
-def DemandEv.wk.full(r: KM.M & U32, h: P.H, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-  (path, +cap) = r
-  DemandEv.wk.full.go(U32.is_ge((depth + 1 : U32), cap), path, h, top, depth, n, x, cap)
-
-# blend: kdemand.blend:357
-def DemandEv.wk.push(p2: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32) -> D:
-  match p2:
-    case True{}:
-      DemandEv.wk.full(KM.m_get(path, 0), h, top, depth, n, x)
-    case False{}:
-      d.go(h, KM.m_set(path, (depth + 1 : U32), top), x, (depth + 1 : U32), n)
-
 # blend: kdemand.blend:368
 def DemandEv.wk.sn(+neg: Bool, +stuck: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
   match neg stuck:
     case True{} False{}:
       DemandEv.wk.back(DemandEv.static_erase(h, Unit{}, top, q), path, depth, (n + 1 : U32))
     case True{} True{}:
-      DemandEv.fw.scan(h, path, top, depth, n, 3)
+      fw.scan(h, path, top, depth, n, 3)
     case False{} _:
-      DemandEv.fw.scan(h, path, top, depth, n, 7)
+      fw.scan(h, path, top, depth, n, 7)
 
 # blend: kdemand.blend:377
 def DemandEv.wk.sx(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +q: U32) -> D:
@@ -1216,7 +1097,7 @@ def DemandEv.wk.q.go(st: Bool, +pr: Bool, h: P.H, path: KM.M, +top: U32, +depth:
     case False{} True{}:
       DemandEv.wk.pair(U32.is_eq(top, P.iface()), h, path, top, depth, n, q)
     case False{} False{}:
-      DemandEv.wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
+      wk.push(U32.is_eq(((depth + 1 : U32) .&. depth : U32), 0), h, path, top, depth, n, P.base(q))
 
 # blend: kdemand.blend:400
 def DemandEv.dn.can(+q: U32, +depth: U32) -> Bool:
