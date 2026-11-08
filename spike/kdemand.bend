@@ -1,5 +1,5 @@
 # Written by Blend from kdemand.blend; do not edit.
-# blend stamp: 763442a0527c f4bea541938c1331
+# blend stamp: f6def9719dcd ecff8ee19cd35571
 import Base
 import ./val.bend as V
 import ./net.bend as N
