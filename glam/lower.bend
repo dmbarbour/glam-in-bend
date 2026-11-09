@@ -52,6 +52,11 @@ def codes(bs: List<&2, U32>) -> List<&2, V.Val>:
     case Nil{}:
       Nil{}
 
+# a name as a dict key: its atom, `'name`, the dict of the text "name"
+# to unit (Syntax.md, Atoms)
+def atom(name: List<&2, U32>) -> V.Val:
+  V.VDict{[V.Ent{V.VList{codes(name)}, V.VUnit{}}]}
+
 def data(v: V.Val) -> Sub:
   Sub{[T.TN{R.KData{}, V.PVal{v}}], Nil{}, 1, REnd{T.TE{0, 0}}, Nil{}}
 
@@ -428,7 +433,7 @@ type Dc is Data:
 def dent.add(v: V.Val, k: List<&2, U32>, more: Dc) -> Dc:
   match more:
     case DcOk{es}:
-      DcOk{Con{V.Ent{k, v}, es}}
+      DcOk{Con{V.Ent{atom(k), v}, es}}
     case DcErr{d}:
       DcErr{d}
 
@@ -495,7 +500,7 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
     case G.EDict{es}:
       dict(dents(es, Nil{}))
     case G.EField{+l, k}:
-      LOk{data(V.VFun{5, 1, [V.VList{codes(k)}]})}
+      LOk{data(V.VFun{5, 1, [atom(k)]})}
     case G.EName{+l, path}:
       name(l, path, depth, boxes)
     case G.EApp{+l, f, x}:

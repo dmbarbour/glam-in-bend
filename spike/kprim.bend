@@ -876,8 +876,11 @@ def bop(+f: U32) -> U32:
 def bneed(+f: U32) -> U32:
   (f >> 8n : U32)
 
+# a builtin encoded in a node's field: its op and need fit, and it is one
+# of numbers or lists (ops below 5), so that the native path, which
+# computes numbers (apply.bare, apply.one), never meets a builtin on dicts
 def bfits(+op: U32, +need: U32) -> Bool:
-  U32.is_lt(op, 256) && U32.is_lt(need, 8)
+  U32.is_lt(op, 5) && U32.is_lt(need, 8)
 
 # an entry, the field f
 def pw.tab(r: H & U32, +f: U32) -> H & PW:

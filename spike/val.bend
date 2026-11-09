@@ -12,9 +12,9 @@ type Val is Data:
   # drops (HelloLadder's ladder-text; netdata-structures decides the
   # lasting one). Not a function, not a number, no placeholder.
   VList{xs: List<&2, Val>}
-  # a glam dict, its first form: its entries, each a key and its value,
-  # keys texts until atoms come (HelloLadder's ladder-lambda.dicts;
-  # netdata-structures decides the lasting one)
+  # a glam dict, its first form: its entries, each a key, any comparable
+  # value, and its value (HelloLadder's ladder-dicts; netdata-structures
+  # decides the lasting one)
   VDict{es: List<&2, Ent>}
   # a glam error: a permanent failure as a value, its diagnostic itself a
   # glam value, a text for now (`net-error-values`). Applying one gives
@@ -31,9 +31,9 @@ type Val is Data:
   # held in the node itself; V.norm turns it back
   VP2{+op: U32, +need: U32, +a: U32, +b: U32}
 
-# a dict's entry: its key's code points, its value
+# a dict's entry: its key, a comparable value, and its value
 type Ent is Data:
-  Ent{key: List<&2, U32>, v: Val}
+  Ent{key: Val, v: Val}
 
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
 # (three), op 4 append, glam's `++` (two lists: HelloLadder's
@@ -186,19 +186,95 @@ def member.go(+ok: Bool, v: Val) -> Val:
 def member(+v: Val) -> Val:
   member.go(clean(v), v)
 
-# a key's code points against a text's values
-def key_eq(k: List<&2, U32>, xs: List<&2, Val>) -> Bool:
-  match k xs:
-    case Con{+a, ks} Con{x, rest}:
-      match x:
-        case VNum{+b}:
-          U32.is_eq(a, b) && key_eq(ks, rest)
-        case _:
-          False{}
+# Keys: any comparable value (only-comparables-compare), compared
+# structurally: numbers by value, lists and dicts entry by entry, unit
+# with unit; a dict entry by entry in its order for now, which an atom, a
+# singleton dict, meets exactly (a dict's canonical order waits for
+# netdata-structures). A work list of pairs under fuel, Bend admitting no
+# mutual recursion between values and their lists; a key too large for
+# the fuel compares unequal.
+type Pq is Data:
+  Pq{a: Val, b: Val}
+
+def zipv(xs: List<&2, Val>, ys: List<&2, Val>, rest: List<&2, Pq>) -> Maybe<&2, List<&2, Pq>>:
+  match xs ys:
     case Nil{} Nil{}:
-      True{}
+      Some{rest}
+    case Con{x, xr} Con{y, yr}:
+      zipv(xr, yr, Con{Pq{x, y}, rest})
     case _ _:
+      None{}
+
+def zipe(xs: List<&2, Ent>, ys: List<&2, Ent>, rest: List<&2, Pq>) -> Maybe<&2, List<&2, Pq>>:
+  match xs ys:
+    case Nil{} Nil{}:
+      Some{rest}
+    case Con{Ent{ka, va}, xr} Con{Ent{kb, vb}, yr}:
+      zipe(xr, yr, Con{Pq{ka, kb}, Con{Pq{va, vb}, rest}})
+    case _ _:
+      None{}
+
+def keep(+eq: Bool, rest: List<&2, Pq>) -> Maybe<&2, List<&2, Pq>>:
+  match eq:
+    case True{}:
+      Some{rest}
+    case False{}:
+      None{}
+
+# one pair compared: the pairs left to compare, or none where they differ
+def veq.step(q: Pq, rest: List<&2, Pq>) -> Maybe<&2, List<&2, Pq>>:
+  match q:
+    case Pq{a, b}:
+      match a b:
+        case VNum{+x} VNum{+y}:
+          keep(U32.is_eq(x, y), rest)
+        case VList{xs} VList{ys}:
+          zipv(xs, ys, rest)
+        case VDict{xs} VDict{ys}:
+          zipe(xs, ys, rest)
+        case VUnit{} VUnit{}:
+          Some{rest}
+        case _ _:
+          None{}
+
+def veq.go(k: Nat, m: Maybe<&2, List<&2, Pq>>) -> Bool:
+  match k:
+    case 0n:
       False{}
+    case 1n+p:
+      match m:
+        case None{}:
+          False{}
+        case Some{ps}:
+          match ps:
+            case Nil{}:
+              True{}
+            case Con{q, rest}:
+              veq.go(p, veq.step(q, rest))
+
+# two keys alike
+def veq(a: Val, b: Val) -> Bool:
+  veq.go(1048576n, Some{[Pq{a, b}]})
+
+# a key as a diagnostic names it: an atom by its name, a text in brackets
+def key_show(k: Val) -> List<&2, Val>:
+  match k:
+    case VDict{es}:
+      match es:
+        case Con{e, more}:
+          match e:
+            case Ent{kk, vv}:
+              match kk:
+                case VList{t}:
+                  t
+                case _:
+                  text("a key")
+        case Nil{}:
+          text("{}")
+    case VList{t}:
+      List.append(&2, Val, text("[\""), List.append(&2, Val, t, text("\"]")))
+    case _:
+      text("a key")
 
 def dfind.k(+hit: Bool, v: Val, r: Val) -> Val:
   match hit:
@@ -210,27 +286,76 @@ def dfind.k(+hit: Bool, v: Val, r: Val) -> Val:
 # the value at a key, an error naming the key where there is none: the
 # rest searched whatever the head (eager, as Bend is), so that no lambda
 # enters a proof
-def dfind(es: List<&2, Ent>, +key: List<&2, Val>) -> Val:
+def dfind(es: List<&2, Ent>, +key: Val) -> Val:
   match es:
     case Nil{}:
-      VErr{VList{List.append(&2, Val, text("the dict has no field "), key)}}
+      VErr{VList{List.append(&2, Val, text("the dict has no field "), key_show(key))}}
     case Con{e, rest}:
       match e:
         case Ent{k, v}:
-          dfind.k(key_eq(k, key), v, dfind(rest, key))
+          dfind.k(veq(k, key), v, dfind(rest, key))
 
-def dget.go(+t: Bool, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
-  match t:
+def dhas.k(+hit: Bool, rest: Bool) -> Bool:
+  match hit:
     case True{}:
-      dfind(es, key)
+      True{}
     case False{}:
-      err("a builtin met a key and a dict it has no case for")
+      rest
 
-# op on a key and a dict
-def dget(+op: U32, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
-  dget.go(U32.is_eq(op, 5), key, es)
+def dhas(es: List<&2, Ent>, +key: Val) -> Bool:
+  match es:
+    case Nil{}:
+      False{}
+    case Con{e, rest}:
+      match e:
+        case Ent{k, v}:
+          dhas.k(veq(k, key), dhas(rest, key))
 
-def builtin(+op: U32, args: List<&2, Val>) -> Val:
+def dunion.k(+dup: Bool, r: Val) -> Val:
+  match dup:
+    case True{}:
+      err("a key is introduced twice: a dict's members share no key")
+    case False{}:
+      r
+
+# b's entries after acc's, each key new (dict-literals-introduce-in-order:
+# a union is shallow)
+def dunion(b: List<&2, Ent>, +acc: List<&2, Ent>) -> Val:
+  match b:
+    case Nil{}:
+      VDict{acc}
+    case Con{e, rest}:
+      match e:
+        case Ent{+k, v}:
+          dunion.k(dhas(acc, k), dunion(rest, List.append(&2, Ent, acc, [Ent{k, v}])))
+
+# a value that may key a dict: a number, a list, a dict, unit
+def comparable(v: Val) -> Bool:
+  match v:
+    case VNum{+n}:
+      True{}
+    case VList{xs}:
+      True{}
+    case VDict{es}:
+      True{}
+    case VUnit{}:
+      True{}
+    case _:
+      False{}
+
+def tag.go(+ok: Bool, k: Val, v: Val) -> Val:
+  match ok:
+    case True{}:
+      VDict{[Ent{k, v}]}
+    case False{}:
+      err("a key must be comparable: a number, a list, a dict or unit")
+
+# the dict of one entry, v at key k: what `k:v` and `(k:)` build
+def tagv(+k: Val, v: Val) -> Val:
+  tag.go(comparable(k), k, v)
+
+# Builtins on numbers and lists, ops below 5, by the arguments' shapes
+def builtin.n(+op: U32, args: List<&2, Val>) -> Val:
   match args:
     case Con{VNum{+a}, t}:
       match t:
@@ -246,8 +371,6 @@ def builtin(+op: U32, args: List<&2, Val>) -> Val:
       match t:
         case Con{VList{ys}, u}:
           lst2(op, xs, ys)
-        case Con{VDict{es}, u}:
-          dget(op, xs, es)
         case _:
           nocase(op)
     case _:
@@ -278,15 +401,13 @@ def last.l2(+op: U32, xs: List<&2, Val>, x: Val) -> Val:
   match x:
     case VList{ys}:
       lst2(op, xs, ys)
-    case VDict{es}:
-      dget(op, xs, es)
     case _:
       nocase(op)
 
-# builtin(op, args ++ [x]) without building the list: the collected
+# builtin.n(op, args ++ [x]) without building the list: the collected
 # arguments matched where they lie, x where it would follow them. Past
 # three numbers, or two lists, x cannot matter.
-def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
+def builtin_last.n(+op: U32, args: List<&2, Val>, x: Val) -> Val:
   match args:
     case Nil{}:
       last.x1(op, x)
@@ -310,12 +431,167 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
           last.l2(op, xs, x)
         case Con{VList{ys}, u}:
           lst2(op, xs, ys)
-        case Con{VDict{es}, u}:
-          dget(op, xs, es)
         case _:
           nocase(op)
     case _:
       nocase(op)
+
+# Builtins on dicts, ops 5 to 7, each needing two arguments: get, a key
+# then a dict; union, two dicts; tag, a key then a value. Each always an
+# entry of a net's table (kprim.bend's bfits), so that the kernel's native
+# path, which computes numbers, never meets one. `.l` takes the last
+# argument where it would follow the collected ones, as builtin_last does.
+
+def get.b(args: List<&2, Val>) -> Val:
+  match args:
+    case Con{k, t}:
+      match t:
+        case Con{VDict{es}, u}:
+          dfind(es, k)
+        case _:
+          nocase(5)
+    case _:
+      nocase(5)
+
+def get.x(k: Val, x: Val) -> Val:
+  match x:
+    case VDict{es}:
+      dfind(es, k)
+    case _:
+      nocase(5)
+
+def get.l(args: List<&2, Val>, x: Val) -> Val:
+  match args:
+    case Nil{}:
+      nocase(5)
+    case Con{k, t}:
+      match t:
+        case Nil{}:
+          get.x(k, x)
+        case Con{VDict{es}, u}:
+          dfind(es, k)
+        case _:
+          nocase(5)
+
+def union.b(args: List<&2, Val>) -> Val:
+  match args:
+    case Con{VDict{a}, t}:
+      match t:
+        case Con{VDict{b}, u}:
+          dunion(b, a)
+        case _:
+          nocase(6)
+    case _:
+      nocase(6)
+
+def union.x(a: List<&2, Ent>, x: Val) -> Val:
+  match x:
+    case VDict{b}:
+      dunion(b, a)
+    case _:
+      nocase(6)
+
+def union.l(args: List<&2, Val>, x: Val) -> Val:
+  match args:
+    case Nil{}:
+      nocase(6)
+    case Con{VDict{a}, t}:
+      match t:
+        case Nil{}:
+          union.x(a, x)
+        case Con{VDict{b}, u}:
+          dunion(b, a)
+        case _:
+          nocase(6)
+    case _:
+      nocase(6)
+
+def tag.b(args: List<&2, Val>) -> Val:
+  match args:
+    case Con{k, t}:
+      match t:
+        case Con{v, u}:
+          tagv(k, v)
+        case _:
+          nocase(7)
+    case _:
+      nocase(7)
+
+def tag.l(args: List<&2, Val>, x: Val) -> Val:
+  match args:
+    case Nil{}:
+      nocase(7)
+    case Con{k, t}:
+      match t:
+        case Nil{}:
+          tagv(k, x)
+        case Con{v, u}:
+          tagv(k, v)
+
+def dict.b7(+t: Bool, +op: U32, args: List<&2, Val>) -> Val:
+  match t:
+    case True{}:
+      tag.b(args)
+    case False{}:
+      nocase(op)
+
+def dict.b6(+t: Bool, +op: U32, args: List<&2, Val>) -> Val:
+  match t:
+    case True{}:
+      union.b(args)
+    case False{}:
+      dict.b7(U32.is_eq(op, 7), op, args)
+
+def dict.b5(+t: Bool, +op: U32, args: List<&2, Val>) -> Val:
+  match t:
+    case True{}:
+      get.b(args)
+    case False{}:
+      dict.b6(U32.is_eq(op, 6), op, args)
+
+def dict.l7(+t: Bool, +op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match t:
+    case True{}:
+      tag.l(args, x)
+    case False{}:
+      nocase(op)
+
+def dict.l6(+t: Bool, +op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match t:
+    case True{}:
+      union.l(args, x)
+    case False{}:
+      dict.l7(U32.is_eq(op, 7), op, args, x)
+
+def dict.l5(+t: Bool, +op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match t:
+    case True{}:
+      get.l(args, x)
+    case False{}:
+      dict.l6(U32.is_eq(op, 6), op, args, x)
+
+def builtin.k(+arith: Bool, +op: U32, args: List<&2, Val>) -> Val:
+  match arith:
+    case True{}:
+      builtin.n(op, args)
+    case False{}:
+      dict.b5(U32.is_eq(op, 5), op, args)
+
+def builtin_last.k(+arith: Bool, +op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match arith:
+    case True{}:
+      builtin_last.n(op, args, x)
+    case False{}:
+      dict.l5(U32.is_eq(op, 5), op, args, x)
+
+# a builtin on all its arguments: by its op first, those below 5 by the
+# arguments' shapes
+def builtin(+op: U32, args: List<&2, Val>) -> Val:
+  builtin.k(U32.is_lt(op, 5), op, args)
+
+# builtin(op, args ++ [x]) without building the list
+def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
+  builtin_last.k(U32.is_lt(op, 5), op, args, x)
 
 # a value as glam sees it: a flat form as the VFun it stands for
 def norm(v: Val) -> Val:
@@ -332,10 +608,21 @@ def fun.go(+last: Bool, +op: U32, +need: U32, args: List<&2, Val>, x: Val) -> Va
     case False{}:
       VFun{op, (need - 1 : U32), List.append(&2, Val, args, [norm(x)])}
 
+# the flat form's builtin given its last argument: a builtin on numbers
+# straight to its arithmetic, the hot path; any other as builtin_last
+# takes it, so that applying the flat form computes what applying its
+# VFun does (law flat_two_applies_as_fun)
+def vp2.k(+arith: Bool, +op: U32, +a: U32, +b: U32, x: Val) -> Val:
+  match arith:
+    case True{}:
+      last.x3(op, a, b, x)
+    case False{}:
+      dict.l5(U32.is_eq(op, 5), op, [VNum{a}, VNum{b}], x)
+
 def vp2.go(+last: Bool, +op: U32, +need: U32, +a: U32, +b: U32, x: Val) -> Val:
   match last:
     case True{}:
-      last.x3(op, a, b, x)
+      vp2.k(U32.is_lt(op, 5), op, a, b, x)
     case False{}:
       VFun{op, (need - 1 : U32), [VNum{a}, VNum{b}, norm(x)]}
 

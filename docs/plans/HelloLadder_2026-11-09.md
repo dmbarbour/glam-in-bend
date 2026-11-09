@@ -258,6 +258,22 @@ named, and marked there when a rung is built.
    `ladder-thunks.globals`; `hello_tuple.g` imports `'std` too):
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.
+   - `ladder-dicts.kernel` — built 2026-11-09 — the kernel's dicts as
+     Syntax.md has them: a key is any comparable value, a name's being
+     its atom (`tag:V` is `['tag]:V`, `'tag` is `["tag"]:()`), so that
+     `.name` and `.["name"]` read different keys; keys compared
+     structurally under fuel (a dict entry by entry in its order for now,
+     which atoms meet exactly). Builtins on dicts, dispatched by op
+     before the arguments' shapes: get (5, any key), union (6, refusing a
+     shared key) and tag (7, the one-entry dict `k:v` and `(k:)` build),
+     kept off the native path, which computes numbers (`bfits`). No law
+     changes: the old proofs moved under `builtin.n` and
+     `builtin_last.n`, the laws' proofs split the op's kind first, and
+     each dict builtin has its agreement and cleanliness lemmas; the
+     verdict passes. Routing the flat form (`VP2`) through the new
+     dispatch cost `fma` 11% to 13% (run 309); a `Bool` test of the op
+     before it, straight to the arithmetic, restored it (run 310, 1.0%
+     to 1.5% over main's 288, where the error value left it).
 6. `ladder-thunks` — `hello_names.g`, `hello_lambda_sugar.g`:
    definitions used before they are written, `asm.result` first and
    `hello` below it; a top-level function called. The first cells:

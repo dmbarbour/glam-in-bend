@@ -884,7 +884,7 @@ def Laws.rules_linear(a, b, s):
 # by cases on the collected arguments, as deep as builtin looks, and on
 # the last argument where it is the first, second or third: each side then
 # computes the same numN, or VUnit
-def Laws.builtin_last_agrees(op, args, x):
+def agrees_n(+op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {V.builtin_last.n(op, args, x) == V.builtin.n(op, List.append(&2, V.Val, args, [x])) : V.Val}:
   match args:
     case Nil{}:
       match x:
@@ -1047,30 +1047,194 @@ def Laws.builtin_last_agrees(op, args, x):
                         case V.VErr{er}:
                           {==}
 
-# whether the builtin is given its last argument (need = 1) or not, each
-# side computes the same number, flat form or VFun
-def vp2_by(t: Bool, -op: U32, -need: U32, -a: U32, -b: U32, x: V.Val) -> {V.norm(V.vp2.go(t, op, need, a, b, x)) == V.norm(V.fun.go(t, op, need, [V.VNum{a}, V.VNum{b}], x)) : V.Val}:
-  match t:
-    case True{}:
+# the builtins on dicts agree, the last argument apart against all
+def get_ag(+args: List<&2, V.Val>, +x: V.Val) -> {V.get.l(args, x) == V.get.b(List.append(&2, V.Val, args, [x])) : V.Val}:
+  match args:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      match t:
+        case Nil{}:
+          match x:
+            case V.VUnit{}:
+              {==}
+            case V.VNum{n1}:
+              {==}
+            case V.VLazy{h1}:
+              {==}
+            case V.VFun{o1, n2, l1}:
+              {==}
+            case V.VFree{f1}:
+              {==}
+            case V.VP2{o2, n3, c1, d1}:
+              {==}
+            case V.VList{xs1}:
+              {==}
+            case V.VDict{es1}:
+              {==}
+            case V.VErr{e1}:
+              {==}
+        case Con{+y, +r}:
+          match y:
+            case V.VUnit{}:
+              {==}
+            case V.VNum{n1}:
+              {==}
+            case V.VLazy{h1}:
+              {==}
+            case V.VFun{o1, n2, l1}:
+              {==}
+            case V.VFree{f1}:
+              {==}
+            case V.VP2{o2, n3, c1, d1}:
+              {==}
+            case V.VList{xs1}:
+              {==}
+            case V.VDict{es1}:
+              {==}
+            case V.VErr{e1}:
+              {==}
+
+def union_ag(+args: List<&2, V.Val>, +x: V.Val) -> {V.union.l(args, x) == V.union.b(List.append(&2, V.Val, args, [x])) : V.Val}:
+  match args:
+    case Nil{}:
       match x:
         case V.VUnit{}:
           {==}
-        case V.VNum{y}:
+        case V.VNum{n1}:
           {==}
-        case V.VLazy{k}:
+        case V.VLazy{h1}:
           {==}
-        case V.VFun{o, nd, l}:
+        case V.VFun{o1, n2, l1}:
           {==}
-        case V.VFree{f}:
+        case V.VFree{f1}:
           {==}
-        case V.VP2{o, nd, c, d}:
+        case V.VP2{o2, n3, c1, d1}:
           {==}
-        case V.VList{xs}:
+        case V.VList{xs1}:
           {==}
-        case V.VDict{es}:
+        case V.VDict{es1}:
           {==}
-        case V.VErr{er}:
+        case V.VErr{e1}:
           {==}
+    case Con{+h, +t}:
+      match h:
+        case V.VDict{+a}:
+          match t:
+            case Nil{}:
+              match x:
+                case V.VUnit{}:
+                  {==}
+                case V.VNum{n1}:
+                  {==}
+                case V.VLazy{h1}:
+                  {==}
+                case V.VFun{o1, n2, l1}:
+                  {==}
+                case V.VFree{f1}:
+                  {==}
+                case V.VP2{o2, n3, c1, d1}:
+                  {==}
+                case V.VList{xs1}:
+                  {==}
+                case V.VDict{es1}:
+                  {==}
+                case V.VErr{e1}:
+                  {==}
+            case Con{+y, +r}:
+              match y:
+                case V.VUnit{}:
+                  {==}
+                case V.VNum{n1}:
+                  {==}
+                case V.VLazy{h1}:
+                  {==}
+                case V.VFun{o1, n2, l1}:
+                  {==}
+                case V.VFree{f1}:
+                  {==}
+                case V.VP2{o2, n3, c1, d1}:
+                  {==}
+                case V.VList{xs1}:
+                  {==}
+                case V.VDict{es1}:
+                  {==}
+                case V.VErr{e1}:
+                  {==}
+        case V.VUnit{}:
+          {==}
+        case V.VNum{n1}:
+          {==}
+        case V.VLazy{h1}:
+          {==}
+        case V.VFun{o1, n2, l1}:
+          {==}
+        case V.VFree{f1}:
+          {==}
+        case V.VP2{o2, n3, c1, d1}:
+          {==}
+        case V.VList{xs1}:
+          {==}
+        case V.VErr{e1}:
+          {==}
+
+def tag_ag(+args: List<&2, V.Val>, +x: V.Val) -> {V.tag.l(args, x) == V.tag.b(List.append(&2, V.Val, args, [x])) : V.Val}:
+  match args:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      match t:
+        case Nil{}:
+          {==}
+        case Con{+v, +r}:
+          {==}
+
+def ag7(+t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {V.dict.l7(t, op, args, x) == V.dict.b7(t, op, List.append(&2, V.Val, args, [x])) : V.Val}:
+  match t:
+    case True{}:
+      tag_ag(args, x)
+    case False{}:
+      {==}
+
+def ag6(+t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {V.dict.l6(t, op, args, x) == V.dict.b6(t, op, List.append(&2, V.Val, args, [x])) : V.Val}:
+  match t:
+    case True{}:
+      union_ag(args, x)
+    case False{}:
+      ag7(U32.is_eq(op, 7), op, args, x)
+
+def ag5(+t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {V.dict.l5(t, op, args, x) == V.dict.b5(t, op, List.append(&2, V.Val, args, [x])) : V.Val}:
+  match t:
+    case True{}:
+      get_ag(args, x)
+    case False{}:
+      ag6(U32.is_eq(op, 6), op, args, x)
+
+def agrees_k(+t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {V.builtin_last.k(t, op, args, x) == V.builtin.k(t, op, List.append(&2, V.Val, args, [x])) : V.Val}:
+  match t:
+    case True{}:
+      agrees_n(op, args, x)
+    case False{}:
+      ag5(U32.is_eq(op, 5), op, args, x)
+
+def Laws.builtin_last_agrees(op, args, x):
+  agrees_k(U32.is_lt(op, 5), op, args, x)
+
+# whether the builtin is given its last argument (need = 1) or not, each
+# side computes the same number, flat form or VFun
+# the flat form's builtin given its last argument computes what
+# builtin_last does on its two numbers, by the op's kind
+def vp2k_ag(+t: Bool, +op: U32, +a: U32, +b: U32, +x: V.Val) -> {V.norm(V.vp2.k(t, op, a, b, x)) == V.norm(V.builtin_last.k(t, op, [V.VNum{a}, V.VNum{b}], x)) : V.Val}:
+  match t:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def vp2_by(t: Bool, +op: U32, -need: U32, +a: U32, +b: U32, +x: V.Val) -> {V.norm(V.vp2.go(t, op, need, a, b, x)) == V.norm(V.fun.go(t, op, need, [V.VNum{a}, V.VNum{b}], x)) : V.Val}:
+  match t:
+    case True{}:
+      vp2k_ag(U32.is_lt(op, 5), op, a, b, x)
     case False{}:
       match x:
         case V.VUnit{}:
@@ -1257,21 +1421,14 @@ def dfind_k_ok(+b: Bool, +t: Bool, +v: V.Val, +r: V.Val, ih: {Bool.or(b, V.clean
       ih
 
 # a dict's field read is clean, found or not
-def dfind_ok(+b: Bool, +es: List<&2, V.Ent>, +key: List<&2, V.Val>) -> {Bool.or(b, V.clean(V.dfind(es, key))) == True{} : Bool}:
+def dfind_ok(+b: Bool, +es: List<&2, V.Ent>, +key: V.Val) -> {Bool.or(b, V.clean(V.dfind(es, key))) == True{} : Bool}:
   match es:
     case Nil{}:
       or_true(b)
     case Con{+e, +rest}:
       match e:
         case V.Ent{+k, +v}:
-          dfind_k_ok(b, V.key_eq(k, key), v, V.dfind(rest, key), dfind_ok(b, rest, key))
-
-def dget_ok(+b: Bool, +t: Bool, +key: List<&2, V.Val>, +es: List<&2, V.Ent>) -> {Bool.or(b, V.clean(V.dget.go(t, key, es))) == True{} : Bool}:
-  match t:
-    case True{}:
-      dfind_ok(b, es, key)
-    case False{}:
-      or_true(b)
+          dfind_k_ok(b, V.veq(k, key), v, V.dfind(rest, key), dfind_ok(b, rest, key))
 
 # a builtin on two lists yields a list or unit, no placeholder
 def lst2_ok(+b: Bool, +t: Bool, +xs: List<&2, V.Val>, +ys: List<&2, V.Val>) -> {Bool.or(b, V.clean(V.lst2.go(t, xs, ys))) == True{} : Bool}:
@@ -1281,7 +1438,7 @@ def lst2_ok(+b: Bool, +t: Bool, +xs: List<&2, V.Val>, +ys: List<&2, V.Val>) -> {
     case False{}:
       or_true(b)
 
-def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.builtin_last(op, args, x))) == True{} : Bool}:
+def last_ok_n(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.builtin_last.n(op, args, x))) == True{} : Bool}:
   match args:
     case Nil{}:
       x1_ok(b, op, x)
@@ -1362,7 +1519,7 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                 case V.VList{ys}:
                   lst2_ok(b, U32.is_eq(op, 4), xs, ys)
                 case V.VDict{es}:
-                  dget_ok(b, U32.is_eq(op, 5), xs, es)
+                  or_true(b)
                 case V.VErr{er}:
                   or_true(b)
             case Con{h2, t2}:
@@ -1382,13 +1539,193 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                 case V.VList{ys}:
                   lst2_ok(b, U32.is_eq(op, 4), xs, ys)
                 case V.VDict{es}:
-                  dget_ok(b, U32.is_eq(op, 5), xs, es)
+                  or_true(b)
                 case V.VErr{er}:
                   or_true(b)
         case V.VDict{es}:
           or_true(b)
         case V.VErr{er}:
           or_true(b)
+
+# the builtins on dicts give clean values: a dict, a member read through
+# its guard, or an error
+def tag_ok(+b: Bool, +t: Bool, +k: V.Val, +v: V.Val) -> {Bool.or(b, V.clean(V.tag.go(t, k, v))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      or_true(b)
+
+def tagv_ok(+b: Bool, +k: V.Val, +v: V.Val) -> {Bool.or(b, V.clean(V.tagv(k, v))) == True{} : Bool}:
+  tag_ok(b, V.comparable(k), k, v)
+
+def dunion_k_ok(+b: Bool, +t: Bool, +r: V.Val, ih: {Bool.or(b, V.clean(r)) == True{} : Bool}) -> {Bool.or(b, V.clean(V.dunion.k(t, r))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      ih
+
+def dunion_ok(+b: Bool, +bs: List<&2, V.Ent>, +acc: List<&2, V.Ent>) -> {Bool.or(b, V.clean(V.dunion(bs, acc))) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      or_true(b)
+    case Con{+e, +rest}:
+      match e:
+        case V.Ent{+k, +v}:
+          dunion_k_ok(b, V.dhas(acc, k), V.dunion(rest, List.append(&2, V.Ent, acc, [V.Ent{k, v}])), dunion_ok(b, rest, List.append(&2, V.Ent, acc, [V.Ent{k, v}])))
+
+def get_l_ok(+b: Bool, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.get.l(args, x))) == True{} : Bool}:
+  match args:
+    case Nil{}:
+      or_true(b)
+    case Con{+k, +t}:
+      match t:
+        case Nil{}:
+          match x:
+            case V.VUnit{}:
+              or_true(b)
+            case V.VNum{n1}:
+              or_true(b)
+            case V.VLazy{h1}:
+              or_true(b)
+            case V.VFun{o1, n2, l1}:
+              or_true(b)
+            case V.VFree{f1}:
+              or_true(b)
+            case V.VP2{o2, n3, c1, d1}:
+              or_true(b)
+            case V.VList{xs1}:
+              or_true(b)
+            case V.VDict{es1}:
+              dfind_ok(b, es1, k)
+            case V.VErr{e1}:
+              or_true(b)
+        case Con{+y, +r}:
+          match y:
+            case V.VUnit{}:
+              or_true(b)
+            case V.VNum{n1}:
+              or_true(b)
+            case V.VLazy{h1}:
+              or_true(b)
+            case V.VFun{o1, n2, l1}:
+              or_true(b)
+            case V.VFree{f1}:
+              or_true(b)
+            case V.VP2{o2, n3, c1, d1}:
+              or_true(b)
+            case V.VList{xs1}:
+              or_true(b)
+            case V.VDict{es1}:
+              dfind_ok(b, es1, k)
+            case V.VErr{e1}:
+              or_true(b)
+
+def union_l_ok(+b: Bool, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.union.l(args, x))) == True{} : Bool}:
+  match args:
+    case Nil{}:
+      or_true(b)
+    case Con{+h, +t}:
+      match h:
+        case V.VDict{+a}:
+          match t:
+            case Nil{}:
+              match x:
+                case V.VUnit{}:
+                  or_true(b)
+                case V.VNum{n1}:
+                  or_true(b)
+                case V.VLazy{h1}:
+                  or_true(b)
+                case V.VFun{o1, n2, l1}:
+                  or_true(b)
+                case V.VFree{f1}:
+                  or_true(b)
+                case V.VP2{o2, n3, c1, d1}:
+                  or_true(b)
+                case V.VList{xs1}:
+                  or_true(b)
+                case V.VDict{es1}:
+                  dunion_ok(b, es1, a)
+                case V.VErr{e1}:
+                  or_true(b)
+            case Con{+y, +r}:
+              match y:
+                case V.VUnit{}:
+                  or_true(b)
+                case V.VNum{n1}:
+                  or_true(b)
+                case V.VLazy{h1}:
+                  or_true(b)
+                case V.VFun{o1, n2, l1}:
+                  or_true(b)
+                case V.VFree{f1}:
+                  or_true(b)
+                case V.VP2{o2, n3, c1, d1}:
+                  or_true(b)
+                case V.VList{xs1}:
+                  or_true(b)
+                case V.VDict{es1}:
+                  dunion_ok(b, es1, a)
+                case V.VErr{e1}:
+                  or_true(b)
+        case V.VUnit{}:
+          or_true(b)
+        case V.VNum{n1}:
+          or_true(b)
+        case V.VLazy{h1}:
+          or_true(b)
+        case V.VFun{o1, n2, l1}:
+          or_true(b)
+        case V.VFree{f1}:
+          or_true(b)
+        case V.VP2{o2, n3, c1, d1}:
+          or_true(b)
+        case V.VList{xs1}:
+          or_true(b)
+        case V.VErr{e1}:
+          or_true(b)
+
+def tag_l_ok(+b: Bool, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.tag.l(args, x))) == True{} : Bool}:
+  match args:
+    case Nil{}:
+      or_true(b)
+    case Con{+k, +t}:
+      match t:
+        case Nil{}:
+          tagv_ok(b, k, x)
+        case Con{+v, +r}:
+          tagv_ok(b, k, v)
+
+def dl7_ok(+b: Bool, +t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.dict.l7(t, op, args, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      tag_l_ok(b, args, x)
+    case False{}:
+      or_true(b)
+
+def dl6_ok(+b: Bool, +t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.dict.l6(t, op, args, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      union_l_ok(b, args, x)
+    case False{}:
+      dl7_ok(b, U32.is_eq(op, 7), op, args, x)
+
+def dl5_ok(+b: Bool, +t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.dict.l5(t, op, args, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      get_l_ok(b, args, x)
+    case False{}:
+      dl6_ok(b, U32.is_eq(op, 6), op, args, x)
+
+# a builtin given its last argument yields a clean value, by its op
+def last_ok_k(+b: Bool, +t: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.builtin_last.k(t, op, args, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      last_ok_n(b, op, args, x)
+    case False{}:
+      dl5_ok(b, U32.is_eq(op, 5), op, args, x)
 
 # collecting a normalized argument, not a free slot, keeps a list clean
 def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(l)), V.is_free(x)), V.all_np(List.append(&2, V.Val, l, [V.norm(x)]))) == True{} : Bool}:
@@ -1437,14 +1774,22 @@ def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np
 def fun_ok(+t: Bool, +op: U32, +need: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), V.clean(V.fun.go(t, op, need, args, x))) == True{} : Bool}:
   match t:
     case True{}:
-      last_ok(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), op, args, x)
+      last_ok_k(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), U32.is_lt(op, 5), op, args, x)
     case False{}:
       app_ok(args, x)
+
+# the flat form's builtin given its last argument yields a clean value
+def vp2k_ok(+b: Bool, +t: Bool, +op: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.vp2.k(t, op, a, e, x))) == True{} : Bool}:
+  match t:
+    case True{}:
+      x3_ok(b, op, a, e, x)
+    case False{}:
+      dl5_ok(b, U32.is_eq(op, 5), op, [V.VNum{a}, V.VNum{e}], x)
 
 def vp2_ok(+t: Bool, +op: U32, +need: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(V.is_free(x), V.clean(V.vp2.go(t, op, need, a, e, x))) == True{} : Bool}:
   match t:
     case True{}:
-      x3_ok(V.is_free(x), op, a, e, x)
+      vp2k_ok(V.is_free(x), U32.is_lt(op, 5), op, a, e, x)
     case False{}:
       match x:
         case V.VUnit{}:
