@@ -231,6 +231,26 @@ of 2026-10-26, Bend 2.0.39.
 - **Revisit:** when the kernel's kinds pass 16, or Bend emits jump
   tables.
 
+### A matched number kept as its bits past a call
+
+- **Need:** a `U32` matched by value (`case 0`, `case 1`, `case _`) and
+  used in its default arm after a call the arm continues from: demand's
+  walk telling, after a rewrite, whether it took b's slot
+  (`blend-kernel-chain.calls` in `docs/plans/Blend_2026-11-04.md`).
+- **Upstream:** none known; a suggestion to raise later, the default arm
+  bound to the number itself.
+- **Evidence:** Bend 2.0.39 binds each bit of the number in a match's
+  default arm, `(sb >> i) & 1`, and rebuilds the number from them, 32
+  shifts and ors, where the arm uses it. After a call not in tail
+  position, the 32 bits are saved in its continuation: 38 slots where
+  the arms on main, each calling `go` itself, saved 4 and 6. `wk.rw` passing `sb` past its
+  call of `go` made demand 40% to 49% dearer in instructions, its
+  interactions alike (store run 289 against 288, i7-6700).
+- **Workaround:** test the number into Bools before the call
+  (`U32.is_eq(sb, 0)`) and pass those, or use it in a default arm only in
+  tail position.
+- **Revisit:** when a default arm binds the number whole.
+
 ### Records returned through every level, where clang will not inline
 
 - **Need:** a loop whose state is a record of several fields (the net,
