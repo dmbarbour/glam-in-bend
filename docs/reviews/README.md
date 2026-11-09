@@ -21,6 +21,14 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   glam-in-bend has taken, the spike against the path to the product, and
   what to do or stop doing to get there; drafted for the maintainer at
   their request.
+- [`Heap_2026-11-09.md`](Heap_2026-11-09.md): the heap's options and
+  intentions toward high parallelism, where the current plans hinder
+  it, and alternatives free of the Rust bootstrap and the sketch: heaps
+  per net, nets as heaps; two reviewers, the agent and Fable; drafted
+  for the maintainer at their request.
+- [`HeapFable_2026-11-09.md`](HeapFable_2026-11-09.md): the second
+  reviewer's review of the same question, by a Fable sub-agent, kept as
+  written beside `Heap_2026-11-09.md`, which summarizes it.
 
 ## Retired
 
