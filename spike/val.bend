@@ -22,9 +22,12 @@ type Val is Data:
   VP2{+op: U32, +need: U32, +a: U32, +b: U32}
 
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
-# (three). A builtin waits for `need` more arguments, collected in order.
-# The arithmetic on numbers is num1's, num2's and num3's alone, which the
-# kernel's native path calls too.
+# (three), op 4 append, glam's `++` (two lists: HelloLadder's
+# ladder-lists). A builtin waits for `need` more arguments, collected in
+# order. The arithmetic on numbers is num1's, num2's and num3's alone,
+# which the kernel's native path calls too; lists only meet the general
+# path (V.apply_fn), a list being an entry of a net's table. A builtin
+# given arguments it has no case for answers unit, as before.
 
 def num1.go(+t: Bool, +a: U32) -> Val:
   match t:
@@ -59,6 +62,17 @@ def num2(+op: U32, +a: U32, +b: U32) -> Val:
 def num3(+op: U32, +a: U32, +b: U32, +c: U32) -> Val:
   num3.go(U32.is_eq(op, 3), a, b, c)
 
+def lst2.go(+t: Bool, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
+  match t:
+    case True{}:
+      VList{List.append(&2, Val, xs, ys)}
+    case False{}:
+      VUnit{}
+
+# op on two lists
+def lst2(+op: U32, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
+  lst2.go(U32.is_eq(op, 4), xs, ys)
+
 def builtin(+op: U32, args: List<&2, Val>) -> Val:
   match args:
     case Con{VNum{+a}, t}:
@@ -71,6 +85,12 @@ def builtin(+op: U32, args: List<&2, Val>) -> Val:
               num2(op, a, b)
         case _:
           num1(op, a)
+    case Con{VList{xs}, t}:
+      match t:
+        case Con{VList{ys}, u}:
+          lst2(op, xs, ys)
+        case _:
+          VUnit{}
     case _:
       VUnit{}
 
@@ -95,9 +115,16 @@ def last.x3(+op: U32, +a: U32, +b: U32, x: Val) -> Val:
     case _:
       num2(op, a, b)
 
+def last.l2(+op: U32, xs: List<&2, Val>, x: Val) -> Val:
+  match x:
+    case VList{ys}:
+      lst2(op, xs, ys)
+    case _:
+      VUnit{}
+
 # builtin(op, args ++ [x]) without building the list: the collected
 # arguments matched where they lie, x where it would follow them. Past
-# three numbers, x cannot matter.
+# three numbers, or two lists, x cannot matter.
 def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
   match args:
     case Nil{}:
@@ -116,6 +143,14 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
               num2(op, a, b)
         case _:
           num1(op, a)
+    case Con{VList{xs}, t}:
+      match t:
+        case Nil{}:
+          last.l2(op, xs, x)
+        case Con{VList{ys}, u}:
+          lst2(op, xs, ys)
+        case _:
+          VUnit{}
     case _:
       VUnit{}
 

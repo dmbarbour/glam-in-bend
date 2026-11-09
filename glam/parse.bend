@@ -5,10 +5,11 @@ import ./lex.bend as L
 # ladder-text): the language declaration first (docs/Syntax.md, Language
 # Version Declaration), then definitions `path = Expr`, each declaration
 # beginning at column 0 and continuing on indented lines (Toplevel
-# Structure). Expressions are texts alone for now. Diagnostics carry the
-# line of the declaration they are about, as samples/invalid's .expect
-# files name them; every declaration is read, so that one file reports
-# all its errors.
+# Structure). Expressions, as far as the ladder reaches: texts, decimal
+# numbers, names and dotted paths, list literals, parentheses, and the
+# infix `++` (ladder-lists). Diagnostics carry the line of the token at
+# fault, as samples/invalid's .expect files name them; every declaration
+# is read, so that one file reports all its errors.
 #
 # Bend admits no mutual recursion and no match on a computed value, so
 # each loop here is one function recurring on its list, the step it takes
@@ -16,6 +17,12 @@ import ./lex.bend as L
 
 type Expr is Data:
   EText{s: List<&2, U32>}
+  ENum{+n: U32}
+  EList{xs: List<&2, Expr>}
+  # a name, or a dotted path of names
+  EName{+line: U32, path: List<&2, List<&2, U32>>}
+  # an infix operator applied, at the operator's line
+  EOp2{+line: U32, op: List<&2, U32>, a: Expr, b: Expr}
 
 # a definition: its line, its path (`asm.result` is [asm, result]), its
 # body
@@ -88,6 +95,10 @@ def tok_line(t: L.Tok) -> U32:
       line
     case L.TOther{+line, +col, +b}:
       line
+    case L.TPun{+line, +col, +b}:
+      line
+    case L.TOp{+line, +col, s}:
+      line
 
 def tok_col(t: L.Tok) -> U32:
   match t:
@@ -102,6 +113,10 @@ def tok_col(t: L.Tok) -> U32:
     case L.TOpen{+line, +col}:
       col
     case L.TOther{+line, +col, +b}:
+      col
+    case L.TPun{+line, +col, +b}:
+      col
+    case L.TOp{+line, +col, s}:
       col
 
 # a token named for a message
@@ -119,6 +134,10 @@ def tok_show(t: L.Tok) -> String:
       "an unclosed text"
     case L.TOther{+line, +col, +b}:
       str([b])
+    case L.TPun{+line, +col, +b}:
+      str([b])
+    case L.TOp{+line, +col, s}:
+      str(s)
 
 # Declarations
 # ============
@@ -271,27 +290,403 @@ type Dc is Data:
   DOk{d: Def}
   DErr{d: Diag}
 
-# after a text: nothing more, for now
-def body.end(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Dc:
-  match ts:
+# a name begins with a letter
+def name_ok(s: List<&2, U32>) -> Bool:
+  match s:
+    case Con{+b, rest}:
+      L.is_letter(b)
     case Nil{}:
-      DOk{Def{line, path, EText{s}}}
-    case Con{t, rest}:
-      DErr{Diag{line, "this form is not supported yet: " ++ tok_show(t)}}
+      False{}
 
-# the body after `=`: a text, for now
-def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
+# Expressions
+# ===========
+#
+# One machine over a declaration's tokens after `=`, Bend admitting no
+# mutual recursion for a parser that descends: a stack of open frames
+# (a list's `[`, a `(`, an infix operator waiting for its right operand)
+# and the mode, an operand wanted or one in hand. Precedence in glam is a
+# partial relation (docs/Syntax.md, Operators): a chain of one operator
+# needs no parentheses, two different ones do. `++` is the one known so
+# far; its chains group to the right, append being associative.
+
+type Fr is Data:
+  # an open `[`: its line, the members so far reversed, and how it
+  # stands: 0 just opened, 1 after a leading comma, 2 after a member's
+  # comma
+  FList{+line: U32, xs: List<&2, Expr>, +sep: U32}
+  FParen{+line: U32}
+  FOp{+line: U32, op: List<&2, U32>, a: Expr}
+
+type Pm is Data:
+  MWant{st: List<&2, Fr>}
+  MHave{st: List<&2, Fr>, e: Expr}
+  # after a name and `.`: the path so far
+  MDot{st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>}
+  MFail{d: Diag}
+
+type Ex is Data:
+  XOk{e: Expr}
+  XErr{d: Diag}
+
+def fail(+line: U32, msg: String) -> Pm:
+  MFail{Diag{line, msg}}
+
+def no_right(+line: U32) -> Pm:
+  fail(line, "an infix operator requires a right operand")
+
+# Numbers: decimal digits, at most ten and below 2^32 for now, exact
+# rationals coming with ladder-numbers; past that a diagnostic, never a
+# Nat past 2^48, which would stop the program (AGENTS.md: a crash on user
+# input is a bug).
+
+def all_digits(s: List<&2, U32>) -> Bool:
+  match s:
+    case Nil{}:
+      True{}
+    case Con{+b, rest}:
+      L.is_digit(b) && all_digits(rest)
+
+def nat_of(s: List<&2, U32>, acc: Nat) -> Nat:
+  match s:
+    case Nil{}:
+      acc
+    case Con{+b, rest}:
+      nat_of(rest, Nat.add(Nat.mul(acc, 10n), U32.to_nat((b - 48 : U32))))
+
+def num.v(+small: Bool, st: List<&2, Fr>, +line: U32, +v: Nat) -> Pm:
+  match small:
+    case True{}:
+      MHave{st, ENum{U32.from_nat(v)}}
+    case False{}:
+      fail(line, "a number past 2^32 - 1 is not supported yet")
+
+def num.k(+ok: Bool, st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      num.v(Nat.is_le(nat_of(s, 0n), 4294967295n), st, line, nat_of(s, 0n))
+    case False{}:
+      fail(line, "this number form is not supported yet: " ++ str(s))
+
+def number(st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  num.k(all_digits(s) && Nat.is_le(List.length(&2, U32, s), 10n), st, line, s)
+
+def word_kind.k(+digit: Bool, +letter: Bool) -> U32:
+  match digit letter:
+    case True{} _:
+      1
+    case False{} True{}:
+      2
+    case False{} False{}:
+      0
+
+# a word's first byte: 1 a digit, 2 a letter, 0 anything else
+def word_kind(s: List<&2, U32>) -> U32:
+  match s:
+    case Con{+b, rest}:
+      word_kind.k(L.is_digit(b), L.is_letter(b))
+    case Nil{}:
+      0
+
+def word.k(+kind: U32, st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  match kind:
+    case 1:
+      number(st, line, s)
+    case 2:
+      MHave{st, EName{line, [s]}}
+    case _:
+      fail(line, "this form is not supported yet: " ++ str(s))
+
+def word(st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  word.k(word_kind(s), st, line, s)
+
+# Closers and commas where an operand is wanted
+# ---------------------------------------------
+
+def mismatch(+line: U32, want: String, +b: U32) -> Pm:
+  fail(line, "mismatched closing delimiter: expected `" ++ want ++ "`, found `" ++ str([b]) ++ "`")
+
+# `]` or `)` facing an open `[`: an empty list, a trailing comma's end, or
+# an empty member after a lone leading comma
+def want.close.list(+sq: Bool, +sep: U32, xs: List<&2, Expr>, rest: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match sq sep:
+    case False{} _:
+      mismatch(line, "]", b)
+    case True{} 1:
+      fail(line, "a list holds an empty member between separators")
+    case True{} _:
+      MHave{rest, EList{List.reverse(&2, Expr, xs)}}
+
+def want.close.paren(+round: Bool, +line: U32, +b: U32) -> Pm:
+  match round:
+    case True{}:
+      fail(line, "this form is not supported yet: ()")
+    case False{}:
+      mismatch(line, ")", b)
+
+def want.close(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "unbalanced closing delimiter `" ++ str([b]) ++ "`")
+    case Con{f, rest}:
+      match f:
+        case FList{+l, xs, +sep}:
+          want.close.list(U32.is_eq(b, 93), sep, xs, rest, line, b)
+        case FParen{+l}:
+          want.close.paren(U32.is_eq(b, 41), line, b)
+        case FOp{+l, op, a}:
+          no_right(l)
+
+def want.comma.k(+sep: U32, +l: U32, xs: List<&2, Expr>, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match sep:
+    case 0:
+      MWant{Con{FList{l, xs, 1}, rest}}
+    case _:
+      fail(line, "a list holds an empty member between separators")
+
+def want.comma(st: List<&2, Fr>, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a comma outside brackets")
+    case Con{f, rest}:
+      match f:
+        case FList{+l, xs, +sep}:
+          want.comma.k(sep, l, xs, rest, line)
+        case FParen{+l}:
+          fail(line, "tuples are not supported yet")
+        case FOp{+l, op, a}:
+          no_right(l)
+
+def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match b:
+    case 91:
+      MWant{Con{FList{line, Nil{}, 0}, st}}
+    case 40:
+      MWant{Con{FParen{line}, st}}
+    case 93:
+      want.close(st, line, 93)
+    case 41:
+      want.close(st, line, 41)
+    case 44:
+      want.comma(st, line)
+    case _:
+      fail(line, "this form is not supported yet: " ++ str([b]))
+
+# an operand wanted
+def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
+  match t:
+    case L.TText{+l, +c, s}:
+      MHave{st, EText{s}}
+    case L.TOpen{+l, +c}:
+      fail(l, "a text is not closed on its line")
+    case L.TWord{+l, +c, s}:
+      word(st, l, s)
+    case L.TPun{+l, +c, +b}:
+      want.pun(st, l, b)
+    case L.TOp{+l, +c, s}:
+      fail(l, "expected an expression before " ++ str(s))
+    case L.TEq{+l, +c}:
+      fail(l, "expected an expression, found =")
+    case L.TDot{+l, +c}:
+      fail(l, "expected an expression, found .")
+    case L.TOther{+l, +c, +b}:
+      fail(l, "unexpected character " ++ str([b]))
+
+# Operators, commas and closers after an operand
+# ----------------------------------------------
+
+type Rd is Data:
+  Rd{st: List<&2, Fr>, e: Expr}
+
+# the operators waiting on top of the stack applied, the latest first,
+# so that a chain of one operator groups to the right
+def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
+  match st:
+    case Nil{}:
+      Rd{Nil{}, e}
+    case Con{f, rest}:
+      match f:
+        case FOp{+line, op, a}:
+          reduce(rest, EOp2{line, op, a, e})
+        case FList{+line, xs, +sep}:
+          Rd{Con{FList{line, xs, sep}, rest}, e}
+        case FParen{+line}:
+          Rd{Con{FParen{line}, rest}, e}
+
+def have.op.k(+known: Bool, st: List<&2, Fr>, e: Expr, +line: U32, op: List<&2, U32>) -> Pm:
+  match known:
+    case True{}:
+      MWant{Con{FOp{line, op, e}, st}}
+    case False{}:
+      fail(line, "the operator " ++ str(op) ++ " is not supported yet")
+
+def have.op(st: List<&2, Fr>, e: Expr, +line: U32, +op: List<&2, U32>) -> Pm:
+  have.op.k(bytes_eq(op, [43, 43]), st, e, line, op)
+
+def have.comma(r: Rd, +line: U32) -> Pm:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          fail(line, "a comma outside brackets")
+        case Con{f, rest}:
+          match f:
+            case FList{+l, xs, +sep}:
+              MWant{Con{FList{l, Con{e, xs}, 2}, rest}}
+            case FParen{+l}:
+              fail(line, "tuples are not supported yet")
+            case FOp{+l, op, a}:
+              fail(line, "an operator left waiting")
+
+def have.close.list(+sq: Bool, xs: List<&2, Expr>, e: Expr, rest: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match sq:
+    case True{}:
+      MHave{rest, EList{List.reverse(&2, Expr, Con{e, xs})}}
+    case False{}:
+      mismatch(line, "]", b)
+
+def have.close.paren(+round: Bool, e: Expr, rest: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match round:
+    case True{}:
+      MHave{rest, e}
+    case False{}:
+      mismatch(line, ")", b)
+
+def have.close(r: Rd, +line: U32, +b: U32) -> Pm:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          fail(line, "unbalanced closing delimiter `" ++ str([b]) ++ "`")
+        case Con{f, rest}:
+          match f:
+            case FList{+l, xs, +sep}:
+              have.close.list(U32.is_eq(b, 93), xs, e, rest, line, b)
+            case FParen{+l}:
+              have.close.paren(U32.is_eq(b, 41), e, rest, line, b)
+            case FOp{+l, op, a}:
+              fail(line, "an operator left waiting")
+
+def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
+  match b:
+    case 44:
+      have.comma(reduce(st, e), line)
+    case 93:
+      have.close(reduce(st, e), line, 93)
+    case 41:
+      have.close(reduce(st, e), line, 41)
+    case _:
+      fail(line, "this form is not supported yet: " ++ str([b]))
+
+# `.` after an operand: a path goes on after a name
+def have.dot(e: Expr, st: List<&2, Fr>, +line: U32) -> Pm:
+  match e:
+    case EName{+l, path}:
+      MDot{st, l, path}
+    case _:
+      fail(line, "a field of an expression is not supported yet")
+
+# an operand in hand
+def have(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
+  match t:
+    case L.TOp{+l, +c, s}:
+      have.op(st, e, l, s)
+    case L.TPun{+l, +c, +b}:
+      have.pun(st, e, l, b)
+    case L.TDot{+l, +c}:
+      have.dot(e, st, l)
+    case L.TWord{+l, +c, s}:
+      fail(l, "function application is not supported yet: " ++ str(s))
+    case L.TText{+l, +c, s}:
+      fail(l, "function application is not supported yet: a text")
+    case L.TOpen{+l, +c}:
+      fail(l, "a text is not closed on its line")
+    case L.TEq{+l, +c}:
+      fail(l, "unexpected =")
+    case L.TOther{+l, +c, +b}:
+      fail(l, "unexpected character " ++ str([b]))
+
+def dot.word(+ok: Bool, st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      MHave{st, EName{line, List.append(&2, List<&2, U32>, path, [s])}}
+    case False{}:
+      fail(line, "expected a name after .")
+
+# after `name.`: the path's next name
+def dot(st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, t: L.Tok) -> Pm:
+  match t:
+    case L.TWord{+l, +c, +s}:
+      dot.word(name_ok(s), st, line, path, s)
+    case _:
+      fail(line, "expected a name after .")
+
+def step(m: Pm, t: L.Tok) -> Pm:
+  match m:
+    case MFail{d}:
+      MFail{d}
+    case MWant{st}:
+      want(st, t)
+    case MHave{st, e}:
+      have(st, e, t)
+    case MDot{st, +line, path}:
+      dot(st, line, path, t)
+
+def expr.go(ts: List<&2, L.Tok>, m: Pm) -> Pm:
   match ts:
     case Nil{}:
-      DErr{Diag{line, "expected an expression after ="}}
-    case Con{+t, rest}:
-      match t:
-        case L.TText{+l, +c, s}:
-          body.end(rest, line, path, s)
-        case L.TOpen{+l, +c}:
-          DErr{Diag{line, "a text is not closed on its line"}}
-        case _:
-          DErr{Diag{line, "this form is not supported yet: " ++ tok_show(t)}}
+      m
+    case Con{t, rest}:
+      expr.go(rest, step(m, t))
+
+# The end of a declaration
+# ------------------------
+
+def unclosed(f: Fr) -> Ex:
+  match f:
+    case FList{+l, xs, +sep}:
+      XErr{Diag{l, "unclosed delimiter: expected `]`"}}
+    case FParen{+l}:
+      XErr{Diag{l, "unclosed delimiter: expected `)`"}}
+    case FOp{+l, op, a}:
+      XErr{Diag{l, "an infix operator requires a right operand"}}
+
+def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
+  match st:
+    case Nil{}:
+      XErr{Diag{line, "expected an expression after ="}}
+    case Con{f, rest}:
+      unclosed(f)
+
+def end.have(r: Rd) -> Ex:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          XOk{e}
+        case Con{f, rest}:
+          unclosed(f)
+
+def end(m: Pm, +line: U32) -> Ex:
+  match m:
+    case MFail{d}:
+      XErr{d}
+    case MDot{st, +l, path}:
+      XErr{Diag{l, "expected a name after ."}}
+    case MWant{st}:
+      end.want(st, line)
+    case MHave{st, e}:
+      end.have(reduce(st, e))
+
+def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
+  match x:
+    case XOk{e}:
+      DOk{Def{line, path, e}}
+    case XErr{d}:
+      DErr{d}
+
+# the body after `=`: an expression, to the declaration's end
+def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
+  body.x(end(expr.go(ts, MWant{Nil{}}), line), line, path)
 
 # a path being read: the names so far reversed and whether a name is
 # expected next (after `.`, or at the start) or `.` or `=`; then the body
@@ -300,13 +695,6 @@ type Ps is Data:
   PNext{acc: List<&2, List<&2, U32>>, +name: Bool}
   PBody{path: List<&2, List<&2, U32>>}
   PFail{d: Diag}
-
-def name_ok(s: List<&2, U32>) -> Bool:
-  match s:
-    case Con{+b, rest}:
-      L.is_letter(b)
-    case Nil{}:
-      False{}
 
 def path.word(+ok: Bool, +line: U32, s: List<&2, U32>, acc: List<&2, List<&2, U32>>) -> Ps:
   match ok:

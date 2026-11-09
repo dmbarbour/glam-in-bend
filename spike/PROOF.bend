@@ -915,7 +915,39 @@ def Laws.builtin_last_agrees(op, args, x):
         case V.VP2{o, nd, c, d}:
           {==}
         case V.VList{xs}:
-          {==}
+          match t1:
+            case Nil{}:
+              match x:
+                case V.VUnit{}:
+                  {==}
+                case V.VNum{n}:
+                  {==}
+                case V.VLazy{k}:
+                  {==}
+                case V.VFun{o, nd, l}:
+                  {==}
+                case V.VFree{f}:
+                  {==}
+                case V.VP2{o, nd, c, d}:
+                  {==}
+                case V.VList{ys}:
+                  {==}
+            case Con{h2, t2}:
+              match h2:
+                case V.VUnit{}:
+                  {==}
+                case V.VNum{n}:
+                  {==}
+                case V.VLazy{k}:
+                  {==}
+                case V.VFun{o, nd, l}:
+                  {==}
+                case V.VFree{f}:
+                  {==}
+                case V.VP2{o, nd, c, d}:
+                  {==}
+                case V.VList{ys}:
+                  {==}
         case V.VNum{a}:
           match t1:
             case Nil{}:
@@ -1116,6 +1148,14 @@ def x3_ok(+b: Bool, +op: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(b, V.clea
       num2_ok(b, U32.is_eq(op, 2), a, e)
 
 # builtin_last yields a number or unit
+# a builtin on two lists yields a list or unit, no placeholder
+def lst2_ok(+b: Bool, +t: Bool, +xs: List<&2, V.Val>, +ys: List<&2, V.Val>) -> {Bool.or(b, V.clean(V.lst2.go(t, xs, ys))) == True{} : Bool}:
+  match t:
+    case True{}:
+      or_true(b)
+    case False{}:
+      or_true(b)
+
 def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b, V.clean(V.builtin_last(op, args, x))) == True{} : Bool}:
   match args:
     case Nil{}:
@@ -1171,7 +1211,39 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
         case V.VP2{o, nd, c, d}:
           or_true(b)
         case V.VList{xs}:
-          or_true(b)
+          match t1:
+            case Nil{}:
+              match x:
+                case V.VUnit{}:
+                  or_true(b)
+                case V.VNum{n}:
+                  or_true(b)
+                case V.VLazy{k}:
+                  or_true(b)
+                case V.VFun{o, nd, l}:
+                  or_true(b)
+                case V.VFree{f}:
+                  or_true(b)
+                case V.VP2{o, nd, c, d}:
+                  or_true(b)
+                case V.VList{ys}:
+                  lst2_ok(b, U32.is_eq(op, 4), xs, ys)
+            case Con{h2, t2}:
+              match h2:
+                case V.VUnit{}:
+                  or_true(b)
+                case V.VNum{n}:
+                  or_true(b)
+                case V.VLazy{k}:
+                  or_true(b)
+                case V.VFun{o, nd, l}:
+                  or_true(b)
+                case V.VFree{f}:
+                  or_true(b)
+                case V.VP2{o, nd, c, d}:
+                  or_true(b)
+                case V.VList{ys}:
+                  lst2_ok(b, U32.is_eq(op, 4), xs, ys)
 
 # collecting a normalized argument, not a free slot, keeps a list clean
 def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(l)), V.is_free(x)), V.all_np(List.append(&2, V.Val, l, [V.norm(x)]))) == True{} : Bool}:

@@ -1,40 +1,55 @@
 import Base
 import ../spike/val.bend as V
 import ../spike/kernel.bend as K
+import ../spike/knet.bend as KN
+import ../spike/kstrat.bend as KS
+import ../spike/kdemand.bend as KD
 import ./lex.bend as L
 import ./parse.bend as G
 import ./lower.bend as W
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
 # result, bytes, or its diagnostics; it never prints. As far as the hello
-# ladder has climbed (HelloLadder, ladder-text): the module parsed, its
-# `asm.result` lowered to a net and reduced on demand by the kernel
-# (K.run_d), the value read back as bytes.
+# ladder has climbed (HelloLadder): the module parsed, its `asm.result`
+# lowered to a net, the net reduced on demand by the kernel's plain
+# demand, its value read back as bytes.
+#
+# Evaluation runs in slices, `step(fuel, Core) -> Done | More` as the
+# Architecture sketch has it: each slice a fuel of demand's steps, a slice
+# that runs out (demand's state 4) set going again (state 0) by the next,
+# the walk resuming where it stopped. Bend requires every loop to end, so
+# the shell counts down a budget of slices too large for any assembly to
+# reach (glam/main.bend); no @unsafe is needed.
 
 type Out is Data:
   OBytes{bs: List<&2, U32>, +itrs: U32}
   OErrs{ds: List<&2, G.Diag>}
 
-def find.k(+hit: Bool, body: G.Expr) -> Maybe<&2, G.Expr>:
+# where an assembly stands: done, or a demand to go on with
+type Run is Type:
+  RDone{o: Out}
+  RMore{d: KD.D}
+
+def find.k(+hit: Bool, d: G.Def) -> Maybe<&2, G.Def>:
   match hit:
     case True{}:
-      Some{body}
+      Some{d}
     case False{}:
       None{}
 
 # asm.result among the definitions, walked with what was found so far
-def find(ds: List<&2, G.Def>, found: Maybe<&2, G.Expr>) -> Maybe<&2, G.Expr>:
+def find(ds: List<&2, G.Def>, found: Maybe<&2, G.Def>) -> Maybe<&2, G.Def>:
   match ds:
     case Nil{}:
       found
     case Con{d, rest}:
       match d:
-        case G.Def{+line, path, body}:
+        case G.Def{+line, +path, body}:
           match found:
             case Some{e}:
               Some{e}
             case None{}:
-              find(rest, find.k(G.path_eq(path, [[97, 115, 109], [114, 101, 115, 117, 108, 116]]), body))
+              find(rest, find.k(G.path_eq(path, [[97, 115, 109], [114, 101, 115, 117, 108, 116]]), G.Def{line, path, body}))
 
 # a list's values as bytes: every one a number below 256
 type Bs is Data:
@@ -102,25 +117,57 @@ def out(r: K.DRes) -> Out:
     case K.DRes{k, +st, +lz, +live, +cap, +reach}:
       out.st(st, k)
 
-def fuel() -> Nat:
-  1000000n
+# Slices
+# ======
 
-def run(e: Maybe<&2, G.Expr>) -> Out:
-  match e:
-    case Some{x}:
-      out(K.run_d(W.expr(x), fuel(), Nil{}))
+# the fuel of one slice: demand's steps
+def slice() -> Nat:
+  1048576n
+
+# a slice's end: out of fuel goes on (state 4 set going again, 0); any
+# other state ends the assembly
+def sliced(d: KD.D) -> Run:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      match st:
+        case 4:
+          RMore{KD.D{h, path, top, depth, n, 0}}
+        case _:
+          RDone{out(K.dres(KD.D{h, path, top, depth, n, st}))}
+
+# one slice of the assembly
+def step(d: KD.D) -> Run:
+  sliced(KD.Demand.demand(slice(), d))
+
+# Starting
+# ========
+
+def lowered(w: W.Lw) -> Run:
+  match w:
+    case W.LOk{t}:
+      RMore{KS.d.start(KN.load(t))}
+    case W.LErr{d}:
+      RDone{OErrs{[d]}}
+
+def run(m: Maybe<&2, G.Def>) -> Run:
+  match m:
+    case Some{d}:
+      match d:
+        case G.Def{+line, path, body}:
+          lowered(W.expr(body, line))
     case None{}:
-      OErrs{[G.Diag{0, "asm.result is not defined"}]}
+      RDone{OErrs{[G.Diag{0, "asm.result is not defined"}]}}
 
-def assemble.p(p: G.Parsed) -> Out:
+def start.p(p: G.Parsed) -> Run:
   match p:
     case G.PErr{ds}:
-      OErrs{ds}
+      RDone{OErrs{ds}}
     case G.POk{m}:
       match m:
         case G.Mod{+utf8, defs}:
           run(find(defs, None{}))
 
-# a ".g" source's bytes to its assembly
-def assemble(bs: List<&2, U32>) -> Out:
-  assemble.p(G.parse(L.lex(bs)))
+# a ".g" source's bytes to its assembly, begun: parsed and lowered, its
+# evaluation not yet stepped
+def start(bs: List<&2, U32>) -> Run:
+  start.p(G.parse(L.lex(bs)))

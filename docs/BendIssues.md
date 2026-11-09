@@ -37,6 +37,25 @@ of 2026-10-26, Bend 2.0.39.
   the runtime's internals, at the price of breaking across releases.
 - **Revisit:** when large binary imports matter, or at whole-system tuning.
 
+### Binary output to standard output
+
+- **Need:** the assembler writes a binary `asm.result` to standard output
+  (docs/CLI.md, `--stdout`, the default).
+- **Upstream:** none known; a suggestion to raise later, a byte-list write
+  to stdout beside `IO.write`.
+- **Evidence:** Bend 2.0.39: `IO.write` takes a `String` and encodes it as
+  UTF-8, so a byte past 127 comes out as two (200 as 195 136;
+  2026-11-09). A `File` opened on `/dev/stdout` writes bytes, but is a
+  description of its own: opened to write it truncates a stdout that is a
+  file, losing what was written before; opened to append it writes at the
+  file's end while the shell's descriptor keeps its own offset, so a
+  later write through the shell's (`(glam ...; echo x) > out`) lands over
+  it. Pipes and terminals are unaffected.
+- **Workaround:** `/dev/stdout` opened to append (glam/main.bend), right
+  where the assembler is the file's only writer; `-o PATH` for a file.
+  Bend has no rename, so `-o`'s atomic replacement (CLI.md) waits too.
+- **Revisit:** when `-o` is built, or Bend gains a byte write to stdout.
+
 ### Compile-time specialization
 
 - **Need:** the spike's rewrites must stay answerable to the rule table its

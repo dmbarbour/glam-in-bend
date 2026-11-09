@@ -10,3 +10,6 @@ ladder-text samples/invalid/syntax/unknown_language_version.g
 ladder-text samples/invalid/syntax/unknown_language_extension.g
 ladder-text samples/invalid/syntax/bad_language_decl.g
 ladder-text samples/invalid/syntax/non_ascii_without_utf8.g
+ladder-lists samples/hello/hello_list.g
+ladder-lists samples/hello/hello_mixed.g
+ladder-lists samples/invalid/syntax/bad_asm_result.g

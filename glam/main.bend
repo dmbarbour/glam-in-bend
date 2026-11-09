@@ -3,11 +3,11 @@ import ./parse.bend as G
 import ./core.bend as C
 
 # The assembler's shell (pure-core-io-shell), as far as the hello ladder
-# has climbed (HelloLadder, ladder-text): one source file read, the core
-# run on its bytes, `asm.result` written to stdout as bytes, or the
+# has climbed (HelloLadder): one source file read, the core run on its
+# bytes slice by slice, `asm.result` written to stdout as bytes, or the
 # diagnostics to stderr with exit status 1 (docs/CLI.md: the bootstrap
 # compiles only `.g`; any other extension, or none, fails the assembly
-# with exit status 1).
+# with exit status 1); a command line it cannot read exits 2.
 #
 #   glam -f FILE.g [--count]
 #
@@ -49,9 +49,13 @@ def wrote(r: File & Result<&1, &1, U32 & String, Unit>) -> IO(Unit):
         IO.print_err("glam: cannot write to stdout")
         IO.exit(1)
 
+# the bytes to stdout, binary-safe through a File on /dev/stdout
+# (IO.write encodes a String as UTF-8), opened to append: opened to write,
+# a stdout that is a file would be truncated (docs/BendIssues.md, Binary
+# output to standard output)
 def emit(bs: List<&2, U32>) -> IO(Unit):
   do IO<Unit>:
-    f : File <- IO.try(File, File.open("/dev/stdout", "w"))
+    f : File <- IO.try(File, File.open("/dev/stdout", "a"))
     r : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
     wrote(r)
 
@@ -71,13 +75,35 @@ def finish(o: C.Out, +count: Bool) -> IO(Unit):
     case C.OErrs{ds}:
       report(ds)
 
+# 2^47 slices: Bend requires every loop to end, IO's too (an IO loop
+# with no shrinking argument is refused, and @unsafe would take the shell
+# out of the proofs), so the shell counts this down; at a million steps
+# a slice, no assembly reaches it. A Nat packs below 2^48, a literal
+# below 2^32.
+def budget() -> Nat:
+  Nat.mul(65536n, Nat.mul(65536n, 32768n))
+
+# the assembly stepped slice by slice until done
+def slices(left: Nat, r: C.Run, +count: Bool) -> IO(Unit):
+  match left:
+    case 0n:
+      do IO<Unit>:
+        IO.print_err("glam: the assembly ran past its budget of slices")
+        IO.exit(1)
+    case 1n+more:
+      match r:
+        case C.RDone{o}:
+          finish(o, count)
+        case C.RMore{d}:
+          slices(more, C.step(d), count)
+
 def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool) -> IO(Unit):
   (f, r) = fr
   match r:
     case Done{bs}:
       do IO<Unit>:
         File.close(f)
-        finish(C.assemble(bs), count)
+        slices(budget(), C.start(bs), count)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
@@ -150,7 +176,7 @@ def run(m: Maybe<&1, String>, +count: Bool) -> IO(Unit):
     case None{}:
       do IO<Unit>:
         IO.print_err(usage())
-        IO.exit(1)
+        IO.exit(2)
 
 def run.args(r: Args) -> IO(Unit):
   match r:

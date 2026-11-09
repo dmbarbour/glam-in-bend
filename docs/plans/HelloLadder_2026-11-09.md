@@ -76,10 +76,51 @@ named, and marked there when a rung is built.
    about 58,000. The kernel's own counts are untouched by `V.VList`:
    the spot check against main's run 288 is alike in every row within a
    few hundred instructions (run 297).
-2. `ladder-lists` — `hello_list.g`, `hello_mixed.g`: list literals,
-   number literals in decimal, `++`. The kernel's list type, `++` as an
-   operator over it; the first lowering of an expression to a net and
-   its demand to a value (`spike-lowering`, begun).
+2. `ladder-lists` — built 2026-11-09 — `hello_list.g`,
+   `hello_mixed.g`: list literals, number literals in decimal, `++`. The
+   kernel's list type, `++` as an operator over it; the first lowering
+   of an expression to a net and its demand to a value
+   (`spike-lowering`, begun). Built: the lexer reads brackets, commas
+   and runs of operator symbols (a lone `=` the definition's sign); the
+   parser's expressions became one machine over a stack of frames, an
+   open `[`, a `(`, an operator awaiting its right operand, Bend having
+   no mutual recursion for a descending parser: texts, decimal numbers
+   (ten digits at most and below 2^32, a diagnostic past that, never a
+   `Nat` past 2^48), names and dotted paths, list literals with one
+   leading and one trailing comma, parentheses, `++` grouped to the
+   right; any other operator, application, tuples and `()` are "not
+   supported yet". `a ++ b` lowers to the builtin append (`V`'s op 4) as
+   data applied to `a` and `b`, two application binds; a list literal
+   whose members are literals is one data node. Append is in `V.builtin`
+   and `V.builtin_last` over two `V.VList`s, so the kernel and the
+   spike's interpreter compute it alike, on the general path
+   (`V.apply_fn`); the laws over the builtins are unchanged, their
+   proofs extended (`builtin_last_agrees` by `{==}` arms,
+   `apply_keeps_clean` by a lemma `lst2_ok` beside `num1_ok`). A list
+   whose members are not literals (`[1_00 + 1]`, `ladder-numbers`)
+   waits for a list constructor: an operator collecting members, or list
+   nodes (`netdata-structures`). `bad_asm_result.g` passes: "an infix
+   operator requires a right operand", at the operator's line.
+   The maintainer, 2026-11-09: the main evaluation will need unlimited
+   fuel. Found: Bend refuses an IO loop with no shrinking argument as it
+   does a pure one, and `@unsafe` takes the def and every caller out of
+   the proofs (the gate's check then fails); a loop counting down a `Nat`
+   budget, as Bend's guide advises for a loop bounded by the outside
+   world, checks clean. So the core now runs in slices,
+   `step(fuel, Core) -> Done | More` (Architecture sketch): each slice a
+   million of demand's steps, a slice that runs out (state 4) set going
+   again (state 0), the walk resuming where it stopped, and the shell
+   counting down 2^47 slices, past any assembly. A build with slices of 4
+   steps gives the same bytes and interactions on every sample.
+   Found too: Bend has no binary write to stdout (`IO.write` encodes
+   UTF-8), and `/dev/stdout` opened to write truncated a stdout that is a
+   file, losing what came before; opened to append now
+   (`docs/BendIssues.md`, Binary output to standard output). A command
+   line glam cannot read exits 2, as CLI.md has it. Measured (i7-6700):
+   `hello_list.g` 12 interactions, 541,213 instructions for the process
+   (store run 299); `hello_mixed.g` 4 and 487,476 (run 300); the
+   kernel's spot counts alike, `fma` 0.1% to 0.2% fewer (run 298
+   against 288).
 3. `ladder-locals` — `hello_where.g`, `hello_let.g`: `where` and `let`
    groups within one definition. Local bindings lowered as sharing in
    one net, a name used twice a copy fan: the first nets with fans from
@@ -122,7 +163,8 @@ named, and marked there when a rung is built.
 10. `ladder-numbers` — `hello_arith.g`, `hello_floor.g`: `0x48`, `1_00`,
    `1.08e2`, `216 / 2`, `_0b1`, `std.math.floor 13.9`. Exact rationals
    enter here (`netdata-numbers`), last, since every earlier rung stands
-   on `U32`.
+   on `U32`; and lists whose members are computed (`[1_00 + 1]`), which
+   want a list constructor (`ladder-lists`).
 11. `ladder-invalid` — `samples/invalid/` with their `.expect` lines:
     diagnostics by severity, line and substrings, from the parser first.
     Not a rung of its own in time: each rung above takes the invalid

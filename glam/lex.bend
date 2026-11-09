@@ -7,7 +7,9 @@ import Base
 # continuation lines are indented, docs/Syntax.md, Toplevel Structure).
 # Comments, `#` to the end of the line, and blanks are dropped. Texts are
 # raw: the bytes between two quotes, no escapes (Embedded Texts); a `"""`
-# block is not lexed yet. A byte past ASCII is kept where it stands, in a
+# block is not lexed yet. A run of operator symbols is one operator, `++`,
+# `:=`, `|>`, a lone `=` being the definition's sign; brackets, commas and
+# semicolons are tokens of one byte. A byte past ASCII is kept where it stands, in a
 # text or a comment, and the line of the first one is reported beside
 # the tokens, so that the parser, knowing whether `with utf8` was
 # declared, can refuse it (Character Set): the lexer does not know the
@@ -28,6 +30,10 @@ type Tok is Data:
   TText{+line: U32, +col: U32, s: List<&2, U32>}
   # a text whose closing quote never came on its line
   TOpen{+line: U32, +col: U32}
+  # a bracket, a comma or a semicolon: one of `[](){},;`
+  TPun{+line: U32, +col: U32, +b: U32}
+  # an operator: a run of operator symbols other than a lone `=`
+  TOp{+line: U32, +col: U32, s: List<&2, U32>}
   # any other byte, for the parser to name
   TOther{+line: U32, +col: U32, +b: U32}
 
@@ -63,8 +69,21 @@ def na_first.k(+past: Bool, +na: U32, +line: U32) -> U32:
 def na_first(+na: U32, +b: U32, +line: U32) -> U32:
   na_first.k(U32.is_ge(b, 128), na, line)
 
+# a bracket, a comma or a semicolon
+def is_pun(+b: U32) -> Bool:
+  U32.is_eq(b, 91) || U32.is_eq(b, 93) || U32.is_eq(b, 40) || U32.is_eq(b, 41) ||
+    U32.is_eq(b, 123) || U32.is_eq(b, 125) || U32.is_eq(b, 44) || U32.is_eq(b, 59)
+
+# an operator symbol: one of `+-*/<>|!&=:^%~?@$\`
+def is_sym(+b: U32) -> Bool:
+  U32.is_eq(b, 43) || U32.is_eq(b, 45) || U32.is_eq(b, 42) || U32.is_eq(b, 47) ||
+    U32.is_eq(b, 60) || U32.is_eq(b, 62) || U32.is_eq(b, 124) || U32.is_eq(b, 33) ||
+    U32.is_eq(b, 38) || U32.is_eq(b, 61) || U32.is_eq(b, 58) || U32.is_eq(b, 94) ||
+    U32.is_eq(b, 37) || U32.is_eq(b, 126) || U32.is_eq(b, 63) || U32.is_eq(b, 64) ||
+    U32.is_eq(b, 36) || U32.is_eq(b, 92)
+
 # the mode: 0 between tokens, 1 in a word begun at column `at`, 2 in a
-# text opened at `at`, 3 in a comment
+# text opened at `at`, 3 in a comment, 4 in an operator begun at `at`
 type St is Data:
   St{+line: U32, +col: U32, +mode: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32}
 
@@ -87,10 +106,20 @@ def class.k(+blank: Bool, +nl: Bool, +hash: Bool, +wordy: Bool, +quote: Bool, +d
     case False{} False{} False{} False{} False{} False{} False{}:
       7
 
+def class.p(+k: U32, +pun: Bool, +sym: Bool) -> U32:
+  match k pun sym:
+    case 7 True{} _:
+      8
+    case 7 False{} True{}:
+      9
+    case _ _ _:
+      k
+
 # the byte's class: 0 blank, 1 newline, 2 comment, 3 a word's start, 4 a
-# quote, 5 a dot, 6 an equals sign, 7 anything else
+# quote, 5 a dot, 6 (unused: `=` is an operator symbol), 7 anything else,
+# 8 a bracket, a comma or a semicolon, 9 an operator symbol
 def class(+b: U32) -> U32:
-  class.k(U32.is_eq(b, 32) || U32.is_eq(b, 13), U32.is_eq(b, 10), U32.is_eq(b, 35), is_letter(b) || is_digit(b), U32.is_eq(b, 34), U32.is_eq(b, 46), U32.is_eq(b, 61))
+  class.p(class.k(U32.is_eq(b, 32) || U32.is_eq(b, 13), U32.is_eq(b, 10), U32.is_eq(b, 35), is_letter(b) || is_digit(b), U32.is_eq(b, 34), U32.is_eq(b, 46), False{}), is_pun(b), is_sym(b))
 
 # a byte between tokens
 def plain.k(+k: U32, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
@@ -107,8 +136,10 @@ def plain.k(+k: U32, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U
       St{line, (col + 1 : U32), 2, col, Nil{}, toks, na}
     case 5:
       St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TDot{line, col}, toks}, na}
-    case 6:
-      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TEq{line, col}, toks}, na}
+    case 8:
+      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TPun{line, col, b}, toks}, na}
+    case 9:
+      St{line, (col + 1 : U32), 4, col, [b], toks, na}
     case _:
       St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TOther{line, col, b}, toks}, na_first(na, b, line)}
 
@@ -122,6 +153,31 @@ def in_word(+more: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2,
       St{line, (col + 1 : U32), 1, at, Con{b, acc}, toks, na}
     case False{}:
       plain(b, line, col, Con{TWord{line, at, List.reverse(&2, U32, acc)}, toks}, na)
+
+# an operator ended: a lone `=` is the definition's sign, any other run
+# an operator
+def op_tok.k(+eq: Bool, +line: U32, +at: U32, s: List<&2, U32>) -> Tok:
+  match eq:
+    case True{}:
+      TEq{line, at}
+    case False{}:
+      TOp{line, at, s}
+
+def op_tok(+line: U32, +at: U32, s: List<&2, U32>) -> Tok:
+  match s:
+    case Con{+b, +rest}:
+      op_tok.k(U32.is_eq(b, 61) && List.is_empty(&2, U32, rest), line, at, Con{b, rest})
+    case Nil{}:
+      TOp{line, at, Nil{}}
+
+# a byte in an operator: more of it, or the operator ends and b is read
+# plain
+def in_op(+more: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
+  match more:
+    case True{}:
+      St{line, (col + 1 : U32), 4, at, Con{b, acc}, toks, na}
+    case False{}:
+      plain(b, line, col, Con{op_tok(line, at, List.reverse(&2, U32, acc)), toks}, na)
 
 # a byte in a text: its close, a line's end leaving it open, or more of it
 def in_text(+close: Bool, +nl: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
@@ -151,8 +207,10 @@ def byte(st: St, +b: U32) -> St:
           in_word(is_wordy(b), b, line, col, at, acc, toks, na)
         case 2:
           in_text(U32.is_eq(b, 34), U32.is_eq(b, 10), b, line, col, at, acc, toks, na)
-        case _:
+        case 3:
           in_comment(U32.is_eq(b, 10), b, line, col, toks, na)
+        case _:
+          in_op(is_sym(b), b, line, col, at, acc, toks, na)
 
 # the end of the bytes: a word or a text begun is ended
 def finish(st: St) -> Lx:
@@ -163,6 +221,8 @@ def finish(st: St) -> Lx:
           Lx{List.reverse(&2, Tok, Con{TWord{line, at, List.reverse(&2, U32, acc)}, toks}), na}
         case 2:
           Lx{List.reverse(&2, Tok, Con{TOpen{line, at}, toks}), na}
+        case 4:
+          Lx{List.reverse(&2, Tok, Con{op_tok(line, at, List.reverse(&2, U32, acc)), toks}), na}
         case _:
           Lx{List.reverse(&2, Tok, toks), na}
 
