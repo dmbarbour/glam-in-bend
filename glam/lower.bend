@@ -509,15 +509,16 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
 # The whole expression
 # ====================
 #
-# The net of `asm.result`: its result a port, no name left pending (a
-# reference to a top-level definition waits for ladder-thunks).
+# The net of `asm.result`: its result a port, no name left pending, the
+# module's definitions bound around it already (glam/core.bend), so that
+# a name left is one nothing defines.
 
 type Top is Data:
   TOk{t: T.Tpl}
   TErr{d: G.Diag}
 
 def pending(n: List<&2, U32>, +l: U32) -> Top:
-  TErr{G.Diag{l, "a reference to " ++ G.str(n) ++ " is not evaluated yet (ladder-thunks)"}}
+  TErr{G.Diag{l, "`" ++ G.str(n) ++ "` is not defined"}}
 
 def top.e(us: List<&2, Use>, t: T.Tpl) -> Top:
   match us:

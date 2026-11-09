@@ -187,7 +187,7 @@ def line_of(+n: List<&2, U32>, bs: List<&2, G.Bd>) -> U32:
 def cycle.if(more: Unit -> Maybe<&2, G.Diag>, +hit: Bool, +n: List<&2, U32>, +l: U32) -> Maybe<&2, G.Diag>:
   match hit:
     case True{}:
-      Some{G.Diag{l, "local `" ++ G.str(n) ++ "` needs itself through its group: recursive bindings are not supported yet"}}
+      Some{G.Diag{l, "`" ++ G.str(n) ++ "` needs itself through its group: recursive definitions are not supported yet"}}
     case False{}:
       more(Unit{})
 

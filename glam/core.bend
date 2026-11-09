@@ -214,12 +214,67 @@ def dall(defs: List<&2, G.Def>, +globals: List<&2, List<&2, U32>>, a: Dd) -> Dd:
         case G.Def{+line, path, body}:
           dall(rest, globals, dput(D.expr(body, Nil{}, globals), line, path, a))
 
+# Linking (HelloLadder, ladder-thunks.globals): the module's top-level
+# definitions of one name bound around asm.result as one binding group,
+# as `asm.result = e where ...` would bind them: the live ones nested in
+# the order of their needs, the rest dropped, a cycle refused
+# (glam/desugar.bend). No cell yet: a definition is lowered into the net
+# of every assembly that needs it. Definitions on a longer path, other
+# than asm.result, wait for dicts built by paths.
+
+def is_asm(p: List<&2, List<&2, U32>>) -> Bool:
+  G.path_eq(p, [[97, 115, 109], [114, 101, 115, 117, 108, 116]])
+
+def one_name(p: List<&2, List<&2, U32>>) -> Maybe<&2, List<&2, U32>>:
+  match p:
+    case Con{n, rest}:
+      match rest:
+        case Nil{}:
+          Some{n}
+        case _:
+          None{}
+    case Nil{}:
+      None{}
+
+def bind.k(m: Maybe<&2, List<&2, U32>>, +line: U32, body: G.Expr, acc: G.Expr) -> G.Expr:
+  match m:
+    case Some{n}:
+      G.EBind{line, n, body, acc}
+    case None{}:
+      acc
+
+# the definitions of one name as a chain of bindings ending in the body
+def binds(ds: List<&2, G.Def>, body: G.Expr) -> G.Expr:
+  match ds:
+    case Nil{}:
+      G.EIn{body}
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, v}:
+          bind.k(one_name(path), line, v, binds(rest, body))
+
+def linked(r: D.Ds, +line: U32) -> Run:
+  match r:
+    case D.DOk{e}:
+      lowered(W.top(e, line))
+    case D.DErr{d}:
+      RDone{OErrs{[d]}}
+
+def link(m: Maybe<&2, G.Def>, +ds: List<&2, G.Def>) -> Run:
+  match m:
+    case Some{d}:
+      match d:
+        case G.Def{+line, path, body}:
+          linked(D.group(D.DOk{binds(ds, body)}), line)
+    case None{}:
+      RDone{OErrs{[G.Diag{0, "asm.result is not defined"}]}}
+
 def start.d(a: Dd) -> Run:
   match a:
-    case Dd{ds, es}:
+    case Dd{+ds, es}:
       match es:
         case Nil{}:
-          run(find(List.reverse(&2, G.Def, ds), None{}))
+          link(find(List.reverse(&2, G.Def, ds), None{}), List.reverse(&2, G.Def, ds))
         case Con{e, rest}:
           RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
 

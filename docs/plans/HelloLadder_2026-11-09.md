@@ -253,7 +253,9 @@ named, and marked there when a rung is built.
      match or the value type's new variant. Not yet: a number error
      naming its builtin (`5 ++ [1]` says "a builtin met a number"), which
      takes the op through `num1.go` and its lemmas.
-5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`:
+5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`
+   (each referring to top-level definitions, so after
+   `ladder-thunks.globals`; `hello_tuple.g` imports `'std` too):
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.
 6. `ladder-thunks` — `hello_names.g`, `hello_lambda_sugar.g`:
@@ -262,6 +264,22 @@ named, and marked there when a rung is built.
    a namespace of lazy entries, one forced by another's demand
    (`heap-cells`, minimal), the point where the maintainer expects the
    hard part to begin, reached only once the data rungs stand.
+   - `ladder-thunks.globals` — built 2026-11-09 — the samples without
+     cells: as `asm.result` sees them, a module's top-level definitions
+     are one binding group around it, `asm.result = e where ...`, so the
+     core links them so: the definitions of one name bound around
+     `asm.result`'s body and desugared as a group, the live ones nested
+     in the order of their needs, the rest dropped, a cycle refused
+     ("`g` needs itself through its group: recursive definitions are not
+     supported yet"), a name nothing defines named ("`nope` is not
+     defined"). A definition is lowered into the net of every assembly
+     that needs it, shared within it by fans; what cells add, sharing
+     across evaluations, recursion and fixpoints, comes with the rungs
+     that need them (`ladder-objects`; recursive groups). Definitions on
+     a longer path than `asm.result`'s wait for dicts built by paths.
+     Measured (store run 308): `hello_names.g` 15 interactions,
+     `hello_lambda_sugar.g` 35.
+
 7. `ladder-objects` — `hello_override.g`, `hello_object.g`,
    `hello_object_prior.g`, then the `hello_object_*.g` family:
    `:=` and `_name`, `object ... with`, `extends`, `self`. Objects as
