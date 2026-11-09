@@ -5,7 +5,12 @@ import ./parse.bend as G
 # the few forms the lowering knows, its scope checked on the way.
 # - `a ++ b` is the builtin append applied to a, then to b.
 # - `x.a.b` is x's field a read, then that one's b: the builtin get,
-#   its key collected, applied to x.
+#   its key collected, applied to x; `e.[k]` reads at the key k.
+# - A tag, `k:v`, is the builtin tag applied to k and v, its section
+#   `(k:)` tag given k alone; a dict literal is its members joined by the
+#   builtin union in written order, each new (dict-literals-introduce-
+#   in-order). A tag or a dict literal of literals alone stays as it is,
+#   for the lowering to build as one constant.
 # - A binding group, `let`'s or `where`'s, is the lambdas and
 #   applications it stands for, `let x = v in b` being `(\x -> b) v`: its
 #   live bindings nested in the order of their needs, each binding's
@@ -133,6 +138,16 @@ def fv(e: G.Expr) -> List<&2, List<&2, U32>>:
       List.append(&2, List<&2, U32>, fv(v), fv(rest))
     case G.EIn{b}:
       fv(b)
+    case G.ETag{+l, k, v}:
+      List.append(&2, List<&2, U32>, fv(k), fv(v))
+    case G.ESection{+l, k}:
+      fv(k)
+    case G.EIndex{+l, x, k}:
+      List.append(&2, List<&2, U32>, fv(x), fv(k))
+    case G.EDict{+l, ms}:
+      fv(ms)
+    case G.EMem{m, rest}:
+      List.append(&2, List<&2, U32>, fv(m), fv(rest))
     case _:
       Nil{}
 
@@ -294,6 +309,123 @@ def group(r: Ds) -> Ds:
 # Scope
 # =====
 
+# Literals
+# ========
+#
+# What the lowering builds as constants: texts, numbers, atoms, lists of
+# them, and tags and dicts of them, decided by syntax alone.
+
+def lits(xs: List<&2, G.Expr>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{e, rest}:
+      match e:
+        case G.EText{s}:
+          lits(rest)
+        case G.ENum{+n}:
+          lits(rest)
+        case G.EAtom{n}:
+          lits(rest)
+        case G.EList{ys}:
+          lits(ys) && lits(rest)
+        case _:
+          False{}
+
+def lit(+e: G.Expr) -> Bool:
+  lits([e])
+
+# a desugared chain of members, each a tag of literals kept as it is
+def cmems(ms: G.Expr) -> Bool:
+  match ms:
+    case G.EMem{m, rest}:
+      match m:
+        case G.ETag{+l, k, v}:
+          cmems(rest)
+        case _:
+          False{}
+    case _:
+      True{}
+
+def tag.k(+c: Bool, +line: U32, k: G.Expr, v: G.Expr) -> G.Expr:
+  match c:
+    case True{}:
+      G.ETag{line, k, v}
+    case False{}:
+      G.EApp{line, G.EApp{line, G.EBuiltin{7, 2}, k}, v}
+
+# a tag desugared: kept where its key and payload are literals
+def tagx(+line: U32, +k: G.Expr, +v: G.Expr) -> G.Expr:
+  tag.k(lit(k) && lit(v), line, k, v)
+
+# a dict literal's members joined by union, right to left so that each
+# member's keys come before the rest's
+def ufold(ms: G.Expr, +line: U32) -> G.Expr:
+  match ms:
+    case G.EMem{m, rest}:
+      match rest:
+        case G.EMemEnd{}:
+          m
+        case _:
+          G.EApp{line, G.EApp{line, G.EBuiltin{6, 2}, m}, ufold(rest, line)}
+    case _:
+      G.EDict{line, G.EMemEnd{}}
+
+def dict.k(+c: Bool, +line: U32, ms: G.Expr) -> G.Expr:
+  match c:
+    case True{}:
+      G.EDict{line, ms}
+    case False{}:
+      ufold(ms, line)
+
+def dict_one(a: Ds, +line: U32) -> Ds:
+  match a:
+    case DOk{+ms}:
+      DOk{dict.k(cmems(ms), line, ms)}
+    case DErr{d}:
+      DErr{d}
+
+def tag_two(a: Ds, b: Ds, +line: U32) -> Ds:
+  match a b:
+    case DOk{k} DOk{v}:
+      DOk{tagx(line, k, v)}
+    case DErr{d} _:
+      DErr{d}
+    case DOk{k} DErr{d}:
+      DErr{d}
+
+def mem_two(a: Ds, b: Ds) -> Ds:
+  match a b:
+    case DOk{m} DOk{rest}:
+      DOk{G.EMem{m, rest}}
+    case DErr{d} _:
+      DErr{d}
+    case DOk{m} DErr{d}:
+      DErr{d}
+
+def section_one(a: Ds, +line: U32) -> Ds:
+  match a:
+    case DOk{k}:
+      DOk{G.EApp{line, G.EBuiltin{7, 2}, k}}
+    case DErr{d}:
+      DErr{d}
+
+def index.k(x: G.Expr, k: G.Expr, +line: U32) -> Ds:
+  match k:
+    case G.EList{xs}:
+      DErr{G.Diag{line, "an index is one key in brackets, `e.[k]`"}}
+    case _:
+      DOk{G.EApp{line, G.EApp{line, G.EBuiltin{5, 2}, k}, x}}
+
+def index_two(a: Ds, b: Ds, +line: U32) -> Ds:
+  match a b:
+    case DOk{x} DOk{k}:
+      index.k(x, k, line)
+    case DErr{d} _:
+      DErr{d}
+    case DOk{x} DErr{d}:
+      DErr{d}
+
 def shadow.if(more: Unit -> Maybe<&2, G.Diag>, +local: Bool, +global: Bool, +n: List<&2, U32>, +l: U32) -> Maybe<&2, G.Diag>:
   match local global:
     case True{} _:
@@ -392,5 +524,15 @@ def expr(e: G.Expr, +scope: List<&2, List<&2, U32>>, +globals: List<&2, List<&2,
           DOk{fields(rest, l, G.EName{l, [n]})}
         case Nil{}:
           DOk{G.EName{l, Nil{}}}
+    case G.ETag{+l, k, v}:
+      tag_two(expr(k, scope, globals), expr(v, scope, globals), l)
+    case G.ESection{+l, k}:
+      section_one(expr(k, scope, globals), l)
+    case G.EIndex{+l, x, k}:
+      index_two(expr(x, scope, globals), expr(k, scope, globals), l)
+    case G.EDict{+l, ms}:
+      dict_one(expr(ms, scope, globals), l)
+    case G.EMem{m, rest}:
+      mem_two(expr(m, scope, globals), expr(rest, scope, globals))
     case _:
       DOk{e}

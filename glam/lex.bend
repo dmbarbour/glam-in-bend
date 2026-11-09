@@ -32,8 +32,9 @@ type Tok is Data:
   TOpen{+line: U32, +col: U32}
   # a bracket, a comma or a semicolon: one of `[](){},;`
   TPun{+line: U32, +col: U32, +b: U32}
-  # an operator: a run of operator symbols other than a lone `=`
-  TOp{+line: U32, +col: U32, s: List<&2, U32>}
+  # an operator: a run of operator symbols other than a lone `=`, and
+  # whether it is joint to the token before it (no blank between)
+  TOp{+line: U32, +col: U32, s: List<&2, U32>, +jl: Bool}
   # a binding group's layout made explicit (glam/layout.bend): 0 its
   # virtual open, 1 a separator, 2 its close
   TLay{+line: U32, +col: U32, +k: U32}
@@ -60,7 +61,7 @@ def tok_line(t: Tok) -> U32:
       line
     case TPun{+line, +col, +b}:
       line
-    case TOp{+line, +col, s}:
+    case TOp{+line, +col, s, +jl}:
       line
     case TLay{+line, +col, +k}:
       line
@@ -81,7 +82,7 @@ def tok_col(t: Tok) -> U32:
       col
     case TPun{+line, +col, +b}:
       col
-    case TOp{+line, +col, s}:
+    case TOp{+line, +col, s, +jl}:
       col
     case TLay{+line, +col, +k}:
       col
@@ -137,8 +138,10 @@ def is_sym(+b: U32) -> Bool:
     U32.is_eq(b, 37) || U32.is_eq(b, 126) || U32.is_eq(b, 63) || U32.is_eq(b, 64) ||
     U32.is_eq(b, 36) || U32.is_eq(b, 92)
 
-# the mode: 0 between tokens, 1 in a word begun at column `at`, 2 in a
-# text opened at `at`, 3 in a comment, 4 in an operator begun at `at`
+# the mode: 0 between tokens after a blank, 6 just after a token, 1 in a
+# word begun at column `at`, 2 in a text opened at `at`, 3 in a comment,
+# 4 in an operator begun at `at` joint to the token before, 5 one that is
+# not
 type St is Data:
   St{+line: U32, +col: U32, +mode: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32}
 
@@ -176,8 +179,16 @@ def class.p(+k: U32, +pun: Bool, +sym: Bool) -> U32:
 def class(+b: U32) -> U32:
   class.p(class.k(U32.is_eq(b, 32) || U32.is_eq(b, 13), U32.is_eq(b, 10), U32.is_eq(b, 35), is_letter(b) || is_digit(b), U32.is_eq(b, 34), U32.is_eq(b, 46), False{}), is_pun(b), is_sym(b))
 
-# a byte between tokens
-def plain.k(+k: U32, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
+# an operator's mode from whether a blank came before it
+def op_mode(+gap: Bool) -> U32:
+  match gap:
+    case True{}:
+      5
+    case False{}:
+      4
+
+# a byte between tokens, a blank before it or not
+def plain.k(+k: U32, +gap: Bool, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
   match k:
     case 0:
       St{line, (col + 1 : U32), 0, 0, Nil{}, toks, na}
@@ -190,16 +201,16 @@ def plain.k(+k: U32, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U
     case 4:
       St{line, (col + 1 : U32), 2, col, Nil{}, toks, na}
     case 5:
-      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TDot{line, col}, toks}, na}
+      St{line, (col + 1 : U32), 6, 0, Nil{}, Con{TDot{line, col}, toks}, na}
     case 8:
-      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TPun{line, col, b}, toks}, na}
+      St{line, (col + 1 : U32), 6, 0, Nil{}, Con{TPun{line, col, b}, toks}, na}
     case 9:
-      St{line, (col + 1 : U32), 4, col, [b], toks, na}
+      St{line, (col + 1 : U32), op_mode(gap), col, [b], toks, na}
     case _:
-      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TOther{line, col, b}, toks}, na_first(na, b, line)}
+      St{line, (col + 1 : U32), 6, 0, Nil{}, Con{TOther{line, col, b}, toks}, na_first(na, b, line)}
 
-def plain(+b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
-  plain.k(class(b), b, line, col, toks, na)
+def plain(+gap: Bool, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
+  plain.k(class(b), gap, b, line, col, toks, na)
 
 # a byte in a word: more of it, or the word ends and b is read plain
 def in_word(+more: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
@@ -207,40 +218,40 @@ def in_word(+more: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2,
     case True{}:
       St{line, (col + 1 : U32), 1, at, Con{b, acc}, toks, na}
     case False{}:
-      plain(b, line, col, Con{TWord{line, at, List.reverse(&2, U32, acc)}, toks}, na)
+      plain(False{}, b, line, col, Con{TWord{line, at, List.reverse(&2, U32, acc)}, toks}, na)
 
 # an operator ended: a lone `=` is the definition's sign, any other run
 # an operator
-def op_tok.k(+eq: Bool, +line: U32, +at: U32, s: List<&2, U32>) -> Tok:
+def op_tok.k(+eq: Bool, +line: U32, +at: U32, s: List<&2, U32>, +jl: Bool) -> Tok:
   match eq:
     case True{}:
       TEq{line, at}
     case False{}:
-      TOp{line, at, s}
+      TOp{line, at, s, jl}
 
-def op_tok(+line: U32, +at: U32, s: List<&2, U32>) -> Tok:
+def op_tok(+line: U32, +at: U32, s: List<&2, U32>, +jl: Bool) -> Tok:
   match s:
     case Con{+b, +rest}:
-      op_tok.k(U32.is_eq(b, 61) && List.is_empty(&2, U32, rest), line, at, Con{b, rest})
+      op_tok.k(U32.is_eq(b, 61) && List.is_empty(&2, U32, rest), line, at, Con{b, rest}, jl)
     case Nil{}:
-      TOp{line, at, Nil{}}
+      TOp{line, at, Nil{}, jl}
 
 # a byte in an operator: more of it, or the operator ends and b is read
 # plain
-def in_op(+more: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
+def in_op(+more: Bool, +jl: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
   match more:
     case True{}:
-      St{line, (col + 1 : U32), 4, at, Con{b, acc}, toks, na}
+      St{line, (col + 1 : U32), op_mode(Bool.not(jl)), at, Con{b, acc}, toks, na}
     case False{}:
-      plain(b, line, col, Con{op_tok(line, at, List.reverse(&2, U32, acc)), toks}, na)
+      plain(False{}, b, line, col, Con{op_tok(line, at, List.reverse(&2, U32, acc), jl), toks}, na)
 
 # a byte in a text: its close, a line's end leaving it open, or more of it
 def in_text(+close: Bool, +nl: Bool, +b: U32, +line: U32, +col: U32, +at: U32, acc: List<&2, U32>, toks: List<&2, Tok>, +na: U32) -> St:
   match close nl:
     case True{} _:
-      St{line, (col + 1 : U32), 0, 0, Nil{}, Con{TText{line, at, List.reverse(&2, U32, acc)}, toks}, na}
+      St{line, (col + 1 : U32), 6, 0, Nil{}, Con{TText{line, at, List.reverse(&2, U32, acc)}, toks}, na}
     case False{} True{}:
-      plain(b, line, col, Con{TOpen{line, at}, toks}, na)
+      plain(False{}, b, line, col, Con{TOpen{line, at}, toks}, na)
     case False{} False{}:
       St{line, (col + 1 : U32), 2, at, Con{b, acc}, toks, na_first(na, b, line)}
 
@@ -248,7 +259,7 @@ def in_text(+close: Bool, +nl: Bool, +b: U32, +line: U32, +col: U32, +at: U32, a
 def in_comment(+nl: Bool, +b: U32, +line: U32, +col: U32, toks: List<&2, Tok>, +na: U32) -> St:
   match nl:
     case True{}:
-      plain(b, line, col, toks, na)
+      plain(True{}, b, line, col, toks, na)
     case False{}:
       St{line, (col + 1 : U32), 3, 0, Nil{}, toks, na_first(na, b, line)}
 
@@ -257,15 +268,19 @@ def byte(st: St, +b: U32) -> St:
     case St{+line, +col, +mode, +at, acc, toks, +na}:
       match mode:
         case 0:
-          plain(b, line, col, toks, na)
+          plain(True{}, b, line, col, toks, na)
+        case 6:
+          plain(False{}, b, line, col, toks, na)
         case 1:
           in_word(is_wordy(b), b, line, col, at, acc, toks, na)
         case 2:
           in_text(U32.is_eq(b, 34), U32.is_eq(b, 10), b, line, col, at, acc, toks, na)
         case 3:
           in_comment(U32.is_eq(b, 10), b, line, col, toks, na)
+        case 4:
+          in_op(is_sym(b), True{}, b, line, col, at, acc, toks, na)
         case _:
-          in_op(is_sym(b), b, line, col, at, acc, toks, na)
+          in_op(is_sym(b), False{}, b, line, col, at, acc, toks, na)
 
 # the end of the bytes: a word or a text begun is ended
 def finish(st: St) -> Lx:
@@ -277,7 +292,9 @@ def finish(st: St) -> Lx:
         case 2:
           Lx{List.reverse(&2, Tok, Con{TOpen{line, at}, toks}), na}
         case 4:
-          Lx{List.reverse(&2, Tok, Con{op_tok(line, at, List.reverse(&2, U32, acc)), toks}), na}
+          Lx{List.reverse(&2, Tok, Con{op_tok(line, at, List.reverse(&2, U32, acc), True{}), toks}), na}
+        case 5:
+          Lx{List.reverse(&2, Tok, Con{op_tok(line, at, List.reverse(&2, U32, acc), False{}), toks}), na}
         case _:
           Lx{List.reverse(&2, Tok, toks), na}
 

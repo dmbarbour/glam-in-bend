@@ -253,7 +253,9 @@ named, and marked there when a rung is built.
      match or the value type's new variant. Not yet: a number error
      naming its builtin (`5 ++ [1]` says "a builtin met a number"), which
      takes the op through `num1.go` and its lemmas.
-5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`
+5. `ladder-dicts` — built 2026-11-09 for `hello_dict.g` and
+   `hello_tagged.g`; `hello_tuple.g` imports `'std` and waits for
+   `ladder-effects` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`
    (each referring to top-level definitions, so after
    `ladder-thunks.globals`; `hello_tuple.g` imports `'std` too):
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
@@ -274,6 +276,23 @@ named, and marked there when a rung is built.
      dispatch cost `fma` 11% to 13% (run 309); a `Bool` test of the op
      before it, straight to the arithmetic, restored it (run 310, 1.0%
      to 1.5% over main's 288, where the error value left it).
+   - `ladder-dicts.syntax` — built 2026-11-09 — tags as Syntax.md has
+     them: `name:v` and `[k]:v`, joint binding tighter than application,
+     spaced a tail never an argument; the section `(k:)`, the pun `:name`;
+     `.name` and `.[k]` after any operand. The lexer marks an operator
+     joint to the token before it; the parser compares columns for the
+     one after. A dict literal's members are any expressions, joined by
+     the builtin union in written order, a tag being a one-entry dict; a
+     tag or a dict of literals alone is built as one constant, a key
+     introduced twice refused there before any net. All five errors of
+     `invalid/syntax/tagged_spacing.g` pass. Strict for now: a tag
+     forces its payload as any builtin does, so a dict's member is
+     computed when the dict is, until lazy members (cells). Not yet:
+     tags on paths of several keys (`a.b:v`, `[a,b]:v`), whose members
+     merge into the dicts on their way rather than by union, and `?:`.
+     Measured (store run 311, interactions): `hello_dict.g` 28,
+     `hello_tagged.g` 38, `hello_lambda.g` 20 as before.
+
 6. `ladder-thunks` — `hello_names.g`, `hello_lambda_sugar.g`:
    definitions used before they are written, `asm.result` first and
    `hello` below it; a top-level function called. The first cells:

@@ -402,6 +402,8 @@ def consts(es: List<&2, G.Expr>) -> Maybe<&2, List<&2, V.Val>>:
           cons_v(V.VList{codes(s)}, consts(rest))
         case G.ENum{+n}:
           cons_v(V.VNum{n}, consts(rest))
+        case G.EAtom{n}:
+          cons_v(atom(n), consts(rest))
         case G.EList{xs}:
           cons_l(consts(xs), consts(rest))
         case _:
@@ -424,48 +426,64 @@ def has_key(+k: List<&2, U32>, ks: List<&2, List<&2, U32>>) -> Bool:
     case Con{m, rest}:
       G.bytes_eq(k, m) || has_key(k, rest)
 
-# the entries of a dict literal whose members are literals, or the first
-# trouble: a member that is not, or a key introduced twice
+# the entries of a constant dict literal, or the first trouble: a key
+# introduced twice. Its members are tags of literals (glam/desugar.bend),
+# keys values: a name's its atom.
 type Dc is Data:
   DcOk{es: List<&2, V.Ent>}
   DcErr{d: G.Diag}
 
-def dent.add(v: V.Val, k: List<&2, U32>, more: Dc) -> Dc:
-  match more:
-    case DcOk{es}:
-      DcOk{Con{V.Ent{atom(k), v}, es}}
-    case DcErr{d}:
-      DcErr{d}
-
-def dent.vs(vs: List<&2, V.Val>, k: List<&2, U32>, +l: U32, more: Dc) -> Dc:
-  match vs:
-    case Con{v, rest}:
-      dent.add(v, k, more)
-    case Nil{}:
-      DcErr{G.Diag{l, "a dict member without its value"}}
-
-def dent.v(r: Maybe<&2, List<&2, V.Val>>, k: List<&2, U32>, +l: U32, more: Dc) -> Dc:
+# a literal's value
+def cval(r: Maybe<&2, List<&2, V.Val>>) -> V.Val:
   match r:
     case Some{vs}:
-      dent.vs(vs, k, l, more)
+      match vs:
+        case Con{v, rest}:
+          v
+        case Nil{}:
+          V.VUnit{}
     case None{}:
-      DcErr{G.Diag{l, "a dict's members must be literals for now: " ++ G.str(k)}}
+      V.VUnit{}
 
-def dent.k(+twice: Bool, k: List<&2, U32>, +l: U32, v: G.Expr, more: Dc) -> Dc:
-  match twice:
-    case True{}:
-      DcErr{G.Diag{l, "the key " ++ G.str(k) ++ " is introduced twice in one dict"}}
-    case False{}:
-      dent.v(consts([v]), k, l, more)
-
-def dents(es: List<&2, G.DEnt>, +seen: List<&2, List<&2, U32>>) -> Dc:
-  match es:
+# a text's values as bytes, for a message
+def bytes_of(xs: List<&2, V.Val>) -> List<&2, U32>:
+  match xs:
     case Nil{}:
+      Nil{}
+    case Con{x, rest}:
+      match x:
+        case V.VNum{+n}:
+          Con{n, bytes_of(rest)}
+        case _:
+          Con{63, bytes_of(rest)}
+
+def has_val(+k: V.Val, ks: List<&2, V.Val>) -> Bool:
+  match ks:
+    case Nil{}:
+      False{}
+    case Con{m, rest}:
+      V.veq(k, m) || has_val(k, rest)
+
+def dent.add(+twice: Bool, +l: U32, k: V.Val, v: V.Val, more: Dc) -> Dc:
+  match twice more:
+    case True{} _:
+      DcErr{G.Diag{l, "the key " ++ G.str(bytes_of(V.key_show(k))) ++ " is introduced twice in one dict"}}
+    case False{} DcOk{es}:
+      DcOk{Con{V.Ent{k, v}, es}}
+    case False{} DcErr{d}:
+      DcErr{d}
+
+def dents(ms: G.Expr, +seen: List<&2, V.Val>) -> Dc:
+  match ms:
+    case G.EMem{m, rest}:
+      match m:
+        case G.ETag{+l, k, v}:
+          +kv = cval(consts([k]))
+          dent.add(has_val(kv, seen), l, kv, cval(consts([v])), dents(rest, Con{kv, seen}))
+        case _:
+          DcErr{G.Diag{0, "a dict member that is no tag of literals"}}
+    case _:
       DcOk{Nil{}}
-    case Con{e, rest}:
-      match e:
-        case G.DEnt{+l, +k, v}:
-          dent.k(has_key(k, seen), k, l, v, dents(rest, Con{k, seen}))
 
 def dict(r: Dc) -> Lw:
   match r:
@@ -497,8 +515,12 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
       list(consts(xs), line)
     case G.EBuiltin{+op, +need}:
       LOk{data(V.VFun{op, need, Nil{}})}
-    case G.EDict{es}:
-      dict(dents(es, Nil{}))
+    case G.EDict{+l, ms}:
+      dict(dents(ms, Nil{}))
+    case G.ETag{+l, k, v}:
+      dict(dents(G.EMem{G.ETag{l, k, v}, G.EMemEnd{}}, Nil{}))
+    case G.EAtom{n}:
+      LOk{data(atom(n))}
     case G.EField{+l, k}:
       LOk{data(V.VFun{5, 1, [atom(k)]})}
     case G.EName{+l, path}:

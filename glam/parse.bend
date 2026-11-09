@@ -40,14 +40,24 @@ type Expr is Data:
   EApp{+line: U32, f: Expr, x: Expr}
   # a builtin by its op and the arguments it needs: what `++` becomes
   EBuiltin{+op: U32, +need: U32}
-  # a dict literal, its members in written order
-  EDict{es: List<&2, DEnt>}
+  # a dict literal, its members a chain of EMem ending in EMemEnd, so
+  # that one recursion walks them; each a tag, or a dict joining by union
+  EDict{+line: U32, ms: Expr}
+  EMem{m: Expr, rest: Expr}
+  EMemEnd{}
+  # a tag, `key:value`, the dict of one entry (Syntax.md, Tagged Data);
+  # a name's key its atom
+  ETag{+line: U32, key: Expr, value: Expr}
+  # a tag's section, `(key:)`: its constructor
+  ESection{+line: U32, key: Expr}
+  # reading a field at a computed key, `e.[k]`
+  EIndex{+line: U32, e: Expr, k: Expr}
+  # a name as a key: its atom, `'name`
+  EAtom{name: List<&2, U32>}
   # reading a dict's field: what `x.name` becomes, applied to x
   EField{+line: U32, key: List<&2, U32>}
 
-# a dict literal's member: `name:value`
-type DEnt is Data:
-  DEnt{+line: U32, key: List<&2, U32>, value: Expr}
+
 
 # a definition: its line, its path (`asm.result` is [asm, result]), its
 # body
@@ -132,7 +142,7 @@ def tok_show(t: L.Tok) -> String:
       str([b])
     case L.TPun{+line, +col, +b}:
       str([b])
-    case L.TOp{+line, +col, s}:
+    case L.TOp{+line, +col, s, +jl}:
       str(s)
     case L.TLay{+line, +col, +k}:
       lay_show(k)
@@ -336,15 +346,24 @@ type Fr is Data:
   FLam{+line: U32, ps: List<&2, List<&2, U32>>}
   # an open `{` of a dict literal: its line, its members so far reversed,
   # and how it stands, as a list's `[` does
-  FDict{+line: U32, es: List<&2, DEnt>, +sep: U32}
-  # a dict member whose value is being read
-  FDEnt{+line: U32, key: List<&2, U32>}
+  FDict{+line: U32, ms: List<&2, Expr>, +sep: U32}
+  # a tag awaiting its payload: joint, the next operand alone, done as an
+  # application is; spaced, the rest of its item, a tail
+  FTagJ{+line: U32, key: Expr}
+  FTagS{+line: U32, key: Expr}
+  # an index, `e.[k]`: the bracket after the dot is its key
+  FIdx{+line: U32, e: Expr}
 
 type Pm is Data:
   MWant{st: List<&2, Fr>}
   MHave{st: List<&2, Fr>, e: Expr}
-  # after a name and `.`: the path so far
-  MDot{st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>}
+  # after an operand and `.`: a field's name or an index wanted
+  MDot{st: List<&2, Fr>, +line: U32, e: Expr}
+  # after `key:` at a column: the payload, joint or spaced, or the
+  # section's close
+  MTag{st: List<&2, Fr>, +line: U32, +col: U32, key: Expr}
+  # after `:` where an operand is wanted: a pun's name
+  MPun{st: List<&2, Fr>, +line: U32, +col: U32}
   # after `let` or `where`: the group's open wanted
   MGroup{st: List<&2, Fr>}
   # a binding's name wanted, or the group's close
@@ -353,10 +372,7 @@ type Pm is Data:
   MBEq{st: List<&2, Fr>, +line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>}
   # after `\`: a lambda's parameters so far reversed, then `->`
   MLam{st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>}
-  # in a dict literal: a member's name wanted, a comma, or its close
-  MDKey{st: List<&2, Fr>}
-  # after a member's name: `:` wanted
-  MDColon{st: List<&2, Fr>, +line: U32, key: List<&2, U32>}
+
   # a `let` group closed: `in` or its body wanted
   MLetAfter{st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>}
   # a `where` group closed: nothing may follow but the end or a `)`
@@ -382,6 +398,31 @@ def chain(bs: List<&2, Bd>, acc: Expr) -> Expr:
       match b:
         case Bd{+line, name, value}:
           chain(rest, EBind{line, name, value, acc})
+
+# a dict literal's members, read reversed, as the chain in written order
+def mems(ms: List<&2, Expr>, acc: Expr) -> Expr:
+  match ms:
+    case Nil{}:
+      acc
+    case Con{m, rest}:
+      mems(rest, EMem{m, acc})
+
+# an index's bracket: one key, or the bracket itself, which desugaring
+# refuses
+def index(+line: U32, x: Expr, e: Expr) -> Expr:
+  match e:
+    case EList{xs}:
+      match xs:
+        case Con{k, rest}:
+          match rest:
+            case Nil{}:
+              EIndex{line, x, k}
+            case _:
+              EIndex{line, x, EList{Con{k, rest}}}
+        case Nil{}:
+          EIndex{line, x, EList{Nil{}}}
+    case _:
+      EIndex{line, x, e}
 
 # a body inside lambdas of the parameters, the first outermost
 def lams(ps: List<&2, List<&2, U32>>, +line: U32, body: Expr) -> Expr:
@@ -493,6 +534,17 @@ def want.close.paren(+round: Bool, +line: U32, +b: U32) -> Pm:
     case False{}:
       mismatch(line, ")", b)
 
+# `}` or another closer facing an open `{`: an empty dict, a trailing
+# comma's end, or an empty member after a lone leading comma
+def want.close.dict(+cu: Bool, +sep: U32, ms: List<&2, Expr>, rest: List<&2, Fr>, +line: U32, +l: U32, +b: U32) -> Pm:
+  match cu sep:
+    case False{} _:
+      mismatch(line, "}", b)
+    case True{} 1:
+      fail(line, "a dict holds an empty member between separators")
+    case True{} _:
+      MHave{rest, EDict{l, mems(ms, EMemEnd{})}}
+
 def want.close(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
   match st:
     case Nil{}:
@@ -501,6 +553,8 @@ def want.close(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
       match f:
         case FList{+l, xs, +sep}:
           want.close.list(U32.is_eq(b, 93), sep, xs, rest, line, b)
+        case FDict{+l, ms, +sep}:
+          want.close.dict(U32.is_eq(b, 125), sep, ms, rest, line, l, b)
         case FParen{+l}:
           want.close.paren(U32.is_eq(b, 41), line, b)
         case FOp{+l, op, a}:
@@ -515,6 +569,13 @@ def want.comma.k(+sep: U32, +l: U32, xs: List<&2, Expr>, rest: List<&2, Fr>, +li
     case _:
       fail(line, "a list holds an empty member between separators")
 
+def want.comma.d(+sep: U32, +l: U32, ms: List<&2, Expr>, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match sep:
+    case 0:
+      MWant{Con{FDict{l, ms, 1}, rest}}
+    case _:
+      fail(line, "a dict holds an empty member between separators")
+
 def want.comma(st: List<&2, Fr>, +line: U32) -> Pm:
   match st:
     case Nil{}:
@@ -523,6 +584,8 @@ def want.comma(st: List<&2, Fr>, +line: U32) -> Pm:
       match f:
         case FList{+l, xs, +sep}:
           want.comma.k(sep, l, xs, rest, line)
+        case FDict{+l, ms, +sep}:
+          want.comma.d(sep, l, ms, rest, line)
         case FParen{+l}:
           fail(line, "tuples are not supported yet")
         case FOp{+l, op, a}:
@@ -535,7 +598,9 @@ def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
     case 91:
       MWant{Con{FList{line, Nil{}, 0}, st}}
     case 123:
-      MDKey{Con{FDict{line, Nil{}, 0}, st}}
+      MWant{Con{FDict{line, Nil{}, 0}, st}}
+    case 125:
+      want.close(st, line, 125)
     case 40:
       MWant{Con{FParen{line}, st}}
     case 93:
@@ -547,12 +612,28 @@ def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
     case _:
       fail(line, "this form is not supported yet: " ++ str([b]))
 
-# an operator where an operand is wanted: `\` begins a lambda
-def want.op(+lam: Bool, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
-  match lam:
-    case True{}:
+def op_kind.k(+lam: Bool, +colon: Bool) -> U32:
+  match lam colon:
+    case True{} _:
+      1
+    case False{} True{}:
+      2
+    case False{} False{}:
+      0
+
+# an operator's part where an operand is wanted: 1 `\` begins a lambda,
+# 2 `:` a pun, 0 anything else
+def op_kind(+s: List<&2, U32>) -> U32:
+  op_kind.k(bytes_eq(s, [92]), bytes_eq(s, [58]))
+
+# an operator where an operand is wanted: `\` begins a lambda, `:` a pun
+def want.op(+kind: U32, st: List<&2, Fr>, +line: U32, +col: U32, s: List<&2, U32>) -> Pm:
+  match kind:
+    case 1:
       MLam{st, line, Nil{}}
-    case False{}:
+    case 2:
+      MPun{st, line, col}
+    case _:
       fail(line, "expected an expression before " ++ str(s))
 
 # an operand wanted
@@ -566,8 +647,8 @@ def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
       word(st, l, s)
     case L.TPun{+l, +c, +b}:
       want.pun(st, l, b)
-    case L.TOp{+l, +c, +s}:
-      want.op(bytes_eq(s, [92]), st, l, s)
+    case L.TOp{+l, +c, +s, +jl}:
+      want.op(op_kind(s), st, l, c, s)
     case L.TEq{+l, +c}:
       fail(l, "expected an expression, found =")
     case L.TDot{+l, +c}:
@@ -600,6 +681,12 @@ def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
           reduce(rest, EApp{line, g, e})
         case FLam{+line, ps}:
           reduce(rest, lams(ps, line, e))
+        case FTagJ{+line, k}:
+          reduce(rest, ETag{line, k, e})
+        case FTagS{+line, k}:
+          reduce(rest, ETag{line, k, e})
+        case FIdx{+line, x}:
+          reduce(rest, index(line, x, e))
         case _:
           Rd{Con{f, rest}, e}
 
@@ -622,25 +709,6 @@ def unclosed.pm(f: Fr) -> Pm:
     case _:
       fail(0, "an expression ended where its frame does not")
 
-def dict_add.k(+close: Bool, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>) -> Pm:
-  match close:
-    case True{}:
-      MHave{rest, EDict{List.reverse(&2, DEnt, es)}}
-    case False{}:
-      MDKey{Con{FDict{l, es, 2}, rest}}
-
-# a member read: the dict goes on after its comma, or closes
-def dict_add(st: List<&2, Fr>, d: DEnt, +close: Bool, +line: U32) -> Pm:
-  match st:
-    case Nil{}:
-      fail(line, "a dict member outside its dict")
-    case Con{f, rest}:
-      match f:
-        case FDict{+l, es, +sep}:
-          dict_add.k(close, l, Con{d, es}, rest)
-        case _:
-          fail(line, "a dict member outside its dict")
-
 def have.comma(r: Rd, +line: U32) -> Pm:
   match r:
     case Rd{st, e}:
@@ -653,8 +721,8 @@ def have.comma(r: Rd, +line: U32) -> Pm:
               MWant{Con{FList{l, Con{e, xs}, 2}, rest}}
             case FParen{+l}:
               fail(line, "tuples are not supported yet")
-            case FDEnt{+l, key}:
-              dict_add(rest, DEnt{l, key, e}, False{}, line)
+            case FDict{+l, ms, +sep}:
+              MWant{Con{FDict{l, Con{e, ms}, 2}, rest}}
             case _:
               fail(line, "a comma outside brackets")
 
@@ -684,6 +752,8 @@ def have.close(r: Rd, +line: U32, +b: U32) -> Pm:
               have.close.list(U32.is_eq(b, 93), xs, e, rest, line, b)
             case FParen{+l}:
               have.close.paren(U32.is_eq(b, 41), e, rest, line, b)
+            case FDict{+l, ms, +sep}:
+              mismatch(line, "}", b)
             case _:
               fail(line, "unbalanced closing delimiter `" ++ str([b]) ++ "`")
 
@@ -811,8 +881,8 @@ def have.brace(r: Rd, +line: U32) -> Pm:
           fail(line, "unbalanced closing delimiter `}`")
         case Con{f, rest}:
           match f:
-            case FDEnt{+l, key}:
-              dict_add(rest, DEnt{l, key, e}, True{}, line)
+            case FDict{+l, ms, +sep}:
+              MHave{rest, EDict{l, mems(Con{e, ms}, EMemEnd{})}}
             case _:
               bind_end(Rd{Con{f, rest}, e}, 4, line)
 
@@ -850,19 +920,63 @@ def have.eq(st: List<&2, Fr>, +line: U32) -> Pm:
         case _:
           fail(line, "unexpected =")
 
-# `.` after an operand: a path goes on after a name
+# `.` after an operand: a field's name or an index next
 def have.dot(e: Expr, st: List<&2, Fr>, +line: U32) -> Pm:
+  MDot{st, line, e}
+
+# a tag's key: a name's atom, or a one-member list's member
+def key_of(e: Expr) -> Maybe<&2, Expr>:
   match e:
     case EName{+l, path}:
-      MDot{st, l, path}
+      match path:
+        case Con{n, rest}:
+          match rest:
+            case Nil{}:
+              Some{EAtom{n}}
+            case _:
+              None{}
+        case Nil{}:
+          None{}
+    case EList{xs}:
+      match xs:
+        case Con{k, rest}:
+          match rest:
+            case Nil{}:
+              Some{k}
+            case _:
+              None{}
+        case Nil{}:
+          None{}
     case _:
-      fail(line, "a field of an expression is not supported yet")
+      None{}
+
+def tag_key(st: List<&2, Fr>, m: Maybe<&2, Expr>, +line: U32, +col: U32) -> Pm:
+  match m:
+    case Some{k}:
+      MTag{st, line, col, k}
+    case None{}:
+      fail(line, "a tag's key is a name or a one-member list, `name:` or `[k]:`")
+
+# `:` after an operand: the operand is a tag's key, `:` joint to it
+def tag_start(+jl: Bool, st: List<&2, Fr>, e: Expr, +line: U32, +col: U32) -> Pm:
+  match jl:
+    case True{}:
+      tag_key(st, key_of(e), line, col)
+    case False{}:
+      fail(line, "`:` must be joint to its key: write `key:value`")
+
+def have.top(+colon: Bool, +jl: Bool, st: List<&2, Fr>, e: Expr, +line: U32, +col: U32, +s: List<&2, U32>) -> Pm:
+  match colon:
+    case True{}:
+      tag_start(jl, st, e, line, col)
+    case False{}:
+      have.op(st, e, line, s)
 
 # an operand in hand, its application done
 def have.t(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
   match t:
-    case L.TOp{+l, +c, s}:
-      have.op(st, e, l, s)
+    case L.TOp{+l, +c, +s, +jl}:
+      have.top(bytes_eq(s, [58]), jl, st, e, l, c, s)
     case L.TPun{+l, +c, +b}:
       have.pun(st, e, l, b)
     case L.TDot{+l, +c}:
@@ -894,8 +1008,26 @@ def have.app.if(more: Unit -> Pm, +dot: Bool, +l: U32, f: Expr, rest: List<&2, F
     case False{}:
       more(Unit{})
 
-# an operand in hand: the application awaiting it done first, unless a
-# name's path goes on
+# a token that goes on with the operand in hand: `.` a field, `:` a tag
+# of it, so that an application or a joint tag awaiting it waits
+def postfix(t: L.Tok) -> Bool:
+  match t:
+    case L.TDot{+l, +c}:
+      True{}
+    case L.TOp{+l, +c, s, +jl}:
+      bytes_eq(s, [58])
+    case _:
+      False{}
+
+def have.tag.if(more: Unit -> Pm, +keep: Bool, +l: U32, k: Expr, rest: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
+  match keep:
+    case True{}:
+      have.t(Con{FTagJ{l, k}, rest}, e, t)
+    case False{}:
+      more(Unit{})
+
+# an operand in hand: the application or joint tag awaiting it done
+# first, unless the operand goes on; an index's bracket done at once
 def have(st: List<&2, Fr>, +e: Expr, +t: L.Tok) -> Pm:
   match st:
     case Nil{}:
@@ -903,24 +1035,45 @@ def have(st: List<&2, Fr>, +e: Expr, +t: L.Tok) -> Pm:
     case Con{f, +rest}:
       match f:
         case FApp{+l, +g}:
-          have.app.if(u => have(rest, EApp{l, g, e}, t), is_dot(t), l, g, rest, e, t)
+          have.app.if(u => have(rest, EApp{l, g, e}, t), postfix(t), l, g, rest, e, t)
+        case FTagJ{+l, +k}:
+          have.tag.if(u => have(rest, ETag{l, k, e}, t), postfix(t), l, k, rest, e, t)
+        case FIdx{+l, x}:
+          have(rest, index(l, x, e), t)
         case _:
           have.t(Con{f, rest}, e, t)
 
-def dot.word(+ok: Bool, st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
+# a field of e: a name's path goes on, any other operand reads the field
+def dot.name(e: Expr, +line: U32, s: List<&2, U32>) -> Expr:
+  match e:
+    case EName{+l, path}:
+      EName{l, List.append(&2, List<&2, U32>, path, [s])}
+    case _:
+      EApp{line, EField{line, s}, e}
+
+def dot.word(+ok: Bool, st: List<&2, Fr>, +line: U32, e: Expr, s: List<&2, U32>) -> Pm:
   match ok:
     case True{}:
-      MHave{st, EName{line, List.append(&2, List<&2, U32>, path, [s])}}
+      MHave{st, dot.name(e, line, s)}
     case False{}:
-      fail(line, "expected a name after .")
+      fail(line, "a field's name begins with a letter: " ++ str(s))
 
-# after `name.`: the path's next name
-def dot(st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, t: L.Tok) -> Pm:
+def dot.pun(+open: Bool, st: List<&2, Fr>, +line: U32, e: Expr) -> Pm:
+  match open:
+    case True{}:
+      want.pun(Con{FIdx{line, e}, st}, line, 91)
+    case False{}:
+      fail(line, "expected a field's name or `[` after `.`")
+
+# after `.`: a field's name, or `[` an index's key
+def dot(st: List<&2, Fr>, +line: U32, e: Expr, t: L.Tok) -> Pm:
   match t:
     case L.TWord{+l, +c, +s}:
-      dot.word(name_ok(s), st, line, path, s)
+      dot.word(name_ok(s), st, line, e, s)
+    case L.TPun{+l, +c, +b}:
+      dot.pun(U32.is_eq(b, 91), st, line, e)
     case _:
-      fail(line, "expected a name after .")
+      fail(line, "expected a field's name or `[` after `.`")
 
 # the group's frame given its open: braces, or a virtual open at its
 # anchor's column
@@ -1029,7 +1182,7 @@ def lam_params(st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>, +t: L.
   match t:
     case L.TWord{+l, +c, +s}:
       lam.p(param_ok(s), st, line, ps, s)
-    case L.TOp{+l, +c, +s}:
+    case L.TOp{+l, +c, +s, +jl}:
       lam.arrow(bytes_eq(s, [45, 62]), st, line, ps, s)
     case _:
       fail(line, "expected a parameter or -> in a lambda, found " ++ tok_show(t))
@@ -1069,72 +1222,102 @@ def where_done(st: List<&2, Fr>, e: Expr, +anchor: U32, t: L.Tok) -> Pm:
     case _:
       fail(L.tok_line(t), "nothing may follow a where's bindings")
 
-def dkey.word(+ok: Bool, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
-  match ok:
-    case True{}:
-      MDColon{st, line, s}
-    case False{}:
-      fail(line, "a dict member's name begins with a letter and is no keyword: " ++ str(s))
+# Tags
+# ----
 
-def dkey.comma.k(+sep: U32, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
-  match sep:
-    case 0:
-      MDKey{Con{FDict{l, es, 1}, rest}}
-    case _:
-      fail(line, "a dict holds an empty member between separators")
+def no_payload(+line: U32) -> Pm:
+  fail(line, "a tag requires a payload; its constructor is the section `(path:)`")
 
-def dkey.close.k(+sep: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
-  match sep:
-    case 1:
-      fail(line, "a dict holds an empty member between separators")
-    case _:
-      MHave{rest, EDict{List.reverse(&2, DEnt, es)}}
-
-def dkey.pun.k(+b: U32, +sep: U32, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
-  match b:
-    case 44:
-      dkey.comma.k(sep, l, es, rest, line)
-    case 125:
-      dkey.close.k(sep, es, rest, line)
-    case _:
-      fail(line, "expected a dict member's name, found " ++ str([b]))
-
-# a comma or `}` where a member's name is wanted
-def dkey.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+def top_is_app(st: List<&2, Fr>) -> Bool:
   match st:
-    case Nil{}:
-      fail(line, "a dict's frame lost")
     case Con{f, rest}:
       match f:
-        case FDict{+l, es, +sep}:
-          dkey.pun.k(b, sep, l, es, rest, line)
+        case FApp{+l, g}:
+          True{}
         case _:
-          fail(line, "a dict's frame lost")
+          False{}
+    case Nil{}:
+      False{}
 
-# in a dict literal: a member's name, a comma, or the close
-def dkey(st: List<&2, Fr>, +t: L.Tok) -> Pm:
+def tag.spaced(+app: Bool, st: List<&2, Fr>, +line: U32, k: Expr, +t: L.Tok) -> Pm:
+  match app:
+    case True{}:
+      fail(line, "a spaced tag is never an argument: write `f (tag: x)` or `f tag:x`")
+    case False{}:
+      want(Con{FTagS{line, k}, st}, t)
+
+# the payload begins: joint to `:`, the next operand alone; spaced, the
+# rest of its item
+def tag.payload(+joint: Bool, +st: List<&2, Fr>, +line: U32, k: Expr, +t: L.Tok) -> Pm:
+  match joint:
+    case True{}:
+      want(Con{FTagJ{line, k}, st}, t)
+    case False{}:
+      tag.spaced(top_is_app(st), st, line, k, t)
+
+# `)` after `key:`: the section, where a `(` opened it
+def tag.section(st: List<&2, Fr>, +line: U32, k: Expr) -> Pm:
+  match st:
+    case Con{f, rest}:
+      match f:
+        case FParen{+l}:
+          MHave{rest, ESection{line, k}}
+        case _:
+          no_payload(line)
+    case Nil{}:
+      no_payload(line)
+
+def tag.pun(+b: U32, +joint: Bool, st: List<&2, Fr>, +line: U32, k: Expr, +t: L.Tok) -> Pm:
+  match b:
+    case 41:
+      tag.section(st, line, k)
+    case 40:
+      tag.payload(joint, st, line, k, t)
+    case 91:
+      tag.payload(joint, st, line, k, t)
+    case 123:
+      tag.payload(joint, st, line, k, t)
+    case _:
+      no_payload(line)
+
+def tag.op(+lam: Bool, +joint: Bool, st: List<&2, Fr>, +line: U32, k: Expr, +t: L.Tok) -> Pm:
+  match lam:
+    case True{}:
+      tag.payload(joint, st, line, k, t)
+    case False{}:
+      fail(line, "an operator cannot begin a tag's payload")
+
+def tag_next.k(+joint: Bool, st: List<&2, Fr>, +line: U32, k: Expr, +t: L.Tok) -> Pm:
+  match t:
+    case L.TPun{+l, +c, +b}:
+      tag.pun(b, joint, st, line, k, t)
+    case L.TOp{+l, +c, +s, +jl}:
+      tag.op(bytes_eq(s, [92]), joint, st, line, k, t)
+    case L.TLay{+l, +c, +kk}:
+      no_payload(line)
+    case L.TEq{+l, +c}:
+      no_payload(line)
+    case _:
+      tag.payload(joint, st, line, k, t)
+
+# after `key:` at col: what comes next, joint to `:` or not
+def tag_next(st: List<&2, Fr>, +line: U32, +col: U32, k: Expr, +t: L.Tok) -> Pm:
+  tag_next.k(U32.is_eq(L.tok_line(t), line) && U32.is_eq(L.tok_col(t), (col + 1 : U32)), st, line, k, t)
+
+def pun.word(+ok: Bool, st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      MHave{st, ETag{line, EAtom{s}, EName{line, [s]}}}
+    case False{}:
+      fail(line, "a pun's name must be adjacent to `:`, found `" ++ str(s) ++ "`")
+
+# after `:` at col where an operand is wanted: the pun's name, joint
+def pun_next(st: List<&2, Fr>, +line: U32, +col: U32, +t: L.Tok) -> Pm:
   match t:
     case L.TWord{+l, +c, +s}:
-      dkey.word(param_ok(s), st, l, s)
-    case L.TPun{+l, +c, +b}:
-      dkey.pun(st, l, b)
+      pun.word(U32.is_eq(l, line) && U32.is_eq(c, (col + 1 : U32)) && param_ok(s), st, line, s)
     case _:
-      fail(L.tok_line(t), "this dict member form is not supported yet: " ++ tok_show(t))
-
-def dcolon.k(+colon: Bool, st: List<&2, Fr>, +line: U32, key: List<&2, U32>) -> Pm:
-  match colon:
-    case True{}:
-      MWant{Con{FDEnt{line, key}, st}}
-    case False{}:
-      fail(line, "expected `:` after the dict member's name")
-
-# after a member's name: `:`, its value's frame pushed
-def dcolon(st: List<&2, Fr>, +line: U32, key: List<&2, U32>, t: L.Tok) -> Pm:
-  match t:
-    case L.TOp{+l, +c, +s}:
-      dcolon.k(bytes_eq(s, [58]), st, line, key)
-    case _:
-      fail(line, "expected `:` after the dict member's name")
+      fail(line, "a pun's name must be adjacent to `:`, found `" ++ tok_show(t) ++ "`")
 
 def step(m: Pm, +t: L.Tok) -> Pm:
   match m:
@@ -1144,8 +1327,12 @@ def step(m: Pm, +t: L.Tok) -> Pm:
       want(st, t)
     case MHave{st, e}:
       have(st, e, t)
-    case MDot{st, +line, path}:
-      dot(st, line, path, t)
+    case MDot{st, +line, e}:
+      dot(st, line, e, t)
+    case MTag{st, +line, +col, k}:
+      tag_next(st, line, col, k, t)
+    case MPun{st, +line, +col}:
+      pun_next(st, line, col, t)
     case MGroup{st}:
       group(st, t)
     case MBName{st}:
@@ -1154,10 +1341,6 @@ def step(m: Pm, +t: L.Tok) -> Pm:
       beq(st, line, name, ps, t)
     case MLam{st, +line, ps}:
       lam_params(st, line, ps, t)
-    case MDKey{st}:
-      dkey(st, t)
-    case MDColon{st, +line, key}:
-      dcolon(st, line, key, t)
     case MLetAfter{st, +line, +anchor, +brace, bs}:
       let_after(st, line, anchor, brace, bs, t)
     case MWhereDone{st, e, +anchor}:
@@ -1191,10 +1374,14 @@ def unclosed(f: Fr) -> Ex:
       XErr{Diag{l, "an application's argument is missing"}}
     case FLam{+l, ps}:
       XErr{Diag{l, "a lambda's body is missing"}}
-    case FDict{+l, es, +sep}:
+    case FDict{+l, ms, +sep}:
       XErr{Diag{l, "unclosed delimiter: expected `}`"}}
-    case FDEnt{+l, key}:
-      XErr{Diag{l, "unclosed delimiter: expected `}`"}}
+    case FTagJ{+l, k}:
+      XErr{Diag{l, "a tag requires a payload; its constructor is the section `(path:)`"}}
+    case FTagS{+l, k}:
+      XErr{Diag{l, "a tag requires a payload; its constructor is the section `(path:)`"}}
+    case FIdx{+l, x}:
+      XErr{Diag{l, "an index's key is missing: `e.[k]`"}}
 
 def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
   match st:
@@ -1216,8 +1403,12 @@ def end(m: Pm, +line: U32) -> Ex:
   match m:
     case MFail{d}:
       XErr{d}
-    case MDot{st, +l, path}:
-      XErr{Diag{l, "expected a name after ."}}
+    case MDot{st, +l, e}:
+      XErr{Diag{l, "expected a field's name or `[` after `.`"}}
+    case MTag{st, +l, +c, k}:
+      XErr{Diag{l, "a tag requires a payload; its constructor is the section `(path:)`"}}
+    case MPun{st, +l, +c}:
+      XErr{Diag{l, "a pun is `:name`: a name must follow `:`"}}
     case MWant{st}:
       end.want(st, line)
     case MHave{st, e}:
@@ -1234,10 +1425,7 @@ def end(m: Pm, +line: U32) -> Ex:
       XErr{Diag{l, "expected = after the binding's name"}}
     case MLam{st, +l, ps}:
       XErr{Diag{l, "a lambda is not finished: expected ->"}}
-    case MDKey{st}:
-      XErr{Diag{line, "unclosed delimiter: expected `}`"}}
-    case MDColon{st, +l, key}:
-      XErr{Diag{l, "expected `:` after the dict member's name"}}
+
 
 def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
   match x:

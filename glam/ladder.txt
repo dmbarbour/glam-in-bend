@@ -22,3 +22,6 @@ ladder-lambda samples/invalid/eval/local_shadowing.g
 ladder-lambda samples/hello/hello_lambda.g
 ladder-thunks samples/hello/hello_names.g
 ladder-thunks samples/hello/hello_lambda_sugar.g
+ladder-dicts samples/hello/hello_dict.g
+ladder-dicts samples/hello/hello_tagged.g
+ladder-dicts samples/invalid/syntax/tagged_spacing.g
