@@ -111,6 +111,9 @@ docs cite them. The rest remain in the Rust decision log
 How glam values sit on Bend 2's immutable, reference-counted data, and
 where the shared lazy state that Bend cannot hold goes.
 
+- [`lambdas-lower-to-nets`](decisions/lambdas-lower-to-nets.md): the
+  lambda calculus is evaluated by lowering to the kernel's nets; a lazy
+  machine over thunks is not the toplevel's evaluator.
 - [`split-heap`](decisions/split-heap.md): ground data is Bend data;
   everything holding lazy state lives in our store, split for parallelism.
 - [`store-pages`](decisions/store-pages.md): the store is equal pages of

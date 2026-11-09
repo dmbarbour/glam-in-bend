@@ -62,6 +62,10 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   sharing and fixpoints, parallelism, fast paths), ending in a
   representation decision. Approved; paused after `spike-net-rules` for
   NetPairing.
+- [`HelloLadder_2026-11-09.md`](HelloLadder_2026-11-09.md): `ladder-`
+  steps running `samples/hello/` end to end, in the order of the syntax
+  each sample introduces, the parser, lowering, cells and shell growing a
+  rung at a time. Drafted for the maintainer's review.
 - [`HeapModel_2026-10-27.md`](HeapModel_2026-10-27.md): `heap-` steps for
   where glam's shared lazy state lives: nets live and frozen, thunk and net
   cells, forcing by demand, application by splicing copies. Drafted for

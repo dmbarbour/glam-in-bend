@@ -255,12 +255,36 @@ Keep all of this; point it at the product.
    it. Agents read AGENTS.md first; today it tells them how to dig, not
    where.
 
-## Questions for the maintainer
+## Questions for the maintainer, and their answers (2026-11-09)
 
 - F9: nets as the evaluator of every lowered term, or a lazy lambda
-  calculus at the top with nets behind `interaction_net`?
-- F6: is the spike's kernel the kernel?
-- F7: Blend's budget, and whether its proofs continue.
+  calculus at the top with nets behind `interaction_net`? **Lambdas are
+  lowered to nets for evaluation** (`lambdas-lower-to-nets`). F9 is
+  resolved: the critical path is F2 and F3.
+- F6: is the spike's kernel the kernel? **Most likely, in a couple of
+  forms: a lazy one for ordinary evaluation, an eager one for a JIT.** A
+  leaning, so `spike-verdict` still records it; but the kernel is not
+  throwaway, and proving it is not spent effort. Recommendation 2
+  stands as the writing-down; recommendation 6's policy applies to new
+  laws.
+- F7: Blend's budget, and whether its proofs continue. **Blend has wider
+  interest, a separate repository and its own identity; completing it
+  has independent utility and is not a waste.** Recommendation 5 is
+  withdrawn as scope: Blend is a project of its own, and the question
+  left is only how glam's and Blend's work alternate, which the
+  maintainer decides session by session, as today.
 - Recommendation 1: which sample, and which subset of the syntax, the
-  slice targets first.
+  slice targets first. **A part of `.g` is hard to make usable; the Rust
+  bootstrap's hello samples built the syntax up incrementally.** So the
+  slice follows that ladder rather than one chosen sample: the hello
+  samples in the order of the syntax each introduces, the parser and
+  the lowering growing a rung at a time, each rung's output the test.
+  Drafted as [`HelloLadder_2026-11-09.md`](../plans/HelloLadder_2026-11-09.md).
 - Recommendation 4: the threshold below which kernel tuning waits.
+  **Push several features, then review performance; a +40% needs
+  immediate attention; no confident policy beyond that.** A starting
+  point, not a ruling: the spot check still runs at each kernel change
+  and its counts go to the store; a movement past 10% on demand or the
+  eager run is looked into before the commit, as the 40% was; smaller
+  movements are noted in the plan and left for a performance review
+  step that closes each feature plan.
