@@ -360,6 +360,20 @@ named, and marked there when a rung is built.
     kernel's workloads become glam programs, and a performance review of
     what the rungs found, as the maintainer prefers: features first, the
     review after, anything past 10% looked at as it appears.
+    - `ladder-measure.workload` — tentative — a workload nearer what
+      glam is for than the capstone. The maintainer (2026-11-09): the
+      direct-style hello world "is perhaps the closest, though even that's
+      pretty far from where I imagine ending up with glam long term.
+      Something with plenty of backtracking conditionals, state, and at
+      least some use of reflection tasks (or a viable placeholder for
+      them)." A family of generated assemblies at n, 2n and 4n, sized
+      from the command line: encodings chosen by ordered alternatives
+      and cuts, layout kept in state, reports made by reflection tasks,
+      the capstone's final `meta_refl` trace task the placeholder to
+      start from. It waits on choice in the direct-assembly handler,
+      which even the Rust bootstrap's lacks: "Adding choice will require
+      the runner outcome to represent zero or more transactional state
+      results" (the capstone's README).
 
 ## Acceptance
 

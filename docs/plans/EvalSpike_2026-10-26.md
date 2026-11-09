@@ -623,6 +623,18 @@ Parallelism:
    only when ready, and fuel is one unit per logical step. Then marking as
    tasks in the same rounds. Laws: a round loses or duplicates no page and
    no task.
+   - `spike-page-rounds.tasks` — tentative — the coordinator built in
+     Bend over an abstract task, anything that takes fuel and returns
+     its progress, its needs and its outcome, so that one code runs
+     generated task graphs before nets can and real nets after, paying
+     Bend's own barrier costs. The graphs are shaped as the maintainer's
+     representative workload is (`ladder-measure.workload`): ordered
+     alternatives explored ahead of need and cancelled by a cut, state
+     threaded through chains, reflection tasks surfacing only from work
+     that commits. Proposed by the heap review
+     ([`Heap_2026-11-09.md`](../reviews/Heap_2026-11-09.md)), whose
+     open questions it waits on: pages may not stay the unit of
+     ownership.
 10. `spike-deep-parallelism` — parallelism found inside a task: nested
     parallel calls for pure work over what its worker holds (its pages,
     split between the calls, and ground data), and new tasks for the
