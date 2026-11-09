@@ -24,15 +24,49 @@ import ../spike/tpl.bend as T
 # the shell counts down a budget of slices too large for any assembly to
 # reach (glam/main.bend); no @unsafe is needed.
 
+# the bytes, with the interactions of every net reduced, the splices, and
+# the values forced (for --count); or the diagnostics
 type Out is Data:
-  OBytes{bs: List<&2, U32>, +itrs: U32}
+  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32}
   OErrs{ds: List<&2, G.Diag>}
 
-# where an assembly stands: done, or a demand to go on with, and the
-# templates its leaves name, each top-level function's (W.top_g)
+# An entry of the book (Cells, re-scoped by the bridge), named by a
+# leaf's handle: a top-level function's template; or a root cell, a value
+# a template names: its recipe not yet forced, forced now (busy, the
+# recipe kept), its value, or a function, its recipe spliced at each use
+# as a template is (a stopgap until `cells-freeze`: the work of its first
+# forcing is not kept)
+type Ent is Data:
+  ETpl{t: T.Tpl}
+  ERecipe{t: T.Tpl, name: List<&2, U32>}
+  EBusy{t: T.Tpl, name: List<&2, U32>}
+  EValue{v: V.Val}
+  EFn{t: T.Tpl}
+
+# A task, the protocol's state: a demand, the entry it computes (none,
+# no_cell, for asm.result's net) and the entry it waits on
+type Tk is Type:
+  Tk{d: KD.D, +cell: U32, +waits: U32}
+
+# the tasks set aside, each waiting on the one above it: one stack,
+# forcing depth first, the first container of tasks
+type Stk is Type:
+  TkNil{}
+  TkCon{t: Tk, rest: Stk}
+
+# counted for --count: interactions of the cells' nets, splices, values
+# forced
+type Cn is Data:
+  Cn{+itrs: U32, +splices: U32, +forced: U32}
+
+# where an assembly stands: done, or a task to go on with, the tasks
+# waiting, the book and the counts
 type Run is Type:
   RDone{o: Out}
-  RMore{d: KD.D, b: List<&2, T.Tpl>}
+  RMore{t: Tk, s: Stk, b: List<&2, Ent>, c: Cn}
+
+def no_cell() -> U32:
+  4294967295
 
 def find.k(+hit: Bool, d: G.Def) -> Maybe<&2, G.Def>:
   match hit:
@@ -81,7 +115,7 @@ def bytes(xs: List<&2, V.Val>) -> Bs:
 def out.bs(r: Bs, +itrs: U32) -> Out:
   match r:
     case BOk{bs}:
-      OBytes{bs, itrs}
+      OBytes{bs, itrs, 0, 0}
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
@@ -147,54 +181,242 @@ def out(r: K.DRes) -> Out:
 def slice() -> Nat:
   1048576n
 
-# the template a leaf's handle names, if any
-def book_at(b: List<&2, T.Tpl>, +k: U32) -> Maybe<&2, T.Tpl>:
+def cn.add(c: Cn, +i: U32) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo}:
+      Cn{(itrs + i : U32), sp, fo}
+
+def cn.splice(c: Cn) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo}:
+      Cn{itrs, (sp + 1 : U32), fo}
+
+def cn.force(c: Cn) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo}:
+      Cn{itrs, sp, (fo + 1 : U32)}
+
+# the counts added to the bytes' own
+def counted(o: Out, c: Cn) -> Out:
+  match o:
+    case OBytes{bs, +itrs, +sp, +fo}:
+      match c:
+        case Cn{+i, +s2, +f2}:
+          OBytes{bs, (itrs + i : U32), s2, f2}
+    case OErrs{ds}:
+      OErrs{ds}
+
+def book_get(b: List<&2, Ent>, +k: U32) -> Maybe<&2, Ent>:
   match b:
     case Nil{}:
       None{}
-    case Con{t, rest}:
+    case Con{e, rest}:
       match k:
         case 0:
-          Some{t}
+          Some{e}
         case _:
-          book_at(rest, (k - 1 : U32))
+          book_get(rest, (k - 1 : U32))
 
-def spliced(m: Maybe<&2, T.Tpl>, d: KD.D, b: List<&2, T.Tpl>) -> Run:
+def book_set(b: List<&2, Ent>, +k: U32, e: Ent) -> List<&2, Ent>:
+  match b:
+    case Nil{}:
+      Nil{}
+    case Con{x, rest}:
+      match k:
+        case 0:
+          Con{e, rest}
+        case _:
+          Con{x, book_set(rest, (k - 1 : U32), e)}
+
+# Aliases: a cell whose value is a handle stands for that handle's entry,
+# chased at most as many hops as there are entries, past which the
+# aliases go round
+
+type Ch is Data:
+  ChAt{+k: U32}
+  ChLoop{}
+
+def alias_of.v(v: V.Val) -> Maybe<&2, U32>:
+  match v:
+    case V.VLazy{+h}:
+      Some{h}
+    case _:
+      None{}
+
+def alias_of(m: Maybe<&2, Ent>) -> Maybe<&2, U32>:
   match m:
-    case Some{t}:
-      RMore{S.splice(d, t), b}
+    case Some{e}:
+      match e:
+        case EValue{v}:
+          alias_of.v(v)
+        case _:
+          None{}
     case None{}:
-      RDone{OErrs{[G.Diag{0, "a leaf names no template"}]}}
+      None{}
 
-# demand stopped at a leaf (state 2): the template it names spliced there
-def needed(r: KD.D & U32, +b: List<&2, T.Tpl>) -> Run:
+def chase.k(m: Maybe<&2, U32>, +k: U32, more: U32 -> Ch) -> Ch:
+  match m:
+    case Some{+h}:
+      more(h)
+    case None{}:
+      ChAt{k}
+
+def chase(hops: Nat, +b: List<&2, Ent>, +k: U32) -> Ch:
+  match hops:
+    case 0n:
+      ChLoop{}
+    case 1n+p:
+      chase.k(alias_of(book_get(b, k)), k, h => chase(p, b, h))
+
+def go(d: KD.D, +cell: U32, s: Stk, b: List<&2, Ent>, c: Cn) -> Run:
+  RMore{Tk{d, cell, no_cell()}, s, b, c}
+
+def err(msg: String) -> Run:
+  RDone{OErrs{[G.Diag{0, msg}]}}
+
+# a need served by entry k: a template spliced, a value resumed, a recipe
+# forced on a task of its own above this one, a busy cell a cycle
+def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case ETpl{t}:
+          go(S.splice(d, t), cell, s, b, cn.splice(c))
+        case EFn{t}:
+          go(S.splice(d, t), cell, s, b, cn.splice(c))
+        case EValue{v}:
+          go(KS.resume(d, v), cell, s, b, c)
+        case ERecipe{+t, +name}:
+          RMore{Tk{KS.d.start(KN.load(t)), k, no_cell()}, TkCon{Tk{d, cell, k}, s}, book_set(b, k, EBusy{t, name}), cn.force(c)}
+        case EBusy{t, name}:
+          err("`" ++ G.str(name) ++ "` needs its own value: a cycle")
+    case None{}:
+      err("a leaf names no definition")
+
+def needed.c(ch: Ch, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match ch:
+    case ChAt{+k}:
+      needed.e(book_get(b, k), d, k, cell, s, b, c)
+    case ChLoop{}:
+      err("definitions name each other alone, with no value: a cycle")
+
+# demand stopped at a leaf (state 2)
+def needed(r: KD.D & U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
   (d, +k) = r
-  spliced(book_at(b, k), d, b)
+  needed.c(chase(List.length(&2, Ent, b), b, k), d, cell, s, b, c)
+
+# A cell's net done (state 1): its outcome kept, the task below it served:
+# a value resumed there; no value, a function, its recipe spliced there
+# and at each use after
+
+def finished.fn(m: Maybe<&2, Ent>, d0: KD.D, +cell0: U32, rest: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case EBusy{+t, name}:
+          go(S.splice(d0, t), cell0, rest, book_set(b, cell, EFn{t}), cn.splice(c))
+        case _:
+          err("a value forced was not busy")
+    case None{}:
+      err("a value forced names no definition")
+
+def finished.v(v: Maybe<&2, V.Val>, d0: KD.D, +cell0: U32, rest: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+  match v:
+    case Some{+x}:
+      go(KS.resume(d0, x), cell0, rest, book_set(b, cell, EValue{x}), c)
+    case None{}:
+      finished.fn(book_get(b, cell), d0, cell0, rest, cell, b, c)
+
+def finished.s(s: Stk, v: Maybe<&2, V.Val>, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+  match s:
+    case TkCon{t, rest}:
+      match t:
+        case Tk{d0, +cell0, +waits0}:
+          finished.v(v, d0, cell0, rest, cell, b, c)
+    case TkNil{}:
+      err("a value forced for no one")
+
+def finished.e(+clean: Bool, v: Maybe<&2, V.Val>, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match clean:
+    case True{}:
+      finished.s(s, v, cell, b, c)
+    case False{}:
+      err("the kernel reported errors forcing a value")
+
+def finished(r: K.DRes, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match r:
+    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
+      match k:
+        case K.KRes{v, +itrs, +errs, +ok}:
+          finished.e(U32.is_eq(errs, 0), v, cell, s, b, cn.add(c, itrs))
+
+def ended.cell(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      match st:
+        case 1:
+          finished(K.dres(KD.D{h, path, top, depth, n, st}), cell, s, b, c)
+        case _:
+          err("forcing a value: " ++ K.st_name(st))
+
+def ended.rm(m: Maybe<&2, U32>, d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match m:
+    case Some{+k}:
+      needed.c(chase(List.length(&2, Ent, b), b, k), d, no_cell(), s, b, c)
+    case None{}:
+      RDone{counted(out(K.dres(d)), c)}
+
+# asm.result's net done: its output, unless its root faces a leaf, as when
+# a function returns a value's leaf, which is served as a need is and the
+# net then finished again
+def ended.root(r: KD.D & Maybe<&2, U32>, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  (d, m) = r
+  ended.rm(m, d, s, b, c)
+
+# asm.result's demand ended: done, looked at for a leaf; else its outcome
+def ended.r(d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      match st:
+        case 1:
+          ended.root(S.lazy_at(KD.D{h, path, top, depth, n, st}), s, b, c)
+        case _:
+          RDone{counted(out(K.dres(KD.D{h, path, top, depth, n, st})), c)}
+
+# demand's end: asm.result's, its output; a cell's, served below
+def ended(+root: Bool, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  match root:
+    case True{}:
+      ended.r(d, s, b, c)
+    case False{}:
+      ended.cell(d, cell, s, b, c)
 
 # a slice's end: out of fuel goes on (state 4 set going again, 0); a leaf
-# met is spliced (state 2); any other state ends the assembly
-def sliced(d: KD.D, +b: List<&2, T.Tpl>) -> Run:
+# met is served (state 2); any other state ends the task
+def sliced(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
       match st:
         case 4:
-          RMore{KD.D{h, path, top, depth, n, 0}, b}
+          go(KD.D{h, path, top, depth, n, 0}, cell, s, b, c)
         case 2:
-          needed(KS.need(KD.D{h, path, top, depth, n, st}), b)
+          needed(KS.need(KD.D{h, path, top, depth, n, st}), cell, s, b, c)
         case _:
-          RDone{out(K.dres(KD.D{h, path, top, depth, n, st}))}
+          ended(U32.is_eq(cell, no_cell()), KD.D{h, path, top, depth, n, st}, cell, s, b, c)
 
-# one slice of the assembly
-def step(d: KD.D, b: List<&2, T.Tpl>) -> Run:
-  sliced(KD.Demand.demand(slice(), d), b)
+# one slice of the assembly: of the task on top
+def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn) -> Run:
+  match t:
+    case Tk{d, +cell, +waits}:
+      sliced(KD.Demand.demand(slice(), d), cell, s, b, c)
 
 # Starting
 # ========
 
-def lowered(w: W.Top, b: List<&2, T.Tpl>) -> Run:
+def lowered(w: W.Top, b: List<&2, Ent>) -> Run:
   match w:
     case W.TOk{t}:
-      RMore{KS.d.start(KN.load(t)), b}
+      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0})
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 
@@ -273,7 +495,7 @@ def binds(ds: List<&2, G.Def>, body: G.Expr) -> G.Expr:
         case G.Def{+line, path, v}:
           bind.k(one_name(path), line, v, binds(rest, body))
 
-def linked(r: D.Ds, +line: U32, rs: List<&2, W.Ref>, b: List<&2, T.Tpl>) -> Run:
+def linked(r: D.Ds, +line: U32, rs: List<&2, W.Ref>, b: List<&2, Ent>) -> Run:
   match r:
     case D.DOk{e}:
       lowered(W.top_g(e, line, rs, Nil{}), b)
@@ -282,7 +504,7 @@ def linked(r: D.Ds, +line: U32, rs: List<&2, W.Ref>, b: List<&2, T.Tpl>) -> Run:
 
 # asm.result's net: the value definitions bound around it, functions'
 # names left to their templates
-def link(m: Maybe<&2, G.Def>, +ds: List<&2, G.Def>, rs: List<&2, W.Ref>, b: List<&2, T.Tpl>) -> Run:
+def link(m: Maybe<&2, G.Def>, +ds: List<&2, G.Def>, rs: List<&2, W.Ref>, b: List<&2, Ent>) -> Run:
   match m:
     case Some{d}:
       match d:
@@ -348,83 +570,10 @@ def refs(fs: List<&2, G.Def>, +i: U32) -> List<&2, W.Ref>:
         case G.Def{+line, path, body}:
           refs.k(one_name(path), i, refs(rest, (i + 1 : U32)))
 
-# the templates, in the functions' order, or the first one's trouble
-type Bk is Data:
-  BkOk{ts: List<&2, T.Tpl>}
-  BkErr{d: G.Diag}
-
-def book.k(w: W.Top, r: Bk) -> Bk:
-  match w r:
-    case W.TOk{t} BkOk{ts}:
-      BkOk{Con{t, ts}}
-    case W.TErr{d} _:
-      BkErr{d}
-    case W.TOk{t} BkErr{d}:
-      BkErr{d}
-
-def book(fs: List<&2, G.Def>, +rs: List<&2, W.Ref>, +vals: List<&2, List<&2, U32>>) -> Bk:
-  match fs:
-    case Nil{}:
-      BkOk{Nil{}}
-    case Con{d, rest}:
-      match d:
-        case G.Def{+line, path, body}:
-          book.k(W.top_g(body, line, rs, vals), book(rest, rs, vals))
-
-def start.b(r: Bk, +vs: List<&2, G.Def>, rs: List<&2, W.Ref>) -> Run:
-  match r:
-    case BkOk{ts}:
-      link(find(vs, None{}), vs, rs, ts)
-    case BkErr{d}:
-      RDone{OErrs{[d]}}
-
-def start.rs(+rs: List<&2, W.Ref>, fs: List<&2, G.Def>, +vs: List<&2, G.Def>) -> Run:
-  start.b(book(fs, rs, globals(vs)), vs, rs)
-
-# Which functions are templates, until root cells hold the values a
-# template names (the Cells plan, re-scoped): those that reach no value
-# definition through the functions they name. A function that reaches one
-# is linked around asm.result as before, so that nothing linked today
-# stops working; recursion through it is refused as before.
-
-def reaches(names: List<&2, List<&2, U32>>, +bad: List<&2, List<&2, U32>>) -> Bool:
-  match names:
-    case Nil{}:
-      False{}
-    case Con{n, rest}:
-      W.has_key(n, bad) || reaches(rest, bad)
-
-def bad.add(m: Maybe<&2, List<&2, U32>>, acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match m:
-    case Some{n}:
-      Con{n, acc}
-    case None{}:
-      acc
-
-def bad.if(+hit: Bool, m: Maybe<&2, List<&2, U32>>, acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match hit:
-    case True{}:
-      bad.add(m, acc)
-    case False{}:
-      acc
-
-# the values, and each function naming a value or a function in bad
-def bad.once(fs: List<&2, G.Def>, +bad: List<&2, List<&2, U32>>, acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match fs:
-    case Nil{}:
-      acc
-    case Con{d, rest}:
-      match d:
-        case G.Def{+line, path, body}:
-          bad.once(rest, bad, bad.if(reaches(D.fv(body), bad), one_name(path), acc))
-
-# the names that reach a value: as many rounds as there are functions
-def bad.fix(k: Nat, +fs: List<&2, G.Def>, +vals: List<&2, List<&2, U32>>, bad: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
-  match k:
-    case 0n:
-      bad
-    case 1n+p:
-      bad.fix(p, fs, vals, bad.once(fs, bad, vals))
+# Root cells (Cells, re-scoped by the bridge): the values a template
+# names, and those such values name in turn, each a cell of its own,
+# forced at most once and resumed wherever named; every other value is
+# linked around asm.result as before
 
 def fname(path: List<&2, List<&2, U32>>) -> List<&2, U32>:
   match path:
@@ -433,30 +582,141 @@ def fname(path: List<&2, List<&2, U32>>) -> List<&2, U32>:
     case Nil{}:
       Nil{}
 
-def tsplit.k(+linked: Bool, d: G.Def, r: Pt) -> Pt:
-  match linked r:
-    case True{} Pt{fs, vs}:
-      Pt{fs, Con{d, vs}}
-    case False{} Pt{fs, vs}:
-      Pt{Con{d, fs}, vs}
+def fvs(ds: List<&2, G.Def>) -> List<&2, List<&2, U32>>:
+  match ds:
+    case Nil{}:
+      Nil{}
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          List.append(&2, List<&2, U32>, D.fv(body), fvs(rest))
 
-# the templates apart from the functions linked, each reversed
-def tsplit(fs: List<&2, G.Def>, +bad: List<&2, List<&2, U32>>, r: Pt) -> Pt:
-  match fs:
+def among.k(+hit: Bool, n: List<&2, U32>, acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match hit:
+    case True{}:
+      Con{n, acc}
+    case False{}:
+      acc
+
+# the names among ns that are in ks
+def among(ns: List<&2, List<&2, U32>>, +ks: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match ns:
+    case Nil{}:
+      Nil{}
+    case Con{+n, rest}:
+      among.k(W.has_key(n, ks), n, among(rest, ks))
+
+def pick.k(+hit: Bool, d: G.Def, r: Pt) -> Pt:
+  match hit r:
+    case True{} Pt{a, b}:
+      Pt{Con{d, a}, b}
+    case False{} Pt{a, b}:
+      Pt{a, Con{d, b}}
+
+# the definitions whose names are in ks, apart from the others, each
+# reversed
+def pick(ds: List<&2, G.Def>, +ks: List<&2, List<&2, U32>>, r: Pt) -> Pt:
+  match ds:
     case Nil{}:
       r
     case Con{d, rest}:
       match d:
         case G.Def{+line, +path, +body}:
-          tsplit(rest, bad, tsplit.k(W.has_key(fname(path), bad), G.Def{line, path, body}, r))
+          pick(rest, ks, pick.k(W.has_key(fname(path), ks), G.Def{line, path, body}, r))
 
-def start.split(r: Pt, vs: List<&2, G.Def>) -> Run:
+def picked(r: Pt) -> List<&2, G.Def>:
   match r:
-    case Pt{+ts, ls}:
-      start.rs(refs(List.reverse(&2, G.Def, ts), 0), List.reverse(&2, G.Def, ts), List.append(&2, G.Def, vs, List.reverse(&2, G.Def, ls)))
+    case Pt{a, b}:
+      a
+
+# the values' names reached from the templates: as many rounds as there
+# are values
+def cells.fix(k: Nat, +vs: List<&2, G.Def>, +vnames: List<&2, List<&2, U32>>, +named0: List<&2, List<&2, U32>>, acc: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match k:
+    case 0n:
+      acc
+    case 1n+p:
+      cells.fix(p, vs, vnames, named0, List.append(&2, List<&2, U32>, named0, among(fvs(picked(pick(vs, acc, Pt{Nil{}, Nil{}}))), vnames)))
+
+def cell_names.n(+vs: List<&2, G.Def>, +vnames: List<&2, List<&2, U32>>, +named0: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  cells.fix(List.length(&2, G.Def, vs), vs, vnames, named0, named0)
+
+def cell_names(fs: List<&2, G.Def>, +vs: List<&2, G.Def>) -> List<&2, List<&2, U32>>:
+  cell_names.n(vs, globals(vs), among(fvs(fs), globals(vs)))
+
+# The book: the templates, then the cells' recipes, in the order of their
+# handles, or the first trouble lowering one
+
+type Bk is Data:
+  BkOk{es: List<&2, Ent>}
+  BkErr{d: G.Diag}
+
+def book.tk(w: W.Top, r: Bk) -> Bk:
+  match w r:
+    case W.TOk{t} BkOk{es}:
+      BkOk{Con{ETpl{t}, es}}
+    case W.TErr{d} _:
+      BkErr{d}
+    case W.TOk{t} BkErr{d}:
+      BkErr{d}
+
+def book.t(fs: List<&2, G.Def>, +rs: List<&2, W.Ref>, +vals: List<&2, List<&2, U32>>) -> Bk:
+  match fs:
+    case Nil{}:
+      BkOk{Nil{}}
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          book.tk(W.top_g(body, line, rs, vals), book.t(rest, rs, vals))
+
+def book.ck(w: W.Top, n: List<&2, U32>, r: Bk) -> Bk:
+  match w r:
+    case W.TOk{t} BkOk{es}:
+      BkOk{Con{ERecipe{t, n}, es}}
+    case W.TErr{d} _:
+      BkErr{d}
+    case W.TOk{t} BkErr{d}:
+      BkErr{d}
+
+def book.c(cs: List<&2, G.Def>, +rs: List<&2, W.Ref>, +vals: List<&2, List<&2, U32>>) -> Bk:
+  match cs:
+    case Nil{}:
+      BkOk{Nil{}}
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          book.ck(W.top_g(body, line, rs, vals), fname(path), book.c(rest, rs, vals))
+
+def bk.cat(a: Bk, b: Bk) -> Bk:
+  match a b:
+    case BkOk{x} BkOk{y}:
+      BkOk{List.append(&2, Ent, x, y)}
+    case BkErr{d} _:
+      BkErr{d}
+    case BkOk{x} BkErr{d}:
+      BkErr{d}
+
+def start.b(r: Bk, +ls: List<&2, G.Def>, rs: List<&2, W.Ref>) -> Run:
+  match r:
+    case BkOk{es}:
+      link(find(ls, None{}), ls, rs, es)
+    case BkErr{d}:
+      RDone{OErrs{[d]}}
+
+def start.rs(+rs: List<&2, W.Ref>, fs: List<&2, G.Def>, cs: List<&2, G.Def>, +ls: List<&2, G.Def>) -> Run:
+  start.b(bk.cat(book.t(fs, rs, globals(ls)), book.c(cs, rs, globals(ls))), ls, rs)
+
+# the handles: the templates' from 0, the cells' after them
+def start.all(+fs: List<&2, G.Def>, +cs: List<&2, G.Def>, ls: List<&2, G.Def>) -> Run:
+  start.rs(List.append(&2, W.Ref, refs(fs, 0), refs(cs, U32.from_nat(List.length(&2, G.Def, fs)))), fs, cs, ls)
+
+def start.cs(r: Pt, fs: List<&2, G.Def>) -> Run:
+  match r:
+    case Pt{cs, ls}:
+      start.all(fs, List.reverse(&2, G.Def, cs), List.reverse(&2, G.Def, ls))
 
 def start.fv(+fs: List<&2, G.Def>, +vs: List<&2, G.Def>) -> Run:
-  start.split(tsplit(fs, bad.fix(List.length(&2, G.Def, fs), fs, globals(vs), globals(vs)), Pt{Nil{}, Nil{}}), vs)
+  start.cs(pick(vs, cell_names(fs, vs), Pt{Nil{}, Nil{}}), fs)
 
 def start.pt(r: Pt) -> Run:
   match r:

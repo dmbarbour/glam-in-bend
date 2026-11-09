@@ -326,10 +326,14 @@ named, and marked there when a rung is built.
    - `ladder-thunks.templates` — built 2026-11-09 — top-level functions
      as templates spliced where demand applies them, recursion with them
      (`cells-splice.templates`, `cells-recursion.templates`, the bridge's
-     first slice): `hello_lambda_sugar.g` now 20 interactions, and four
-     recursive samples, `hello_recursion.g`, `hello_mutual.g`,
-     `hello_recursion_levels.g` and `hello_recursion_linked.g`. The
-     linker stays under `--link`, against which the gate compares.
+     first slice): `hello_lambda_sugar.g` now 20 interactions, and three
+     recursive samples, `hello_recursion.g`, `hello_mutual.g` and
+     `hello_recursion_levels.g`. The linker stays under `--link`, against
+     which the gate compares.
+   - `ladder-thunks.cells` — built 2026-11-09 — the first cells, as this
+     rung foresaw them: the values a template names, each forced once
+     by another's demand (`cells-data.root`). `hello_cells.g`, and the
+     invalid `value_cycle.g`, a value that needs itself.
 
 7. `ladder-objects` — `hello_override.g`, `hello_object.g`,
    `hello_object_prior.g`, then the `hello_object_*.g` family:

@@ -1,6 +1,6 @@
 # A top-level function is a template, spliced at the level where it is applied
 
-`templates-spliced-at-level` · maintainer · rev 5d77caf
+`templates-spliced-at-level` · maintainer · rev 12b2ac1
 
 **Context.** The static linker bound a module's top-level definitions
 around `asm.result` as one binding group, which cannot hold recursion.
@@ -15,16 +15,19 @@ template ("Alright, let's begin developing this bridge").
 template, its net lowered alone and closed, each name of a top-level
 function in it a leaf, a data node holding that function's handle.
 Demand meeting a leaf at an application splices a copy of the template
-there: the copy's root takes the leaf's slot, and every level in the copy
-is raised by the application's level. It stands as an experiment, its
+there: the leaf is freed, the copy's root linked to the application in
+its place, and every level in the copy is raised by the application's
+level. It stands as an experiment, its
 evidence the differential run against the linker, proofs if confidence
 needs them.
 
 **Consequences.**
 - Recursion, direct and mutual, runs through templates: each use copies
   the template, as `copy-reduced-function-nets` copies a function's net.
-- Until root cells hold values, a function that reaches a value
-  definition is linked as before.
+- The values a template names are root cells, forced once each on a
+  task of their own; a value whose outcome is a function is spliced from
+  its recipe at each use, as a template is, until frozen nets exist
+  (`cells-data.root`, `cells-freeze`).
 - A splice is no interaction: counts of interactions miss its cost, a
   copy of the template.
 

@@ -11,7 +11,8 @@ import ./core.bend as C
 #
 #   glam -f FILE.g [--count] [--link]
 #
-# With --count, the kernel's interactions are reported on stderr, for the
+# With --count, the kernel's interactions over every net reduced, the
+# templates spliced and the values forced are reported on stderr, for the
 # store (HelloLadder's ladder-measure). With --link, every definition is
 # linked statically, top-level functions too, as before templates, for a
 # differential run (glam/core.bend).
@@ -61,19 +62,19 @@ def emit(bs: List<&2, U32>) -> IO(Unit):
     r : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
     wrote(r)
 
-def counted(+count: Bool, +itrs: U32, bs: List<&2, U32>) -> IO(Unit):
+def counted(+count: Bool, +itrs: U32, +sp: U32, +fo: U32, bs: List<&2, U32>) -> IO(Unit):
   match count:
     case True{}:
       do IO<Unit>:
-        IO.print_err(U32.show(itrs) ++ " interactions")
+        IO.print_err(U32.show(itrs) ++ " interactions, " ++ U32.show(sp) ++ " splices, " ++ U32.show(fo) ++ " values forced")
         emit(bs)
     case False{}:
       emit(bs)
 
 def finish(o: C.Out, +count: Bool) -> IO(Unit):
   match o:
-    case C.OBytes{bs, +itrs}:
-      counted(count, itrs, bs)
+    case C.OBytes{bs, +itrs, +sp, +fo}:
+      counted(count, itrs, sp, fo, bs)
     case C.OErrs{ds}:
       report(ds)
 
@@ -96,8 +97,8 @@ def slices(left: Nat, r: C.Run, +count: Bool) -> IO(Unit):
       match r:
         case C.RDone{o}:
           finish(o, count)
-        case C.RMore{d, b}:
-          slices(more, C.step(d, b), count)
+        case C.RMore{t, s, b, c}:
+          slices(more, C.step(t, s, b, c), count)
 
 def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool, +lk: Bool) -> IO(Unit):
   (f, r) = fr
