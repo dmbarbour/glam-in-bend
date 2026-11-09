@@ -168,6 +168,9 @@ where the shared lazy state that Bend cannot hold goes.
   deterministic scheduling decides the order diagnostics are observed in.
 - [`functions-are-nets-with-arity`](decisions/functions-are-nets-with-arity.md):
   a function is a net and its remaining arity; copies share its reductions.
+- [`templates-spliced-at-level`](decisions/templates-spliced-at-level.md):
+  a top-level function is a closed template, a copy spliced where demand
+  applies it, raised to the application's level; an experiment.
 - [`bounded-duplication`](decisions/bounded-duplication.md): a small,
   local lazy computation may be evaluated twice; an emission to
   reflection happens at most once, and expensive work stays shared.

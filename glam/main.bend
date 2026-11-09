@@ -9,13 +9,15 @@ import ./core.bend as C
 # compiles only `.g`; any other extension, or none, fails the assembly
 # with exit status 1); a command line it cannot read exits 2.
 #
-#   glam -f FILE.g [--count]
+#   glam -f FILE.g [--count] [--link]
 #
 # With --count, the kernel's interactions are reported on stderr, for the
-# store (HelloLadder's ladder-measure).
+# store (HelloLadder's ladder-measure). With --link, every definition is
+# linked statically, top-level functions too, as before templates, for a
+# differential run (glam/core.bend).
 
 def usage() -> String:
-  "usage: glam -f FILE.g [--count]"
+  "usage: glam -f FILE.g [--count] [--link]"
 
 def diag_str.k(+no_line: Bool, +line: U32, msg: String) -> String:
   match no_line:
@@ -94,60 +96,61 @@ def slices(left: Nat, r: C.Run, +count: Bool) -> IO(Unit):
       match r:
         case C.RDone{o}:
           finish(o, count)
-        case C.RMore{d}:
-          slices(more, C.step(d), count)
+        case C.RMore{d, b}:
+          slices(more, C.step(d, b), count)
 
-def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool) -> IO(Unit):
+def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool, +lk: Bool) -> IO(Unit):
   (f, r) = fr
   match r:
     case Done{bs}:
       do IO<Unit>:
         File.close(f)
-        slices(budget(), C.start(bs), count)
+        slices(budget(), C.start(bs, lk), count)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         IO.print_err("glam: cannot read the file")
         IO.exit(1)
 
-def sized(fs: File & Result<&1, &1, U32 & String, U32>, +count: Bool) -> IO(Unit):
+def sized(fs: File & Result<&1, &1, U32 & String, U32>, +count: Bool, +lk: Bool) -> IO(Unit):
   (f, r) = fs
   match r:
     case Done{+n}:
       do IO<Unit>:
         fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
-        read(fr, count)
+        read(fr, count, lk)
     case Fail{e}:
       do IO<Unit>:
         File.close(f)
         IO.print_err("glam: cannot size the file")
         IO.exit(1)
 
-def opened(r: Result<&1, &1, U32 & String, File>, +count: Bool) -> IO(Unit):
+def opened(r: Result<&1, &1, U32 & String, File>, +count: Bool, +lk: Bool) -> IO(Unit):
   match r:
     case Done{f}:
       do IO<Unit>:
         fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
-        sized(fs, count)
+        sized(fs, count, lk)
     case Fail{e}:
       do IO<Unit>:
         IO.print_err("glam: cannot open the file")
         IO.exit(1)
 
-def source(+is_g: Bool, path: String, +count: Bool) -> IO(Unit):
+def source(+is_g: Bool, path: String, +count: Bool, +lk: Bool) -> IO(Unit):
   match is_g:
     case True{}:
       do IO<Unit>:
         r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
-        opened(r, count)
+        opened(r, count, lk)
     case False{}:
       do IO<Unit>:
         IO.print_err("glam: the bootstrap compiles only .g files: " ++ path)
         IO.exit(1)
 
-# the arguments read: the path after `-f`, and whether `--count` was given
+# the arguments read: the path after `-f`, and whether `--count` and
+# `--link` were given
 type Args is Type:
-  Args{file: Maybe<&1, String>, +count: Bool}
+  Args{file: Maybe<&1, String>, +count: Bool, +lk: Bool}
 
 def file_arg(+want: Bool, a: String) -> Maybe<&1, String>:
   match want:
@@ -158,21 +161,21 @@ def file_arg(+want: Bool, a: String) -> Maybe<&1, String>:
 
 # the arguments walked once (an affine list), with whether the last was
 # `-f` and what was found so far
-def args.go(xs: List<String>, +want: Bool, found: Maybe<&1, String>, +count: Bool) -> Args:
+def args.go(xs: List<String>, +want: Bool, found: Maybe<&1, String>, +count: Bool, +lk: Bool) -> Args:
   match xs:
     case Nil{}:
-      Args{found, count}
+      Args{found, count, lk}
     case Con{+a, rest}:
       match found:
         case Some{p}:
-          args.go(rest, False{}, Some{p}, count || String.eq(a, "--count"))
+          args.go(rest, False{}, Some{p}, count || String.eq(a, "--count"), lk || String.eq(a, "--link"))
         case None{}:
-          args.go(rest, String.eq(a, "-f"), file_arg(want, a), count || String.eq(a, "--count"))
+          args.go(rest, String.eq(a, "-f"), file_arg(want, a), count || String.eq(a, "--count"), lk || String.eq(a, "--link"))
 
-def run(m: Maybe<&1, String>, +count: Bool) -> IO(Unit):
+def run(m: Maybe<&1, String>, +count: Bool, +lk: Bool) -> IO(Unit):
   match m:
     case Some{+path}:
-      source(String.ends_with(path, ".g"), path, count)
+      source(String.ends_with(path, ".g"), path, count, lk)
     case None{}:
       do IO<Unit>:
         IO.print_err(usage())
@@ -180,10 +183,10 @@ def run(m: Maybe<&1, String>, +count: Bool) -> IO(Unit):
 
 def run.args(r: Args) -> IO(Unit):
   match r:
-    case Args{file, +count}:
-      run(file, count)
+    case Args{file, +count, +lk}:
+      run(file, count, lk)
 
 def main() -> IO(Unit):
   do IO<Unit>:
     xs : List<String> <- IO.args()
-    run.args(args.go(xs, False{}, None{}, False{}))
+    run.args(args.go(xs, False{}, None{}, False{}, False{}))

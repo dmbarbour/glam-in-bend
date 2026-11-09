@@ -575,3 +575,106 @@ def top.w(w: Lw) -> Top:
 # a desugared expression to its net
 def top(e: G.Expr, +line: U32) -> Top:
   top.w(expr(e, line, 0, Nil{}, Nil{}))
+
+# Templates and their leaves
+# ==========================
+#
+# A top-level function is a template (Cells, re-scoped by the bridge,
+# `bridge-recursion`): its net lowered alone, closed. A name of a
+# top-level function, there and in asm.result's net, is a leaf: a data
+# node holding the function's handle, one for each use, which no level
+# concerns. Demand meeting a leaf at an application splices a copy of the
+# template there (glam/splice.bend); a function may so name itself.
+
+type Ref is Data:
+  Ref{name: List<&2, U32>, +id: U32}
+
+def ref_of.if(more: Unit -> Maybe<&2, U32>, +hit: Bool, +id: U32) -> Maybe<&2, U32>:
+  match hit:
+    case True{}:
+      Some{id}
+    case False{}:
+      more(Unit{})
+
+# the handle of the function a name names, if one does
+def ref_of(rs: List<&2, Ref>, +n: List<&2, U32>) -> Maybe<&2, U32>:
+  match rs:
+    case Nil{}:
+      None{}
+    case Con{r, rest}:
+      match r:
+        case Ref{m, +id}:
+          ref_of.if(u => ref_of(rest, n), G.bytes_eq(m, n), id)
+
+# a name no template answers: a value definition used inside a function
+# needs a cell, not built yet; any other name is undefined
+def unres(+val: Bool, n: List<&2, U32>, +l: U32) -> G.Diag:
+  match val:
+    case True{}:
+      G.Diag{l, "`" ++ G.str(n) ++ "` is a value used inside a top-level function, which needs cells: not supported yet"}
+    case False{}:
+      G.Diag{l, "`" ++ G.str(n) ++ "` is not defined"}
+
+def leaf(+id: U32) -> T.TNode:
+  T.TN{R.KData{}, V.PVal{V.VLazy{id}}}
+
+# the leaves made so far, reversed, their links, and the net's size
+type Rs is Data:
+  ROk{leaves: List<&2, T.TNode>, links: List<&2, T.TLink>, +size: U32}
+  RErr{d: G.Diag}
+
+def res.k(m: Maybe<&2, U32>, at: T.TEnd, n: List<&2, U32>, +l: U32, +val: Bool, r: Rs) -> Rs:
+  match m r:
+    case Some{+id} ROk{leaves, links, +size}:
+      ROk{Con{leaf(id), leaves}, Con{T.TL{T.TE{size, 0}, at}, links}, (size + 1 : U32)}
+    case None{} ROk{leaves, links, +size}:
+      RErr{unres(val, n, l)}
+    case _ RErr{d}:
+      RErr{d}
+
+# each use left pending, a leaf for the function it names
+def res(us: List<&2, Use>, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>, r: Rs) -> Rs:
+  match us:
+    case Nil{}:
+      r
+    case Con{u, rest}:
+      match u:
+        case Use{+n, +l, at, +d, bx}:
+          res(rest, rs, vals, res.k(ref_of(rs, n), at, n, l, has_key(n, vals), r))
+
+def tg.done(r: Rs, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, e: T.TEnd) -> Top:
+  match r:
+    case ROk{leaves, ls, +size}:
+      TOk{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, leaves)), List.append(&2, T.TLink, links, ls), e, size}}
+    case RErr{d}:
+      TErr{d}
+
+# a net that is a name alone: a leaf, if a function's
+def tg.var(m: Maybe<&2, U32>, n: List<&2, U32>, +l: U32, +val: Bool) -> Top:
+  match m:
+    case Some{+id}:
+      TOk{T.Tpl{[leaf(id)], Nil{}, T.TE{0, 0}, 1}}
+    case None{}:
+      TErr{unres(val, n, l)}
+
+def tg.s(s: Sub, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>) -> Top:
+  match s:
+    case Sub{nodes, links, +size, root, uses}:
+      match root:
+        case REnd{e}:
+          tg.done(res(uses, rs, vals, ROk{Nil{}, Nil{}, size}), nodes, links, e)
+        case RVar{+l, +n, +d, bx}:
+          tg.var(ref_of(rs, n), n, l, has_key(n, vals))
+
+def tg.w(w: Lw, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>) -> Top:
+  match w:
+    case LOk{s}:
+      tg.s(s, rs, vals)
+    case LErr{d}:
+      TErr{d}
+
+# a desugared expression to its net, each name in rs answered by a leaf
+# holding its handle; a name in vals, a value definition, reported as
+# needing cells
+def top_g(e: G.Expr, +line: U32, rs: List<&2, Ref>, vals: List<&2, List<&2, U32>>) -> Top:
+  tg.w(expr(e, line, 0, Nil{}, Nil{}), rs, vals)

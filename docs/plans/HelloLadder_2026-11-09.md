@@ -323,6 +323,13 @@ named, and marked there when a rung is built.
      a longer path than `asm.result`'s wait for dicts built by paths.
      Measured (store run 308): `hello_names.g` 15 interactions,
      `hello_lambda_sugar.g` 35.
+   - `ladder-thunks.templates` — built 2026-11-09 — top-level functions
+     as templates spliced where demand applies them, recursion with them
+     (`cells-splice.templates`, `cells-recursion.templates`, the bridge's
+     first slice): `hello_lambda_sugar.g` now 20 interactions, and four
+     recursive samples, `hello_recursion.g`, `hello_mutual.g`,
+     `hello_recursion_levels.g` and `hello_recursion_linked.g`. The
+     linker stays under `--link`, against which the gate compares.
 
 7. `ladder-objects` — `hello_override.g`, `hello_object.g`,
    `hello_object_prior.g`, then the `hello_object_*.g` family:

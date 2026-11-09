@@ -8,6 +8,13 @@ samples/invalid/ must exit 1 and report, on stderr, every line of its
 at that line whose message holds every substring (the shell writes them
 as `error at line N: message`).
 
+Each hello sample runs twice: as the assembler runs it, top-level functions
+as templates spliced where they are applied, and with `--link`, every
+definition linked statically as before templates. Where the linked run
+succeeds, both must write the same bytes (the Cells plan, re-scoped by the
+bridge: a differential run against the linker); a sample the linker
+refuses, such as a recursive one, is compared with nothing.
+
 The build is kept while its inputs are unchanged, keyed as scripts/kept.py
 keys a check (the file and every file it imports, and Bend as it stands),
 at results/build/glam with its key beside it; a build is about 30 s.
@@ -95,12 +102,23 @@ def expect_ok(expect_path, diags):
     return missed
 
 
+def linked_differs(path, stdout):
+    """the bytes the linked run writes, where it succeeds and they differ"""
+    r = subprocess.run([EXE, "-f", os.path.join(ROOT, path), "--link"], capture_output=True)
+    if r.returncode == 0 and r.stdout != stdout:
+        return r.stdout
+    return None
+
+
 def run_one(rung, path):
     r = subprocess.run([EXE, "-f", os.path.join(ROOT, path)], capture_output=True)
     err = r.stderr.decode("utf-8", "replace")
     if path.startswith("samples/hello/"):
         if r.returncode != 0 or r.stdout != HELLO:
             return f"FAIL {rung} {path}: exit {r.returncode}, stdout {r.stdout!r}\n{err}"
+        other = linked_differs(path, r.stdout)
+        if other is not None:
+            return f"FAIL {rung} {path}: with --link it writes {other!r}"
         return None
     expect = os.path.join(ROOT, path[:-2] + ".expect")
     if r.returncode != 1:
