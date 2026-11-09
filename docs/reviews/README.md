@@ -17,7 +17,10 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 
 ## Active Reviews
 
-None.
+- [`Direction_2026-11-09.md`](Direction_2026-11-09.md): the direction
+  glam-in-bend has taken, the spike against the path to the product, and
+  what to do or stop doing to get there; drafted for the maintainer at
+  their request.
 
 ## Retired
 
