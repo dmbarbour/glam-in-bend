@@ -84,6 +84,9 @@ Surface and semantic rules settled for this implementation.
 - [`net-void-demanded`](decisions/net-void-demanded.md): demand finding
   a void, nothing supplied as a value, reports that as an outcome of its
   own.
+- [`builtin-imports-compiler-local`](decisions/builtin-imports-compiler-local.md):
+  built-in imports such as `import 'std` are the compiler's, presented as
+  module imports, and may come before modules are objects.
 
 ## Language, from the Rust bootstrap
 

@@ -332,8 +332,9 @@ named, and marked there when a rung is built.
    Deferred until modules are objects (`cells-modules`), as the
    maintainer suggests (2026-11-09): a module becomes an object with
    parents, so multiple inheritance reaches module and project scope,
-   and a `.link` file stands for a remote module. Whether `import 'std`,
-   which `ladder-effects` needs, waits too is open.
+   and a `.link` file stands for a remote module. `import 'std`, which
+   `ladder-effects` needs, need not wait: built-in imports are the
+   compiler's (`builtin-imports-compiler-local`).
 9. `ladder-effects` — `hello_do.g`, `hello_applicative.g`, `hello_std.g`:
    `import 'std`, `.r`, `<-`, `->`, `!>`, `do` blocks; the freer monad
    lowered, `list.head` and `list.pure` as builtins. The first effect
