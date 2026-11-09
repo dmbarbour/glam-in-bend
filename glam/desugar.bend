@@ -4,6 +4,8 @@ import ./parse.bend as G
 # Desugaring (HelloLadder, ladder-lambda.levels): a parsed expression to
 # the few forms the lowering knows, its scope checked on the way.
 # - `a ++ b` is the builtin append applied to a, then to b.
+# - `x.a.b` is x's field a read, then that one's b: the builtin get,
+#   its key collected, applied to x.
 # - A binding group, `let`'s or `where`'s, is the lambdas and
 #   applications it stands for, `let x = v in b` being `(\x -> b) v`: its
 #   live bindings nested in the order of their needs, each binding's
@@ -351,6 +353,14 @@ def in_one(a: Ds) -> Ds:
     case DErr{d}:
       DErr{d}
 
+# a name's path past its first name: each a field read of the last
+def fields(fs: List<&2, List<&2, U32>>, +line: U32, acc: G.Expr) -> G.Expr:
+  match fs:
+    case Nil{}:
+      acc
+    case Con{f, rest}:
+      fields(rest, line, G.EApp{line, G.EField{line, f}, acc})
+
 def lam_one(a: Ds, +line: U32, n: List<&2, U32>) -> Ds:
   match a:
     case DOk{b}:
@@ -376,5 +386,11 @@ def expr(e: G.Expr, +scope: List<&2, List<&2, U32>>, +globals: List<&2, List<&2,
       bind_two(expr(v, scope, globals), expr(rest, scope, globals), l, n)
     case G.EIn{b}:
       in_one(expr(b, scope, globals))
+    case G.EName{+l, path}:
+      match path:
+        case Con{n, rest}:
+          DOk{fields(rest, l, G.EName{l, [n]})}
+        case Nil{}:
+          DOk{G.EName{l, Nil{}}}
     case _:
       DOk{e}

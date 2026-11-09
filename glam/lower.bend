@@ -19,8 +19,8 @@ import ./parse.bend as G
 # edge's depth by the boxes entered, or lowering them by one where a use
 # sits at its binder's depth (`fuse-control-runs`). A function whose
 # variable is unused has no port for it (KFnD), and no eraser. Data, a
-# text, a number, a list of literals, a builtin, is one data node, which
-# no level concerns.
+# text, a number, a list or a dict of literals, a builtin, a field's read
+# with its key, is one data node, which no level concerns.
 #
 # Bend admits no mutual recursion, so one function, `expr`, walks the
 # expression, and each result is a piece of net (Sub) numbered from 0:
@@ -409,6 +409,66 @@ def list(r: Maybe<&2, List<&2, V.Val>>, +line: U32) -> Lw:
     case None{}:
       LErr{G.Diag{line, "a list's members must be literals for now"}}
 
+# Dicts of literals
+# =================
+
+def has_key(+k: List<&2, U32>, ks: List<&2, List<&2, U32>>) -> Bool:
+  match ks:
+    case Nil{}:
+      False{}
+    case Con{m, rest}:
+      G.bytes_eq(k, m) || has_key(k, rest)
+
+# the entries of a dict literal whose members are literals, or the first
+# trouble: a member that is not, or a key introduced twice
+type Dc is Data:
+  DcOk{es: List<&2, V.Ent>}
+  DcErr{d: G.Diag}
+
+def dent.add(v: V.Val, k: List<&2, U32>, more: Dc) -> Dc:
+  match more:
+    case DcOk{es}:
+      DcOk{Con{V.Ent{k, v}, es}}
+    case DcErr{d}:
+      DcErr{d}
+
+def dent.vs(vs: List<&2, V.Val>, k: List<&2, U32>, +l: U32, more: Dc) -> Dc:
+  match vs:
+    case Con{v, rest}:
+      dent.add(v, k, more)
+    case Nil{}:
+      DcErr{G.Diag{l, "a dict member without its value"}}
+
+def dent.v(r: Maybe<&2, List<&2, V.Val>>, k: List<&2, U32>, +l: U32, more: Dc) -> Dc:
+  match r:
+    case Some{vs}:
+      dent.vs(vs, k, l, more)
+    case None{}:
+      DcErr{G.Diag{l, "a dict's members must be literals for now: " ++ G.str(k)}}
+
+def dent.k(+twice: Bool, k: List<&2, U32>, +l: U32, v: G.Expr, more: Dc) -> Dc:
+  match twice:
+    case True{}:
+      DcErr{G.Diag{l, "the key " ++ G.str(k) ++ " is introduced twice in one dict"}}
+    case False{}:
+      dent.v(consts([v]), k, l, more)
+
+def dents(es: List<&2, G.DEnt>, +seen: List<&2, List<&2, U32>>) -> Dc:
+  match es:
+    case Nil{}:
+      DcOk{Nil{}}
+    case Con{e, rest}:
+      match e:
+        case G.DEnt{+l, +k, v}:
+          dent.k(has_key(k, seen), k, l, v, dents(rest, Con{k, seen}))
+
+def dict(r: Dc) -> Lw:
+  match r:
+    case DcOk{es}:
+      LOk{data(V.VDict{es})}
+    case DcErr{d}:
+      LErr{d}
+
 def name(+line: U32, path: List<&2, List<&2, U32>>, +depth: U32, boxes: List<&2, List<&2, U32>>) -> Lw:
   match path:
     case Con{n, rest}:
@@ -432,6 +492,10 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
       list(consts(xs), line)
     case G.EBuiltin{+op, +need}:
       LOk{data(V.VFun{op, need, Nil{}})}
+    case G.EDict{es}:
+      dict(dents(es, Nil{}))
+    case G.EField{+l, k}:
+      LOk{data(V.VFun{5, 1, [V.VList{codes(k)}]})}
     case G.EName{+l, path}:
       name(l, path, depth, boxes)
     case G.EApp{+l, f, x}:

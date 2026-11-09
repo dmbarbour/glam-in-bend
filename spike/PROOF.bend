@@ -902,6 +902,8 @@ def Laws.builtin_last_agrees(op, args, x):
           {==}
         case V.VList{xs}:
           {==}
+        case V.VDict{es}:
+          {==}
     case Con{h1, t1}:
       match h1:
         case V.VUnit{}:
@@ -932,6 +934,8 @@ def Laws.builtin_last_agrees(op, args, x):
                   {==}
                 case V.VList{ys}:
                   {==}
+                case V.VDict{es}:
+                  {==}
             case Con{h2, t2}:
               match h2:
                 case V.VUnit{}:
@@ -948,6 +952,10 @@ def Laws.builtin_last_agrees(op, args, x):
                   {==}
                 case V.VList{ys}:
                   {==}
+                case V.VDict{es}:
+                  {==}
+        case V.VDict{es}:
+          {==}
         case V.VNum{a}:
           match t1:
             case Nil{}:
@@ -966,6 +974,8 @@ def Laws.builtin_last_agrees(op, args, x):
                   {==}
                 case V.VList{xs}:
                   {==}
+                case V.VDict{es}:
+                  {==}
             case Con{h2, t2}:
               match h2:
                 case V.VUnit{}:
@@ -979,6 +989,8 @@ def Laws.builtin_last_agrees(op, args, x):
                 case V.VP2{o, nd, c, d}:
                   {==}
                 case V.VList{xs}:
+                  {==}
+                case V.VDict{es}:
                   {==}
                 case V.VNum{b}:
                   match t2:
@@ -998,6 +1010,8 @@ def Laws.builtin_last_agrees(op, args, x):
                           {==}
                         case V.VList{xs}:
                           {==}
+                        case V.VDict{es}:
+                          {==}
                     case Con{h3, t3}:
                       match h3:
                         case V.VUnit{}:
@@ -1013,6 +1027,8 @@ def Laws.builtin_last_agrees(op, args, x):
                         case V.VP2{o, nd, c, d}:
                           {==}
                         case V.VList{xs}:
+                          {==}
+                        case V.VDict{es}:
                           {==}
 
 # whether the builtin is given its last argument (need = 1) or not, each
@@ -1035,6 +1051,8 @@ def vp2_by(t: Bool, -op: U32, -need: U32, -a: U32, -b: U32, x: V.Val) -> {V.norm
           {==}
         case V.VList{xs}:
           {==}
+        case V.VDict{es}:
+          {==}
     case False{}:
       match x:
         case V.VUnit{}:
@@ -1050,6 +1068,8 @@ def vp2_by(t: Bool, -op: U32, -need: U32, -a: U32, -b: U32, x: V.Val) -> {V.norm
         case V.VP2{o, nd, c, d}:
           {==}
         case V.VList{xs}:
+          {==}
+        case V.VDict{es}:
           {==}
 
 def Laws.flat_two_applies_as_fun(op, need, a, b, x):
@@ -1112,6 +1132,8 @@ def x1_ok(+b: Bool, +op: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x1(op, x)
       or_true(b)
     case V.VList{xs}:
       or_true(b)
+    case V.VDict{es}:
+      or_true(b)
 
 def x2_ok(+b: Bool, +op: U32, +a: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x2(op, a, x))) == True{} : Bool}:
   match x:
@@ -1128,6 +1150,8 @@ def x2_ok(+b: Bool, +op: U32, +a: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.
     case V.VP2{o, nd, c, d}:
       num1_ok(b, U32.is_eq(op, 1), a)
     case V.VList{xs}:
+      num1_ok(b, U32.is_eq(op, 1), a)
+    case V.VDict{es}:
       num1_ok(b, U32.is_eq(op, 1), a)
 
 def x3_ok(+b: Bool, +op: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(b, V.clean(V.last.x3(op, a, e, x))) == True{} : Bool}:
@@ -1146,8 +1170,63 @@ def x3_ok(+b: Bool, +op: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool.or(b, V.clea
       num2_ok(b, U32.is_eq(op, 2), a, e)
     case V.VList{xs}:
       num2_ok(b, U32.is_eq(op, 2), a, e)
+    case V.VDict{es}:
+      num2_ok(b, U32.is_eq(op, 2), a, e)
 
 # builtin_last yields a number or unit
+# a dict member read is clean: a function whose collected arguments hold
+# a placeholder reads as unit
+def member_fun(+b: Bool, +t: Bool, +o: U32, +n: U32, +args: List<&2, V.Val>, e: {t == V.all_np(args) : Bool}) -> {Bool.or(b, V.clean(V.member.go(t, V.VFun{o, n, args}))) == True{} : Bool}:
+  match t:
+    case True{}:
+      %e : {Bool.or(b, _) == True{} : Bool}
+      or_true(b)
+    case False{}:
+      or_true(b)
+
+def member_ok(+b: Bool, +v: V.Val) -> {Bool.or(b, V.clean(V.member(v))) == True{} : Bool}:
+  match v:
+    case V.VUnit{}:
+      or_true(b)
+    case V.VNum{y}:
+      or_true(b)
+    case V.VLazy{k}:
+      or_true(b)
+    case V.VFun{+o, +n, +args}:
+      member_fun(b, V.all_np(args), o, n, args, {==})
+    case V.VFree{f}:
+      or_true(b)
+    case V.VP2{o, nd, c, d}:
+      or_true(b)
+    case V.VList{xs}:
+      or_true(b)
+    case V.VDict{es}:
+      or_true(b)
+
+def dfind_k_ok(+b: Bool, +t: Bool, +v: V.Val, +r: V.Val, ih: {Bool.or(b, V.clean(r)) == True{} : Bool}) -> {Bool.or(b, V.clean(V.dfind.k(t, v, r))) == True{} : Bool}:
+  match t:
+    case True{}:
+      member_ok(b, v)
+    case False{}:
+      ih
+
+# a dict's field read is clean, found or not
+def dfind_ok(+b: Bool, +es: List<&2, V.Ent>, +key: List<&2, V.Val>) -> {Bool.or(b, V.clean(V.dfind(es, key))) == True{} : Bool}:
+  match es:
+    case Nil{}:
+      or_true(b)
+    case Con{+e, +rest}:
+      match e:
+        case V.Ent{+k, +v}:
+          dfind_k_ok(b, V.key_eq(k, key), v, V.dfind(rest, key), dfind_ok(b, rest, key))
+
+def dget_ok(+b: Bool, +t: Bool, +key: List<&2, V.Val>, +es: List<&2, V.Ent>) -> {Bool.or(b, V.clean(V.dget.go(t, key, es))) == True{} : Bool}:
+  match t:
+    case True{}:
+      dfind_ok(b, es, key)
+    case False{}:
+      or_true(b)
+
 # a builtin on two lists yields a list or unit, no placeholder
 def lst2_ok(+b: Bool, +t: Bool, +xs: List<&2, V.Val>, +ys: List<&2, V.Val>) -> {Bool.or(b, V.clean(V.lst2.go(t, xs, ys))) == True{} : Bool}:
   match t:
@@ -1188,6 +1267,8 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                           num2_ok(b, U32.is_eq(op, 2), a, e)
                         case V.VList{xs}:
                           num2_ok(b, U32.is_eq(op, 2), a, e)
+                        case V.VDict{es}:
+                          num2_ok(b, U32.is_eq(op, 2), a, e)
                 case V.VUnit{}:
                   num1_ok(b, U32.is_eq(op, 1), a)
                 case V.VLazy{k}:
@@ -1199,6 +1280,8 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                 case V.VP2{o, nd, c, d}:
                   num1_ok(b, U32.is_eq(op, 1), a)
                 case V.VList{xs}:
+                  num1_ok(b, U32.is_eq(op, 1), a)
+                case V.VDict{es}:
                   num1_ok(b, U32.is_eq(op, 1), a)
         case V.VUnit{}:
           or_true(b)
@@ -1228,6 +1311,8 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                   or_true(b)
                 case V.VList{ys}:
                   lst2_ok(b, U32.is_eq(op, 4), xs, ys)
+                case V.VDict{es}:
+                  dget_ok(b, U32.is_eq(op, 5), xs, es)
             case Con{h2, t2}:
               match h2:
                 case V.VUnit{}:
@@ -1244,6 +1329,10 @@ def last_ok(+b: Bool, +op: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(b
                   or_true(b)
                 case V.VList{ys}:
                   lst2_ok(b, U32.is_eq(op, 4), xs, ys)
+                case V.VDict{es}:
+                  dget_ok(b, U32.is_eq(op, 5), xs, es)
+        case V.VDict{es}:
+          or_true(b)
 
 # collecting a normalized argument, not a free slot, keeps a list clean
 def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(l)), V.is_free(x)), V.all_np(List.append(&2, V.Val, l, [V.norm(x)]))) == True{} : Bool}:
@@ -1264,6 +1353,8 @@ def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np
           {==}
         case V.VList{xs}:
           {==}
+        case V.VDict{es}:
+          {==}
     case Con{h, t}:
       match h:
         case V.VUnit{}:
@@ -1279,6 +1370,8 @@ def app_ok(+l: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np
         case V.VP2{o, nd, c, d}:
           {==}
         case V.VList{xs}:
+          app_ok(t, x)
+        case V.VDict{es}:
           app_ok(t, x)
 
 def fun_ok(+t: Bool, +op: U32, +need: U32, +args: List<&2, V.Val>, +x: V.Val) -> {Bool.or(Bool.or(Bool.not(V.all_np(args)), V.is_free(x)), V.clean(V.fun.go(t, op, need, args, x))) == True{} : Bool}:
@@ -1308,6 +1401,8 @@ def vp2_ok(+t: Bool, +op: U32, +need: U32, +a: U32, +e: U32, +x: V.Val) -> {Bool
           {==}
         case V.VList{xs}:
           {==}
+        case V.VDict{es}:
+          {==}
 
 def Laws.norm_not_placeholder(v):
   match v:
@@ -1324,6 +1419,8 @@ def Laws.norm_not_placeholder(v):
     case V.VP2{o, nd, c, d}:
       {==}
     case V.VList{xs}:
+      {==}
+    case V.VDict{es}:
       {==}
 
 def Laws.apply_keeps_clean(f, x):
@@ -1342,6 +1439,8 @@ def Laws.apply_keeps_clean(f, x):
       vp2_ok(U32.is_eq(need, 1), op, need, a, e, x)
     case V.VList{xs}:
       or_true(V.is_free(x))
+    case V.VDict{es}:
+      or_true(V.is_free(x))
 
 def Laws.norm_keeps_clean(v):
   match v:
@@ -1358,6 +1457,8 @@ def Laws.norm_keeps_clean(v):
     case V.VP2{o, nd, c, d}:
       {==}
     case V.VList{xs}:
+      {==}
+    case V.VDict{es}:
       {==}
 
 def Laws.rules_tested_small(a, b):

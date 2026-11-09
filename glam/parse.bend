@@ -40,6 +40,14 @@ type Expr is Data:
   EApp{+line: U32, f: Expr, x: Expr}
   # a builtin by its op and the arguments it needs: what `++` becomes
   EBuiltin{+op: U32, +need: U32}
+  # a dict literal, its members in written order
+  EDict{es: List<&2, DEnt>}
+  # reading a dict's field: what `x.name` becomes, applied to x
+  EField{+line: U32, key: List<&2, U32>}
+
+# a dict literal's member: `name:value`
+type DEnt is Data:
+  DEnt{+line: U32, key: List<&2, U32>, value: Expr}
 
 # a definition: its line, its path (`asm.result` is [asm, result]), its
 # body
@@ -326,6 +334,11 @@ type Fr is Data:
   FApp{+line: U32, f: Expr}
   # a lambda's body being read: its parameters in order
   FLam{+line: U32, ps: List<&2, List<&2, U32>>}
+  # an open `{` of a dict literal: its line, its members so far reversed,
+  # and how it stands, as a list's `[` does
+  FDict{+line: U32, es: List<&2, DEnt>, +sep: U32}
+  # a dict member whose value is being read
+  FDEnt{+line: U32, key: List<&2, U32>}
 
 type Pm is Data:
   MWant{st: List<&2, Fr>}
@@ -340,6 +353,10 @@ type Pm is Data:
   MBEq{st: List<&2, Fr>, +line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>}
   # after `\`: a lambda's parameters so far reversed, then `->`
   MLam{st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>}
+  # in a dict literal: a member's name wanted, a comma, or its close
+  MDKey{st: List<&2, Fr>}
+  # after a member's name: `:` wanted
+  MDColon{st: List<&2, Fr>, +line: U32, key: List<&2, U32>}
   # a `let` group closed: `in` or its body wanted
   MLetAfter{st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>}
   # a `where` group closed: nothing may follow but the end or a `)`
@@ -517,6 +534,8 @@ def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
   match b:
     case 91:
       MWant{Con{FList{line, Nil{}, 0}, st}}
+    case 123:
+      MDKey{Con{FDict{line, Nil{}, 0}, st}}
     case 40:
       MWant{Con{FParen{line}, st}}
     case 93:
@@ -603,6 +622,25 @@ def unclosed.pm(f: Fr) -> Pm:
     case _:
       fail(0, "an expression ended where its frame does not")
 
+def dict_add.k(+close: Bool, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>) -> Pm:
+  match close:
+    case True{}:
+      MHave{rest, EDict{List.reverse(&2, DEnt, es)}}
+    case False{}:
+      MDKey{Con{FDict{l, es, 2}, rest}}
+
+# a member read: the dict goes on after its comma, or closes
+def dict_add(st: List<&2, Fr>, d: DEnt, +close: Bool, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a dict member outside its dict")
+    case Con{f, rest}:
+      match f:
+        case FDict{+l, es, +sep}:
+          dict_add.k(close, l, Con{d, es}, rest)
+        case _:
+          fail(line, "a dict member outside its dict")
+
 def have.comma(r: Rd, +line: U32) -> Pm:
   match r:
     case Rd{st, e}:
@@ -615,6 +653,8 @@ def have.comma(r: Rd, +line: U32) -> Pm:
               MWant{Con{FList{l, Con{e, xs}, 2}, rest}}
             case FParen{+l}:
               fail(line, "tuples are not supported yet")
+            case FDEnt{+l, key}:
+              dict_add(rest, DEnt{l, key, e}, False{}, line)
             case _:
               fail(line, "a comma outside brackets")
 
@@ -762,6 +802,20 @@ def have.word.k(+kw: U32, st: List<&2, Fr>, e: Expr, +line: U32, +col: U32, s: L
 def have.word(st: List<&2, Fr>, e: Expr, +line: U32, +col: U32, +s: List<&2, U32>) -> Pm:
   have.word.k(Y.word_part(s), st, e, line, col, s)
 
+# `}` after an operand: a dict's last member, or a braced group's binding
+def have.brace(r: Rd, +line: U32) -> Pm:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          fail(line, "unbalanced closing delimiter `}`")
+        case Con{f, rest}:
+          match f:
+            case FDEnt{+l, key}:
+              dict_add(rest, DEnt{l, key, e}, True{}, line)
+            case _:
+              bind_end(Rd{Con{f, rest}, e}, 4, line)
+
 def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
   match b:
     case 44:
@@ -773,9 +827,11 @@ def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
     case 59:
       bind_end(reduce(st, e), 3, line)
     case 125:
-      bind_end(reduce(st, e), 4, line)
+      have.brace(reduce(st, e), line)
     case 91:
       want.pun(Con{FApp{line, e}, st}, line, 91)
+    case 123:
+      want.pun(Con{FApp{line, e}, st}, line, 123)
     case 40:
       want.pun(Con{FApp{line, e}, st}, line, 40)
     case _:
@@ -1013,6 +1069,73 @@ def where_done(st: List<&2, Fr>, e: Expr, +anchor: U32, t: L.Tok) -> Pm:
     case _:
       fail(L.tok_line(t), "nothing may follow a where's bindings")
 
+def dkey.word(+ok: Bool, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      MDColon{st, line, s}
+    case False{}:
+      fail(line, "a dict member's name begins with a letter and is no keyword: " ++ str(s))
+
+def dkey.comma.k(+sep: U32, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match sep:
+    case 0:
+      MDKey{Con{FDict{l, es, 1}, rest}}
+    case _:
+      fail(line, "a dict holds an empty member between separators")
+
+def dkey.close.k(+sep: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match sep:
+    case 1:
+      fail(line, "a dict holds an empty member between separators")
+    case _:
+      MHave{rest, EDict{List.reverse(&2, DEnt, es)}}
+
+def dkey.pun.k(+b: U32, +sep: U32, +l: U32, es: List<&2, DEnt>, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match b:
+    case 44:
+      dkey.comma.k(sep, l, es, rest, line)
+    case 125:
+      dkey.close.k(sep, es, rest, line)
+    case _:
+      fail(line, "expected a dict member's name, found " ++ str([b]))
+
+# a comma or `}` where a member's name is wanted
+def dkey.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a dict's frame lost")
+    case Con{f, rest}:
+      match f:
+        case FDict{+l, es, +sep}:
+          dkey.pun.k(b, sep, l, es, rest, line)
+        case _:
+          fail(line, "a dict's frame lost")
+
+# in a dict literal: a member's name, a comma, or the close
+def dkey(st: List<&2, Fr>, +t: L.Tok) -> Pm:
+  match t:
+    case L.TWord{+l, +c, +s}:
+      dkey.word(param_ok(s), st, l, s)
+    case L.TPun{+l, +c, +b}:
+      dkey.pun(st, l, b)
+    case _:
+      fail(L.tok_line(t), "this dict member form is not supported yet: " ++ tok_show(t))
+
+def dcolon.k(+colon: Bool, st: List<&2, Fr>, +line: U32, key: List<&2, U32>) -> Pm:
+  match colon:
+    case True{}:
+      MWant{Con{FDEnt{line, key}, st}}
+    case False{}:
+      fail(line, "expected `:` after the dict member's name")
+
+# after a member's name: `:`, its value's frame pushed
+def dcolon(st: List<&2, Fr>, +line: U32, key: List<&2, U32>, t: L.Tok) -> Pm:
+  match t:
+    case L.TOp{+l, +c, +s}:
+      dcolon.k(bytes_eq(s, [58]), st, line, key)
+    case _:
+      fail(line, "expected `:` after the dict member's name")
+
 def step(m: Pm, +t: L.Tok) -> Pm:
   match m:
     case MFail{d}:
@@ -1031,6 +1154,10 @@ def step(m: Pm, +t: L.Tok) -> Pm:
       beq(st, line, name, ps, t)
     case MLam{st, +line, ps}:
       lam_params(st, line, ps, t)
+    case MDKey{st}:
+      dkey(st, t)
+    case MDColon{st, +line, key}:
+      dcolon(st, line, key, t)
     case MLetAfter{st, +line, +anchor, +brace, bs}:
       let_after(st, line, anchor, brace, bs, t)
     case MWhereDone{st, e, +anchor}:
@@ -1064,6 +1191,10 @@ def unclosed(f: Fr) -> Ex:
       XErr{Diag{l, "an application's argument is missing"}}
     case FLam{+l, ps}:
       XErr{Diag{l, "a lambda's body is missing"}}
+    case FDict{+l, es, +sep}:
+      XErr{Diag{l, "unclosed delimiter: expected `}`"}}
+    case FDEnt{+l, key}:
+      XErr{Diag{l, "unclosed delimiter: expected `}`"}}
 
 def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
   match st:
@@ -1103,6 +1234,10 @@ def end(m: Pm, +line: U32) -> Ex:
       XErr{Diag{l, "expected = after the binding's name"}}
     case MLam{st, +l, ps}:
       XErr{Diag{l, "a lambda is not finished: expected ->"}}
+    case MDKey{st}:
+      XErr{Diag{line, "unclosed delimiter: expected `}`"}}
+    case MDColon{st, +l, key}:
+      XErr{Diag{l, "expected `:` after the dict member's name"}}
 
 def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
   match x:

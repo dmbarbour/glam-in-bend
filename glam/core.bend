@@ -88,6 +88,8 @@ def out.val(v: Maybe<&2, V.Val>, +itrs: U32) -> Out:
       match x:
         case V.VList{xs}:
           out.bs(bytes(xs), itrs)
+        case V.VUnit{}:
+          OErrs{[G.Diag{0, "asm.result is unit, what a builtin answers for arguments it has no case for: a dict read without the field, `++` on what is no list"}]}
         case _:
           OErrs{[G.Diag{0, "asm.result is not a binary"}]}
     case None{}:

@@ -159,7 +159,7 @@ named, and marked there when a rung is built.
    expression written out, `x ++ x where x = "a" ++ "b"` 9 against 12,
    a doubling chain of four locals from `"ab"` 20 against 60, the copy
    fans computing each value once.
-4. `ladder-lambda` — active — `hello_lambda.g`: lambdas, application, a
+4. `ladder-lambda` — built 2026-11-09 — `hello_lambda.g`: lambdas, application, a
    dict literal in leading-comma layout, field access. The front end
    lowers a lambda to `.bind`, `.copy` and `.wire` as a user's
    `interaction_net` would, never to a core term
@@ -214,10 +214,26 @@ named, and marked there when a rung is built.
      `(\t -> t t) two`. Measured (store run 303, interactions):
      `hello_self.g` 104; `two (two f) ""` 71; `(\t -> t t) two f ""`
      98; `two two two f ""` 327.
-   - `ladder-lambda.dicts` — planned — a dict literal, its members
-     literals as a list's are for now, its keys texts until atoms come;
-     field access `e.name` as a builtin applied to the dict, a missing
-     key an error; `hello_lambda.g`.
+   - `ladder-lambda.dicts` — built 2026-11-09 — a dict literal, its
+     members literals as a list's are for now, its keys texts until atoms
+     come; field access `e.name` as a builtin applied to the dict, a
+     missing key an error; `hello_lambda.g`. Built: the kernel's values
+     gain `V.VDict`, entries of a key's code points and a value, and the
+     builtin get (op 5), its key collected as a text, on the general
+     path as `++` is; a member read that is a function whose collected
+     arguments hold a placeholder reads as unit, as no glam value is
+     one, so that `apply_keeps_clean` still holds. No law changes: the
+     proofs gain a `VDict` arm in every split and the lemmas
+     `member_ok`, `dfind_ok` and `dget_ok`, the lookup searching the
+     rest eagerly so that no lambda enters a lemma's type; the verdict
+     passes. The parser reads `{name: value, ...}` with one leading and
+     one trailing comma, application to a dict, and `x.a.b` as reads of
+     a, then b; a key introduced twice is refused. A missing key reads as
+     unit, which the core now names ("asm.result is unit, what a builtin
+     answers for arguments it has no case for"), the kernel having no
+     error value yet. `(e).name` waits. Measured: `hello_lambda.g` 20
+     interactions (store run 305); the kernel's spot counts alike,
+     `fma` -0.1% to +0.1% (run 304 against 288).
 5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`:
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.

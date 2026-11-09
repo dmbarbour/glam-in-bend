@@ -12,6 +12,10 @@ type Val is Data:
   # drops (HelloLadder's ladder-text; netdata-structures decides the
   # lasting one). Not a function, not a number, no placeholder.
   VList{xs: List<&2, Val>}
+  # a glam dict, its first form: its entries, each a key and its value,
+  # keys texts until atoms come (HelloLadder's ladder-lambda.dicts;
+  # netdata-structures decides the lasting one)
+  VDict{es: List<&2, Ent>}
   # never a glam value: a freed entry of a net's data table, linking the
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}
@@ -21,9 +25,14 @@ type Val is Data:
   # held in the node itself; V.norm turns it back
   VP2{+op: U32, +need: U32, +a: U32, +b: U32}
 
+# a dict's entry: its key's code points, its value
+type Ent is Data:
+  Ent{key: List<&2, U32>, v: Val}
+
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
 # (three), op 4 append, glam's `++` (two lists: HelloLadder's
-# ladder-lists). A builtin waits for `need` more arguments, collected in
+# ladder-lists), op 5 get, reading a dict's field, its key collected as a
+# text (ladder-lambda.dicts). A builtin waits for `need` more arguments, collected in
 # order. The arithmetic on numbers is num1's, num2's and num3's alone,
 # which the kernel's native path calls too; lists only meet the general
 # path (V.apply_fn), a list being an entry of a net's table. A builtin
@@ -61,98 +70,6 @@ def num2(+op: U32, +a: U32, +b: U32) -> Val:
 # op on three numbers
 def num3(+op: U32, +a: U32, +b: U32, +c: U32) -> Val:
   num3.go(U32.is_eq(op, 3), a, b, c)
-
-def lst2.go(+t: Bool, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
-  match t:
-    case True{}:
-      VList{List.append(&2, Val, xs, ys)}
-    case False{}:
-      VUnit{}
-
-# op on two lists
-def lst2(+op: U32, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
-  lst2.go(U32.is_eq(op, 4), xs, ys)
-
-def builtin(+op: U32, args: List<&2, Val>) -> Val:
-  match args:
-    case Con{VNum{+a}, t}:
-      match t:
-        case Con{VNum{+b}, u}:
-          match u:
-            case Con{VNum{+c}, w}:
-              num3(op, a, b, c)
-            case _:
-              num2(op, a, b)
-        case _:
-          num1(op, a)
-    case Con{VList{xs}, t}:
-      match t:
-        case Con{VList{ys}, u}:
-          lst2(op, xs, ys)
-        case _:
-          VUnit{}
-    case _:
-      VUnit{}
-
-def last.x1(+op: U32, x: Val) -> Val:
-  match x:
-    case VNum{+a}:
-      num1(op, a)
-    case _:
-      VUnit{}
-
-def last.x2(+op: U32, +a: U32, x: Val) -> Val:
-  match x:
-    case VNum{+b}:
-      num2(op, a, b)
-    case _:
-      num1(op, a)
-
-def last.x3(+op: U32, +a: U32, +b: U32, x: Val) -> Val:
-  match x:
-    case VNum{+c}:
-      num3(op, a, b, c)
-    case _:
-      num2(op, a, b)
-
-def last.l2(+op: U32, xs: List<&2, Val>, x: Val) -> Val:
-  match x:
-    case VList{ys}:
-      lst2(op, xs, ys)
-    case _:
-      VUnit{}
-
-# builtin(op, args ++ [x]) without building the list: the collected
-# arguments matched where they lie, x where it would follow them. Past
-# three numbers, or two lists, x cannot matter.
-def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
-  match args:
-    case Nil{}:
-      last.x1(op, x)
-    case Con{VNum{+a}, t}:
-      match t:
-        case Nil{}:
-          last.x2(op, a, x)
-        case Con{VNum{+b}, u}:
-          match u:
-            case Nil{}:
-              last.x3(op, a, b, x)
-            case Con{VNum{+c}, w}:
-              num3(op, a, b, c)
-            case _:
-              num2(op, a, b)
-        case _:
-          num1(op, a)
-    case Con{VList{xs}, t}:
-      match t:
-        case Nil{}:
-          last.l2(op, xs, x)
-        case Con{VList{ys}, u}:
-          lst2(op, xs, ys)
-        case _:
-          VUnit{}
-    case _:
-      VUnit{}
 
 # Placeholders: VFree and VP2 are never glam values. A flat form may
 # stand at the top of a value the kernel holds, never among a function's
@@ -201,6 +118,162 @@ def clean(v: Val) -> Bool:
       all_np(args)
     case _:
       True{}
+
+def lst2.go(+t: Bool, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
+  match t:
+    case True{}:
+      VList{List.append(&2, Val, xs, ys)}
+    case False{}:
+      VUnit{}
+
+# op on two lists
+def lst2(+op: U32, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
+  lst2.go(U32.is_eq(op, 4), xs, ys)
+
+# a dict member read: a function whose collected arguments hold a
+# placeholder is no glam value, and the kernel stores none (it normalizes
+# what it hands out); the read answers unit where it would, defence in
+# depth as free_chk is, and so that applying keeps a value clean (law
+# apply_keeps_clean)
+def member.go(+ok: Bool, v: Val) -> Val:
+  match ok:
+    case True{}:
+      v
+    case False{}:
+      VUnit{}
+
+def member(+v: Val) -> Val:
+  member.go(clean(v), v)
+
+# a key's code points against a text's values
+def key_eq(k: List<&2, U32>, xs: List<&2, Val>) -> Bool:
+  match k xs:
+    case Con{+a, ks} Con{x, rest}:
+      match x:
+        case VNum{+b}:
+          U32.is_eq(a, b) && key_eq(ks, rest)
+        case _:
+          False{}
+    case Nil{} Nil{}:
+      True{}
+    case _ _:
+      False{}
+
+def dfind.k(+hit: Bool, v: Val, r: Val) -> Val:
+  match hit:
+    case True{}:
+      member(v)
+    case False{}:
+      r
+
+# the value at a key, unit where there is none: the rest searched
+# whatever the head (eager, as Bend is), so that no lambda enters a proof
+def dfind(es: List<&2, Ent>, +key: List<&2, Val>) -> Val:
+  match es:
+    case Nil{}:
+      VUnit{}
+    case Con{e, rest}:
+      match e:
+        case Ent{k, v}:
+          dfind.k(key_eq(k, key), v, dfind(rest, key))
+
+def dget.go(+t: Bool, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
+  match t:
+    case True{}:
+      dfind(es, key)
+    case False{}:
+      VUnit{}
+
+# op on a key and a dict
+def dget(+op: U32, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
+  dget.go(U32.is_eq(op, 5), key, es)
+
+def builtin(+op: U32, args: List<&2, Val>) -> Val:
+  match args:
+    case Con{VNum{+a}, t}:
+      match t:
+        case Con{VNum{+b}, u}:
+          match u:
+            case Con{VNum{+c}, w}:
+              num3(op, a, b, c)
+            case _:
+              num2(op, a, b)
+        case _:
+          num1(op, a)
+    case Con{VList{xs}, t}:
+      match t:
+        case Con{VList{ys}, u}:
+          lst2(op, xs, ys)
+        case Con{VDict{es}, u}:
+          dget(op, xs, es)
+        case _:
+          VUnit{}
+    case _:
+      VUnit{}
+
+def last.x1(+op: U32, x: Val) -> Val:
+  match x:
+    case VNum{+a}:
+      num1(op, a)
+    case _:
+      VUnit{}
+
+def last.x2(+op: U32, +a: U32, x: Val) -> Val:
+  match x:
+    case VNum{+b}:
+      num2(op, a, b)
+    case _:
+      num1(op, a)
+
+def last.x3(+op: U32, +a: U32, +b: U32, x: Val) -> Val:
+  match x:
+    case VNum{+c}:
+      num3(op, a, b, c)
+    case _:
+      num2(op, a, b)
+
+def last.l2(+op: U32, xs: List<&2, Val>, x: Val) -> Val:
+  match x:
+    case VList{ys}:
+      lst2(op, xs, ys)
+    case VDict{es}:
+      dget(op, xs, es)
+    case _:
+      VUnit{}
+
+# builtin(op, args ++ [x]) without building the list: the collected
+# arguments matched where they lie, x where it would follow them. Past
+# three numbers, or two lists, x cannot matter.
+def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
+  match args:
+    case Nil{}:
+      last.x1(op, x)
+    case Con{VNum{+a}, t}:
+      match t:
+        case Nil{}:
+          last.x2(op, a, x)
+        case Con{VNum{+b}, u}:
+          match u:
+            case Nil{}:
+              last.x3(op, a, b, x)
+            case Con{VNum{+c}, w}:
+              num3(op, a, b, c)
+            case _:
+              num2(op, a, b)
+        case _:
+          num1(op, a)
+    case Con{VList{xs}, t}:
+      match t:
+        case Nil{}:
+          last.l2(op, xs, x)
+        case Con{VList{ys}, u}:
+          lst2(op, xs, ys)
+        case Con{VDict{es}, u}:
+          dget(op, xs, es)
+        case _:
+          VUnit{}
+    case _:
+      VUnit{}
 
 # a value as glam sees it: a flat form as the VFun it stands for
 def norm(v: Val) -> Val:
