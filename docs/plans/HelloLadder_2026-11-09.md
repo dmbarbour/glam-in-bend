@@ -298,7 +298,10 @@ named, and marked there when a rung is built.
    `hello` below it; a top-level function called. The first cells:
    a namespace of lazy entries, one forced by another's demand
    (`heap-cells`, minimal), the point where the maintainer expects the
-   hard part to begin, reached only once the data rungs stand.
+   hard part to begin, reached only once the data rungs stand. How
+   cells work is proposed for discussion first
+   ([`Cells_2026-11-09.md`](Cells_2026-11-09.md), from `cells-data` to
+   `cells-recursion`).
    - `ladder-thunks.globals` — built 2026-11-09 — the samples without
      cells: as `asm.result` sees them, a module's top-level definitions
      are one binding group around it, `asm.result = e where ...`, so the
@@ -321,11 +324,16 @@ named, and marked there when a rung is built.
    open fixpoints: the first `self` knot and the first recursive binding
    group through cells, `spike-fixpoints` made real on glam's own
    programs, costs measured as that step asked (deep mixin chains,
-   repeated `extend`).
+   repeated `extend`); through cells as `cells-objects` proposes.
 8. `ladder-imports` — `hello_import_as.g`, `hello_import_at.g`,
    `hello_import_as_extend.g`, `hello_import_binary.g` with `libs/`: the
    core's first requests, `Need{Read{path}}`, answered by the shell in
    logged order; a module as a mixin; a binary import as bytes.
+   Deferred until modules are objects (`cells-modules`), as the
+   maintainer suggests (2026-11-09): a module becomes an object with
+   parents, so multiple inheritance reaches module and project scope,
+   and a `.link` file stands for a remote module. Whether `import 'std`,
+   which `ladder-effects` needs, waits too is open.
 9. `ladder-effects` — `hello_do.g`, `hello_applicative.g`, `hello_std.g`:
    `import 'std`, `.r`, `<-`, `->`, `!>`, `do` blocks; the freer monad
    lowered, `list.head` and `list.pure` as builtins. The first effect

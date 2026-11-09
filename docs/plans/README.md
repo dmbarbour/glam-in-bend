@@ -53,6 +53,11 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   objects for Bend. Blend's own plans, the tool's among them, live with
   it ([`blend/docs/plans/`](../../blend/docs/plans/README.md),
   `blend-own-repository`). Reviewed by the maintainer, 2026-11-04.
+- [`Cells_2026-11-09.md`](Cells_2026-11-09.md): `cells-` steps for the
+  assembler's definitions as cells: shared evaluation, function values
+  frozen and spliced at their application's level, recursion, objects,
+  and modules as objects with `.link` files. Drafted for the
+  maintainer's review before building.
 - [`Codegen_2026-11-04.md`](Codegen_2026-11-04.md): `codegen-` steps for
   generation and specialization: how Bend compiles our code, an audit of
   the kernel's sharing, what must be specialized and by which vehicle.
