@@ -259,8 +259,12 @@ Keep all of this; point it at the product.
 
 - F9: nets as the evaluator of every lowered term, or a lazy lambda
   calculus at the top with nets behind `interaction_net`? **Lambdas are
-  lowered to nets for evaluation** (`lambdas-lower-to-nets`). F9 is
-  resolved: the critical path is F2 and F3.
+  a `.g` compiler concept, lowered through `interaction_net` at compile
+  time; the core has no lambda** (the Rust bootstrap put them in its
+  core for a convenient start and took a week to undo it;
+  `lambdas-lower-to-nets`). F9 is resolved: the critical path is F2 and
+  F3, and the kernel's data types are built to be adopted by the final
+  evaluator, not as placeholders.
 - F6: is the spike's kernel the kernel? **Most likely, in a couple of
   forms: a lazy one for ordinary evaluation, an eager one for a JIT.** A
   leaning, so `spike-verdict` still records it; but the kernel is not
