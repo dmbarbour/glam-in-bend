@@ -10,14 +10,14 @@ plan, no step and no record.
 ## Where the work stands
 
 The product's surface is known: the Rust bootstrap (github.com/dmbarbour/glam,
-read 2026-11-09) had a `.g` parser (`--parse runs only the built-in .g
-parser`, its CLI.md), an evaluator, a CLI with configuration in glam
-source, reflection arguments, "one crate of about 2,100 tests"
-(AgentContext.md) and an ELF sample (`samples/README.md:22`, carried over
-here: "`hello_x86_64_linux/` compiles a direct-assembly effect program
-into ELF"). It failed on its collector, its concurrency and its
-performance (`host-bend2`). The 82 `.g` samples here are that surface's
-executable specification.
+its raw docs read 2026-11-09) had a `.g` parser ("`--parse` runs only the
+built-in `.g` parser.", its docs/CLI.md), an evaluator, a CLI with
+configuration in glam source, reflection arguments, "one crate of about
+2,100 unit tests" (its docs/plans/README.md) and an ELF sample
+(`samples/README.md:22`, carried over here: "`hello_x86_64_linux/`
+compiles a direct-assembly effect program into ELF"). It failed on its
+collector, its concurrency and its performance (`host-bend2`). The 96
+`.g` samples here are that surface's executable specification.
 
 What exists here, against the Architecture sketch's layers
 (`Architecture_2026-10-26.md:13-27`):
@@ -46,8 +46,10 @@ evaluator's inner loop, and it is fed hand-built nets. Whether lambda
 lowering, nets, lazy cells, objects as open fixpoints over `self`, the
 freer monad's effects and the scheduler compose, and what a real glam
 program costs through them, is unknown. The Rust bootstrap's costs sat in
-those upper layers, not in the rewrite loop: its plans record "376 K
-instructions a `.r ()` step". Verdict: act; the first milestone should be
+those upper layers as much as in its nets: its plans record "376 K
+instructions a `.r ()` step" (its docs/plans/README.md) beside the need
+for its net performance to improve, so the inner loop's speed is not what
+alone decides the product's. Verdict: act; the first milestone should be
 one sample from bytes to `asm.result` (Recommendations, 1).
 
 **F2. The hard questions the spike named are the unbuilt ones.**
@@ -81,10 +83,10 @@ depth 10
 (`heap-strategies.erasure.load.cycle.walk.directed.dead-kinds.links.propagate.writers.moves`),
 87 built, 31 tentative, 15 dropped, 7 active, 5 contingent: a laboratory
 notebook, not a plan. Four plans open with "the maintainer reviews this
-sketch" and that step is unbuilt in each (`arch-review` since 2026-10-26,
-the Architecture plan at 0 of 4 steps; `heap-model-review`;
-`netdata-review`; `codegen-review`), though the records show the
-decisions were made. One plan has been retired in two weeks. Status is
+sketch" (HeapModel's, "this model") and that step is unbuilt in each
+(`arch-review` since 2026-10-26, the Architecture plan at 0 of 4 steps;
+`heap-model-review`; `netdata-review`; `codegen-review`), though the
+records show the decisions were made. One plan has been retired in two weeks. Status is
 therefore hard to read off the plans, which is what they are for.
 Verdict: act; trim and close (Recommendations, 3).
 
@@ -128,15 +130,20 @@ measured 1.0% to 1.1% cheaper on demand (store run 285) after a first cut
 2% dearer; the rest of `blend-kernel-chain`, `blend-kernel-loops` and
 `blend-kernel-measure` are planned, and today's `blend-kernel-chain.calls`
 found that `shared` cannot be dropped from `go` whatever the callers do.
-Blend's proofs are the most questionable investment: its output is
-checked by Bend and kept current by the gate, and its samples catch what
-the laws catch. The maintainer chose glam over Blend today; that choice
-should become policy. Verdict: scope (Recommendations, 5).
+Blend's proofs are the investment to question: its output is checked by
+Bend and kept current by the gate, and the one Blend bug the kernel met,
+copies dropped past the root file's count of definitions
+(`blend-scale.copies-fuel`), was found by the transition, not by a law;
+whether its laws earn their check time (3.6 s on every load, BendIssues
+"Checking every proof at each load") is open. The maintainer chose glam
+over Blend today; that choice should become policy. Verdict: scope
+(Recommendations, 5).
 
 **F8. The host is fragile, and the kernel is shaped by its compiler.**
-Bend is pinned at 2.0.39 because 2.0.40 passes 8 GB emitting the kernel
-(`docs/BendIssues.md`, "Memory of native builds", #2076); the library's
-program builds at 3 to 4.5 GB in about 55 s; clang's inlining flips a
+Bend is pinned at 2.0.39 because 2.0.40 passes 6 GB emitting the kernel
+and 8 GB on the library's program (`docs/BendIssues.md`, "Memory of
+native builds", #2076); under 2.0.39 the library's program builds at 3 to
+4.5 GB in about 55 s; clang's inlining flips a
 build by 15% on a small change; a second caller splits a segment and
 costs every rewrite; a matched `U32` carried past a call costs 40%. Much
 of HeapModel and Codegen is engineering around these. They are facts of
@@ -151,7 +158,7 @@ portability check.
 for.** Design.md: "Toplevel semantics is a lazy, untyped lambda calculus.
 For performance, users may implement computations and functions behind
 explicit lambda-style interfaces using interaction nets"
-(`Design.md:33-35`) and "Initially, we'll mostly use interaction nets as a
+(`Design.md:35-37`) and "Initially, we'll mostly use interaction nets as a
 performance tool for difficult dataflows behind explicit lambda-style
 interfaces" (`Design.md:499-501`); DistilledDesign likewise
 (`DistilledDesign.md:11`). EvalSpike evaluates glam "through monadically
