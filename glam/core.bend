@@ -150,19 +150,12 @@ def lowered(w: W.Top) -> Run:
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 
-def desugared(r: D.Ds, +line: U32) -> Run:
-  match r:
-    case D.DOk{e}:
-      lowered(W.top(e, line))
-    case D.DErr{d}:
-      RDone{OErrs{[d]}}
-
-def run(m: Maybe<&2, G.Def>, +globals: List<&2, List<&2, U32>>) -> Run:
+def run(m: Maybe<&2, G.Def>) -> Run:
   match m:
     case Some{d}:
       match d:
         case G.Def{+line, path, body}:
-          desugared(D.expr(body, Nil{}, globals), line)
+          lowered(W.top(body, line))
     case None{}:
       RDone{OErrs{[G.Diag{0, "asm.result is not defined"}]}}
 
@@ -180,6 +173,37 @@ def globals(ds: List<&2, G.Def>) -> List<&2, List<&2, U32>>:
             case Nil{}:
               globals(rest)
 
+# every definition desugared, so that each one's errors are reported
+# whether asm.result needs it or not: the desugared, and the errors, each
+# reversed
+type Dd is Data:
+  Dd{ds: List<&2, G.Def>, es: List<&2, G.Diag>}
+
+def dput(r: D.Ds, +line: U32, path: List<&2, List<&2, U32>>, a: Dd) -> Dd:
+  match r a:
+    case D.DOk{e} Dd{ds, es}:
+      Dd{Con{G.Def{line, path, e}, ds}, es}
+    case D.DErr{d} Dd{ds, es}:
+      Dd{ds, Con{d, es}}
+
+def dall(defs: List<&2, G.Def>, +globals: List<&2, List<&2, U32>>, a: Dd) -> Dd:
+  match defs:
+    case Nil{}:
+      a
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          dall(rest, globals, dput(D.expr(body, Nil{}, globals), line, path, a))
+
+def start.d(a: Dd) -> Run:
+  match a:
+    case Dd{ds, es}:
+      match es:
+        case Nil{}:
+          run(find(List.reverse(&2, G.Def, ds), None{}))
+        case Con{e, rest}:
+          RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
+
 def start.p(p: G.Parsed) -> Run:
   match p:
     case G.PErr{ds}:
@@ -187,7 +211,7 @@ def start.p(p: G.Parsed) -> Run:
     case G.POk{m}:
       match m:
         case G.Mod{+utf8, +defs}:
-          run(find(defs, None{}), globals(defs))
+          start.d(dall(defs, globals(defs), Dd{Nil{}, Nil{}}))
 
 # a ".g" source's bytes to its assembly, begun: parsed and lowered, its
 # evaluation not yet stepped

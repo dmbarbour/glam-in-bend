@@ -86,6 +86,9 @@ def expect_ok(expect_path, diags):
             if not line or line.startswith("#"):
                 continue
             parts = line.split("|")
+            if len(parts) < 3 or not parts[1].isdigit():
+                missed.append(f"{line} (not severity|line|substring...)")
+                continue
             sev, n, subs = parts[0], int(parts[1]), parts[2:]
             if not any(d[0] == sev and d[1] == n and all(s in d[2] for s in subs) for d in diags):
                 missed.append(line)

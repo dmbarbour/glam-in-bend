@@ -17,3 +17,5 @@ ladder-locals samples/hello/hello_where.g
 ladder-locals samples/hello/hello_let.g
 ladder-locals samples/hello/hello_shared.g
 ladder-locals samples/invalid/syntax/let_where_syntax.g
+ladder-lambda samples/hello/hello_self.g
+ladder-lambda samples/invalid/eval/local_shadowing.g

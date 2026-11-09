@@ -8,8 +8,10 @@ import ./layout.bend as Y
 # beginning at column 0 and continuing on indented lines (Toplevel
 # Structure). Expressions, as far as the ladder reaches: texts, decimal
 # numbers, names and dotted paths, list literals, parentheses, and the
-# infix `++` (ladder-lists), and `let` and `where` binding groups
-# (ladder-locals), their layout made explicit by glam/layout.bend.
+# infix `++` (ladder-lists), `let` and `where` binding groups
+# (ladder-locals), their layout made explicit by glam/layout.bend, and
+# lambdas, application and parameters on definitions
+# (ladder-lambda.functions).
 # Diagnostics carry the line of the token at
 # fault, as samples/invalid's .expect files name them; every declaration
 # is read, so that one file reports all its errors.
@@ -315,10 +317,15 @@ type Fr is Data:
   # anchor's column, whether braces delimit it, the bindings so far
   # reversed, and for `where` the expression it scopes
   FGroup{+kind: U32, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, body: Expr}
-  # a binding whose value is being read
-  FBind{+line: U32, name: List<&2, U32>}
+  # a binding whose value is being read, and its parameters
+  FBind{+line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>}
   # a `let`'s body being read, its group closed
   FLetBody{+line: U32, +anchor: U32, bs: List<&2, Bd>}
+  # a function awaiting its argument: application by juxtaposition, the
+  # tightest form after a name's path, grouping to the left
+  FApp{+line: U32, f: Expr}
+  # a lambda's body being read: its parameters in order
+  FLam{+line: U32, ps: List<&2, List<&2, U32>>}
 
 type Pm is Data:
   MWant{st: List<&2, Fr>}
@@ -329,8 +336,10 @@ type Pm is Data:
   MGroup{st: List<&2, Fr>}
   # a binding's name wanted, or the group's close
   MBName{st: List<&2, Fr>}
-  # after a binding's name: `=` wanted
-  MBEq{st: List<&2, Fr>, +line: U32, name: List<&2, U32>}
+  # after a binding's name: its parameters so far reversed, then `=`
+  MBEq{st: List<&2, Fr>, +line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>}
+  # after `\`: a lambda's parameters so far reversed, then `->`
+  MLam{st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>}
   # a `let` group closed: `in` or its body wanted
   MLetAfter{st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>}
   # a `where` group closed: nothing may follow but the end or a `)`
@@ -356,6 +365,14 @@ def chain(bs: List<&2, Bd>, acc: Expr) -> Expr:
       match b:
         case Bd{+line, name, value}:
           chain(rest, EBind{line, name, value, acc})
+
+# a body inside lambdas of the parameters, the first outermost
+def lams(ps: List<&2, List<&2, U32>>, +line: U32, body: Expr) -> Expr:
+  match ps:
+    case Nil{}:
+      body
+    case Con{p, rest}:
+      ELam{line, p, lams(rest, line, body)}
 
 # Numbers: decimal digits, at most ten and below 2^32 for now, exact
 # rationals coming with ladder-numbers; past that a diagnostic, never a
@@ -511,6 +528,14 @@ def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
     case _:
       fail(line, "this form is not supported yet: " ++ str([b]))
 
+# an operator where an operand is wanted: `\` begins a lambda
+def want.op(+lam: Bool, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
+  match lam:
+    case True{}:
+      MLam{st, line, Nil{}}
+    case False{}:
+      fail(line, "expected an expression before " ++ str(s))
+
 # an operand wanted
 def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
   match t:
@@ -522,8 +547,8 @@ def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
       word(st, l, s)
     case L.TPun{+l, +c, +b}:
       want.pun(st, l, b)
-    case L.TOp{+l, +c, s}:
-      fail(l, "expected an expression before " ++ str(s))
+    case L.TOp{+l, +c, +s}:
+      want.op(bytes_eq(s, [92]), st, l, s)
     case L.TEq{+l, +c}:
       fail(l, "expected an expression, found =")
     case L.TDot{+l, +c}:
@@ -552,6 +577,10 @@ def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
           reduce(rest, EOp2{line, op, a, e})
         case FLetBody{+line, +anchor, bs}:
           reduce(rest, ELet{line, chain(bs, EIn{e})})
+        case FApp{+line, g}:
+          reduce(rest, EApp{line, g, e})
+        case FLam{+line, ps}:
+          reduce(rest, lams(ps, line, e))
         case _:
           Rd{Con{f, rest}, e}
 
@@ -681,8 +710,8 @@ def bind_end(r: Rd, +how: U32, +line: U32) -> Pm:
           fail(line, "a separator outside a binding group")
         case Con{f, rest}:
           match f:
-            case FBind{+bl, name}:
-              bind_add(rest, Bd{bl, name, e}, how, line)
+            case FBind{+bl, name, ps}:
+              bind_add(rest, Bd{bl, name, lams(ps, bl, e)}, how, line)
             case FList{+l, xs, +sep}:
               fail(l, "unclosed delimiter: expected `]`")
             case FParen{+l}:
@@ -718,17 +747,20 @@ def where_start(r: Rd, +line: U32) -> Pm:
             case _:
               MGroup{Con{FGroup{2, line, 0, False{}, Nil{}, e}, Con{f, rest}}}
 
-def have.word.k(+kw: U32, st: List<&2, Fr>, e: Expr, +line: U32, s: List<&2, U32>) -> Pm:
+def have.word.k(+kw: U32, st: List<&2, Fr>, e: Expr, +line: U32, +col: U32, s: List<&2, U32>) -> Pm:
   match kw:
     case 3:
       where_start(reduce(st, e), line)
     case 1:
       fail(line, "unexpected in")
+    case 2:
+      fail(line, "a `let` as an argument: write `(let ...)`")
     case _:
-      fail(line, "function application is not supported yet: " ++ str(s))
+      want(Con{FApp{line, e}, st}, L.TWord{line, col, s})
 
-def have.word(st: List<&2, Fr>, e: Expr, +line: U32, +s: List<&2, U32>) -> Pm:
-  have.word.k(Y.word_part(s), st, e, line, s)
+# a word after an operand: `where`, or an argument
+def have.word(st: List<&2, Fr>, e: Expr, +line: U32, +col: U32, +s: List<&2, U32>) -> Pm:
+  have.word.k(Y.word_part(s), st, e, line, col, s)
 
 def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
   match b:
@@ -742,6 +774,10 @@ def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
       bind_end(reduce(st, e), 3, line)
     case 125:
       bind_end(reduce(st, e), 4, line)
+    case 91:
+      want.pun(Con{FApp{line, e}, st}, line, 91)
+    case 40:
+      want.pun(Con{FApp{line, e}, st}, line, 40)
     case _:
       fail(line, "this form is not supported yet: " ++ str([b]))
 
@@ -766,8 +802,8 @@ def have.dot(e: Expr, st: List<&2, Fr>, +line: U32) -> Pm:
     case _:
       fail(line, "a field of an expression is not supported yet")
 
-# an operand in hand
-def have(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
+# an operand in hand, its application done
+def have.t(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
   match t:
     case L.TOp{+l, +c, s}:
       have.op(st, e, l, s)
@@ -776,9 +812,9 @@ def have(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
     case L.TDot{+l, +c}:
       have.dot(e, st, l)
     case L.TWord{+l, +c, s}:
-      have.word(st, e, l, s)
+      have.word(st, e, l, c, s)
     case L.TText{+l, +c, s}:
-      fail(l, "function application is not supported yet: a text")
+      want(Con{FApp{l, e}, st}, L.TText{l, c, s})
     case L.TOpen{+l, +c}:
       fail(l, "a text is not closed on its line")
     case L.TEq{+l, +c}:
@@ -787,6 +823,33 @@ def have(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
       fail(l, "unexpected character " ++ str([b]))
     case L.TLay{+l, +c, +k}:
       bind_end(reduce(st, e), k, l)
+
+def is_dot(t: L.Tok) -> Bool:
+  match t:
+    case L.TDot{+l, +c}:
+      True{}
+    case _:
+      False{}
+
+def have.app.if(more: Unit -> Pm, +dot: Bool, +l: U32, f: Expr, rest: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
+  match dot:
+    case True{}:
+      have.t(Con{FApp{l, f}, rest}, e, t)
+    case False{}:
+      more(Unit{})
+
+# an operand in hand: the application awaiting it done first, unless a
+# name's path goes on
+def have(st: List<&2, Fr>, +e: Expr, +t: L.Tok) -> Pm:
+  match st:
+    case Nil{}:
+      have.t(Nil{}, e, t)
+    case Con{f, +rest}:
+      match f:
+        case FApp{+l, +g}:
+          have.app.if(u => have(rest, EApp{l, g, e}, t), is_dot(t), l, g, rest, e, t)
+        case _:
+          have.t(Con{f, rest}, e, t)
 
 def dot.word(+ok: Bool, st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
   match ok:
@@ -835,7 +898,7 @@ def group(st: List<&2, Fr>, +t: L.Tok) -> Pm:
 def bname.kw(+kw: U32, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
   match kw:
     case 0:
-      MBEq{st, line, s}
+      MBEq{st, line, s, Nil{}}
     case _:
       fail(line, "a keyword cannot name a binding: " ++ str(s))
 
@@ -867,15 +930,53 @@ def bname(st: List<&2, Fr>, +t: L.Tok) -> Pm:
     case _:
       fail(L.tok_line(t), "expected a binding's name, found " ++ tok_show(t))
 
-# after a binding's name: `=`, its value's frame pushed
-def beq(st: List<&2, Fr>, +line: U32, name: List<&2, U32>, t: L.Tok) -> Pm:
+# a parameter's name: a word beginning with a letter, no keyword
+def param_ok(+s: List<&2, U32>) -> Bool:
+  name_ok(s) && U32.is_eq(Y.word_part(s), 0)
+
+def beq.p(+ok: Bool, st: List<&2, Fr>, +line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      MBEq{st, line, name, Con{s, ps}}
+    case False{}:
+      fail(line, "a parameter's name begins with a letter and is no keyword: " ++ str(s))
+
+# after a binding's name: its parameters, then `=`, its value's frame
+# pushed
+def beq(st: List<&2, Fr>, +line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>, +t: L.Tok) -> Pm:
   match t:
     case L.TEq{+l, +c}:
-      MWant{Con{FBind{line, name}, st}}
-    case L.TWord{+l, +c, s}:
-      fail(line, "a local function's parameters are not supported yet")
+      MWant{Con{FBind{line, name, List.reverse(&2, List<&2, U32>, ps)}, st}}
+    case L.TWord{+l, +c, +s}:
+      beq.p(param_ok(s), st, line, name, ps, s)
     case _:
       fail(line, "expected = after the binding's name, found " ++ tok_show(t))
+
+def lam.p(+ok: Bool, st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
+  match ok:
+    case True{}:
+      MLam{st, line, Con{s, ps}}
+    case False{}:
+      fail(line, "a parameter's name begins with a letter and is no keyword: " ++ str(s))
+
+def lam.arrow(+arrow: Bool, st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
+  match arrow ps:
+    case True{} Nil{}:
+      fail(line, "a lambda needs a parameter before ->")
+    case True{} Con{p, rest}:
+      MWant{Con{FLam{line, List.reverse(&2, List<&2, U32>, Con{p, rest})}, st}}
+    case False{} _:
+      fail(line, "expected a parameter or -> in a lambda, found " ++ str(s))
+
+# after `\`: the lambda's parameters, then `->`, its body's frame pushed
+def lam_params(st: List<&2, Fr>, +line: U32, ps: List<&2, List<&2, U32>>, +t: L.Tok) -> Pm:
+  match t:
+    case L.TWord{+l, +c, +s}:
+      lam.p(param_ok(s), st, line, ps, s)
+    case L.TOp{+l, +c, +s}:
+      lam.arrow(bytes_eq(s, [45, 62]), st, line, ps, s)
+    case _:
+      fail(line, "expected a parameter or -> in a lambda, found " ++ tok_show(t))
 
 def let_in(+same: Bool, +brace: Bool, st: List<&2, Fr>, +line: U32, +anchor: U32, bs: List<&2, Bd>) -> Pm:
   match same brace:
@@ -926,8 +1027,10 @@ def step(m: Pm, +t: L.Tok) -> Pm:
       group(st, t)
     case MBName{st}:
       bname(st, t)
-    case MBEq{st, +line, name}:
-      beq(st, line, name, t)
+    case MBEq{st, +line, name, ps}:
+      beq(st, line, name, ps, t)
+    case MLam{st, +line, ps}:
+      lam_params(st, line, ps, t)
     case MLetAfter{st, +line, +anchor, +brace, bs}:
       let_after(st, line, anchor, brace, bs, t)
     case MWhereDone{st, e, +anchor}:
@@ -953,10 +1056,14 @@ def unclosed(f: Fr) -> Ex:
       XErr{Diag{l, "an infix operator requires a right operand"}}
     case FGroup{+kind, +l, +anchor, +brace, bs, body}:
       XErr{Diag{l, "a `" ++ group_word(kind) ++ "` group is not closed"}}
-    case FBind{+l, name}:
-      XErr{Diag{l, "a binding's value is not ended"}}
+    case FBind{+l, name, ps}:
+      XErr{Diag{l, "a binding's value is missing"}}
     case FLetBody{+l, +anchor, bs}:
       XErr{Diag{l, "a `let`'s body is missing"}}
+    case FApp{+l, f}:
+      XErr{Diag{l, "an application's argument is missing"}}
+    case FLam{+l, ps}:
+      XErr{Diag{l, "a lambda's body is missing"}}
 
 def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
   match st:
@@ -992,26 +1099,31 @@ def end(m: Pm, +line: U32) -> Ex:
       XErr{Diag{line, "expected a binding group"}}
     case MBName{st}:
       XErr{Diag{line, "a binding group is not closed"}}
-    case MBEq{st, +l, name}:
+    case MBEq{st, +l, name, ps}:
       XErr{Diag{l, "expected = after the binding's name"}}
+    case MLam{st, +l, ps}:
+      XErr{Diag{l, "a lambda is not finished: expected ->"}}
 
-def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
+def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
   match x:
     case XOk{e}:
-      DOk{Def{line, path, e}}
+      DOk{Def{line, path, lams(ps, line, e)}}
     case XErr{d}:
       DErr{d}
 
-# the body after `=`: an expression, to the declaration's end
-def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
-  body.x(end(expr.go(ts, MWant{Nil{}}), line), line, path)
+# the body after `=`: an expression, to the declaration's end, inside
+# lambdas of the definition's parameters
+def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
+  body.x(end(expr.go(ts, MWant{Nil{}}), line), line, path, ps)
 
 # a path being read: the names so far reversed and whether a name is
 # expected next (after `.`, or at the start) or `.` or `=`; then the body
 # begins, or the declaration failed
 type Ps is Data:
   PNext{acc: List<&2, List<&2, U32>>, +name: Bool}
-  PBody{path: List<&2, List<&2, U32>>}
+  # after the path, its parameters so far reversed
+  PParams{acc: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>}
+  PBody{path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>}
   PFail{d: Diag}
 
 def path.word(+ok: Bool, +line: U32, s: List<&2, U32>, acc: List<&2, List<&2, U32>>) -> Ps:
@@ -1041,15 +1153,37 @@ def tok_word(t: L.Tok) -> List<&2, U32>:
     case _:
       Nil{}
 
+def path.param(+ok: Bool, +line: U32, s: List<&2, U32>, acc: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Ps:
+  match ok:
+    case True{}:
+      PParams{acc, Con{s, ps}}
+    case False{}:
+      PFail{Diag{line, "a parameter's name begins with a letter and is no keyword: " ++ str(s)}}
+
+# a token after the path's parameters: another, or `=`
+def param.step.k(+kind: U32, +s: List<&2, U32>, shown: String, +line: U32, acc: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Ps:
+  match kind:
+    case 1:
+      path.param(param_ok(s), line, s, acc, ps)
+    case 3:
+      PBody{List.reverse(&2, List<&2, U32>, acc), List.reverse(&2, List<&2, U32>, ps)}
+    case _:
+      PFail{Diag{line, "expected a parameter or = after the name, found " ++ shown}}
+
+def param.step(+t: L.Tok, +line: U32, acc: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Ps:
+  param.step.k(tok_kind(t), tok_word(t), tok_show(t), line, acc, ps)
+
 # one token of a path, by its kind, a name expected or not
 def path.step.k(+kind: U32, +s: List<&2, U32>, shown: String, +line: U32, acc: List<&2, List<&2, U32>>, +name: Bool) -> Ps:
   match kind name:
     case 1 True{}:
       path.word(name_ok(s), line, s, acc)
+    case 1 False{}:
+      path.param(param_ok(s), line, s, acc, Nil{})
     case 2 False{}:
       PNext{acc, True{}}
     case 3 False{}:
-      PBody{List.reverse(&2, List<&2, U32>, acc)}
+      PBody{List.reverse(&2, List<&2, U32>, acc), Nil{}}
     case _ True{}:
       PFail{Diag{line, "expected a name, found " ++ shown}}
     case _ False{}:
@@ -1074,16 +1208,20 @@ def path.go(ts: List<&2, L.Tok>, st: Ps, +line: U32) -> Dc:
       match st:
         case PNext{acc, +name}:
           path.go(rest, path.step(t, line, acc, name), line)
-        case PBody{path}:
-          body(Con{t, rest}, line, path)
+        case PParams{acc, ps}:
+          path.go(rest, param.step(t, line, acc, ps), line)
+        case PBody{path, ps}:
+          body(Con{t, rest}, line, path, ps)
         case PFail{d}:
           DErr{d}
     case Nil{}:
       match st:
         case PNext{acc, +name}:
           path.end(name, line)
-        case PBody{path}:
-          body(Nil{}, line, path)
+        case PParams{acc, ps}:
+          DErr{Diag{line, "expected = after the parameters"}}
+        case PBody{path, ps}:
+          body(Nil{}, line, path, ps)
         case PFail{d}:
           DErr{d}
 

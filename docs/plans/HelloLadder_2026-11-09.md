@@ -195,10 +195,25 @@ named, and marked there when a rung is built.
      against 20, still against 60 written out; the kernel reports no
      error, so no level check fails. `hello_shared.g` 1,001,556
      instructions for the process, against 898,188.
-   - `ladder-lambda.functions` — planned — `\x y -> body`, a tail form;
-     application by juxtaposition, tighter than any infix operator and
-     grouping to the left; a function whose variable is unused lowered
-     without an eraser (`fnd`, as terms.py does).
+   - `ladder-lambda.functions` — built 2026-11-09 — `\x y -> body`, a
+     tail form; application by juxtaposition, tighter than any infix
+     operator and grouping to the left, done at the first token that
+     does not go on with a name's path (`f x.y` applies f to x.y);
+     parameters on a definition and on a local binding (`f x = ...`),
+     lambdas of them; a function whose variable is unused lowered
+     without an eraser. Every definition is desugared, so that each
+     one's errors are reported whether `asm.result` needs it or not:
+     `invalid/eval/local_shadowing.g` passes, its `.expect` line, which
+     named no severity or line, rewritten in the samples' format
+     (`diagnostic-wording-ours`), and scripts/ladder.py reports such a
+     line as a failure rather than stopping. Church numerals and
+     self-application reduce right, the case static labels got wrong
+     (`pairing-labels`): `(\t -> t t) two` applied to an appending
+     function gives four, `two two two` sixteen. The new
+     `samples/hello/hello_self.g` applies the identity through
+     `(\t -> t t) two`. Measured (store run 303, interactions):
+     `hello_self.g` 104; `two (two f) ""` 71; `(\t -> t t) two f ""`
+     98; `two two two f ""` 327.
    - `ladder-lambda.dicts` — planned — a dict literal, its members
      literals as a list's are for now, its keys texts until atoms come;
      field access `e.name` as a builtin applied to the dict, a missing
