@@ -53,6 +53,11 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   objects for Bend. Blend's own plans, the tool's among them, live with
   it ([`blend/docs/plans/`](../../blend/docs/plans/README.md),
   `blend-own-repository`). Reviewed by the maintainer, 2026-11-04.
+- [`Bridge_2026-11-09.md`](Bridge_2026-11-09.md): `bridge-` steps from
+  the ladder to program search and verification, the maintainer's
+  targets: milestones that sequence the other plans' steps, the few
+  steps none has, and where each open design question gets decided.
+  Drafted for the maintainer's review before building.
 - [`Cells_2026-11-09.md`](Cells_2026-11-09.md): `cells-` steps for the
   assembler's definitions as cells: shared evaluation, function values
   frozen and spliced at their application's level, recursion, objects,
