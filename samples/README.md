@@ -54,7 +54,16 @@ contain both `language` and `declaration`.
 
 ## Running Current Samples
 
-The bootstrap CLI can inspect a source file with:
+The assembler in Bend runs the samples the hello ladder has reached
+(`docs/plans/HelloLadder_2026-11-09.md`, listed in `glam/ladder.txt`),
+built to `results/build/glam` by the gate's ladder section:
+
+```sh
+python3 -I scripts/ladder.py              # build, then run every listed sample
+results/build/glam -f samples/hello/hello_text.g
+```
+
+The Rust bootstrap's CLI could inspect a source file with:
 
 ```sh
 cargo run -- --parse samples/syntax/minimal.g

@@ -1,0 +1,12 @@
+# The hello ladder's samples, run by scripts/ladder.py in the gate
+# (HelloLadder): each line a rung's name and a sample. A sample under
+# samples/hello/ must write `Hello, World!` and exit 0; one under
+# samples/invalid/ must exit 1 with every line of its .expect file
+# matched on stderr (severity|line|substring...). A rung's samples are
+# listed when the rung is built.
+ladder-text samples/hello/hello_text.g
+ladder-text samples/invalid/syntax/missing_language.g
+ladder-text samples/invalid/syntax/unknown_language_version.g
+ladder-text samples/invalid/syntax/unknown_language_extension.g
+ladder-text samples/invalid/syntax/bad_language_decl.g
+ladder-text samples/invalid/syntax/non_ascii_without_utf8.g

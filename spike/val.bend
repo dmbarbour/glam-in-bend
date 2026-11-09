@@ -6,6 +6,12 @@ type Val is Data:
   VNum{+n: U32}
   VLazy{+h: U32}
   VFun{+op: U32, +need: U32, args: List<&2, Val>}
+  # a glam list, texts and binaries among them (DistilledDesign: lists
+  # are ropes; texts and binaries are lists): its first form, a Bend list
+  # of values, an entry of a net's table that copies share and erasure
+  # drops (HelloLadder's ladder-text; netdata-structures decides the
+  # lasting one). Not a function, not a number, no placeholder.
+  VList{xs: List<&2, Val>}
   # never a glam value: a freed entry of a net's data table, linking the
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}

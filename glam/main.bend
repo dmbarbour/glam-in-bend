@@ -1,0 +1,163 @@
+import Base
+import ./parse.bend as G
+import ./core.bend as C
+
+# The assembler's shell (pure-core-io-shell), as far as the hello ladder
+# has climbed (HelloLadder, ladder-text): one source file read, the core
+# run on its bytes, `asm.result` written to stdout as bytes, or the
+# diagnostics to stderr with exit status 1 (docs/CLI.md: the bootstrap
+# compiles only `.g`; any other extension, or none, fails the assembly
+# with exit status 1).
+#
+#   glam -f FILE.g [--count]
+#
+# With --count, the kernel's interactions are reported on stderr, for the
+# store (HelloLadder's ladder-measure).
+
+def usage() -> String:
+  "usage: glam -f FILE.g [--count]"
+
+def diag_str.k(+no_line: Bool, +line: U32, msg: String) -> String:
+  match no_line:
+    case True{}:
+      "error: " ++ msg
+    case False{}:
+      "error at line " ++ U32.show(line) ++ ": " ++ msg
+
+def diag_str(d: G.Diag) -> String:
+  match d:
+    case G.Diag{+line, msg}:
+      diag_str.k(U32.is_eq(line, 0), line, msg)
+
+def report(ds: List<&2, G.Diag>) -> IO(Unit):
+  match ds:
+    case Nil{}:
+      IO.exit(1)
+    case Con{d, rest}:
+      do IO<Unit>:
+        IO.print_err(diag_str(d))
+        report(rest)
+
+def wrote(r: File & Result<&1, &1, U32 & String, Unit>) -> IO(Unit):
+  (f, res) = r
+  match res:
+    case Done{u}:
+      File.close(f)
+    case Fail{e}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print_err("glam: cannot write to stdout")
+        IO.exit(1)
+
+def emit(bs: List<&2, U32>) -> IO(Unit):
+  do IO<Unit>:
+    f : File <- IO.try(File, File.open("/dev/stdout", "w"))
+    r : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
+    wrote(r)
+
+def counted(+count: Bool, +itrs: U32, bs: List<&2, U32>) -> IO(Unit):
+  match count:
+    case True{}:
+      do IO<Unit>:
+        IO.print_err(U32.show(itrs) ++ " interactions")
+        emit(bs)
+    case False{}:
+      emit(bs)
+
+def finish(o: C.Out, +count: Bool) -> IO(Unit):
+  match o:
+    case C.OBytes{bs, +itrs}:
+      counted(count, itrs, bs)
+    case C.OErrs{ds}:
+      report(ds)
+
+def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool) -> IO(Unit):
+  (f, r) = fr
+  match r:
+    case Done{bs}:
+      do IO<Unit>:
+        File.close(f)
+        finish(C.assemble(bs), count)
+    case Fail{e}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print_err("glam: cannot read the file")
+        IO.exit(1)
+
+def sized(fs: File & Result<&1, &1, U32 & String, U32>, +count: Bool) -> IO(Unit):
+  (f, r) = fs
+  match r:
+    case Done{+n}:
+      do IO<Unit>:
+        fr : File & Result<&1, &1, U32 & String, List<&2, U32>> <- File.read_bytes(f, n)
+        read(fr, count)
+    case Fail{e}:
+      do IO<Unit>:
+        File.close(f)
+        IO.print_err("glam: cannot size the file")
+        IO.exit(1)
+
+def opened(r: Result<&1, &1, U32 & String, File>, +count: Bool) -> IO(Unit):
+  match r:
+    case Done{f}:
+      do IO<Unit>:
+        fs : File & Result<&1, &1, U32 & String, U32> <- File.size(f)
+        sized(fs, count)
+    case Fail{e}:
+      do IO<Unit>:
+        IO.print_err("glam: cannot open the file")
+        IO.exit(1)
+
+def source(+is_g: Bool, path: String, +count: Bool) -> IO(Unit):
+  match is_g:
+    case True{}:
+      do IO<Unit>:
+        r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
+        opened(r, count)
+    case False{}:
+      do IO<Unit>:
+        IO.print_err("glam: the bootstrap compiles only .g files: " ++ path)
+        IO.exit(1)
+
+# the arguments read: the path after `-f`, and whether `--count` was given
+type Args is Type:
+  Args{file: Maybe<&1, String>, +count: Bool}
+
+def file_arg(+want: Bool, a: String) -> Maybe<&1, String>:
+  match want:
+    case True{}:
+      Some{a}
+    case False{}:
+      None{}
+
+# the arguments walked once (an affine list), with whether the last was
+# `-f` and what was found so far
+def args.go(xs: List<String>, +want: Bool, found: Maybe<&1, String>, +count: Bool) -> Args:
+  match xs:
+    case Nil{}:
+      Args{found, count}
+    case Con{+a, rest}:
+      match found:
+        case Some{p}:
+          args.go(rest, False{}, Some{p}, count || String.eq(a, "--count"))
+        case None{}:
+          args.go(rest, String.eq(a, "-f"), file_arg(want, a), count || String.eq(a, "--count"))
+
+def run(m: Maybe<&1, String>, +count: Bool) -> IO(Unit):
+  match m:
+    case Some{+path}:
+      source(String.ends_with(path, ".g"), path, count)
+    case None{}:
+      do IO<Unit>:
+        IO.print_err(usage())
+        IO.exit(1)
+
+def run.args(r: Args) -> IO(Unit):
+  match r:
+    case Args{file, +count}:
+      run(file, count)
+
+def main() -> IO(Unit):
+  do IO<Unit>:
+    xs : List<String> <- IO.args()
+    run.args(args.go(xs, False{}, None{}, False{}))

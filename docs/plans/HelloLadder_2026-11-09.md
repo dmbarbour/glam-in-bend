@@ -24,31 +24,69 @@ redo it.
 
 ## What each rung forces into being
 
-The samples' own text decides the order. Each rung names the forms it
-adds and the layer work it carries; the earlier plans' steps it absorbs
-are named, and marked there when a rung is built.
+The samples' own text decides the order, with one rule from the
+maintainer (2026-11-09): plain data first, no thunks, since thunks and
+promises are likely the hardest to integrate or prove. So the rungs
+whose samples are one expression over data come first, and references
+between top-level definitions, which want cells, come after them as a
+rung of their own (`ladder-thunks`). Each rung names the forms it adds
+and the layer work it carries; the earlier plans' steps it absorbs are
+named, and marked there when a rung is built.
 
-1. `ladder-text` — `hello_text.g`: `language g0`, `#` comments, a text
-   literal, `asm.result`. Carries the whole skeleton at its smallest: a
-   fuel-driven lexer over packed bytes and a parser for declarations
-   (the Architecture sketch's Front end), a namespace of lazy cells, one
-   forced to a value (`heap-cells`, minimal: a cell made, forced, read),
-   the core answering `Done{bytes}`, and the shell: read the file named
-   on the command line, write `asm.result` to stdout as binary
+1. `ladder-text` — built 2026-11-09 — `hello_text.g`: `language g0`,
+   `#` comments, a text literal, `asm.result`. Carries the whole skeleton
+   at its smallest: a lexer over the file's bytes, one byte a step,
+   structural on the list so that it needs no fuel, tokens with their
+   line and column (the `.expect` files name lines; the layout reads
+   columns), and a parser for the header and `path = "text"`
+   declarations grouped by column 0 (the Architecture sketch's Front
+   end); the definitions a plain list, no cell, `asm.result` found and
+   lowered to a one-node net the kernel reduces on demand (`K.run_d`),
+   its value read back as bytes; the core answering bytes or
+   diagnostics, never printing; and the shell: `-f FILE [--count]`,
+   `asm.result` written to `/dev/stdout` as bytes, diagnostics to stderr
+   as `error at line N: message` with exit status 1
    (`arch-shell-spike`, minimal, `pure-core-io-shell`). A text is the
-   kernel's list of code points in its first form, as `netdata-table`
-   and `netdata-structures` decide it (nodes, or a value in the net's
-   table), packed later (`packed-texts-and-binaries`).
+   kernel's list of code points in its first form, `V.VList`, a list of
+   values in the net's table that copies share and erasure drops, as
+   `netdata-table` and `netdata-structures` later decide (nodes, or a
+   value in the table), bytes unpacked until `packed-texts-and-binaries`.
+   Built as `glam/` (`lex`, `parse`, `lower`, `core`, `main`), importing
+   the kernel as `../spike/kernel.bend`, which Bend allows; the layout
+   stays an open question. Found: `V.VList` touched no kernel code (its
+   matches end in `_`) and 20 exhaustive `Val` splits in the proofs, an
+   arm each, added by a script; Bend's rules shaped every function
+   (callees first, binders matched in order, a shrinking first argument,
+   `+` on a value used twice, an affine `List<String>` from `IO.args`
+   walked once), each refusal a minute; a native build takes 32 s. The
+   five invalid samples about the header pass with their `.expect`
+   lines (`missing_language`, `unknown_language_version`,
+   `unknown_language_extension`, `bad_language_decl`,
+   `non_ascii_without_utf8`); `bad_asm_result` waits on operators
+   (`ladder-lists`). `scripts/ladder.py` runs `glam/ladder.txt` in the
+   gate, the build kept by its inputs' hash; the gate's `bend files`
+   section grew from 25 s to 43 s, `val.bend`'s change rechecking the
+   kernel's closure, and the ladder's build costs 32 s whenever an
+   input of `glam/main.bend` moves. AGENTS' rule that fenced `g` blocks
+   in the docs must parse once a parser exists reaches, for now, only
+   the forms the ladder has climbed; the docs check does not run it
+   yet. Measured (store run 296, i7-6700): `hello_text.g` 0
+   interactions, the root facing data at once, and 451,844 instructions
+   for the process, a diagnostic run 393,650, so the assembly itself
+   about 58,000. The kernel's own counts are untouched by `V.VList`:
+   the spot check against main's run 288 is alike in every row within a
+   few hundred instructions (run 297).
 2. `ladder-lists` — `hello_list.g`, `hello_mixed.g`: list literals,
    number literals in decimal, `++`. The kernel's list type, `++` as an
    operator over it; the first lowering of an expression to a net and
    its demand to a value (`spike-lowering`, begun).
-3. `ladder-names` — `hello_names.g`, `hello_where.g`, `hello_let.g`:
-   definitions used before they are written, `where`, `let` groups.
-   Laziness across cells, local bindings lowered as sharing, a name used
-   twice a copy fan: the first nets with fans from glam's own lowering,
-   which is what NetPairing waited on (`spike-lowering`, and the question
-   of `EvalSpike_2026-10-26.md:124-127`).
+3. `ladder-locals` — `hello_where.g`, `hello_let.g`: `where` and `let`
+   groups within one definition. Local bindings lowered as sharing in
+   one net, a name used twice a copy fan: the first nets with fans from
+   glam's own lowering, which is what NetPairing waited on
+   (`spike-lowering`, and the question of
+   `EvalSpike_2026-10-26.md:124-127`). No thunk: one expression, one
+   net.
 4. `ladder-lambda` — `hello_lambda.g`, `hello_lambda_sugar.g`: lambdas,
    application, a dict literal in leading-comma layout, field access.
    The front end lowers a lambda to `.bind`, `.copy` and `.wire` as a
@@ -60,37 +98,42 @@ are named, and marked there when a rung is built.
 5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`:
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.
-6. `ladder-objects` — `hello_override.g`, `hello_object.g`,
+6. `ladder-thunks` — `hello_names.g`: definitions used before they are
+   written, `asm.result` first and `hello` below it. The first cells:
+   a namespace of lazy entries, one forced by another's demand
+   (`heap-cells`, minimal), the point where the maintainer expects the
+   hard part to begin, reached only once the data rungs stand.
+7. `ladder-objects` — `hello_override.g`, `hello_object.g`,
    `hello_object_prior.g`, then the `hello_object_*.g` family:
    `:=` and `_name`, `object ... with`, `extends`, `self`. Objects as
    open fixpoints: the first `self` knot and the first recursive binding
    group through cells, `spike-fixpoints` made real on glam's own
    programs, costs measured as that step asked (deep mixin chains,
    repeated `extend`).
-7. `ladder-imports` — `hello_import_as.g`, `hello_import_at.g`,
+8. `ladder-imports` — `hello_import_as.g`, `hello_import_at.g`,
    `hello_import_as_extend.g`, `hello_import_binary.g` with `libs/`: the
    core's first requests, `Need{Read{path}}`, answered by the shell in
    logged order; a module as a mixin; a binary import as bytes.
-8. `ladder-effects` — `hello_do.g`, `hello_applicative.g`, `hello_std.g`:
+9. `ladder-effects` — `hello_do.g`, `hello_applicative.g`, `hello_std.g`:
    `import 'std`, `.r`, `<-`, `->`, `!>`, `do` blocks; the freer monad
    lowered, `list.head` and `list.pure` as builtins. The first effect
    steps measured, against the Rust bootstrap's "376 K instructions a
    `.r ()` step".
-9. `ladder-numbers` — `hello_arith.g`, `hello_floor.g`: `0x48`, `1_00`,
+10. `ladder-numbers` — `hello_arith.g`, `hello_floor.g`: `0x48`, `1_00`,
    `1.08e2`, `216 / 2`, `_0b1`, `std.math.floor 13.9`. Exact rationals
    enter here (`netdata-numbers`), last, since every earlier rung stands
    on `U32`.
-10. `ladder-invalid` — `samples/invalid/` with their `.expect` lines:
+11. `ladder-invalid` — `samples/invalid/` with their `.expect` lines:
     diagnostics by severity, line and substrings, from the parser first.
     Not a rung of its own in time: each rung above takes the invalid
     samples its forms make reachable.
-11. `ladder-syntax` — `samples/syntax/`: the forms the hello samples do
+12. `ladder-syntax` — `samples/syntax/`: the forms the hello samples do
     not reach (patterns, `match`, conditionals, layouts, recursive `do`),
     parsed, and lowered where a hello sample needs none.
-12. `ladder-executable` — `samples/executable/hello_x86_64_linux/hello.g`
+13. `ladder-executable` — `samples/executable/hello_x86_64_linux/hello.g`
     (45 lines): direct-style assembly as effects to an ELF. The capstone,
     and the first assembly workload.
-13. `ladder-measure` — at each rung built, the sample's instructions
+14. `ladder-measure` — at each rung built, the sample's instructions
     and interactions into the store with the rung's name, so that the
     kernel's workloads become glam programs, and a performance review of
     what the rungs found, as the maintainer prefers: features first, the
@@ -114,11 +157,17 @@ workload from the rungs to measure it on.
 
 ## Open questions
 
-- How a rung's expected output is recorded: the Rust bootstrap's
-  convention, or a `.out` beside each sample.
-- Whether `ladder-text` and `ladder-lists` wait for `netdata-review`, or
-  take the kernel's first list form now and are redone when NetData
-  decides (this plan's reading of "maturing may throw a lot away").
+- Where the front end's modules live: beside the kernel in `spike/`, or
+  a directory of their own importing it (`../spike/kernel.bend`, which
+  Bend allows).
+
+Settled by this plan: every `hello/` sample produces `Hello, World!`
+(`samples/README.md`), so the check asserts that literal for each built
+rung's samples, with no `.out` files; the invalid samples' `.expect`
+lines are the diagnostics' test. The maintainer, 2026-11-09: do not wait
+for `netdata-review`; implement something to get started, plain data
+first, so `ladder-text` takes the kernel's first list form and is redone
+when NetData decides.
 
 Answered by the maintainer, 2026-11-09:
 - The lowering is the front end's, to net construction through

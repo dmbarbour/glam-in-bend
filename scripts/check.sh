@@ -110,6 +110,13 @@ if [ -f spike/library.txt ]; then
   tail -n 1 results/library.log
 fi
 
+section ladder
+# the hello ladder's samples through the assembler (HelloLadder,
+# glam/ladder.txt), its build kept for inputs unchanged (scripts/ladder.py)
+BEND=$BEND python3 -I scripts/ladder.py > results/ladder.log 2>&1 || {
+  grep -v '^ok ' results/ladder.log; status=1; }
+tail -n 1 results/ladder.log
+
 section "bend files"
 # every other Bend file typechecks, a pass kept for inputs unchanged
 # (scripts/kept.py)
