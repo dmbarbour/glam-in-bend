@@ -18,7 +18,8 @@ kernel (`spike-node-layout` in
   interaction-net calls (DistilledDesign).
 - Evaluation is call by need: a thunk forced twice computes once, and
   copies of a function share the reductions of its source
-  (`functions-are-nets-with-arity`).
+  (`functions-are-nets-with-arity`). This is a cost bound: a small,
+  local lazy computation may be evaluated twice (`bounded-duplication`).
 - Bend's values are immutable and shared by reference counts; arrays are
   affine, one owner each, never shared. Every shared mutable thing is ours:
   a cell in the store, named by a `U32` handle (`store-pages`).
