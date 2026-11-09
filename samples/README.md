@@ -50,7 +50,9 @@ error|1|language|declaration
 ```
 
 This means an error is expected on line 1, and the diagnostic message must
-contain both `language` and `declaration`. 
+contain both `language` and `declaration`. The messages are worded for
+use and may be improved at will, the `.expect` substrings changing with
+them (`diagnostic-wording-ours`).
 
 ## Running Current Samples
 

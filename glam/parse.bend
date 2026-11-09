@@ -32,6 +32,12 @@ type Expr is Data:
   ELet{+line: U32, group: Expr}
   EBind{+line: U32, name: List<&2, U32>, value: Expr, rest: Expr}
   EIn{body: Expr}
+  # a lambda of one parameter, and an application: what a binding group
+  # becomes (glam/desugar.bend), and soon what `\x -> e` and `f x` parse to
+  ELam{+line: U32, name: List<&2, U32>, body: Expr}
+  EApp{+line: U32, f: Expr, x: Expr}
+  # a builtin by its op and the arguments it needs: what `++` becomes
+  EBuiltin{+op: U32, +need: U32}
 
 # a definition: its line, its path (`asm.result` is [asm, result]), its
 # body

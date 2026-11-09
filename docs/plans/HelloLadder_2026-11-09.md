@@ -159,19 +159,56 @@ named, and marked there when a rung is built.
    expression written out, `x ++ x where x = "a" ++ "b"` 9 against 12,
    a doubling chain of four locals from `"ab"` 20 against 60, the copy
    fans computing each value once.
-4. `ladder-lambda` — `hello_lambda.g`, `hello_lambda_sugar.g`: lambdas,
-   application, a dict literal in leading-comma layout, field access.
-   The front end lowers a lambda to `.bind`, `.copy` and `.wire` as a
-   user's `interaction_net` would, never to a core term
+4. `ladder-lambda` — active — `hello_lambda.g`: lambdas, application, a
+   dict literal in leading-comma layout, field access. The front end
+   lowers a lambda to `.bind`, `.copy` and `.wire` as a user's
+   `interaction_net` would, never to a core term
    (`lambdas-lower-to-nets`); functions as nets with arity, applied by
    copying (`functions-are-nets-with-arity`,
    `copy-reduced-function-nets`, `heap-apply` minimal); the kernel's
-   dict type in its first form.
+   dict type in its first form. GAL levels from the start
+   (`lowering-uses-levels`, the maintainer, 2026-11-09).
+   `hello_lambda_sugar.g` calls a top-level function from `asm.result`,
+   a global reference, so it waits for `ladder-thunks`.
+   - `ladder-lambda.levels` — built 2026-11-09 — what the ladder
+     lowers already, leveled as `spike/tools/terms.py` lowers terms:
+     each application at its depth with its argument a box one deeper
+     (`++`'s operands among them), a local's value a box as the argument
+     of the application `let` stands for, each variable's uses a trie
+     over the boxes entered from its binder, a fan at the depth where
+     paths split, one fused control on each edge that crosses boxes.
+     Built: `glam/desugar.bend` turns a binding group into the lambdas
+     and applications it stands for, its live bindings nested in the
+     order of their needs, the dead dropped, and checks scope there
+     (a name bound twice, shadowing a local or a top-level definition,
+     a cycle among live bindings); `++` becomes the builtin append
+     applied twice. The lowering knows lambdas and applications alone:
+     a box is named by the position of the expression that opens it;
+     each use carries its depth and boxes; a lambda builds its
+     variable's trie and emits its fans and controls as terms.py's
+     `emit_edge` and `emit_fan` do, in one loop over a list of jobs under
+     fuel, Bend admitting no mutual recursion. The kernel does the
+     groups' beta reductions. Measured against `ladder-locals`' direct
+     wiring (store run 302 against 301, interactions): `hello_where.g`
+     and `hello_let.g` 15 against 12, `hello_shared.g` 43 against 35,
+     `x ++ x where x = "a" ++ "b"` 10 against 9, the doubling chain 27
+     against 20, still against 60 written out; the kernel reports no
+     error, so no level check fails. `hello_shared.g` 1,001,556
+     instructions for the process, against 898,188.
+   - `ladder-lambda.functions` — planned — `\x y -> body`, a tail form;
+     application by juxtaposition, tighter than any infix operator and
+     grouping to the left; a function whose variable is unused lowered
+     without an eraser (`fnd`, as terms.py does).
+   - `ladder-lambda.dicts` — planned — a dict literal, its members
+     literals as a list's are for now, its keys texts until atoms come;
+     field access `e.name` as a builtin applied to the dict, a missing
+     key an error; `hello_lambda.g`.
 5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`:
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.
-6. `ladder-thunks` — `hello_names.g`: definitions used before they are
-   written, `asm.result` first and `hello` below it. The first cells:
+6. `ladder-thunks` — `hello_names.g`, `hello_lambda_sugar.g`:
+   definitions used before they are written, `asm.result` first and
+   `hello` below it; a top-level function called. The first cells:
    a namespace of lazy entries, one forced by another's demand
    (`heap-cells`, minimal), the point where the maintainer expects the
    hard part to begin, reached only once the data rungs stand.

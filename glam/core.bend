@@ -6,6 +6,7 @@ import ../spike/kstrat.bend as KS
 import ../spike/kdemand.bend as KD
 import ./lex.bend as L
 import ./parse.bend as G
+import ./desugar.bend as D
 import ./lower.bend as W
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
@@ -149,12 +150,19 @@ def lowered(w: W.Top) -> Run:
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 
+def desugared(r: D.Ds, +line: U32) -> Run:
+  match r:
+    case D.DOk{e}:
+      lowered(W.top(e, line))
+    case D.DErr{d}:
+      RDone{OErrs{[d]}}
+
 def run(m: Maybe<&2, G.Def>, +globals: List<&2, List<&2, U32>>) -> Run:
   match m:
     case Some{d}:
       match d:
         case G.Def{+line, path, body}:
-          lowered(W.top(body, line, globals))
+          desugared(D.expr(body, Nil{}, globals), line)
     case None{}:
       RDone{OErrs{[G.Diag{0, "asm.result is not defined"}]}}
 

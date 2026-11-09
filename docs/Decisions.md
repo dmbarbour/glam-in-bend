@@ -114,6 +114,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`lambdas-lower-to-nets`](decisions/lambdas-lower-to-nets.md): the
   lambda calculus is evaluated by lowering to the kernel's nets; a lazy
   machine over thunks is not the toplevel's evaluator.
+- [`lowering-uses-levels`](decisions/lowering-uses-levels.md): glam's
+  lowering pairs its fans by GAL levels from the start, a local's value
+  a box as an application's argument is.
 - [`split-heap`](decisions/split-heap.md): ground data is Bend data;
   everything holding lazy state lives in our store, split for parallelism.
 - [`store-pages`](decisions/store-pages.md): the store is equal pages of
@@ -163,6 +166,12 @@ where the shared lazy state that Bend cannot hold goes.
   texts and binaries are lists, stored packed in rope leaves.
 - [`intern-hot-values`](decisions/intern-hot-values.md): widely shared
   values are interned, keeping Bend's reference counts in bounds.
+
+## Diagnostics
+
+- [`diagnostic-wording-ours`](decisions/diagnostic-wording-ours.md):
+  messages are worded for use and improved at will, the samples'
+  `.expect` substrings changing with them.
 
 ## Reflection
 
