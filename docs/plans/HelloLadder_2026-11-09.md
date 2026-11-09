@@ -22,6 +22,12 @@ of the type it needs, from NetData's steps as they are decided
 (`netdata-table`, `netdata-structures`, `netdata-numbers`), expecting to
 redo it.
 
+**Pending review against the bridge**
+([`Bridge_2026-11-09.md`](Bridge_2026-11-09.md), 2026-11-09): the bridge
+orders the remaining rungs: recursion and objects through the re-scoped
+Cells plan, effects with a first search before the capstone, `ladder-
+measure.workload` after it.
+
 ## What each rung forces into being
 
 The samples' own text decides the order, with one rule from the

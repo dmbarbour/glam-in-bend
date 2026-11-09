@@ -8,6 +8,11 @@ records decide. Accepted parts become records and a standing
 scratch experiments on 2026-10-26 (Bend 2.0.39, native, 8 cores) and from
 Bend's runtime paper (`paper/BendRT.pdf` in bendlang/bend).
 
+**Pending review against the bridge**
+([`Bridge_2026-11-09.md`](Bridge_2026-11-09.md), 2026-11-09): its store,
+pages and rounds, collection and parallelism wait for `bridge-parallel`,
+where the heap review's questions are decided from search workloads.
+
 ## Layers
 
 ```

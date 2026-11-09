@@ -9,6 +9,11 @@ wants the GAL adaptation tested amply, then proved, in Lean if it can be;
 they hold an earlier design discussion of it, to compare with a
 derivation made here first.
 
+**Pending review against the bridge**
+([`Bridge_2026-11-09.md`](Bridge_2026-11-09.md), 2026-11-09): the
+splice's level offset, its open question of copying a net into a running
+one, is tried at `bridge-recursion`.
+
 ## Background
 
 - **The rule** (Design.md, "Interaction Nets"): copy-copy joins the paired

@@ -12,6 +12,12 @@ its own `LAWS.bend` and `PROOF.bend`. The code is throwaway; what it
 learns becomes decision records. How fans pair has a plan of its
 own, [NetPairing](NetPairing_2026-10-26.md).
 
+**Pending review against the bridge**
+([`Bridge_2026-11-09.md`](Bridge_2026-11-09.md), 2026-11-09): `spike-
+page-rounds.tasks` is the bridge's side track and `spike-fixpoints` goes
+to the Cells plan; the other remaining spikes wait until a milestone
+needs them.
+
 ## Known (2026-10-26, Bend 2.0.39, native unless noted)
 
 - A scattered `Array<U32>` read and write costs about 1.5 ns; the JS target

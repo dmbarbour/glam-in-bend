@@ -10,6 +10,12 @@ It builds on `split-heap`, `store-pages`, `store-collection`,
 kernel (`spike-node-layout` in
 [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md)).
 
+**Pending review against the bridge**
+([`Bridge_2026-11-09.md`](Bridge_2026-11-09.md), 2026-11-09): its cells,
+freezing and application go to the Cells plan as `bridge-recursion` re-
+scopes it; its store, workers and collection wait for `bridge-parallel`;
+its strategies are off the bridge's path.
+
 ## What must hold
 
 - Nets are first-class glam values: bound directly unless wrapped as
