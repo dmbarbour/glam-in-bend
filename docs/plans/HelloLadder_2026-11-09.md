@@ -121,13 +121,44 @@ named, and marked there when a rung is built.
    (store run 299); `hello_mixed.g` 4 and 487,476 (run 300); the
    kernel's spot counts alike, `fma` 0.1% to 0.2% fewer (run 298
    against 288).
-3. `ladder-locals` — `hello_where.g`, `hello_let.g`: `where` and `let`
-   groups within one definition. Local bindings lowered as sharing in
-   one net, a name used twice a copy fan: the first nets with fans from
-   glam's own lowering, which is what NetPairing waited on
-   (`spike-lowering`, and the question of
+3. `ladder-locals` — built 2026-11-09 — `hello_where.g`, `hello_let.g`:
+   `where` and `let` groups within one definition. Local bindings
+   lowered as sharing in one net, a name used twice a copy fan: the
+   first nets with fans from glam's own lowering, which is what
+   NetPairing waited on (`spike-lowering`, and the question of
    `EvalSpike_2026-10-26.md:124-127`). No thunk: one expression, one
-   net.
+   net. Built: `glam/layout.bend` makes binding groups explicit as
+   Haskell's layout algorithm does, a virtual open, separators and close
+   from columns after `let` and `where`, `in` closing an implicit `let`
+   on its line, brackets and braces explicit; the parser reads groups
+   implicit or braced, a `let`'s body with or without `in`, a `where`
+   scoping the whole definition, binding or parenthesized expression it
+   ends. The five errors of `invalid/syntax/let_where_syntax.g` pass with
+   their messages (a sibling left of the anchor, `in` in a multi-line
+   `let`, naked semicolons). The lowering is compositional, Bend having
+   no mutual recursion: a group's bindings are a chain inside the
+   expression, each piece of net carries the names it leaves pending as
+   ports waiting, and a group, closing, wires each binding's value to its
+   uses, directly or through a chain of binary copy fans, each fan's site
+   its own node's index, unleveled: locals pair by static labels, which
+   copying data needs no more of; `ladder-lambda`, copying functions,
+   decides levels (NetPairing's verdict for glam's own code). A binding
+   nothing needs is not lowered (`net-obvious-errors`); an alias passes
+   its uses on; a group refuses a name bound twice, a name bound again
+   inside it ("local `x` shadows existing local `x`", as
+   `invalid/eval/local_shadowing.g` words it, a sample that waits on
+   lambdas), a local named as a top-level definition ("shadows existing
+   global", the wording ours), and live bindings that refer to each
+   other in a cycle, checked before any net is built, since a cycle
+   reduced would loop under the shell's budget (recursive groups wait
+   for `ladder-objects`). Not yet: parameters on a local (`add a b =`),
+   a `let`'s body checked to align with `let`, `;;` in braces.
+   `samples/hello/hello_shared.g`, new, uses `l` three times and `o`
+   twice. Measured (store run 301, interactions): `hello_where.g` and
+   `hello_let.g` 12, `hello_shared.g` 35; sharing against the same
+   expression written out, `x ++ x where x = "a" ++ "b"` 9 against 12,
+   a doubling chain of four locals from `"ab"` 20 against 60, the copy
+   fans computing each value once.
 4. `ladder-lambda` — `hello_lambda.g`, `hello_lambda_sugar.g`: lambdas,
    application, a dict literal in leading-comma layout, field access.
    The front end lowers a lambda to `.bind`, `.copy` and `.wire` as a

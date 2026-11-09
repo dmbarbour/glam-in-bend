@@ -1,5 +1,6 @@
 import Base
 import ./lex.bend as L
+import ./layout.bend as Y
 
 # The ".g" parser, as far as the hello ladder has climbed (HelloLadder,
 # ladder-text): the language declaration first (docs/Syntax.md, Language
@@ -7,7 +8,9 @@ import ./lex.bend as L
 # beginning at column 0 and continuing on indented lines (Toplevel
 # Structure). Expressions, as far as the ladder reaches: texts, decimal
 # numbers, names and dotted paths, list literals, parentheses, and the
-# infix `++` (ladder-lists). Diagnostics carry the line of the token at
+# infix `++` (ladder-lists), and `let` and `where` binding groups
+# (ladder-locals), their layout made explicit by glam/layout.bend.
+# Diagnostics carry the line of the token at
 # fault, as samples/invalid's .expect files name them; every declaration
 # is read, so that one file reports all its errors.
 #
@@ -23,6 +26,12 @@ type Expr is Data:
   EName{+line: U32, path: List<&2, List<&2, U32>>}
   # an infix operator applied, at the operator's line
   EOp2{+line: U32, op: List<&2, U32>, a: Expr, b: Expr}
+  # a binding group, `let`'s or `where`'s, at its keyword's line: its
+  # bindings as a chain of EBind ending in EIn, the body they scope, so
+  # that one recursion walks the group
+  ELet{+line: U32, group: Expr}
+  EBind{+line: U32, name: List<&2, U32>, value: Expr, rest: Expr}
+  EIn{body: Expr}
 
 # a definition: its line, its path (`asm.result` is [asm, result]), its
 # body
@@ -81,43 +90,14 @@ def path_str(ps: List<&2, List<&2, U32>>) -> String:
     case Nil{}:
       ""
 
-def tok_line(t: L.Tok) -> U32:
-  match t:
-    case L.TWord{+line, +col, s}:
-      line
-    case L.TDot{+line, +col}:
-      line
-    case L.TEq{+line, +col}:
-      line
-    case L.TText{+line, +col, s}:
-      line
-    case L.TOpen{+line, +col}:
-      line
-    case L.TOther{+line, +col, +b}:
-      line
-    case L.TPun{+line, +col, +b}:
-      line
-    case L.TOp{+line, +col, s}:
-      line
-
-def tok_col(t: L.Tok) -> U32:
-  match t:
-    case L.TWord{+line, +col, s}:
-      col
-    case L.TDot{+line, +col}:
-      col
-    case L.TEq{+line, +col}:
-      col
-    case L.TText{+line, +col, s}:
-      col
-    case L.TOpen{+line, +col}:
-      col
-    case L.TOther{+line, +col, +b}:
-      col
-    case L.TPun{+line, +col, +b}:
-      col
-    case L.TOp{+line, +col, s}:
-      col
+def lay_show(+k: U32) -> String:
+  match k:
+    case 0:
+      "the start of a layout group"
+    case 1:
+      "a new line of a layout group"
+    case _:
+      "the end of a layout group"
 
 # a token named for a message
 def tok_show(t: L.Tok) -> String:
@@ -138,6 +118,8 @@ def tok_show(t: L.Tok) -> String:
       str([b])
     case L.TOp{+line, +col, s}:
       str(s)
+    case L.TLay{+line, +col, +k}:
+      lay_show(k)
 
 # Declarations
 # ============
@@ -172,7 +154,7 @@ def groups.end(a: Ga) -> List<&2, List<&2, L.Tok>>:
 def groups.go(ts: List<&2, L.Tok>, a: Ga) -> List<&2, List<&2, L.Tok>>:
   match ts:
     case Con{+t, rest}:
-      groups.go(rest, groups.step(U32.is_eq(tok_col(t), 0), t, a))
+      groups.go(rest, groups.step(U32.is_eq(L.tok_col(t), 0), t, a))
     case Nil{}:
       groups.end(a)
 
@@ -281,7 +263,7 @@ def header(g: List<&2, L.Tok>) -> Hd:
         case L.TWord{+line, +col, s}:
           header.first(bytes_eq(s, [108, 97, 110, 103, 117, 97, 103, 101]), line, rest)
         case _:
-          missing_language(tok_line(t))
+          missing_language(L.tok_line(t))
 
 # Definitions
 # ===========
@@ -302,12 +284,19 @@ def name_ok(s: List<&2, U32>) -> Bool:
 # ===========
 #
 # One machine over a declaration's tokens after `=`, Bend admitting no
-# mutual recursion for a parser that descends: a stack of open frames
-# (a list's `[`, a `(`, an infix operator waiting for its right operand)
-# and the mode, an operand wanted or one in hand. Precedence in glam is a
-# partial relation (docs/Syntax.md, Operators): a chain of one operator
-# needs no parentheses, two different ones do. `++` is the one known so
-# far; its chains group to the right, append being associative.
+# mutual recursion for a parser that descends: a stack of open frames (a
+# list's `[`, a `(`, an infix operator waiting for its right operand, a
+# binding group and the binding being read, a `let`'s body) and the mode,
+# an operand wanted or one in hand, or a binding group's own places.
+# Precedence in glam is a partial relation (docs/Syntax.md, Operators): a
+# chain of one operator needs no parentheses, two different ones do.
+# `++` is the one known so far; its chains group to the right, append
+# being associative. Binding groups come as glam/layout.bend makes them
+# explicit: a virtual open, separators and close, or braces.
+
+# a binding read: its line, its name, its value
+type Bd is Data:
+  Bd{+line: U32, name: List<&2, U32>, value: Expr}
 
 type Fr is Data:
   # an open `[`: its line, the members so far reversed, and how it
@@ -316,12 +305,30 @@ type Fr is Data:
   FList{+line: U32, xs: List<&2, Expr>, +sep: U32}
   FParen{+line: U32}
   FOp{+line: U32, op: List<&2, U32>, a: Expr}
+  # a binding group: 1 `let`'s or 2 `where`'s, its keyword's line, its
+  # anchor's column, whether braces delimit it, the bindings so far
+  # reversed, and for `where` the expression it scopes
+  FGroup{+kind: U32, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, body: Expr}
+  # a binding whose value is being read
+  FBind{+line: U32, name: List<&2, U32>}
+  # a `let`'s body being read, its group closed
+  FLetBody{+line: U32, +anchor: U32, bs: List<&2, Bd>}
 
 type Pm is Data:
   MWant{st: List<&2, Fr>}
   MHave{st: List<&2, Fr>, e: Expr}
   # after a name and `.`: the path so far
   MDot{st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>}
+  # after `let` or `where`: the group's open wanted
+  MGroup{st: List<&2, Fr>}
+  # a binding's name wanted, or the group's close
+  MBName{st: List<&2, Fr>}
+  # after a binding's name: `=` wanted
+  MBEq{st: List<&2, Fr>, +line: U32, name: List<&2, U32>}
+  # a `let` group closed: `in` or its body wanted
+  MLetAfter{st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>}
+  # a `where` group closed: nothing may follow but the end or a `)`
+  MWhereDone{st: List<&2, Fr>, e: Expr, +anchor: U32}
   MFail{d: Diag}
 
 type Ex is Data:
@@ -333,6 +340,16 @@ def fail(+line: U32, msg: String) -> Pm:
 
 def no_right(+line: U32) -> Pm:
   fail(line, "an infix operator requires a right operand")
+
+# a group's bindings, read in order, before the body they scope
+def chain(bs: List<&2, Bd>, acc: Expr) -> Expr:
+  match bs:
+    case Nil{}:
+      acc
+    case Con{b, rest}:
+      match b:
+        case Bd{+line, name, value}:
+          chain(rest, EBind{line, name, value, acc})
 
 # Numbers: decimal digits, at most ten and below 2^32 for now, exact
 # rationals coming with ladder-numbers; past that a diagnostic, never a
@@ -387,12 +404,25 @@ def word_kind(s: List<&2, U32>) -> U32:
     case Nil{}:
       0
 
+# a name where an operand is wanted: `let` opens a group; `in` and
+# `where` belong after one
+def name.k(+kw: U32, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
+  match kw:
+    case 2:
+      MGroup{Con{FGroup{1, line, 0, False{}, Nil{}, ENum{0}}, st}}
+    case 1:
+      fail(line, "expected an expression, found in")
+    case 3:
+      fail(line, "expected an expression, found where")
+    case _:
+      MHave{st, EName{line, [s]}}
+
 def word.k(+kind: U32, st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
   match kind:
     case 1:
       number(st, line, s)
     case 2:
-      MHave{st, EName{line, [s]}}
+      name.k(Y.word_part(s), st, line, s)
     case _:
       fail(line, "this form is not supported yet: " ++ str(s))
 
@@ -435,6 +465,8 @@ def want.close(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
           want.close.paren(U32.is_eq(b, 41), line, b)
         case FOp{+l, op, a}:
           no_right(l)
+        case _:
+          fail(line, "expected an expression before `" ++ str([b]) ++ "`")
 
 def want.comma.k(+sep: U32, +l: U32, xs: List<&2, Expr>, rest: List<&2, Fr>, +line: U32) -> Pm:
   match sep:
@@ -455,6 +487,8 @@ def want.comma(st: List<&2, Fr>, +line: U32) -> Pm:
           fail(line, "tuples are not supported yet")
         case FOp{+l, op, a}:
           no_right(l)
+        case _:
+          fail(line, "expected an expression before `,`")
 
 def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
   match b:
@@ -490,6 +524,8 @@ def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
       fail(l, "expected an expression, found .")
     case L.TOther{+l, +c, +b}:
       fail(l, "unexpected character " ++ str([b]))
+    case L.TLay{+l, +c, +k}:
+      fail(l, "expected an expression")
 
 # Operators, commas and closers after an operand
 # ----------------------------------------------
@@ -497,8 +533,9 @@ def want(st: List<&2, Fr>, t: L.Tok) -> Pm:
 type Rd is Data:
   Rd{st: List<&2, Fr>, e: Expr}
 
-# the operators waiting on top of the stack applied, the latest first,
-# so that a chain of one operator groups to the right
+# the frames that end where their expression ends applied, the latest
+# first: an operator waiting, so that a chain of one operator groups to
+# the right, and a `let`'s body, a tail form (tail-forms-end-at-separators)
 def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
   match st:
     case Nil{}:
@@ -507,10 +544,10 @@ def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
       match f:
         case FOp{+line, op, a}:
           reduce(rest, EOp2{line, op, a, e})
-        case FList{+line, xs, +sep}:
-          Rd{Con{FList{line, xs, sep}, rest}, e}
-        case FParen{+line}:
-          Rd{Con{FParen{line}, rest}, e}
+        case FLetBody{+line, +anchor, bs}:
+          reduce(rest, ELet{line, chain(bs, EIn{e})})
+        case _:
+          Rd{Con{f, rest}, e}
 
 def have.op.k(+known: Bool, st: List<&2, Fr>, e: Expr, +line: U32, op: List<&2, U32>) -> Pm:
   match known:
@@ -521,6 +558,15 @@ def have.op.k(+known: Bool, st: List<&2, Fr>, e: Expr, +line: U32, op: List<&2, 
 
 def have.op(st: List<&2, Fr>, e: Expr, +line: U32, +op: List<&2, U32>) -> Pm:
   have.op.k(bytes_eq(op, [43, 43]), st, e, line, op)
+
+def unclosed.pm(f: Fr) -> Pm:
+  match f:
+    case FList{+l, xs, +sep}:
+      fail(l, "unclosed delimiter: expected `]`")
+    case FParen{+l}:
+      fail(l, "unclosed delimiter: expected `)`")
+    case _:
+      fail(0, "an expression ended where its frame does not")
 
 def have.comma(r: Rd, +line: U32) -> Pm:
   match r:
@@ -534,8 +580,8 @@ def have.comma(r: Rd, +line: U32) -> Pm:
               MWant{Con{FList{l, Con{e, xs}, 2}, rest}}
             case FParen{+l}:
               fail(line, "tuples are not supported yet")
-            case FOp{+l, op, a}:
-              fail(line, "an operator left waiting")
+            case _:
+              fail(line, "a comma outside brackets")
 
 def have.close.list(+sq: Bool, xs: List<&2, Expr>, e: Expr, rest: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
   match sq:
@@ -563,8 +609,120 @@ def have.close(r: Rd, +line: U32, +b: U32) -> Pm:
               have.close.list(U32.is_eq(b, 93), xs, e, rest, line, b)
             case FParen{+l}:
               have.close.paren(U32.is_eq(b, 41), e, rest, line, b)
-            case FOp{+l, op, a}:
-              fail(line, "an operator left waiting")
+            case _:
+              fail(line, "unbalanced closing delimiter `" ++ str([b]) ++ "`")
+
+# Binding groups
+# --------------
+
+def group_word(+kind: U32) -> String:
+  match kind:
+    case 1:
+      "let"
+    case _:
+      "where"
+
+def naked(+kind: U32, +line: U32) -> Pm:
+  match kind:
+    case 1:
+      fail(line, "naked semicolon-separated `let` bindings: use `let { ... } in ...`")
+    case _:
+      fail(line, "naked semicolon-separated `where` bindings: use `where { ... }`")
+
+# a group closed: a `let`'s body comes next, a `where` scopes its body
+def group_close(+kind: U32, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, body: Expr, rest: List<&2, Fr>) -> Pm:
+  match kind:
+    case 1:
+      MLetAfter{rest, line, anchor, brace, bs}
+    case _:
+      MWhereDone{rest, ELet{line, chain(bs, EIn{body})}, anchor}
+
+# after a binding, or where a binding's name is wanted: how the group
+# goes on, by what came (1 a virtual separator, 2 a virtual close, 3 a
+# `;`, 4 a `}`) and whether braces delimit it
+def group_next(+how: U32, +kind: U32, +gl: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, body: Expr, rest: List<&2, Fr>, +line: U32) -> Pm:
+  match how brace:
+    case 1 False{}:
+      MBName{Con{FGroup{kind, gl, anchor, brace, bs, body}, rest}}
+    case 2 False{}:
+      group_close(kind, gl, anchor, brace, bs, body, rest)
+    case 3 False{}:
+      naked(kind, line)
+    case 3 True{}:
+      MBName{Con{FGroup{kind, gl, anchor, brace, bs, body}, rest}}
+    case 4 True{}:
+      group_close(kind, gl, anchor, brace, bs, body, rest)
+    case _ _:
+      fail(line, "a `" ++ group_word(kind) ++ "` group's bindings end in a mismatched delimiter")
+
+def bind_add(st: List<&2, Fr>, b: Bd, +how: U32, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a binding outside its group")
+    case Con{g, rest}:
+      match g:
+        case FGroup{+kind, +gl, +anchor, +brace, bs, body}:
+          group_next(how, kind, gl, anchor, brace, Con{b, bs}, body, rest, line)
+        case _:
+          fail(line, "a binding outside its group")
+
+# a binding's value ended by a separator or the group's close
+def bind_end(r: Rd, +how: U32, +line: U32) -> Pm:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          fail(line, "a separator outside a binding group")
+        case Con{f, rest}:
+          match f:
+            case FBind{+bl, name}:
+              bind_add(rest, Bd{bl, name, e}, how, line)
+            case FList{+l, xs, +sep}:
+              fail(l, "unclosed delimiter: expected `]`")
+            case FParen{+l}:
+              fail(l, "unclosed delimiter: expected `)`")
+            case _:
+              fail(line, "a separator outside a binding group")
+
+# where a binding's name is wanted, the group's frame on top: the group
+# goes on or closes by what came
+def name_next(st: List<&2, Fr>, +how: U32, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a binding group's frame lost")
+    case Con{g, rest}:
+      match g:
+        case FGroup{+kind, +gl, +anchor, +brace, bs, body}:
+          group_next(how, kind, gl, anchor, brace, bs, body, rest, line)
+        case _:
+          fail(line, "a binding group's frame lost")
+
+# `where` after an operand: it scopes the whole definition, binding or
+# parenthesized expression it ends, the open tails before it ended
+def where_start(r: Rd, +line: U32) -> Pm:
+  match r:
+    case Rd{st, e}:
+      match st:
+        case Nil{}:
+          MGroup{[FGroup{2, line, 0, False{}, Nil{}, e}]}
+        case Con{f, rest}:
+          match f:
+            case FList{+l, xs, +sep}:
+              fail(line, "a `where` inside a list: write `(e where ...)`")
+            case _:
+              MGroup{Con{FGroup{2, line, 0, False{}, Nil{}, e}, Con{f, rest}}}
+
+def have.word.k(+kw: U32, st: List<&2, Fr>, e: Expr, +line: U32, s: List<&2, U32>) -> Pm:
+  match kw:
+    case 3:
+      where_start(reduce(st, e), line)
+    case 1:
+      fail(line, "unexpected in")
+    case _:
+      fail(line, "function application is not supported yet: " ++ str(s))
+
+def have.word(st: List<&2, Fr>, e: Expr, +line: U32, +s: List<&2, U32>) -> Pm:
+  have.word.k(Y.word_part(s), st, e, line, s)
 
 def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
   match b:
@@ -574,8 +732,25 @@ def have.pun(st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
       have.close(reduce(st, e), line, 93)
     case 41:
       have.close(reduce(st, e), line, 41)
+    case 59:
+      bind_end(reduce(st, e), 3, line)
+    case 125:
+      bind_end(reduce(st, e), 4, line)
     case _:
       fail(line, "this form is not supported yet: " ++ str([b]))
+
+# `=` after an operand: a binding left of its group's anchor, where a
+# `let`'s body has just begun
+def have.eq(st: List<&2, Fr>, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "unexpected =")
+    case Con{f, rest}:
+      match f:
+        case FLetBody{+l, +anchor, bs}:
+          fail(line, "multi-line let binding: expected sibling indentation " ++ U32.show(anchor))
+        case _:
+          fail(line, "unexpected =")
 
 # `.` after an operand: a path goes on after a name
 def have.dot(e: Expr, st: List<&2, Fr>, +line: U32) -> Pm:
@@ -595,15 +770,17 @@ def have(st: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
     case L.TDot{+l, +c}:
       have.dot(e, st, l)
     case L.TWord{+l, +c, s}:
-      fail(l, "function application is not supported yet: " ++ str(s))
+      have.word(st, e, l, s)
     case L.TText{+l, +c, s}:
       fail(l, "function application is not supported yet: a text")
     case L.TOpen{+l, +c}:
       fail(l, "a text is not closed on its line")
     case L.TEq{+l, +c}:
-      fail(l, "unexpected =")
+      have.eq(st, l)
     case L.TOther{+l, +c, +b}:
       fail(l, "unexpected character " ++ str([b]))
+    case L.TLay{+l, +c, +k}:
+      bind_end(reduce(st, e), k, l)
 
 def dot.word(+ok: Bool, st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, s: List<&2, U32>) -> Pm:
   match ok:
@@ -620,7 +797,116 @@ def dot(st: List<&2, Fr>, +line: U32, path: List<&2, List<&2, U32>>, t: L.Tok) -
     case _:
       fail(line, "expected a name after .")
 
-def step(m: Pm, t: L.Tok) -> Pm:
+# the group's frame given its open: braces, or a virtual open at its
+# anchor's column
+def opened(st: List<&2, Fr>, +anchor: U32, +brace: Bool, +line: U32) -> Pm:
+  match st:
+    case Nil{}:
+      fail(line, "a binding group's frame lost")
+    case Con{g, rest}:
+      match g:
+        case FGroup{+kind, +gl, +a, +b, bs, body}:
+          MBName{Con{FGroup{kind, gl, anchor, brace, bs, body}, rest}}
+        case _:
+          fail(line, "a binding group's frame lost")
+
+def group.brace(+brace: Bool, st: List<&2, Fr>, +line: U32) -> Pm:
+  match brace:
+    case True{}:
+      opened(st, 0, True{}, line)
+    case False{}:
+      fail(line, "expected a binding group")
+
+def group(st: List<&2, Fr>, +t: L.Tok) -> Pm:
+  match t:
+    case L.TLay{+l, +c, +k}:
+      opened(st, c, False{}, l)
+    case L.TPun{+l, +c, +b}:
+      group.brace(U32.is_eq(b, 123), st, l)
+    case _:
+      fail(L.tok_line(t), "expected a binding group, found " ++ tok_show(t))
+
+def bname.kw(+kw: U32, st: List<&2, Fr>, +line: U32, s: List<&2, U32>) -> Pm:
+  match kw:
+    case 0:
+      MBEq{st, line, s}
+    case _:
+      fail(line, "a keyword cannot name a binding: " ++ str(s))
+
+def bname.k(+kind: U32, st: List<&2, Fr>, +line: U32, +s: List<&2, U32>) -> Pm:
+  match kind:
+    case 2:
+      bname.kw(Y.word_part(s), st, line, s)
+    case _:
+      fail(line, "a binding's name begins with a letter: " ++ str(s))
+
+def bname.pun(+b: U32, st: List<&2, Fr>, +line: U32) -> Pm:
+  match b:
+    case 59:
+      name_next(st, 3, line)
+    case 125:
+      name_next(st, 4, line)
+    case _:
+      fail(line, "expected a binding's name, found " ++ str([b]))
+
+# a binding's name wanted, or the group's close
+def bname(st: List<&2, Fr>, +t: L.Tok) -> Pm:
+  match t:
+    case L.TWord{+l, +c, +s}:
+      bname.k(word_kind(s), st, l, s)
+    case L.TLay{+l, +c, +k}:
+      name_next(st, k, l)
+    case L.TPun{+l, +c, +b}:
+      bname.pun(b, st, l)
+    case _:
+      fail(L.tok_line(t), "expected a binding's name, found " ++ tok_show(t))
+
+# after a binding's name: `=`, its value's frame pushed
+def beq(st: List<&2, Fr>, +line: U32, name: List<&2, U32>, t: L.Tok) -> Pm:
+  match t:
+    case L.TEq{+l, +c}:
+      MWant{Con{FBind{line, name}, st}}
+    case L.TWord{+l, +c, s}:
+      fail(line, "a local function's parameters are not supported yet")
+    case _:
+      fail(line, "expected = after the binding's name, found " ++ tok_show(t))
+
+def let_in(+same: Bool, +brace: Bool, st: List<&2, Fr>, +line: U32, +anchor: U32, bs: List<&2, Bd>) -> Pm:
+  match same brace:
+    case False{} False{}:
+      fail(line, "a multi-line let expression must not use `in`")
+    case _ _:
+      MWant{Con{FLetBody{line, anchor, bs}, st}}
+
+# a `let` group closed: `in`, on the `let`'s line unless braces delimit
+# the group, or its body directly (Local Definitions)
+def let_after.k(+is_in: Bool, st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, +t: L.Tok) -> Pm:
+  match is_in:
+    case True{}:
+      let_in(U32.is_eq(L.tok_line(t), line), brace, st, line, anchor, bs)
+    case False{}:
+      want(Con{FLetBody{line, anchor, bs}, st}, t)
+
+def let_after(st: List<&2, Fr>, +line: U32, +anchor: U32, +brace: Bool, bs: List<&2, Bd>, +t: L.Tok) -> Pm:
+  let_after.k(Y.is_in(t), st, line, anchor, brace, bs, t)
+
+def where_done.pun(+close: Bool, st: List<&2, Fr>, e: Expr, +line: U32, +b: U32) -> Pm:
+  match close:
+    case True{}:
+      have.close(reduce(st, e), line, b)
+    case False{}:
+      fail(line, "nothing may follow a where's bindings")
+
+def where_done(st: List<&2, Fr>, e: Expr, +anchor: U32, t: L.Tok) -> Pm:
+  match t:
+    case L.TPun{+l, +c, +b}:
+      where_done.pun(U32.is_eq(b, 41), st, e, l, b)
+    case L.TWord{+l, +c, s}:
+      fail(l, "multi-line where binding: expected sibling indentation " ++ U32.show(anchor))
+    case _:
+      fail(L.tok_line(t), "nothing may follow a where's bindings")
+
+def step(m: Pm, +t: L.Tok) -> Pm:
   match m:
     case MFail{d}:
       MFail{d}
@@ -630,6 +916,16 @@ def step(m: Pm, t: L.Tok) -> Pm:
       have(st, e, t)
     case MDot{st, +line, path}:
       dot(st, line, path, t)
+    case MGroup{st}:
+      group(st, t)
+    case MBName{st}:
+      bname(st, t)
+    case MBEq{st, +line, name}:
+      beq(st, line, name, t)
+    case MLetAfter{st, +line, +anchor, +brace, bs}:
+      let_after(st, line, anchor, brace, bs, t)
+    case MWhereDone{st, e, +anchor}:
+      where_done(st, e, anchor, t)
 
 def expr.go(ts: List<&2, L.Tok>, m: Pm) -> Pm:
   match ts:
@@ -649,6 +945,12 @@ def unclosed(f: Fr) -> Ex:
       XErr{Diag{l, "unclosed delimiter: expected `)`"}}
     case FOp{+l, op, a}:
       XErr{Diag{l, "an infix operator requires a right operand"}}
+    case FGroup{+kind, +l, +anchor, +brace, bs, body}:
+      XErr{Diag{l, "a `" ++ group_word(kind) ++ "` group is not closed"}}
+    case FBind{+l, name}:
+      XErr{Diag{l, "a binding's value is not ended"}}
+    case FLetBody{+l, +anchor, bs}:
+      XErr{Diag{l, "a `let`'s body is missing"}}
 
 def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
   match st:
@@ -676,6 +978,16 @@ def end(m: Pm, +line: U32) -> Ex:
       end.want(st, line)
     case MHave{st, e}:
       end.have(reduce(st, e))
+    case MWhereDone{st, e, +anchor}:
+      end.have(reduce(st, e))
+    case MLetAfter{st, +l, +anchor, +brace, bs}:
+      XErr{Diag{l, "a `let`'s body is missing"}}
+    case MGroup{st}:
+      XErr{Diag{line, "expected a binding group"}}
+    case MBName{st}:
+      XErr{Diag{line, "a binding group is not closed"}}
+    case MBEq{st, +l, name}:
+      XErr{Diag{l, "expected = after the binding's name"}}
 
 def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>) -> Dc:
   match x:
@@ -774,7 +1086,7 @@ def decl(g: List<&2, L.Tok>) -> Dc:
     case Nil{}:
       DErr{Diag{0, "an empty declaration"}}
     case Con{+t, rest}:
-      path.go(Con{t, rest}, PNext{Nil{}, True{}}, tok_line(t))
+      path.go(Y.layout(Con{t, rest}), PNext{Nil{}, True{}}, L.tok_line(t))
 
 # the definitions and the diagnostics so far, each reversed
 type Da is Data:
@@ -879,7 +1191,7 @@ def parse.first.k(+ok: Bool, ts: List<&2, L.Tok>, +na: U32) -> Parsed:
     case False{}:
       match ts:
         case Con{+t, rest}:
-          PErr{[Diag{tok_line(t), "expected a declaration at column 0, found " ++ tok_show(t)}]}
+          PErr{[Diag{L.tok_line(t), "expected a declaration at column 0, found " ++ tok_show(t)}]}
         case Nil{}:
           parse.gs(Nil{}, na)
 
@@ -887,7 +1199,7 @@ def parse.first.k(+ok: Bool, ts: List<&2, L.Tok>, +na: U32) -> Parsed:
 def parse.first(ts: List<&2, L.Tok>, +na: U32) -> Parsed:
   match ts:
     case Con{+t, rest}:
-      parse.first.k(U32.is_eq(tok_col(t), 0), Con{t, rest}, na)
+      parse.first.k(U32.is_eq(L.tok_col(t), 0), Con{t, rest}, na)
     case Nil{}:
       parse.gs(Nil{}, na)
 

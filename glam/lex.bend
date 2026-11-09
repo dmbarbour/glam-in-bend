@@ -34,12 +34,67 @@ type Tok is Data:
   TPun{+line: U32, +col: U32, +b: U32}
   # an operator: a run of operator symbols other than a lone `=`
   TOp{+line: U32, +col: U32, s: List<&2, U32>}
+  # a binding group's layout made explicit (glam/layout.bend): 0 its
+  # virtual open, 1 a separator, 2 its close
+  TLay{+line: U32, +col: U32, +k: U32}
   # any other byte, for the parser to name
   TOther{+line: U32, +col: U32, +b: U32}
 
 # the tokens, and the line of the first byte past ASCII, 0 for none
 type Lx is Data:
   Lx{toks: List<&2, Tok>, +na: U32}
+
+def tok_line(t: Tok) -> U32:
+  match t:
+    case TWord{+line, +col, s}:
+      line
+    case TDot{+line, +col}:
+      line
+    case TEq{+line, +col}:
+      line
+    case TText{+line, +col, s}:
+      line
+    case TOpen{+line, +col}:
+      line
+    case TOther{+line, +col, +b}:
+      line
+    case TPun{+line, +col, +b}:
+      line
+    case TOp{+line, +col, s}:
+      line
+    case TLay{+line, +col, +k}:
+      line
+
+def tok_col(t: Tok) -> U32:
+  match t:
+    case TWord{+line, +col, s}:
+      col
+    case TDot{+line, +col}:
+      col
+    case TEq{+line, +col}:
+      col
+    case TText{+line, +col, s}:
+      col
+    case TOpen{+line, +col}:
+      col
+    case TOther{+line, +col, +b}:
+      col
+    case TPun{+line, +col, +b}:
+      col
+    case TOp{+line, +col, s}:
+      col
+    case TLay{+line, +col, +k}:
+      col
+
+# two byte lists alike
+def bytes_is(a: List<&2, U32>, b: List<&2, U32>) -> Bool:
+  match a b:
+    case Con{+x, xs} Con{+y, ys}:
+      U32.is_eq(x, y) && bytes_is(xs, ys)
+    case Nil{} Nil{}:
+      True{}
+    case _ _:
+      False{}
 
 def is_letter(+b: U32) -> Bool:
   (U32.is_ge(b, 97) && U32.is_le(b, 122)) || (U32.is_ge(b, 65) && U32.is_le(b, 90))

@@ -142,21 +142,35 @@ def step(d: KD.D) -> Run:
 # Starting
 # ========
 
-def lowered(w: W.Lw) -> Run:
+def lowered(w: W.Top) -> Run:
   match w:
-    case W.LOk{t}:
+    case W.TOk{t}:
       RMore{KS.d.start(KN.load(t))}
-    case W.LErr{d}:
+    case W.TErr{d}:
       RDone{OErrs{[d]}}
 
-def run(m: Maybe<&2, G.Def>) -> Run:
+def run(m: Maybe<&2, G.Def>, +globals: List<&2, List<&2, U32>>) -> Run:
   match m:
     case Some{d}:
       match d:
         case G.Def{+line, path, body}:
-          lowered(W.expr(body, line))
+          lowered(W.top(body, line, globals))
     case None{}:
       RDone{OErrs{[G.Diag{0, "asm.result is not defined"}]}}
+
+# the module's top-level names: each definition's path's first name
+def globals(ds: List<&2, G.Def>) -> List<&2, List<&2, U32>>:
+  match ds:
+    case Nil{}:
+      Nil{}
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          match path:
+            case Con{n, more}:
+              Con{n, globals(rest)}
+            case Nil{}:
+              globals(rest)
 
 def start.p(p: G.Parsed) -> Run:
   match p:
@@ -164,8 +178,8 @@ def start.p(p: G.Parsed) -> Run:
       RDone{OErrs{ds}}
     case G.POk{m}:
       match m:
-        case G.Mod{+utf8, defs}:
-          run(find(defs, None{}))
+        case G.Mod{+utf8, +defs}:
+          run(find(defs, None{}), globals(defs))
 
 # a ".g" source's bytes to its assembly, begun: parsed and lowered, its
 # evaluation not yet stepped

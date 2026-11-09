@@ -13,3 +13,7 @@ ladder-text samples/invalid/syntax/non_ascii_without_utf8.g
 ladder-lists samples/hello/hello_list.g
 ladder-lists samples/hello/hello_mixed.g
 ladder-lists samples/invalid/syntax/bad_asm_result.g
+ladder-locals samples/hello/hello_where.g
+ladder-locals samples/hello/hello_let.g
+ladder-locals samples/hello/hello_shared.g
+ladder-locals samples/invalid/syntax/let_where_syntax.g
