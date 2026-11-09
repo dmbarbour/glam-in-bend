@@ -234,6 +234,25 @@ named, and marked there when a rung is built.
      error value yet. `(e).name` waits. Measured: `hello_lambda.g` 20
      interactions (store run 305); the kernel's spot counts alike,
      `fma` -0.1% to +0.1% (run 304 against 288).
+   - `ladder-lambda.errors` — built 2026-11-09 — the maintainer's
+     answer to what a missing key should give: a data variant for errors
+     (`net-error-values`). `V.VErr{e}`, its diagnostic a text for now;
+     builtins and application pass an error on, the kernel's `is_fn`
+     counting it so that its operator waits for the argument; a builtin
+     given arguments it has no case for answers an error naming it, a
+     missing key one naming the key, where both answered unit. No law
+     changes: every split gains a `VErr` arm, and `apply_keeps_clean`
+     and `flat_two_applies_as_fun` split the argument first (lemmas
+     `fun_e_ok`, `vp2_e_ok`); the verdict passes. An error nothing
+     demands fails nothing (`(\e -> "fine") d.missing` is `fine`). The
+     kernel's spot counts rose 0.4% to 2.7% in instructions, the same
+     interactions (run 306 against 288), below the 10% looked into at
+     once: noted for `ladder-measure`'s review; building the number
+     errors' messages in definitions of their own changed nothing (run
+     307), so the cost is elsewhere, likely the general path's extra
+     match or the value type's new variant. Not yet: a number error
+     naming its builtin (`5 ++ [1]` says "a builtin met a number"), which
+     takes the op through `num1.go` and its lemmas.
 5. `ladder-dicts` — `hello_dict.g`, `hello_tagged.g`, `hello_tuple.g`:
    `(tag:)` sections, `path:V` members, `.["key"]` indexing, tuples.
    Dict construction and reading as operators or as lowering.

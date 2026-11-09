@@ -16,6 +16,12 @@ type Val is Data:
   # keys texts until atoms come (HelloLadder's ladder-lambda.dicts;
   # netdata-structures decides the lasting one)
   VDict{es: List<&2, Ent>}
+  # a glam error: a permanent failure as a value, its diagnostic itself a
+  # glam value, a text for now (`net-error-values`). Applying one gives
+  # it; a builtin given one gives it; a builtin given arguments it has no
+  # case for gives one saying so. Copied, erased and passed by controls
+  # as any data is.
+  VErr{e: Val}
   # never a glam value: a freed entry of a net's data table, linking the
   # next free entry (its index plus one, 0 for none; kprim.bend)
   VFree{+next: U32}
@@ -32,32 +38,67 @@ type Ent is Data:
 # Builtins: op 1 succ (one argument), op 2 add (two), op 3 fma, a * b + c
 # (three), op 4 append, glam's `++` (two lists: HelloLadder's
 # ladder-lists), op 5 get, reading a dict's field, its key collected as a
-# text (ladder-lambda.dicts). A builtin waits for `need` more arguments, collected in
-# order. The arithmetic on numbers is num1's, num2's and num3's alone,
-# which the kernel's native path calls too; lists only meet the general
-# path (V.apply_fn), a list being an entry of a net's table. A builtin
-# given arguments it has no case for answers unit, as before.
+# text (ladder-lambda.dicts). A builtin waits for `need` more arguments,
+# collected in order. The arithmetic on numbers is num1's, num2's and
+# num3's alone, which the kernel's native path calls too; lists only meet
+# the general path (V.apply_fn), a list being an entry of a net's table.
+# A builtin given arguments it has no case for answers an error saying so
+# (`net-error-values`); every path to one answer gives one message, so
+# that builtin_last computes what builtin does (law builtin_last_agrees).
+
+# a Bend string's characters as a glam text's values
+def text(s: String) -> List<&2, Val>:
+  match s:
+    case SNil{}:
+      Nil{}
+    case SCon{c, rest}:
+      match c:
+        case Chr{+code}:
+          Con{VNum{code}, text(rest)}
+
+# an error whose diagnostic is the text msg
+def err(msg: String) -> Val:
+  VErr{VList{text(msg)}}
+
+def bname(+op: U32) -> String:
+  match op:
+    case 1:
+      "succ"
+    case 2:
+      "add"
+    case 3:
+      "fma"
+    case 4:
+      "++"
+    case 5:
+      "a field's read"
+    case _:
+      "a builtin"
+
+# the error a builtin gives for arguments it has no case for
+def nocase(+op: U32) -> Val:
+  err(bname(op) ++ " met an argument it has no case for")
 
 def num1.go(+t: Bool, +a: U32) -> Val:
   match t:
     case True{}:
       VNum{(a + 1 : U32)}
     case False{}:
-      VUnit{}
+      err("a builtin met a number it has no case for")
 
 def num2.go(+t: Bool, +a: U32, +b: U32) -> Val:
   match t:
     case True{}:
       VNum{(a + b : U32)}
     case False{}:
-      VUnit{}
+      err("a builtin met two numbers it has no case for")
 
 def num3.go(+t: Bool, +a: U32, +b: U32, +c: U32) -> Val:
   match t:
     case True{}:
       VNum{((a * b : U32) + c : U32)}
     case False{}:
-      VUnit{}
+      err("a builtin met three numbers it has no case for")
 
 # op on one number (each tests its op by a Bool, which a proof can split)
 def num1(+op: U32, +a: U32) -> Val:
@@ -124,7 +165,7 @@ def lst2.go(+t: Bool, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
     case True{}:
       VList{List.append(&2, Val, xs, ys)}
     case False{}:
-      VUnit{}
+      err("a builtin met two lists it has no case for")
 
 # op on two lists
 def lst2(+op: U32, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
@@ -132,15 +173,15 @@ def lst2(+op: U32, xs: List<&2, Val>, ys: List<&2, Val>) -> Val:
 
 # a dict member read: a function whose collected arguments hold a
 # placeholder is no glam value, and the kernel stores none (it normalizes
-# what it hands out); the read answers unit where it would, defence in
-# depth as free_chk is, and so that applying keeps a value clean (law
+# what it hands out); the read answers an error where it would, defence
+# in depth as free_chk is, and so that applying keeps a value clean (law
 # apply_keeps_clean)
 def member.go(+ok: Bool, v: Val) -> Val:
   match ok:
     case True{}:
       v
     case False{}:
-      VUnit{}
+      err("a dict member holds a placeholder, which is no glam value: a kernel fault")
 
 def member(+v: Val) -> Val:
   member.go(clean(v), v)
@@ -166,12 +207,13 @@ def dfind.k(+hit: Bool, v: Val, r: Val) -> Val:
     case False{}:
       r
 
-# the value at a key, unit where there is none: the rest searched
-# whatever the head (eager, as Bend is), so that no lambda enters a proof
+# the value at a key, an error naming the key where there is none: the
+# rest searched whatever the head (eager, as Bend is), so that no lambda
+# enters a proof
 def dfind(es: List<&2, Ent>, +key: List<&2, Val>) -> Val:
   match es:
     case Nil{}:
-      VUnit{}
+      VErr{VList{List.append(&2, Val, text("the dict has no field "), key)}}
     case Con{e, rest}:
       match e:
         case Ent{k, v}:
@@ -182,7 +224,7 @@ def dget.go(+t: Bool, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
     case True{}:
       dfind(es, key)
     case False{}:
-      VUnit{}
+      err("a builtin met a key and a dict it has no case for")
 
 # op on a key and a dict
 def dget(+op: U32, key: List<&2, Val>, es: List<&2, Ent>) -> Val:
@@ -207,16 +249,16 @@ def builtin(+op: U32, args: List<&2, Val>) -> Val:
         case Con{VDict{es}, u}:
           dget(op, xs, es)
         case _:
-          VUnit{}
+          nocase(op)
     case _:
-      VUnit{}
+      nocase(op)
 
 def last.x1(+op: U32, x: Val) -> Val:
   match x:
     case VNum{+a}:
       num1(op, a)
     case _:
-      VUnit{}
+      nocase(op)
 
 def last.x2(+op: U32, +a: U32, x: Val) -> Val:
   match x:
@@ -239,7 +281,7 @@ def last.l2(+op: U32, xs: List<&2, Val>, x: Val) -> Val:
     case VDict{es}:
       dget(op, xs, es)
     case _:
-      VUnit{}
+      nocase(op)
 
 # builtin(op, args ++ [x]) without building the list: the collected
 # arguments matched where they lie, x where it would follow them. Past
@@ -271,9 +313,9 @@ def builtin_last(+op: U32, args: List<&2, Val>, x: Val) -> Val:
         case Con{VDict{es}, u}:
           dget(op, xs, es)
         case _:
-          VUnit{}
+          nocase(op)
     case _:
-      VUnit{}
+      nocase(op)
 
 # a value as glam sees it: a flat form as the VFun it stands for
 def norm(v: Val) -> Val:
@@ -297,14 +339,32 @@ def vp2.go(+last: Bool, +op: U32, +need: U32, +a: U32, +b: U32, x: Val) -> Val:
     case False{}:
       VFun{op, (need - 1 : U32), [VNum{a}, VNum{b}, norm(x)]}
 
+# a builtin applied to x: an error x passes through, the builtin strict
+def fun.e(x: Val, +op: U32, +need: U32, args: List<&2, Val>) -> Val:
+  match x:
+    case VErr{e}:
+      VErr{e}
+    case _:
+      fun.go(U32.is_eq(need, 1), op, need, args, x)
+
+def vp2.e(x: Val, +op: U32, +need: U32, +a: U32, +b: U32) -> Val:
+  match x:
+    case VErr{e}:
+      VErr{e}
+    case _:
+      vp2.go(U32.is_eq(need, 1), op, need, a, b, x)
+
+# f applied to x: a builtin, or an error, which applying gives again
 def apply_fn(f: Val, x: Val) -> Val:
   match f:
     case VFun{+op, +need, args}:
-      fun.go(U32.is_eq(need, 1), op, need, args, x)
+      fun.e(x, op, need, args)
     case VP2{+op, +need, +a, +b}:
-      vp2.go(U32.is_eq(need, 1), op, need, a, b, x)
+      vp2.e(x, op, need, a, b)
+    case VErr{e}:
+      VErr{e}
     case _:
-      VUnit{}
+      err("applying what is no function")
 
 # A fan's identity: the site it was lowered at, the instantiation it came
 # from, and its level, the depth of boxes around it (after Lamping). Two

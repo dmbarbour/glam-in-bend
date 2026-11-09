@@ -82,14 +82,31 @@ def out.bs(r: Bs, +itrs: U32) -> Out:
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
+def text.k(r: Bs) -> String:
+  match r:
+    case BOk{bs}:
+      G.str(bs)
+    case BNo{}:
+      "an error whose diagnostic is no text"
+
+# an error's diagnostic, a text for now (net-error-values)
+def diagnostic(e: V.Val) -> String:
+  match e:
+    case V.VList{xs}:
+      text.k(bytes(xs))
+    case _:
+      "an error whose diagnostic is no text"
+
 def out.val(v: Maybe<&2, V.Val>, +itrs: U32) -> Out:
   match v:
     case Some{x}:
       match x:
         case V.VList{xs}:
           out.bs(bytes(xs), itrs)
+        case V.VErr{e}:
+          OErrs{[G.Diag{0, diagnostic(e)}]}
         case V.VUnit{}:
-          OErrs{[G.Diag{0, "asm.result is unit, what a builtin answers for arguments it has no case for: a dict read without the field, `++` on what is no list"}]}
+          OErrs{[G.Diag{0, "asm.result is unit, which is no binary"}]}
         case _:
           OErrs{[G.Diag{0, "asm.result is not a binary"}]}
     case None{}:

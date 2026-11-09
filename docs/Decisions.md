@@ -91,6 +91,9 @@ Language decisions made during the Rust bootstrap, carried over where our
 docs cite them. The rest remain in the Rust decision log
 (github.com/dmbarbour/glam, `docs/Decisions.md` at 21912fc9) until needed.
 
+- [`net-error-values`](decisions/net-error-values.md): an error is a data
+  value carrying its diagnostic; builtins and application pass it on,
+  and builtins answer one for arguments they have no case for.
 - [`dict-empty-is-a-value`](decisions/dict-empty-is-a-value.md): `{}` is a
   value; reading what is undefined is an error; definedness is asked.
 - [`only-comparables-compare`](decisions/only-comparables-compare.md):

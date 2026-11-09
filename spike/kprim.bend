@@ -1032,11 +1032,15 @@ def apply.n(+ma: U32, +mb: U32, h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) ->
 def apply(h: H, +ha: U32, +pa: U32, +hb: U32, +pb: U32) -> H & PW:
   apply.n(form(ha), form(hb), h, ha, pa, hb, pb)
 
+# a value an application applies: a builtin, or an error, which applying
+# gives again (net-error-values)
 def is_fn(v: V.Val) -> Bool:
   match v:
     case V.VFun{+op, +need, args}:
       True{}
     case V.VP2{+op, +need, +a, +b}:
+      True{}
+    case V.VErr{e}:
       True{}
     case _:
       False{}
