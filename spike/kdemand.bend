@@ -1,5 +1,5 @@
 # Written by Blend from kdemand.blend; do not edit.
-# blend stamp: f6def9719dcd ecff8ee19cd35571
+# blend stamp: f6def9719dcd 6363f08e819f07d0
 import Base
 import ./val.bend as V
 import ./net.bend as N
@@ -437,9 +437,33 @@ def Demand.se.put.go(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
     case False{}:
       P.wr(h, (e + 1 : U32), s)
 
+# blend: kchain.blend:174
+def Demand.se.put.go.c1(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.wr(h, (e + 1 : U32), s)
+
+# blend: kchain.blend:174
+def Demand.se.put.go.c2(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.wr(h, (e + 1 : U32), s)
+
 # blend: kchain.blend:182
 def Demand.se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
   Demand.se.put.go(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+# blend: kchain.blend:182
+def Demand.se.put.c1(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  Demand.se.put.go.c1(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+# blend: kchain.blend:182
+def Demand.se.put.c2(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  Demand.se.put.go.c2(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
 
 # blend: kchain.blend:192
 def Demand.se.note(+none: Bool, st: Demand.S(), +e: U32, +s: U32) -> Demand.S():
@@ -459,7 +483,7 @@ def Demand.se.notes(+loop: Bool, st: Demand.S(), +k: U32, +e1: U32, +e2: U32) ->
 
 # blend: kchain.blend:210
 def Demand.se.do(h: P.H, st: Demand.S(), +x: U32, +k: U32, +e1: U32, +e2: U32) -> Demand.Res():
-  Demand.erased(Demand.fin(Demand.se.put(Demand.se.put(h, e1, P.era(), x), e2, P.era(), x),
+  Demand.erased(Demand.fin(Demand.se.put.c1(Demand.se.put.c2(h, e1, P.era(), x), e2, P.era(), x),
       Demand.se.notes(Bool.not(P.is_static(e1)) && U32.is_eq(P.base(e1), x), st, k, e1, e2)),
     N.Ext4{e1, e2, P.nil(), P.nil()})
 
@@ -931,9 +955,33 @@ def DemandEv.se.put.go(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
     case False{}:
       P.wr(h, (e + 1 : U32), s)
 
+# blend: kchain.blend:174
+def DemandEv.se.put.go.c1(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.wr(h, (e + 1 : U32), s)
+
+# blend: kchain.blend:174
+def DemandEv.se.put.go.c2(+skip: Bool, h: P.H, +e: U32, +s: U32) -> P.H:
+  match skip:
+    case True{}:
+      h
+    case False{}:
+      P.wr(h, (e + 1 : U32), s)
+
 # blend: kchain.blend:182
 def DemandEv.se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
   DemandEv.se.put.go(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+# blend: kchain.blend:182
+def DemandEv.se.put.c1(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  DemandEv.se.put.go.c1(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
+
+# blend: kchain.blend:182
+def DemandEv.se.put.c2(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  DemandEv.se.put.go.c2(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
 
 # blend: kchain.blend:192
 def DemandEv.se.note(+none: Bool, st: DemandEv.S(), +e: U32, +s: U32) -> DemandEv.S():
@@ -953,7 +1001,7 @@ def DemandEv.se.notes(+loop: Bool, st: DemandEv.S(), +k: U32, +e1: U32, +e2: U32
 
 # blend: kchain.blend:210
 def DemandEv.se.do(h: P.H, st: DemandEv.S(), +x: U32, +k: U32, +e1: U32, +e2: U32) -> DemandEv.Res():
-  DemandEv.erased(DemandEv.fin(DemandEv.se.put(DemandEv.se.put(h, e1, P.era(), x), e2, P.era(), x),
+  DemandEv.erased(DemandEv.fin(DemandEv.se.put.c1(DemandEv.se.put.c2(h, e1, P.era(), x), e2, P.era(), x),
       DemandEv.se.notes(Bool.not(P.is_static(e1)) && U32.is_eq(P.base(e1), x), st, k, e1, e2)),
     N.Ext4{e1, e2, P.nil(), P.nil()})
 

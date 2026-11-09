@@ -179,7 +179,7 @@ abstract object Chain with
         P.wr(h, (e + 1 : U32), s)
 
   # static s put at peer e of x, unless e is static or x's own
-  shared def se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
+  copied def se.put(h: P.H, +e: U32, +s: U32, +x: U32) -> P.H:
     se.put.go(P.is_static(e) || U32.is_eq(P.base(e), x), h, e, s)
 
   def se.free(+data: Bool, h: P.H, +x: U32, +hx: U32, +w2: U32, +w3: U32) -> P.H:
