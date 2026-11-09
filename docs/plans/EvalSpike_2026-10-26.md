@@ -628,10 +628,11 @@ Parallelism:
      its progress, its needs and its outcome, so that one code runs
      generated task graphs before nets can and real nets after, paying
      Bend's own barrier costs. The graphs are shaped as the maintainer's
-     representative workload is (`ladder-measure.workload`): ordered
-     alternatives explored ahead of need and cancelled by a cut, state
-     threaded through chains, reflection tasks surfacing only from work
-     that commits. Proposed by the heap review
+     representative workload is (`ladder-measure.workload`): sparks
+     evaluating a search's alternatives ahead of demand, the leftmost
+     first, abandoned when a cut makes their value unreachable; state
+     threaded through chains; reflection tasks met in sparked work
+     surfacing only once demand reaches it. Proposed by the heap review
      ([`Heap_2026-11-09.md`](../reviews/Heap_2026-11-09.md)), whose
      open questions it waits on: pages may not stay the unit of
      ownership.
