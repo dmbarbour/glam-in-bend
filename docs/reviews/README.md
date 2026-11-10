@@ -31,12 +31,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   written beside `Heap_2026-11-09.md`, which summarizes it.
 - [`InsideData_2026-11-10.md`](InsideData_2026-11-10.md): the design
   round of `cells-lazy-data`, on how data holds a function's net, frozen
-  or live. Revised after the maintainer's answers. The first draft's
-  closures are withdrawn because they lost the work of partial
-  applications. The build already loses that work in two places
-  (measured). Early evaluation leaves a residue. The split proposed is
-  ports within a net and a freeze at its boundary, with four questions;
-  drafted for the maintainer.
+  or live. Revised after two rounds of the maintainer's answers.
+  - The first draft's closures are withdrawn because they lost the work
+    of partial applications.
+  - The build already loses that work in two places (measured).
+  - A function in data is a live template, the maintainer's batch
+    materialization: finished parts frozen, unprocessed ones behind
+    cursors in the source.
+  - Two questions remain: whole copies or live templates first, and
+    cursors or ports within a net.
+
+  Drafted for the maintainer.
 
 ## Retired
 

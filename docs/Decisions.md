@@ -150,8 +150,10 @@ where the shared lazy state that Bend cannot hold goes.
   running out of memory is an error of the runtime, no state of the net,
   never stuck, and never cached as a value.
 - [`copy-reduced-function-nets`](decisions/copy-reduced-function-nets.md):
-  a function's net reduces locally, then each application copies it
-  whole; cursors wait for measurements.
+  a function's net is copied as a live template, by batch
+  materialization. Its finished parts are frozen and copied whole; its
+  unfinished ones stay in the source, behind cursors, and reduce once
+  for every copy. Reducing first is an optimization.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.

@@ -1,12 +1,12 @@
 # Evaluation ahead of demand is an optimization; divergence and reflection block it
 
-`early-evaluation-optimization` · maintainer · rev 1bf6dc1
+`early-evaluation-optimization` · maintainer · rev 93243b7
 
 **Context.** The design round on laziness inside data asked whether a
 captured local not yet evaluated may be forced where a function enters
 data, or must stay lazy (`docs/reviews/InsideData_2026-11-10.md`). Other
 records already reduce ahead of demand: `copy-reduced-function-nets`
-reduces a function's net before copying it, and the maintainer's answer
+first reduced a function's net before copying it whole, and the maintainer's answer
 on freezing (2026-11-09) reads "the obvious option is eager evaluation
 of the function's net, reducing all active pairs". `net-demand-whnf`
 admits strategies past weak head normal form only "where they are
@@ -28,11 +28,13 @@ it does not emit. Whatever it leaves stays lazy.
 - Fuel is the guarantee of termination that `net-demand-whnf` asks of
   a strategy past weak head normal form. A reflection task is the
   other stop.
-- Freezing a function's net is early evaluation. It reduces until the
-  net is done, the fuel runs out, or it is blocked, so a frozen net may
-  hold what reduction left: a residue. How a template holds that
-  residue, shared by its copies rather than duplicated
-  (`bounded-duplication`), is open in the review above.
+- Reducing a function's net before it is copied is early evaluation.
+  A net freezes only insofar as nothing is left to reduce (the
+  maintainer, 2026-11-10). Whatever this reduction leaves unfinished
+  stays live in the source, where every copy reaches it by a cursor
+  and it reduces once. That is a live template
+  (`copy-reduced-function-nets`). With live templates, reducing first
+  is not needed at all.
 - Sparks also run work ahead of demand. How this record meets the
   bridge's note on sparks and reflection tasks, where annotations
   guide the policy (`bridge-parallel`), is open.
