@@ -13,7 +13,7 @@ A record is `decisions/<slug>.md`. Its slug is its stable name: cite it as
 
     # <Descriptive title>
 
-    `<slug>` · maintainer|agent · rev <short hash>
+    `<slug>` · maintainer|agent [· experiment|tentative] · rev <short hash>
 
     **Context.** …
     **Decision.** …
@@ -30,6 +30,16 @@ A record is `decisions/<slug>.md`. Its slug is its stable name: cite it as
   its slug. A successor may name what it replaced in a sentence.
 - **maintainer** marks a decision the maintainer made or ratified; **agent**
   one an agent made in a plan or review, open to revision.
+- **A disposition**, where present, marks a record that is not yet a
+  ruling, so that it is not mistaken for one:
+  - **experiment**: a direction being tried, kept or undone by its
+    evidence;
+  - **tentative**: a direction proposed, not yet decided.
+
+  A record with none is decided (the maintainer, 2026-11-10: "we could
+  add `experiment` and a general disposition/confidence field for
+  ADRs"). A quick start the agent favours is an experiment at most, and
+  belongs in a plan until the maintainer says otherwise.
 - Plans and reviews extract their durable decisions here, at the latest
   before they retire ([`plans/README.md`](plans/README.md)).
 

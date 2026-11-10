@@ -25,7 +25,8 @@ import sys
 
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 FENCE = re.compile(r"^```.*?^```", re.S | re.M)
-HEADER = re.compile(r"^`([a-z0-9-]+)` · (maintainer|agent) · rev ([0-9a-f]{7,40})$")
+# a record's header; a disposition, where present, marks it as not yet a ruling
+HEADER = re.compile(r"^`([a-z0-9-]+)` · (maintainer|agent)(?: · (experiment|tentative))? · rev ([0-9a-f]{7,40})$")
 INDEX_LINE = re.compile(r"^- \[`([a-z0-9-]+)`\]\(decisions/\1\.md\)")
 RECORD_BODY = re.compile(r"^\*\*(Context|Decision|Consequences)\.\*\*")
 STEP = re.compile(r"^\s*(?:\d+\.|[-*])\s+`([a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)*)`\s+—(.*)$", re.M)
@@ -94,9 +95,9 @@ def check_decisions(root):
             continue
         header = HEADER.match(lines[1])
         if not header:
-            fail(record, "header must read `<slug>` · maintainer|agent · rev <short hash>")
+            fail(record, "header must read `<slug>` · maintainer|agent [· experiment|tentative] · rev <short hash>")
             continue
-        slug, _, rev = header.groups()
+        slug, _, _, rev = header.groups()
         if slug != record.stem:
             fail(record, f"slug `{slug}` differs from its file name")
         if not git_ok("cat-file", "-e", f"{rev}^{{commit}}"):

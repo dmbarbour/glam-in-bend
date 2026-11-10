@@ -1,6 +1,6 @@
 # A top-level function is a template, spliced at the level where it is applied
 
-`templates-spliced-at-level` · maintainer · rev 93243b7
+`templates-spliced-at-level` · maintainer · experiment · rev 28a76d9
 
 **Context.** The static linker bound a module's top-level definitions
 around `asm.result` as one binding group, which cannot hold recursion.
