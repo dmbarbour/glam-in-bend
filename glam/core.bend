@@ -447,14 +447,36 @@ def dput(r: D.Ds, +line: U32, path: List<&2, List<&2, U32>>, a: Dd) -> Dd:
     case D.DErr{d} Dd{ds, es}:
       Dd{ds, Con{d, es}}
 
+def unover(e: G.Expr) -> G.Expr:
+  match e:
+    case G.EOver{x}:
+      x
+    case _:
+      e
+
+def reover.k(r: D.Ds) -> D.Ds:
+  match r:
+    case D.DOk{e}:
+      D.DOk{G.EOver{e}}
+    case D.DErr{d}:
+      D.DErr{d}
+
+# an override's body desugared, its mark kept for the versions (vers)
+def reover(+ov: Bool, r: D.Ds) -> D.Ds:
+  match ov:
+    case True{}:
+      reover.k(r)
+    case False{}:
+      r
+
 def dall(defs: List<&2, G.Def>, +globals: List<&2, List<&2, U32>>, a: Dd) -> Dd:
   match defs:
     case Nil{}:
       a
     case Con{d, rest}:
       match d:
-        case G.Def{+line, path, body}:
-          dall(rest, globals, dput(D.expr(body, Nil{}, globals), line, path, a))
+        case G.Def{+line, path, +body}:
+          dall(rest, globals, dput(reover(G.is_over(body), D.expr(unover(body), Nil{}, globals)), line, path, a))
 
 # Linking (HelloLadder, ladder-thunks.globals): the module's top-level
 # definitions of one name bound around asm.result as one binding group,
@@ -723,12 +745,203 @@ def start.pt(r: Pt) -> Run:
     case Pt{fs, vs}:
       start.fv(List.reverse(&2, G.Def, fs), List.reverse(&2, G.Def, vs))
 
+# Versions (Syntax.md, Introductions and Overrides): a name defined again
+# by `:=` is a chain of definitions in source order, each reading the one
+# before it as `_name`. The last keeps the name; each earlier one is named
+# `name'k`, k its place in the chain, a name no source can spell. A free
+# `_m` in a definition reads m's latest version before it; with none, it
+# is left to be reported undefined. The module resolves its priors so,
+# statically; objects reach theirs through `_self` (`cells-objects`).
+
+type VC is Data:
+  VC{name: List<&2, U32>, +n: U32}
+
+def vc.get.k(+hit: Bool, +n: U32, +more: U32) -> U32:
+  match hit:
+    case True{}:
+      n
+    case False{}:
+      more
+
+def vc.get(cs: List<&2, VC>, +x: List<&2, U32>) -> U32:
+  match cs:
+    case Nil{}:
+      0
+    case Con{c, rest}:
+      match c:
+        case VC{m, +n}:
+          vc.get.k(G.bytes_eq(m, x), n, vc.get(rest, x))
+
+def vc.inc.k(+hit: Bool, m: List<&2, U32>, +n: U32, rest: List<&2, VC>, more: List<&2, VC>) -> List<&2, VC>:
+  match hit:
+    case True{}:
+      Con{VC{m, (n + 1 : U32)}, rest}
+    case False{}:
+      Con{VC{m, n}, more}
+
+def vc.inc(cs: List<&2, VC>, +x: List<&2, U32>) -> List<&2, VC>:
+  match cs:
+    case Nil{}:
+      [VC{x, 1}]
+    case Con{c, +rest}:
+      match c:
+        case VC{+m, +n}:
+          vc.inc.k(G.bytes_eq(m, x), m, n, rest, vc.inc(rest, x))
+
+def vtot.p(m: Maybe<&2, List<&2, U32>>, acc: List<&2, VC>) -> List<&2, VC>:
+  match m:
+    case Some{n}:
+      vc.inc(acc, n)
+    case None{}:
+      acc
+
+# how many definitions each name has
+def vtot(ds: List<&2, G.Def>, acc: List<&2, VC>) -> List<&2, VC>:
+  match ds:
+    case Nil{}:
+      acc
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, body}:
+          vtot(rest, vtot.p(one_name(path), acc))
+
+def decimal.if(more: Unit -> List<&2, U32>, +last: Bool, +k: U32, acc: List<&2, U32>) -> List<&2, U32>:
+  match last:
+    case True{}:
+      Con{(48 + k : U32), acc}
+    case False{}:
+      more(Unit{})
+
+def decimal(f: Nat, +k: U32, +acc: List<&2, U32>) -> List<&2, U32>:
+  match f:
+    case 0n:
+      acc
+    case 1n+p:
+      decimal.if(u => decimal(p, (k / 10 : U32), Con{(48 + (k % 10 : U32) : U32), acc}), U32.is_lt(k, 10), k, acc)
+
+def vname.k(+last: Bool, n: List<&2, U32>, +k: U32) -> List<&2, U32>:
+  match last:
+    case True{}:
+      n
+    case False{}:
+      List.append(&2, U32, n, Con{39, decimal(10n, k, Nil{})})
+
+# the name of version k of n, of tot
+def vname(+n: List<&2, U32>, +k: U32, +tot: U32) -> List<&2, U32>:
+  vname.k(U32.is_eq((k + 1 : U32), tot), n, k)
+
+def under.k(+u: Bool, rest: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match u:
+    case True{}:
+      match rest:
+        case Nil{}:
+          None{}
+        case Con{h, t}:
+          Some{Con{h, t}}
+    case False{}:
+      None{}
+
+# m, of a name `_m`
+def under(x: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match x:
+    case Con{+c, rest}:
+      under.k(U32.is_eq(c, 95), rest)
+    case Nil{}:
+      None{}
+
+def prior.k(+c: U32, m: List<&2, U32>, +tot: U32, x: List<&2, U32>) -> List<&2, U32>:
+  match c:
+    case 0:
+      x
+    case _:
+      vname(m, (c - 1 : U32), tot)
+
+def prior.m(mm: Maybe<&2, List<&2, U32>>, x: List<&2, U32>, +cur: List<&2, VC>, +tot: List<&2, VC>) -> List<&2, U32>:
+  match mm:
+    case Some{+m}:
+      prior.k(vc.get(cur, m), m, vc.get(tot, m), x)
+    case None{}:
+      x
+
+def rn.x(+b: Bool, +x: List<&2, U32>, +cur: List<&2, VC>, +tot: List<&2, VC>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      prior.m(under(x), x, cur, tot)
+
+def rn.head(+bound: List<&2, List<&2, U32>>, path: List<&2, List<&2, U32>>, +cur: List<&2, VC>, +tot: List<&2, VC>) -> List<&2, List<&2, U32>>:
+  match path:
+    case Con{+x, rest}:
+      Con{rn.x(W.has_key(x, bound), x, cur, tot), rest}
+    case Nil{}:
+      Nil{}
+
+# each free `_m` renamed to m's version before this definition
+def rn(+e: G.Expr, +bound: List<&2, List<&2, U32>>, +cur: List<&2, VC>, +tot: List<&2, VC>) -> G.Expr:
+  match e:
+    case G.EName{+l, path}:
+      G.EName{l, rn.head(bound, path, cur, tot)}
+    case G.EOp2{+l, op, a, b}:
+      G.EOp2{l, op, rn(a, bound, cur, tot), rn(b, bound, cur, tot)}
+    case G.ELet{+l, g}:
+      G.ELet{l, rn(g, bound, cur, tot)}
+    case G.EBind{+l, n, v, rest}:
+      G.EBind{l, n, rn(v, bound, cur, tot), rn(rest, bound, cur, tot)}
+    case G.EIn{b}:
+      G.EIn{rn(b, bound, cur, tot)}
+    case G.ELam{+l, +x, body}:
+      G.ELam{l, x, rn(body, Con{x, bound}, cur, tot)}
+    case G.EApp{+l, f, x}:
+      G.EApp{l, rn(f, bound, cur, tot), rn(x, bound, cur, tot)}
+    case G.EDict{+l, ms}:
+      G.EDict{l, rn(ms, bound, cur, tot)}
+    case G.EMem{m, rest}:
+      G.EMem{rn(m, bound, cur, tot), rn(rest, bound, cur, tot)}
+    case G.ETag{+l, k, v}:
+      G.ETag{l, rn(k, bound, cur, tot), rn(v, bound, cur, tot)}
+    case G.ESection{+l, k}:
+      G.ESection{l, rn(k, bound, cur, tot)}
+    case G.EIndex{+l, x, k}:
+      G.EIndex{l, rn(x, bound, cur, tot), rn(k, bound, cur, tot)}
+    case G.EOver{x}:
+      G.EOver{rn(x, bound, cur, tot)}
+    case _:
+      e
+
+type Vw is Data:
+  Vw{ds: List<&2, G.Def>, cur: List<&2, VC>}
+
+def vers.p(m: Maybe<&2, List<&2, U32>>, +line: U32, path: List<&2, List<&2, U32>>, body: G.Expr, +tot: List<&2, VC>, w: Vw) -> Vw:
+  match m w:
+    case Some{+n} Vw{ds, +cur}:
+      Vw{Con{G.Def{line, [vname(n, vc.get(cur, n), vc.get(tot, n))], rn(unover(body), Nil{}, cur, tot)}, ds}, vc.inc(cur, n)}
+    case None{} Vw{ds, +cur}:
+      Vw{Con{G.Def{line, path, rn(unover(body), Nil{}, cur, tot)}, ds}, cur}
+
+def vers.go(ds: List<&2, G.Def>, +tot: List<&2, VC>, w: Vw) -> Vw:
+  match ds:
+    case Nil{}:
+      w
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, +path, body}:
+          vers.go(rest, tot, vers.p(one_name(path), line, path, body, tot, w))
+
+def vers.out(w: Vw) -> List<&2, G.Def>:
+  match w:
+    case Vw{ds, cur}:
+      List.reverse(&2, G.Def, ds)
+
+def vers(+ds: List<&2, G.Def>) -> List<&2, G.Def>:
+  vers.out(vers.go(ds, vtot(ds, Nil{}), Vw{Nil{}, Nil{}}))
+
 def start.d(a: Dd, +lk: Bool) -> Run:
   match a:
     case Dd{+ds, es}:
       match es:
         case Nil{}:
-          start.pt(part(List.reverse(&2, G.Def, ds), lk, Pt{Nil{}, Nil{}}))
+          start.pt(part(vers(List.reverse(&2, G.Def, ds)), lk, Pt{Nil{}, Nil{}}))
         case Con{e, rest}:
           RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
 

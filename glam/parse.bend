@@ -56,6 +56,9 @@ type Expr is Data:
   EAtom{name: List<&2, U32>}
   # reading a dict's field: what `x.name` becomes, applied to x
   EField{+line: U32, key: List<&2, U32>}
+  # an override's body, `name := e` (Syntax.md, Introductions and
+  # Overrides): a top-level definition of a name already defined
+  EOver{e: Expr}
 
 
 
@@ -477,11 +480,12 @@ def word_kind.k(+digit: Bool, +letter: Bool) -> U32:
     case False{} False{}:
       0
 
-# a word's first byte: 1 a digit, 2 a letter, 0 anything else
+# a word's first byte: 1 a digit, 2 a letter or `_`, a prior's mark
+# (`_name`), 0 anything else
 def word_kind(s: List<&2, U32>) -> U32:
   match s:
     case Con{+b, rest}:
-      word_kind.k(L.is_digit(b), L.is_letter(b))
+      word_kind.k(L.is_digit(b), L.is_letter(b) || U32.is_eq(b, 95))
     case Nil{}:
       0
 
@@ -1427,17 +1431,25 @@ def end(m: Pm, +line: U32) -> Ex:
       XErr{Diag{l, "a lambda is not finished: expected ->"}}
 
 
-def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
+# an override's body marked so
+def over(+ov: Bool, e: Expr) -> Expr:
+  match ov:
+    case True{}:
+      EOver{e}
+    case False{}:
+      e
+
+def body.x(x: Ex, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>, +ov: Bool) -> Dc:
   match x:
     case XOk{e}:
-      DOk{Def{line, path, lams(ps, line, e)}}
+      DOk{Def{line, path, over(ov, lams(ps, line, e))}}
     case XErr{d}:
       DErr{d}
 
-# the body after `=`: an expression, to the declaration's end, inside
-# lambdas of the definition's parameters
-def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>) -> Dc:
-  body.x(end(expr.go(ts, MWant{Nil{}}), line), line, path, ps)
+# the body after `=` or `:=`: an expression, to the declaration's end,
+# inside lambdas of the definition's parameters
+def body(ts: List<&2, L.Tok>, +line: U32, path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>, +ov: Bool) -> Dc:
+  body.x(end(expr.go(ts, MWant{Nil{}}), line), line, path, ps, ov)
 
 # a path being read: the names so far reversed and whether a name is
 # expected next (after `.`, or at the start) or `.` or `=`; then the body
@@ -1446,7 +1458,7 @@ type Ps is Data:
   PNext{acc: List<&2, List<&2, U32>>, +name: Bool}
   # after the path, its parameters so far reversed
   PParams{acc: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>}
-  PBody{path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>}
+  PBody{path: List<&2, List<&2, U32>>, ps: List<&2, List<&2, U32>>, +ov: Bool}
   PFail{d: Diag}
 
 def path.word(+ok: Bool, +line: U32, s: List<&2, U32>, acc: List<&2, List<&2, U32>>) -> Ps:
@@ -1456,7 +1468,15 @@ def path.word(+ok: Bool, +line: U32, s: List<&2, U32>, acc: List<&2, List<&2, U3
     case False{}:
       PFail{Diag{line, "a name begins with a letter: " ++ str(s)}}
 
-# a token's kind for the path: 1 a word, 2 a dot, 3 an equals sign, 0 else
+def tok_op.k(+over: Bool) -> U32:
+  match over:
+    case True{}:
+      4
+    case False{}:
+      0
+
+# a token's kind for the path: 1 a word, 2 a dot, 3 an equals sign, 4 an
+# override's `:=`, 0 else
 def tok_kind(t: L.Tok) -> U32:
   match t:
     case L.TWord{+line, +col, s}:
@@ -1465,6 +1485,8 @@ def tok_kind(t: L.Tok) -> U32:
       2
     case L.TEq{+line, +col}:
       3
+    case L.TOp{+line, +col, s, +jl}:
+      tok_op.k(bytes_eq(s, [58, 61]))
     case _:
       0
 
@@ -1489,7 +1511,9 @@ def param.step.k(+kind: U32, +s: List<&2, U32>, shown: String, +line: U32, acc: 
     case 1:
       path.param(param_ok(s), line, s, acc, ps)
     case 3:
-      PBody{List.reverse(&2, List<&2, U32>, acc), List.reverse(&2, List<&2, U32>, ps)}
+      PBody{List.reverse(&2, List<&2, U32>, acc), List.reverse(&2, List<&2, U32>, ps), False{}}
+    case 4:
+      PBody{List.reverse(&2, List<&2, U32>, acc), List.reverse(&2, List<&2, U32>, ps), True{}}
     case _:
       PFail{Diag{line, "expected a parameter or = after the name, found " ++ shown}}
 
@@ -1506,7 +1530,9 @@ def path.step.k(+kind: U32, +s: List<&2, U32>, shown: String, +line: U32, acc: L
     case 2 False{}:
       PNext{acc, True{}}
     case 3 False{}:
-      PBody{List.reverse(&2, List<&2, U32>, acc), Nil{}}
+      PBody{List.reverse(&2, List<&2, U32>, acc), Nil{}, False{}}
+    case 4 False{}:
+      PBody{List.reverse(&2, List<&2, U32>, acc), Nil{}, True{}}
     case _ True{}:
       PFail{Diag{line, "expected a name, found " ++ shown}}
     case _ False{}:
@@ -1533,8 +1559,8 @@ def path.go(ts: List<&2, L.Tok>, st: Ps, +line: U32) -> Dc:
           path.go(rest, path.step(t, line, acc, name), line)
         case PParams{acc, ps}:
           path.go(rest, param.step(t, line, acc, ps), line)
-        case PBody{path, ps}:
-          body(Con{t, rest}, line, path, ps)
+        case PBody{path, ps, +ov}:
+          body(Con{t, rest}, line, path, ps, ov)
         case PFail{d}:
           DErr{d}
     case Nil{}:
@@ -1543,8 +1569,8 @@ def path.go(ts: List<&2, L.Tok>, st: Ps, +line: U32) -> Dc:
           path.end(name, line)
         case PParams{acc, ps}:
           DErr{Diag{line, "expected = after the parameters"}}
-        case PBody{path, ps}:
-          body(Nil{}, line, path, ps)
+        case PBody{path, ps, +ov}:
+          body(Nil{}, line, path, ps, ov)
         case PFail{d}:
           DErr{d}
 
@@ -1588,17 +1614,26 @@ def dups.in(+p: List<&2, List<&2, U32>>, ds: List<&2, Def>) -> Bool:
 type Du is Data:
   Du{seen: List<&2, Def>, es: List<&2, Diag>}
 
-def dups.put(+dup: Bool, d: Def, a: Du) -> Du:
-  match dup d a:
-    case True{} Def{+line, path, body} Du{seen, es}:
+def is_over(e: Expr) -> Bool:
+  match e:
+    case EOver{x}:
+      True{}
+    case _:
+      False{}
+
+def dups.put(+dup: Bool, +ov: Bool, d: Def, a: Du) -> Du:
+  match dup ov d a:
+    case True{} False{} Def{+line, path, body} Du{seen, es}:
       Du{seen, Con{Diag{line, path_str(path) ++ " is already defined; := overrides"}, es}}
-    case False{} Def{+line, path, body} Du{seen, es}:
+    case False{} True{} Def{+line, path, body} Du{seen, es}:
+      Du{seen, Con{Diag{line, path_str(path) ++ " is not defined yet; := overrides a definition"}, es}}
+    case _ _ Def{+line, path, body} Du{seen, es}:
       Du{Con{Def{line, path, body}, seen}, es}
 
 def dups.step(d: Def, a: Du) -> Du:
   match d a:
-    case Def{+line, +path, body} Du{+seen, es}:
-      dups.put(dups.in(path, seen), Def{line, path, body}, Du{seen, es})
+    case Def{+line, +path, +body} Du{+seen, es}:
+      dups.put(dups.in(path, seen), is_over(body), Def{line, path, body}, Du{seen, es})
 
 def dups.go(ds: List<&2, Def>, a: Du) -> List<&2, Diag>:
   match ds:

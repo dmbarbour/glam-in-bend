@@ -27,6 +27,7 @@ cells-recursion samples/hello/hello_mutual.g
 cells-recursion samples/hello/hello_recursion_levels.g
 cells-data samples/hello/hello_cells.g
 cells-data samples/invalid/eval/value_cycle.g
+ladder-objects samples/hello/hello_override.g
 ladder-dicts samples/hello/hello_dict.g
 ladder-dicts samples/hello/hello_tagged.g
 ladder-dicts samples/invalid/syntax/tagged_spacing.g

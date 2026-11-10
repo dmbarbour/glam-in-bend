@@ -177,7 +177,7 @@ def class.p(+k: U32, +pun: Bool, +sym: Bool) -> U32:
 # quote, 5 a dot, 6 (unused: `=` is an operator symbol), 7 anything else,
 # 8 a bracket, a comma or a semicolon, 9 an operator symbol
 def class(+b: U32) -> U32:
-  class.p(class.k(U32.is_eq(b, 32) || U32.is_eq(b, 13), U32.is_eq(b, 10), U32.is_eq(b, 35), is_letter(b) || is_digit(b), U32.is_eq(b, 34), U32.is_eq(b, 46), False{}), is_pun(b), is_sym(b))
+  class.p(class.k(U32.is_eq(b, 32) || U32.is_eq(b, 13), U32.is_eq(b, 10), U32.is_eq(b, 35), is_letter(b) || is_digit(b) || U32.is_eq(b, 95), U32.is_eq(b, 34), U32.is_eq(b, 46), False{}), is_pun(b), is_sym(b))
 
 # an operator's mode from whether a blank came before it
 def op_mode(+gap: Bool) -> U32:
