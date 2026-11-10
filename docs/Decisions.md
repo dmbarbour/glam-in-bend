@@ -171,6 +171,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`templates-spliced-at-level`](decisions/templates-spliced-at-level.md):
   a top-level function is a closed template, a copy spliced where demand
   applies it, raised to the application's level; an experiment.
+- [`unused-definitions-checked`](decisions/unused-definitions-checked.md):
+  errors in definitions nothing uses may fail the assembly, while module
+  loading stays lazy.
 - [`bounded-duplication`](decisions/bounded-duplication.md): a small,
   local lazy computation may be evaluated twice; an emission to
   reflection happens at most once, and expensive work stays shared.
