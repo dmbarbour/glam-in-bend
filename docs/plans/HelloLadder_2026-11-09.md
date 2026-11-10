@@ -353,7 +353,9 @@ named, and marked there when a rung is built.
    - `ladder-objects.forms` — built 2026-11-10 — `hello_object_expression.g`,
      `hello_object_expression_extends.g`, `hello_object_extend.g`: object
      expressions at the top and `extend` (`cells-objects.forms`). Not yet:
-     the three samples whose parents are computed at run time.
+     the three samples whose parents are computed at run time
+     (`cells-objects.runtime`); the other known deficiencies are the
+     Cells plan's, from `cells-objects.spec` to `cells-objects.measure`.
 8. `ladder-imports` — `hello_import_as.g`, `hello_import_at.g`,
    `hello_import_as_extend.g`, `hello_import_binary.g` with `libs/`: the
    core's first requests, `Need{Read{path}}`, answered by the shell in
