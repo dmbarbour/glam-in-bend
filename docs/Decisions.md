@@ -171,6 +171,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`templates-spliced-at-level`](decisions/templates-spliced-at-level.md):
   a top-level function is a closed template, a copy spliced where demand
   applies it, raised to the application's level; an experiment.
+- [`object-members-as-templates`](decisions/object-members-as-templates.md):
+  a member is a template of `self` and the whole prior dict, applied per
+  instance to two constant dicts; the instance a dict of member handles.
 - [`unused-definitions-checked`](decisions/unused-definitions-checked.md):
   errors in definitions nothing uses may fail the assembly, while module
   loading stays lazy.

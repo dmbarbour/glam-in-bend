@@ -35,6 +35,7 @@ ladder-objects samples/hello/hello_object_escape.g
 ladder-objects samples/hello/hello_object_expression.g
 ladder-objects samples/hello/hello_object_expression_extends.g
 ladder-objects samples/hello/hello_object_extend.g
+ladder-objects samples/invalid/eval/double_object_decl.g
 ladder-dicts samples/hello/hello_dict.g
 ladder-dicts samples/hello/hello_tagged.g
 ladder-dicts samples/invalid/syntax/tagged_spacing.g

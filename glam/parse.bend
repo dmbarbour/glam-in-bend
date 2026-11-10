@@ -1814,19 +1814,42 @@ def obj.hd(hd: List<&2, L.Tok>, body: List<&2, L.Tok>, +line: U32, name: List<&2
     case Con{+t, rest}:
       obj.ext(is_word(t, [101, 120, 116, 101, 110, 100, 115]), rest, body, line, name)
 
-def obj.sw(r: Sw, +line: U32, name: List<&2, U32>) -> Dc:
+# an object with no `with`: no body, its parents only (Syntax.md: the
+# `extends` and `with` sections are optional)
+def obj.bare.ps(r: Pp, +line: U32, name: List<&2, U32>) -> Dc:
+  match r:
+    case PpOk{ps}:
+      DObj{Obj{line, name, ps, Nil{}, Nil{}}}
+    case PpErr{d}:
+      DErr{d}
+
+def obj.bare.k(+ext: Bool, rest: List<&2, L.Tok>, +line: U32, name: List<&2, U32>) -> Dc:
+  match ext:
+    case True{}:
+      obj.bare.ps(pp(csplit(rest, Cs{Nil{}, Nil{}}), line), line, name)
+    case False{}:
+      DErr{Diag{line, "expected extends or with after the object's name"}}
+
+def obj.bare(hd: List<&2, L.Tok>, +line: U32, name: List<&2, U32>) -> Dc:
+  match hd:
+    case Nil{}:
+      DObj{Obj{line, name, Nil{}, Nil{}, Nil{}}}
+    case Con{+t, rest}:
+      obj.bare.k(is_word(t, [101, 120, 116, 101, 110, 100, 115]), rest, line, name)
+
+def obj.sw(r: Sw, +line: U32, name: List<&2, U32>, hd: List<&2, L.Tok>) -> Dc:
   match r:
     case SwFound{before, after}:
       obj.hd(List.reverse(&2, L.Tok, before), after, line, name)
     case SwNone{}:
-      DErr{Diag{line, "expected with after the object's name"}}
+      obj.bare(hd, line, name)
 
 def obj.decl(ts: List<&2, L.Tok>, +line: U32) -> Dc:
   match ts:
-    case Con{t, rest}:
+    case Con{t, +rest}:
       match t:
         case L.TWord{+l, +c, s}:
-          obj.sw(split_with(rest, Nil{}), line, s)
+          obj.sw(split_with(rest, Nil{}), line, s, rest)
         case _:
           DErr{Diag{line, "expected the object's name after object"}}
     case Nil{}:
@@ -1852,8 +1875,8 @@ def obj.expr(t: L.Tok, rest: List<&2, L.Tok>, +line: U32) -> Dc:
       match more:
         case Con{kw, after}:
           match after:
-            case Con{spec, body}:
-              obj.sw(split_with(body, Nil{}), line, tok_word(t))
+            case Con{spec, +body}:
+              obj.sw(split_with(body, Nil{}), line, tok_word(t), body)
             case Nil{}:
               DErr{Diag{line, "expected the object's name after object"}}
         case Nil{}:
@@ -1963,6 +1986,54 @@ def dups.go(ds: List<&2, Def>, a: Du) -> List<&2, Diag>:
 def dups(ds: List<&2, Def>) -> List<&2, Diag>:
   dups.go(ds, Du{Nil{}, Nil{}})
 
+def def_line.k(+hit: Bool, +l: U32, +more: U32) -> U32:
+  match hit:
+    case True{}:
+      l
+    case False{}:
+      more
+
+# the line of the first introduction of a name among the definitions,
+# or 0
+def def_line(ds: List<&2, Def>, +n: List<&2, U32>) -> U32:
+  match ds:
+    case Nil{}:
+      0
+    case Con{d, rest}:
+      match d:
+        case Def{+l, p, b}:
+          def_line.k(path_eq(p, [n]) && Bool.not(is_over(b)), l, def_line(rest, n))
+
+def obj_line(os: List<&2, Obj>, +n: List<&2, U32>) -> U32:
+  match os:
+    case Nil{}:
+      0
+    case Con{o, rest}:
+      match o:
+        case Obj{+l, m, ps, al, ms}:
+          def_line.k(bytes_eq(m, n), l, obj_line(rest, n))
+
+def odups.k(+at: U32, n: List<&2, U32>, +line: U32, es: List<&2, Diag>) -> List<&2, Diag>:
+  match at:
+    case 0:
+      es
+    case _:
+      Con{Diag{line, "cannot introduce `" ++ str(n) ++ "` because line " ++ U32.show(at) ++ " already defines it"}, es}
+
+# an object introduces its name: one a definition or an earlier object
+# introduced is reported
+def odups.go(os: List<&2, Obj>, +ds: List<&2, Def>, +seen: List<&2, Obj>, es: List<&2, Diag>) -> List<&2, Diag>:
+  match os:
+    case Nil{}:
+      List.reverse(&2, Diag, es)
+    case Con{o, rest}:
+      match o:
+        case Obj{+l, +n, ps, al, ms}:
+          odups.go(rest, ds, Con{Obj{l, n, ps, al, ms}, seen}, odups.k(def_line.k(U32.is_eq(def_line(ds, n), 0), obj_line(seen, n), def_line(ds, n)), n, l, es))
+
+def odups(os: List<&2, Obj>, ds: List<&2, Def>) -> List<&2, Diag>:
+  odups.go(os, ds, Nil{}, Nil{})
+
 # The module
 # ==========
 
@@ -1985,8 +2056,8 @@ def finish.k(es: List<&2, Diag>, +utf8: Bool, ds: List<&2, Def>, os: List<&2, Ob
 
 def finish(+utf8: Bool, a: Da, na: List<&2, Diag>) -> Parsed:
   match a:
-    case Da{+ds, os, xs, es}:
-      finish.k(List.append(&2, Diag, na, List.append(&2, Diag, List.reverse(&2, Diag, es), dups(List.reverse(&2, Def, ds)))), utf8, List.reverse(&2, Def, ds), List.reverse(&2, Obj, os), List.reverse(&2, Obj, xs))
+    case Da{+ds, +os, xs, es}:
+      finish.k(List.append(&2, Diag, na, List.append(&2, Diag, List.reverse(&2, Diag, es), List.append(&2, Diag, dups(List.reverse(&2, Def, ds)), odups(List.reverse(&2, Obj, os), List.reverse(&2, Def, ds))))), utf8, List.reverse(&2, Def, ds), List.reverse(&2, Obj, os), List.reverse(&2, Obj, xs))
 
 def parse.hd(h: Hd, rest: List<&2, List<&2, L.Tok>>, +na: U32) -> Parsed:
   match h:
