@@ -1,12 +1,11 @@
 # A function's net is copied as a live template: frozen where finished, cursors where not
 
-`copy-reduced-function-nets` · maintainer · rev 93243b7
+`copy-reduced-function-nets` · maintainer · rev 78181fe
 
 **Context.** A function is a net and its remaining arity, and its copies
 share the reductions of its source (`functions-are-nets-with-arity`). In
 2026-10-28 the maintainer wrote: "I intend to freeze a net only after
-we're done reducing instead of many snapshots at arbitrary points", and
-"we can start with frozen copies and explore cursors later".
+we're done reducing instead of many snapshots at arbitrary points".
 
 The Rust bootstrap copied a function's net through cursors, "an
 approach to copying live nets while keeping the original separated"
@@ -46,6 +45,9 @@ freeze if or insofar as there's any residue".
   There, small nets (128 nodes to start, `net-nodes-double`) and compact
   forms of finished nets (`spike-materialize`) matter. Cursors are
   EvalSpike's `spike-cursors`.
-- It is open which comes first, whole copies after eager reduction or
-  cursors (`docs/reviews/InsideData_2026-11-10.md`). The maintainer's
-  2026-10-28 order put whole copies first.
+- This record first held a quick start the agent favoured as if it were
+  decided: reduce a function's net, then copy it whole, with cursors
+  later. The maintainer dropped it (2026-11-10): "If it isn't working
+  out, drop it. It should have been recorded as an experimental
+  direction, not an ADR." Live templates are built now, in the Cells
+  plan's `cells-freeze`.

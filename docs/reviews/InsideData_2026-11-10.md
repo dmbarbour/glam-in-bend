@@ -11,10 +11,13 @@ captured values, and asked four questions. The maintainer's answers
 showed that those closures lose the work of partial applications (F1).
 A revision (93243b7) followed, with four more questions. A second round
 of answers set the direction: a function in data is a live template,
-the maintainer's batch materialization. That direction is recorded in
-`copy-reduced-function-nets`, and the answer on early evaluation in
-`early-evaluation-optimization`. The rest proposes, and the maintainer
-decides.
+the maintainer's batch materialization. A third round dropped whole
+copies first and favoured linear moves within a net. The direction is
+recorded in `copy-reduced-function-nets`, and the answer on early
+evaluation in `early-evaluation-optimization`. The steps are in the
+Cells plan. The rest proposes, and the maintainer decides. The review
+stays open until the spike of `cells-lazy-data.cursors` settles
+cursors against ports.
 
 ## What fails today
 
@@ -79,7 +82,8 @@ at run time cannot hold a function, not even a top-level one.
   question. In context of GC, a cell cannot keep itself alive. If
   you're speaking of frozen vs live nets, we'd need to handle this
   properly as part of any template representation."
-- **Q4**, which asked for the maintainer's alternatives, is still open.
+- **Q4** asked for the maintainer's alternatives. It was answered in
+  the second round: batch materialization.
 
 ### Second round (2026-11-10)
 
@@ -111,6 +115,28 @@ The revision's questions were answered as follows:
 - Its fourth, on needs, was answered by the last sentence, as F4 below
   explains.
 - Its second, on what to do within a net, is restated below.
+
+### Third round (2026-11-10)
+
+The second revision asked whether whole copies come first, and whether
+data within a net holds cursors or ports. The maintainer answered:
+
+"We can certainly relax the "put whole copies first". That was a
+position you favored as a quick getting started thing. If it isn't
+working out, drop it. It should have been recorded as an experimental
+direction, not an ADR.
+
+Q2. I like the idea of linear moves. Reference counting is awkward
+with recursive structures. But when we know a function or cell is
+never shared, we could feasibly move it. This would reduce a count to a
+lightweight boolean flag."
+
+- **Whole copies first** are dropped. `copy-reduced-function-nets`
+  says so, and `cells-freeze` builds live templates.
+- **Within a net,** the agent reads the answer as cursors, with a
+  use through a cursor known unshared moving what it names. A flag, not
+  a count, records the sharing; ports remain the alternative should the
+  spike fail. The maintainer was asked to confirm this reading.
 
 ## Findings
 
@@ -312,21 +338,17 @@ remains open is where the source lies and how data refers to it.
 
 ## Recommended, staged
 
-1. **Fix F2 first** (`cells-freeze.templates`, `cells-freeze.cells`,
-   `cells-freeze.sharing`): live templates, or whole copies first as
-   the first question decides. Lifting closed subexpressions into root
-   cells is a cheap first step either way. The ladder gains a check
-   that fails when a family's interactions grow with its uses under
-   templates but not linked.
-2. **Handles as data** (`cells-lazy-data.handles`). Unchanged, and
-   common to every path.
-3. **Within a net, after a spike** (`cells-lazy-data.ports`): cursors
-   into the same net are recommended over ports, being one mechanism
-   with live templates. This is unproven. The spike holds one function
-   in a dict, uses it twice and once, and counts the effect step,
-   including what a moved last cursor saves.
-4. **Boundaries** (`cells-lazy-data.boundary`) are `cells-freeze`
-   applied to data with unfinished parts.
+The Cells plan holds the steps, in this order:
+
+1. `cells-freeze.sharing`: the ladder counts as well as compares, a
+   regression before the fix. F2's families are known losses, marked
+   strictly.
+2. `cells-freeze.cursors`: the mechanism, a design for the
+   maintainer's review before any kernel change.
+3. `cells-freeze.cells`, then `cells-freeze.templates`: F2's two
+   families made flat.
+4. `cells-lazy-data.handles`, then `cells-lazy-data.cursors` after a
+   spike, then `cells-lazy-data.boundary`.
 5. Then effects (`bridge-effects`) and objects made at run time
    (`cells-objects.runtime`).
 
@@ -335,10 +357,9 @@ for streams.
 
 ## Questions for the maintainer
 
-1. **Order.** Should `cells-freeze` build live templates now (cursors,
-   needs left alone, no eager evaluation)? Or should whole copies come
-   first, after eager reduction under fuel with needs served, as your
-   2026-10-28 order had it, with cursors later?
-2. **Within a net.** Cursors into the same net, one mechanism with live
-   templates, where a linear use moves only with counts? Or ports:
-   wires shared by fans, where a linear use is a beta?
+1. **Within a net.** Is "cursors, a use through one known unshared
+   moving what it names, a one-way flag for sharing" the right reading
+   of the third round?
+2. **The design of `cells-freeze.cursors`.** Do its proposals hold, in
+   the Cells plan? They cover what a cursor names, what counts as
+   finished, where demand starts, and how a level offset is carried.
