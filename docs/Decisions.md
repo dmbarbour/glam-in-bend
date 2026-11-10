@@ -180,6 +180,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`bounded-duplication`](decisions/bounded-duplication.md): a small,
   local lazy computation may be evaluated twice; an emission to
   reflection happens at most once, and expensive work stays shared.
+- [`early-evaluation-optimization`](decisions/early-evaluation-optimization.md):
+  evaluation ahead of demand is an optimization only; fuel stops it
+  before it can diverge, and a reflection task blocks it; what it
+  leaves stays lazy.
 - [`packed-texts-and-binaries`](decisions/packed-texts-and-binaries.md):
   texts and binaries are lists, stored packed in rope leaves.
 - [`intern-hot-values`](decisions/intern-hot-values.md): widely shared

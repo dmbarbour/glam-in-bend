@@ -30,9 +30,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   reviewer's review of the same question, by a Fable sub-agent, kept as
   written beside `Heap_2026-11-09.md`, which summarizes it.
 - [`InsideData_2026-11-10.md`](InsideData_2026-11-10.md): the design
-  round of `cells-lazy-data`: where a function's environment lives when
-  the function enters data, three answers and a mixed one weighed, a
-  staged recommendation and four questions; drafted for the maintainer.
+  round of `cells-lazy-data`, on how data holds a function's net, frozen
+  or live. Revised after the maintainer's answers. The first draft's
+  closures are withdrawn because they lost the work of partial
+  applications. The build already loses that work in two places
+  (measured). Early evaluation leaves a residue. The split proposed is
+  ports within a net and a freeze at its boundary, with four questions;
+  drafted for the maintainer.
 
 ## Retired
 
