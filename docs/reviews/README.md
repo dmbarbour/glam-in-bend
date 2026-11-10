@@ -43,6 +43,16 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
     maintainer's confirmation, as does the cursor design.
 
   Drafted for the maintainer.
+- [`Cursors_2026-11-10.md`](Cursors_2026-11-10.md): how a live
+  template's copy joins its cursors, which the maintainer raised with the
+  identity function's aux-to-aux wire. A brainstorm by the agent,
+  compared with the second reviewer's. Recommended: finished as a
+  fixpoint, a copy made nodes then links, and placeholders by polarity
+  threaded per copy, after laws for monotone finishedness; five
+  questions. Drafted for the maintainer.
+- [`CursorsFable_2026-11-10.md`](CursorsFable_2026-11-10.md): the second
+  reviewer's brainstorm on the same question, by a Fable sub-agent, kept
+  as written beside `Cursors_2026-11-10.md`, which compares the two.
 
 ## Retired
 
