@@ -64,11 +64,21 @@ already holds. By polarity there are two kinds of position:
   of its own. My inference, and the answer to the plan's open question
   "a data node or a kind of its own": both, by polarity.
 
+(The lifts are `KLift`, made by `X.ctl` in `glam/lower.bend`'s `edge`
+with their principal linked to the variable side, `spike/nets.bend`;
+verified, not assumed.)
+
 **A claim that bounds the join table** (my inference; an invariant to
 prove, not yet proved). Finishedness is monotone under source reduction:
 a rewrite rewires only the external peers of the pair's aux ports, and a
 finished node is never in a pair, so a wire between two finished nodes is
-never touched, and a finished node stays finished. Hence a later
+never touched, and a finished node stays finished. One hole: control
+fusion after a rewrite composes a new lift into the one whose out port
+it faces and frees the new one (`spike/net.bend`, `fl.fuse`: "p stays,
+l goes"), so a residue rewrite can change a finished lift's offset after
+a copy took it, and a later join there would lose a level. Fusion must
+be refused across the frontier, or idea 3's boundary node sits between
+them and prevents it. Hence a later
 materialization can reach an already-copied node only at a port that
 was a cursor position when that node was copied. The per-copy join table
 is keyed by cursor positions, O(cursors), never by every finished node.
@@ -186,10 +196,8 @@ per-copy table of idea 1 handles by the fan's rule on the placeholder
 node and this one cannot see. I believe this last point is decisive
 against keeping the table in the source.
 
-**Experiment.** Count, on the ladder's F2 families
-(`glam/sharing.txt`, `partial_in_cell.g` at 1, 2, 4, 8 uses), how many
-copies of each source are live at once and how many ever demand the
-same cursor: push pays only when several do.
+**Experiment.** On `partial_in_cell.g` at 1, 2, 4, 8 uses
+(`glam/sharing.txt`): how many live copies ever demand the same cursor.
 
 ## Idea 3. The source numbers its frontier: dense ids, boundary nodes
 
