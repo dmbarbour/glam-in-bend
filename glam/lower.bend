@@ -523,6 +523,8 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
       LOk{data(atom(n))}
     case G.EConst{v}:
       LOk{data(v)}
+    case G.EEsc{x}:
+      LErr{G.Diag{line, "`^` steps out of an object's body; at module scope there is none"}}
     case G.EField{+l, k}:
       LOk{data(V.VFun{5, 1, [atom(k)]})}
     case G.EName{+l, path}:

@@ -502,6 +502,14 @@ def lam_one(a: Ds, +line: U32, n: List<&2, U32>) -> Ds:
 
 # an expression desugared within the locals of scope; globals are the
 # module's top-level names
+# an escape's operand desugared, the escape kept for the object's body
+def esc_one(r: Ds) -> Ds:
+  match r:
+    case DOk{e}:
+      DOk{G.EEsc{e}}
+    case DErr{d}:
+      DErr{d}
+
 def expr(e: G.Expr, +scope: List<&2, List<&2, U32>>, +globals: List<&2, List<&2, U32>>) -> Ds:
   match e:
     case G.EOp2{+l, op, a, b}:
@@ -534,5 +542,7 @@ def expr(e: G.Expr, +scope: List<&2, List<&2, U32>>, +globals: List<&2, List<&2,
       dict_one(expr(ms, scope, globals), l)
     case G.EMem{m, rest}:
       mem_two(expr(m, scope, globals), expr(rest, scope, globals))
+    case G.EEsc{x}:
+      esc_one(expr(x, scope, globals))
     case _:
       DOk{e}

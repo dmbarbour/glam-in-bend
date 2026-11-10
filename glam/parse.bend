@@ -63,6 +63,9 @@ type Expr is Data:
   # a constant the core builds, no source spells: a handle's leaf, an
   # object's dict of member handles (glam/objects.bend)
   EConst{v: V.Val}
+  # an escape, `^e`: e read in the host's scope, out of an object's body
+  # (Syntax.md, Object Namespaces)
+  EEsc{e: Expr}
 
 
 
@@ -367,6 +370,9 @@ type Fr is Data:
   FTagS{+line: U32, key: Expr}
   # an index, `e.[k]`: the bracket after the dot is its key
   FIdx{+line: U32, e: Expr}
+  # an escape awaiting its operand, `^name` or `^(e)`, done as a joint tag
+  # is
+  FEsc{+line: U32}
 
 type Pm is Data:
   MWant{st: List<&2, Fr>}
@@ -627,27 +633,32 @@ def want.pun(st: List<&2, Fr>, +line: U32, +b: U32) -> Pm:
     case _:
       fail(line, "this form is not supported yet: " ++ str([b]))
 
-def op_kind.k(+lam: Bool, +colon: Bool) -> U32:
-  match lam colon:
-    case True{} _:
+def op_kind.k(+lam: Bool, +colon: Bool, +caret: Bool) -> U32:
+  match lam colon caret:
+    case True{} _ _:
       1
-    case False{} True{}:
+    case False{} True{} _:
       2
-    case False{} False{}:
+    case False{} False{} True{}:
+      3
+    case False{} False{} False{}:
       0
 
 # an operator's part where an operand is wanted: 1 `\` begins a lambda,
-# 2 `:` a pun, 0 anything else
+# 2 `:` a pun, 3 `^` an escape, 0 anything else
 def op_kind(+s: List<&2, U32>) -> U32:
-  op_kind.k(bytes_eq(s, [92]), bytes_eq(s, [58]))
+  op_kind.k(bytes_eq(s, [92]), bytes_eq(s, [58]), bytes_eq(s, [94]))
 
-# an operator where an operand is wanted: `\` begins a lambda, `:` a pun
+# an operator where an operand is wanted: `\` begins a lambda, `:` a pun,
+# `^` an escape
 def want.op(+kind: U32, st: List<&2, Fr>, +line: U32, +col: U32, s: List<&2, U32>) -> Pm:
   match kind:
     case 1:
       MLam{st, line, Nil{}}
     case 2:
       MPun{st, line, col}
+    case 3:
+      MWant{Con{FEsc{line}, st}}
     case _:
       fail(line, "expected an expression before " ++ str(s))
 
@@ -702,6 +713,8 @@ def reduce(st: List<&2, Fr>, e: Expr) -> Rd:
           reduce(rest, ETag{line, k, e})
         case FIdx{+line, x}:
           reduce(rest, index(line, x, e))
+        case FEsc{+line}:
+          reduce(rest, EEsc{e})
         case _:
           Rd{Con{f, rest}, e}
 
@@ -1041,8 +1054,15 @@ def have.tag.if(more: Unit -> Pm, +keep: Bool, +l: U32, k: Expr, rest: List<&2, 
     case False{}:
       more(Unit{})
 
-# an operand in hand: the application or joint tag awaiting it done
-# first, unless the operand goes on; an index's bracket done at once
+def have.esc.if(more: Unit -> Pm, +keep: Bool, +l: U32, rest: List<&2, Fr>, e: Expr, t: L.Tok) -> Pm:
+  match keep:
+    case True{}:
+      have.t(Con{FEsc{l}, rest}, e, t)
+    case False{}:
+      more(Unit{})
+
+# an operand in hand: the application, joint tag or escape awaiting it
+# done first, unless the operand goes on; an index's bracket done at once
 def have(st: List<&2, Fr>, +e: Expr, +t: L.Tok) -> Pm:
   match st:
     case Nil{}:
@@ -1055,6 +1075,8 @@ def have(st: List<&2, Fr>, +e: Expr, +t: L.Tok) -> Pm:
           have.tag.if(u => have(rest, ETag{l, k, e}, t), postfix(t), l, k, rest, e, t)
         case FIdx{+l, x}:
           have(rest, index(l, x, e), t)
+        case FEsc{+l}:
+          have.esc.if(u => have(rest, EEsc{e}, t), postfix(t), l, rest, e, t)
         case _:
           have.t(Con{f, rest}, e, t)
 
@@ -1397,6 +1419,8 @@ def unclosed(f: Fr) -> Ex:
       XErr{Diag{l, "a tag requires a payload; its constructor is the section `(path:)`"}}
     case FIdx{+l, x}:
       XErr{Diag{l, "an index's key is missing: `e.[k]`"}}
+    case FEsc{+l}:
+      XErr{Diag{l, "an escape requires an operand: `^name` or `^(e)`"}}
 
 def end.want(st: List<&2, Fr>, +line: U32) -> Ex:
   match st:

@@ -141,6 +141,8 @@ def mrw(+e: G.Expr, +bound: List<&2, List<&2, U32>>, +al: List<&2, U32>) -> G.Ex
       G.ESection{l, mrw(k, bound, al)}
     case G.EIndex{+l, x, k}:
       G.EIndex{l, mrw(x, bound, al), mrw(k, bound, al)}
+    case G.EEsc{x}:
+      x
     case _:
       e
 
