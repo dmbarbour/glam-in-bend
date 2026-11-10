@@ -9,6 +9,7 @@ import ./parse.bend as G
 import ./desugar.bend as D
 import ./lower.bend as W
 import ./splice.bend as S
+import ./objects.bend as O
 import ../spike/tpl.bend as T
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
@@ -725,26 +726,6 @@ def start.b(r: Bk, +ls: List<&2, G.Def>, rs: List<&2, W.Ref>) -> Run:
     case BkErr{d}:
       RDone{OErrs{[d]}}
 
-def start.rs(+rs: List<&2, W.Ref>, fs: List<&2, G.Def>, cs: List<&2, G.Def>, +ls: List<&2, G.Def>) -> Run:
-  start.b(bk.cat(book.t(fs, rs, globals(ls)), book.c(cs, rs, globals(ls))), ls, rs)
-
-# the handles: the templates' from 0, the cells' after them
-def start.all(+fs: List<&2, G.Def>, +cs: List<&2, G.Def>, ls: List<&2, G.Def>) -> Run:
-  start.rs(List.append(&2, W.Ref, refs(fs, 0), refs(cs, U32.from_nat(List.length(&2, G.Def, fs)))), fs, cs, ls)
-
-def start.cs(r: Pt, fs: List<&2, G.Def>) -> Run:
-  match r:
-    case Pt{cs, ls}:
-      start.all(fs, List.reverse(&2, G.Def, cs), List.reverse(&2, G.Def, ls))
-
-def start.fv(+fs: List<&2, G.Def>, +vs: List<&2, G.Def>) -> Run:
-  start.cs(pick(vs, cell_names(fs, vs), Pt{Nil{}, Nil{}}), fs)
-
-def start.pt(r: Pt) -> Run:
-  match r:
-    case Pt{fs, vs}:
-      start.fv(List.reverse(&2, G.Def, fs), List.reverse(&2, G.Def, vs))
-
 # Versions (Syntax.md, Introductions and Overrides): a name defined again
 # by `:=` is a chain of definitions in source order, each reading the one
 # before it as `_name`. The last keeps the name; each earlier one is named
@@ -936,14 +917,223 @@ def vers.out(w: Vw) -> List<&2, G.Def>:
 def vers(+ds: List<&2, G.Def>) -> List<&2, G.Def>:
   vers.out(vers.go(ds, vtot(ds, Nil{}), Vw{Nil{}, Nil{}}))
 
-def start.d(a: Dd, +lk: Bool) -> Run:
-  match a:
-    case Dd{+ds, es}:
-      match es:
-        case Nil{}:
-          start.pt(part(vers(List.reverse(&2, G.Def, ds)), lk, Pt{Nil{}, Nil{}}))
-        case Con{e, rest}:
-          RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
+# Objects at load (glam/objects.bend)
+# ===================================
+#
+# Each object's members desugared, its body's names among the globals;
+# every member a template of `self` and `_self`; each object an instance
+# of its own, a cell for each of its members, its recipe the member's
+# template applied to the instance's dict and the prior dict, the
+# instance itself a constant, its dict of member handles. No object
+# extends another yet, so a prior dict is empty and an override is an
+# error. In the book: the functions' templates, the members' templates,
+# the cells, the members' cells, the instances.
+
+type Om is Data:
+  Om{+line: U32, key: List<&2, U32>, body: G.Expr, +ov: Bool}
+
+type Ob is Data:
+  Ob{+line: U32, name: List<&2, U32>, alias: List<&2, U32>, ms: List<&2, Om>}
+
+# the members and the trouble so far, each reversed
+type Oa is Data:
+  Oa{ms: List<&2, Om>, es: List<&2, G.Diag>}
+
+def om.put(r: D.Ds, m: Maybe<&2, List<&2, U32>>, +line: U32, +ov: Bool, a: Oa) -> Oa:
+  match r m a:
+    case D.DOk{e} Some{k} Oa{ms, es}:
+      Oa{Con{Om{line, k, e, ov}, ms}, es}
+    case D.DOk{e} None{} Oa{ms, es}:
+      Oa{ms, Con{G.Diag{line, "a member's name is one name"}, es}}
+    case D.DErr{d} _ Oa{ms, es}:
+      Oa{ms, Con{d, es}}
+
+def om.all(defs: List<&2, G.Def>, +globals: List<&2, List<&2, U32>>, a: Oa) -> Oa:
+  match defs:
+    case Nil{}:
+      a
+    case Con{d, rest}:
+      match d:
+        case G.Def{+line, path, +body}:
+          om.all(rest, globals, om.put(D.expr(unover(body), Nil{}, globals), one_name(path), line, G.is_over(body), a))
+
+# the objects desugared and the trouble so far, each reversed
+type Oz is Data:
+  Oz{obs: List<&2, Ob>, es: List<&2, G.Diag>}
+
+def ob.ext(ps: List<&2, G.Expr>, +line: U32, es: List<&2, G.Diag>) -> List<&2, G.Diag>:
+  match ps:
+    case Nil{}:
+      es
+    case Con{p, rest}:
+      Con{G.Diag{line, "extends is not supported yet"}, es}
+
+def ob.put(r: Oa, +line: U32, name: List<&2, U32>, al: List<&2, U32>, ps: List<&2, G.Expr>, z: Oz) -> Oz:
+  match r z:
+    case Oa{ms, es1} Oz{obs, es}:
+      Oz{Con{Ob{line, name, al, List.reverse(&2, Om, ms)}, obs}, ob.ext(ps, line, List.append(&2, G.Diag, es1, es))}
+
+def ob.all(os: List<&2, G.Obj>, +gl: List<&2, List<&2, U32>>, z: Oz) -> Oz:
+  match os:
+    case Nil{}:
+      z
+    case Con{o, rest}:
+      match o:
+        case G.Obj{+line, name, ps, al, +members}:
+          ob.all(rest, gl, ob.put(om.all(members, List.append(&2, List<&2, U32>, gl, globals(members)), Oa{Nil{}, Nil{}}), line, name, al, ps, z))
+
+def onames(os: List<&2, G.Obj>) -> List<&2, List<&2, U32>>:
+  match os:
+    case Nil{}:
+      Nil{}
+    case Con{o, rest}:
+      match o:
+        case G.Obj{+line, name, ps, al, ms}:
+          Con{name, onames(rest)}
+
+# every member's template, a definition of its key, reversed onto acc
+def mt.ms(ms: List<&2, Om>, +al: List<&2, U32>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
+  match ms:
+    case Nil{}:
+      acc
+    case Con{m, rest}:
+      match m:
+        case Om{+line, key, body, +ov}:
+          mt.ms(rest, al, Con{G.Def{line, [key], O.mtpl(line, body, al)}, acc})
+
+def mt.all(obs: List<&2, Ob>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
+  match obs:
+    case Nil{}:
+      List.reverse(&2, G.Def, acc)
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, name, +al, ms}:
+          mt.all(rest, mt.ms(ms, al, acc))
+
+# an instance's dict: each member's key and its cell, from cid
+def inst.d(ms: List<&2, Om>, +cid: U32) -> List<&2, V.Ent>:
+  match ms:
+    case Nil{}:
+      Nil{}
+    case Con{m, rest}:
+      match m:
+        case Om{+line, key, body, +ov}:
+          Con{O.entry(key, cid), inst.d(rest, (cid + 1 : U32))}
+
+def dotted(o: List<&2, U32>, k: List<&2, U32>) -> List<&2, U32>:
+  List.append(&2, U32, o, Con{46, k})
+
+# the members' cells, as definitions named o.key, and the trouble, each
+# reversed
+type Lc is Data:
+  Lc{ds: List<&2, G.Def>, es: List<&2, G.Diag>}
+
+def mc.k(+ov: Bool, +line: U32, key: List<&2, U32>, +tid: U32, +inst: V.Val, +prior: V.Val, +oname: List<&2, U32>, acc: Lc) -> Lc:
+  match ov acc:
+    case True{} Lc{ds, es}:
+      Lc{ds, Con{G.Diag{line, "`" ++ G.str(key) ++ "` is not defined before `" ++ G.str(oname) ++ "`; := overrides"}, es}}
+    case False{} Lc{ds, es}:
+      Lc{Con{G.Def{line, [dotted(oname, key)], O.recipe(line, tid, inst, prior)}, ds}, es}
+
+def mc.ms(ms: List<&2, Om>, +tid: U32, +inst: V.Val, +prior: V.Val, +oname: List<&2, U32>, acc: Lc) -> Lc:
+  match ms:
+    case Nil{}:
+      acc
+    case Con{m, rest}:
+      match m:
+        case Om{+line, key, body, +ov}:
+          mc.ms(rest, (tid + 1 : U32), inst, prior, oname, mc.k(ov, line, key, tid, inst, prior, oname, acc))
+
+# the layout so far: the members placed, their cells, the instances
+# reversed
+type Ly is Data:
+  Ly{+mi: U32, cells: Lc, ivs: List<&2, V.Val>}
+
+def ly.k(+inst: V.Val, +ms: List<&2, Om>, +name: List<&2, U32>, +tbase: U32, +mi: U32, cells: Lc, ivs: List<&2, V.Val>) -> Ly:
+  Ly{(mi + U32.from_nat(List.length(&2, Om, ms)) : U32), mc.ms(ms, (tbase + mi : U32), inst, V.VDict{Nil{}}, name, cells), Con{inst, ivs}}
+
+def ly.ob(o: Ob, +tbase: U32, +cbase: U32, l: Ly) -> Ly:
+  match o l:
+    case Ob{+line, +name, al, +ms} Ly{+mi, cells, ivs}:
+      ly.k(V.VDict{inst.d(ms, (cbase + mi : U32))}, ms, name, tbase, mi, cells, ivs)
+
+def ly.all(obs: List<&2, Ob>, +tbase: U32, +cbase: U32, l: Ly) -> Ly:
+  match obs:
+    case Nil{}:
+      l
+    case Con{o, rest}:
+      ly.all(rest, tbase, cbase, ly.ob(o, tbase, cbase, l))
+
+def orefs(obs: List<&2, Ob>, +i: U32) -> List<&2, W.Ref>:
+  match obs:
+    case Nil{}:
+      Nil{}
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, name, al, ms}:
+          Con{W.Ref{name, i}, orefs(rest, (i + 1 : U32))}
+
+def ev.all(vs: List<&2, V.Val>) -> List<&2, Ent>:
+  match vs:
+    case Nil{}:
+      Nil{}
+    case Con{v, rest}:
+      Con{EValue{v}, ev.all(rest)}
+
+# Starting
+# ========
+
+def start.ly(l: Ly, +rs: List<&2, W.Ref>, fs: List<&2, G.Def>, mts: List<&2, G.Def>, cs: List<&2, G.Def>, +ls: List<&2, G.Def>) -> Run:
+  match l:
+    case Ly{+mi, cells, ivs}:
+      match cells:
+        case Lc{mcs, es}:
+          match es:
+            case Nil{}:
+              start.b(bk.cat(bk.cat(book.t(fs, rs, globals(ls)), book.t(mts, rs, globals(ls))), bk.cat(bk.cat(book.c(cs, rs, globals(ls)), book.c(List.reverse(&2, G.Def, mcs), rs, globals(ls))), BkOk{ev.all(List.reverse(&2, V.Val, ivs))})), ls, rs)
+            case Con{e, rest}:
+              RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
+
+def len(xs: List<&2, G.Def>) -> U32:
+  U32.from_nat(List.length(&2, G.Def, xs))
+
+# the handles: the functions' templates from 0, the members' templates,
+# the cells, the members' cells, the instances
+def start.ids(+f: U32, +m: U32, +c: U32, +fs: List<&2, G.Def>, mts: List<&2, G.Def>, +cs: List<&2, G.Def>, ls: List<&2, G.Def>, +obs: List<&2, Ob>) -> Run:
+  start.ly(ly.all(obs, f, (f + m + c : U32), Ly{0, Lc{Nil{}, Nil{}}, Nil{}}),
+    List.append(&2, W.Ref, refs(fs, 0), List.append(&2, W.Ref, refs(cs, (f + m : U32)), orefs(obs, (f + m + c + m : U32)))),
+    fs, mts, cs, ls)
+
+def start.cs(r: Pt, +fs: List<&2, G.Def>, +mts: List<&2, G.Def>, obs: List<&2, Ob>) -> Run:
+  match r:
+    case Pt{+cs, ls}:
+      start.ids(len(fs), len(mts), len(List.reverse(&2, G.Def, cs)), fs, mts, List.reverse(&2, G.Def, cs), List.reverse(&2, G.Def, ls), obs)
+
+def start.mt(+mts: List<&2, G.Def>, +fs: List<&2, G.Def>, +vs: List<&2, G.Def>, obs: List<&2, Ob>) -> Run:
+  start.cs(pick(vs, cell_names(List.append(&2, G.Def, fs, mts), vs), Pt{Nil{}, Nil{}}), fs, mts, obs)
+
+def start.fv(+fs: List<&2, G.Def>, +vs: List<&2, G.Def>, +obs: List<&2, Ob>) -> Run:
+  start.mt(mt.all(obs, Nil{}), fs, vs, obs)
+
+def start.pt(r: Pt, obs: List<&2, Ob>) -> Run:
+  match r:
+    case Pt{fs, vs}:
+      start.fv(List.reverse(&2, G.Def, fs), List.reverse(&2, G.Def, vs), obs)
+
+def start.e(es: List<&2, G.Diag>, ds: List<&2, G.Def>, obs: List<&2, Ob>, +lk: Bool) -> Run:
+  match es:
+    case Nil{}:
+      start.pt(part(vers(List.reverse(&2, G.Def, ds)), lk, Pt{Nil{}, Nil{}}), List.reverse(&2, Ob, obs))
+    case Con{e, rest}:
+      RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
+
+def start.d(a: Dd, z: Oz, +lk: Bool) -> Run:
+  match a z:
+    case Dd{ds, es} Oz{obs, oes}:
+      start.e(List.append(&2, G.Diag, oes, es), ds, obs, lk)
+
+def start.g(+gl: List<&2, List<&2, U32>>, defs: List<&2, G.Def>, objs: List<&2, G.Obj>, +lk: Bool) -> Run:
+  start.d(dall(defs, gl, Dd{Nil{}, Nil{}}), ob.all(objs, gl, Oz{Nil{}, Nil{}}), lk)
 
 def start.p(p: G.Parsed, +lk: Bool) -> Run:
   match p:
@@ -951,8 +1141,8 @@ def start.p(p: G.Parsed, +lk: Bool) -> Run:
       RDone{OErrs{ds}}
     case G.POk{m}:
       match m:
-        case G.Mod{+utf8, +defs}:
-          start.d(dall(defs, globals(defs), Dd{Nil{}, Nil{}}), lk)
+        case G.Mod{+utf8, +defs, +objs}:
+          start.g(List.append(&2, List<&2, U32>, globals(defs), onames(objs)), defs, objs, lk)
 
 # a ".g" source's bytes to its assembly, begun: parsed and lowered, its
 # evaluation not yet stepped; lk links every definition statically

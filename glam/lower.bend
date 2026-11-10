@@ -521,6 +521,8 @@ def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&
       dict(dents(G.EMem{G.ETag{l, k, v}, G.EMemEnd{}}, Nil{}))
     case G.EAtom{n}:
       LOk{data(atom(n))}
+    case G.EConst{v}:
+      LOk{data(v)}
     case G.EField{+l, k}:
       LOk{data(V.VFun{5, 1, [atom(k)]})}
     case G.EName{+l, path}:
