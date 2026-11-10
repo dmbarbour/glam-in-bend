@@ -83,8 +83,10 @@ type Diag is Data:
 type Obj is Data:
   Obj{+line: U32, name: List<&2, U32>, parents: List<&2, Expr>, alias: List<&2, U32>, members: List<&2, Def>}
 
+# the module: its definitions, its objects, and its `extend`s, each an
+# object's body added to it (Syntax.md, Objects)
 type Mod is Data:
-  Mod{+utf8: Bool, defs: List<&2, Def>, objs: List<&2, Obj>}
+  Mod{+utf8: Bool, defs: List<&2, Def>, objs: List<&2, Obj>, exts: List<&2, Obj>}
 
 type Parsed is Data:
   POk{m: Mod}
@@ -314,6 +316,7 @@ type Dc is Data:
   DOk{d: Def}
   DErr{d: Diag}
   DObj{o: Obj}
+  DExt{o: Obj}
 
 # a name begins with a letter
 def name_ok(s: List<&2, U32>) -> Bool:
@@ -1673,6 +1676,8 @@ def member.def(r: Dc) -> Mb:
       MbErr{d}
     case DObj{o}:
       MbErr{Diag{0, "an object declared inside an object is not supported yet"}}
+    case DExt{o}:
+      MbErr{Diag{0, "an extend inside an object is not supported yet"}}
 
 def member.alias(rest: List<&2, L.Tok>, +line: U32) -> Mb:
   match rest:
@@ -1827,32 +1832,81 @@ def obj.decl(ts: List<&2, L.Tok>, +line: U32) -> Dc:
     case Nil{}:
       DErr{Diag{line, "expected the object's name after object"}}
 
-def decl.k(+obj: Bool, +t: L.Tok, rest: List<&2, L.Tok>) -> Dc:
-  match obj:
+# an object expression defined at the top, `name = object "spec" with`,
+# instantiated as a declaration of that name is; the spec's own name, a
+# text or `_`, set aside as a declaration's is
+def is_objexpr(ts: List<&2, L.Tok>) -> Bool:
+  match ts:
+    case Con{a, more}:
+      match more:
+        case Con{b, rest}:
+          U32.is_eq(tok_kind(a), 3) && is_word(b, [111, 98, 106, 101, 99, 116])
+        case Nil{}:
+          False{}
+    case Nil{}:
+      False{}
+
+def obj.expr(t: L.Tok, rest: List<&2, L.Tok>, +line: U32) -> Dc:
+  match rest:
+    case Con{eq, more}:
+      match more:
+        case Con{kw, after}:
+          match after:
+            case Con{spec, body}:
+              obj.sw(split_with(body, Nil{}), line, tok_word(t))
+            case Nil{}:
+              DErr{Diag{line, "expected the object's name after object"}}
+        case Nil{}:
+          DErr{Diag{line, "expected object"}}
+    case Nil{}:
+      DErr{Diag{line, "expected ="}}
+
+# `extend Name with body`: the body, an object's, to be added to Name's
+def as_ext(r: Dc) -> Dc:
+  match r:
+    case DObj{o}:
+      DExt{o}
+    case _:
+      r
+
+def ext.decl.k(+ext: Bool, +t: L.Tok, rest: List<&2, L.Tok>) -> Dc:
+  match ext:
     case True{}:
-      obj.decl(rest, L.tok_line(t))
+      as_ext(obj.decl(rest, L.tok_line(t)))
     case False{}:
       path.go(Y.layout(Con{t, rest}), PNext{Nil{}, True{}}, L.tok_line(t))
+
+def decl.k(+obj: Bool, +oe: Bool, +t: L.Tok, rest: List<&2, L.Tok>) -> Dc:
+  match obj oe:
+    case True{} _:
+      obj.decl(rest, L.tok_line(t))
+    case False{} True{}:
+      obj.expr(t, rest, L.tok_line(t))
+    case False{} False{}:
+      ext.decl.k(is_word(t, [101, 120, 116, 101, 110, 100]), t, rest)
 
 def decl(g: List<&2, L.Tok>) -> Dc:
   match g:
     case Nil{}:
       DErr{Diag{0, "an empty declaration"}}
-    case Con{+t, rest}:
-      decl.k(is_word(t, [111, 98, 106, 101, 99, 116]), t, rest)
+    case Con{+t, +rest}:
+      decl.k(is_word(t, [111, 98, 106, 101, 99, 116]), is_objexpr(rest), t, rest)
 
-# the definitions, the objects and the diagnostics so far, each reversed
+# the definitions, the objects, the extends and the diagnostics so far,
+# each reversed
 type Da is Data:
-  Da{ds: List<&2, Def>, os: List<&2, Obj>, es: List<&2, Diag>}
+  Da{ds: List<&2, Def>, os: List<&2, Obj>, xs: List<&2, Obj>, es: List<&2, Diag>}
 
 def decls.put(r: Dc, a: Da) -> Da:
   match r a:
-    case DOk{d} Da{ds, os, es}:
-      Da{Con{d, ds}, os, es}
-    case DErr{e} Da{ds, os, es}:
-      Da{ds, os, Con{e, es}}
-    case DObj{o} Da{ds, os, es}:
-      Da{ds, Con{o, os}, es}
+    case DOk{d} Da{ds, os, xs, es}:
+      Da{Con{d, ds}, os, xs, es}
+    case DErr{e} Da{ds, os, xs, es}:
+      Da{ds, os, xs, Con{e, es}}
+    case DObj{o} Da{ds, os, xs, es}:
+      Da{ds, Con{o, os}, xs, es}
+    case DExt{o} Da{ds, os, xs, es}:
+      Da{ds, os, Con{o, xs}, es}
 
 # every declaration after the header read
 def decls(gs: List<&2, List<&2, L.Tok>>, a: Da) -> Da:
@@ -1922,24 +1976,24 @@ def na_diag.k(+fine: Bool, +na: U32) -> List<&2, Diag>:
 def na_diag(+na: U32, +utf8: Bool) -> List<&2, Diag>:
   na_diag.k(U32.is_eq(na, 0) || utf8, na)
 
-def finish.k(es: List<&2, Diag>, +utf8: Bool, ds: List<&2, Def>, os: List<&2, Obj>) -> Parsed:
+def finish.k(es: List<&2, Diag>, +utf8: Bool, ds: List<&2, Def>, os: List<&2, Obj>, xs: List<&2, Obj>) -> Parsed:
   match es:
     case Nil{}:
-      POk{Mod{utf8, ds, os}}
+      POk{Mod{utf8, ds, os, xs}}
     case Con{e, rest}:
       PErr{Con{e, rest}}
 
 def finish(+utf8: Bool, a: Da, na: List<&2, Diag>) -> Parsed:
   match a:
-    case Da{+ds, os, es}:
-      finish.k(List.append(&2, Diag, na, List.append(&2, Diag, List.reverse(&2, Diag, es), dups(List.reverse(&2, Def, ds)))), utf8, List.reverse(&2, Def, ds), List.reverse(&2, Obj, os))
+    case Da{+ds, os, xs, es}:
+      finish.k(List.append(&2, Diag, na, List.append(&2, Diag, List.reverse(&2, Diag, es), dups(List.reverse(&2, Def, ds)))), utf8, List.reverse(&2, Def, ds), List.reverse(&2, Obj, os), List.reverse(&2, Obj, xs))
 
 def parse.hd(h: Hd, rest: List<&2, List<&2, L.Tok>>, +na: U32) -> Parsed:
   match h:
     case HErr{d}:
       PErr{[d]}
     case HOk{+utf8}:
-      finish(utf8, decls(rest, Da{Nil{}, Nil{}, Nil{}}), na_diag(na, utf8))
+      finish(utf8, decls(rest, Da{Nil{}, Nil{}, Nil{}, Nil{}}), na_diag(na, utf8))
 
 def parse.gs(gs: List<&2, List<&2, L.Tok>>, +na: U32) -> Parsed:
   match gs:

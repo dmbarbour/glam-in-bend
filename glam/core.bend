@@ -932,8 +932,13 @@ def vers(+ds: List<&2, G.Def>) -> List<&2, G.Def>:
 type Om is Data:
   Om{+line: U32, key: List<&2, U32>, body: G.Expr, +ov: Bool}
 
+# a body, an object's own or an `extend`'s: its alias and its members
+type Bo is Data:
+  Bo{al: List<&2, U32>, ms: List<&2, Om>}
+
+# an object: its line, name, parents' names and bodies in order
 type Ob is Data:
-  Ob{+line: U32, name: List<&2, U32>, alias: List<&2, U32>, ps: List<&2, List<&2, U32>>, ms: List<&2, Om>}
+  Ob{+line: U32, name: List<&2, U32>, ps: List<&2, List<&2, U32>>, bs: List<&2, Bo>}
 
 # the members and the trouble so far, each reversed
 type Oa is Data:
@@ -996,7 +1001,7 @@ def pn(ps: List<&2, G.Expr>, +line: U32) -> Pn:
 def ob.put.k(r: Pn, ms: List<&2, Om>, es1: List<&2, G.Diag>, +line: U32, name: List<&2, U32>, al: List<&2, U32>, z: Oz) -> Oz:
   match r z:
     case PnOk{ns} Oz{obs, es}:
-      Oz{Con{Ob{line, name, al, ns, List.reverse(&2, Om, ms)}, obs}, List.append(&2, G.Diag, es1, es)}
+      Oz{Con{Ob{line, name, ns, [Bo{al, List.reverse(&2, Om, ms)}]}, obs}, List.append(&2, G.Diag, es1, es)}
     case PnErr{d} Oz{obs, es}:
       Oz{obs, Con{d, List.append(&2, G.Diag, es1, es)}}
 
@@ -1013,6 +1018,56 @@ def ob.all(os: List<&2, G.Obj>, +gl: List<&2, List<&2, U32>>, z: Oz) -> Oz:
       match o:
         case G.Obj{+line, name, ps, al, +members}:
           ob.all(rest, gl, ob.put(om.all(members, List.append(&2, List<&2, U32>, gl, globals(members)), Oa{Nil{}, Nil{}}), line, name, al, ps, z))
+
+# Extends: each `extend Name with body` appended to Name's bodies
+
+def ob.add.k(+hit: Bool, o: Ob, +b: Bo) -> Ob:
+  match hit:
+    case True{}:
+      match o:
+        case Ob{+line, name, ps, bs}:
+          Ob{line, name, ps, List.append(&2, Bo, bs, [b])}
+    case False{}:
+      o
+
+def ext.into(obs: List<&2, Ob>, +name: List<&2, U32>, +b: Bo) -> List<&2, Ob>:
+  match obs:
+    case Nil{}:
+      Nil{}
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, +n2, ps, bs}:
+          Con{ob.add.k(G.bytes_eq(n2, name), Ob{line, n2, ps, bs}, b), ext.into(rest, name, b)}
+
+def ob.has(obs: List<&2, Ob>, +name: List<&2, U32>) -> Bool:
+  match obs:
+    case Nil{}:
+      False{}
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, n2, ps, bs}:
+          G.bytes_eq(n2, name) || ob.has(rest, name)
+
+def ext.k(+has: Bool, r: Oa, +line: U32, +name: List<&2, U32>, al: List<&2, U32>, z: Oz) -> Oz:
+  match has r z:
+    case True{} Oa{ms, es1} Oz{obs, es}:
+      Oz{ext.into(obs, name, Bo{al, List.reverse(&2, Om, ms)}), List.append(&2, G.Diag, es1, es)}
+    case False{} Oa{ms, es1} Oz{obs, es}:
+      Oz{obs, Con{G.Diag{line, "`extend " ++ G.str(name) ++ "` names no declared object"}, List.append(&2, G.Diag, es1, es)}}
+
+def ext.one(z: Oz, +line: U32, +name: List<&2, U32>, al: List<&2, U32>, r: Oa) -> Oz:
+  match z:
+    case Oz{+obs, es}:
+      ext.k(ob.has(obs, name), r, line, name, al, Oz{obs, es})
+
+def ext.all(xs: List<&2, G.Obj>, +gl: List<&2, List<&2, U32>>, z: Oz) -> Oz:
+  match xs:
+    case Nil{}:
+      z
+    case Con{x, rest}:
+      match x:
+        case G.Obj{+line, name, ps, al, +members}:
+          ext.all(rest, gl, ext.one(z, line, name, al, om.all(members, List.append(&2, List<&2, U32>, gl, globals(members)), Oa{Nil{}, Nil{}})))
 
 def onames(os: List<&2, G.Obj>) -> List<&2, List<&2, U32>>:
   match os:
@@ -1033,14 +1088,23 @@ def mt.ms(ms: List<&2, Om>, +al: List<&2, U32>, acc: List<&2, G.Def>) -> List<&2
         case Om{+line, key, body, +ov}:
           mt.ms(rest, al, Con{G.Def{line, [key], O.mtpl(line, body, al)}, acc})
 
+def mt.bs(bs: List<&2, Bo>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
+  match bs:
+    case Nil{}:
+      acc
+    case Con{b, rest}:
+      match b:
+        case Bo{+al, ms}:
+          mt.bs(rest, mt.ms(ms, al, acc))
+
 def mt.all(obs: List<&2, Ob>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
   match obs:
     case Nil{}:
       List.reverse(&2, G.Def, acc)
     case Con{o, rest}:
       match o:
-        case Ob{+line, name, +al, ps, ms}:
-          mt.all(rest, mt.ms(ms, al, acc))
+        case Ob{+line, name, ps, bs}:
+          mt.all(rest, mt.bs(bs, acc))
 
 # C3 (Syntax.md, Objects): an object's order is the object first, then
 # the merge of its parents' orders and its parents' list: at each step
@@ -1222,7 +1286,7 @@ def lp.k(r: Lr, lp: Lp) -> Lp:
 
 def lp.ob(o: Ob, +fuel: Nat, lp: Lp) -> Lp:
   match o lp:
-    case Ob{+line, +name, al, +ps, ms} Lp{+ls, es}:
+    case Ob{+line, +name, +ps, bs} Lp{+ls, es}:
       lp.k(lr.skip(li.has(ls, name), lr.p(po(ps, ls), ps, name, line, fuel)), Lp{ls, es})
 
 def lp.pass(obs: List<&2, Ob>, +fuel: Nat, lp: Lp) -> Lp:
@@ -1253,7 +1317,7 @@ def cyc(obs: List<&2, Ob>, +ls: List<&2, Li>, es: List<&2, G.Diag>) -> List<&2, 
       es
     case Con{o, rest}:
       match o:
-        case Ob{+line, +name, al, ps, ms}:
+        case Ob{+line, +name, ps, bs}:
           cyc(rest, ls, cyc.k(li.has(ls, name), name, line, es))
 
 # The instances: each object's mixins, its order from the base, walked
@@ -1261,8 +1325,18 @@ def cyc(obs: List<&2, Ob>, +ls: List<&2, Li>, es: List<&2, G.Diag>) -> List<&2, 
 # prior dict is the keys before its mixin; `=` introducing a key that
 # mixin has not, `:=` overriding one it has
 
+# how many members the bodies hold
+def bo.n(bs: List<&2, Bo>) -> U32:
+  match bs:
+    case Nil{}:
+      0
+    case Con{b, rest}:
+      match b:
+        case Bo{al, ms}:
+          (U32.from_nat(List.length(&2, Om, ms)) + bo.n(rest) : U32)
+
 type Mo is Data:
-  Mo{name: List<&2, U32>, +mbase: U32, ms: List<&2, Om>}
+  Mo{name: List<&2, U32>, +mbase: U32, bs: List<&2, Bo>}
 
 def mos(obs: List<&2, Ob>, +mi: U32) -> List<&2, Mo>:
   match obs:
@@ -1270,8 +1344,8 @@ def mos(obs: List<&2, Ob>, +mi: U32) -> List<&2, Mo>:
       Nil{}
     case Con{o, rest}:
       match o:
-        case Ob{+line, name, al, ps, +ms}:
-          Con{Mo{name, mi, ms}, mos(rest, (mi + U32.from_nat(List.length(&2, Om, ms)) : U32))}
+        case Ob{+line, name, ps, +bs}:
+          Con{Mo{name, mi, bs}, mos(rest, (mi + bo.n(bs) : U32))}
 
 def mo.get.k(+hit: Bool, x: Mo, more: Maybe<&2, Mo>) -> Maybe<&2, Mo>:
   match hit:
@@ -1354,10 +1428,26 @@ def wk.m(ms: List<&2, Om>, +tid: U32, +prior: V.Val, +pkeys: List<&2, Kc>, w: Wk
         case Om{+line, +key, body, +ov}:
           wk.m(rest, (tid + 1 : U32), prior, pkeys, wk.one(ov, kc.has(pkeys, key), line, key, tid, prior, w))
 
+# a body, its prior dict the keys before it
+def wk.body(ms: List<&2, Om>, +tid: U32, w: Wk) -> Wk:
+  match w:
+    case Wk{+cur, +next, cq, es}:
+      wk.m(ms, tid, V.VDict{kc.dict(cur)}, cur, Wk{cur, next, cq, es})
+
+# an object's bodies in order, each a mixin step of its own
+def wk.bodies(bs: List<&2, Bo>, +tid: U32, w: Wk) -> Wk:
+  match bs:
+    case Nil{}:
+      w
+    case Con{b, rest}:
+      match b:
+        case Bo{al, +ms}:
+          wk.bodies(rest, (tid + U32.from_nat(List.length(&2, Om, ms)) : U32), wk.body(ms, tid, w))
+
 def wk.mixin(mo: Maybe<&2, Mo>, x: List<&2, U32>, +tbase: U32, w: Wk) -> Wk:
   match mo w:
-    case Some{Mo{m, +mbase, ms}} Wk{+cur, +next, cq, es}:
-      wk.m(ms, (tbase + mbase : U32), V.VDict{kc.dict(cur)}, cur, Wk{cur, next, cq, es})
+    case Some{Mo{m, +mbase, bs}} Wk{cur, +next, cq, es}:
+      wk.bodies(bs, (tbase + mbase : U32), Wk{cur, next, cq, es})
     case None{} Wk{cur, +next, cq, es}:
       Wk{cur, next, cq, Con{G.Diag{0, "`" ++ G.str(x) ++ "` is no declared object"}, es}}
 
@@ -1409,7 +1499,7 @@ def gl.all(obs: List<&2, Ob>, +ls: List<&2, Li>, +mos: List<&2, Mo>, +tbase: U32
       g
     case Con{o, rest}:
       match o:
-        case Ob{+line, +name, al, ps, ms}:
+        case Ob{+line, +name, ps, bs}:
           gl.all(rest, ls, mos, tbase, gl.ob(li.get(ls, name), name, mos, tbase, g))
 
 def orefs(obs: List<&2, Ob>, +i: U32) -> List<&2, W.Ref>:
@@ -1418,7 +1508,7 @@ def orefs(obs: List<&2, Ob>, +i: U32) -> List<&2, W.Ref>:
       Nil{}
     case Con{o, rest}:
       match o:
-        case Ob{+line, name, al, ps, ms}:
+        case Ob{+line, name, ps, bs}:
           Con{W.Ref{name, i}, orefs(rest, (i + 1 : U32))}
 
 def ev.all(vs: List<&2, V.Val>) -> List<&2, Ent>:
@@ -1486,8 +1576,8 @@ def start.d(a: Dd, z: Oz, +lk: Bool) -> Run:
     case Dd{ds, es} Oz{obs, oes}:
       start.e(List.append(&2, G.Diag, oes, es), ds, obs, lk)
 
-def start.g(+gl: List<&2, List<&2, U32>>, defs: List<&2, G.Def>, objs: List<&2, G.Obj>, +lk: Bool) -> Run:
-  start.d(dall(defs, gl, Dd{Nil{}, Nil{}}), ob.all(objs, gl, Oz{Nil{}, Nil{}}), lk)
+def start.g(+gl: List<&2, List<&2, U32>>, defs: List<&2, G.Def>, objs: List<&2, G.Obj>, exts: List<&2, G.Obj>, +lk: Bool) -> Run:
+  start.d(dall(defs, gl, Dd{Nil{}, Nil{}}), ext.all(exts, gl, ob.all(objs, gl, Oz{Nil{}, Nil{}})), lk)
 
 def start.p(p: G.Parsed, +lk: Bool) -> Run:
   match p:
@@ -1495,8 +1585,8 @@ def start.p(p: G.Parsed, +lk: Bool) -> Run:
       RDone{OErrs{ds}}
     case G.POk{m}:
       match m:
-        case G.Mod{+utf8, +defs, +objs}:
-          start.g(List.append(&2, List<&2, U32>, globals(defs), onames(objs)), defs, objs, lk)
+        case G.Mod{+utf8, +defs, +objs, exts}:
+          start.g(List.append(&2, List<&2, U32>, globals(defs), onames(objs)), defs, objs, exts, lk)
 
 # a ".g" source's bytes to its assembly, begun: parsed and lowered, its
 # evaluation not yet stepped; lk links every definition statically
