@@ -29,6 +29,10 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`HeapFable_2026-11-09.md`](HeapFable_2026-11-09.md): the second
   reviewer's review of the same question, by a Fable sub-agent, kept as
   written beside `Heap_2026-11-09.md`, which summarizes it.
+- [`InsideData_2026-11-10.md`](InsideData_2026-11-10.md): the design
+  round of `cells-lazy-data`: where a function's environment lives when
+  the function enters data, three answers and a mixed one weighed, a
+  staged recommendation and four questions; drafted for the maintainer.
 
 ## Retired
 
