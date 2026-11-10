@@ -346,6 +346,8 @@ named, and marked there when a rung is built.
      the module's `:=` and `_name`, by versions (`cells-objects.overrides`).
    - `ladder-objects.with` — built 2026-11-10 — `hello_object.g` and
      `hello_object_as.g`: `object ... with`, `alias` (`cells-objects.with`).
+   - `ladder-objects.extends` — built 2026-11-10 — `hello_object_prior.g`:
+     `extends`, C3, `:=` and `_name` in a body (`cells-objects.extends`).
 8. `ladder-imports` — `hello_import_as.g`, `hello_import_at.g`,
    `hello_import_as_extend.g`, `hello_import_binary.g` with `libs/`: the
    core's first requests, `Need{Read{path}}`, answered by the shell in

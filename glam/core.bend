@@ -933,7 +933,7 @@ type Om is Data:
   Om{+line: U32, key: List<&2, U32>, body: G.Expr, +ov: Bool}
 
 type Ob is Data:
-  Ob{+line: U32, name: List<&2, U32>, alias: List<&2, U32>, ms: List<&2, Om>}
+  Ob{+line: U32, name: List<&2, U32>, alias: List<&2, U32>, ps: List<&2, List<&2, U32>>, ms: List<&2, Om>}
 
 # the members and the trouble so far, each reversed
 type Oa is Data:
@@ -961,17 +961,49 @@ def om.all(defs: List<&2, G.Def>, +globals: List<&2, List<&2, U32>>, a: Oa) -> O
 type Oz is Data:
   Oz{obs: List<&2, Ob>, es: List<&2, G.Diag>}
 
-def ob.ext(ps: List<&2, G.Expr>, +line: U32, es: List<&2, G.Diag>) -> List<&2, G.Diag>:
+# Parents: each a declared object's name, for now
+type Pn is Data:
+  PnOk{ns: List<&2, List<&2, U32>>}
+  PnErr{d: G.Diag}
+
+def pn.path(path: List<&2, List<&2, U32>>, +l: U32, ns: List<&2, List<&2, U32>>) -> Pn:
+  match path:
+    case Con{n, rest}:
+      match rest:
+        case Nil{}:
+          PnOk{Con{n, ns}}
+        case _:
+          PnErr{G.Diag{l, "a parent other than an object's name is not supported yet"}}
+    case Nil{}:
+      PnErr{G.Diag{l, "an empty parent"}}
+
+def pn.k(e: G.Expr, +line: U32, r: Pn) -> Pn:
+  match e r:
+    case G.EName{+l, path} PnOk{ns}:
+      pn.path(path, l, ns)
+    case _ PnErr{d}:
+      PnErr{d}
+    case _ PnOk{ns}:
+      PnErr{G.Diag{line, "a parent other than an object's name is not supported yet"}}
+
+def pn(ps: List<&2, G.Expr>, +line: U32) -> Pn:
   match ps:
     case Nil{}:
-      es
+      PnOk{Nil{}}
     case Con{p, rest}:
-      Con{G.Diag{line, "extends is not supported yet"}, es}
+      pn.k(p, line, pn(rest, line))
+
+def ob.put.k(r: Pn, ms: List<&2, Om>, es1: List<&2, G.Diag>, +line: U32, name: List<&2, U32>, al: List<&2, U32>, z: Oz) -> Oz:
+  match r z:
+    case PnOk{ns} Oz{obs, es}:
+      Oz{Con{Ob{line, name, al, ns, List.reverse(&2, Om, ms)}, obs}, List.append(&2, G.Diag, es1, es)}
+    case PnErr{d} Oz{obs, es}:
+      Oz{obs, Con{d, List.append(&2, G.Diag, es1, es)}}
 
 def ob.put(r: Oa, +line: U32, name: List<&2, U32>, al: List<&2, U32>, ps: List<&2, G.Expr>, z: Oz) -> Oz:
-  match r z:
-    case Oa{ms, es1} Oz{obs, es}:
-      Oz{Con{Ob{line, name, al, List.reverse(&2, Om, ms)}, obs}, ob.ext(ps, line, List.append(&2, G.Diag, es1, es))}
+  match r:
+    case Oa{ms, es1}:
+      ob.put.k(pn(ps, line), ms, es1, line, name, al, z)
 
 def ob.all(os: List<&2, G.Obj>, +gl: List<&2, List<&2, U32>>, z: Oz) -> Oz:
   match os:
@@ -1007,62 +1039,378 @@ def mt.all(obs: List<&2, Ob>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
       List.reverse(&2, G.Def, acc)
     case Con{o, rest}:
       match o:
-        case Ob{+line, name, +al, ms}:
+        case Ob{+line, name, +al, ps, ms}:
           mt.all(rest, mt.ms(ms, al, acc))
 
-# an instance's dict: each member's key and its cell, from cid
-def inst.d(ms: List<&2, Om>, +cid: U32) -> List<&2, V.Ent>:
-  match ms:
+# C3 (Syntax.md, Objects): an object's order is the object first, then
+# the merge of its parents' orders and its parents' list: at each step
+# the first head no sequence holds in its tail
+
+def tail_has(+x: List<&2, U32>, s: List<&2, List<&2, U32>>) -> Bool:
+  match s:
+    case Nil{}:
+      False{}
+    case Con{h, t}:
+      W.has_key(x, t)
+
+def tails_have(+x: List<&2, U32>, seqs: List<&2, List<&2, List<&2, U32>>>) -> Bool:
+  match seqs:
+    case Nil{}:
+      False{}
+    case Con{s, rest}:
+      tail_has(x, s) || tails_have(x, rest)
+
+def all_empty(seqs: List<&2, List<&2, List<&2, U32>>>) -> Bool:
+  match seqs:
+    case Nil{}:
+      True{}
+    case Con{s, rest}:
+      match s:
+        case Nil{}:
+          all_empty(rest)
+        case Con{h, t}:
+          False{}
+
+def drop_head.k(+hit: Bool, h: List<&2, U32>, t: List<&2, List<&2, U32>>) -> List<&2, List<&2, U32>>:
+  match hit:
+    case True{}:
+      t
+    case False{}:
+      Con{h, t}
+
+def drop_head.s(s: List<&2, List<&2, U32>>, +x: List<&2, U32>) -> List<&2, List<&2, U32>>:
+  match s:
     case Nil{}:
       Nil{}
+    case Con{+h, t}:
+      drop_head.k(G.bytes_eq(h, x), h, t)
+
+def drop_head(seqs: List<&2, List<&2, List<&2, U32>>>, +x: List<&2, U32>) -> List<&2, List<&2, List<&2, U32>>>:
+  match seqs:
+    case Nil{}:
+      Nil{}
+    case Con{s, rest}:
+      Con{drop_head.s(s, x), drop_head(rest, x)}
+
+type St is Data:
+  St{seqs: List<&2, List<&2, List<&2, U32>>>, acc: List<&2, List<&2, U32>>}
+
+def c3.pick.if(more: Unit -> Maybe<&2, St>, +ok: Bool, +x: List<&2, U32>, +all: List<&2, List<&2, List<&2, U32>>>, +acc: List<&2, List<&2, U32>>) -> Maybe<&2, St>:
+  match ok:
+    case True{}:
+      Some{St{drop_head(all, x), Con{x, acc}}}
+    case False{}:
+      more(Unit{})
+
+def c3.pick(seqs: List<&2, List<&2, List<&2, U32>>>, +all: List<&2, List<&2, List<&2, U32>>>, +acc: List<&2, List<&2, U32>>) -> Maybe<&2, St>:
+  match seqs:
+    case Nil{}:
+      None{}
+    case Con{s, rest}:
+      match s:
+        case Nil{}:
+          c3.pick(rest, all, acc)
+        case Con{+x, t}:
+          c3.pick.if(u => c3.pick(rest, all, acc), Bool.not(tails_have(x, all)), x, all, acc)
+
+def merge.k(+done: Bool, m: Maybe<&2, St>, acc: List<&2, List<&2, U32>>, more: St -> Maybe<&2, List<&2, List<&2, U32>>>) -> Maybe<&2, List<&2, List<&2, U32>>>:
+  match done:
+    case True{}:
+      Some{List.reverse(&2, List<&2, U32>, acc)}
+    case False{}:
+      match m:
+        case Some{s2}:
+          more(s2)
+        case None{}:
+          None{}
+
+def merge(fuel: Nat, st: St) -> Maybe<&2, List<&2, List<&2, U32>>>:
+  match fuel:
+    case 0n:
+      None{}
+    case 1n+p:
+      match st:
+        case St{+seqs, +acc}:
+          merge.k(all_empty(seqs), c3.pick(seqs, seqs, acc), acc, s2 => merge(p, s2))
+
+# the orders found: an object's name and its order, itself first
+type Li is Data:
+  Li{name: List<&2, U32>, order: List<&2, List<&2, U32>>}
+
+def li.get.k(+hit: Bool, o: List<&2, List<&2, U32>>, more: Maybe<&2, List<&2, List<&2, U32>>>) -> Maybe<&2, List<&2, List<&2, U32>>>:
+  match hit:
+    case True{}:
+      Some{o}
+    case False{}:
+      more
+
+def li.get(ls: List<&2, Li>, +n: List<&2, U32>) -> Maybe<&2, List<&2, List<&2, U32>>>:
+  match ls:
+    case Nil{}:
+      None{}
+    case Con{l, rest}:
+      match l:
+        case Li{m, o}:
+          li.get.k(G.bytes_eq(m, n), o, li.get(rest, n))
+
+def li.has(ls: List<&2, Li>, +n: List<&2, U32>) -> Bool:
+  match ls:
+    case Nil{}:
+      False{}
+    case Con{l, rest}:
+      match l:
+        case Li{m, o}:
+          G.bytes_eq(m, n) || li.has(rest, n)
+
+# the parents' orders, if every parent has one
+type Po is Data:
+  PoOk{os: List<&2, List<&2, List<&2, U32>>>}
+  PoNo{}
+
+def po.k(m: Maybe<&2, List<&2, List<&2, U32>>>, r: Po) -> Po:
+  match m r:
+    case Some{o} PoOk{os}:
+      PoOk{Con{o, os}}
+    case _ _:
+      PoNo{}
+
+def po(ps: List<&2, List<&2, U32>>, +ls: List<&2, Li>) -> Po:
+  match ps:
+    case Nil{}:
+      PoOk{Nil{}}
+    case Con{p, rest}:
+      po.k(li.get(ls, p), po(rest, ls))
+
+type Lr is Data:
+  LrDone{l: Li}
+  LrWait{}
+  LrBad{name: List<&2, U32>, d: G.Diag}
+
+def lr.m(m: Maybe<&2, List<&2, List<&2, U32>>>, +name: List<&2, U32>, +line: U32) -> Lr:
+  match m:
+    case Some{o}:
+      LrDone{Li{name, Con{name, o}}}
+    case None{}:
+      LrBad{name, G.Diag{line, "the parents of `" ++ G.str(name) ++ "` cannot be ordered (C3)"}}
+
+def lr.p(r: Po, +ps: List<&2, List<&2, U32>>, +name: List<&2, U32>, +line: U32, +fuel: Nat) -> Lr:
+  match r:
+    case PoOk{os}:
+      lr.m(merge(fuel, St{List.append(&2, List<&2, List<&2, U32>>, os, [ps]), Nil{}}), name, line)
+    case PoNo{}:
+      LrWait{}
+
+def lr.skip(+done: Bool, r: Lr) -> Lr:
+  match done:
+    case True{}:
+      LrWait{}
+    case False{}:
+      r
+
+# the orders found so far, and the trouble
+type Lp is Data:
+  Lp{ls: List<&2, Li>, es: List<&2, G.Diag>}
+
+def lp.k(r: Lr, lp: Lp) -> Lp:
+  match r lp:
+    case LrDone{l} Lp{ls, es}:
+      Lp{Con{l, ls}, es}
+    case LrWait{} Lp{ls, es}:
+      Lp{ls, es}
+    case LrBad{+n, d} Lp{ls, es}:
+      Lp{Con{Li{n, [n]}, ls}, Con{d, es}}
+
+def lp.ob(o: Ob, +fuel: Nat, lp: Lp) -> Lp:
+  match o lp:
+    case Ob{+line, +name, al, +ps, ms} Lp{+ls, es}:
+      lp.k(lr.skip(li.has(ls, name), lr.p(po(ps, ls), ps, name, line, fuel)), Lp{ls, es})
+
+def lp.pass(obs: List<&2, Ob>, +fuel: Nat, lp: Lp) -> Lp:
+  match obs:
+    case Nil{}:
+      lp
+    case Con{o, rest}:
+      lp.pass(rest, fuel, lp.ob(o, fuel, lp))
+
+def lp.fix(k: Nat, +obs: List<&2, Ob>, +fuel: Nat, lp: Lp) -> Lp:
+  match k:
+    case 0n:
+      lp
+    case 1n+p:
+      lp.fix(p, obs, fuel, lp.pass(obs, fuel, lp))
+
+# an object still with no order extends itself
+def cyc.k(+has: Bool, name: List<&2, U32>, +line: U32, es: List<&2, G.Diag>) -> List<&2, G.Diag>:
+  match has:
+    case True{}:
+      es
+    case False{}:
+      Con{G.Diag{line, "`" ++ G.str(name) ++ "` extends itself through its parents, or a parent is no declared object"}, es}
+
+def cyc(obs: List<&2, Ob>, +ls: List<&2, Li>, es: List<&2, G.Diag>) -> List<&2, G.Diag>:
+  match obs:
+    case Nil{}:
+      es
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, +name, al, ps, ms}:
+          cyc(rest, ls, cyc.k(li.has(ls, name), name, line, es))
+
+# The instances: each object's mixins, its order from the base, walked
+# with the latest cell of each key; each member definition a cell whose
+# prior dict is the keys before its mixin; `=` introducing a key that
+# mixin has not, `:=` overriding one it has
+
+type Mo is Data:
+  Mo{name: List<&2, U32>, +mbase: U32, ms: List<&2, Om>}
+
+def mos(obs: List<&2, Ob>, +mi: U32) -> List<&2, Mo>:
+  match obs:
+    case Nil{}:
+      Nil{}
+    case Con{o, rest}:
+      match o:
+        case Ob{+line, name, al, ps, +ms}:
+          Con{Mo{name, mi, ms}, mos(rest, (mi + U32.from_nat(List.length(&2, Om, ms)) : U32))}
+
+def mo.get.k(+hit: Bool, x: Mo, more: Maybe<&2, Mo>) -> Maybe<&2, Mo>:
+  match hit:
+    case True{}:
+      Some{x}
+    case False{}:
+      more
+
+def mo.get(ms: List<&2, Mo>, +n: List<&2, U32>) -> Maybe<&2, Mo>:
+  match ms:
+    case Nil{}:
+      None{}
+    case Con{x, rest}:
+      match x:
+        case Mo{+m, +b, xs}:
+          mo.get.k(G.bytes_eq(m, n), Mo{m, b, xs}, mo.get(rest, n))
+
+type Kc is Data:
+  Kc{key: List<&2, U32>, +cid: U32}
+
+def kc.dict(cur: List<&2, Kc>) -> List<&2, V.Ent>:
+  match cur:
+    case Nil{}:
+      Nil{}
+    case Con{c, rest}:
+      match c:
+        case Kc{k, +cid}:
+          Con{O.entry(k, cid), kc.dict(rest)}
+
+def kc.has(cur: List<&2, Kc>, +k: List<&2, U32>) -> Bool:
+  match cur:
+    case Nil{}:
+      False{}
+    case Con{c, rest}:
+      match c:
+        case Kc{m, +cid}:
+          G.bytes_eq(m, k) || kc.has(rest, k)
+
+def kc.set.k(+hit: Bool, c: Kc, +k: List<&2, U32>, +cid: U32, rest: List<&2, Kc>, more: List<&2, Kc>) -> List<&2, Kc>:
+  match hit:
+    case True{}:
+      Con{Kc{k, cid}, rest}
+    case False{}:
+      Con{c, more}
+
+# key k's latest cell set to cid, in place or appended
+def kc.set(cur: List<&2, Kc>, +k: List<&2, U32>, +cid: U32) -> List<&2, Kc>:
+  match cur:
+    case Nil{}:
+      [Kc{k, cid}]
+    case Con{c, +rest}:
+      match c:
+        case Kc{+m, +c2}:
+          kc.set.k(G.bytes_eq(m, k), Kc{m, c2}, k, cid, rest, kc.set(rest, k, cid))
+
+# a member's cell queued: its line, key, template and prior dict
+type Cq is Data:
+  Cq{+line: U32, key: List<&2, U32>, +tid: U32, prior: V.Val}
+
+# a walk: the latest cells, the next handle, the cells queued reversed,
+# the trouble
+type Wk is Data:
+  Wk{cur: List<&2, Kc>, +next: U32, cq: List<&2, Cq>, es: List<&2, G.Diag>}
+
+def wk.one(+ov: Bool, +had: Bool, +line: U32, +key: List<&2, U32>, +tid: U32, +prior: V.Val, w: Wk) -> Wk:
+  match ov had w:
+    case True{} False{} Wk{cur, +next, cq, es}:
+      Wk{cur, next, cq, Con{G.Diag{line, "`" ++ G.str(key) ++ "` is not defined before; := overrides"}, es}}
+    case False{} True{} Wk{cur, +next, cq, es}:
+      Wk{cur, next, cq, Con{G.Diag{line, "`" ++ G.str(key) ++ "` is already defined by a parent; := overrides"}, es}}
+    case _ _ Wk{cur, +next, cq, es}:
+      Wk{kc.set(cur, key, next), (next + 1 : U32), Con{Cq{line, key, tid, prior}, cq}, es}
+
+def wk.m(ms: List<&2, Om>, +tid: U32, +prior: V.Val, +pkeys: List<&2, Kc>, w: Wk) -> Wk:
+  match ms:
+    case Nil{}:
+      w
     case Con{m, rest}:
       match m:
-        case Om{+line, key, body, +ov}:
-          Con{O.entry(key, cid), inst.d(rest, (cid + 1 : U32))}
+        case Om{+line, +key, body, +ov}:
+          wk.m(rest, (tid + 1 : U32), prior, pkeys, wk.one(ov, kc.has(pkeys, key), line, key, tid, prior, w))
+
+def wk.mixin(mo: Maybe<&2, Mo>, x: List<&2, U32>, +tbase: U32, w: Wk) -> Wk:
+  match mo w:
+    case Some{Mo{m, +mbase, ms}} Wk{+cur, +next, cq, es}:
+      wk.m(ms, (tbase + mbase : U32), V.VDict{kc.dict(cur)}, cur, Wk{cur, next, cq, es})
+    case None{} Wk{cur, +next, cq, es}:
+      Wk{cur, next, cq, Con{G.Diag{0, "`" ++ G.str(x) ++ "` is no declared object"}, es}}
+
+def wk.all(mixins: List<&2, List<&2, U32>>, +mos: List<&2, Mo>, +tbase: U32, w: Wk) -> Wk:
+  match mixins:
+    case Nil{}:
+      w
+    case Con{+x, rest}:
+      wk.all(rest, mos, tbase, wk.mixin(mo.get(mos, x), x, tbase, w))
 
 def dotted(o: List<&2, U32>, k: List<&2, U32>) -> List<&2, U32>:
   List.append(&2, U32, o, Con{46, k})
 
-# the members' cells, as definitions named o.key, and the trouble, each
-# reversed
-type Lc is Data:
-  Lc{ds: List<&2, G.Def>, es: List<&2, G.Diag>}
-
-def mc.k(+ov: Bool, +line: U32, key: List<&2, U32>, +tid: U32, +inst: V.Val, +prior: V.Val, +oname: List<&2, U32>, acc: Lc) -> Lc:
-  match ov acc:
-    case True{} Lc{ds, es}:
-      Lc{ds, Con{G.Diag{line, "`" ++ G.str(key) ++ "` is not defined before `" ++ G.str(oname) ++ "`; := overrides"}, es}}
-    case False{} Lc{ds, es}:
-      Lc{Con{G.Def{line, [dotted(oname, key)], O.recipe(line, tid, inst, prior)}, ds}, es}
-
-def mc.ms(ms: List<&2, Om>, +tid: U32, +inst: V.Val, +prior: V.Val, +oname: List<&2, U32>, acc: Lc) -> Lc:
-  match ms:
+# the queued cells' recipes, in handle order, onto acc reversed
+def cq.defs(cq: List<&2, Cq>, +inst: V.Val, +name: List<&2, U32>, acc: List<&2, G.Def>) -> List<&2, G.Def>:
+  match cq:
     case Nil{}:
       acc
-    case Con{m, rest}:
-      match m:
-        case Om{+line, key, body, +ov}:
-          mc.ms(rest, (tid + 1 : U32), inst, prior, oname, mc.k(ov, line, key, tid, inst, prior, oname, acc))
+    case Con{c, rest}:
+      match c:
+        case Cq{+line, key, +tid, prior}:
+          cq.defs(rest, inst, name, Con{G.Def{line, [dotted(name, key)], O.recipe(line, tid, inst, prior)}, acc})
 
-# the layout so far: the members placed, their cells, the instances
-# reversed
-type Ly is Data:
-  Ly{+mi: U32, cells: Lc, ivs: List<&2, V.Val>}
+# the layout so far: the next handle, the members' cells reversed, the
+# instances reversed, the trouble
+type Gl is Data:
+  Gl{+next: U32, defs: List<&2, G.Def>, ivs: List<&2, V.Val>, es: List<&2, G.Diag>}
 
-def ly.k(+inst: V.Val, +ms: List<&2, Om>, +name: List<&2, U32>, +tbase: U32, +mi: U32, cells: Lc, ivs: List<&2, V.Val>) -> Ly:
-  Ly{(mi + U32.from_nat(List.length(&2, Om, ms)) : U32), mc.ms(ms, (tbase + mi : U32), inst, V.VDict{Nil{}}, name, cells), Con{inst, ivs}}
+def gl.k(+inst: V.Val, cq: List<&2, Cq>, +name: List<&2, U32>, +next: U32, defs: List<&2, G.Def>, ivs: List<&2, V.Val>, es: List<&2, G.Diag>) -> Gl:
+  Gl{next, cq.defs(List.reverse(&2, Cq, cq), inst, name, defs), Con{inst, ivs}, es}
 
-def ly.ob(o: Ob, +tbase: U32, +cbase: U32, l: Ly) -> Ly:
-  match o l:
-    case Ob{+line, +name, al, +ms} Ly{+mi, cells, ivs}:
-      ly.k(V.VDict{inst.d(ms, (cbase + mi : U32))}, ms, name, tbase, mi, cells, ivs)
+def gl.w(w: Wk, +name: List<&2, U32>, defs: List<&2, G.Def>, ivs: List<&2, V.Val>, es: List<&2, G.Diag>) -> Gl:
+  match w:
+    case Wk{cur, +next, cq, es2}:
+      gl.k(V.VDict{kc.dict(cur)}, cq, name, next, defs, ivs, List.append(&2, G.Diag, es2, es))
 
-def ly.all(obs: List<&2, Ob>, +tbase: U32, +cbase: U32, l: Ly) -> Ly:
+def gl.ob(order: Maybe<&2, List<&2, List<&2, U32>>>, +name: List<&2, U32>, +mos: List<&2, Mo>, +tbase: U32, g: Gl) -> Gl:
+  match order:
+    case None{}:
+      g
+    case Some{ord}:
+      match g:
+        case Gl{+next, defs, ivs, es}:
+          gl.w(wk.all(List.reverse(&2, List<&2, U32>, ord), mos, tbase, Wk{Nil{}, next, Nil{}, Nil{}}), name, defs, ivs, es)
+
+def gl.all(obs: List<&2, Ob>, +ls: List<&2, Li>, +mos: List<&2, Mo>, +tbase: U32, g: Gl) -> Gl:
   match obs:
     case Nil{}:
-      l
+      g
     case Con{o, rest}:
-      ly.all(rest, tbase, cbase, ly.ob(o, tbase, cbase, l))
+      match o:
+        case Ob{+line, +name, al, ps, ms}:
+          gl.all(rest, ls, mos, tbase, gl.ob(li.get(ls, name), name, mos, tbase, g))
 
 def orefs(obs: List<&2, Ob>, +i: U32) -> List<&2, W.Ref>:
   match obs:
@@ -1070,7 +1418,7 @@ def orefs(obs: List<&2, Ob>, +i: U32) -> List<&2, W.Ref>:
       Nil{}
     case Con{o, rest}:
       match o:
-        case Ob{+line, name, al, ms}:
+        case Ob{+line, name, al, ps, ms}:
           Con{W.Ref{name, i}, orefs(rest, (i + 1 : U32))}
 
 def ev.all(vs: List<&2, V.Val>) -> List<&2, Ent>:
@@ -1083,26 +1431,32 @@ def ev.all(vs: List<&2, V.Val>) -> List<&2, Ent>:
 # Starting
 # ========
 
-def start.ly(l: Ly, +rs: List<&2, W.Ref>, fs: List<&2, G.Def>, mts: List<&2, G.Def>, cs: List<&2, G.Def>, +ls: List<&2, G.Def>) -> Run:
-  match l:
-    case Ly{+mi, cells, ivs}:
-      match cells:
-        case Lc{mcs, es}:
-          match es:
-            case Nil{}:
-              start.b(bk.cat(bk.cat(book.t(fs, rs, globals(ls)), book.t(mts, rs, globals(ls))), bk.cat(bk.cat(book.c(cs, rs, globals(ls)), book.c(List.reverse(&2, G.Def, mcs), rs, globals(ls))), BkOk{ev.all(List.reverse(&2, V.Val, ivs))})), ls, rs)
-            case Con{e, rest}:
-              RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
-
 def len(xs: List<&2, G.Def>) -> U32:
   U32.from_nat(List.length(&2, G.Def, xs))
+
+def start.ly(es: List<&2, G.Diag>, +rs: List<&2, W.Ref>, fs: List<&2, G.Def>, mts: List<&2, G.Def>, cs: List<&2, G.Def>, mcs: List<&2, G.Def>, ivs: List<&2, V.Val>, +ls: List<&2, G.Def>) -> Run:
+  match es:
+    case Nil{}:
+      start.b(bk.cat(bk.cat(book.t(fs, rs, globals(ls)), book.t(mts, rs, globals(ls))), bk.cat(bk.cat(book.c(cs, rs, globals(ls)), book.c(mcs, rs, globals(ls))), BkOk{ev.all(ivs)})), ls, rs)
+    case Con{e, rest}:
+      RDone{OErrs{List.reverse(&2, G.Diag, Con{e, rest})}}
+
+def start.gl(g: Gl, lpes: List<&2, G.Diag>, +f: U32, +m: U32, +c: U32, +fs: List<&2, G.Def>, mts: List<&2, G.Def>, +cs: List<&2, G.Def>, +ls: List<&2, G.Def>, obs: List<&2, Ob>) -> Run:
+  match g:
+    case Gl{+next, defs, ivs, es}:
+      start.ly(List.append(&2, G.Diag, es, lpes),
+        List.append(&2, W.Ref, refs(fs, 0), List.append(&2, W.Ref, refs(cs, (f + m : U32)), orefs(obs, next))),
+        fs, mts, cs, List.reverse(&2, G.Def, defs), List.reverse(&2, V.Val, ivs), ls)
+
+def start.lp(r: Lp, +f: U32, +m: U32, +c: U32, +fs: List<&2, G.Def>, mts: List<&2, G.Def>, +cs: List<&2, G.Def>, ls: List<&2, G.Def>, +obs: List<&2, Ob>) -> Run:
+  match r:
+    case Lp{+lis, es}:
+      start.gl(gl.all(obs, lis, mos(obs, 0), f, Gl{(f + m + c : U32), Nil{}, Nil{}, Nil{}}), cyc(obs, lis, es), f, m, c, fs, mts, cs, ls, obs)
 
 # the handles: the functions' templates from 0, the members' templates,
 # the cells, the members' cells, the instances
 def start.ids(+f: U32, +m: U32, +c: U32, +fs: List<&2, G.Def>, mts: List<&2, G.Def>, +cs: List<&2, G.Def>, ls: List<&2, G.Def>, +obs: List<&2, Ob>) -> Run:
-  start.ly(ly.all(obs, f, (f + m + c : U32), Ly{0, Lc{Nil{}, Nil{}}, Nil{}}),
-    List.append(&2, W.Ref, refs(fs, 0), List.append(&2, W.Ref, refs(cs, (f + m : U32)), orefs(obs, (f + m + c + m : U32)))),
-    fs, mts, cs, ls)
+  start.lp(lp.fix(List.length(&2, Ob, obs), obs, Nat.add(List.length(&2, Ob, obs), 1n), Lp{Nil{}, Nil{}}), f, m, c, fs, mts, cs, ls, obs)
 
 def start.cs(r: Pt, +fs: List<&2, G.Def>, +mts: List<&2, G.Def>, obs: List<&2, Ob>) -> Run:
   match r:
