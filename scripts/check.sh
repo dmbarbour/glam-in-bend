@@ -112,7 +112,8 @@ fi
 
 section ladder
 # the hello ladder's samples through the assembler (HelloLadder,
-# glam/ladder.txt), its build kept for inputs unchanged (scripts/ladder.py)
+# glam/ladder.txt), then its sharing families (glam/sharing.txt), the
+# build kept for inputs unchanged (scripts/ladder.py)
 BEND=$BEND python3 -I scripts/ladder.py > results/ladder.log 2>&1 || {
   grep -v '^ok ' results/ladder.log; status=1; }
 tail -n 1 results/ladder.log

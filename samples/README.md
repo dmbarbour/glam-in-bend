@@ -23,6 +23,9 @@ Use cases:
 - `contracts/` pre-implementation executable contracts that are intentionally
   excluded from ordinary `.g` sample parsing.
 - `invalid/` for testing of diagnostics and runtime failures.
+- `sharing/` families for the ladder's sharing check (`glam/sharing.txt`):
+  each runs with a function applied 1, 2, 4 and 8 times, its cost per use
+  held to what linking costs.
 
 Glam forbids parent-relative paths (`"../"`) in imports, and samples shall not reference remote repos. Thus, sample folders are self-contained. The preference is to keep samples small and focused. To avoid repetition, common utility functions can be written once then provided via configuration (defining `conf.env`). 
 

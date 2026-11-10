@@ -1,0 +1,13 @@
+# The ladder's sharing families, run by scripts/ladder.py in the gate (the
+# Cells plan's cells-freeze.sharing): each line a step, a sample under
+# samples/sharing/, `shares` or `loss`, and a prefix. The prefix is
+# applied to the string literal after it in the sample 1, 2, 4 and 8
+# times, as assembled and linked (--link), and each size must write the
+# same bytes both ways. From 4 uses to 8, a use may cost at most 8
+# interactions more than it does linked, and at most 2 splices. A `loss`
+# is known not to share until its step is built; it fails the check once
+# it shares, until its mark is removed.
+cells-freeze.templates samples/sharing/closed_work.g loss f
+cells-freeze.cells samples/sharing/partial_in_cell.g loss use
+cells-splice.templates samples/sharing/partial_in_net.g shares g id
+cells-data.root samples/sharing/data_in_cell.g shares f

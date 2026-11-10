@@ -15,6 +15,18 @@ succeeds, both must write the same bytes (the Cells plan, re-scoped by the
 bridge: a differential run against the linker); a sample the linker
 refuses, such as a recursive one, is compared with nothing.
 
+Then the sharing families of glam/sharing.txt (the Cells plan's
+cells-freeze.sharing): each sample applies a prefix to a string literal,
+nested 1, 2, 4 and 8 times into a copy under results/sharing/, run with
+`--count` both ways. Every size must write the same bytes both ways, and
+from 4 uses to 8 a use may cost at most SLACK_ITRS interactions more than
+it does linked and at most SLACK_SPLICES splices: work that needs no
+argument is done once, however many times it is used. A family marked
+`loss` is known not to share until its step is built, and fails once it
+shares, until the mark is removed. What the check cannot see: a splice
+is no interaction, so the size of the copies is invisible to it, and
+only their number is bounded.
+
 The build is kept while its inputs are unchanged, keyed as scripts/kept.py
 keys a check (the file and every file it imports, and Bend as it stands),
 at results/build/glam with its key beside it; a build is about 30 s.
@@ -23,6 +35,7 @@ at results/build/glam with its key beside it; a build is about 30 s.
     python3 -I scripts/ladder.py --fresh    build again whatever the key
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -35,6 +48,11 @@ import kept  # noqa: E402
 
 MAIN = os.path.join(ROOT, "glam", "main.bend")
 LIST = os.path.join(ROOT, "glam", "ladder.txt")
+SHARING = os.path.join(ROOT, "glam", "sharing.txt")
+NESTED = os.path.join(ROOT, "results", "sharing")
+USES = (1, 2, 4, 8)
+SLACK_ITRS = 8
+SLACK_SPLICES = 2
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
 
@@ -129,6 +147,74 @@ def run_one(rung, path):
     return None
 
 
+def families():
+    """(step, path, known loss, prefix) for each line of glam/sharing.txt"""
+    out = []
+    with open(SHARING) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            step, path, mark, prefix = line.split(None, 3)
+            out.append((step, path, mark == "loss", prefix))
+    return out
+
+
+def nested(path, prefix, n):
+    """the sample with `prefix "..."` applied n times, written under
+    results/sharing/; None where the prefix is not met exactly once"""
+    with open(os.path.join(ROOT, path)) as f:
+        src = f.read()
+    at = re.compile(r"(?<![\w'.])" + re.escape(prefix) + r' ("[^"]*")')
+    if len(at.findall(src)) != 1:
+        return None
+    def wrap(m):
+        inner = m.group(1)
+        for _ in range(n):
+            inner = f"{prefix} ({inner})"
+        return inner
+    os.makedirs(NESTED, exist_ok=True)
+    out = os.path.join(NESTED, f"{os.path.basename(path)[:-2]}_{n}.g")
+    with open(out, "w") as f:
+        f.write(at.sub(wrap, src))
+    return out
+
+
+def counted(path, linked):
+    """(stdout, interactions, splices) of a run with --count; None on failure"""
+    args = [EXE, "-f", path, "--count"] + (["--link"] if linked else [])
+    r = subprocess.run(args, capture_output=True)
+    m = re.search(rb"(\d+) interactions, (\d+) splices", r.stderr)
+    if r.returncode != 0 or not m:
+        return None
+    return r.stdout, int(m.group(1)), int(m.group(2))
+
+
+def family(step, path, loss, prefix):
+    """None if the family behaves as its mark says, else what went wrong"""
+    runs = {}
+    for n in USES:
+        src = nested(path, prefix, n)
+        if src is None:
+            return f"FAIL {step} {path}: `{prefix} \"...\"` must occur exactly once"
+        t, l = counted(src, False), counted(src, True)
+        if t is None or l is None:
+            return f"FAIL {step} {path}: the run at {n} uses failed"
+        if t[0] != l[0]:
+            return f"FAIL {step} {path}: at {n} uses it writes {t[0]!r}, linked {l[0]!r}"
+        runs[n] = (t[1], t[2], l[1])
+    a, b = runs[USES[-2]], runs[USES[-1]]
+    per = USES[-1] - USES[-2]
+    itrs, splices, linked = (b[0] - a[0]) / per, (b[1] - a[1]) / per, (b[2] - a[2]) / per
+    shares = itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES
+    said = f"a use costs {itrs:g} interactions and {splices:g} splices, {linked:g} linked"
+    if shares and loss:
+        return f"FAIL {step} {path}: marked a loss, but it shares ({said}): remove its mark"
+    if not shares and not loss:
+        return f"FAIL {step} {path}: does not share ({said})"
+    return ("known loss" if loss else "ok") + f" {step} {path}: {said}"
+
+
 def main(args):
     fresh = "--fresh" in args
     if not build(fresh):
@@ -142,8 +228,18 @@ def main(args):
             print(bad)
         else:
             print(f"ok {rung} {path}")
-    print(f"{len(ss)} samples, {failures} failing")
-    return 1 if failures else 0
+    fs = families()
+    bad_fs, losses = 0, 0
+    for step, path, loss, prefix in fs:
+        said = family(step, path, loss, prefix)
+        print(said)
+        if said.startswith("FAIL"):
+            bad_fs += 1
+        elif loss:
+            losses += 1
+    print(f"{len(ss)} samples, {failures} failing; {len(fs)} sharing families, "
+          f"{bad_fs} failing, {losses} known losses")
+    return 1 if failures or bad_fs else 0
 
 
 if __name__ == "__main__":
