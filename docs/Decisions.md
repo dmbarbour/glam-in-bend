@@ -164,6 +164,9 @@ where the shared lazy state that Bend cannot hold goes.
   materialization. Its finished parts are frozen and copied whole; its
   unfinished ones stay in the source, behind cursors, and reduce once
   for every copy. Reducing first is an optimization.
+- [`copied-controls-unfused`](decisions/copied-controls-unfused.md): a
+  control a copy has taken out of a live source is marked, and runtime
+  fusion refuses it; fusion stays everywhere else.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.
