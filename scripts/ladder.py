@@ -27,6 +27,13 @@ shares, until the mark is removed. What the check cannot see: a splice
 is no interaction, so the size of the copies is invisible to it, and
 only their number is bounded.
 
+Every hello sample and every size of a sharing family runs a third way,
+with `--refreeze`: each template loaded and frozen back before the run
+(glam/freeze.bend, the Cells plan's cells-freeze.cursors). It must write
+the same bytes and report the same counts as the plain run. Then each
+unit test of TESTS runs, `bend` printing `"ok"` alone, its pass kept as
+the build is while its inputs are unchanged.
+
 The build is kept while its inputs are unchanged, keyed as scripts/kept.py
 keys a check (the file and every file it imports, and Bend as it stands),
 at results/build/glam with its key beside it; a build is about 30 s.
@@ -55,6 +62,7 @@ SLACK_ITRS = 8
 SLACK_SPLICES = 2
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
+TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend")]
 
 
 def build(fresh):
@@ -128,6 +136,15 @@ def linked_differs(path, stdout):
     return None
 
 
+def refreeze_differs(path):
+    """the counted run and the refrozen one, where they differ"""
+    a = subprocess.run([EXE, "-f", path, "--count"], capture_output=True)
+    b = subprocess.run([EXE, "-f", path, "--count", "--refreeze"], capture_output=True)
+    if (a.returncode, a.stdout, a.stderr) != (b.returncode, b.stdout, b.stderr):
+        return (a.stdout + a.stderr, b.stdout + b.stderr)
+    return None
+
+
 def run_one(rung, path):
     r = subprocess.run([EXE, "-f", os.path.join(ROOT, path)], capture_output=True)
     err = r.stderr.decode("utf-8", "replace")
@@ -137,6 +154,9 @@ def run_one(rung, path):
         other = linked_differs(path, r.stdout)
         if other is not None:
             return f"FAIL {rung} {path}: with --link it writes {other!r}"
+        rf = refreeze_differs(os.path.join(ROOT, path))
+        if rf is not None:
+            return f"FAIL {rung} {path}: with --refreeze {rf[1]!r}, plainly {rf[0]!r}"
         return None
     expect = os.path.join(ROOT, path[:-2] + ".expect")
     if r.returncode != 1:
@@ -202,6 +222,9 @@ def family(step, path, loss, prefix):
             return f"FAIL {step} {path}: the run at {n} uses failed"
         if t[0] != l[0]:
             return f"FAIL {step} {path}: at {n} uses it writes {t[0]!r}, linked {l[0]!r}"
+        rf = refreeze_differs(src)
+        if rf is not None:
+            return f"FAIL {step} {path}: at {n} uses, with --refreeze {rf[1]!r}, plainly {rf[0]!r}"
         runs[n] = (t[1], t[2], l[1])
     a, b = runs[USES[-2]], runs[USES[-1]]
     per = USES[-1] - USES[-2]
@@ -213,6 +236,24 @@ def family(step, path, loss, prefix):
     if not shares and not loss:
         return f"FAIL {step} {path}: does not share ({said})"
     return ("known loss" if loss else "ok") + f" {step} {path}: {said}"
+
+
+def unit_test(path):
+    """None if the test prints "ok" alone, its pass kept; else the failure"""
+    bend = kept.bend_exe()
+    key = kept.key(path, kept.tool_key(bend), "test")
+    keyfile = os.path.join(ROOT, "results", "build", os.path.basename(path) + ".key")
+    if os.path.exists(keyfile):
+        with open(keyfile) as f:
+            if f.read().strip() == key:
+                return None
+    r = subprocess.run([os.path.join(HERE, "capped.sh"), "2000", "300", bend, path],
+                       capture_output=True, text=True)
+    if r.returncode != 0 or r.stdout.strip() != '"ok"':
+        return f"FAIL {os.path.relpath(path, ROOT)}: {(r.stdout + r.stderr).strip()[-600:]}"
+    with open(keyfile, "w") as f:
+        f.write(key + "\n")
+    return None
 
 
 def main(args):
@@ -237,9 +278,17 @@ def main(args):
             bad_fs += 1
         elif loss:
             losses += 1
+    bad_ts = 0
+    for t in TESTS:
+        said = unit_test(t)
+        if said:
+            bad_ts += 1
+            print(said)
+        else:
+            print(f"ok test {os.path.relpath(t, ROOT)}")
     print(f"{len(ss)} samples, {failures} failing; {len(fs)} sharing families, "
-          f"{bad_fs} failing, {losses} known losses")
-    return 1 if failures or bad_fs else 0
+          f"{bad_fs} failing, {losses} known losses; {len(TESTS)} tests, {bad_ts} failing")
+    return 1 if failures or bad_fs or bad_ts else 0
 
 
 if __name__ == "__main__":

@@ -11,6 +11,8 @@ import ./lower.bend as W
 import ./splice.bend as S
 import ./objects.bend as O
 import ../spike/tpl.bend as T
+import ./freeze.bend as F
+import ../spike/kprim.bend as P
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
 # result, bytes, or its diagnostics; it never prints. As far as the hello
@@ -1590,5 +1592,47 @@ def start.p(p: G.Parsed, +lk: Bool) -> Run:
 
 # a ".g" source's bytes to its assembly, begun: parsed and lowered, its
 # evaluation not yet stepped; lk links every definition statically
+# A check of freezing (the Cells plan's `cells-freeze.cursors`): with
+# `--refreeze`, every template in the book is loaded and frozen back
+# before the run, so that the ladder can compare what it writes and counts
+# with the templates as lowered.
+def refrozen.r(r: P.H & T.Tpl) -> T.Tpl:
+  (h, t) = r
+  t
+
+def refrozen.t(t: T.Tpl) -> T.Tpl:
+  refrozen.r(F.freeze(KN.load(t)))
+
+def refrozen.e(e: Ent) -> Ent:
+  match e:
+    case ETpl{t}:
+      ETpl{refrozen.t(t)}
+    case ERecipe{t, name}:
+      ERecipe{refrozen.t(t), name}
+    case EBusy{t, name}:
+      EBusy{refrozen.t(t), name}
+    case EValue{v}:
+      EValue{v}
+    case EFn{t}:
+      EFn{refrozen.t(t)}
+
+def refrozen.b(b: List<&2, Ent>) -> List<&2, Ent>:
+  match b:
+    case Nil{}:
+      Nil{}
+    case Con{e, rest}:
+      Con{refrozen.e(e), refrozen.b(rest)}
+
+def refrozen(+on: Bool, r: Run) -> Run:
+  match on:
+    case False{}:
+      r
+    case True{}:
+      match r:
+        case RDone{o}:
+          RDone{o}
+        case RMore{t, s, b, c}:
+          RMore{t, s, refrozen.b(b), c}
+
 def start(bs: List<&2, U32>, +lk: Bool) -> Run:
   start.p(G.parse(L.lex(bs)), lk)
