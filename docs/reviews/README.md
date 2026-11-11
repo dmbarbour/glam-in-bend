@@ -71,6 +71,19 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   second reviewer's analysis of head demand without fuel, by a Fable
   sub-agent, kept as written; compared in `Demand_2026-11-11.md`'s
   second round.
+- [`Positions_2026-11-11.md`](Positions_2026-11-11.md): busy state and
+  tracking for the positions a live template's copies demand, at the
+  maintainer's request. Two investigations compared. Proposed:
+  - busy as a task at the position, nothing stored in the source;
+  - a suspended walk keeping no path and walking again from its
+    position;
+  - cursors as handles served like needs, each copy pulling its own
+    result.
+
+  Drafted for the maintainer.
+- [`PositionsFable_2026-11-11.md`](PositionsFable_2026-11-11.md): the
+  second reviewer's investigation, by a Fable sub-agent, kept as
+  written.
 
 ## Retired
 

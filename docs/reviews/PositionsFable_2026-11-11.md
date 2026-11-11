@@ -1,0 +1,99 @@
+# Busy positions and tracking for cursors — 2026-11-11
+
+Written by a Fable sub-agent on 2026-11-11 at the agent's request, on busy state and tracking for cursor positions; kept as written.
+
+The question (the maintainer, 2026-11-11): what a busy state per cursor position costs, how it is represented and managed, and how needed positions are tracked back to cursors. Repository claims carry their path; inferences are marked.
+
+## 1. The problem: a position demanded while already being demanded
+
+**What a position is.** A copy of a live template holds, at each unfinished part of its source, a negative cursor naming a position: a finished node's negative auxiliary port in the source, facing an unfinished node (the Cells plan, `cells-freeze.cursors`). Demand reaching the cursor becomes today's walk started at that port instead of the interface (`docs/reviews/Demand_2026-11-11.md`, "Live templates need positioned demand"). It ends with a value facing the port, or at the frontier, where it meets the function's variable or another finished node's output; either way what now faces the port is finished, and the waiting copy materializes it. The copy's argument never enters the source (the maintainer, 2026-11-10: "the source is not touched by a copy"). Inference: so every walk from one position makes the same rewrites whichever copy asked, and a position's walk needs doing once.
+
+**Today there is nothing to collide with.** A task is `Tk{d, cell, waits}` (`glam/core.bend`), one demand in a net of its own, loaded fresh for each recipe forced (`KN.load(t)` in `needed.e`). One stack holds the tasks set aside; a need on a busy cell is a cycle unconditionally (`needed.e`, the `EBusy` case), rightly, since with one stack every busy cell is an ancestor. No two walks share a net.
+
+**With live templates a source is shared by every walk into it.** Three kinds of collision, in order of appearance.
+
+*A position needed on its own chain.* `f y = f (g y)`: the walk at P, the Fn's result port, enters the application, meets the leaf for `f`, materializes `f`'s finished part into the source itself, and beta links P's peer to the copied Fn's result peer, a cursor to P. The walk at P faces a cursor to P: a genuine cycle, the program's divergence reported rather than run out of fuel (`docs/reviews/HeadDemandFable_2026-11-11.md`, section 2). Two object members calling each other through `self` with no guard, `a x = b x; b x = a x`, are the same shape through two cells: a's body at P_a needs cell b, b's source at P_b needs cell a, done, and materializes it to a cursor at P_a, busy below on the stack.
+
+*Another position of a busy source, on the same chain, terminating.* This decides per-source against per-position. Take `f x = (c + 1, x + 1)`, both components unfinished (operators facing down), so a copy holds cursors at P1 and P2; and `c = snd (f 0)`. Demanding `fst (f 5)` walks P1, meets `c`'s leaf, forces `c` on a task above; `c`'s recipe materializes `f` and demands P2 while P1's walk stands suspended in `f`'s source. P2's walk reaches the variable at once; `c` is 1; P1 resumes; the result is 2. Busy state per source reports a cycle here; the program terminates. Objects make the shape common: every member calling another through `self` whose body does not loop back.
+
+*Two copies demanding one position.* Sequentially the second finds the first's walk done and materializes. It finds it busy only when the first is suspended on a need and the second arrives from that need's chain, which is a genuine cycle. Under parallel tasks (`bridge-parallel`; `bounded-duplication` on why a wait, not a second walk) the second arrives from another chain and must wait, as item 6 says of cells.
+
+**So the question has two levels.** Sequentially, the only state needed tells a cycle from a terminating re-entry at another position, and granularity is the whole of it: per source is wrong, per position right. The owner and the ancestor test matter once tasks run on several stacks; then a busy position on another chain is a wait, and the position needs a waiter list. The sections below cost both, the second as a projection.
+
+## 2. Representations of busy state
+
+**One observation shrinks every alternative.** A position has three states, Pending, Busy, Done, and Done need not be stored: a walk ending at P leaves finished structure facing P's port, and the finished bitmap `cells-freeze.demand` keeps per source answers "is P's peer finished?" in one read. The only stored state is Busy, which lives exactly as long as a walk. Busy is "a task exists whose demand is at (S, P)"; the alternatives differ in where that fact is kept.
+
+**A. A table beside the source's entry.** Inference on `Ent`'s shape: `ESource{h, finished, busy}`, `busy` a list of (position, owner task). A cursor demand scans it: O(walks suspended in that source), nearly always 0 or 1. Memory: a pair per suspended walk. Set at a positioned task's start, cleared at its end in the `book_set` that returns the heap (section 3). Clearing is the one thing to get right: every end, value, frontier, stuck, state 5, error, must clear it; out of fuel keeps walk and mark. Owner recorded, so the ancestor test works once chains are several.
+
+**B. A mark in the net.** A header bit on the finished node at P, as `copied-controls-unfused` steals a form bit; a data node's or one-port node's spare word (`spike/kprim.bend`) would fit an owner. One read per cursor demand, two writes per walk, no memory. Against it: the maintainer's "I'd hesitate to modify the source nets because it becomes messy for diagnostics" (2026-11-10), said of anchors and applying here; every reader of the kind's header must ignore the bit; a bit alone names no owner. I would not take it.
+
+**C. The task records scanned.** Give `Tk` the position its demand walks, `at: (S, P)`. A cursor demand scans the stack for a task at (S, P): a hit is a cycle, no owner needed, since with one stack every task on the stack is an ancestor (`needed.e` relies on the same fact for cells). Cost: O(stack depth), at most the definitions forced plus the walks suspended; or O(1) with a per-source count of tasks in flight, scanning only when nonzero. Memory: two words per task. Clearing is free: a task gone from the stack is no longer busy. Under several stacks the scan becomes the waits-for walk from the needing task to its root, which the ancestor test makes anyway; a wait then needs a waiter list, which is A's entry again.
+
+**D. None.** For the terminating cases, mere waste: P2 is not busy anyway, and two copies on a done position materialize. For `f y = f (g y)` a walk at P meeting a cursor to P starts a nested task at P, which meets the cursor again: unbounded nesting, ended by the slice budget or by Bend's stack, and the latter is a fail-stop reached from user input, a bug by AGENTS.md. Out, unless re-entry is detected, which is a busy check by another name.
+
+**E. Busy derived from the net.** Inference: a suspended walk leaves P's peer unfinished with its pairs rewritten, indistinguishable from a pending position nobody walks. Not derivable; one of A to C must hold it.
+
+**Comparison.** Per cursor demand: A a short list scan, B a read, C a stack scan or a count; all dwarfed by the materialization or walk that follows. Memory: B none, A and C a few words per suspended walk. Clearing: C free, A at task end, B at task end with the net in hand. Owner: A and C yes, B with a spare word only.
+
+**For this section:** C now, with the per-source count: no state in the source, nothing to clear, the cycle test the stack already affords. A's waiter list when tasks run in parallel, the entry then holding count and waiters, C's `at` field the owner's own record.
+
+## 3. Tracking: from a cursor to a task on the source and back
+
+**How a cell is served today.** A demand stops in state 2 when an application or strict call meets a data node holding a table entry (`may_need` in `spike/kdemand.blend`: kinds 2 and 9 meeting kind 5, form 0). The task keeps nothing but `top`, the consumer; `KS.need` reads the handle from the net, and `KS.resume` finds the data node again from `top` and writes the value into it (`spike/kstrat.bend`, "A demand waiting on a lazy value keeps nothing for it"). `needed.e` pushes the needing task as `Tk{d, cell, waits: k}` and starts `Tk{d.start(KN.load(t)), k}`; `finished.s` pops the task below and serves it: a value by `resume`, a function by `S.splice` at `d0`, which frees the handle node and links the copy's root where it stood (`glam/splice.bend`, header). The waiter is the task below, by its place on the stack; no table says who waits on k.
+
+**A cursor is the same stop.** Make it a data node whose table value is a new variant, `VCursor{+src, +pos, +off}` beside `VLazy{+h}` in `spike/val.bend`: the source's handle, the position (node and port in one `U32`, as references are), and the level offset of the copy holding it, written when the cursor is placed. Then `may_need` stops on it unchanged, `need` reads it, and the core dispatches on the value. No book entry per cursor: `book_set` rewrites a list, and cursors are made at every materialization. `Tk.waits` is a bare `U32` cell handle; a position-wait widens it to a sum, `WCell{k}` or `WPos{src, pos}`.
+
+**Serving it, three cases on the source's entry.**
+1. *P's peer is finished* (the bitmap): materialize now, as `finished.fn` splices now. From P, copy the finished structure raised by `off`, leaving fresh cursors at unfinished positions and joining the positive anchors this copy already holds (the Cursors review's recommendation: placeholders threaded per copy). Free the cursor node, link the result to `top`'s consumer, go on.
+2. *No task at (S, P)*: push the needing task with `waits: WPos{S, P}`; start a task walking from P in S's heap with a fresh path array. When it ends, in state 1 or the frontier state that state 7 becomes, extend the finished bitmap from P (a fixpoint over the nodes left facing up), pop the waiter, serve it as case 1. Stuck, state 5, an error: serve the waiter the outcome as a cell's would be, caching nothing at P; the net keeps the stuck pair for the next walk to find.
+3. *A task at (S, P)*: a cycle on one stack; a wait once chains are several.
+
+**Where the heap is.** A source's heap is one linear value. The task walking it holds it in its `D` while it runs; a task set aside must give it back to the entry, or no other task can walk the source. So a positioned task pushed keeps `(path, top, depth, n)` and the source's handle, and takes the heap out again when resumed; the entry holds the heap whenever no task is on top of it. This is suspension's real cost: two `book_set`s, O(entries) each on today's list, which argues for an array book before sources are many.
+
+**Back to the cursor: nothing to track.** The result is pulled, not delivered. The waiting task's `top` faces its cursor node in its own net, and `d.at(h, top)` finds it as it finds a handle node today. The offset is in the cursor; the place is `top`; the joins are this copy's own threaded placeholders. The source never learns which copies hold cursors to P, as the maintainer's no-observer-table answer wants. A cursor duplicated by a fan in the copy is two data nodes with one value, each served separately, the second from a done position.
+
+**A waiter list, when needed.** With several stacks, case 3's wait adds the task to P's waiters in the entry; the owner's end wakes each, and each serves itself as case 1 in its own net at its own offset. The list carries task ids only. Deep cursors keep CursorsFable's question 5 open; `off` is whatever the chain composes to.
+
+## 4. The hazard: several suspended walks in one source
+
+**What a suspended walk holds.** Its path array of node indices from its start to the node below `top`, and `top`, the consumer in a need pair (`KD.D` in `spike/kdemand.blend`; `KS.resume` re-reads `top`'s node). Stale indices are the hazard: nodes never move (`net-nodes-double`), but freed slots are reused, so a freed path node is not detectable by its header.
+
+**What Q cannot do to P's path below `top`.** Inference from the walk's own invariant, "Only the path's last node can be in a pair, the others facing auxiliary ports, so a rewrite there leaves the rest of the path as it was" (`spike/kdemand.blend`, header). Each path node's principal faces the next node's auxiliary port; a rewrite needs two principals, so no path node below `top` is in a pair while P is suspended. Rules relink only the redex's external peers, ports of the pair's own nodes, and the path's wires join path nodes to path nodes. Fusion tries only the links a rewrite just made and frees only the second lift (`fuse_lifts`, `spike/kprim.bend`). Events change a kind in place and free only the eraser ("No event frees a node on demand's path", `spike/knet.bend`). A collection keeps what the interface reaches, and a path node is reached. The Copy fan the question names, on P's path, was entered by an output with its principal facing down; Q entering by the other output descends the same way and cannot fire it.
+
+**Where it breaks: `top`, and a shared suffix.** Q entering P's path at any node descends it to P's `top` and meets the same need: two walks suspended at one need node with a common suffix. This arises:
+- *Sequentially, once cycle errors are served into the net.* Item 6 proposes serving a need on a cycle an error value, cached in each cell around it, instead of `needed.e`'s ending the run. Then Q, reaching P's `top` from the busy cell's own chain, is resumed there with the error, rewrites the pair, frees `top`, and walks on up the shared suffix rewriting it. P, resumed later, holds `top` and a suffix pointing at freed and reused slots.
+- *In parallel, two chains waiting on one cell.* Both wake; the first rewrites; the second's path is stale. Two walks merged below a busy position, likewise; two copies on one busy position, the same unless section 2's check stops the second.
+
+**Remedies, costed.**
+1. *Re-walk from the position on resume.* Discard the path; the resumed task walks again from its position. Every node it passes already faces the right way, so the descent is O(depth) reads with no rewrites, ending at the need, now served, or beyond. Collecting demand does this after every collection: "the walk starts again from the interface, its path's array kept: a collection ... may rewrite any pair it may, the path's own among them" (`spike/kstrat.bend`), and that cost was accepted. A suspended task then needs no path: source, position, what it waits on. The value is written once, by the first wake, where its node still stands; `d.at` from a stale `top` is never used.
+2. *Re-walk only when the net changed.* A rewrite count per net, one header word beside those `spike/kprim.bend` keeps, saved at suspension, compared at resume. Saves the reads where no other walk ran, sequentially every case but the cycle-error one. Only if 1 shows in a profile.
+3. *Serialize walks per source.* Wrong for section 1's pair, reported as a cycle; and it buys nothing: one stack already runs walks in one source one at a time, and `net-nodes-double` has one worker per net, so only suspension interleaves them, which 1 handles.
+4. *Restrict suspension,* serving needs before any copy exists (head demand's pre-pass): fewer cases, none removed.
+5. *Validate `top` by its header on resume:* unreliable, a reused slot has a valid header.
+
+**A law worth stating now,** cheap in the kernel's terms: a node on a demand's path below its top is in no active pair and is no pair's external peer, so the only rewrite touching a suspended path is at its top. The kernel assumes it today; with remedy 1 it is the whole invariant a suspended task needs.
+
+## 5. Recommendation, experiments, questions
+
+**Recommendation.** Nothing is stored in the source. A position's Done is the finished bitmap; its Busy is the existence of a task at it, read from the task records behind a per-source count of tasks in flight; a cursor demand finding a task at its position on the stack is a cycle, as a need on a busy cell is today. A suspended positioned task keeps no path: the source, the position, what it waits on; resume serves the need where its node stands and walks again from the position. The cursor is a data node holding `VCursor{src, pos, off}`, stopped on by `may_need` as a handle is, served by materialization at the waiting task's `top` as `finished.fn` splices today; the result is pulled, never delivered, so no table tracks positions back to cursors. When tasks run on several stacks, the source's entry gains a waiter list per busy position and the ancestor test walks the waits-for chain; nothing else changes. Serializing walks per source is refused on the pair example.
+
+**What it costs** against today's cells: per cursor demand, a scan of the in-flight tasks when the source's count is nonzero; per suspension, two `book_set`s moving the heap; per resume, the path's depth in reads. Memory: two words per task, a count per source, no path arrays for suspended walks.
+
+**Experiments that decide it, cheap first.**
+1. *Re-entry counts.* Under `cells-freeze.cursors`, on `glam/sharing.txt`'s families and the ladder: cursor demands; those finding Done, starting a walk, finding a task at the position; the stack depth at each scan. Rare hits and small depths settle section 2 by measurement.
+2. *Suspensions and their depth.* Positioned walks stopping at a need, and their path depth: this prices remedy 1 and says whether remedy 2 ever earns its word.
+3. *Library entries* (`spike/library.txt`), each with what must hold: `f y = f (g y)` applied, a cycle at a position; the pair `f x = (c + 1, x + 1)`, `c = snd (f 0)`, `fst (f 5)` demanded, the value 2 and no cycle; two members through `self` with a terminating guard, the value; a fan in a copy duplicating one cursor, both halves demanded, one walk in the source; a walk suspended on a cell whose recipe re-enters the source at another position and merges into the suspended path through a shared fan: a cycle today, and once item 6 serves errors into the net, the error at both and no crash. The last is the shared-suffix case made small.
+4. *Fuel across a positioned walk.* Out of fuel keeps the task and its busy position; a runaway `f y = f (g y)` must show as one position busy every slice, never as nested tasks.
+
+**Laws.** The path law of section 4. For cursors: a position's peer, once finished, stays finished under any rewrite in the source, which `copied-controls-unfused` makes true for controls; with it, materializing from a Done position needs no walk, and section 3's case 1 holds.
+
+**Questions for the maintainer.**
+1. Busy as "a task is at the position", read from the task records, nothing in the source: acceptable, given the hesitation to mark sources?
+2. A suspended positioned walk keeps no path and walks again from its position on resume, as collecting demand does after a collection: agreed as the rule, before measuring remedy 2?
+3. Item 6's cycle errors served into the net make the shared-suffix case sequential. Still intended? Then remedy 1 is required before it lands, not optional.
+4. May the book become an array of entries before sources are many, or is the list fine while the ladder is short?
+5. `VCursor` as a value variant, against a cursor node kind of its own (the plan's open question): the variant reuses `may_need`, `need` and `resume` unchanged; a kind buys only a faster dispatch. Any reason to prefer the kind?
+6. Under parallel tasks, is a waiter woken by the owner's end and pulling for itself the model wanted, or should the owner deliver into each waiter as a cell delivers a value? Pull keeps the source ignorant of its copies; delivery needs the observer table the Rust bootstrap regretted.
+
+<!-- end -->
