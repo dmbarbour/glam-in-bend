@@ -67,6 +67,10 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`DemandFable_2026-11-11.md`](DemandFable_2026-11-11.md): the second
   reviewer's opinion on the same question, by a Fable sub-agent, kept as
   written beside `Demand_2026-11-11.md`.
+- [`HeadDemandFable_2026-11-11.md`](HeadDemandFable_2026-11-11.md): the
+  second reviewer's analysis of head demand without fuel, by a Fable
+  sub-agent, kept as written; compared in `Demand_2026-11-11.md`'s
+  second round.
 
 ## Retired
 
