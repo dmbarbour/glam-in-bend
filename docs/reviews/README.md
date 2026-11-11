@@ -84,6 +84,21 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`PositionsFable_2026-11-11.md`](PositionsFable_2026-11-11.md): the
   second reviewer's investigation, by a Fable sub-agent, kept as
   written.
+- [`Joins_2026-11-11.md`](Joins_2026-11-11.md): how a live template's
+  copy joins its cursors.
+  - A ring of cursor nodes for each copy in the host's heap, with two
+    rules: copy fans wait at negative cursors, and positive cursors
+    never interact.
+  - Joins at any outstanding cursor of the copy, cursor to cursor
+    included.
+  - Reviewed in depth by the second reviewer, who confirms the copy's
+    side but finds that events and the sweep break the stability of
+    positions in a source.
+
+  Six questions. Drafted for the maintainer.
+- [`JoinsFable_2026-11-11.md`](JoinsFable_2026-11-11.md): the second
+  reviewer's review of that design, by a Fable sub-agent, kept as
+  written.
 
 ## Retired
 
