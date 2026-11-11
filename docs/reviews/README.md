@@ -53,6 +53,20 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`CursorsFable_2026-11-10.md`](CursorsFable_2026-11-10.md): the second
   reviewer's brainstorm on the same question, by a Fable sub-agent, kept
   as written beside `Cursors_2026-11-10.md`, which compares the two.
+- [`Demand_2026-11-11.md`](Demand_2026-11-11.md): demand for copying and
+  fusion, at the maintainer's request: what demand does by polarity and
+  scoping, what demand through a value's negative auxiliaries would
+  mean, fans, positioned demand for live templates. Compared with the
+  second reviewer's opinion. Recommended:
+  - demand to weak head normal form at the root, unchanged;
+  - positioned demand at cursors;
+  - bounded head demand as early evaluation, before a source's first
+    copy.
+
+  Six questions. Drafted for the maintainer.
+- [`DemandFable_2026-11-11.md`](DemandFable_2026-11-11.md): the second
+  reviewer's opinion on the same question, by a Fable sub-agent, kept as
+  written beside `Demand_2026-11-11.md`.
 
 ## Retired
 
