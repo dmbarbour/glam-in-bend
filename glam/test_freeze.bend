@@ -120,7 +120,7 @@ def frozen_fin.cs(cs: List<&2, F.FzC>) -> String:
       ""
     case Con{c, rest}:
       match c:
-        case F.FzC{+at, +src, neg}:
+        case F.FzC{+at, +src, neg, +far}:
           sh.u(at) ++ ":" ++ sh.u(src) ++ sh.neg(neg) ++ " " ++ frozen_fin.cs(rest)
 
 def count.l(ls: List<&2, T.TLink>) -> U32:

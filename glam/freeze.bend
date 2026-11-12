@@ -199,10 +199,11 @@ def fz.node.c(+c: U32, h: P.H, +hd: U32, +b: U32) -> P.H & T.TNode:
 # ====================
 
 # a cursor: the placeholder's index in the template, the source's
-# reference of the finished node's port, and whether that port is
-# negative, the copy awaiting a value there
+# reference of the finished node's port, whether that port is negative,
+# the copy awaiting a value there, and the port it faces in the source,
+# its far end
 type FzC is Data:
-  FzC{+at: U32, +src: U32, neg: Bool}
+  FzC{+at: U32, +src: U32, neg: Bool, +far: U32}
 
 # a freeze of the finished part: the template and its cursors, the first
 # placeholder first
@@ -231,15 +232,11 @@ def fz.neg(pol: R.Pol) -> Bool:
     case R.Pos{}:
       False{}
 
-# the placeholder of a cursor at a port of polarity pol: a value where the
-# copy awaits one; where the copy supplies one, an eraser for now, until
-# positive cursors have a kind of their own (`cells-freeze.cursors.positive`)
+# the placeholder of a cursor: a cursor node (`cells-freeze.cursors.kinds`),
+# a negative one as loaded, which a materialization makes positive where
+# the port is
 def fz.hole(pol: R.Pol) -> T.TNode:
-  match pol:
-    case R.Neg{}:
-      T.TN{R.KData{}, V.PVal{V.VUnit{}}}
-    case R.Pos{}:
-      T.TN{R.KEraN{}, V.PNone{}}
+  T.TN{R.KCur{}, V.PNone{}}
 
 # a link from port p of node i to port pq of node j, written once: from
 # the end that comes first
@@ -255,7 +252,7 @@ def fz.link.k(+first: Bool, +i: U32, +p: U32, +j: U32, +pq: U32, ls: List<&2, T.
 def fz.peer.v(+unf: Bool, h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +v: U32) -> FzE:
   match unf:
     case True{}:
-      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p)))}, curs}}
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
     case False{}:
       FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (v - 1 : U32), (q .&. 3 : U32), ls), root, curs}
 
@@ -340,7 +337,7 @@ def fz.tpl(z: FzE) -> P.H & Fz:
 def fz.written.k(+none: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>) -> P.H & Fz:
   match none:
     case True{}:
-      (h, Fz{T.Tpl{[T.TN{R.KData{}, V.PVal{V.VUnit{}}}], Nil{}, T.TE{0, 0}, 1}, [FzC{0, P.iface(), True{}}]})
+      (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [FzC{0, P.iface(), True{}, P.iface()}]})
     case False{}:
       fz.tpl(fz.emits(seen, FzE{h, map, Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)))
 
@@ -372,3 +369,17 @@ def freeze(h: P.H) -> P.H & T.Tpl:
 # the finished part frozen, with its cursors
 def freeze_finished(h: P.H) -> P.H & Fz:
   fz.cap(P.stats(h), False{})
+
+def fz.tree.cap(r: P.H & P.HS, +v: U32) -> P.H & Fz:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), False{}, FzR{h, [0 : U32^T.depth_for(31n, cap, 0n)], 0, Nil{}, [v]}))
+
+# the finished tree rooted at the node at base v frozen, with its
+# cursors: every wire leaving it, its root's principal among them, a
+# cursor whose far end says where it led (a materialization's tree,
+# `cells-freeze.cursors.materialize`). The interface met is the root, as
+# freeze_finished has it.
+def freeze_tree(h: P.H, +v: U32) -> P.H & Fz:
+  fz.tree.cap(P.stats(h), v)
