@@ -314,13 +314,23 @@ abstract object Walk extends C.Chain with
   def may_need(+ha: U32, +hb: U32) -> Bool:
     (U32.is_eq(P.rk(ha), 2) || U32.is_eq(P.rk(ha), 9)) && U32.is_eq(P.rk(hb), 5) && U32.is_eq(P.form(hb), 0)
 
+  # a negative cursor met (the Cells plan's cells-freeze.cursors.kinds,
+  # kind 18): a need, as a lazy handle met is, its node found again by d.at
+  # when served. Only a negative cursor can face a negative principal.
+  def nd.cur(cur: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
+    match cur:
+      case True{}:
+        D{h, path, top, depth, n, 2}
+      case False{}:
+        nd.go(may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
+
   # the pair the last node, x, meets: rewritten from x's side, its principal
   # negative as every node's the walk enters by an output; positive, x was
   # entered going forward (fw.scan)
   def wk.ori(neg: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +x: U32, +y: U32, +hx: U32, +hy: U32) -> D:
     match neg:
       case True{}:
-        nd.go(may_need(hx, hy), h, path, top, depth, n, x, y, hx, hy)
+        nd.cur(U32.is_eq(P.rk(hy), 18), h, path, top, depth, n, x, y, hx, hy)
       case False{}:
         fw.scan(h, path, top, depth, n, 7)
 
@@ -334,7 +344,8 @@ abstract object Walk extends C.Chain with
 
   # the interface facing a principal port: a control's moves past it (the
   # root's rule keeps the interface); a void, nothing, is demanded, an
-  # outcome of its own, whatever supplied it (net-void-demanded); anything
+  # outcome of its own, whatever supplied it (net-void-demanded); a
+  # negative cursor is a need, its value still in its source; anything
   # else is the value
   shared def wk.root.v(+void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
     match void:
@@ -343,16 +354,23 @@ abstract object Walk extends C.Chain with
       case False{}:
         d.stop(h, path, 0, depth, n, 1)
 
-  def wk.root.go(c: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
+  def wk.root.cur(cur: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32) -> D:
+    match cur:
+      case True{}:
+        D{h, path, P.iface(), depth, n, 2}
+      case False{}:
+        wk.root.v(void, h, path, depth, n)
+
+  def wk.root.go(c: Bool, +cur: Bool, +void: Bool, h: P.H, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
     match c:
       case True{}:
         d.go(interact.f(h, Unit{}, True{}, P.iface(), y), path, P.iface(), depth, (n + 1 : U32))
       case False{}:
-        wk.root.v(void, h, path, depth, n)
+        wk.root.cur(cur, void, h, path, depth, n)
 
   def wk.root(r: P.H & U32, path: KM.M, +depth: U32, +n: U32, +y: U32) -> D:
     (h, +hy) = r
-    wk.root.go(U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
+    wk.root.go(U32.is_eq(P.rk(hy), 11), U32.is_eq(P.rk(hy), 18), U32.is_eq(P.rk(hy), 7), h, path, depth, n, y)
 
   def wk.pair(root: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +y: U32) -> D:
     match root:

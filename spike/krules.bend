@@ -48,6 +48,8 @@ def kind_arity(+k: U32) -> U32:
       1
     case 17:
       2
+    case 18:
+      1
     case _:
       0
 
@@ -90,6 +92,8 @@ def kind_neg.n(+k: U32) -> U32:
     case 16:
       1
     case 17:
+      0
+    case 18:
       0
     case _:
       0
@@ -137,6 +141,8 @@ def kind_dir(+k: U32) -> U32:
       12
     case 17:
       13
+    case 18:
+      15
     case _:
       15
 
@@ -232,13 +238,13 @@ def class.lt(lt: Bool, +k: U32) -> U32:
     case True{}:
       k
     case False{}:
-      18
+      19
 
 def class(+k: U32) -> U32:
-  class.lt(U32.is_lt(k, 18), k)
+  class.lt(U32.is_lt(k, 19), k)
 
 # the rule's number for A, negative principal, of class ca meeting B of
-# class cb, at ca times 19 plus cb: 0 for a pair no rule rewrites
+# class cb, at ca times 20 plus cb: 0 for a pair no rule rewrites
 def rule_at(+i: U32) -> U32:
   match i:
     case 0:
@@ -320,83 +326,83 @@ def rule_at(+i: U32) -> U32:
     case 38:
       0
     case 39:
-      1
+      0
     case 40:
       0
     case 41:
-      0
+      1
     case 42:
-      2
-    case 43:
-      3
-    case 44:
       0
+    case 43:
+      0
+    case 44:
+      2
     case 45:
-      4
+      3
     case 46:
       0
     case 47:
-      0
+      4
     case 48:
       0
     case 49:
-      5
+      0
     case 50:
       0
     case 51:
-      0
+      5
     case 52:
-      6
-    case 53:
-      7
-    case 54:
       0
+    case 53:
+      0
+    case 54:
+      6
     case 55:
-      8
+      7
     case 56:
       0
     case 57:
-      0
+      8
     case 58:
-      9
+      0
     case 59:
       0
     case 60:
       0
     case 61:
-      10
+      9
     case 62:
-      11
+      0
     case 63:
       0
     case 64:
-      12
+      10
     case 65:
-      0
+      11
     case 66:
       0
     case 67:
-      0
+      12
     case 68:
-      13
+      0
     case 69:
       0
     case 70:
       0
     case 71:
-      14
+      13
     case 72:
-      15
+      0
     case 73:
       0
     case 74:
-      16
+      14
     case 75:
-      0
+      15
     case 76:
       0
     case 77:
-      0
+      16
     case 78:
       0
     case 79:
@@ -472,51 +478,51 @@ def rule_at(+i: U32) -> U32:
     case 114:
       0
     case 115:
-      17
+      0
     case 116:
       0
     case 117:
       0
     case 118:
-      18
+      0
     case 119:
-      19
+      0
     case 120:
       0
     case 121:
-      20
+      17
     case 122:
       0
     case 123:
       0
     case 124:
-      0
+      18
     case 125:
-      21
+      19
     case 126:
       0
     case 127:
-      0
+      20
     case 128:
-      22
+      0
     case 129:
-      23
+      0
     case 130:
       0
     case 131:
-      24
+      21
     case 132:
       0
     case 133:
       0
     case 134:
-      0
+      22
     case 135:
-      0
+      23
     case 136:
       0
     case 137:
-      0
+      24
     case 138:
       0
     case 139:
@@ -568,7 +574,7 @@ def rule_at(+i: U32) -> U32:
     case 162:
       0
     case 163:
-      25
+      0
     case 164:
       0
     case 165:
@@ -584,7 +590,7 @@ def rule_at(+i: U32) -> U32:
     case 170:
       0
     case 171:
-      0
+      25
     case 172:
       0
     case 173:
@@ -592,13 +598,13 @@ def rule_at(+i: U32) -> U32:
     case 174:
       0
     case 175:
-      58
+      0
     case 176:
-      59
+      0
     case 177:
       0
     case 178:
-      26
+      0
     case 179:
       0
     case 180:
@@ -606,17 +612,17 @@ def rule_at(+i: U32) -> U32:
     case 181:
       0
     case 182:
-      60
+      0
     case 183:
       0
     case 184:
-      0
+      58
     case 185:
-      27
+      59
     case 186:
-      28
-    case 187:
       0
+    case 187:
+      26
     case 188:
       0
     case 189:
@@ -624,19 +630,19 @@ def rule_at(+i: U32) -> U32:
     case 190:
       0
     case 191:
-      29
+      60
     case 192:
       0
     case 193:
       0
     case 194:
-      30
+      27
     case 195:
-      31
+      28
     case 196:
       0
     case 197:
-      32
+      0
     case 198:
       0
     case 199:
@@ -644,19 +650,19 @@ def rule_at(+i: U32) -> U32:
     case 200:
       0
     case 201:
-      61
+      29
     case 202:
       0
     case 203:
       0
     case 204:
-      33
+      30
     case 205:
-      34
+      31
     case 206:
       0
     case 207:
-      35
+      32
     case 208:
       0
     case 209:
@@ -664,19 +670,19 @@ def rule_at(+i: U32) -> U32:
     case 210:
       0
     case 211:
-      0
+      61
     case 212:
       0
     case 213:
       0
     case 214:
-      0
+      33
     case 215:
-      0
+      34
     case 216:
       0
     case 217:
-      0
+      35
     case 218:
       0
     case 219:
@@ -700,19 +706,19 @@ def rule_at(+i: U32) -> U32:
     case 228:
       0
     case 229:
-      36
+      0
     case 230:
       0
     case 231:
       0
     case 232:
-      37
+      0
     case 233:
-      38
+      0
     case 234:
       0
     case 235:
-      39
+      0
     case 236:
       0
     case 237:
@@ -720,63 +726,63 @@ def rule_at(+i: U32) -> U32:
     case 238:
       0
     case 239:
-      40
+      0
     case 240:
       0
     case 241:
-      0
+      36
     case 242:
-      41
-    case 243:
-      42
-    case 244:
       0
+    case 243:
+      0
+    case 244:
+      37
     case 245:
-      43
+      38
     case 246:
       0
     case 247:
-      0
+      39
     case 248:
-      44
+      0
     case 249:
       0
     case 250:
       0
     case 251:
-      45
+      40
     case 252:
-      46
+      0
     case 253:
       0
     case 254:
-      47
+      41
     case 255:
-      0
+      42
     case 256:
       0
     case 257:
-      0
+      43
     case 258:
-      48
+      0
     case 259:
       0
     case 260:
       0
     case 261:
-      49
+      44
     case 262:
-      50
+      0
     case 263:
       0
     case 264:
-      51
+      45
     case 265:
-      0
+      46
     case 266:
       0
     case 267:
-      0
+      47
     case 268:
       0
     case 269:
@@ -784,19 +790,19 @@ def rule_at(+i: U32) -> U32:
     case 270:
       0
     case 271:
-      0
+      48
     case 272:
       0
     case 273:
       0
     case 274:
-      0
+      49
     case 275:
-      0
+      50
     case 276:
       0
     case 277:
-      0
+      51
     case 278:
       0
     case 279:
@@ -858,13 +864,13 @@ def rule_at(+i: U32) -> U32:
     case 307:
       0
     case 308:
-      52
+      0
     case 309:
-      53
+      0
     case 310:
       0
     case 311:
-      54
+      0
     case 312:
       0
     case 313:
@@ -872,15 +878,15 @@ def rule_at(+i: U32) -> U32:
     case 314:
       0
     case 315:
-      55
+      0
     case 316:
       0
     case 317:
       0
     case 318:
-      56
+      0
     case 319:
-      57
+      0
     case 320:
       0
     case 321:
@@ -890,13 +896,13 @@ def rule_at(+i: U32) -> U32:
     case 323:
       0
     case 324:
-      0
+      52
     case 325:
-      0
+      53
     case 326:
       0
     case 327:
-      0
+      54
     case 328:
       0
     case 329:
@@ -904,15 +910,15 @@ def rule_at(+i: U32) -> U32:
     case 330:
       0
     case 331:
-      0
+      55
     case 332:
       0
     case 333:
       0
     case 334:
-      0
+      56
     case 335:
-      0
+      57
     case 336:
       0
     case 337:
@@ -963,11 +969,89 @@ def rule_at(+i: U32) -> U32:
       0
     case 360:
       0
+    case 361:
+      0
+    case 362:
+      0
+    case 363:
+      0
+    case 364:
+      0
+    case 365:
+      0
+    case 366:
+      0
+    case 367:
+      0
+    case 368:
+      0
+    case 369:
+      0
+    case 370:
+      0
+    case 371:
+      0
+    case 372:
+      0
+    case 373:
+      0
+    case 374:
+      0
+    case 375:
+      0
+    case 376:
+      0
+    case 377:
+      0
+    case 378:
+      0
+    case 379:
+      0
+    case 380:
+      0
+    case 381:
+      0
+    case 382:
+      0
+    case 383:
+      0
+    case 384:
+      0
+    case 385:
+      0
+    case 386:
+      0
+    case 387:
+      0
+    case 388:
+      0
+    case 389:
+      0
+    case 390:
+      0
+    case 391:
+      0
+    case 392:
+      0
+    case 393:
+      0
+    case 394:
+      0
+    case 395:
+      0
+    case 396:
+      0
+    case 397:
+      0
+    case 398:
+      0
+    case 399:
+      0
     case _:
       0
 
 def rule_no(+ka: U32, +kb: U32) -> U32:
-  rule_at(((class(ka) * 19 : U32) + class(kb) : U32))
+  rule_at(((class(ka) * 20 : U32) + class(kb) : U32))
 
 # which payload test a rule's variants take: 0 none, 1 the levels' or the
 # fans' sites, 2 whether B's data is a builtin function
@@ -3272,6 +3356,8 @@ def rewrite_id(~S: Type, ~R: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~fin: P.
     case 16:
       fin(P.err_if(U32.is_ne(ka, 8), h), st)
     case 17:
+      fin(P.err_if(U32.is_ne(ka, 8), h), st)
+    case 18:
       fin(P.err_if(U32.is_ne(ka, 8), h), st)
     case _:
       fin(P.err_if(U32.is_ne(ka, 8), h), st)

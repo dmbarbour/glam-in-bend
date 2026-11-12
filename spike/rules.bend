@@ -31,6 +31,16 @@ import Base
 #   DOp   dead operator     [- arg]  (an operator whose result is erased)
 #   FnD   dead-variable function [+ fn, - result] (a function whose
 #         variable is erased: Linear fans, below)
+#   Cur   cursor            [+ or -]  (a live template's cursor, the
+#         Cells plan's cells-freeze.cursors.kinds; its role in the
+#         form bits: a negative cursor, standing for a value, its
+#         principal positive; a positive cursor, receiving one, its
+#         principal negative; a ring's situating node, its port a
+#         static. Every pair with a cursor is stuck in this table:
+#         demand serves a negative cursor where it meets one, as it
+#         serves a lazy handle, and a positive cursor waits for a
+#         join. No rule links a cursor, so the model gives its port no
+#         polarity of its own and port_pol answers Pos.)
 type NodeKind is Data:
   KFree{}
   KFn{}
@@ -50,6 +60,7 @@ type NodeKind is Data:
   KMergeR{}
   KDOp{}
   KFnD{}
+  KCur{}
 
 type Pol is Data:
   Pos{}
@@ -151,6 +162,8 @@ def holds(k: NodeKind) -> Holds:
     case KDOp{}:
       HNone{}
     case KFnD{}:
+      HNone{}
+    case KCur{}:
       HNone{}
 
 def holds_value(h: Holds) -> Bool:
@@ -931,6 +944,8 @@ def kind_n(k: NodeKind) -> Nat:
       16n
     case KFnD{}:
       17n
+    case KCur{}:
+      18n
 
 # two sources the same, composed ones term by term
 def src_eq(s: Src, u: Src) -> Bool:
@@ -2041,7 +2056,8 @@ def erasers_native(+a: NodeKind, +b: NodeKind) -> Bool:
 # -------------
 #
 # A kind holding no payload: the free slot, the erasers, the root, the
-# dead operator (heap-strategies.erasure.deadcall.eraser). No rule or
+# dead operator (heap-strategies.erasure.deadcall.eraser), the cursor
+# (its words a live template's, no rule reading them). No rule or
 # event takes a payload from one, so that the kernel never reads a word
 # such a node does not hold. Every kind is named, so that a new one must
 # be placed.
@@ -2083,6 +2099,8 @@ def bare(k: NodeKind) -> Bool:
       True{}
     case KFnD{}:
       False{}
+    case KCur{}:
+      True{}
 
 def takes_a(s: Src) -> Bool:
   match s:
@@ -2182,6 +2200,8 @@ def leveled(k: NodeKind) -> Bool:
       False{}
     case KFnD{}:
       True{}
+    case KCur{}:
+      False{}
 
 # a spec reads a field as a level only through a lift: A's for SLiftA, B's
 # for SLiftB, into a field of its own kind
