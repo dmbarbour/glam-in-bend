@@ -62,7 +62,8 @@ SLACK_ITRS = 8
 SLACK_SPLICES = 2
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
-TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend")]
+TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
+         os.path.join(ROOT, "glam", "test_position.bend")]
 
 
 def build(fresh):
