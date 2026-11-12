@@ -1282,7 +1282,9 @@ takes from it:
          chain). Four builds at k 18 (run 100 against main, run 99):
          without events the same instructions; with them -0.8% to
          +0.3%.
-     - `heap-strategies.erasure.deadcall.eraser` — built 2026-11-01 — a
+     - `heap-strategies.erasure.deadcall.eraser` — built 2026-11-01,
+       superseded by the Cells plan's `cells-freeze.deadop`, which makes
+       an erased operator a full eraser — a
        dead operator is a data-only eraser (the
        maintainer, 2026-10-31): an operator's input and output are
        always data, so once its output is erased nothing it holds, its

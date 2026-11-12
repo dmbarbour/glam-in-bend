@@ -201,7 +201,7 @@ unfused: 0 logical 97135 peels 0
 name: costly-107
 why: labels need 193 interactions, levels 77 times as many
 term: ((\f. mul (f ((\f. mul (f ((\x. mul x x) #3)) (f #2)) (\n. pow n #2))) (f (twice (\n. add n n) #0))) (\n. mul n #2)) succ 0
-levels: 0 logical 19506 peels 0
+levels: 0 logical 19505 peels 0
 labels: 0 logical 170 peels 0
 unfused: 0 logical 53192 peels 0
 
@@ -297,10 +297,11 @@ unfused: 7 logical 5 peels 0
 name: dead-call-superposed
 why: a function copied with a dead call in its body, the call's argument
   its variable, superposed where the copy crosses the binder: the dead
-  call meets the superposition, and unfused the controls facing it
+  call, an eraser of its input since `cells-freeze.deadop`, meets the
+  superposition, and unfused the controls facing it
 term: (\f. plus (f 1) (f 2)) (\x. (\u. 7) (succ x))
-levels: 14 logical 18 peels 0
-unfused: 14 logical 48 peels 0
+levels: 14 logical 15 peels 0
+unfused: 14 logical 27 peels 0
 
 name: dead-port-swap
 why: a function copied, its body applying its variable to the successor
