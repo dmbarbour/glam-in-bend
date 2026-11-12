@@ -469,6 +469,12 @@ one, is tried at `bridge-recursion`.
      door, kept by every rule;
    - the kernel pairing fans by level alone, with no check of their
      identities.
+
+   Fan pairing is to be proven as part of this larger GAL proof, for
+   nets with splices and copies as well as lowered terms (the
+   maintainer, 2026-11-12: "we should ensure fan pairings are proven
+   later as part of the larger GAL proof"). The dedicated build of the
+   Levels review only tests it.
 12. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
 13. `pairing-docs` — revise the standing docs to the verdict. Design.md's
