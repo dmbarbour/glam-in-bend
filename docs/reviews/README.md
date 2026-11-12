@@ -99,6 +99,21 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`JoinsFable_2026-11-11.md`](JoinsFable_2026-11-11.md): the second
   reviewer's review of that design, by a Fable sub-agent, kept as
   written.
+- [`Levels_2026-11-12.md`](Levels_2026-11-12.md): what to prove to be
+  confident in GAL levels across cursors, and how it fits a
+  formalization of GAL over polarized nets, at the maintainer's request.
+  - Shift equivariance of the rule table comes first, in Bend: the
+    unproved premise of templates spliced at level too.
+  - Probes found a source reduced at its own levels and copied whole
+    agreeing with its recipe on every program tried. They also found
+    the samples blind to controls.
+  - The second reviewer adds the splice premise, fans pairing by level
+    alone with no check of their identities, and an unguarded drop.
+
+  A combined order of tests and proofs. Drafted for the maintainer.
+- [`LevelsFable_2026-11-12.md`](LevelsFable_2026-11-12.md): the second
+  reviewer's review of the same question, by a Fable sub-agent, kept as
+  written.
 
 ## Retired
 

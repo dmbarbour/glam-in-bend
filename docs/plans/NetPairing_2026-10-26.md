@@ -461,7 +461,14 @@ one, is tried at `bridge-recursion`.
    and a proper net's reduction is simulated on its unfolding. The
    properties to prove first: a copy meets only deeper nodes, and fans
    meeting at one level are residuals of one duplication. Attempt it, or
-   find the restriction under which it holds.
+   find the restriction under which it holds. The Levels review
+   (`../reviews/Levels_2026-11-12.md`, with its second reviewer's) lists
+   what live templates add:
+   - shift equivariance, to be proved in Bend first;
+   - the splice premise, that a box's content lies deeper than its
+     door, kept by every rule;
+   - the kernel pairing fans by level alone, with no check of their
+     identities.
 12. `pairing-verdict` — choose how each kind of net pairs (labels, levels),
    and record it.
 13. `pairing-docs` — revise the standing docs to the verdict. Design.md's
