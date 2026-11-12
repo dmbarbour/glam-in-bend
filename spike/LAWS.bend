@@ -184,12 +184,13 @@ law lift_fits:
 # has every level raised by k (V.raise_pay, which glam/splice.bend's
 # sp.node raises through). These laws say the rules cannot tell: raised
 # alike, two payloads test as they did, and a control acting on a raised
-# payload gives what it gave, raised. So a closed net reduced and then
-# raised is the net raised and then reduced, rule by rule
-# (docs/reviews/Levels_2026-11-12.md, L1), as templates spliced at level
-# and live templates' copies assume. Each holds where no sum wraps; a
-# fan's, below 2^31, is never the marker of a fan without levels
-# (V.nolvl). Not claimed here: the kernel's own arithmetic (P.lift's
+# payload gives what it gave, raised. These are the pieces of "a closed
+# net reduced and then raised is the net raised and then reduced, rule by
+# rule" (docs/reviews/Levels_2026-11-12.md, L1), which templates spliced
+# at level and live templates' copies assume. Each holds where no sum
+# wraps; in the lift laws a payload's level, the control's amount and
+# the raise sum below 2^31, so that no fan's level is the marker of a fan
+# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic (P.lift's
 # drop, P.compose, same_lvl, copy_fn_bad), nor a rewrite as a whole.
 
 # LAW: an application's level and a function's, both raised by k, are
