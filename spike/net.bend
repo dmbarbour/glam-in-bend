@@ -49,6 +49,8 @@ def kcode(k: R.NodeKind) -> U32:
       16
     case R.KFnD{}:
       17
+    case R.KCur{}:
+      18
 
 def kof(c: U32) -> R.NodeKind:
   match c:
@@ -86,6 +88,8 @@ def kof(c: U32) -> R.NodeKind:
       R.KDOp{}
     case 17:
       R.KFnD{}
+    case 18:
+      R.KCur{}
     case _:
       R.KFree{}
 
