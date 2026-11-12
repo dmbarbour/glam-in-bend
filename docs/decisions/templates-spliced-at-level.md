@@ -37,6 +37,12 @@ needs them.
   work of the partial application it holds (the same review, F2): such
   a value is copied as `copy-reduced-function-nets` describes only
   once `cells-freeze` is built.
+- The raise is `V.raise_pay` in `spike/val.bend`, which the splice and
+  the materializer call. The reference rules cannot tell a copy raised
+  whole, where no level wraps: their tests and the levels controls give
+  commute with it (laws `raise_*` in `spike/LAWS.bend`, 2026-11-12). The
+  kernel's own arithmetic and the rewrite as a whole are not yet proved
+  (`cells-freeze.levels.shift` in `docs/plans/Cells_2026-11-09.md`).
 - A splice is no interaction: counts of interactions miss its cost, a
   copy of the template.
 

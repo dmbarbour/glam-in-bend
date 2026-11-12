@@ -54,33 +54,30 @@ def sp.place_pw(+fresh: Bool, q: P.H & P.PW, +r: U32, +k: U32) -> P.H & U32:
     case False{}:
       sp.renew_pw(q, r, k)
 
-# a level raised by `by`, a fan's site left as it is
-def sp.raise(+none: Bool, +l: U32, +by: U32) -> U32:
-  match none:
-    case True{}:
-      l
-    case False{}:
-      (l + by : U32)
-
 def sp.fan(+fresh: Bool, h: P.H, +r: U32, +k: U32, +site: U32, +l: U32) -> P.H & U32:
   sp.place(fresh, P.err_if(KN.fan_too_big(U32.is_eq(l, V.nolvl()), site, l), h), r, KN.fan_hd(k, site, l), 0)
 
-# template node t, fresh or in slot r, its levels raised by `by`
+# a node of kind k with payload p, already raised
+def sp.tn(+fresh: Bool, h: P.H, +r: U32, k: R.NodeKind, p: V.Pay) -> P.H & U32:
+  match p:
+    case V.PVal{v}:
+      sp.place_pw(fresh, P.put(h, v), r, N.kcode(k))
+    case V.PLvl{+l}:
+      sp.place(fresh, P.err_if(KN.too_big(l), h), r, P.hd(N.kcode(k), l), 0)
+    case V.PLift{+i, +up, +amt}:
+      sp.place(fresh, P.err_if(KN.too_big(i) || U32.is_ge(amt, 2147483648), h), r,
+        P.hd(N.kcode(k), i), KN.lift_word(up, amt))
+    case _:
+      sp.place(fresh, h, r, KN.bare_hd(N.kcode(k)), 0)
+
+# template node t, fresh or in slot r, its levels raised by `by`, as
+# val.bend raises them (V.raise_lvl, V.raise_pay; the laws raise_*)
 def sp.node(+fresh: Bool, h: P.H, +r: U32, t: T.TNode, +by: U32) -> P.H & U32:
   match t:
     case T.TF{k, +site, +lvl}:
-      sp.fan(fresh, h, r, N.kcode(k), site, sp.raise(U32.is_eq(lvl, V.nolvl()), lvl, by))
+      sp.fan(fresh, h, r, N.kcode(k), site, V.raise_lvl(by, lvl))
     case T.TN{k, p}:
-      match p:
-        case V.PVal{v}:
-          sp.place_pw(fresh, P.put(h, v), r, N.kcode(k))
-        case V.PLvl{+l}:
-          sp.place(fresh, P.err_if(KN.too_big((l + by : U32)), h), r, P.hd(N.kcode(k), (l + by : U32)), 0)
-        case V.PLift{+i, +up, +amt}:
-          sp.place(fresh, P.err_if(KN.too_big((i + by : U32)) || U32.is_ge(amt, 2147483648), h), r,
-            P.hd(N.kcode(k), (i + by : U32)), KN.lift_word(up, amt))
-        case _:
-          sp.place(fresh, h, r, KN.bare_hd(N.kcode(k)), 0)
+      sp.tn(fresh, h, r, k, V.raise_pay(by, p))
 
 def sp.put(q: P.H & U32, map: Array<U32>, +i: U32) -> Sp:
   (h, +ref) = q
