@@ -167,6 +167,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`copied-controls-unfused`](decisions/copied-controls-unfused.md): a
   control a copy has taken out of a live source is marked, and runtime
   fusion refuses it; fusion stays everywhere else.
+- [`finished-nodes-untouched`](decisions/finished-nodes-untouched.md): in
+  a source, eraser events and fusion never modify a finished node; an
+  eraser stays a static in the link word.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.
