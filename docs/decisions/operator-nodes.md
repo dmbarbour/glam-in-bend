@@ -1,6 +1,6 @@
 # An application meeting a builtin becomes an operator holding it
 
-`operator-nodes` · maintainer · rev ea752b2
+`operator-nodes` · maintainer · rev d24c09c
 
 **Context.** A builtin function is an optimized `net_arity K` value
 (`functions-are-nets-with-arity`): it stands for a small net of binds
@@ -40,7 +40,8 @@ rotation unneeded (the maintainer, 2026-11-01).
 
 **Consequences.**
 - The header is 6/2/24 (`header-kind-byte`).
-- The call becomes the operator and the dead call the dead operator; the
+- The call becomes the operator, and the dead call an eraser of the
+  operator's input (`fusions-as-components`; once the dead operator); the
   general form of 2026-10-31 retires with its law (`spike-operators.one`).
 - From the user's view there are still three kinds, copy, data and bind;
   operators are the implementation's.

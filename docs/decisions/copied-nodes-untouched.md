@@ -13,7 +13,7 @@ do:
 - **eraser events** turn a fan reached by an eraser on one side into a
   linear fan, moving its kept side from port 2 to port 1 (`ev.copy`,
   `ev.merge` in `spike/rules.bend`), or turn an operator whose result is
-  erased into a dead operator;
+  erased into an eraser;
 - **the collector** follows inputs from the interface. It frees a
   finished consumer of the function's variable once the source discards
   where its output led, though no event touched it (the Joins review,

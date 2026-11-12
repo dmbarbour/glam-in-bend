@@ -778,17 +778,19 @@ def ev.out(b: NodeKind, p: Nat) -> Rule:
     case _:
       RStuck{}
 
-# an operator's result erased: a dead operator, stuck where an operator
-# is, so exact where the old event, an eraser of the input, was not
-# (heap-strategies.erasure.deadcall). It holds nothing: an operator's
-# input and output are data, so once its output is erased nothing it
-# holds is observed, and its builtin is dropped here, an entry freed now
-# rather than when the argument comes; a data-only eraser, one kind for
-# every dead operator (heap-strategies.erasure.deadcall.eraser)
+# an operator's result erased: an eraser of its input
+# (`cells-freeze.deadop`, the maintainer, 2026-11-12: "promoting dead
+# operator directly to eraser on premise that it's valid for any
+# type-safe net"). An operator's input and output are data, so once its
+# output is erased nothing it holds is observed, its builtin dropped here
+# with it. It differs from the operator only where the operator would be
+# stuck, against a function, which no well-typed net shows it. The dead
+# operator it replaces (heap-strategies.erasure.deadcall.eraser) stays a
+# kind, never made, until it is removed.
 def ev.op.p(p: Nat) -> Rule:
   match p:
     case 1n:
-      RWire{[Spec{KDOp{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
+      RWire{[Spec{KEraN{}, SNone{}}], [lk(nw(0n, 0n), ex(0n))]}
     case _:
       RStuck{}
 
@@ -3376,8 +3378,19 @@ def fz_event.cmp(+a: NodeKind, +b: NodeKind, +p: Nat, +e: NodeKind, +s: Src, +v:
   fz.same(fz.run(lf.full(a), lf.full(v), t, True{}, fz.pattern(a, b, fz.evport(a, p), v)),
     fz.run(lf.full(e), lf.full(v), t, True{}, fz.result(e, s, v)))
 
+# whether a node of kind a may meet v at its principal in a well-typed
+# net: an operator's input is data, never a function
+def fz.typed(+a: NodeKind, +v: NodeKind) -> Bool:
+  match a v:
+    case KOp{} KFn{}:
+      False{}
+    case KOp{} KFnD{}:
+      False{}
+    case _ _:
+      True{}
+
 def fz_event.b(+a: NodeKind, +b: NodeKind, +p: Nat, +v: NodeKind, +t: Bool) -> Bool:
-  fz.go(Bool.not(is_stuck(event(a, b, p))) && fz.meets(a, v),
+  fz.go(Bool.not(is_stuck(event(a, b, p))) && fz.meets(a, v) && fz.typed(a, v),
     fz_event.cmp(a, b, p, ex.first(event(a, b, p)), ex.first.s(event(a, b, p)), v, t))
 
 # an event's pattern behaves as the node it makes, against any partner

@@ -810,12 +810,15 @@ law linear_as_components:
   {R.fz_linear(f, v, t) == True{} : Bool}
 
 # LAW: and so does an event's pattern: the node and the eraser at the port
-# it erases behave, against whatever the node's principal meets, as the
-# node the event makes (R.fz_event). It fails for an application whose
-# result is erased, a variable used outside its function's body seeing
-# the difference, and for a call whose output is, its rule stuck against
-# a function where an eraser's is not: neither makes an event. It implies
-# events_side: a linear fan keeping the wrong side fails it.
+# it erases behave, against whatever the node's principal may meet in a
+# well-typed net, as the node the event makes (R.fz_event). It fails for
+# an application whose result is erased, a variable used outside its
+# function's body seeing the difference: that makes no event. An
+# operator whose result is erased becomes an eraser of its input, which
+# differs from the operator only against a function, where the operator
+# is stuck: an operator's input is data, so no well-typed net meets that
+# (R.fz.typed; `cells-freeze.deadop`). It implies events_side: a linear
+# fan keeping the wrong side fails it.
 # Record: net-nodes-double
 law events_as_components:
   for +a: R.NodeKind
