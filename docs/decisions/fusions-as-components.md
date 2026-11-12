@@ -1,6 +1,6 @@
 # A fused op behaves as its components, and is proven to
 
-`fusions-as-components` · maintainer · rev 25710ad
+`fusions-as-components` · maintainer · rev d24c09c
 
 **Context.** The kernel fuses ops for speed: adjacent controls into runs
 (`fuse-control-runs`), an eraser into a fan (the linear fans), and, by
@@ -13,17 +13,24 @@ rule leaves stuck (`heap-strategies.erasure.kernel.exact` in
 
 **Decision.** Every fusion or pattern optimization, in the kernel or at
 lowering, behaves as the ops it stands for: against anything it can
-meet, it reduces where they reduce, is stuck where they are stuck, and
-leaves what they leave. A law proves each (the maintainer, 2026-10-30).
+meet in a well-typed net, it reduces where they reduce, is stuck where
+they are stuck, and leaves what they leave. A law proves each (the
+maintainer, 2026-10-30). Where the ops would be stuck by a type error
+that no well-typed net shows, the fusion may differ (the maintainer,
+2026-11-12, on the dead operator: "it's valid for any type-safe net").
 A fusion observes no data value, beyond whether a value is immediate; it
 moves, copies or drops a payload as its components would. A level update
 applied to a fusion gives what it gives the expanded form.
 
 **Consequences.**
-- No event for a dead application or a dead call; the dead application's
-  rule is kept for where it is exact, as at lowering where a function's
-  scope is known, and a dead call is a fused node of its own, stuck where
-  a call is (`heap-strategies.erasure.deadcall`).
+- No event for a dead application; its rule is kept for where it is
+  exact, as at lowering where a function's scope is known.
+- A dead call, an operator whose result is erased, becomes an eraser of
+  its input (`cells-freeze.deadop` in `docs/plans/Cells_2026-11-09.md`).
+  It differs from the call only against a function, where the call is
+  stuck. An operator's input is data, so no well-typed net shows the
+  difference. Until then it was a fused node of its own, stuck where a
+  call is (`heap-strategies.erasure.deadcall`).
 - An optimization without such a law is an experiment, not a feature.
 - The laws compare kinds, wiring and every payload's provenance, levels,
   fans' identities and controls' indexes included; control runs are to

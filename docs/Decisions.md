@@ -176,8 +176,8 @@ where the shared lazy state that Bend cannot hold goes.
 - [`header-kind-byte`](decisions/header-kind-byte.md): a node's header is
   a 6-bit kind, two bits of form and a 24-bit field.
 - [`fusions-as-components`](decisions/fusions-as-components.md): a fused
-  op behaves as its components, stuck where they are, observing no data
-  value, and a law proves it; at lowering too.
+  op behaves as its components in any well-typed net, stuck where they
+  are, observing no data value, and a law proves it; at lowering too.
 - [`operator-nodes`](decisions/operator-nodes.md): an application
   meeting a builtin becomes an operator holding its opcode and arity in
   the header, its accumulator in its word, which on its argument writes
