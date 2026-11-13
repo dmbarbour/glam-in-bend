@@ -165,6 +165,19 @@ law lift_decoded:
   for up: {P.off_up(o) == True{} : Bool}
   {U32.to_nat(P.lift(n, o, P.fld(h))) == CT.raise(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(P.fld(h))) : Nat}
 
+# LAW: the kernel's drop is the model's: a level j through a control
+# lowering levels above n by b (kprim.bend's lift, its offset's up flag
+# clear), read as a Nat, is CT.drop of their Nat values: above n, max(n,
+# j - b), so never below n; else j. No hypothesis: no amount makes a
+# level wrap.
+# Record: fuse-control-runs
+law lift_drop:
+  for +n: U32
+  for +o: U32
+  for +j: U32
+  for dn: {P.off_up(o) == False{} : Bool}
+  {U32.to_nat(P.lift(n, o, j)) == CT.drop(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(j)) : Nat}
+
 # LAW: the kernel's level check suffices: a raise of a decoded level that
 # lift_wraps passes has 24 bits, so it fits the field it is written to.
 # Record: fuse-control-runs
@@ -190,8 +203,9 @@ law lift_fits:
 # at level and live templates' copies assume. Each holds where no sum
 # wraps; in the lift laws a payload's level, the control's amount and
 # the raise sum below 2^31, so that no fan's level is the marker of a fan
-# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic (P.lift's
-# drop, P.compose, same_lvl, copy_fn_bad), nor a rewrite as a whole.
+# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic
+# beyond P.lift (lift_raise, lift_drop): P.compose, same_lvl, copy_fn_bad;
+# nor a rewrite as a whole.
 
 # LAW: an application's level and a function's, both raised by k, are
 # equal exactly when they were (V.lvl_eq, N.rule_test's test of Ap and Fn
@@ -252,19 +266,18 @@ law raise_lift_up:
   for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
   {V.lift_pay(V.raise_pay(k, V.PLift{n, True{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, True{}, by}, p)) : V.Pay}
 
-# LAW: and so through a lowering control, one dropping by at most one
-# more than its index, as every drop lowering makes does (a croissant: by
-# 1), so that a level above the index never falls below zero.
+# LAW: and so through a lowering control of any amount, a drop taking a
+# level above its index no lower than the index (V.drop_by;
+# drops-stop-at-index).
 # Record: templates-spliced-at-level
 # Record: copy-reduced-function-nets
-law raise_lift_down:
+law raise_lift_drop:
   for +k: U32
   for +n: U32
   for +by: U32
   for +p: V.Pay
   for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
   for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
-  for hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))
   {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, p)) : V.Pay}
 
 # LAW: two controls, both raised by k, fuse exactly when they did, into

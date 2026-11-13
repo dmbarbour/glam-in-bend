@@ -29,6 +29,18 @@ def raise.go(a: Bool, +j: Nat, +b: Nat) -> Nat:
 def raise(+n: Nat, +b: Nat, +j: Nat) -> Nat:
   raise.go(above(j, n), j, b)
 
+def drop.go(a: Bool, +n: Nat, +j: Nat, +b: Nat) -> Nat:
+  match a:
+    case True{}:
+      Nat.max(n, Nat.sub(j, b))
+    case False{}:
+      j
+
+# a level j through a drop at n by b (kprim.bend's lift, its up flag
+# clear): a level above n falls by b, to n at the lowest
+def drop(+n: Nat, +b: Nat, +j: Nat) -> Nat:
+  drop.go(above(j, n), n, j, b)
+
 # j through unit brackets at n, n + 1, ..., n + b - 1, in that order
 def units(b: Nat, +n: Nat, +j: Nat) -> Nat:
   match b:

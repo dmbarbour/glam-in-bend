@@ -694,9 +694,31 @@ def lift_lvl.go(above: Bool, +up: Bool, +by: U32, +j: U32) -> U32:
     case False{} _:
       j
 
+def drop_by.k(+fits: Bool, +by: U32, +room: U32) -> U32:
+  match fits:
+    case True{}:
+      by
+    case False{}:
+      room
+
+# how far a drop at n moves a level j above n: by, or to n where by is
+# more, so that a drop moves levels above n to max(n, j - by) and never
+# below n (the maintainer's framing, pairing-gal in
+# docs/plans/NetPairing_2026-10-26.md; kprim.bend's drop_by alike)
+def drop_by(+n: U32, +by: U32, +j: U32) -> U32:
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
+
+# the amount a control n, up, by moves a level j above n
+def lift_by(+n: U32, +up: Bool, +by: U32, +j: U32) -> U32:
+  match up:
+    case True{}:
+      by
+    case False{}:
+      drop_by(n, by, j)
+
 # level j after the control n, up, by
 def lift_lvl(+n: U32, +up: Bool, +by: U32, +j: U32) -> U32:
-  lift_lvl.go(U32.is_gt(j, n), up, by, j)
+  lift_lvl.go(U32.is_gt(j, n), up, lift_by(n, up, by, j), j)
 
 def lift_pay.b(+n: U32, +up: Bool, +by: U32, pb: Pay) -> Pay:
   match pb:
