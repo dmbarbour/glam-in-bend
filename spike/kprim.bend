@@ -508,16 +508,18 @@ def alloc.grow(h: H) -> H & U32:
     case H{w, a}:
       alloc.rv(KM.m_get(w, at_rsv()), a)
 
-def alloc.k(+fh: U32, w: KM.M, a: Array<V.Val>) -> H & U32:
-  match fh:
-    case 0:
+# the free list empty (head 0), or its head popped; a test, not a match
+# on the literal, so that a law can split it (docs/Proving.md)
+def alloc.k(+none: Bool, +fh: U32, w: KM.M, a: Array<V.Val>) -> H & U32:
+  match none:
+    case True{}:
       alloc.grow(H{w, a})
-    case _:
+    case False{}:
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
 
 def alloc.fh(r: KM.M & U32, a: Array<V.Val>) -> H & U32:
   (w, +fh) = r
-  alloc.k(fh, w, a)
+  alloc.k(U32.is_eq(fh, 0), fh, w, a)
 
 # a node: the head of the free list, which an intrusive list holds (the
 # head a node's index plus one, 0 for none; each free node's word 1 the
