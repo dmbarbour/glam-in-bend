@@ -6,6 +6,9 @@
 # Raising a copy (the laws raise_*): each mutation breaks what raising
 # commutes with, not only what a rule computes. A fault that raising
 # still commutes with, such as a guard of >= for >, is for other laws.
+# Their proofs, mutated, overflow Bend's checker as it reports the
+# mismatch over symbolic words, which catches nothing: each carries a
+# witness per law, a small instance its law excludes (scripts/one_law.py).
 
 === bind_level_offset raise_lvl_eq
 a bind's level replaced by the offset: every raised pair of levels meets
@@ -15,6 +18,9 @@ a bind's level replaced by the offset: every raised pair of levels meets
 +++
     case PLvl{+n}:
       PLvl{k}
+>>> witness raise_lvl_eq
+def witness() -> {V.lvl_eq(V.raise_pay(0, V.PLvl{0}), V.raise_pay(0, V.PLvl{1})) == V.lvl_eq(V.PLvl{0}, V.PLvl{1}) : Bool}:
+  {==}
 
 === fan_level_offset raise_fan_eq
 a fan's level replaced by the offset: every raised pair of fans pairs
@@ -24,6 +30,9 @@ a fan's level replaced by the offset: every raised pair of fans pairs
 +++
     case False{}:
       k
+>>> witness raise_fan_eq
+def witness() -> {V.fan_eq(N.fan_of(V.raise_pay(0, V.PFan{V.FanId{0, 0, 0}})), N.fan_of(V.raise_pay(0, V.PFan{V.FanId{0, 0, 1}}))) == V.fan_eq(V.FanId{0, 0, 0}, V.FanId{0, 0, 1}) : Bool}:
+  {==}
 
 === ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_drop raise_compose
 a control's index replaced by the offset
@@ -31,6 +40,15 @@ a control's index replaced by the offset
       PLift{(n + k : U32), up, by}
 +++
       PLift{k, up, by}
+>>> witness raise_ctl_eq
+def witness() -> {V.ctl_eq(V.raise_pay(0, V.PLift{0, True{}, 1}), V.raise_pay(0, V.PLift{1, True{}, 1})) == V.ctl_eq(V.PLift{0, True{}, 1}, V.PLift{1, True{}, 1}) : Bool}:
+  {==}
+>>> witness raise_lift_up
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{1, True{}, 1}), V.raise_pay(1, V.PLvl{1})) == V.raise_pay(1, V.lift_pay(V.PLift{1, True{}, 1}, V.PLvl{1})) : V.Pay}:
+  {==}
+>>> witness raise_lift_drop
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{1, False{}, 1}), V.raise_pay(1, V.PLvl{1})) == V.raise_pay(1, V.lift_pay(V.PLift{1, False{}, 1}, V.PLvl{1})) : V.Pay}:
+  {==}
 
 === ctl_index_kept raise_lift_up raise_lift_drop
 a control's index left unraised while levels rise: a raised level passes
@@ -39,6 +57,12 @@ a control it passed below
       PLift{(n + k : U32), up, by}
 +++
       PLift{n, up, by}
+>>> witness raise_lift_up
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{0, True{}, 1}), V.raise_pay(1, V.PLvl{0})) == V.raise_pay(1, V.lift_pay(V.PLift{0, True{}, 1}, V.PLvl{0})) : V.Pay}:
+  {==}
+>>> witness raise_lift_drop
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{0, False{}, 1}), V.raise_pay(1, V.PLvl{0})) == V.raise_pay(1, V.lift_pay(V.PLift{0, False{}, 1}, V.PLvl{0})) : V.Pay}:
+  {==}
 
 === lift_index_ignored raise_lift_up raise_lift_drop
 a control moves every level above 0, its index ignored
@@ -46,6 +70,12 @@ a control moves every level above 0, its index ignored
   lift_lvl.go(U32.is_gt(j, n), up, lift_by(n, up, by, j), j)
 +++
   lift_lvl.go(U32.is_gt(j, 0), up, lift_by(n, up, by, j), j)
+>>> witness raise_lift_up
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{5, True{}, 1}), V.raise_pay(1, V.PLvl{0})) == V.raise_pay(1, V.lift_pay(V.PLift{5, True{}, 1}, V.PLvl{0})) : V.Pay}:
+  {==}
+>>> witness raise_lift_drop
+def witness() -> {V.lift_pay(V.raise_pay(1, V.PLift{5, False{}, 1}), V.raise_pay(1, V.PLvl{0})) == V.raise_pay(1, V.lift_pay(V.PLift{5, False{}, 1}, V.PLvl{0})) : V.Pay}:
+  {==}
 
 === fuse_amount_alone raise_compose
 two controls fuse when the second's index is the first's amount, the
@@ -54,6 +84,9 @@ first's index ignored
       compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
 +++
       compose.ok(u1 && u2 && U32.is_eq(n2, b1), n1, b1, b2)
+>>> witness raise_compose
+def witness() -> {V.compose(V.raise_pay(1, V.PLift{1, True{}, 1}), V.raise_pay(1, V.PLift{1, True{}, 1})) == V.raise_fuse(1, V.compose(V.PLift{1, True{}, 1}, V.PLift{1, True{}, 1})) : V.Fuse}:
+  {==}
 
 === drop_unclamped raise_lift_drop
 a drop falls by its whole amount, below its index and through zero: a

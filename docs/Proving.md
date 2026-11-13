@@ -43,9 +43,15 @@ it alone taught. Add to this file what a new proof teaches.
 - **Mutate the code after a proof passes**: break what the law is about
   in a copy, and see the proofs fail, by a refutation: a mutant that
   only overflows the checker's stack (`RangeError: Maximum call stack
-  size exceeded`) is not caught. `scripts/one_law.py` does not yet tell
-  the two apart; on 2026-11-13 ten of the gate's mutant runs, all of the
-  `raise_*` laws', failed so (`cells-freeze.levels.shift`). A law that survives the mutation
+  size exceeded`) is not caught, its run ending with no verdict, and no
+  stack setting lets the report finish (`ulimit -s`, Bun's JSC options).
+  `scripts/one_law.py` reports such a run as a crash. Where a mutated
+  proof crashes so, as the `raise_*` laws' do while reporting a mismatch
+  over symbolic words, give the mutation a witness: the law's statement
+  at a small instance, proved by `{==}`, which checks unmutated (so the
+  instance meets the premises left out) and is refuted mutated. A
+  witness is the stronger evidence: it shows the statement excludes the
+  fault, however the proof is built. A law that survives the mutation
   claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them

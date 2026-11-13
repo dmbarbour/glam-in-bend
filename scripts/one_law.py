@@ -20,14 +20,27 @@ survives a mutation of what it is about claims less than meant
     the code, verbatim, to replace
     +++
     its replacement, verbatim
+    >>> witness LAW
+    a def: LAW's statement at one instance, proved by {==}
 
 PATH relative to the proof file's directory, the code found there exactly
-once; lines before the first `===` are comments. A mutants file sits
+once; lines before the first `===` are comments. A mutation is caught
+where Bend refutes the law's proof on the mutated copy (SOME PROOFS
+FAIL). A run that ends with no verdict, Bend's checker overflowing its
+stack (as it does building the report of a mismatch over symbolic
+words) or the run's cap reached, is a crash, and catches nothing: unless
+the mutation carries a witness for the law, a closed instance of its
+statement, which must check on a copy unmutated, so that the instance
+meets the law's premises, and be refuted on the mutated one. The witness
+runs in a copy of its own, the proof file's imports and the witness
+alone (its laws files left out), as WITNESS.bend beside the proof file:
+Bend asks a file named PROOF.bend to import its laws. A mutants file sits
 beside its proof file, as a laws file does: MUTANTS.txt beside PROOF.bend,
 X_MUTANTS.txt beside X_PROOF.bend. Given only the mutants file, every law
 it names is tried, as the gate does (scripts/check.sh, through
 scripts/kept.py). Exits 0 where each control passes and every mutation
-fails, 1 otherwise, 2 on bad usage.
+fails (refuted, or crashing with its witness refuted), 1 otherwise, 2 on
+bad usage.
 
 Run from the root of the project the proof file is in (the repository, or
 Blend's directory), its copies written under that project's results/:
@@ -129,7 +142,8 @@ def cut_laws(text, law, also):
 
 
 def mutants(path):
-    """The mutations of the file at path: (name, laws, what, file, old, new)."""
+    """The mutations of the file at path: (name, laws, what, file, old, new,
+    witnesses by law)."""
     with open(path) as f:
         text = f.read()
     out = []
@@ -141,16 +155,38 @@ def mutants(path):
         old, sep, new = rest.partition("\n+++\n")
         if len(words) < 2 or not file or not sep:
             sys.exit(f"one_law: {path}: a mutation malformed: === {head}")
+        new, *wits = re.split(r"(?m)^>>> witness ", new)
+        witness = {}
+        for w in wits:
+            law, _, body = w.partition("\n")
+            if law.strip() not in words[1:]:
+                sys.exit(f"one_law: {path}: {words[0]}'s witness names {law.strip()}, which it does not")
+            witness[law.strip()] = body.rstrip("\n") + "\n"
         out.append((words[0], words[1:], what.strip(), file.strip(), old + "\n",
-                    new.rstrip("\n") + "\n"))
+                    new.rstrip("\n") + "\n", witness))
     return out
 
 
-def copy(files, proof, law, dest, mutation=None):
+def witness_text(text, body):
+    """A proof file of the witness alone: the proof file's imports but its
+    laws files, and the witness."""
+    imps = [l for l in text.splitlines()
+            if l.startswith("import ") and not l.split()[1].endswith("LAWS.bend")]
+    return "\n".join(imps) + "\n\n" + body
+
+
+def copy(files, proof, law, dest, mutation=None, witness=None):
     """The files copied under dest, as laid out under their common
-    directory, cut to the law, mutated; the copied proof file's path."""
+    directory, cut to the law (or, given a witness, the proof file the
+    witness alone), mutated; the copied proof file's path."""
     root = os.path.commonpath([os.path.dirname(p) or "." for p in files])
     text = files[proof]
+    if witness is not None:
+        out = dict(files)
+        wpath = os.path.join(os.path.dirname(proof), "WITNESS.bend")
+        out[wpath] = witness_text(text, witness)
+        write(files, proof, root, out, dest, mutation)
+        return os.path.join(dest, os.path.relpath(wpath, root))
     laws = [(imp, alias) for imp, alias in IMPORT.findall(text) if imp.endswith("LAWS.bend")]
     if laws:
         lpath = os.path.normpath(os.path.join(os.path.dirname(proof), laws[0][0]))
@@ -168,8 +204,13 @@ def copy(files, proof, law, dest, mutation=None):
         elif p == lpath:
             t = cut_laws(t, law, also)
         out[p] = t
+    return write(files, proof, root, out, dest, mutation)
+
+
+def write(files, proof, root, out, dest, mutation):
+    """The copy written under dest, mutated; the copied proof file's path."""
     if mutation:
-        name, _, _, file, old, new = mutation
+        name, _, _, file, old, new = mutation[:6]
         p = os.path.normpath(os.path.join(os.path.dirname(proof), file))
         if p not in out:
             sys.exit(f"one_law: {name}: {file} is not among the proof's files")
@@ -185,16 +226,21 @@ def copy(files, proof, law, dest, mutation=None):
 
 
 def check(path, cap):
-    """Bend's check of the copied proof file: whether it passes, and the
-    first failure's location or else the start of Bend's output."""
+    """Bend's check of the copied proof file: pass; refuted, with the first
+    failure's location; or crash, with why: a run that ends with no verdict
+    (docstring above)."""
     capped = os.path.join(os.path.dirname(os.path.abspath(__file__)), "capped.sh")
     run = subprocess.run([capped, cap[0], cap[1], os.environ.get("BEND", "bend"),
                           os.path.basename(path)],
                          cwd=os.path.dirname(path), capture_output=True, text=True)
     lines = (run.stdout + run.stderr).splitlines()
-    ok = run.returncode == 0 and any(l.startswith("ALL PROOFS CHECK") for l in lines)
-    loc = [l.split()[-1] for l in lines if l.startswith("Location:")]
-    return ok, loc[0] if loc else " / ".join(lines[:3])
+    if run.returncode == 0 and any(l.startswith("ALL PROOFS CHECK") for l in lines):
+        return "pass", ""
+    if any(l.startswith("SOME PROOFS FAIL") for l in lines):
+        loc = [l.split()[-1] for l in lines if l.startswith("Location:")]
+        return "refuted", loc[0] if loc else " / ".join(lines[:3])
+    why = [l.strip() for l in lines if "RangeError" in l or l.startswith("capped.sh:")]
+    return "crash", why[0] if why else " / ".join(lines[:3])
 
 
 def beside(muts):
@@ -209,17 +255,34 @@ def try_law(files, proof, law, muts, cap):
     tag = proof.replace(os.sep, "_").removesuffix(".bend")
     status = 0
     print(f"-- {law} alone")
-    ok, where = check(copy(files, proof, law, os.path.join(OUT, tag, law, "control")), cap)
-    print(f"{law}: {'passes' if ok else 'FAILS at ' + where}")
-    status |= 0 if ok else 1
+    kind, where = check(copy(files, proof, law, os.path.join(OUT, tag, law, "control")), cap)
+    print(f"{law}: " + {"pass": "passes", "refuted": "FAILS at " + where,
+                        "crash": "CRASHES the checker: " + where}[kind])
+    status |= 0 if kind == "pass" else 1
     for m in mutants(muts) if muts else []:
-        name, laws, what = m[0], m[1], m[2]
+        name, laws, what, witness = m[0], m[1], m[2], m[6]
         if law not in laws:
             continue
         print(f"-- {name}: {what}")
-        ok, where = check(copy(files, proof, law, os.path.join(OUT, tag, law, name), m), cap)
-        print(f"{name}: {'SURVIVES' if ok else 'fails ' + law + ' at ' + where}")
-        status |= 1 if ok else 0
+        dest = os.path.join(OUT, tag, law, name)
+        kind, where = check(copy(files, proof, law, dest, m), cap)
+        if kind == "pass":
+            print(f"{name}: SURVIVES")
+            status |= 1
+        elif kind == "refuted":
+            print(f"{name}: fails {law} at {where}")
+        elif law not in witness:
+            print(f"{name}: CRASHES the checker ({where}), and has no witness for {law}: not caught")
+            status |= 1
+        else:
+            kc, wc = check(copy(files, proof, law, dest + "_witness_control", witness=witness[law]), cap)
+            km, wm = check(copy(files, proof, law, dest + "_witness", m, witness=witness[law]), cap)
+            if kc == "pass" and km == "refuted":
+                print(f"{name}: crashes the checker; its witness refutes {law} at {wm}")
+            else:
+                print(f"{name}: CRASHES the checker, and its witness for {law} "
+                      + ("does not check unmutated: " + wc if kc != "pass" else "is not refuted: " + km))
+                status |= 1
     return status
 
 
