@@ -225,8 +225,9 @@ law lift_fits:
 # at level and live templates' copies assume. Each holds where no sum
 # wraps; in the lift laws a payload's level, the control's amount and
 # the raise sum below 2^31, so that no fan's level is the marker of a fan
-# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic (P.lift's
-# drop, P.compose, same_lvl, copy_fn_bad), nor a rewrite as a whole.
+# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic
+# beyond P.lift (lift_raise, lift_drop): P.compose, same_lvl, copy_fn_bad;
+# nor a rewrite as a whole.
 
 # LAW: an application's level and a function's, both raised by k, are
 # equal exactly when they were (V.lvl_eq, N.rule_test's test of Ap and Fn
@@ -287,24 +288,9 @@ law raise_lift_up:
   for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
   {V.lift_pay(V.raise_pay(k, V.PLift{n, True{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, True{}, by}, p)) : V.Pay}
 
-# LAW: and so through a lowering control, one dropping by at most one
-# more than its index, as every drop lowering makes does (a croissant: by
-# 1), so that a level above the index never falls below zero.
-# Record: templates-spliced-at-level
-# Record: copy-reduced-function-nets
-law raise_lift_down:
-  for +k: U32
-  for +n: U32
-  for +by: U32
-  for +p: V.Pay
-  for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
-  for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
-  for hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))
-  {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, p)) : V.Pay}
-
 # LAW: and so through a lowering control of any amount, a drop taking a
-# level above its index no lower than the index (V.drop_by): raise_lift_down
-# without its premise.
+# level above its index no lower than the index (V.drop_by;
+# drops-stop-at-index).
 # Record: templates-spliced-at-level
 # Record: copy-reduced-function-nets
 law raise_lift_drop:

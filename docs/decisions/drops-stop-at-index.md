@@ -26,7 +26,9 @@ a drop by one it is the drop as before.
   clamp the amount passed to the drop's arm to j - n.
 - The kernel's drop is proved to be max(n, j - b), with no hypothesis
   (law `lift_drop`), and the shift law holds for drops of any amount
-  (`raise_lift_drop`), so `raise_lift_down`'s premise is no longer needed.
+  (`raise_lift_drop`). It replaced `raise_lift_down`, whose premise
+  bounded a drop's amount, deleted with the maintainer's approval
+  (2026-11-13).
 - A drop by more than one now means something: b unit drops at one
   index, which drop fusion would make (`pairing-fusion.drops` in
   `docs/plans/NetPairing_2026-10-26.md`). Drops still do not fuse
