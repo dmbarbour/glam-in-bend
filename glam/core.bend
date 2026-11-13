@@ -43,9 +43,8 @@ type Out is Data:
 # recipe kept), its value, or a function. A function's net is kept live
 # as a source (cells-freeze.cells; copy-reduced-function-nets), its place
 # i among the sources, and each use materializes it; its recipe is kept
-# for --refreeze, and for a need from inside its own source, spliced
-# there as a template is until a source's copy of itself is a cursor into
-# itself (self-copies-are-cursors)
+# for --refreeze alone, a source's need on itself a copy of it as any
+# other's (self-copies-are-cursors)
 type Ent is Data:
   ETpl{t: T.Tpl}
   ERecipe{t: T.Tpl, name: List<&2, U32>}
@@ -385,7 +384,9 @@ def srcs.put(ss: Srcs, +i: U32, h: P.H) -> Srcs:
 # the cursor, a copy of another live source (cells-freeze.nested): its
 # walk there stopped needing the cursor, kept (TkSvD); or, its position
 # facing the cursor, with no walk to keep, its source among the sources
-# (TkSv).
+# (TkSv). A copy of the source in itself is served within the one net,
+# its host a frame of the same source without a walk, the walk that
+# needed it released (self-copies-are-cursors).
 #
 # A frame keeps its walk only while every task above it is a frame. A
 # task forced above frames releases their walks, their sources back
@@ -501,18 +502,48 @@ def release(s: Stk, ss: Srcs, c: Cn, +b: List<&2, Ent>) -> Rl:
           rl.d(d, k, nc, pos, release(rest, ss, c, b), b)
 
 # whose demand stopped at a use or a cursor: a cell's task, the cell it
-# computes; or a frame's walk in its source, the frame's
+# computes; or a frame's walk in its source, the frame's, kept below the
+# frame pushed; or that walk needing its own source, released, the frame
+# pushed reentering its net (self-copies-are-cursors)
 type Wh is Data:
   WhTk{+cell: U32}
   WhSv{+k: U32, +nc: U32, +pos: U32}
+  WhSelf{+k: U32, +nc: U32, +pos: U32}
 
-# that task, its demand d stopped needing source k
-def task.of(+who: Wh, d: KD.D, +k: U32) -> Tk:
+def who.self(+yes: Bool, +k: U32, +nc: U32, +pos: U32) -> Wh:
+  match yes:
+    case True{}:
+      WhSelf{k, nc, pos}
+    case False{}:
+      WhSv{k, nc, pos}
+
+# w's demand needing source k2: a frame's walk needing its own source
+# needs a self copy
+def who.to(+who: Wh, +k2: U32) -> Wh:
   match who:
     case WhTk{+cell}:
-      Tk{d, cell, k}
+      WhTk{cell}
+    case WhSv{+k, +nc, +pos}:
+      who.self(U32.is_eq(k, k2), k, nc, pos)
+    case WhSelf{+k, +nc, +pos}:
+      WhSelf{k, nc, pos}
+
+# the host set aside, the sources and the counts
+type Ho is Type:
+  Ho{t: Tk, ss: Srcs, c: Cn}
+
+# w's task, its demand d stopped needing source k: a self copy's walk
+# released, its net back among the sources, a stop
+def host.of(+who: Wh, d: KD.D, +k: U32, ss: Srcs, c: Cn, +b: List<&2, Ent>) -> Ho:
+  match who:
+    case WhTk{+cell}:
+      Ho{Tk{d, cell, k}, ss, c}
     case WhSv{+k2, +nc, +pos}:
-      TkSvD{k2, nc, pos, d}
+      Ho{TkSvD{k2, nc, pos, d}, ss, c}
+    case WhSelf{+k2, +nc, +pos}:
+      match d:
+        case KD.D{h, path, +top, +depth, +n, +st}:
+          Ho{TkSv{k2, nc, pos}, srcs.put(ss, src.i(book_get(b, k2)), h), cn.stop(c, depth)}
 
 def frame.push.k(+hit: Bool, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match hit:
@@ -545,9 +576,14 @@ def frame.over(r: Srcs & Bool, t: Tk, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: 
   (ss, +yes) = r
   frame.push.o(yes, t, s, k, nc, pos, b, c, ss)
 
+def frame.hs(r: Ho, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>) -> Run:
+  match r:
+    case Ho{t, ss, c}:
+      frame.over(srcs.in(ss, src.i(book_get(b, k))), t, s, k, nc, pos, b, c)
+
 # the host a demand stopped needing cursor nc, w's, its net h
 def frame.push(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc: U32, +pos: U32, +who: Wh, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
-  frame.over(srcs.in(ss, src.i(book_get(b, k))), task.of(who, KD.D{h, path, top, depth, n, 2}, k), s, k, nc, pos, b, c)
+  frame.hs(host.of(who, KD.D{h, path, top, depth, n, 2}, k, ss, c, b), s, k, nc, pos, b)
 
 # A use of a live source: the leaf a host's demand stopped needing becomes
 # a negative cursor at the source's interface, in a ring of its own whose
@@ -589,7 +625,7 @@ def use.src(d: KD.D, +k: U32, +who: Wh, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Sr
 # a host stopped at a cursor x: a frame for x's source at x's position
 def frame.at.k(r: P.H & U32, +x: U32, +pos: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +who: Wh, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +k) = r
-  frame.push(h, path, top, depth, n, k, x, pos, who, s, b, c, ss)
+  frame.push(h, path, top, depth, n, k, x, pos, who.to(who, k), s, b, c, ss)
 
 def frame.at.s(r: P.H & U32, +x: U32, +pos: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +who: Wh, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +situ) = r
@@ -652,10 +688,10 @@ def need.at(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U3
 # A frame's step: its source taken out, served once into its host's net,
 # also taken out; then both put back and the host goes on, or the frame
 # stays: out of fuel; the source's own need met in the source (a
-# template spliced, a value resumed, another live source's copy served
-# into it by a frame above this one, or its own recipe spliced); a cell
-# forced on a task above it; or its position facing a copy the source
-# holds, served into it first
+# template spliced, a value resumed, a live source's copy served into it
+# by a frame above this one, its own too); a cell forced on a task above
+# it; or its position facing a copy the source holds, served into it
+# first
 
 # a walk set going again, its interactions so far counted already
 def d.again(d: KD.D) -> KD.D:
@@ -666,17 +702,6 @@ def d.again(d: KD.D) -> KD.D:
 # the frame goes on with its walk at the next step, the source kept out
 def frame.keep(d: KD.D, s2: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   RMore{TkSvD{k, nc, pos, d.again(d)}, s2, b, c, ss}
-
-# the source's need on live source h2: a copy of it, served by a frame
-# above this one, whose walk is kept below it, frames below released if
-# one holds h2's source (cells-freeze.nested); a copy of itself, which
-# no serve makes, host and source one net, its recipe spliced
-def frame.src(+other: Bool, d: KD.D, t: T.Tpl, +h2: U32, s2: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
-  match other:
-    case True{}:
-      use.src(d.again(d), h2, WhSv{k, nc, pos}, s2, b, c, ss)
-    case False{}:
-      frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c), ss)
 
 # a cell forced above the frame: the frame's walk and every one below it
 # released, the frame's source back with theirs
@@ -692,7 +717,7 @@ def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +depth: U32, +h2: U32, s2: Stk, +i:
         case ETpl{t}:
           frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c), ss)
         case ESrc{+i2, t, name2}:
-          frame.src(U32.is_ne(i2, i), d, t, h2, s2, k, nc, pos, b, c, ss)
+          use.src(d.again(d), h2, who.self(U32.is_eq(i2, i), k, nc, pos), s2, b, c, ss)
         case EValue{v}:
           frame.keep(KS.resume(d, v), s2, k, nc, pos, b, c, ss)
         case ERecipe{+t, +name2}:
@@ -881,6 +906,50 @@ def frame.ho(m: Maybe<&2, Ent>, fd: Fd, +k1: U32, +nc1: U32, +pos1: U32, rest: S
     case None{}:
       err("a frame's host names no definition")
 
+# A self copy's frame: its host the frame below it, without a walk and
+# with the same source, which is served into itself (M.serve1)
+
+def frame.sv1(v: M.Sv1, +i: U32, +name: List<&2, U32>, +nc1: U32, +pos1: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match v:
+    case M.S1Ok{h, +n, +m}:
+      RMore{TkSv{k, nc1, pos1}, rest, b, cn.copy(cn.serve(cn.add(c, n)), m), srcs.put(ss, i, h)}
+    case M.S1Stop{d, +n}:
+      frame.stop(d, TkCon{TkSv{k, nc1, pos1}, rest}, i, name, k, nc, pos, b, cn.add(c, n), ss)
+    case M.S1Cur{h, +x, +n}:
+      frame.cur.h(P.rd(h, x), x, TkCon{TkSv{k, nc1, pos1}, rest}, i, name, k, nc, pos, b, cn.add(c, n), ss)
+
+def frame.one.t(r: SrT, +i: U32, +name: List<&2, U32>, +nc1: U32, +pos1: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+  match r:
+    case SrT{ss, x}:
+      match x:
+        case SrcIn{h}:
+          frame.sv1(M.serve1(h, nc, 8n, slice()), i, name, nc1, pos1, rest, k, nc, pos, b, c, ss)
+        case SrcOut{}:
+          err("a live source served twice at once")
+
+def frame.one(m: Maybe<&2, Ent>, fd: Fd, +nc1: U32, +pos1: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case ESrc{+i, t, +name}:
+          match fd:
+            case FdNew{}:
+              frame.one.t(srcs.take(ss, i), i, name, nc1, pos1, rest, k, nc, pos, b, c)
+            case FdGo{d}:
+              frame.sv1(M.serve1.from(d, nc, 8n, slice()), i, name, nc1, pos1, rest, k, nc, pos, b, c, ss)
+        case _:
+          err("a cursor's source is no live source")
+    case None{}:
+      err("a cursor's source names no definition")
+
+# a frame's host without a walk: of the same source, a self copy
+def frame.ho1(+same: Bool, fd: Fd, +k1: U32, +nc1: U32, +pos1: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match same:
+    case True{}:
+      frame.one(book_get(b, k), fd, nc1, pos1, rest, k, nc, pos, b, c, ss)
+    case False{}:
+      frame.ho(book_get(b, k1), fd, k1, nc1, pos1, rest, k, nc, pos, b, c, ss)
+
 # a frame's step, fd its walk if it keeps one: its host the task below it
 def frame(fd: Fd, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match s:
@@ -895,7 +964,7 @@ def frame(fd: Fd, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn
             case KD.D{h1, path1, +top1, +depth1, +n1, +st1}:
               frame.e(book_get(b, k), fd, h1, HbSvD{path1, top1, depth1, st1, k1, nc1, pos1}, rest, k, nc, pos, b, c, ss)
         case TkSv{+k1, +nc1, +pos1}:
-          frame.ho(book_get(b, k1), fd, k1, nc1, pos1, rest, k, nc, pos, b, c, ss)
+          frame.ho1(U32.is_eq(k1, k), fd, k1, nc1, pos1, rest, k, nc, pos, b, c, ss)
     case TkNil{}:
       err("a frame serves no host")
 

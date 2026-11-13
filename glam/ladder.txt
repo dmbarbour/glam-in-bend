@@ -33,6 +33,8 @@ cells-freeze.rewalk samples/hello/hello_deep_needs.g
 cells-freeze.nested samples/hello/hello_nested_through.g
 cells-freeze.nested samples/hello/hello_nested_wait.g
 cells-freeze.nested samples/invalid/eval/live_mutual_cycle.g
+cells-freeze.nested.self samples/hello/hello_self_copy.g
+cells-freeze.nested.self samples/invalid/eval/live_self_cycle.g
 ladder-objects samples/hello/hello_override.g
 ladder-objects samples/hello/hello_object.g
 ladder-objects samples/hello/hello_object_as.g

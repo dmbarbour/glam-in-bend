@@ -3,6 +3,7 @@ import ../spike/val.bend as V
 import ../spike/tpl.bend as T
 import ../spike/kprim.bend as P
 import ../spike/kdemand.bend as KD
+import ../spike/kmem_grow.bend as KM
 import ./splice.bend as S
 import ./freeze.bend as F
 import ./position.bend as Q
@@ -410,3 +411,137 @@ def sv.from.pos(r: P.H & U32, d: KD.D, +nc: U32, +g: Nat, +f: Nat) -> Sv:
 # again, its path kept (cells-freeze.rewalk)
 def serve.from(d: KD.D, h: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv:
   sv.from.pos(P.rd(h, (nc + 2 : U32)), d, nc, g, f)
+
+# One net
+# =======
+#
+# A copy of a source in itself (self-copies-are-cursors, the Cells plan's
+# cells-freeze.nested.self): served as any copy is, positioned demand at
+# the cursor's position, then the finished tree there frozen and spliced
+# back where the cursor stands, its wires joined in the same net. The
+# walk that needed the copy is released before, being reentered.
+
+# a one-net serve's end, as Sv's with the host and the source one net
+type Sv1 is Type:
+  S1Ok{h: P.H, +n: U32, +m: U32}
+  S1Stop{d: KD.D, +n: U32}
+  S1Cur{h: P.H, +x: U32, +n: U32}
+
+def mz1.fz(r: P.H & F.Fz, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
+  (h, f) = r
+  match f:
+    case F.Fz{t, curs, +m}:
+      match t:
+        case T.Tpl{nodes, links, root, +size}:
+          (mz.sp(S.sp.statics(U32.to_nat(size), S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), 0), curs, root, situ, nc, at_root), m)
+
+# the finished tree at node base v of net h copied into h itself at
+# offset k, as materialize does between two nets
+def materialize1(h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
+  mz1.fz(F.freeze_tree(h, v), situ, k, nc, at_root)
+
+def sv1.ok(r: P.H & U32, +n: U32) -> Sv1:
+  (h, +m) = r
+  S1Ok{h, n, m}
+
+# a climb, as Cl's, in one net
+type Cl1 is Type:
+  Cl1{h: P.H, +x: U32, done: Bool}
+
+def cl1.k(m: Maybe<&2, U32>, h: P.H, +x: U32, +f: U32) -> Cl1:
+  match m:
+    case Some{+c}:
+      Cl1{h, x, True{}}
+    case None{}:
+      Cl1{h, P.base(f), False{}}
+
+def cl1.found(r: P.H & Maybe<&2, U32>, +x: U32, +f: U32) -> Cl1:
+  (h, m) = r
+  cl1.k(m, h, x, f)
+
+def cl1.f(r: P.H & U32, +x: U32, +situ: U32) -> Cl1:
+  (h, +f) = r
+  cl1.found(rg.find(h, situ, f), x, f)
+
+def cl1.go(g: Nat, c: Cl1, +situ: U32) -> Cl1:
+  match g:
+    case 0n:
+      c
+    case 1n+k:
+      match c:
+        case Cl1{h, +x, done}:
+          match done:
+            case True{}:
+              Cl1{h, x, True{}}
+            case False{}:
+              cl1.go(k, cl1.f(P.rd(h, (x + 1 : U32)), x, situ), situ)
+
+def sv1.climbed(c: Cl1, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv1:
+  match c:
+    case Cl1{h, +x, done}:
+      sv1.ok(materialize1(h, situ, x, k, nc, False{}), n)
+
+def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv1:
+  (h, m) = r
+  match m:
+    case Some{+c}:
+      S1Ok{join(h, nc, c), n, 1}
+    case None{}:
+      sv1.climbed(cl1.go(1000000n, Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
+
+def sv1.static.w(r: P.H & U32, +nc: U32, +n: U32) -> Sv1:
+  (h, +w) = r
+  S1Ok{P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
+
+def sv1.stop(d: KD.D, +acc: U32) -> Sv1:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      S1Stop{KD.D{h, path, top, depth, n, st}, (acc + n : U32)}
+
+def sv1.pd(p: Q.Pd, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv1:
+  match p:
+    case Q.PdValue{h, +q, +n}:
+      sv1.ok(materialize1(h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())), n)
+    case Q.PdFront{h, +q, +n}:
+      sv1.front.m(rg.find(h, situ, q), situ, k, nc, q, n)
+    case Q.PdCur{h, +x, +n}:
+      S1Cur{h, x, n}
+    case Q.PdStatic{h, +n}:
+      sv1.static.w(P.rd(h, (nc + 1 : U32)), nc, n)
+    case Q.PdStop{d, +n}:
+      sv1.stop(d, n)
+
+def sv1.k(r: P.H & U32, +situ: U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +hd) = r
+  sv1.pd(Q.positioned(h, pos, g, f), situ, P.fld(hd), nc, pos)
+
+def sv1.situ(r: P.H & U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +situ) = r
+  sv1.k(P.rd(h, situ), situ, nc, pos, g, f)
+
+def sv1.pos(r: P.H & U32, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +pos) = r
+  sv1.situ(rg.situ(h, nc), nc, pos, g, f)
+
+# the negative cursor nc of net h served from h itself
+def serve1(h: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
+  sv1.pos(P.rd(h, (nc + 2 : U32)), nc, g, f)
+
+def sv1.from.k(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +situ: U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +hd) = r
+  sv1.pd(Q.positioned.from(KD.D{h, path, top, depth, n, st}, pos, g, f), situ, P.fld(hd), nc, pos)
+
+def sv1.from.situ(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +situ) = r
+  sv1.from.k(P.rd(h, situ), path, top, depth, n, st, situ, nc, pos, g, f)
+
+def sv1.from.pos(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
+  (h, +pos) = r
+  sv1.from.situ(rg.situ(h, nc), path, top, depth, n, st, nc, pos, g, f)
+
+# and served going on from d, a walk in the net stopped and set going
+# again, its path kept
+def serve1.from(d: KD.D, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      sv1.from.pos(P.rd(h, (nc + 2 : U32)), path, top, depth, n, st, nc, g, f)
