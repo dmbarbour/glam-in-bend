@@ -182,3 +182,35 @@ a read hands the heap back with the word it read cleared
   (MG{a}, v)
 +++
   (MG{Array.set(U32, a, 0, 0)}, v)
+
+# A node taken from the free list (the laws node_*): each mutation
+# misplaces one of the pop's three writes or the index it returns; each
+# is refuted by the proofs, so none needs a witness.
+
+=== head_next_word node_keeps node_next
+the pop writes the new head one word past the head's word
+--- kprim.bend
+  (H{KM.m_set(w, at_fh(), next), a}, n)
++++
+  (H{KM.m_set(w, (at_fh() + 1 : U32), next), a}, n)
+
+=== head_kept node_next
+the pop leaves the head as it was: the same node taken again next
+--- kprim.bend
+  (H{KM.m_set(w, at_fh(), next), a}, n)
++++
+  (H{w, a}, n)
+
+=== payload_next_word node_keeps
+a node's payload written at its port 0's link word, after its header
+--- kprim.bend
+  (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
++++
+  (wr(wr(h, n, hd), (n + 1 : U32), p), n)
+
+=== index_of_head node_index
+the node returned is the head's index times four, not its node's
+--- kprim.bend
+      alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
++++
+      alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), (fh << 2n : U32), a)
