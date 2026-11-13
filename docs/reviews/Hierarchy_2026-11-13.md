@@ -356,3 +356,37 @@ the batch kept, no per-node pulls (its F17, F24).
 - **Local cells first:** "Whichever we encounter first, so probably
   lazies unless we push on parallelism": lazy members leaving a net,
   before sparks.
+
+## Progress (2026-11-13)
+
+The maintainer: "Please proceed with the review recommendations." Of the
+combined order:
+1. *Copies counted.* Built: the nodes serves copy and the nodes splices
+   make both count as interactions in the families' check, which reads
+   one number; the bounds on serves and on splices are retired
+   (`cells-freeze.sharing.copies`).
+2. *The self copy.* Built (`cells-freeze.nested.self`).
+3. *The stack as segments.* Held for the maintainer: segments make the
+   release at a wait part of the type, a cell forced above frames
+   always taking their walks, where the maintainer's rule is to kill
+   walks on re-entrant access ("it makes sense to me that we'd kill the
+   existing walks upon re-entrant access to a net"), which is the lazy
+   release of this review's F6. Building segments would make that a
+   reversal. No sample yet gains from lazy release: in every sample
+   with a wait, the cell forced reenters a held source.
+4. *The finished mark.* Deferred until a source runs events or
+   collection (above).
+5. *The path law.* Not started: an invariant over every state the
+   kernel's walk reaches, in a generated module of its own
+   (`spike/kdemand.bend`), as `walk_follows_inputs` is for the
+   collector's walk. Its scope is to be agreed first; a first law could
+   be the serve's own write set, local to the materializer, the kernel
+   fact taken as a premise.
+6. *A count of rings per source.* Deferred: a ring is made only at a
+   use (`use.situ`), so the count would be of uses ever made, not of
+   live users; and a root cell, named by the book, can always be used
+   again, so no reader could act on a count of one. It belongs with
+   local cells and ring liveness. The book and the sources as one array
+   would make the book linear, a change across the core with no reader
+   yet.
+7. *Release narrowed.* Waits on measurement, and on item 3.
