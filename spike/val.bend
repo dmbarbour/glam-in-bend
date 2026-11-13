@@ -720,6 +720,52 @@ def lift_pay(pa: Pay, pb: Pay) -> Pay:
     case _:
       pb
 
+# Raising a copy: a template spliced, or a source's finished part
+# materialized, at level k has every level in it raised by k: a bind's
+# level, a fan's, and a control's index, a control's offset left alone
+# (templates-spliced-at-level; glam/splice.bend's sp.node raises through
+# these; the laws raise_*). A fan without levels is left as it is.
+
+def raise_lvl.k(+none: Bool, +k: U32, +l: U32) -> U32:
+  match none:
+    case True{}:
+      l
+    case False{}:
+      (l + k : U32)
+
+# a fan's level raised by k
+def raise_lvl(+k: U32, +l: U32) -> U32:
+  raise_lvl.k(U32.is_eq(l, nolvl()), k, l)
+
+# a payload raised by k
+def raise_pay(+k: U32, p: Pay) -> Pay:
+  match p:
+    case PLvl{+n}:
+      PLvl{(n + k : U32)}
+    case PLift{+n, +up, +by}:
+      PLift{(n + k : U32), up, by}
+    case PFan{f}:
+      match f:
+        case FanId{+site, +inst, +l}:
+          PFan{FanId{site, inst, raise_lvl(k, l)}}
+    case _:
+      p
+
+# the field raise_pay raises, 0 for a payload with none (the laws raise_*
+# bound it)
+def lvl_of(p: Pay) -> U32:
+  match p:
+    case PLvl{+n}:
+      n
+    case PLift{+n, +up, +by}:
+      n
+    case PFan{f}:
+      match f:
+        case FanId{+site, +inst, +l}:
+          l
+    case _:
+      0
+
 def bool_eq(a: Bool, b: Bool) -> Bool:
   match a b:
     case True{} True{}:
@@ -763,6 +809,14 @@ def compose(first: Pay, second: Pay) -> Fuse:
     case PLift{+n1, +u1, +b1} PLift{+n2, +u2, +b2}:
       compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
     case _ _:
+      FNo{}
+
+# a fusion's control raised by k (the law raise_compose)
+def raise_fuse(+k: U32, f: Fuse) -> Fuse:
+  match f:
+    case FTo{p}:
+      FTo{raise_pay(k, p)}
+    case FNo{}:
       FNo{}
 
 def pay_lvl(p: Pay) -> U32:

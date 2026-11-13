@@ -1,0 +1,56 @@
+# Mutations of the spike's code, each a fault a law named should catch
+# (scripts/one_law.py; docs/Proving.md, What to claim). Try them after a
+# proof or the code it follows changes:
+#   python3 -I scripts/one_law.py spike/PROOF.bend LAW --mutants spike/MUTANTS.txt
+#
+# Raising a copy (the laws raise_*): each mutation breaks what raising
+# commutes with, not only what a rule computes. A fault that raising
+# still commutes with, such as a guard of >= for >, is for other laws.
+
+=== bind_level_offset raise_lvl_eq
+a bind's level replaced by the offset: every raised pair of levels meets
+--- val.bend
+    case PLvl{+n}:
+      PLvl{(n + k : U32)}
++++
+    case PLvl{+n}:
+      PLvl{k}
+
+=== fan_level_offset raise_fan_eq
+a fan's level replaced by the offset: every raised pair of fans pairs
+--- val.bend
+    case False{}:
+      (l + k : U32)
++++
+    case False{}:
+      k
+
+=== ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_down raise_compose
+a control's index replaced by the offset
+--- val.bend
+      PLift{(n + k : U32), up, by}
++++
+      PLift{k, up, by}
+
+=== ctl_index_kept raise_lift_up raise_lift_down
+a control's index left unraised while levels rise: a raised level passes
+a control it passed below
+--- val.bend
+      PLift{(n + k : U32), up, by}
++++
+      PLift{n, up, by}
+
+=== lift_index_ignored raise_lift_up raise_lift_down
+a control moves every level above 0, its index ignored
+--- val.bend
+  lift_lvl.go(U32.is_gt(j, n), up, by, j)
++++
+  lift_lvl.go(U32.is_gt(j, 0), up, by, j)
+
+=== fuse_amount_alone raise_compose
+two controls fuse when the second's index is the first's amount, the
+first's index ignored
+--- val.bend
+      compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
++++
+      compose.ok(u1 && u2 && U32.is_eq(n2, b1), n1, b1, b2)

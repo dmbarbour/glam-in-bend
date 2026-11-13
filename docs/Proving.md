@@ -88,6 +88,19 @@ it alone taught. Add to this file what a new proof teaches.
   `{N == Nat.pow(2n, 32n)}`, the power met only against a symbolic value
   or where both forms match exactly (BendIssues.md, "Big constants in
   proofs").
+- **A goal holding a big constant changes only by a rewrite under a
+  hole.** Where two forms must be reconciled by conversion (`lift_lvl`
+  against the arm it reduces to, `lvl_of(PLvl{j})` against `j`), the
+  checker normalizes the whole type, the power with it, and overflows its
+  stack. State each such step as an equation proved by `{==}` in a lemma
+  where no power appears (`lift_unfold`, `lvl_cast` in
+  `spike/PROOF.bend`), and rewrite with it, the rest of the goal matching
+  exactly.
+- **A closed fact between big values enters as a `U32` comparison.** Prove
+  the lemma over variables (`ne_lt`) and pass the closed fact as
+  `{U32.is_lt(2147483648, V.nolvl()) == True}`, checked by `{==}` on the
+  words. Stated between their `Nat` values, 2^31 below 2^32 - 1, it
+  exhausted the checker's memory.
 - **A proof function is used once.** A function cannot be `+`-marked, so
   a lemma taking one (`@x:A -> P(x)`, Bend's dependent function) cannot
   both use it and pass it on. State a reusable fact as a `Bool`

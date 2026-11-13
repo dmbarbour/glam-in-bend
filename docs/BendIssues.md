@@ -173,10 +173,18 @@ of 2026-10-26, Bend 2.0.39.
   `MNat.lt(Nat.add(0, len), _)` a lemma takes; and a failing proof near
   such a bound crashes the checker (`RangeError: Maximum call stack size
   exceeded`, the status 1) rather than report the goal, so a mutation is
-  caught only by the status.
+  caught only by the status. The shift laws (`raise_*`, 2026-11-12) met
+  it three ways more: a goal holding 2^31 reconciled with another form by
+  conversion overflows the stack; a closed comparison of 2^31 with the
+  marker 2^32 - 1, stated over their `Nat` values, exhausts memory; and
+  every mutation of the code those laws follow crashes the checker
+  rather than failing a goal.
 - **Workaround:** the one #1291 suggests: each lemma reasons under a
   variable bound and is applied at the power where both forms match
-  exactly; a `U32` literal's value comes from its bits, as a word with one
+  exactly; a goal holding a power changes only by rewrites under a hole,
+  each equation proved by `{==}` where no power appears; a closed fact
+  between big values is passed as a `U32` comparison, checked on words
+  (`docs/Proving.md`, Writing proofs); a `U32` literal's value comes from its bits, as a word with one
   bit set (`spike/PROOF.bend`, "Field bounds"). Blend's lemmas take the
   bound `N` with `{N == Nat.pow(2n, 32n)}`, converting to the power only
   against a symbolic count, and a helper generic in `N` turns the law's

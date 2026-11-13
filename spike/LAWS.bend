@@ -177,6 +177,112 @@ law lift_fits:
   for ok: {P.lift_wraps(n, o, P.fld(h)) == False{} : Bool}
   MNat.lt(U32.to_nat(P.lift(n, o, P.fld(h))), Nat.pow(2n, 24n))
 
+# Raising a copy
+# ==============
+#
+# A template spliced, or a source's finished part materialized, at level k
+# has every level raised by k (V.raise_pay, which glam/splice.bend's
+# sp.node raises through). These laws say the rules cannot tell: raised
+# alike, two payloads test as they did, and a control acting on a raised
+# payload gives what it gave, raised. These are the pieces of "a closed
+# net reduced and then raised is the net raised and then reduced, rule by
+# rule" (docs/reviews/Levels_2026-11-12.md, L1), which templates spliced
+# at level and live templates' copies assume. Each holds where no sum
+# wraps; in the lift laws a payload's level, the control's amount and
+# the raise sum below 2^31, so that no fan's level is the marker of a fan
+# without levels (V.nolvl). Not claimed here: the kernel's own arithmetic (P.lift's
+# drop, P.compose, same_lvl, copy_fn_bad), nor a rewrite as a whole.
+
+# LAW: an application's level and a function's, both raised by k, are
+# equal exactly when they were (V.lvl_eq, N.rule_test's test of Ap and Fn
+# or FnD).
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_lvl_eq:
+  for +k: U32
+  for +a: U32
+  for +b: U32
+  for ha: MNat.lt(Nat.add(U32.to_nat(a), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for hb: MNat.lt(Nat.add(U32.to_nat(b), U32.to_nat(k)), Nat.pow(2n, 32n))
+  {V.lvl_eq(V.raise_pay(k, V.PLvl{a}), V.raise_pay(k, V.PLvl{b})) == V.lvl_eq(V.PLvl{a}, V.PLvl{b}) : Bool}
+
+# LAW: two fans, both raised by k, are residuals of one duplication
+# exactly when they were (V.fan_eq, N.rule_test's test of Copy and Merge).
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_fan_eq:
+  for +k: U32
+  for +sa: U32
+  for +ia: U32
+  for +la: U32
+  for +sb: U32
+  for +ib: U32
+  for +lb: U32
+  for ha: MNat.lt(Nat.add(U32.to_nat(la), U32.to_nat(k)), Nat.pow(2n, 31n))
+  for hb: MNat.lt(Nat.add(U32.to_nat(lb), U32.to_nat(k)), Nat.pow(2n, 31n))
+  {V.fan_eq(N.fan_of(V.raise_pay(k, V.PFan{V.FanId{sa, ia, la}})), N.fan_of(V.raise_pay(k, V.PFan{V.FanId{sb, ib, lb}}))) == V.fan_eq(V.FanId{sa, ia, la}, V.FanId{sb, ib, lb}) : Bool}
+
+# LAW: two controls, both raised by k, cancel facing each other exactly
+# when they did (V.ctl_eq, N.rule_test's test of Lift and LiftC).
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_ctl_eq:
+  for +k: U32
+  for +na: U32
+  for +ua: Bool
+  for +xa: U32
+  for +nb: U32
+  for +ub: Bool
+  for +xb: U32
+  for ha: MNat.lt(Nat.add(U32.to_nat(na), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for hb: MNat.lt(Nat.add(U32.to_nat(nb), U32.to_nat(k)), Nat.pow(2n, 32n))
+  {V.ctl_eq(V.raise_pay(k, V.PLift{na, ua, xa}), V.raise_pay(k, V.PLift{nb, ub, xb})) == V.ctl_eq(V.PLift{na, ua, xa}, V.PLift{nb, ub, xb}) : Bool}
+
+# LAW: a payload raised by k, passed through a raising control whose index
+# is raised by k, is the payload passed through the control, then raised
+# by k (V.lift_pay, the payload of every SLiftA and SLiftB a rule makes).
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_lift_up:
+  for +k: U32
+  for +n: U32
+  for +by: U32
+  for +p: V.Pay
+  for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
+  {V.lift_pay(V.raise_pay(k, V.PLift{n, True{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, True{}, by}, p)) : V.Pay}
+
+# LAW: and so through a lowering control, one dropping by at most one
+# more than its index, as every drop lowering makes does (a croissant: by
+# 1), so that a level above the index never falls below zero.
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_lift_down:
+  for +k: U32
+  for +n: U32
+  for +by: U32
+  for +p: V.Pay
+  for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
+  for hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))
+  {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, p)) : V.Pay}
+
+# LAW: two controls, both raised by k, fuse exactly when they did, into
+# their fusion raised by k (V.compose; fuse-control-runs).
+# Record: templates-spliced-at-level
+# Record: fuse-control-runs
+law raise_compose:
+  for +k: U32
+  for +n1: U32
+  for +u1: Bool
+  for +b1: U32
+  for +n2: U32
+  for +u2: Bool
+  for +b2: U32
+  for h1: MNat.lt(Nat.add(Nat.add(U32.to_nat(n1), U32.to_nat(b1)), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for h2: MNat.lt(Nat.add(U32.to_nat(n2), U32.to_nat(k)), Nat.pow(2n, 32n))
+  {V.compose(V.raise_pay(k, V.PLift{n1, u1, b1}), V.raise_pay(k, V.PLift{n2, u2, b2})) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says
 # the links from the head spell a list holding every free slot and no

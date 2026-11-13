@@ -2687,6 +2687,377 @@ def lift_fits.at(+n: U32, +o: U32, +j: U32, +x: Nat, up: {P.off_up(o) == True{} 
 def Laws.lift_fits(n, o, h, up, ok):
   lift_fits.at(n, o, P.fld(h), Nat.pow(2n, 24n), up, ok, Laws.fld_bits(h), u32_24())
 
+# Raising a copy
+# ==============
+#
+# Over U32 through bend-mathlib's laws relating it to Nat. A comparison of
+# a + k with b + k is that of a with b where neither sum wraps
+# (cmp_raise), which gives every test the rules make: equality, and the
+# guard of a level passing a control. Sums regroup under the same
+# condition (add_swap, sub_swap), and a value below 2^31 is never the
+# marker of a fan without levels (ne_nolvl), whose value is met only
+# through a closed comparison and u32_31, never expanded.
+
+# adding c on the left of both keeps a comparison
+def cmp_add_left(c: Nat, +a: Nat, +b: Nat) -> {Nat.cmp(a, b) == Nat.cmp(Nat.add(c, a), Nat.add(c, b)) : Cmp}:
+  match c:
+    case 0n:
+      {==}
+    case 1n+p:
+      cmp_add_left(p, a, b)
+
+# a below m once something is added to it
+def lt_left(+a: Nat, +b: Nat, +m: Nat, h: MNat.lt(Nat.add(a, b), m)) -> MNat.lt(a, m):
+  MNat.lt_of_le_of_lt(a, Nat.add(a, b), m, MNat.le_add_right(a, b), h)
+
+# below 2^31 is below 2^32
+def lt31_32(+x: Nat, h: MNat.lt(x, Nat.pow(2n, 31n))) -> MNat.lt(x, Nat.pow(2n, 32n)):
+  MNat.lt_of_lt_of_le(x, Nat.pow(2n, 31n), Nat.pow(2n, 32n), h, MNat.pow_le_pow_right(1n, 31n, 32n, {==}))
+
+# comparing a + k with b + k compares a with b, neither sum wrapping
+def cmp_raise(+a: U32, +b: U32, +k: U32,
+  ha: MNat.lt(Nat.add(U32.to_nat(a), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  hb: MNat.lt(Nat.add(U32.to_nat(b), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {U32.cmp(a, b) == U32.cmp(U32.add(a, k), U32.add(b, k)) : Cmp}:
+  %MU.u32_cmp_to_nat_sym(U32.add(a, k), U32.add(b, k)) : {U32.cmp(a, b) == _ : Cmp}
+  %MU.u32_cmp_to_nat_sym(a, b) : {_ == Nat.cmp(U32.to_nat(U32.add(a, k)), U32.to_nat(U32.add(b, k))) : Cmp}
+  %MU.u32_add_exact_sym(a, k, ha) : {Nat.cmp(U32.to_nat(a), U32.to_nat(b)) == Nat.cmp(_, U32.to_nat(U32.add(b, k))) : Cmp}
+  %MU.u32_add_exact_sym(b, k, hb) : {Nat.cmp(U32.to_nat(a), U32.to_nat(b)) == Nat.cmp(Nat.add(U32.to_nat(a), U32.to_nat(k)), _) : Cmp}
+  %MNat.add_comm(U32.to_nat(k), U32.to_nat(a)) : {Nat.cmp(U32.to_nat(a), U32.to_nat(b)) == Nat.cmp(_, Nat.add(U32.to_nat(b), U32.to_nat(k))) : Cmp}
+  %MNat.add_comm(U32.to_nat(k), U32.to_nat(b)) : {Nat.cmp(U32.to_nat(a), U32.to_nat(b)) == Nat.cmp(Nat.add(U32.to_nat(k), U32.to_nat(a)), _) : Cmp}
+  cmp_add_left(U32.to_nat(k), U32.to_nat(a), U32.to_nat(b))
+
+# the value of a + b, plus k, from a bound on a + b + k
+def lt_add_raise(+a: U32, +b: U32, +k: U32,
+  +h: MNat.lt(Nat.add(Nat.add(U32.to_nat(a), U32.to_nat(b)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  MNat.lt(Nat.add(U32.to_nat(U32.add(a, b)), U32.to_nat(k)), Nat.pow(2n, 32n)):
+  %MU.u32_add_exact_sym(a, b, lt_left(Nat.add(U32.to_nat(a), U32.to_nat(b)), U32.to_nat(k), Nat.pow(2n, 32n), h)) :
+    MNat.lt(Nat.add(_, U32.to_nat(k)), Nat.pow(2n, 32n))
+  h
+
+# the bound h with its last two addends swapped
+def add_swap.h(+j: U32, +k: U32, +b: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(k)), U32.to_nat(b)), Nat.pow(2n, 32n)):
+  %MNat.add_right_comm(U32.to_nat(j), U32.to_nat(b), U32.to_nat(k)) : MNat.lt(_, Nat.pow(2n, 32n))
+  h
+
+# the two sums' values
+def add_swap.n(+j: U32, +k: U32, +b: U32,
+  +h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  +h2: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(k)), U32.to_nat(b)), Nat.pow(2n, 32n))) ->
+  {U32.to_nat(U32.add(U32.add(j, b), k)) == U32.to_nat(U32.add(U32.add(j, k), b)) : Nat}:
+  %MU.u32_add_exact_sym(U32.add(j, b), k, lt_add_raise(j, b, k, h)) : {_ == U32.to_nat(U32.add(U32.add(j, k), b)) : Nat}
+  %MU.u32_add_exact_sym(j, b, lt_left(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k), Nat.pow(2n, 32n), h)) :
+    {Nat.add(_, U32.to_nat(k)) == U32.to_nat(U32.add(U32.add(j, k), b)) : Nat}
+  %MU.u32_add_exact_sym(U32.add(j, k), b, lt_add_raise(j, k, b, h2)) :
+    {Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)) == _ : Nat}
+  %MU.u32_add_exact_sym(j, k, lt_left(Nat.add(U32.to_nat(j), U32.to_nat(k)), U32.to_nat(b), Nat.pow(2n, 32n), h2)) :
+    {Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)) == Nat.add(_, U32.to_nat(b)) : Nat}
+  MNat.add_right_comm(U32.to_nat(j), U32.to_nat(b), U32.to_nat(k))
+
+# (j + b) + k is (j + k) + b, no sum wrapping
+def add_swap(+j: U32, +k: U32, +b: U32,
+  +h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {U32.add(U32.add(j, b), k) == U32.add(U32.add(j, k), b) : U32}:
+  +h2 = add_swap.h(j, k, b, h)
+  MU.u32_to_nat_inj(U32.add(U32.add(j, b), k), U32.add(U32.add(j, k), b), add_swap.n(j, k, b, h, h2))
+
+# (j - b) + k below 2^32
+def sub_swap.c(+j: U32, +k: U32, +b: U32, +hb: MNat.le(U32.to_nat(b), U32.to_nat(j)),
+  h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  MNat.lt(Nat.add(U32.to_nat(U32.sub(j, b)), U32.to_nat(k)), Nat.pow(2n, 32n)):
+  %MU.u32_sub_exact_sym(j, b, hb) : MNat.lt(Nat.add(_, U32.to_nat(k)), Nat.pow(2n, 32n))
+  MNat.lt_of_le_of_lt(Nat.add(Nat.sub(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)), Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n),
+    MNat.add_le_add_right(Nat.sub(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(j), U32.to_nat(k), MNat.sub_le(U32.to_nat(j), U32.to_nat(b))), h)
+
+# b no more than j + k
+def sub_swap.d(+j: U32, +k: U32, +b: U32, hb: MNat.le(U32.to_nat(b), U32.to_nat(j)),
+  h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  MNat.le(U32.to_nat(b), U32.to_nat(U32.add(j, k))):
+  %MU.u32_add_exact_sym(j, k, h) : MNat.le(U32.to_nat(b), _)
+  MNat.le_trans(U32.to_nat(b), U32.to_nat(j), Nat.add(U32.to_nat(j), U32.to_nat(k)), hb, MNat.le_add_right(U32.to_nat(j), U32.to_nat(k)))
+
+# (j - b) + k is (j + k) - b in Nat
+def sub_swap.nat(+j: Nat, +k: Nat, +b: Nat, hb: MNat.le(b, j)) -> {Nat.add(Nat.sub(j, b), k) == Nat.sub(Nat.add(j, k), b) : Nat}:
+  %MNat.add_comm(k, Nat.sub(j, b)) : {_ == Nat.sub(Nat.add(j, k), b) : Nat}
+  %MNat.add_comm(k, j) : {Nat.add(k, Nat.sub(j, b)) == Nat.sub(_, b) : Nat}
+  Equal.sym(Nat, Nat.sub(Nat.add(k, j), b), Nat.add(k, Nat.sub(j, b)), MNat.add_sub_assoc(b, j, hb, k))
+
+def sub_swap.n(+j: U32, +k: U32, +b: U32, +hb: MNat.le(U32.to_nat(b), U32.to_nat(j)),
+  +h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {U32.to_nat(U32.add(U32.sub(j, b), k)) == U32.to_nat(U32.sub(U32.add(j, k), b)) : Nat}:
+  %MU.u32_add_exact_sym(U32.sub(j, b), k, sub_swap.c(j, k, b, hb, h)) : {_ == U32.to_nat(U32.sub(U32.add(j, k), b)) : Nat}
+  %MU.u32_sub_exact_sym(j, b, hb) : {Nat.add(_, U32.to_nat(k)) == U32.to_nat(U32.sub(U32.add(j, k), b)) : Nat}
+  %MU.u32_sub_exact_sym(U32.add(j, k), b, sub_swap.d(j, k, b, hb, h)) :
+    {Nat.add(Nat.sub(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)) == _ : Nat}
+  %MU.u32_add_exact_sym(j, k, h) : {Nat.add(Nat.sub(U32.to_nat(j), U32.to_nat(b)), U32.to_nat(k)) == Nat.sub(_, U32.to_nat(b)) : Nat}
+  sub_swap.nat(U32.to_nat(j), U32.to_nat(k), U32.to_nat(b), hb)
+
+# (j - b) + k is (j + k) - b, b no more than j and j + k not wrapping
+def sub_swap(+j: U32, +k: U32, +b: U32, +hb: MNat.le(U32.to_nat(b), U32.to_nat(j)),
+  +h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {U32.add(U32.sub(j, b), k) == U32.sub(U32.add(j, k), b) : U32}:
+  MU.u32_to_nat_inj(U32.add(U32.sub(j, b), k), U32.sub(U32.add(j, k), b), sub_swap.n(j, k, b, hb, h))
+
+# a comparison found less is not found equal
+def cmp_lt_ne(c: Cmp, h: {Cmp.is_lt(c) == True{} : Bool}) -> {Cmp.is_eq(c) == False{} : Bool}:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      Empty.absurd({Cmp.is_eq(EQ{}) == False{} : Bool}, MNat.internal_false_ne_true(h))
+    case GT{}:
+      Empty.absurd({Cmp.is_eq(GT{}) == False{} : Bool}, MNat.internal_false_ne_true(h))
+
+# c below n read as Nats
+def ne_lt.c(+c: U32, +n: U32, e: {U32.is_lt(c, n) == True{} : Bool}) -> MNat.lt(U32.to_nat(c), U32.to_nat(n)):
+  %MU.u32_is_lt_to_nat(c, n) : {_ == True{} : Bool}
+  e
+
+# x below c, and c below n as U32s, keeps x from being n. Over variables,
+# so that the closed comparison of 2^31 with the marker is met only as
+# U32s, on their words: the checker expands a closed comparison of Nats
+# in unary, and one of 2^31 with 2^32 - 1 exhausts its memory
+def ne_lt(+x: U32, +c: U32, +n: U32, e: {U32.is_lt(c, n) == True{} : Bool}, h: MNat.lt(U32.to_nat(x), U32.to_nat(c))) ->
+  {U32.is_eq(x, n) == False{} : Bool}:
+  %MU.u32_is_eq_to_nat_sym(x, n) : {_ == False{} : Bool}
+  cmp_lt_ne(Nat.cmp(U32.to_nat(x), U32.to_nat(n)),
+    MNat.lt_trans(U32.to_nat(x), U32.to_nat(c), U32.to_nat(n), h, ne_lt.c(c, n, e)))
+
+# the bound with 2^31 read as the U32 that holds it
+def ne_nolvl.h(+x: U32, h: MNat.lt(U32.to_nat(x), Nat.pow(2n, 31n))) -> MNat.lt(U32.to_nat(x), U32.to_nat(2147483648)):
+  %Equal.sym(Nat, U32.to_nat(2147483648), Nat.pow(2n, 31n), u32_31()) : MNat.lt(U32.to_nat(x), _)
+  h
+
+# a value below 2^31 is not the marker of a fan without levels
+def ne_nolvl(+x: U32, h: MNat.lt(U32.to_nat(x), Nat.pow(2n, 31n))) -> {U32.is_eq(x, V.nolvl()) == False{} : Bool}:
+  ne_lt(x, 2147483648, V.nolvl(), {==}, ne_nolvl.h(x, h))
+
+# j above n puts n + 1 at most j
+def succ_le_of_gt(+j: U32, +n: U32, eg: {U32.is_gt(j, n) == True{} : Bool}) -> MNat.le(1n+U32.to_nat(n), U32.to_nat(j)):
+  %MNat.is_lt_eq_succ_le(U32.to_nat(n), U32.to_nat(j)) : {_ == True{} : Bool}
+  %MNat.is_gt_eq_is_lt(U32.to_nat(j), U32.to_nat(n)) : {_ == True{} : Bool}
+  %MU.u32_is_gt_to_nat(j, n) : {_ == True{} : Bool}
+  eg
+
+# a level through a raising control, on its guard, raised
+def lift_up_g(g: Bool, +by: U32, +j: U32, +k: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {V.lift_lvl.go(g, True{}, by, U32.add(j, k)) == U32.add(V.lift_lvl.go(g, True{}, by, j), k) : U32}:
+  match g:
+    case True{}:
+      Equal.sym(U32, U32.add(U32.add(j, by), k), U32.add(U32.add(j, k), by), add_swap(j, k, by, h))
+    case False{}:
+      {==}
+
+# j + k below 2^32, from the bound on j + by + k
+def lt_jk(+j: U32, +by: U32, +k: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n)):
+  MNat.lt_of_le_of_lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 32n),
+    MNat.add_le_add_right(U32.to_nat(j), Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k), MNat.le_add_right(U32.to_nat(j), U32.to_nat(by))), h)
+
+# a level raised by k through a raising control raised by k is the level
+# through the control, raised by k
+def lift_up(+n: U32, +by: U32, +j: U32, +k: U32,
+  hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  +h: MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {V.lift_lvl(U32.add(n, k), True{}, by, U32.add(j, k)) == U32.add(V.lift_lvl(n, True{}, by, j), k) : U32}:
+  %cmp_raise(j, n, k, lt_jk(j, by, k, h), hn) :
+    {V.lift_lvl.go(Cmp.is_gt(_), True{}, by, U32.add(j, k)) == U32.add(V.lift_lvl.go(U32.is_gt(j, n), True{}, by, j), k) : U32}
+  lift_up_g(U32.is_gt(j, n), by, j, k, h)
+
+# a level through a lowering control, on its guard, raised
+def lift_down_g(g: Bool, +n: U32, +by: U32, +j: U32, +k: U32, eg: {U32.is_gt(j, n) == g : Bool},
+  hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n)),
+  h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n))) ->
+  {V.lift_lvl.go(g, False{}, by, U32.add(j, k)) == U32.add(V.lift_lvl.go(g, False{}, by, j), k) : U32}:
+  match g:
+    case True{}:
+      Equal.sym(U32, U32.add(U32.sub(j, by), k), U32.sub(U32.add(j, k), by),
+        sub_swap(j, k, by, MNat.le_trans(U32.to_nat(by), 1n+U32.to_nat(n), U32.to_nat(j), hd, succ_le_of_gt(j, n, eg)), h))
+    case False{}:
+      {==}
+
+# and so through a lowering control
+def lift_down(+n: U32, +by: U32, +j: U32, +k: U32,
+  hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  +h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))) ->
+  {V.lift_lvl(U32.add(n, k), False{}, by, U32.add(j, k)) == U32.add(V.lift_lvl(n, False{}, by, j), k) : U32}:
+  %cmp_raise(j, n, k, h, hn) :
+    {V.lift_lvl.go(Cmp.is_gt(_), False{}, by, U32.add(j, k)) == U32.add(V.lift_lvl.go(U32.is_gt(j, n), False{}, by, j), k) : U32}
+  lift_down_g(U32.is_gt(j, n), n, by, j, k, {==}, hd, h)
+
+# l below 2^31, from the bound on l + by + k
+def lt_l31(+l: U32, +by: U32, +k: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))) ->
+  MNat.lt(U32.to_nat(l), Nat.pow(2n, 31n)):
+  lt_left(U32.to_nat(l), U32.to_nat(by), Nat.pow(2n, 31n), lt_left(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k), Nat.pow(2n, 31n), h))
+
+# lift_lvl unfolded, and its arms above its index, as equations a rewrite
+# can sit under (a goal holding 2^31 is never reconciled by conversion)
+def lift_unfold(+n: U32, +up: Bool, +by: U32, +l: U32) -> {V.lift_lvl.go(U32.is_gt(l, n), up, by, l) == V.lift_lvl(n, up, by, l) : U32}:
+  {==}
+
+def lift_go_up(+by: U32, +l: U32) -> {U32.add(l, by) == V.lift_lvl.go(True{}, True{}, by, l) : U32}:
+  {==}
+
+def lift_go_down(+by: U32, +l: U32) -> {U32.sub(l, by) == V.lift_lvl.go(True{}, False{}, by, l) : U32}:
+  {==}
+
+def lift_go_none(+up: Bool, +by: U32, +l: U32) -> {l == V.lift_lvl.go(False{}, up, by, l) : U32}:
+  {==}
+
+# a level through a raising control stays below 2^31, if it and the
+# raise are below with k
+def lift_lt_up_g(g: Bool, +by: U32, +l: U32, +k: U32,
+  +h: MNat.lt(Nat.add(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))) ->
+  MNat.lt(U32.to_nat(V.lift_lvl.go(g, True{}, by, l)), Nat.pow(2n, 31n)):
+  match g:
+    case True{}:
+      %lift_go_up(by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+      %MU.u32_add_exact_sym(l, by, lt31_32(Nat.add(U32.to_nat(l), U32.to_nat(by)), lt_left(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k), Nat.pow(2n, 31n), h))) :
+        MNat.lt(_, Nat.pow(2n, 31n))
+      lt_left(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k), Nat.pow(2n, 31n), h)
+    case False{}:
+      %lift_go_none(True{}, by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+      lt_l31(l, by, k, h)
+
+def lift_lt_up(+n: U32, +by: U32, +l: U32, +k: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))) ->
+  MNat.lt(U32.to_nat(V.lift_lvl(n, True{}, by, l)), Nat.pow(2n, 31n)):
+  %lift_unfold(n, True{}, by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+  lift_lt_up_g(U32.is_gt(l, n), by, l, k, h)
+
+# and through a lowering control
+def lift_lt_down_g(g: Bool, +n: U32, +by: U32, +l: U32, eg: {U32.is_gt(l, n) == g : Bool},
+  hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n)), +hl: MNat.lt(U32.to_nat(l), Nat.pow(2n, 31n))) ->
+  MNat.lt(U32.to_nat(V.lift_lvl.go(g, False{}, by, l)), Nat.pow(2n, 31n)):
+  match g:
+    case True{}:
+      %lift_go_down(by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+      %MU.u32_sub_exact_sym(l, by, MNat.le_trans(U32.to_nat(by), 1n+U32.to_nat(n), U32.to_nat(l), hd, succ_le_of_gt(l, n, eg))) :
+        MNat.lt(_, Nat.pow(2n, 31n))
+      MNat.lt_of_le_of_lt(Nat.sub(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(l), Nat.pow(2n, 31n), MNat.sub_le(U32.to_nat(l), U32.to_nat(by)), hl)
+    case False{}:
+      %lift_go_none(False{}, by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+      hl
+
+def lift_lt_down(+n: U32, +by: U32, +l: U32, hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n)),
+  hl: MNat.lt(U32.to_nat(l), Nat.pow(2n, 31n))) ->
+  MNat.lt(U32.to_nat(V.lift_lvl(n, False{}, by, l)), Nat.pow(2n, 31n)):
+  %lift_unfold(n, False{}, by, l) : MNat.lt(U32.to_nat(_), Nat.pow(2n, 31n))
+  lift_lt_down_g(U32.is_gt(l, n), n, by, l, {==}, hd, hl)
+
+# the bound on a payload's level read as one on the level itself: the
+# rewrite sits under a hole, so the checker never reconciles lvl_of(p)
+# with j inside a type holding 2^31, which it would expand
+def lvl_cast(p: V.Pay, +j: U32, e: {V.lvl_of(p) == j : U32}, +by: U32, +k: U32,
+  h: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))) ->
+  MNat.lt(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n)):
+  %e : MNat.lt(Nat.add(Nat.add(U32.to_nat(_), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
+  h
+
+def Laws.raise_lvl_eq(k, a, b, ha, hb):
+  %cmp_raise(a, b, k, ha, hb) : {Cmp.is_eq(_) == Cmp.is_eq(U32.cmp(a, b)) : Bool}
+  {==}
+
+def Laws.raise_fan_eq(k, sa, ia, la, sb, ib, lb, ha, hb):
+  +ha = ha
+  +hb = hb
+  %Equal.sym(Bool, U32.is_eq(la, V.nolvl()), False{}, ne_nolvl(la, lt_left(U32.to_nat(la), U32.to_nat(k), Nat.pow(2n, 31n), ha))) :
+    {(U32.is_eq(sa, sb) && U32.is_eq(ia, ib) && U32.is_eq(V.raise_lvl.k(_, k, la), V.raise_lvl.k(U32.is_eq(lb, V.nolvl()), k, lb))) == V.fan_eq(V.FanId{sa, ia, la}, V.FanId{sb, ib, lb}) : Bool}
+  %Equal.sym(Bool, U32.is_eq(lb, V.nolvl()), False{}, ne_nolvl(lb, lt_left(U32.to_nat(lb), U32.to_nat(k), Nat.pow(2n, 31n), hb))) :
+    {(U32.is_eq(sa, sb) && U32.is_eq(ia, ib) && U32.is_eq(V.raise_lvl.k(False{}, k, la), V.raise_lvl.k(_, k, lb))) == V.fan_eq(V.FanId{sa, ia, la}, V.FanId{sb, ib, lb}) : Bool}
+  %cmp_raise(la, lb, k, lt31_32(Nat.add(U32.to_nat(la), U32.to_nat(k)), ha), lt31_32(Nat.add(U32.to_nat(lb), U32.to_nat(k)), hb)) :
+    {(U32.is_eq(sa, sb) && U32.is_eq(ia, ib) && Cmp.is_eq(_)) == V.fan_eq(V.FanId{sa, ia, la}, V.FanId{sb, ib, lb}) : Bool}
+  {==}
+
+def Laws.raise_ctl_eq(k, na, ua, xa, nb, ub, xb, ha, hb):
+  %cmp_raise(na, nb, k, ha, hb) :
+    {(Cmp.is_eq(_) && V.bool_eq(ua, ub) && U32.is_eq(xa, xb)) == V.ctl_eq(V.PLift{na, ua, xa}, V.PLift{nb, ub, xb}) : Bool}
+  {==}
+
+# a raised fan's level and the level a control gives, neither the marker
+def raise_lift_up.fan(+k: U32, +n: U32, +by: U32, f: V.FanId,
+  hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(V.PFan{f})), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))) ->
+  {V.lift_pay(V.raise_pay(k, V.PLift{n, True{}, by}), V.raise_pay(k, V.PFan{f})) == V.raise_pay(k, V.lift_pay(V.PLift{n, True{}, by}, V.PFan{f})) : V.Pay}:
+  match f:
+    case V.FanId{+s, +i, +l}:
+      +hq = lvl_cast(V.PFan{V.FanId{s, i, l}}, l, {==}, by, k, hp)
+      %Equal.sym(Bool, U32.is_eq(l, V.nolvl()), False{}, ne_nolvl(l, lt_l31(l, by, k, hq))) :
+        {V.PFan{V.FanId{s, i, V.lift_lvl(U32.add(n, k), True{}, by, V.raise_lvl.k(_, k, l))}} == V.PFan{V.FanId{s, i, V.raise_lvl.k(U32.is_eq(V.lift_lvl(n, True{}, by, l), V.nolvl()), k, V.lift_lvl(n, True{}, by, l))}} : V.Pay}
+      %Equal.sym(Bool, U32.is_eq(V.lift_lvl(n, True{}, by, l), V.nolvl()), False{}, ne_nolvl(V.lift_lvl(n, True{}, by, l), lift_lt_up(n, by, l, k, hq))) :
+        {V.PFan{V.FanId{s, i, V.lift_lvl(U32.add(n, k), True{}, by, V.raise_lvl.k(False{}, k, l))}} == V.PFan{V.FanId{s, i, V.raise_lvl.k(_, k, V.lift_lvl(n, True{}, by, l))}} : V.Pay}
+      Equal.cong(U32, V.Pay, x => V.PFan{V.FanId{s, i, x}}, V.lift_lvl(U32.add(n, k), True{}, by, U32.add(l, k)), U32.add(V.lift_lvl(n, True{}, by, l), k),
+        lift_up(n, by, l, k, hn, lt31_32(Nat.add(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k)), hq)))
+
+def Laws.raise_lift_up(k, n, by, p, hn, hp):
+  match p:
+    case V.PNone{}:
+      {==}
+    case V.PVal{v}:
+      {==}
+    case V.PLvl{+j}:
+      Equal.cong(U32, V.Pay, x => V.PLvl{x}, V.lift_lvl(U32.add(n, k), True{}, by, U32.add(j, k)), U32.add(V.lift_lvl(n, True{}, by, j), k),
+        lift_up(n, by, j, k, hn, lt31_32(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), lvl_cast(V.PLvl{j}, j, {==}, by, k, hp))))
+    case V.PLift{+j, +u, +b}:
+      Equal.cong(U32, V.Pay, x => V.PLift{x, u, b}, V.lift_lvl(U32.add(n, k), True{}, by, U32.add(j, k)), U32.add(V.lift_lvl(n, True{}, by, j), k),
+        lift_up(n, by, j, k, hn, lt31_32(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), lvl_cast(V.PLift{j, u, b}, j, {==}, by, k, hp))))
+    case V.PFan{f}:
+      raise_lift_up.fan(k, n, by, f, hn, hp)
+
+def raise_lift_down.fan(+k: U32, +n: U32, +by: U32, f: V.FanId,
+  hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n)),
+  hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(V.PFan{f})), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n)),
+  +hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))) ->
+  {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, V.PFan{f})) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, V.PFan{f})) : V.Pay}:
+  match f:
+    case V.FanId{+s, +i, +l}:
+      +hq = lvl_cast(V.PFan{V.FanId{s, i, l}}, l, {==}, by, k, hp)
+      +hl = lt_l31(l, by, k, hq)
+      %Equal.sym(Bool, U32.is_eq(l, V.nolvl()), False{}, ne_nolvl(l, hl)) :
+        {V.PFan{V.FanId{s, i, V.lift_lvl(U32.add(n, k), False{}, by, V.raise_lvl.k(_, k, l))}} == V.PFan{V.FanId{s, i, V.raise_lvl.k(U32.is_eq(V.lift_lvl(n, False{}, by, l), V.nolvl()), k, V.lift_lvl(n, False{}, by, l))}} : V.Pay}
+      %Equal.sym(Bool, U32.is_eq(V.lift_lvl(n, False{}, by, l), V.nolvl()), False{}, ne_nolvl(V.lift_lvl(n, False{}, by, l), lift_lt_down(n, by, l, hd, hl))) :
+        {V.PFan{V.FanId{s, i, V.lift_lvl(U32.add(n, k), False{}, by, V.raise_lvl.k(False{}, k, l))}} == V.PFan{V.FanId{s, i, V.raise_lvl.k(_, k, V.lift_lvl(n, False{}, by, l))}} : V.Pay}
+      Equal.cong(U32, V.Pay, x => V.PFan{V.FanId{s, i, x}}, V.lift_lvl(U32.add(n, k), False{}, by, U32.add(l, k)), U32.add(V.lift_lvl(n, False{}, by, l), k),
+        lift_down(n, by, l, k, hn, lt_jk(l, by, k, lt31_32(Nat.add(Nat.add(U32.to_nat(l), U32.to_nat(by)), U32.to_nat(k)), hq)), hd))
+
+def Laws.raise_lift_down(k, n, by, p, hn, hp, hd):
+  match p:
+    case V.PNone{}:
+      {==}
+    case V.PVal{v}:
+      {==}
+    case V.PLvl{+j}:
+      Equal.cong(U32, V.Pay, x => V.PLvl{x}, V.lift_lvl(U32.add(n, k), False{}, by, U32.add(j, k)), U32.add(V.lift_lvl(n, False{}, by, j), k),
+        lift_down(n, by, j, k, hn, lt_jk(j, by, k, lt31_32(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), lvl_cast(V.PLvl{j}, j, {==}, by, k, hp))), hd))
+    case V.PLift{+j, +u, +b}:
+      Equal.cong(U32, V.Pay, x => V.PLift{x, u, b}, V.lift_lvl(U32.add(n, k), False{}, by, U32.add(j, k)), U32.add(V.lift_lvl(n, False{}, by, j), k),
+        lift_down(n, by, j, k, hn, lt_jk(j, by, k, lt31_32(Nat.add(Nat.add(U32.to_nat(j), U32.to_nat(by)), U32.to_nat(k)), lvl_cast(V.PLift{j, u, b}, j, {==}, by, k, hp))), hd))
+    case V.PFan{f}:
+      raise_lift_down.fan(k, n, by, f, hn, hp, hd)
+
+# a fusion on its test, raised
+def raise_ok(c: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
+  {V.compose.ok(c, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.ok(c, n1, b1, b2)) : V.Fuse}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def Laws.raise_compose(k, n1, u1, b1, n2, u2, b2, h1, h2):
+  +h1 = h1
+  %add_swap(n1, k, b1, h1) :
+    {V.compose.ok(u1 && u2 && U32.is_eq(U32.add(n2, k), _), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  %cmp_raise(n2, U32.add(n1, b1), k, h2, lt_add_raise(n1, b1, k, h1)) :
+    {V.compose.ok(u1 && u2 && Cmp.is_eq(_), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  raise_ok(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), n1, b1, b2, k)
+
 # The free list
 # =============
 #
