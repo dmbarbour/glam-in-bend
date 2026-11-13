@@ -779,9 +779,28 @@ def lift.go(+above: Bool, +up: Bool, +by: U32, +j: U32) -> U32:
     case False{} _:
       j
 
+def drop_by.k(+fits: Bool, +by: U32, +room: U32) -> U32:
+  match fits:
+    case True{}:
+      by
+    case False{}:
+      room
+
+# how far a drop at n moves a level j above n: by, or to n where by is
+# more, never below n (val.bend's drop_by; law lift_drop)
+def drop_by(+n: U32, +by: U32, +j: U32) -> U32:
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
+
+def lift_by(+up: Bool, +n: U32, +by: U32, +j: U32) -> U32:
+  match up:
+    case True{}:
+      by
+    case False{}:
+      drop_by(n, by, j)
+
 # level or index j after the control with index n and offset o
 def lift(+n: U32, +o: U32, +j: U32) -> U32:
-  lift.go(U32.is_gt(j, n), off_up(o), off_by(o), j)
+  lift.go(U32.is_gt(j, n), off_up(o), lift_by(off_up(o), n, off_by(o), j), j)
 
 # raising j through the control would pass the field's 24 bits
 def lift_wraps(+n: U32, +o: U32, +j: U32) -> Bool:

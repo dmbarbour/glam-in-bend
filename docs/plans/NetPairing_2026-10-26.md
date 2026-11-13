@@ -211,6 +211,27 @@ one, is tried at `bridge-recursion`.
    (AAECC 8, 1997), merging a raise with a drop where no partner can
    reach it. The lowering's own fused croissant at a use is such a merge,
    sound on the terms so far.
+   - `pairing-fusion.drops` — tentative — drop runs: two drops at one
+     index fuse into one dropping by their sum, as raise runs fuse,
+     wanted by the maintainer (2026-11-13: "I'd like to get drop fusion
+     working if we can be confident it's correct"). A drop by more than
+     one is defined since `drops-stop-at-index`: b unit drops at n, which
+     move a level j above n to max(n, j - b). Confidence as for raise
+     runs, in order:
+     - the one-wire model (`spike/tools/ctlwire.py`) given drops of any
+       amount, a fusion shape for two drops at one index, and peeling of
+       a drop run where a facing control meets it at its index; every
+       order enumerated to four controls, sampled longer, values and
+       logical interactions alike. A failure is shrunk and understood
+       before anything is built;
+     - laws over `spike/ctl.bend`: b unit drops are the run, a run of
+       a + b is a then b, and peeling leaves what the units would, as
+       `units_are_run`, `run_splits` and `peel_pairs_units` hold raises;
+     - the model's and the kernel's compose and peeling, with the laws of
+       `fusions-as-components`, then the differential test over random
+       terms and the library;
+     - measured: how often drops meet in series, and what fusing them
+       saves, on the differential corpus and the spot workloads.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
    interactions and four 61% (store run 28). Two of those four, #124 of

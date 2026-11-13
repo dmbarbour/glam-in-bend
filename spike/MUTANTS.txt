@@ -25,14 +25,14 @@ a fan's level replaced by the offset: every raised pair of fans pairs
     case False{}:
       k
 
-=== ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_down raise_compose
+=== ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_down raise_lift_drop raise_compose
 a control's index replaced by the offset
 --- val.bend
       PLift{(n + k : U32), up, by}
 +++
       PLift{k, up, by}
 
-=== ctl_index_kept raise_lift_up raise_lift_down
+=== ctl_index_kept raise_lift_up raise_lift_down raise_lift_drop
 a control's index left unraised while levels rise: a raised level passes
 a control it passed below
 --- val.bend
@@ -40,12 +40,12 @@ a control it passed below
 +++
       PLift{n, up, by}
 
-=== lift_index_ignored raise_lift_up raise_lift_down
+=== lift_index_ignored raise_lift_up raise_lift_down raise_lift_drop
 a control moves every level above 0, its index ignored
 --- val.bend
-  lift_lvl.go(U32.is_gt(j, n), up, by, j)
+  lift_lvl.go(U32.is_gt(j, n), up, lift_by(n, up, by, j), j)
 +++
-  lift_lvl.go(U32.is_gt(j, 0), up, by, j)
+  lift_lvl.go(U32.is_gt(j, 0), up, lift_by(n, up, by, j), j)
 
 === fuse_amount_alone raise_compose
 two controls fuse when the second's index is the first's amount, the
@@ -54,3 +54,25 @@ first's index ignored
       compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
 +++
       compose.ok(u1 && u2 && U32.is_eq(n2, b1), n1, b1, b2)
+
+=== drop_unclamped raise_lift_drop
+a drop falls by its whole amount, below its index and through zero: a
+fan's level can wrap to the marker of a fan without levels
+--- val.bend
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
++++
+  by
+
+=== kdrop_unclamped lift_drop
+the kernel's drop falls by its whole amount, wrapping below zero
+--- kprim.bend
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
++++
+  by
+
+=== kdrop_floor lift_drop
+the kernel's drop stops one above its index
+--- kprim.bend
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
++++
+  drop_by.k(U32.is_le(by, (j - n : U32)), by, ((j - n : U32) - 1 : U32))

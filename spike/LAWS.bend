@@ -165,6 +165,19 @@ law lift_decoded:
   for up: {P.off_up(o) == True{} : Bool}
   {U32.to_nat(P.lift(n, o, P.fld(h))) == CT.raise(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(P.fld(h))) : Nat}
 
+# LAW: the kernel's drop is the model's: a level j through a control
+# lowering levels above n by b (kprim.bend's lift, its offset's up flag
+# clear), read as a Nat, is CT.drop of their Nat values: above n, max(n,
+# j - b), so never below n; else j. No hypothesis: no amount makes a
+# level wrap.
+# Record: fuse-control-runs
+law lift_drop:
+  for +n: U32
+  for +o: U32
+  for +j: U32
+  for dn: {P.off_up(o) == False{} : Bool}
+  {U32.to_nat(P.lift(n, o, j)) == CT.drop(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(j)) : Nat}
+
 # LAW: the kernel's level check suffices: a raise of a decoded level that
 # lift_wraps passes has 24 bits, so it fits the field it is written to.
 # Record: fuse-control-runs
@@ -265,6 +278,20 @@ law raise_lift_down:
   for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
   for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
   for hd: MNat.le(U32.to_nat(by), 1n+U32.to_nat(n))
+  {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, p)) : V.Pay}
+
+# LAW: and so through a lowering control of any amount, a drop taking a
+# level above its index no lower than the index (V.drop_by): raise_lift_down
+# without its premise.
+# Record: templates-spliced-at-level
+# Record: copy-reduced-function-nets
+law raise_lift_drop:
+  for +k: U32
+  for +n: U32
+  for +by: U32
+  for +p: V.Pay
+  for hn: MNat.lt(Nat.add(U32.to_nat(n), U32.to_nat(k)), Nat.pow(2n, 32n))
+  for hp: MNat.lt(Nat.add(Nat.add(U32.to_nat(V.lvl_of(p)), U32.to_nat(by)), U32.to_nat(k)), Nat.pow(2n, 31n))
   {V.lift_pay(V.raise_pay(k, V.PLift{n, False{}, by}), V.raise_pay(k, p)) == V.raise_pay(k, V.lift_pay(V.PLift{n, False{}, by}, p)) : V.Pay}
 
 # LAW: two controls, both raised by k, fuse exactly when they did, into
