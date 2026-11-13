@@ -18,6 +18,7 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_base.bend as LAB
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -32440,3 +32441,95 @@ def rd_kept.go(-w: Array<U32>, -a: Array<V.Val>, +i: U32, m: LAT.Mirror(U32, w))
 
 def Laws.rd_kept(w, a, i):
   rd_kept.go(w, a, i, LAT.mirror(U32, w))
+
+# A node taken from the free list: the allocation as the pair it gives,
+# the head's read and the next node's made literal pairs, the head tested;
+# then the reads of the result and of the heap made literal, and the
+# three writes passed by get_set_other
+
+def alloc_pop(+t: LAT.Tree<U32>, -a: Array<V.Val>, +fh: U32,
+  hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_fh())) == fh : U32},
+  hne: {U32.is_eq(fh, 0) == False{} : Bool}) ->
+  {P.alloc(P.H{KM.MG{LAT.fromT(U32, t)}, a}) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}:
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), P.at_fh()), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_fh()))), LA.get_pair(U32, LAT.fromT(U32, t), P.at_fh())) :
+    {P.alloc.fh(KM.m_get.fin(_), a) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}
+  %Equal.sym(U32, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_fh())), fh, hfh) :
+    {P.alloc.k(U32.is_eq(_, 0), _, KM.MG{LAT.fromT(U32, t)}, a) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}
+  %Equal.sym(Bool, U32.is_eq(fh, 0), False{}, hne) :
+    {P.alloc.k(_, fh, KM.MG{LAT.fromT(U32, t)}, a) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), LA.get_pair(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))) :
+    {P.alloc.pop(KM.m_get.fin(_), ((fh - 1 : U32) << 2n : U32), a) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}
+  {==}
+
+def node_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +fh: U32, +hd: U32, +p: U32, +j: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32},
+  +hne: {U32.is_eq(fh, 0) == False{} : Bool},
+  +hj0: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool},
+  +hj1: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +hj2: {Nat.is_eq(AD.slot(((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), d), AD.slot(j, d)) == False{} : Bool},
+  m: LAT.Mirror(U32, w)) ->
+  {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t, +e) = m
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hfht = LAB.subst(Array<U32>, x => {Pair.snd(Array<U32>, U32, Array.get(U32, x, P.at_fh())) == fh : U32}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hfh)
+  +hf1 = LA.set_full(U32, LAT.fromT(U32, t), d, P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))), hft)
+  +hf2 = LA.set_full(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), hd, hf1)
+  %e : {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{_}, a}, hd, p)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %Equal.sym(P.H & U32, P.alloc(P.H{KM.MG{LAT.fromT(U32, t)}, a}), (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)), alloc_pop(t, a, fh, hfht, hne)) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node.fin(_, hd, p)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, a}, j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j), (Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j))), LA.get_pair(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j)) :
+    {Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, a}, j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), j), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j))), LA.get_pair(U32, LAT.fromT(U32, t), j)) :
+    {Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j)) == Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) : U32}
+  Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)),
+    LA.get_set_other(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), d, ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), j, p, hf2, hd32, hj2),
+    Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)),
+      LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), j, hd, hf1, hd32, hj1),
+      LA.get_set_other(U32, LAT.fromT(U32, t), d, P.at_fh(), j, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))), hft, hd32, hj0)))
+
+def Laws.node_keeps(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hj1, hj2):
+  node_keeps.go(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hj1, hj2, LAT.mirror(U32, w))
+
+def node_next.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +fh: U32, +hd: U32, +p: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32},
+  +hne: {U32.is_eq(fh, 0) == False{} : Bool},
+  +hn1: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(P.at_fh(), d)) == False{} : Bool},
+  +hn2: {Nat.is_eq(AD.slot(((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), d), AD.slot(P.at_fh(), d)) == False{} : Bool},
+  m: LAT.Mirror(U32, w)) ->
+  {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)), P.at_fh())) == Pair.snd(Array<U32>, U32, Array.get(U32, w, ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))) : U32}:
+  (+t, +e) = m
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hfht = LAB.subst(Array<U32>, x => {Pair.snd(Array<U32>, U32, Array.get(U32, x, P.at_fh())) == fh : U32}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hfh)
+  +hf1 = LA.set_full(U32, LAT.fromT(U32, t), d, P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))), hft)
+  +hf2 = LA.set_full(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), hd, hf1)
+  %e : {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{_}, a}, hd, p)), P.at_fh())) == Pair.snd(Array<U32>, U32, Array.get(U32, _, ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))) : U32}
+  %Equal.sym(P.H & U32, P.alloc(P.H{KM.MG{LAT.fromT(U32, t)}, a}), (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)), alloc_pop(t, a, fh, hfht, hne)) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node.fin(_, hd, p)), P.at_fh())) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), P.at_fh()), (Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), P.at_fh()))), LA.get_pair(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), P.at_fh())) :
+    {Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))) : U32}
+  Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), P.at_fh())), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), P.at_fh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))),
+    LA.get_set_other(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), d, ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), P.at_fh(), p, hf2, hd32, hn2),
+    Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), P.at_fh())), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), P.at_fh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))),
+      LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), P.at_fh(), hd, hf1, hd32, hn1),
+      LA.get_set_same(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))))
+
+def Laws.node_next(w, a, d, fh, hd, p, hf, hd32, hfh, hne, hn1, hn2):
+  node_next.go(w, a, d, fh, hd, p, hf, hd32, hfh, hne, hn1, hn2, LAT.mirror(U32, w))
+
+def node_index.go(-w: Array<U32>, -a: Array<V.Val>, +fh: U32, +hd: U32, +p: U32,
+  hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32},
+  +hne: {U32.is_eq(fh, 0) == False{} : Bool},
+  m: LAT.Mirror(U32, w)) ->
+  {Pair.snd(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)) == ((fh - 1 : U32) << 2n : U32) : U32}:
+  (+t, +e) = m
+  +hfht = LAB.subst(Array<U32>, x => {Pair.snd(Array<U32>, U32, Array.get(U32, x, P.at_fh())) == fh : U32}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hfh)
+  %e : {Pair.snd(P.H, U32, P.node(P.H{KM.MG{_}, a}, hd, p)) == ((fh - 1 : U32) << 2n : U32) : U32}
+  %Equal.sym(P.H & U32, P.alloc(P.H{KM.MG{LAT.fromT(U32, t)}, a}), (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)), alloc_pop(t, a, fh, hfht, hne)) :
+    {Pair.snd(P.H, U32, P.node.fin(_, hd, p)) == ((fh - 1 : U32) << 2n : U32) : U32}
+  {==}
+
+def Laws.node_index(w, a, fh, hd, p, hfh, hne):
+  node_index.go(w, a, fh, hd, p, hfh, hne, LAT.mirror(U32, w))
+
