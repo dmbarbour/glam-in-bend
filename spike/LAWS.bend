@@ -458,9 +458,12 @@ law link_keeps:
   for hz: {Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(P.link_xx(P.H{KM.MG{w}, a}, y, z), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
-# LAW: freeing the node behind reference r writes three words alone: its
-# header and its word 1 (base(r) and the word after), and the free
-# list's head; every other word reads as before.
+# LAW: freeing the node behind reference r leaves every word outside
+# that node and the free list's head as it was. The freed node's four
+# words are not claimed, none of them for code to rely on (the
+# maintainer, 2026-11-13): the code writes its header and its word 1,
+# the next free node, and leaves words 2 and 3 as they were, which no
+# law promises.
 # Record: net-nodes-double
 # Record: hub-laws-reused
 law free_keeps:
@@ -473,7 +476,9 @@ law free_keeps:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for h0: {Nat.is_eq(AD.slot(P.base(r), d), AD.slot(j, d)) == False{} : Bool}
   for h1: {Nat.is_eq(AD.slot((P.base(r) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for h2: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  for h2: {Nat.is_eq(AD.slot((P.base(r) + 2 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for h3: {Nat.is_eq(AD.slot((P.base(r) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(P.free(P.H{KM.MG{w}, a}, r), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: taking a slot keeps the net's free list exact. In the free-list

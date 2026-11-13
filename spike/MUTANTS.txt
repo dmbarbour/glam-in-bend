@@ -216,7 +216,9 @@ the node returned is the head's index times four, not its node's
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), (fh << 2n : U32), a)
 
 # Linking and freeing (the laws link_keeps, free_keeps): each mutation
-# writes a word the law says is left alone.
+# writes a word the law says is left alone. free_keeps claims nothing of
+# the freed node's own words, so a mutation inside that node is no fault
+# of its.
 
 === link_at_header link_keeps
 a link written into the node's header, word x, not its port's link word
@@ -227,12 +229,12 @@ a link written into the node's header, word x, not its port's link word
     case False{}:
       wr(h, x, y)
 
-=== free_zeroes_word2 free_keeps
-a freed node's word 2 zeroed where its header should be
+=== free_zeroes_next free_keeps
+the header zeroed is the next node's, outside the node freed
 --- kprim.bend
   H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
 +++
-  H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 2 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+  H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 4 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
 
 === free_head_next_word free_keeps
 the freed node made the head one word past the head's word
