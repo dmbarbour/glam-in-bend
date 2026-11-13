@@ -125,6 +125,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`HierarchyFable_2026-11-13.md`](HierarchyFable_2026-11-13.md): the
   second reviewer's review of the same question, by a Fable sub-agent,
   kept as written.
+- [`ArrayLaws_2026-11-13.md`](ArrayLaws_2026-11-13.md): what other
+  users have proven about Bend's arrays and words, for the proof ladder
+  of `cells-freeze.nested.host`, at the maintainer's request:
+  `lawful-arrays` proves its first rung and `lawful-words` the word
+  arithmetic, both checked under glam's Bend with `--verdict`; what no
+  package proves; deficiencies to present, by package. Drafted for the
+  maintainer.
 
 ## Retired
 
