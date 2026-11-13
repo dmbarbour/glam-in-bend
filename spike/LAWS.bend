@@ -12,6 +12,8 @@ import ./freelist.bend as FL
 import ./wiring.bend as W
 import ./kplace.bend as KP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
+import ./kmem_grow.bend as KM
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
 # still sum to the page's capacity.
@@ -331,6 +333,51 @@ law marked_unfused:
   for +o2: U32
   for m: {(P.marked(h1) || P.marked(h2)) == True{} : Bool}
   {P.fuse_test(h1, o1, h2, o2) == P.FzNo{} : P.FZ}
+
+# Reading the heap after a write (cells-freeze.nested.host.words): the
+# kernel's heap (kprim.bend's H) holds its words in one array
+# (kmem_grow.bend's MG), read by P.rd and written by P.wr straight
+# through Array.get and Array.set; these laws carry lawful-arrays' laws
+# (hub-laws-reused) through them. A heap is stated by its parts, its
+# words w and its value table a, as every heap is. The words form a
+# perfect tree of depth d, as Array.new makes them and every write keeps
+# them (lawful-arrays' new_full, set_full); a word index reaches slot i
+# mod 2^d, itself below the capacity (slot_small).
+
+# LAW: reading word i after writing v there gives v, for every heap.
+# Record: net-nodes-double
+# Record: hub-laws-reused
+law rd_wr_same:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +i: U32
+  for +v: U32
+  {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{w}, a}, i, v), i)) == v : U32}
+
+# LAW: writing word i leaves word j as it was, j another slot of the
+# heap's words, a perfect tree of depth d below 32.
+# Record: net-nodes-double
+# Record: hub-laws-reused
+law rd_wr_other:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +i: U32
+  for +j: U32
+  for +v: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hij: {Nat.is_eq(AD.slot(i, d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{w}, a}, i, v), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: a read hands the heap back as it was.
+# Record: net-nodes-double
+# Record: hub-laws-reused
+law rd_kept:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +i: U32
+  {Pair.fst(P.H, U32, P.rd(P.H{KM.MG{w}, a}, i)) == P.H{KM.MG{w}, a} : P.H}
 
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says

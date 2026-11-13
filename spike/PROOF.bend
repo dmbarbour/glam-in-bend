@@ -13,6 +13,11 @@ import ./wiring.bend as W
 import ./kplace.bend as KP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
 import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
+import ./kmem_grow.bend as KM
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 def add_succ(a: Nat, -b: Nat) -> {1n+Nat.add(a, b) == Nat.add(a, 1n+b) : Nat}:
   match a:
@@ -32391,3 +32396,47 @@ def Laws.events_keep_wired_in(ks, a, b, es, c, q, p, hv, hw):
 
 def Laws.kernel_events_in_step(s, fh, l, ks, a, b, q, hf, hs, hab, hla, hlb, hen):
   kris(R.event(W.kind_at(ks, a), W.kind_at(ks, b), q), s, fh, l, ks, a, b, hf, hs, hab, hla, hlb, hen, Laws.events_kinds_live(W.kind_at(ks, a), W.kind_at(ks, b), q))
+
+# Reading the heap after a write: the words mirrored as a tree
+# (lawful-arrays' mirror), copyable where the array is not, so that the
+# goal over them can name the array as often as the rewrites need; then
+# Array.get rewritten to the literal pair get_pair gives, so that P.rd's
+# and KM.m_get's destructuring reduces, and the goal is the array law's
+
+def rd_wr_same.go(-w: Array<U32>, -a: Array<V.Val>, +i: U32, +v: U32, m: LAT.Mirror(U32, w)) ->
+  {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{w}, a}, i, v), i)) == v : U32}:
+  (+t, +e) = m
+  %e : {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{_}, a}, i, v), i)) == v : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), i, v), i), (Array.set(U32, LAT.fromT(U32, t), i, v), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), i, v), i))), LA.get_pair(U32, Array.set(U32, LAT.fromT(U32, t), i, v), i)) :
+    {Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) == v : U32}
+  LA.get_set_same(U32, LAT.fromT(U32, t), i, v)
+
+def Laws.rd_wr_same(w, a, i, v):
+  rd_wr_same.go(w, a, i, v, LAT.mirror(U32, w))
+
+def rd_wr_other.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +i: U32, +j: U32, +v: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hij: {Nat.is_eq(AD.slot(i, d), AD.slot(j, d)) == False{} : Bool}, m: LAT.Mirror(U32, w)) ->
+  {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{w}, a}, i, v), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t, +e) = m
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  %e : {Pair.snd(P.H, U32, P.rd(P.wr(P.H{KM.MG{_}, a}, i, v), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), i, v), j), (Array.set(U32, LAT.fromT(U32, t), i, v), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), i, v), j))), LA.get_pair(U32, Array.set(U32, LAT.fromT(U32, t), i, v), j)) :
+    {Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, a}, j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), j), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j))), LA.get_pair(U32, LAT.fromT(U32, t), j)) :
+    {Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), i, v), j)) == Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) : U32}
+  LA.get_set_other(U32, LAT.fromT(U32, t), d, i, j, v, hft, hd, hij)
+
+def Laws.rd_wr_other(w, a, d, i, j, v, hf, hd, hij):
+  rd_wr_other.go(w, a, d, i, j, v, hf, hd, hij, LAT.mirror(U32, w))
+
+def rd_kept.go(-w: Array<U32>, -a: Array<V.Val>, +i: U32, m: LAT.Mirror(U32, w)) ->
+  {Pair.fst(P.H, U32, P.rd(P.H{KM.MG{w}, a}, i)) == P.H{KM.MG{w}, a} : P.H}:
+  (+t, +e) = m
+  %e : {Pair.fst(P.H, U32, P.rd(P.H{KM.MG{_}, a}, i)) == P.H{KM.MG{_}, a} : P.H}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), i), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), i))), LA.get_pair(U32, LAT.fromT(U32, t), i)) :
+    {Pair.fst(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) == P.H{KM.MG{LAT.fromT(U32, t)}, a} : P.H}
+  {==}
+
+def Laws.rd_kept(w, a, i):
+  rd_kept.go(w, a, i, LAT.mirror(U32, w))
