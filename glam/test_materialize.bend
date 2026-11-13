@@ -123,9 +123,9 @@ def rn.stop(d: KD.D, h: P.H) -> Rn:
 
 def rn.sv(v: M.Sv) -> Rn:
   match v:
-    case M.SvOk{s, h}:
+    case M.SvOk{s, h, +n}:
       Rn{s, h, "", False{}}
-    case M.SvStop{d, h}:
+    case M.SvStop{d, h, +n}:
       rn.stop(d, h)
 
 def rn.need(r: P.H & U32, s: P.H) -> Rn:

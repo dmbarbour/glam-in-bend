@@ -20,12 +20,13 @@ cells-freeze.sharing): each sample applies a prefix to a string literal,
 nested 1, 2, 4 and 8 times into a copy under results/sharing/, run with
 `--count` both ways. Every size must write the same bytes both ways, and
 from 4 uses to 8 a use may cost at most SLACK_ITRS interactions more than
-it does linked and at most SLACK_SPLICES splices: work that needs no
-argument is done once, however many times it is used. A family marked
-`loss` is known not to share until its step is built, and fails once it
-shares, until the mark is removed. What the check cannot see: a splice
-is no interaction, so the size of the copies is invisible to it, and
-only their number is bounded.
+it does linked, at most SLACK_SPLICES splices and at most SLACK_SERVES
+serves of a live source's cursors (glam/materialize.bend): work that
+needs no argument is done once, however many times it is used. A family
+marked `loss` is known not to share until its step is built, and fails
+once it shares, until the mark is removed. What the check cannot see:
+splices and serves are no interactions, so the size of the copies is
+invisible to it, and only their number is bounded.
 
 Every hello sample and every size of a sharing family runs a third way,
 with `--refreeze`: each template loaded and frozen back before the run
@@ -60,6 +61,7 @@ NESTED = os.path.join(ROOT, "results", "sharing")
 USES = (1, 2, 4, 8)
 SLACK_ITRS = 8
 SLACK_SPLICES = 2
+SLACK_SERVES = 2
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
 TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
@@ -203,13 +205,14 @@ def nested(path, prefix, n):
 
 
 def counted(path, linked):
-    """(stdout, interactions, splices) of a run with --count; None on failure"""
+    """(stdout, interactions, splices, serves) of a run with --count; None
+    on failure"""
     args = [EXE, "-f", path, "--count"] + (["--link"] if linked else [])
     r = subprocess.run(args, capture_output=True)
-    m = re.search(rb"(\d+) interactions, (\d+) splices", r.stderr)
+    m = re.search(rb"(\d+) interactions, (\d+) splices, \d+ values forced, (\d+) serves", r.stderr)
     if r.returncode != 0 or not m:
         return None
-    return r.stdout, int(m.group(1)), int(m.group(2))
+    return r.stdout, int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
 def family(step, path, loss, prefix):
@@ -227,12 +230,14 @@ def family(step, path, loss, prefix):
         rf = refreeze_differs(src)
         if rf is not None:
             return f"FAIL {step} {path}: at {n} uses, with --refreeze {rf[1]!r}, plainly {rf[0]!r}"
-        runs[n] = (t[1], t[2], l[1])
+        runs[n] = (t[1], t[2], l[1], t[3])
     a, b = runs[USES[-2]], runs[USES[-1]]
     per = USES[-1] - USES[-2]
     itrs, splices, linked = (b[0] - a[0]) / per, (b[1] - a[1]) / per, (b[2] - a[2]) / per
-    shares = itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES
-    said = f"a use costs {itrs:g} interactions and {splices:g} splices, {linked:g} linked"
+    serves = (b[3] - a[3]) / per
+    shares = itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES and serves <= SLACK_SERVES
+    said = (f"a use costs {itrs:g} interactions, {splices:g} splices and {serves:g} serves, "
+            f"{linked:g} linked")
     if shares and loss:
         return f"FAIL {step} {path}: marked a loss, but it shares ({said}): remove its mark"
     if not shares and not loss:

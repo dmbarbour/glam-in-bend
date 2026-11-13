@@ -13,6 +13,8 @@ import ./objects.bend as O
 import ../spike/tpl.bend as T
 import ./freeze.bend as F
 import ../spike/kprim.bend as P
+import ./materialize.bend as M
+import ../spike/kmem_grow.bend as KM
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
 # result, bytes, or its diagnostics; it never prints. As far as the hello
@@ -27,29 +29,46 @@ import ../spike/kprim.bend as P
 # the shell counts down a budget of slices too large for any assembly to
 # reach (glam/main.bend); no @unsafe is needed.
 
-# the bytes, with the interactions of every net reduced, the splices, and
-# the values forced (for --count); or the diagnostics
+# the bytes, with the interactions of every net reduced, the splices, the
+# values forced and the cursors served (for --count); or the diagnostics
 type Out is Data:
-  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32}
+  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32}
   OErrs{ds: List<&2, G.Diag>}
 
 # An entry of the book (Cells, re-scoped by the bridge), named by a
 # leaf's handle: a top-level function's template; or a root cell, a value
 # a template names: its recipe not yet forced, forced now (busy, the
-# recipe kept), its value, or a function, its recipe spliced at each use
-# as a template is (a stopgap until `cells-freeze`: the work of its first
-# forcing is not kept)
+# recipe kept), its value, or a function. A function's net is kept live
+# as a source (cells-freeze.cells; copy-reduced-function-nets), its place
+# i among the sources, and each use materializes it; its recipe is kept
+# for a need from inside another source, spliced there as a template is
+# until sources hold copies of sources
 type Ent is Data:
   ETpl{t: T.Tpl}
   ERecipe{t: T.Tpl, name: List<&2, U32>}
   EBusy{t: T.Tpl, name: List<&2, U32>}
   EValue{v: V.Val}
-  EFn{t: T.Tpl}
+  ESrc{+i: U32, t: T.Tpl, name: List<&2, U32>}
+
+# The live sources, a net each, linear as nets are: the book is copied
+# freely and holds none. A frame takes its source out for a step and puts
+# it back (SrcOut in its place meanwhile), so no heap is ever shared and
+# written
+type Src is Type:
+  SrcIn{h: P.H}
+  SrcOut{}
+
+type Srcs is Type:
+  SrsNil{}
+  SrsCon{x: Src, rest: Srcs}
 
 # A task, the protocol's state: a demand, the entry it computes (none,
-# no_cell, for asm.result's net) and the entry it waits on
+# no_cell, for asm.result's net) and the entry it waits on; or a frame
+# serving a negative cursor nc, at position pos of source k, in the net of
+# the task below it (cells-freeze.cells), holding no net between steps
 type Tk is Type:
   Tk{d: KD.D, +cell: U32, +waits: U32}
+  TkSv{+k: U32, +nc: U32, +pos: U32}
 
 # the tasks set aside, each waiting on the one above it: one stack,
 # forcing depth first, the first container of tasks
@@ -57,16 +76,16 @@ type Stk is Type:
   TkNil{}
   TkCon{t: Tk, rest: Stk}
 
-# counted for --count: interactions of the cells' nets, splices, values
-# forced
+# counted for --count: interactions of the cells' nets and the sources,
+# splices, values forced, cursors served
 type Cn is Data:
-  Cn{+itrs: U32, +splices: U32, +forced: U32}
+  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32}
 
 # where an assembly stands: done, or a task to go on with, the tasks
 # waiting, the book and the counts
 type Run is Type:
   RDone{o: Out}
-  RMore{t: Tk, s: Stk, b: List<&2, Ent>, c: Cn}
+  RMore{t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs}
 
 def no_cell() -> U32:
   4294967295
@@ -118,7 +137,7 @@ def bytes(xs: List<&2, V.Val>) -> Bs:
 def out.bs(r: Bs, +itrs: U32) -> Out:
   match r:
     case BOk{bs}:
-      OBytes{bs, itrs, 0, 0}
+      OBytes{bs, itrs, 0, 0, 0}
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
@@ -186,26 +205,31 @@ def slice() -> Nat:
 
 def cn.add(c: Cn, +i: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo}:
-      Cn{(itrs + i : U32), sp, fo}
+    case Cn{+itrs, +sp, +fo, +sv}:
+      Cn{(itrs + i : U32), sp, fo, sv}
 
 def cn.splice(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo}:
-      Cn{itrs, (sp + 1 : U32), fo}
+    case Cn{+itrs, +sp, +fo, +sv}:
+      Cn{itrs, (sp + 1 : U32), fo, sv}
 
 def cn.force(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo}:
-      Cn{itrs, sp, (fo + 1 : U32)}
+    case Cn{+itrs, +sp, +fo, +sv}:
+      Cn{itrs, sp, (fo + 1 : U32), sv}
+
+def cn.serve(c: Cn) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo, +sv}:
+      Cn{itrs, sp, fo, (sv + 1 : U32)}
 
 # the counts added to the bytes' own
 def counted(o: Out, c: Cn) -> Out:
   match o:
-    case OBytes{bs, +itrs, +sp, +fo}:
+    case OBytes{bs, +itrs, +sp, +fo, +sv}:
       match c:
-        case Cn{+i, +s2, +f2}:
-          OBytes{bs, (itrs + i : U32), s2, f2}
+        case Cn{+i, +s2, +f2, +v2}:
+          OBytes{bs, (itrs + i : U32), s2, f2, v2}
     case OErrs{ds}:
       OErrs{ds}
 
@@ -271,147 +295,468 @@ def chase(hops: Nat, +b: List<&2, Ent>, +k: U32) -> Ch:
     case 1n+p:
       chase.k(alias_of(book_get(b, k)), k, h => chase(p, b, h))
 
-def go(d: KD.D, +cell: U32, s: Stk, b: List<&2, Ent>, c: Cn) -> Run:
-  RMore{Tk{d, cell, no_cell()}, s, b, c}
+def go(d: KD.D, +cell: U32, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  RMore{Tk{d, cell, no_cell()}, s, b, c, ss}
 
 def err(msg: String) -> Run:
   RDone{OErrs{[G.Diag{0, msg}]}}
 
-# a need served by entry k: a template spliced, a value resumed, a recipe
-# forced on a task of its own above this one, a busy cell a cycle
-def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+# a demand's net
+def dh(d: KD.D) -> P.H:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      h
+
+# Sources
+# =======
+
+def srcs.push.r(x: Src, r: Srcs & U32) -> Srcs & U32:
+  (rest, +i) = r
+  (SrsCon{x, rest}, i)
+
+# h put last among the sources, and its place, i the place of the first
+def srcs.push(ss: Srcs, h: P.H, +i: U32) -> Srcs & U32:
+  match ss:
+    case SrsNil{}:
+      (SrsCon{SrcIn{h}, SrsNil{}}, i)
+    case SrsCon{x, rest}:
+      srcs.push.r(x, srcs.push(rest, h, (i + 1 : U32)))
+
+type SrT is Type:
+  SrT{ss: Srcs, x: Src}
+
+def srcs.take.r(x: Src, r: SrT) -> SrT:
+  match r:
+    case SrT{rest, y}:
+      SrT{SrsCon{x, rest}, y}
+
+# source i taken out, SrcOut left in its place
+def srcs.take(ss: Srcs, +i: U32) -> SrT:
+  match ss:
+    case SrsNil{}:
+      SrT{SrsNil{}, SrcOut{}}
+    case SrsCon{x, rest}:
+      match i:
+        case 0:
+          SrT{SrsCon{SrcOut{}, rest}, x}
+        case _:
+          srcs.take.r(x, srcs.take(rest, (i - 1 : U32)))
+
+# h put back as source i
+def srcs.put(ss: Srcs, +i: U32, h: P.H) -> Srcs:
+  match ss:
+    case SrsNil{}:
+      SrsNil{}
+    case SrsCon{x, rest}:
+      match i:
+        case 0:
+          SrsCon{SrcIn{h}, rest}
+        case _:
+          SrsCon{x, srcs.put(rest, (i - 1 : U32), h)}
+
+# Frames and their sources
+# ========================
+#
+# A frame (TkSv) serves a negative cursor of the task below it from the
+# cursor's source (cells-freeze.cells; glam/materialize.bend). Busy at a
+# position: a frame waiting on a task above keeps no path, a walk walking
+# again from its position, and no net, its source back among the
+# sources; a serve of the same source at a position a frame waits on is a
+# cycle.
+
+type Bu is Type:
+  Bu{s: Stk, +yes: Bool}
+
+def busy.hit(t: Tk, +k: U32, +pos: U32) -> Tk & Bool:
+  match t:
+    case Tk{d, +cell, +w}:
+      (Tk{d, cell, w}, False{})
+    case TkSv{+k2, +nc2, +pos2}:
+      (TkSv{k2, nc2, pos2}, U32.is_eq(k2, k) && U32.is_eq(pos2, pos))
+
+def busy.r2(r: Tk & Bool, s: Stk, +y: Bool) -> Bu:
+  (t, +x) = r
+  Bu{TkCon{t, s}, x || y}
+
+def busy.r(r: Tk & Bool, b: Bu) -> Bu:
+  match b:
+    case Bu{s, +y}:
+      busy.r2(r, s, y)
+
+# whether a frame on the stack serves source k at pos
+def busy(s: Stk, +k: U32, +pos: U32) -> Bu:
+  match s:
+    case TkNil{}:
+      Bu{TkNil{}, False{}}
+    case TkCon{t, rest}:
+      busy.r(busy.hit(t, k, pos), busy(rest, k, pos))
+
+def src.name(m: Maybe<&2, Ent>) -> String:
+  match m:
+    case Some{e}:
+      match e:
+        case ESrc{+i, t, name}:
+          G.str(name)
+        case _:
+          "a value"
+    case None{}:
+      "a value"
+
+def frame.push.k(+hit: Bool, s: Stk, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc: U32, +pos: U32, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match hit:
+    case True{}:
+      err("`" ++ src.name(book_get(b, k)) ++ "` needs its own value: a cycle")
+    case False{}:
+      RMore{TkSv{k, nc, pos}, TkCon{Tk{KD.D{h, path, top, depth, n, 2}, cell, k}, s}, b, c, ss}
+
+def frame.push.r(r: Bu, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc: U32, +pos: U32, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match r:
+    case Bu{s, +hit}:
+      frame.push.k(hit, s, h, path, top, depth, n, k, nc, pos, cell, b, c, ss)
+
+# a frame pushed to serve cursor nc at position pos of source k, its host
+# the demand d stopped needing it, set aside below it
+def frame.push(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc: U32, +pos: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  frame.push.r(busy(s, k, pos), h, path, top, depth, n, k, nc, pos, cell, b, c, ss)
+
+# A use of a live source: the leaf a host's demand stopped needing becomes
+# a negative cursor at the source's interface, in a ring of its own whose
+# situating node holds the source's entry and the applying node's level
+# (the splice's, sp.by), laid out as glam/test_materialize.bend's ring;
+# the leaf's data entry dropped, as a splice drops it. A frame then serves
+# the cursor, the first copy a serve like any other.
+
+def use.cursor(h: P.H, +leaf: U32, +situ: U32) -> P.H:
+  P.wr(P.wr(P.wr(h, leaf, P.hd2(18, 0, 0)), (leaf + 2 : U32), P.iface()), (leaf + 3 : U32), situ)
+
+def use.situ(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +situ) = r
+  frame.push(use.cursor(P.wr(P.wr(P.put_st(h, situ, P.era()), (situ + 2 : U32), k), (situ + 3 : U32), leaf), leaf, situ),
+    path, top, depth, n, k, leaf, P.iface(), cell, s, b, c, ss)
+
+def use.top(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +ht) = r
+  use.situ(P.node(h, P.hd2(18, 2, S.sp.by(ht)), 0), leaf, path, top, depth, n, k, cell, s, b, c, ss)
+
+def use.w(r: P.H & U32, +hb: U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +w) = r
+  use.top(P.rd(P.drop(h, P.form(hb), w), top), leaf, path, top, depth, n, k, cell, s, b, c, ss)
+
+def use.hb(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +hb) = r
+  use.w(P.rd(h, (leaf + 2 : U32)), hb, leaf, path, top, depth, n, k, cell, s, b, c, ss)
+
+def use.leaf(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +leaf) = r
+  use.hb(P.rd(h, leaf), leaf, path, top, depth, n, k, cell, s, b, c, ss)
+
+# source k used where d stopped needing it
+def use.src(d: KD.D, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      use.leaf(KS.d.at(h, top), path, top, depth, n, k, cell, s, b, c, ss)
+
+# a host stopped at a cursor x: a frame for x's source at x's position
+def frame.at.k(r: P.H & U32, +x: U32, +pos: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +k) = r
+  frame.push(h, path, top, depth, n, k, x, pos, cell, s, b, c, ss)
+
+def frame.at.s(r: P.H & U32, +x: U32, +pos: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +situ) = r
+  frame.at.k(P.rd(h, (situ + 2 : U32)), x, pos, path, top, depth, n, cell, s, b, c, ss)
+
+def frame.at.p(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +pos) = r
+  frame.at.s(M.rg.situ(h, x), x, pos, path, top, depth, n, cell, s, b, c, ss)
+
+# A need served by entry k: a template spliced, a value resumed, a recipe
+# forced on a task of its own above this one, a busy cell a cycle, a
+# function's live source used
+def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
     case Some{e}:
       match e:
         case ETpl{t}:
-          go(S.splice(d, t), cell, s, b, cn.splice(c))
-        case EFn{t}:
-          go(S.splice(d, t), cell, s, b, cn.splice(c))
+          go(S.splice(d, t), cell, s, b, cn.splice(c), ss)
+        case ESrc{+i, t, name}:
+          use.src(d, k, cell, s, b, c, ss)
         case EValue{v}:
-          go(KS.resume(d, v), cell, s, b, c)
+          go(KS.resume(d, v), cell, s, b, c, ss)
         case ERecipe{+t, +name}:
-          RMore{Tk{KS.d.start(KN.load(t)), k, no_cell()}, TkCon{Tk{d, cell, k}, s}, book_set(b, k, EBusy{t, name}), cn.force(c)}
+          RMore{Tk{KS.d.start(KN.load(t)), k, no_cell()}, TkCon{Tk{d, cell, k}, s}, book_set(b, k, EBusy{t, name}), cn.force(c), ss}
         case EBusy{t, name}:
           err("`" ++ G.str(name) ++ "` needs its own value: a cycle")
     case None{}:
       err("a leaf names no definition")
 
-def needed.c(ch: Ch, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def needed.c(ch: Ch, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match ch:
     case ChAt{+k}:
-      needed.e(book_get(b, k), d, k, cell, s, b, c)
+      needed.e(book_get(b, k), d, k, cell, s, b, c, ss)
     case ChLoop{}:
       err("definitions name each other alone, with no value: a cycle")
 
 # demand stopped at a leaf (state 2)
-def needed(r: KD.D & U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def needed(r: KD.D & U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (d, +k) = r
-  needed.c(chase(List.length(&2, Ent, b), b, k), d, cell, s, b, c)
+  needed.c(chase(List.length(&2, Ent, b), b, k), d, cell, s, b, c, ss)
 
-# A cell's net done (state 1): its outcome kept, the task below it served:
-# a value resumed there; no value, a function, its recipe spliced there
-# and at each use after
+# Demand stopped needing (state 2), told apart by the kind of what it
+# waits on: a cursor is served, any other a leaf, as a leaf ever was
+# (KS.need would read a cursor's position as a handle)
+def need.k(+cur: Bool, h: P.H, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match cur:
+    case True{}:
+      frame.at.p(P.rd(h, (x + 2 : U32)), x, path, top, depth, n, cell, s, b, c, ss)
+    case False{}:
+      needed(KS.need(KD.D{h, path, top, depth, n, 2}), cell, s, b, c, ss)
 
-def finished.fn(m: Maybe<&2, Ent>, d0: KD.D, +cell0: U32, rest: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+def need.hd(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +hd) = r
+  need.k(U32.is_eq(P.rk(hd), 18), h, x, path, top, depth, n, cell, s, b, c, ss)
+
+def need.at(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +x) = r
+  need.hd(P.rd(h, x), x, path, top, depth, n, cell, s, b, c, ss)
+
+# A frame's step: its source taken out, served once into the net of the
+# task below; then the source put back, and the host goes on, or the
+# frame stays: out of fuel, or the source's own need met in the source (a
+# template spliced, a value resumed, another live source's recipe spliced
+# until sources hold copies), or a cell forced on a task above it
+
+def frame.back(d: KD.D, s2: Stk, +i: U32, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  RMore{TkSv{k, nc, pos}, s2, b, c, srcs.put(ss, i, dh(d))}
+
+def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +h2: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
     case Some{e}:
       match e:
-        case EBusy{+t, name}:
-          go(S.splice(d0, t), cell0, rest, book_set(b, cell, EFn{t}), cn.splice(c))
+        case ETpl{t}:
+          frame.back(S.splice(d, t), s2, i, k, nc, pos, b, cn.splice(c), ss)
+        case ESrc{+i2, t, name2}:
+          frame.back(S.splice(d, t), s2, i, k, nc, pos, b, cn.splice(c), ss)
+        case EValue{v}:
+          frame.back(KS.resume(d, v), s2, i, k, nc, pos, b, c, ss)
+        case ERecipe{+t, +name2}:
+          RMore{Tk{KS.d.start(KN.load(t)), h2, no_cell()}, TkCon{TkSv{k, nc, pos}, s2}, book_set(b, h2, EBusy{t, name2}), cn.force(c), srcs.put(ss, i, dh(d))}
+        case EBusy{t, name2}:
+          err("`" ++ G.str(name2) ++ "` needs its own value: a cycle")
+    case None{}:
+      err("a leaf names no definition")
+
+def frame.need.c(ch: Ch, d: KD.D, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match ch:
+    case ChAt{+h2}:
+      frame.need.e(book_get(b, h2), d, h2, s2, i, name, k, nc, pos, b, c, ss)
+    case ChLoop{}:
+      err("definitions name each other alone, with no value: a cycle")
+
+def frame.need.l(r: KD.D & U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (d, +h2) = r
+  frame.need.c(chase(List.length(&2, Ent, b), b, h2), d, s2, i, name, k, nc, pos, b, c, ss)
+
+def frame.need.k(+cur: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match cur:
+    case True{}:
+      err("`" ++ G.str(name) ++ "` uses a copy of a live function inside its own net, not yet served")
+    case False{}:
+      frame.need.l(KS.need(KD.D{h, path, top, depth, n, 2}), s2, i, name, k, nc, pos, b, c, ss)
+
+def frame.need.hd(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +hd) = r
+  frame.need.k(U32.is_eq(P.rk(hd), 18), h, path, top, depth, n, s2, i, name, k, nc, pos, b, c, ss)
+
+def frame.need.at(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, +x) = r
+  frame.need.hd(P.rd(h, x), x, path, top, depth, n, s2, i, name, k, nc, pos, b, c, ss)
+
+# positioned demand stopped in the source, in state st
+def frame.st(+st: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match st:
+    case 4:
+      RMore{TkSv{k, nc, pos}, s2, b, c, srcs.put(ss, i, h)}
+    case 2:
+      frame.need.at(KS.d.at(h, top), path, top, depth, n, s2, i, name, k, nc, pos, b, c, ss)
+    case _:
+      err("serving `" ++ G.str(name) ++ "`: " ++ K.st_name(st))
+
+def frame.stop(d: KD.D, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      frame.st(st, h, path, top, depth, n, s2, i, name, k, nc, pos, b, c, ss)
+
+def frame.sv(v: M.Sv, path0: KM.M, +top0: U32, +depth0: U32, +n0: U32, +st0: U32, +i: U32, +name: List<&2, U32>, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match v:
+    case M.SvOk{hs, h, +n}:
+      RMore{Tk{KD.d.go(h, path0, top0, depth0, n0), cell0, w0}, rest, b, cn.serve(cn.add(c, n)), srcs.put(ss, i, hs)}
+    case M.SvStop{d, h, +n}:
+      frame.stop(d, TkCon{Tk{KD.D{h, path0, top0, depth0, n0, st0}, cell0, w0}, rest}, i, name, k, nc, pos, b, cn.add(c, n), ss)
+
+def frame.d(hs: P.H, d0: KD.D, +i: U32, +name: List<&2, U32>, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match d0:
+    case KD.D{h0, path0, +top0, +depth0, +n0, +st0}:
+      frame.sv(M.serve(hs, h0, nc, 8n, slice()), path0, top0, depth0, n0, st0, i, name, cell0, w0, rest, k, nc, pos, b, c, ss)
+
+def frame.t(r: SrT, d0: KD.D, +i: U32, +name: List<&2, U32>, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+  match r:
+    case SrT{ss, x}:
+      match x:
+        case SrcIn{hs}:
+          frame.d(hs, d0, i, name, cell0, w0, rest, k, nc, pos, b, c, ss)
+        case SrcOut{}:
+          err("a live source served twice at once")
+
+def frame.e(m: Maybe<&2, Ent>, d0: KD.D, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case ESrc{+i, t, +name}:
+          frame.t(srcs.take(ss, i), d0, i, name, cell0, w0, rest, k, nc, pos, b, c)
+        case _:
+          err("a cursor's source is no live source")
+    case None{}:
+      err("a cursor's source names no definition")
+
+# a frame's step, its host the task below it
+def frame(s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match s:
+    case TkCon{below, rest}:
+      match below:
+        case Tk{d0, +cell0, +w0}:
+          frame.e(book_get(b, k), d0, cell0, w0, rest, k, nc, pos, b, c, ss)
+        case TkSv{+k2, +nc2, +pos2}:
+          err("a frame serves no host")
+    case TkNil{}:
+      err("a frame serves no host")
+
+# A cell's net done (state 1): its outcome kept, the task below it served.
+# A value is resumed there, or the frame there goes on; a function's net
+# is kept as a live source, used where the task below stopped, or the
+# frame there goes on and finds it
+
+def finished.v(s: Stk, +v: V.Val, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match s:
+    case TkCon{t, rest}:
+      match t:
+        case Tk{d0, +cell0, +waits0}:
+          go(KS.resume(d0, v), cell0, rest, book_set(b, cell, EValue{v}), c, ss)
+        case TkSv{+k, +nc, +pos}:
+          RMore{TkSv{k, nc, pos}, rest, book_set(b, cell, EValue{v}), c, ss}
+    case TkNil{}:
+      err("a value forced for no one")
+
+def finished.src(s: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match s:
+    case TkCon{t, rest}:
+      match t:
+        case Tk{d0, +cell0, +waits0}:
+          use.src(d0, cell, cell0, rest, b, c, ss)
+        case TkSv{+k, +nc, +pos}:
+          RMore{TkSv{k, nc, pos}, rest, b, c, ss}
+    case TkNil{}:
+      err("a value forced for no one")
+
+def cell.src.e(m: Maybe<&2, Ent>, +i: U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case EBusy{+t, +name}:
+          finished.src(s, cell, book_set(b, cell, ESrc{i, t, name}), c, ss)
         case _:
           err("a value forced was not busy")
     case None{}:
       err("a value forced names no definition")
 
-def finished.v(v: Maybe<&2, V.Val>, d0: KD.D, +cell0: U32, rest: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
+def cell.src(r: Srcs & U32, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+  (ss, +i) = r
+  cell.src.e(book_get(b, cell), i, cell, s, b, c, ss)
+
+def cell.out(v: Maybe<&2, V.Val>, h: P.H, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match v:
-    case Some{+x}:
-      go(KS.resume(d0, x), cell0, rest, book_set(b, cell, EValue{x}), c)
+    case Some{x}:
+      finished.v(s, x, cell, b, c, ss)
     case None{}:
-      finished.fn(book_get(b, cell), d0, cell0, rest, cell, b, c)
+      cell.src(srcs.push(ss, h, 0), cell, s, b, c)
 
-def finished.s(s: Stk, v: Maybe<&2, V.Val>, +cell: U32, +b: List<&2, Ent>, c: Cn) -> Run:
-  match s:
-    case TkCon{t, rest}:
-      match t:
-        case Tk{d0, +cell0, +waits0}:
-          finished.v(v, d0, cell0, rest, cell, b, c)
-    case TkNil{}:
-      err("a value forced for no one")
+def cell.res(r: P.H & Maybe<&2, V.Val>, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, v) = r
+  cell.out(v, h, cell, s, b, c, ss)
 
-def finished.e(+clean: Bool, v: Maybe<&2, V.Val>, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def cell.clean(+clean: Bool, h: P.H, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match clean:
     case True{}:
-      finished.s(s, v, cell, b, c)
+      cell.res(KN.result(h), cell, s, b, c, ss)
     case False{}:
       err("the kernel reported errors forcing a value")
 
-def finished(r: K.DRes, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
-  match r:
-    case K.DRes{k, +st, +lz, +live, +cap, +reach}:
-      match k:
-        case K.KRes{v, +itrs, +errs, +ok}:
-          finished.e(U32.is_eq(errs, 0), v, cell, s, b, cn.add(c, itrs))
+def cell.done(r: P.H & P.HS, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      cell.clean(U32.is_eq(errs, 0), h, cell, s, b, cn.add(c, itrs), ss)
 
-def ended.cell(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def ended.cell(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
       match st:
         case 1:
-          finished(K.dres(KD.D{h, path, top, depth, n, st}), cell, s, b, c)
+          cell.done(P.stats(P.count(h, n)), cell, s, b, c, ss)
         case _:
           err("forcing a value: " ++ K.st_name(st))
 
-def ended.rm(m: Maybe<&2, U32>, d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def ended.rm(m: Maybe<&2, U32>, d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
     case Some{+k}:
-      needed.c(chase(List.length(&2, Ent, b), b, k), d, no_cell(), s, b, c)
+      needed.c(chase(List.length(&2, Ent, b), b, k), d, no_cell(), s, b, c, ss)
     case None{}:
       RDone{counted(out(K.dres(d)), c)}
 
 # asm.result's net done: its output, unless its root faces a leaf, as when
 # a function returns a value's leaf, which is served as a need is and the
 # net then finished again
-def ended.root(r: KD.D & Maybe<&2, U32>, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def ended.root(r: KD.D & Maybe<&2, U32>, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (d, m) = r
-  ended.rm(m, d, s, b, c)
+  ended.rm(m, d, s, b, c, ss)
 
 # asm.result's demand ended: done, looked at for a leaf; else its outcome
-def ended.r(d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def ended.r(d: KD.D, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
       match st:
         case 1:
-          ended.root(S.lazy_at(KD.D{h, path, top, depth, n, st}), s, b, c)
+          ended.root(S.lazy_at(KD.D{h, path, top, depth, n, st}), s, b, c, ss)
         case _:
           RDone{counted(out(K.dres(KD.D{h, path, top, depth, n, st})), c)}
 
 # demand's end: asm.result's, its output; a cell's, served below
-def ended(+root: Bool, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+def ended(+root: Bool, d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match root:
     case True{}:
-      ended.r(d, s, b, c)
+      ended.r(d, s, b, c, ss)
     case False{}:
-      ended.cell(d, cell, s, b, c)
+      ended.cell(d, cell, s, b, c, ss)
 
-# a slice's end: out of fuel goes on (state 4 set going again, 0); a leaf
-# met is served (state 2); any other state ends the task
-def sliced(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn) -> Run:
+# a slice's end: out of fuel goes on (state 4 set going again, 0); a need
+# is served (state 2); any other state ends the task
+def sliced(d: KD.D, +cell: U32, s: Stk, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
       match st:
         case 4:
-          go(KD.D{h, path, top, depth, n, 0}, cell, s, b, c)
+          go(KD.D{h, path, top, depth, n, 0}, cell, s, b, c, ss)
         case 2:
-          needed(KS.need(KD.D{h, path, top, depth, n, st}), cell, s, b, c)
+          need.at(KS.d.at(h, top), path, top, depth, n, cell, s, b, c, ss)
         case _:
-          ended(U32.is_eq(cell, no_cell()), KD.D{h, path, top, depth, n, st}, cell, s, b, c)
+          ended(U32.is_eq(cell, no_cell()), KD.D{h, path, top, depth, n, st}, cell, s, b, c, ss)
 
-# one slice of the assembly: of the task on top
-def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn) -> Run:
+# one slice of the assembly: of the task on top, a demand or a frame
+def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match t:
     case Tk{d, +cell, +waits}:
-      sliced(KD.Demand.demand(slice(), d), cell, s, b, c)
+      sliced(KD.Demand.demand(slice(), d), cell, s, b, c, ss)
+    case TkSv{+k, +nc, +pos}:
+      frame(s, k, nc, pos, b, c, ss)
 
 # Starting
 # ========
@@ -419,7 +764,7 @@ def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn) -> Run:
 def lowered(w: W.Top, b: List<&2, Ent>) -> Run:
   match w:
     case W.TOk{t}:
-      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0})
+      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0}, SrsNil{})
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 
@@ -1613,8 +1958,8 @@ def refrozen.e(e: Ent) -> Ent:
       EBusy{refrozen.t(t), name}
     case EValue{v}:
       EValue{v}
-    case EFn{t}:
-      EFn{refrozen.t(t)}
+    case ESrc{+i, t, name}:
+      ESrc{i, refrozen.t(t), name}
 
 def refrozen.b(b: List<&2, Ent>) -> List<&2, Ent>:
   match b:
@@ -1631,8 +1976,8 @@ def refrozen(+on: Bool, r: Run) -> Run:
       match r:
         case RDone{o}:
           RDone{o}
-        case RMore{t, s, b, c}:
-          RMore{t, s, refrozen.b(b), c}
+        case RMore{t, s, b, c, ss}:
+          RMore{t, s, refrozen.b(b), c, ss}
 
 def start(bs: List<&2, U32>, +lk: Bool) -> Run:
   start.p(G.parse(L.lex(bs)), lk)
