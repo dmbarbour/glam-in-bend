@@ -100,8 +100,8 @@ def slices(left: Nat, r: C.Run, +count: Bool) -> IO(Unit):
       match r:
         case C.RDone{o}:
           finish(o, count)
-        case C.RMore{t, s, b, c, ss}:
-          slices(more, C.step(t, s, b, c, ss), count)
+        case C.RMore{m}:
+          slices(more, C.step(m), count)
 
 def read(fr: File & Result<&1, &1, U32 & String, List<&2, U32>>, +count: Bool, +lk: Bool, +rf: Bool) -> IO(Unit):
   (f, r) = fr

@@ -366,14 +366,12 @@ combined order:
    one number; the bounds on serves and on splices are retired
    (`cells-freeze.sharing.copies`).
 2. *The self copy.* Built (`cells-freeze.nested.self`).
-3. *The stack as segments.* Held for the maintainer: segments make the
-   release at a wait part of the type, a cell forced above frames
-   always taking their walks, where the maintainer's rule is to kill
-   walks on re-entrant access ("it makes sense to me that we'd kill the
-   existing walks upon re-entrant access to a net"), which is the lazy
-   release of this review's F6. Building segments would make that a
-   reversal. No sample yet gains from lazy release: in every sample
-   with a wait, the cell forced reenters a held source.
+3. *The stack as segments.* Held for the maintainer, since segments
+   make the release at a wait part of the type where the maintainer's
+   rule is to kill walks on re-entrant access, the lazy release of this
+   review's F6; then built at their word ("Keep it simple for now,
+   which I think means segments"), lazy release to be revisited if
+   evidenced (`cells-freeze.nested.segments`).
 4. *The finished mark.* Deferred until a source runs events or
    collection (above).
 5. *The path law.* Not started: an invariant over every state the
