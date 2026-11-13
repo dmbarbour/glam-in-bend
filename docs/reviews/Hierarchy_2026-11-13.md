@@ -326,3 +326,21 @@ the batch kept, no per-node pulls (its F17, F24).
    array of entries (its R6); local cells after (this review's F4).
 7. Release narrowed per source, when measured (both).
 8. No per-node pulls (both).
+
+## The maintainer's answers (2026-11-13)
+
+- **Quotas:** "Whether we count interactions or walks for quotas is a
+  separate design issue, we can examine it later." The families' check
+  is no quota, so the agent folded the nodes a serve copies into its
+  interactions and retired the serve bound and `sources=N`
+  (`cells-freeze.sharing.copies`); a splice's nodes stay uncounted until
+  measured.
+- **The root heap:** it "could be an assembler's net, composing multiple
+  user modules (e.g. `conf.env` becomes visible to the assembly for
+  adaptation). We could model some computations in this scope. Exactly
+  how this works out is subject to future design." So the book is not
+  the root heap's cells by itself: the root composes the modules an
+  assembly is built from, of which today's module is the one.
+- **Local cells first:** "Whichever we encounter first, so probably
+  lazies unless we push on parallelism": lazy members leaving a net,
+  before sparks.

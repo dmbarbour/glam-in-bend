@@ -20,16 +20,14 @@ cells-freeze.sharing): each sample applies a prefix to a string literal,
 nested 1, 2, 4 and 8 times into a copy under results/sharing/, run with
 `--count` both ways. Every size must write the same bytes both ways, and
 from 4 uses to 8 a use may cost at most SLACK_ITRS interactions more than
-it does linked, at most SLACK_SPLICES splices and at most SLACK_SERVES
-serves of a live source's cursors (glam/materialize.bend) for each live
-source the use goes through: one, unless the line says `sources=N`, as
-a use of a source holding a copy of another is served from both
-(cells-freeze.nested). Work that needs no argument is done once, however
-many times it is used. A family
-marked `loss` is known not to share until its step is built, and fails
-once it shares, until the mark is removed. What the check cannot see:
-splices and serves are no interactions, so the size of the copies is
-invisible to it, and only their number is bounded.
+it does linked, a node a serve copies counted as an interaction, a
+cursor interaction (glam/materialize.bend; the maintainer, 2026-11-13,
+cells-freeze.sharing.copies), and at most SLACK_SPLICES splices. Work
+that needs no argument is done once, however many times it is used. A
+family marked `loss` is known not to share until its step is built, and
+fails once it shares, until the mark is removed. What the check cannot
+see: a splice is no interaction, so the size of a template spliced is
+invisible to it, and only the splices' number is bounded.
 
 Every hello sample and every size of a sharing family runs a third way,
 with `--refreeze`: each template loaded and frozen back before the run
@@ -66,7 +64,6 @@ NESTED = os.path.join(ROOT, "results", "sharing")
 USES = (1, 2, 4, 8)
 SLACK_ITRS = 8
 SLACK_SPLICES = 2
-SLACK_SERVES = 2
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
 TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
@@ -177,8 +174,7 @@ def run_one(rung, path):
 
 
 def families():
-    """(step, path, known loss, prefix, live sources a use goes through)
-    for each line of glam/sharing.txt"""
+    """(step, path, known loss, prefix) for each line of glam/sharing.txt"""
     out = []
     with open(SHARING) as f:
         for line in f:
@@ -186,11 +182,7 @@ def families():
             if not line or line.startswith("#"):
                 continue
             step, path, mark, prefix = line.split(None, 3)
-            sources = 1
-            if prefix.startswith("sources="):
-                n, prefix = prefix.split(None, 1)
-                sources = int(n[len("sources="):])
-            out.append((step, path, mark == "loss", prefix, sources))
+            out.append((step, path, mark == "loss", prefix))
     return out
 
 
@@ -225,14 +217,15 @@ def nested(path, prefix, n):
 
 
 def counted(path, linked):
-    """(stdout, interactions, splices, serves) of a run with --count; None
-    on failure"""
+    """(stdout, interactions, splices, serves, cursor interactions) of a run
+    with --count; None on failure"""
     args = [EXE, "-f", path, "--count"] + (["--link"] if linked else [])
     r = subprocess.run(args, capture_output=True)
     m = re.search(rb"(\d+) interactions, (\d+) splices, \d+ values forced, (\d+) serves", r.stderr)
-    if r.returncode != 0 or not m:
+    cp = re.search(rb"(\d+) cursor interactions", r.stderr)
+    if r.returncode != 0 or not m or not cp:
         return None
-    return r.stdout, int(m.group(1)), int(m.group(2)), int(m.group(3))
+    return r.stdout, int(m.group(1)), int(m.group(2)), int(m.group(3)), int(cp.group(1))
 
 
 # samples whose live sources meet every need on the spot, so that a
@@ -252,7 +245,7 @@ def rewalked(path):
     return None
 
 
-def family(step, path, loss, prefix, sources):
+def family(step, path, loss, prefix):
     """None if the family behaves as its mark says, else what went wrong"""
     runs = {}
     for n in USES:
@@ -267,15 +260,14 @@ def family(step, path, loss, prefix, sources):
         rf = refreeze_differs(src)
         if rf is not None:
             return f"FAIL {step} {path}: at {n} uses, with --refreeze {rf[1]!r}, plainly {rf[0]!r}"
-        runs[n] = (t[1], t[2], l[1], t[3])
+        runs[n] = (t[1] + t[4], t[2], l[1] + l[4], t[3], t[4])
     a, b = runs[USES[-2]], runs[USES[-1]]
     per = USES[-1] - USES[-2]
     itrs, splices, linked = (b[0] - a[0]) / per, (b[1] - a[1]) / per, (b[2] - a[2]) / per
-    serves = (b[3] - a[3]) / per
-    shares = (itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES
-              and serves <= SLACK_SERVES * sources)
-    said = (f"a use costs {itrs:g} interactions, {splices:g} splices and {serves:g} serves, "
-            f"{linked:g} linked")
+    serves, copies = (b[3] - a[3]) / per, (b[4] - a[4]) / per
+    shares = itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES
+    said = (f"a use costs {itrs:g} interactions ({copies:g} of them cursor interactions, "
+            f"in {serves:g} serves) and {splices:g} splices, {linked:g} linked")
     if shares and loss:
         return f"FAIL {step} {path}: marked a loss, but it shares ({said}): remove its mark"
     if not shares and not loss:
@@ -316,8 +308,8 @@ def main(args):
             print(f"ok {rung} {path}")
     fs = families()
     bad_fs, losses = 0, 0
-    for step, path, loss, prefix, sources in fs:
-        said = family(step, path, loss, prefix, sources)
+    for step, path, loss, prefix in fs:
+        said = family(step, path, loss, prefix)
         print(said)
         if said.startswith("FAIL"):
             bad_fs += 1
