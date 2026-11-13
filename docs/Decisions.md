@@ -66,6 +66,9 @@ IO shell.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.
+- [`hub-laws-reused`](decisions/hub-laws-reused.md): glam's proofs may
+  use laws proven in third-party hub packages, imported by hash, their
+  statements read before use.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its

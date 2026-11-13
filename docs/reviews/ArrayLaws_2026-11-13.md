@@ -125,3 +125,8 @@ glam's. Whether glam's laws may rest on third-party packages is the
 maintainer's to rule: they are machine-checked, `--verdict` included,
 pinned by hash, and MIT; the cost is a dependency whose statements were
 read by the agent, not by their author's human reviewer.
+
+## The maintainer's answer (2026-11-13)
+
+"Yes, we can bring in some third-party packages." Recorded as
+`hub-laws-reused`.
