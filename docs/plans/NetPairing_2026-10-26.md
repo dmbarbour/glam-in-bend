@@ -218,15 +218,28 @@ one, is tried at `bridge-recursion`.
      one is defined since `drops-stop-at-index`: b unit drops at n, which
      move a level j above n to max(n, j - b). Confidence as for raise
      runs, in order:
-     - the one-wire model (`spike/tools/ctlwire.py`) given drops of any
-       amount, a fusion shape for two drops at one index, and peeling of
-       a drop run where a facing control meets it at its index; every
-       order enumerated to four controls, sampled longer, values and
-       logical interactions alike. A failure is shrunk and understood
-       before anything is built;
-     - laws over `spike/ctl.bend`: b unit drops are the run, a run of
-       a + b is a then b, and peeling leaves what the units would, as
-       `units_are_run`, `run_splits` and `peel_pairs_units` hold raises;
+     - the one-wire model (`spike/tools/ctlwire.py --drops`): done
+       2026-11-13. Drops of any amount, drop runs in the starts, a drop
+       run's unit drops as its reference, and fusion shape 6, two drops
+       at one index. Its first failures were real: a control crossing a
+       drop run can reach the run's index partway, the units left then
+       its partners (`C(0,-1) C(0,-1) L(1,-1)`: the `L` crosses one unit
+       and cancels the other; fused, it crosses the run whole). So a drop
+       run meeting any facing control it does not equal gives up one
+       unit to meet it, the rest staying at its index; raise runs never
+       meet this, their units' indices climbing. With that, fused and
+       unit reductions agree, values and logical interactions alike, on
+       every start of up to four controls (12,463,200) and on 20,000
+       sampled at each of 6, 8 and 10. The saving is where values,
+       consumers and other nodes cross a run in one step;
+     - laws over `spike/ctl.bend`: done 2026-11-13, `drop_units_are_run`
+       (b unit drops at n are one drop by b) and `drop_run_splits` (a
+       run of k + r is k then r). `runs_as_units` covers drop runs as it
+       does raise runs, its normalizer reading a run's control as
+       segments of units without their direction;
+     - measured before building: how often two drops at one index meet,
+       on the differential corpus, by a measurement build counting each
+       fusion attempt between them as an error;
      - the model's and the kernel's compose and peeling, with the laws of
        `fusions-as-components`, then the differential test over random
        terms and the library;
