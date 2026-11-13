@@ -188,7 +188,11 @@ def families():
 
 def nested(path, prefix, n):
     """the sample with `prefix "..."` applied n times, written under
-    results/sharing/; None where the prefix is not met exactly once"""
+    results/sharing/; None where the prefix is not met exactly once. Where
+    the prefix holds `{i}`, the levels are numbered 1 to n, innermost
+    last, and every other line holding `{i}`, a definition, is written n
+    times, numbered alike: a family that grows its definitions with its
+    uses."""
     with open(os.path.join(ROOT, path)) as f:
         src = f.read()
     at = re.compile(r"(?<![\w'.])" + re.escape(prefix) + r' ("[^"]*")')
@@ -196,13 +200,19 @@ def nested(path, prefix, n):
         return None
     def wrap(m):
         inner = m.group(1)
-        for _ in range(n):
-            inner = f"{prefix} ({inner})"
+        for i in range(n, 0, -1):
+            inner = f"{prefix.replace('{i}', str(i))} ({inner})"
         return inner
+    lines = []
+    for line in at.sub(wrap, src).split("\n"):
+        if "{i}" in line:
+            lines += [line.replace("{i}", str(i)) for i in range(1, n + 1)]
+        else:
+            lines.append(line)
     os.makedirs(NESTED, exist_ok=True)
     out = os.path.join(NESTED, f"{os.path.basename(path)[:-2]}_{n}.g")
     with open(out, "w") as f:
-        f.write(at.sub(wrap, src))
+        f.write("\n".join(lines))
     return out
 
 
