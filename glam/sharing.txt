@@ -6,9 +6,9 @@
 # repeated alike), as assembled and linked (--link), and each size must
 # write the same bytes both ways. From 4 uses to 8, a use may cost at
 # most 8 interactions more than it does linked, each node a serve copies
-# counted as one, and at most 2 splices. A `loss` is known not to share
-# until its step is built; it fails the check once it shares, until its
-# mark is removed.
+# or a splice makes counted as one. A `loss` is known not to share until
+# its step is built; it fails the check once it shares, until its mark
+# is removed.
 cells-freeze.templates samples/sharing/closed_work.g loss f
 cells-freeze.cells samples/sharing/partial_in_cell.g shares use
 cells-splice.templates samples/sharing/partial_in_net.g shares g id

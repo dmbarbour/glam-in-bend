@@ -11,6 +11,7 @@ import ./lower.bend as W
 import ./splice.bend as S
 import ./objects.bend as O
 import ../spike/tpl.bend as T
+import ../spike/net.bend as N
 import ./freeze.bend as F
 import ../spike/kprim.bend as P
 import ./materialize.bend as M
@@ -34,7 +35,7 @@ import ../spike/kmem_grow.bend as KM
 # source with the steps they had descended (for --count); or the
 # diagnostics
 type Out is Data:
-  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32}
+  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32, +spliced: U32}
   OErrs{ds: List<&2, G.Diag>}
 
 # An entry of the book (Cells, re-scoped by the bridge), named by a
@@ -85,10 +86,11 @@ type Stk is Type:
 # counted for --count: interactions of the cells' nets and the sources,
 # splices, values forced, cursors served, the frames' stops in their
 # sources with the depth each walk had reached, which the frame's next
-# step walks again (cells-freeze.rewalk), and the serves' cursor
-# interactions, a node copied each (glam/materialize.bend's Sv)
+# step walks again (cells-freeze.rewalk), the serves' cursor
+# interactions, a node copied each (glam/materialize.bend's Sv), and the
+# nodes the splices made
 type Cn is Data:
-  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32}
+  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32, +spliced: U32}
 
 # where an assembly stands: done, or a task to go on with, the tasks
 # waiting, the book and the counts
@@ -146,7 +148,7 @@ def bytes(xs: List<&2, V.Val>) -> Bs:
 def out.bs(r: Bs, +itrs: U32) -> Out:
   match r:
     case BOk{bs}:
-      OBytes{bs, itrs, 0, 0, 0, 0, 0, 0}
+      OBytes{bs, itrs, 0, 0, 0, 0, 0, 0, 0}
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
@@ -214,43 +216,68 @@ def slice() -> Nat:
 
 def cn.add(c: Cn, +i: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{(itrs + i : U32), sp, fo, sv, st, rw, cp}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{(itrs + i : U32), sp, fo, sv, st, rw, cp, sn}
 
-def cn.splice(c: Cn) -> Cn:
+# the nodes a splice makes: the template's, but its erasers, made statics
+def tpl.made.k(+era: Bool, +acc: U32) -> U32:
+  match era:
+    case True{}:
+      acc
+    case False{}:
+      (acc + 1 : U32)
+
+def tpl.made.l(ts: List<&2, T.TNode>, +acc: U32) -> U32:
+  match ts:
+    case Nil{}:
+      acc
+    case Con{t, rest}:
+      match t:
+        case T.TN{k, p}:
+          tpl.made.l(rest, tpl.made.k(U32.is_eq((N.kcode(k) .|. 1 : U32), 7), acc))
+        case T.TF{k, +site, +lvl}:
+          tpl.made.l(rest, (acc + 1 : U32))
+
+def tpl.made(t: T.Tpl) -> U32:
+  match t:
+    case T.Tpl{nodes, links, root, +size}:
+      tpl.made.l(nodes, 0)
+
+# a template spliced, its nodes counted
+def cn.splice(c: Cn, t: T.Tpl) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{itrs, (sp + 1 : U32), fo, sv, st, rw, cp}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{itrs, (sp + 1 : U32), fo, sv, st, rw, cp, (sn + tpl.made(t) : U32)}
 
 def cn.force(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{itrs, sp, (fo + 1 : U32), sv, st, rw, cp}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{itrs, sp, (fo + 1 : U32), sv, st, rw, cp, sn}
 
 def cn.serve(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{itrs, sp, fo, (sv + 1 : U32), st, rw, cp}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{itrs, sp, fo, (sv + 1 : U32), st, rw, cp, sn}
 
 # a serve's cursor interactions: the nodes it copied into the host
 def cn.copy(c: Cn, +m: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{itrs, sp, fo, sv, st, rw, (cp + m : U32)}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{itrs, sp, fo, sv, st, rw, (cp + m : U32), sn}
 
 # a frame's walk stopped in its source at depth d, to be walked again
 def cn.stop(c: Cn, +d: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      Cn{itrs, sp, fo, sv, (st + 1 : U32), (rw + d : U32), cp}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      Cn{itrs, sp, fo, sv, (st + 1 : U32), (rw + d : U32), cp, sn}
 
 # the counts added to the bytes' own
 def counted(o: Out, c: Cn) -> Out:
   match o:
-    case OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+    case OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
       match c:
-        case Cn{+i, +s2, +f2, +v2, +t2, +r2, +c2}:
-          OBytes{bs, (itrs + i : U32), s2, f2, v2, t2, r2, c2}
+        case Cn{+i, +s2, +f2, +v2, +t2, +r2, +c2, +n2}:
+          OBytes{bs, (itrs + i : U32), s2, f2, v2, t2, r2, c2, n2}
     case OErrs{ds}:
       OErrs{ds}
 
@@ -642,8 +669,8 @@ def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, s: Stk, +b: List<&
   match m:
     case Some{e}:
       match e:
-        case ETpl{t}:
-          go(S.splice(d, t), cell, s, b, cn.splice(c), ss)
+        case ETpl{+t}:
+          go(S.splice(d, t), cell, s, b, cn.splice(c, t), ss)
         case ESrc{+i, t, name}:
           use.src(d, k, WhTk{cell}, s, b, c, ss)
         case EValue{v}:
@@ -714,8 +741,8 @@ def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +depth: U32, +h2: U32, s2: Stk, +i:
   match m:
     case Some{e}:
       match e:
-        case ETpl{t}:
-          frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c), ss)
+        case ETpl{+t}:
+          frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c, t), ss)
         case ESrc{+i2, t, name2}:
           use.src(d.again(d), h2, who.self(U32.is_eq(i2, i), k, nc, pos), s2, b, c, ss)
         case EValue{v}:
@@ -1108,7 +1135,7 @@ def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
 def lowered(w: W.Top, b: List<&2, Ent>) -> Run:
   match w:
     case W.TOk{t}:
-      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0, 0, 0, 0}, SrsNil{})
+      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0, 0, 0, 0, 0}, SrsNil{})
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 

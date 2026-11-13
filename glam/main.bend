@@ -13,9 +13,9 @@ import ./core.bend as C
 #
 # With --count, the kernel's interactions over every net reduced, the
 # templates spliced, the values forced, the live sources' serves, stops
-# and steps walked again, and the serves' cursor interactions (a node
-# copied each) are reported on stderr, for the store (HelloLadder's
-# ladder-measure). With --link, every definition is
+# and steps walked again, the serves' cursor interactions (a node copied
+# each) and the nodes the splices made are reported on stderr, for the
+# store (HelloLadder's ladder-measure). With --link, every definition is
 # linked statically, top-level functions too, as before templates, for a
 # differential run (glam/core.bend). With --refreeze, every template is
 # loaded and frozen back before the run, a check of freezing.
@@ -65,19 +65,19 @@ def emit(bs: List<&2, U32>) -> IO(Unit):
     r : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
     wrote(r)
 
-def counted(+count: Bool, +itrs: U32, +sp: U32, +fo: U32, +sv: U32, +st: U32, +rw: U32, +cp: U32, bs: List<&2, U32>) -> IO(Unit):
+def counted(+count: Bool, +itrs: U32, +sp: U32, +fo: U32, +sv: U32, +st: U32, +rw: U32, +cp: U32, +sn: U32, bs: List<&2, U32>) -> IO(Unit):
   match count:
     case True{}:
       do IO<Unit>:
-        IO.print_err(U32.show(itrs) ++ " interactions, " ++ U32.show(sp) ++ " splices, " ++ U32.show(fo) ++ " values forced, " ++ U32.show(sv) ++ " serves, " ++ U32.show(st) ++ " source stops, " ++ U32.show(rw) ++ " steps walked again, " ++ U32.show(cp) ++ " cursor interactions")
+        IO.print_err(U32.show(itrs) ++ " interactions, " ++ U32.show(sp) ++ " splices, " ++ U32.show(fo) ++ " values forced, " ++ U32.show(sv) ++ " serves, " ++ U32.show(st) ++ " source stops, " ++ U32.show(rw) ++ " steps walked again, " ++ U32.show(cp) ++ " cursor interactions, " ++ U32.show(sn) ++ " nodes spliced")
         emit(bs)
     case False{}:
       emit(bs)
 
 def finish(o: C.Out, +count: Bool) -> IO(Unit):
   match o:
-    case C.OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw, +cp}:
-      counted(count, itrs, sp, fo, sv, st, rw, cp, bs)
+    case C.OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw, +cp, +sn}:
+      counted(count, itrs, sp, fo, sv, st, rw, cp, sn, bs)
     case C.OErrs{ds}:
       report(ds)
 
