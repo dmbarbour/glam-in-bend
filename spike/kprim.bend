@@ -529,12 +529,17 @@ def alloc(h: H) -> H & U32:
     case H{w, a}:
       alloc.fh(KM.m_get(w, at_fh()), a)
 
-def node.word.k(+k: U32) -> U32:
-  match k:
-    case 5:
+# a data node's payload in its word 2, any other's in its word 3; a
+# test, not a match on the literal 5, so that a law can split it
+def node.word.t(+data: Bool) -> U32:
+  match data:
+    case True{}:
       2
-    case _:
+    case False{}:
       3
+
+def node.word.k(+k: U32) -> U32:
+  node.word.t(U32.is_eq(k, 5))
 
 def node.word(+hd: U32) -> U32:
   node.word.k((hd .&. 63 : U32))
