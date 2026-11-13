@@ -211,27 +211,53 @@ one, is tried at `bridge-recursion`.
    (AAECC 8, 1997), merging a raise with a drop where no partner can
    reach it. The lowering's own fused croissant at a use is such a merge,
    sound on the terms so far.
-   - `pairing-fusion.drops` — tentative — drop runs: two drops at one
+   - `pairing-fusion.drops` — built 2026-11-13, the model, laws and
+     measurement; the kernel's part not — drop runs: two drops at one
      index fuse into one dropping by their sum, as raise runs fuse,
      wanted by the maintainer (2026-11-13: "I'd like to get drop fusion
      working if we can be confident it's correct"). A drop by more than
      one is defined since `drops-stop-at-index`: b unit drops at n, which
      move a level j above n to max(n, j - b). Confidence as for raise
      runs, in order:
-     - the one-wire model (`spike/tools/ctlwire.py`) given drops of any
-       amount, a fusion shape for two drops at one index, and peeling of
-       a drop run where a facing control meets it at its index; every
-       order enumerated to four controls, sampled longer, values and
-       logical interactions alike. A failure is shrunk and understood
-       before anything is built;
-     - laws over `spike/ctl.bend`: b unit drops are the run, a run of
-       a + b is a then b, and peeling leaves what the units would, as
-       `units_are_run`, `run_splits` and `peel_pairs_units` hold raises;
-     - the model's and the kernel's compose and peeling, with the laws of
-       `fusions-as-components`, then the differential test over random
-       terms and the library;
-     - measured: how often drops meet in series, and what fusing them
-       saves, on the differential corpus and the spot workloads.
+     - the one-wire model (`spike/tools/ctlwire.py --drops`): done
+       2026-11-13. Drops of any amount, drop runs in the starts, a drop
+       run's unit drops as its reference, and fusion shape 6, two drops
+       at one index. Its first failures were real: a control crossing a
+       drop run can reach the run's index partway, the units left then
+       its partners (`C(0,-1) C(0,-1) L(1,-1)`: the `L` crosses one unit
+       and cancels the other; fused, it crosses the run whole). So a drop
+       run meeting any facing control it does not equal gives up one
+       unit to meet it, the rest staying at its index; raise runs never
+       meet this, their units' indices climbing. With that, fused and
+       unit reductions agree, values and logical interactions alike, on
+       every start of up to four controls (12,463,200) and on 20,000
+       sampled at each of 6, 8 and 10. The saving is where values,
+       consumers and other nodes cross a run in one step;
+     - laws over `spike/ctl.bend`: done 2026-11-13, `drop_units_are_run`
+       (b unit drops at n are one drop by b) and `drop_run_splits` (a
+       run of k + r is k then r). `runs_as_units` covers drop runs as it
+       does raise runs, its normalizer reading a run's control as
+       segments of units without their direction;
+     - measured before building, 2026-11-13: how often two drops at one
+       index meet, by a measurement build counting each fusion attempt
+       between them as a kernel error, over the differential corpus
+       (analysis store run 320, its note saying so; run 190 the baseline,
+       no errors). Of the 600 leveled terms of an ending, drops meet in
+       159 on demand, 239 times against 357,956 interactions, and in 25
+       under full reduction, 32 times against 711,358; 116 of the 159
+       meet once. The costliest terms, where controls accumulate (116,208
+       and 67,400 interactions on demand), meet once and never; the most
+       meetings, 9, are in a term of 142 interactions. Fused, each saves
+       only the crossings of the run that follow, so the whole corpus
+       stands to save well under 1% on demand, and drop fusion does not
+       contain accumulation. Built no further: the model and the laws
+       stay, for a workload that shows drops piling up;
+     - `pairing-fusion.drops.kernel` — tentative — the model's and the
+       kernel's compose and peeling, for a workload where drops pile up:
+       a drop run peeled at any index in the generated Lift-against-LiftC
+       rewrite, which peels raises at one index today, with the laws of
+       `fusions-as-components`, then the differential test and the
+       library.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
    interactions and four 61% (store run 28). Two of those four, #124 of

@@ -29,9 +29,18 @@ the distinct minimal ones printed with a reduction to each wrong outcome.
 Shapes of a fusion of (n1, up b1) then (n2, o2), by number:
   0 up then up, n2 = n1 + b1   1 up then up, n2 = n1   2 up then up, between
   3 up then down by b1 (nothing)   4 up then down by less   5 up then down by more
+  6 down then down, n2 = n1 (a drop run, b1 + b2 unit drops at n1)
 
-    ctlwire.py [--peel] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
-    ctlwire.py [--peel] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
+A drop moves a level j above its index n to max(n, j - by), never below n
+(drops-stop-at-index): b unit drops at n. With --drops, starts hold drops
+by 2 as well, a drop run's units are its unit drops (units), and with
+--peel a drop run meeting any facing control it does not equal gives up
+one unit to face it, the rest staying at n: a control crossing a drop
+run can reach the run's index partway, the units left then its partners
+(pairing-fusion.drops in docs/plans/NetPairing_2026-10-26.md).
+
+    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
 
 With --logical, a start fails instead when its fused reductions, each
 move counted as the logical interactions it stands for (Model.counted),
@@ -40,7 +49,7 @@ do not all total the interactions of its unit brackets reduced unfused
 heap-strategies.profile counts on whole nets.
 
 The kernel's rule: --peel --shapes 0. Its old fusion: --shapes 0,1,2,3,4,5.
-Drops are by 1 only, as lowering emits. Memory grows with MAXLEN; run under
+Without --drops, drops are by 1 only, as lowering emits. Memory grows with MAXLEN; run under
 scripts/capped.sh (length 4 exhaustive: about 0.7 GB, two minutes).
 """
 import itertools
@@ -51,13 +60,15 @@ import sys
 def lift(c, j):
     _, n, up, by = c
     if j > n:
-        return j + by if up else j - by
+        return j + by if up else max(n, j - by)
     return j
 
 
 def shape(first, second):
-    _, n1, _, b1 = first
+    _, n1, u1, b1 = first
     _, n2, u2, b2 = second
+    if not u1:
+        return 6 if not u2 and n2 == n1 else 7
     if u2:
         return 0 if n2 == n1 + b1 else 1 if n2 == n1 else 2
     return 3 if b1 == b2 else 4 if b1 > b2 else 5
@@ -68,6 +79,8 @@ def compose(first, second):
     then second, 'id' for none, None if they do not fuse"""
     _, n1, u1, b1 = first
     _, n2, u2, b2 = second
+    if not u1 and not u2 and n1 == n2:
+        return (n1, False, b1 + b2)
     if not (u1 and n1 <= n2 <= n1 + b1):
         return None
     if u2:
@@ -88,6 +101,12 @@ class Model:
         logical interactions that stands for (--logical)"""
         if a[1:] == b[1:]:
             return (), a[3]
+        if self.peel and not a[2] and a[3] > 1:
+            rep, k = self.facing(("C", a[1], False, 1), b)
+            return (("C", a[1], False, a[3] - 1),) + rep, k
+        if self.peel and not b[2] and b[3] > 1:
+            rep, k = self.facing(a, ("L", b[1], False, 1))
+            return rep + (("L", b[1], False, b[3] - 1),), k
         if self.peel and a[1] == b[1]:
             n = a[1]
             if a[2] and b[2]:
@@ -185,8 +204,8 @@ def units(state):
     v, w, u = state
     out = []
     for k, n, up, by in w:
-        idx = range(n, n + by) if up else [n]
-        us = [(k, j, up, 1 if up else by) for j in idx]
+        idx = range(n, n + by) if up else [n] * by
+        us = [(k, j, up, 1) for j in idx]
         out.extend(us if k == "L" else us[::-1])
     return (v, tuple(out), u)
 
@@ -209,7 +228,8 @@ def smaller(state):
 def main(argv):
     peel = "--peel" in argv
     logical = "--logical" in argv
-    argv = [a for a in argv if a not in ("--peel", "--logical")]
+    drops = "--drops" in argv
+    argv = [a for a in argv if a not in ("--peel", "--logical", "--drops")]
     shapes = {0, 1, 2, 3, 4, 5}
     if "--shapes" in argv:
         i = argv.index("--shapes")
@@ -224,7 +244,7 @@ def main(argv):
     maxlvl = int(rest[1]) if len(rest) > 1 else 5
     model = Model(shapes, peel)
     cs = [(k, n, up, by) for k in "LC" for n in range(maxn + 1) for up in (True, False)
-          for by in (1, 2) if up or by == 1]
+          for by in (1, 2) if up or drops or by == 1]
     fm, um = {}, {}
     found, failures, total, multi = set(), 0, 0, 0
 
@@ -267,14 +287,14 @@ def main(argv):
         for _ in range(count):
             check((rng.randrange(maxlvl + 1), tuple(rng.choice(cs) for _ in range(length)), rng.randrange(maxlvl + 1)))
     if logical:
-        print(f"shapes {sorted(shapes)}, peel {peel}, logical: {failures} of {total} starts fail; "
+        print(f"shapes {sorted(shapes)}, peel {peel}, drops {drops}, logical: {failures} of {total} starts fail; "
               f"{multi} where the unit brackets' interactions depend on order; "
               f"{len(found)} distinct minimal failures")
         for st in sorted(found, key=lambda s: (len(s[1]), s)):
             print(show(st), "units", sorted(model.totals(units(st), False, {})),
                   "| fused", sorted(model.totals(st, True, {})))
         return 1 if failures else 0
-    print(f"shapes {sorted(shapes)}, peel {peel}: {failures} of {total} starts fail; "
+    print(f"shapes {sorted(shapes)}, peel {peel}, drops {drops}: {failures} of {total} starts fail; "
           f"{multi} where unfused reaches more than one outcome; {len(found)} distinct minimal failures")
     for st in sorted(found, key=lambda s: (len(s[1]), s)):
         good = model.outcomes(st, False, {})

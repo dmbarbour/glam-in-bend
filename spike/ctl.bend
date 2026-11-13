@@ -41,6 +41,15 @@ def drop.go(a: Bool, +n: Nat, +j: Nat, +b: Nat) -> Nat:
 def drop(+n: Nat, +b: Nat, +j: Nat) -> Nat:
   drop.go(above(j, n), n, j, b)
 
+# j through b unit drops at n, crossed in turn: a drop run, as drop
+# fusion makes it (law drop_units_are_run)
+def dunits(b: Nat, +n: Nat, +j: Nat) -> Nat:
+  match b:
+    case 0n:
+      j
+    case 1n+p:
+      dunits(p, n, drop(n, 1n, j))
+
 # j through unit brackets at n, n + 1, ..., n + b - 1, in that order
 def units(b: Nat, +n: Nat, +j: Nat) -> Nat:
   match b:

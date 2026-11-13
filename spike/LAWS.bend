@@ -116,6 +116,28 @@ law run_splits:
   for +j: Nat
   {CT.raise(Nat.add(k, n), r, CT.raise(n, k, j)) == CT.raise(n, Nat.add(k, r), j) : Nat}
 
+# LAW: b unit drops at n, crossed in turn, move a level as one control
+# dropping levels above n by b, to n at the lowest (drops-stop-at-index):
+# a drop run, as drop fusion would make it, does to every level what its
+# units do.
+# Record: drops-stop-at-index
+law drop_units_are_run:
+  for +b: Nat
+  for +n: Nat
+  for +j: Nat
+  {CT.dunits(b, n, j) == CT.drop(n, b, j) : Nat}
+
+# LAW: a drop run of k + r units at n is k at n then r at n: fusing two
+# drops at one index, or peeling a unit off a run, changes nothing a level
+# crossing them sees.
+# Record: drops-stop-at-index
+law drop_run_splits:
+  for +k: Nat
+  for +r: Nat
+  for +n: Nat
+  for +j: Nat
+  {CT.drop(n, r, CT.drop(n, k, j)) == CT.drop(n, Nat.add(k, r), j) : Nat}
+
 # LAW: facing runs at one index, peeled, leave what their units would,
 # the inner pairs cancelling one by one.
 # Record: fuse-control-runs
