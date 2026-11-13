@@ -23,13 +23,20 @@ source, and fusion refuses any marked control. Runtime fusion stays
 everywhere else.
 
 **Consequences.**
-- The mark is a bit of the control's header. A control's two form bits
-  are clear today: `hd(k, n)` in `spike/kprim.bend` writes only the kind
-  and the field. Every reader of a control's header must ignore the bit,
-  which is to check when it is built.
-- `fuse` already reads both controls' headers before composing them, so
-  testing the mark costs almost nothing. Setting it is one write to the
-  source for each control a copy first takes: metadata, not structure.
+- The mark is form 1 of the control's header (`P.mark`, `P.marked` in
+  `spike/kprim.bend`), a control's form bits otherwise clear. No reader of
+  a control's header reads them, as checked when it was built
+  (2026-11-13): dispatch reads the kind (`P.rk`); fusion, peeling and
+  freezing read the field and the offset word. A rewrite copies a form
+  only from a node it consumes, and a marked control, finished, is in no
+  pair; fusion's result and a copy's nodes are written with form 0, so a
+  copy in its host fuses freely.
+- Fusion tests the mark in `P.fuse_test` before composing, where both
+  headers are read already (law `marked_unfused`): instructions moved at
+  most 0.02% on the spot workloads (analysis store run 321). Freezing a
+  source's finished part sets it, one write for each control taken
+  (`fz.copied` in `glam/freeze.bend`); reading a net back whole does
+  not. `glam/test_mark.bend` checks both on the kernel's code.
 - With the mark, finished nodes stay finished under reduction, which
   the cursor laws can then state without an exception for fusion.
 - Instruction-level comparisons come later, with a build that neither

@@ -56,13 +56,13 @@ def st_of(d: KD.D) -> U32:
 
 def show(p: Q.Pd) -> String:
   match p:
-    case Q.PdValue{h, +q}:
+    case Q.PdValue{h, +q, +n}:
       "value " ++ kind_at.r(P.rd(h, P.base(q)))
-    case Q.PdFront{h, +q}:
+    case Q.PdFront{h, +q, +n}:
       "front " ++ U32.show(q)
-    case Q.PdStatic{h}:
+    case Q.PdStatic{h, +n}:
       "static"
-    case Q.PdStop{d}:
+    case Q.PdStop{d, +n}:
       "stop " ++ K.st_name(st_of(d))
 
 def at(t: T.Tpl, +pos: U32) -> String:

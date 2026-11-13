@@ -282,9 +282,11 @@ def materialize(s: P.H, h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root
 
 # what a serve leaves: the source and the host, or a stop of positioned
 # demand in the source, for the core, with the host as it was
+# a serve's end: the source and the host, or positioned demand's stop in
+# the source, as it stood; with the interactions made in the source
 type Sv is Type:
-  SvOk{s: P.H, h: P.H}
-  SvStop{d: KD.D, h: P.H}
+  SvOk{s: P.H, h: P.H, +n: U32}
+  SvStop{d: KD.D, h: P.H, +n: U32}
 
 # a climb from a finished node of the source toward the root of its tree,
 # a node whose principal faces a position the ring holds
@@ -319,39 +321,45 @@ def cl.go(g: Nat, c: Cl, +situ: U32) -> Cl:
             case False{}:
               cl.go(k, cl.f(P.rd(s, (x + 1 : U32)), h, x, situ), situ)
 
-def sv.pair(r: P.H & P.H) -> Sv:
+def sv.pair(r: P.H & P.H, +n: U32) -> Sv:
   (s, h) = r
-  SvOk{s, h}
+  SvOk{s, h, n}
 
-def sv.climbed(c: Cl, +situ: U32, +k: U32, +nc: U32) -> Sv:
+def sv.climbed(c: Cl, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
   match c:
     case Cl{s, h, +x, done}:
-      sv.pair(materialize(s, h, situ, x, k, nc, False{}))
+      sv.pair(materialize(s, h, situ, x, k, nc, False{}), n)
 
 # the frontier at port q: a cursor of the ring there, joined to nc; else
 # the tree holding q climbed to and materialized
-def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32) -> Sv:
+def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv:
   (h, m) = r
   match m:
     case Some{+c}:
-      SvOk{s, join(h, nc, c)}
+      SvOk{s, join(h, nc, c), n}
     case None{}:
-      sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc)
+      sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
-def sv.static.w(r: P.H & U32, s: P.H, +nc: U32) -> Sv:
+def sv.static.w(r: P.H & U32, s: P.H, +nc: U32, +n: U32) -> Sv:
   (h, +w) = r
-  SvOk{s, P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc)}
+  SvOk{s, P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n}
+
+# a stop, its own walk's interactions added
+def sv.stop(d: KD.D, h: P.H, +acc: U32) -> Sv:
+  match d:
+    case KD.D{s, path, +top, +depth, +n, +st}:
+      SvStop{KD.D{s, path, top, depth, n, st}, h, (acc + n : U32)}
 
 def sv.pd(p: Q.Pd, h: P.H, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv:
   match p:
-    case Q.PdValue{s, +q}:
-      sv.pair(materialize(s, h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())))
-    case Q.PdFront{s, +q}:
-      sv.front.m(rg.find(h, situ, q), s, situ, k, nc, q)
-    case Q.PdStatic{s}:
-      sv.static.w(P.rd(h, (nc + 1 : U32)), s, nc)
-    case Q.PdStop{d}:
-      SvStop{d, h}
+    case Q.PdValue{s, +q, +n}:
+      sv.pair(materialize(s, h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())), n)
+    case Q.PdFront{s, +q, +n}:
+      sv.front.m(rg.find(h, situ, q), s, situ, k, nc, q, n)
+    case Q.PdStatic{s, +n}:
+      sv.static.w(P.rd(h, (nc + 1 : U32)), s, nc, n)
+    case Q.PdStop{d, +n}:
+      sv.stop(d, h, n)
 
 def sv.k(r: P.H & U32, s: P.H, +situ: U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv:
   (h, +hd) = r

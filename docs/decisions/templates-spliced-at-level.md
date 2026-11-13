@@ -31,12 +31,12 @@ needs them.
   (`docs/reviews/InsideData_2026-11-10.md`, F2, run 312 of the analysis
   store).
 - The values a template names are root cells, forced once each on a
-  task of their own. A value whose outcome is a function is spliced from
-  its recipe at each use, as a template is, until frozen nets exist
-  (`cells-data.root`, `cells-freeze`). Until then, each use redoes the
-  work of the partial application it holds (the same review, F2): such
-  a value is copied as `copy-reduced-function-nets` describes only
-  once `cells-freeze` is built.
+  task of their own. A value whose outcome is a function was spliced
+  from its recipe at each use, redoing the work of the partial
+  application it holds (the same review, F2); since `cells-freeze.cells`
+  (2026-11-13) its net is kept live and copied as
+  `copy-reduced-function-nets` describes, at the level a template's
+  splice would take.
 - The raise is `V.raise_pay` in `spike/val.bend`, which the splice and
   the materializer call. The reference rules cannot tell a copy raised
   whole, where no level wraps: their tests and the levels controls give

@@ -24,30 +24,33 @@ import ../spike/kdemand.bend as KD
 # - a static: the position's port holds one, its value erased or void;
 # - a stop the core must handle: a need, stuck, a cycle, out of fuel or
 #   memory, the walk's own state.
+# Each end carries n, the interactions of the walks done before it; a
+# stop's own walk keeps its count in its state.
 
 type Pd is Type:
   # a principal port q faces the position
-  PdValue{h: P.H, +q: U32}
+  PdValue{h: P.H, +q: U32, +n: U32}
   # the auxiliary port q of a finished node faces it
-  PdFront{h: P.H, +q: U32}
+  PdFront{h: P.H, +q: U32, +n: U32}
   # its port holds a static
-  PdStatic{h: P.H}
+  PdStatic{h: P.H, +n: U32}
   # a walk stopped otherwise, as it stood
-  PdStop{d: KD.D}
+  PdStop{d: KD.D, +n: U32}
 
-# a step of the loop: an end, or the net to read the position again in
+# a step of the loop: an end, or the net to read the position again in,
+# with the interactions of the walk that ended
 type PdS is Type:
   PdEnd{pd: Pd}
-  PdMore{h: P.H}
+  PdMore{h: P.H, +n: U32}
 
 def pd.h(d: KD.D) -> P.H:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
       h
 
-def pd.peer.r(r: P.H & U32) -> Pd:
+def pd.peer.r(r: P.H & U32, +n: U32) -> Pd:
   (h, +q) = r
-  PdFront{h, q}
+  PdFront{h, q, n}
 
 # what the position's port faces
 def pd.peer(h: P.H, +pos: U32) -> P.H & U32:
@@ -55,59 +58,59 @@ def pd.peer(h: P.H, +pos: U32) -> P.H & U32:
 
 # a walk ended in state st: done, the position read again; 7, the
 # frontier; anything else, a stop
-def pd.ended.k(+st: U32, d: KD.D, +pos: U32) -> PdS:
+def pd.ended.k(+st: U32, d: KD.D, +pos: U32, +n: U32, +acc: U32) -> PdS:
   match st:
     case 1:
-      PdMore{pd.h(d)}
+      PdMore{pd.h(d), n}
     case 7:
-      PdEnd{pd.peer.r(pd.peer(pd.h(d), pos))}
+      PdEnd{pd.peer.r(pd.peer(pd.h(d), pos), (acc + n : U32))}
     case _:
-      PdEnd{PdStop{d}}
+      PdEnd{PdStop{d, acc}}
 
-def pd.ended(d: KD.D, +pos: U32) -> PdS:
+def pd.ended(d: KD.D, +pos: U32, +acc: U32) -> PdS:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
-      pd.ended.k(st, KD.D{h, path, top, depth, n, st}, pos)
+      pd.ended.k(st, KD.D{h, path, top, depth, n, st}, pos, n, acc)
 
 # one walk from node base b, f the fuel for it
 def pd.walk(h: P.H, +b: U32, +f: Nat) -> KD.D:
   K.demand_ev(0, f, KD.d.go(h, KS.d.path(KM.m_new(6n, P.w_maxd())), b, 0, 0))
 
-def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat) -> PdS:
+def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   match st:
     case True{}:
-      PdEnd{PdStatic{h}}
+      PdEnd{PdStatic{h, acc}}
     case False{}:
       match pr:
         case True{}:
-          PdEnd{PdValue{h, q}}
+          PdEnd{PdValue{h, q, acc}}
         case False{}:
-          pd.ended(pd.walk(h, P.base(q), f), pos)
+          pd.ended(pd.walk(h, P.base(q), f), pos, acc)
 
-def pd.q(r: P.H & U32, +pos: U32, +f: Nat) -> PdS:
+def pd.q(r: P.H & U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   (h, +q) = r
-  pd.q.k(P.is_static(q), U32.is_eq((q .&. 3 : U32), 0), h, q, pos, f)
+  pd.q.k(P.is_static(q), U32.is_eq((q .&. 3 : U32), 0), h, q, pos, f, acc)
 
-def pd.loop.r(s: PdS, more: P.H -> Pd) -> Pd:
+def pd.loop.r(s: PdS, +acc: U32, more: P.H -> U32 -> Pd) -> Pd:
   match s:
     case PdEnd{pd}:
       pd
-    case PdMore{h}:
-      more(h)
+    case PdMore{h, +n}:
+      more(h, (acc + n : U32))
 
 # out of walks: the last walk's net, stopped as out of fuel
-def pd.out(h: P.H, +pos: U32) -> Pd:
-  PdStop{KD.D{h, KS.d.path(KM.m_new(6n, P.w_maxd())), pos, 0, 0, 4}}
+def pd.out(h: P.H, +pos: U32, +acc: U32) -> Pd:
+  PdStop{KD.D{h, KS.d.path(KM.m_new(6n, P.w_maxd())), pos, 0, 0, 4}, acc}
 
-# at most g walks of f steps each
-def pd.loop(g: Nat, +f: Nat, h: P.H, +pos: U32) -> Pd:
+# at most g walks of f steps each, acc the interactions so far
+def pd.loop(g: Nat, +f: Nat, h: P.H, +pos: U32, +acc: U32) -> Pd:
   match g:
     case 0n:
-      pd.out(h, pos)
+      pd.out(h, pos, acc)
     case 1n+k:
-      pd.loop.r(pd.q(pd.peer(h, pos), pos, f), h2 => pd.loop(k, f, h2, pos))
+      pd.loop.r(pd.q(pd.peer(h, pos), pos, f, acc), acc, h2 => a2 => pd.loop(k, f, h2, pos, a2))
 
 # source h demanded at position pos, a finished node's port (its
 # reference, node and port), at most g walks of f steps each
 def positioned(h: P.H, +pos: U32, +g: Nat, +f: Nat) -> Pd:
-  pd.loop(g, f, h, pos)
+  pd.loop(g, f, h, pos, 0)
