@@ -390,3 +390,28 @@ combined order:
    would make the book linear, a change across the core with no reader
    yet.
 7. *Release narrowed.* Waits on measurement, and on item 3.
+
+## The maintainer's answers, second round (2026-11-13)
+
+- **Segments or lazy release:** "Keep it simple for now, which I think
+  means segments. We can revisit lazy release if we evidence that it
+  would buy us something."
+- **The proof:** "You're free to start with a smaller law then review,
+  just don't lose track of the bigger law (make sure direction is
+  recorded)." The smaller law is the serve's write set; the path law
+  over the kernel's walk stays the direction
+  (`cells-freeze.nested.host`).
+- **Lists:** the encodings in samples are free to vary; a kernel model
+  for lists waits for NetData (`netdata-structures`, where the quadratic
+  traversal is recorded).
+- **The busy check of a frame's own host:** "We should look into what
+  invariant assumptions we'd want to prove this check is unnecessary.
+  No need to be defensive of something we don't see any need to be
+  doing." A host can share the frame's source and position only in a
+  self copy, since a frame for another source has another source; such
+  a frame repeats its host's serve, so its walk meets the same need and
+  pushes the same frame again, with the host now below it, where the
+  check finds it: `live_self_cycle.g` is reported one frame later, as
+  the mutant showed. The check runs below the host now; the assumption
+  to prove is that repetition, a serve at one source and position
+  meeting the same need again while nothing of its walk is finished.

@@ -579,15 +579,19 @@ def frame.push.k(+hit: Bool, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, 
     case False{}:
       RMore{TkSv{k, nc, pos}, s, b, c, ss}
 
-def frame.push.r(r: Bu, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+def frame.push.r(r: Bu, t: Tk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match r:
     case Bu{s, +hit}:
-      frame.push.k(hit, s, k, nc, pos, b, c, ss)
+      frame.push.k(hit, TkCon{t, s}, k, nc, pos, b, c, ss)
 
+# the busy check runs below the host t: a host of the frame's own source
+# and position is a self copy repeating its host's serve, whose walk
+# meets the same need and pushes the same frame again, then caught with
+# the host below it (cells-freeze.nested.self)
 def frame.push.l(r: Rl, t: Tk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>) -> Run:
   match r:
     case Rl{s, ss, c}:
-      frame.push.r(busy(TkCon{t, s}, k, pos), k, nc, pos, b, c, ss)
+      frame.push.r(busy(s, k, pos), t, k, nc, pos, b, c, ss)
 
 def frame.push.o(+yes: Bool, t: Tk, s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match yes:
