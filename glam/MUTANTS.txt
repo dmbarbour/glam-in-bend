@@ -1,0 +1,20 @@
+# Mutations of glam's code, each a fault a law of glam/LAWS.bend named
+# should catch (scripts/one_law.py; docs/Proving.md, What to claim):
+#   python3 -I scripts/one_law.py glam/PROOF.bend LAW --mutants glam/MUTANTS.txt
+#
+# Unlinking a cursor from its ring (unlink_keeps): each mutation writes a
+# word the law says is left alone.
+
+=== unlink_word2 unlink_keeps
+the predecessor's word 2, its position, given the cursor's next
+--- materialize.bend
+  P.wr(h, (p + 3 : U32), nx)
++++
+  P.wr(h, (p + 2 : U32), nx)
+
+=== unlink_clears_own unlink_keeps
+the cursor unlinked has its own word 3 cleared too
+--- materialize.bend
+  rg.unlink.set(rg.next(h, x), p)
++++
+  P.wr(rg.unlink.set(rg.next(h, x), p), (x + 3 : U32), 0)

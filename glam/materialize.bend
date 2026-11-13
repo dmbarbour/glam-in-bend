@@ -120,18 +120,26 @@ def rg.pred.go(f: Nat, w: Rw, +x: U32) -> Rw:
             case False{}:
               rg.pred.go(g, rw.pred.k(U32.is_eq(n, x), h, n, p), x)
 
+def rg.pred.w(w: Rw) -> P.H & U32:
+  match w:
+    case Rw{h, +n, +p, found, done}:
+      (h, p)
+
+# x's predecessor in its ring, found by walking from x
+def rg.pred(h: P.H, +x: U32) -> P.H & U32:
+  rg.pred.w(rg.pred.go(1000000n, rw.on(rg.next(h, x), x), x))
+
 def rg.unlink.set(r: P.H & U32, +p: U32) -> P.H:
   (h, +nx) = r
   P.wr(h, (p + 3 : U32), nx)
 
-def rg.unlink.w(w: Rw, +x: U32) -> P.H:
-  match w:
-    case Rw{h, +n, +p, found, done}:
-      rg.unlink.set(rg.next(h, x), p)
+def rg.unlink.p(r: P.H & U32, +x: U32) -> P.H:
+  (h, +p) = r
+  rg.unlink.set(rg.next(h, x), p)
 
-# x taken out of its ring, its predecessor found by walking from x
+# x taken out of its ring: its predecessor's word 3 given x's
 def rg.unlink(h: P.H, +x: U32) -> P.H:
-  rg.unlink.w(rg.pred.go(1000000n, rw.on(rg.next(h, x), x), x), x)
+  rg.unlink.p(rg.pred(h, x), x)
 
 # x put in situ's ring, after situ
 def rg.insert.r(r: P.H & U32, +situ: U32, +x: U32) -> P.H:
