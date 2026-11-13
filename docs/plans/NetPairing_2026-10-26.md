@@ -211,7 +211,8 @@ one, is tried at `bridge-recursion`.
    (AAECC 8, 1997), merging a raise with a drop where no partner can
    reach it. The lowering's own fused croissant at a use is such a merge,
    sound on the terms so far.
-   - `pairing-fusion.drops` — tentative — drop runs: two drops at one
+   - `pairing-fusion.drops` — built 2026-11-13, the model, laws and
+     measurement; the kernel's part not — drop runs: two drops at one
      index fuse into one dropping by their sum, as raise runs fuse,
      wanted by the maintainer (2026-11-13: "I'd like to get drop fusion
      working if we can be confident it's correct"). A drop by more than
@@ -237,14 +238,26 @@ one, is tried at `bridge-recursion`.
        run of k + r is k then r). `runs_as_units` covers drop runs as it
        does raise runs, its normalizer reading a run's control as
        segments of units without their direction;
-     - measured before building: how often two drops at one index meet,
-       on the differential corpus, by a measurement build counting each
-       fusion attempt between them as an error;
-     - the model's and the kernel's compose and peeling, with the laws of
-       `fusions-as-components`, then the differential test over random
-       terms and the library;
-     - measured: how often drops meet in series, and what fusing them
-       saves, on the differential corpus and the spot workloads.
+     - measured before building, 2026-11-13: how often two drops at one
+       index meet, by a measurement build counting each fusion attempt
+       between them as a kernel error, over the differential corpus
+       (analysis store run 320, its note saying so; run 190 the baseline,
+       no errors). Of the 600 leveled terms of an ending, drops meet in
+       159 on demand, 239 times against 357,956 interactions, and in 25
+       under full reduction, 32 times against 711,358; 116 of the 159
+       meet once. The costliest terms, where controls accumulate (116,208
+       and 67,400 interactions on demand), meet once and never; the most
+       meetings, 9, are in a term of 142 interactions. Fused, each saves
+       only the crossings of the run that follow, so the whole corpus
+       stands to save well under 1% on demand, and drop fusion does not
+       contain accumulation. Built no further: the model and the laws
+       stay, for a workload that shows drops piling up;
+     - `pairing-fusion.drops.kernel` — tentative — the model's and the
+       kernel's compose and peeling, for a workload where drops pile up:
+       a drop run peeled at any index in the generated Lift-against-LiftC
+       rewrite, which peels raises at one index today, with the laws of
+       `fusions-as-components`, then the differential test and the
+       library.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
    interactions and four 61% (store run 28). Two of those four, #124 of
