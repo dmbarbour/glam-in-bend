@@ -318,6 +318,20 @@ law raise_compose:
   for h2: MNat.lt(Nat.add(U32.to_nat(n2), U32.to_nat(k)), Nat.pow(2n, 32n))
   {V.compose(V.raise_pay(k, V.PLift{n1, u1, b1}), V.raise_pay(k, V.PLift{n2, u2, b2})) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
 
+# LAW: fusion refuses a control a copy has taken: two controls in series,
+# either marked (kprim.bend's mark), fuse into nothing, so a control a
+# live template's copy took keeps its index and offset while its source
+# lives, as the copy's later joins assume (docs/reviews/Levels_2026-11-12.md,
+# position stability).
+# Record: copied-controls-unfused
+law marked_unfused:
+  for +h1: U32
+  for +o1: U32
+  for +h2: U32
+  for +o2: U32
+  for m: {(P.marked(h1) || P.marked(h2)) == True{} : Bool}
+  {P.fuse_test(h1, o1, h2, o2) == P.FzNo{} : P.FZ}
+
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says
 # the links from the head spell a list holding every free slot and no

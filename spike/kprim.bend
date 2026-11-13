@@ -1157,6 +1157,31 @@ def compose(+n1: U32, +o1: U32, +n2: U32, +o2: U32) -> FZ:
       U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap()),
     n1, off_by(o1), off_by(o2))
 
+# A control a copy has taken out of a live source (copied-controls-unfused)
+# is marked: form 1 of its header, which no reader of a control's header
+# reads (dispatch reads the kind, fusion, peeling and freezing the field
+# and the offset word). Fusion refuses a marked control, so a node a copy
+# took keeps its index and offset while its source lives (law
+# marked_unfused). Only freezing a source's finished part sets it.
+
+def mark(+h: U32) -> U32:
+  (h .|. 64 : U32)
+
+def marked(+h: U32) -> Bool:
+  U32.is_eq(form(h), 1)
+
+def fz.copied(+m: Bool, f: FZ) -> FZ:
+  match m:
+    case True{}:
+      FzNo{}
+    case False{}:
+      f
+
+# what two controls fuse into, given their headers and offsets, the
+# first crossed first: compose, unless either is marked
+def fuse_test(+h1: U32, +o1: U32, +h2: U32, +o2: U32) -> FZ:
+  fz.copied(marked(h1) || marked(h2), compose(fld(h1), o1, fld(h2), o2))
+
 def ctl_set(h: H, +r: U32, +k: U32, +n: U32, +o: U32) -> H:
   wr(wr(h, r, hd(k, n)), (r + 3 : U32), o)
 
@@ -1173,7 +1198,7 @@ def fl.o(r: H & U32, +p: U32, +l: U32, f: FZ) -> H:
 
 def fl.ol(r: H & U32, +p: U32, +l: U32, +hp: U32, +op: U32, +hl: U32) -> H:
   (h, +ol) = r
-  fl.o(rd(h, (l + 2 : U32)), p, l, compose(fld(hp), op, fld(hl), ol))
+  fl.o(rd(h, (l + 2 : U32)), p, l, fuse_test(hp, op, hl, ol))
 
 def fl.hl(r: H & U32, +p: U32, +l: U32, +hp: U32, +op: U32) -> H:
   (h, +hl) = r
@@ -1204,7 +1229,7 @@ def fc.i(r: H & U32, +a: U32, +b: U32, f: FZ) -> H:
 
 def fc.ob(r: H & U32, +a: U32, +b: U32, +ha: U32, +oa: U32, +hb: U32) -> H:
   (h, +ob) = r
-  fc.i(rd(h, (a + 2 : U32)), a, b, compose(fld(hb), ob, fld(ha), oa))
+  fc.i(rd(h, (a + 2 : U32)), a, b, fuse_test(hb, ob, ha, oa))
 
 def fc.hb(r: H & U32, +a: U32, +b: U32, +ha: U32, +oa: U32) -> H:
   (h, +hb) = r

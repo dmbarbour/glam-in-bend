@@ -3341,6 +3341,12 @@ def Laws.lift_drop(n, o, j, dn):
     {U32.to_nat(P.lift.go(U32.is_gt(j, n), False{}, P.drop_by(n, P.off_by(o), j), j)) == CT.drop.go(_, U32.to_nat(n), U32.to_nat(j), U32.to_nat(P.off_by(o))) : Nat}
   drop_nat.g(U32.is_gt(j, n), n, P.off_by(o), j, {==})
 
+# a marked control's fusion test rewritten to its mark, then nothing
+def Laws.marked_unfused(h1, o1, h2, o2, m):
+  %Equal.sym(Bool, P.marked(h1) || P.marked(h2), True{}, m) :
+    {P.fz.copied(_, P.compose(P.fld(h1), o1, P.fld(h2), o2)) == P.FzNo{} : P.FZ}
+  {==}
+
 # The free list
 # =============
 #

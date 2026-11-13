@@ -64,7 +64,7 @@ EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
 TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
          os.path.join(ROOT, "glam", "test_position.bend"),
-         os.path.join(ROOT, "glam", "test_materialize.bend")]
+         os.path.join(ROOT, "glam", "test_materialize.bend"), os.path.join(ROOT, "glam", "test_mark.bend")]
 
 
 def build(fresh):

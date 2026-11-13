@@ -91,3 +91,23 @@ a drop run's units counted twice over: each unit drops two
       dunits(p, n, drop(n, 1n, j))
 +++
       dunits(p, n, drop(n, 2n, j))
+
+=== mark_ignored marked_unfused
+fusion folds a new control into one a copy has taken
+--- kprim.bend
+    case True{}:
+      FzNo{}
+    case False{}:
+      f
++++
+    case True{}:
+      f
+    case False{}:
+      f
+
+=== mark_first_only marked_unfused
+fusion tests only the first control's mark
+--- kprim.bend
+  fz.copied(marked(h1) || marked(h2), compose(fld(h1), o1, fld(h2), o2))
++++
+  fz.copied(marked(h1), compose(fld(h1), o1, fld(h2), o2))

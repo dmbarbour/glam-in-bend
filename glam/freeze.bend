@@ -91,9 +91,22 @@ def fz.mark.s(r: P.H & List<&2, U32>, map: Array<U32>, +n: U32, seen: List<&2, U
   (h, s) = r
   FzR{h, map, n, seen, s}
 
+# a control a copy takes, reached in the finished part only, is marked in
+# its source so that fusion leaves it alone (copied-controls-unfused,
+# kprim.bend's mark); a whole net read back is left as it is
+def fz.copied.k(+take: Bool, h: P.H, +b: U32, +hd: U32) -> P.H:
+  match take:
+    case True{}:
+      P.wr(h, b, P.mark(hd))
+    case False{}:
+      h
+
+def fz.copied(+all: Bool, h: P.H, +b: U32, +hd: U32) -> P.H:
+  fz.copied.k(Bool.not(all) && (U32.is_eq(P.rk(hd), 10) || U32.is_eq(P.rk(hd), 11)), h, b, hd)
+
 def fz.mark.hd(r: P.H & U32, +all: Bool, map: Array<U32>, +b: U32, +n: U32, seen: List<&2, U32>, s: List<&2, U32>) -> FzR:
   (h, +hd) = r
-  fz.mark.s(fz.ports(all, h, b, R.arity(N.kof(P.rk(hd))), s), Array.set(U32, map, fz.at(b), (n + 1 : U32)), (n + 1 : U32), Con{b, seen})
+  fz.mark.s(fz.ports(all, fz.copied(all, h, b, hd), b, R.arity(N.kof(P.rk(hd))), s), Array.set(U32, map, fz.at(b), (n + 1 : U32)), (n + 1 : U32), Con{b, seen})
 
 def fz.mark.k(+seen0: Bool, +all: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>, +b: U32, s: List<&2, U32>) -> FzR:
   match seen0:
