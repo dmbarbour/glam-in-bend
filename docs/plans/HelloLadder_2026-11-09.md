@@ -391,7 +391,7 @@ named, and marked there when a rung is built.
     kernel's workloads become glam programs, and a performance review of
     what the rungs found, as the maintainer prefers: features first, the
     review after, anything past 10% looked at as it appears.
-    - `ladder-measure.lowering` — tentative — lowering is quadratic in
+    - `ladder-measure.lowering` — built 2026-11-13 — lowering was quadratic in
       an expression's nesting. Found measuring `cells-freeze.rewalk`
       (2026-11-13): n strings concatenated right-nested,
       `c "a" ++ (c "b" ++ ...)`, cost 8.6M, 25.6M, 86.5M, 315.5M and
@@ -403,6 +403,22 @@ named, and marked there when a rung is built.
       left's nodes, so a right-nested chain shifts its tail again at
       every level. A builder carrying the next node's index, or
       composition by offsets alone, makes it linear.
+
+      Built so: `glam/lower.bend` threads the net being built through
+      `expr`, each node numbered in the whole net as it is made, nodes,
+      links and pending uses accumulated last first and turned around
+      once, and a use's boxes kept innermost first, shared from parent
+      to child, reversed only where a lambda's own variable needs its
+      trie. The family now costs 4.1M, 7.6M, 14.8M, 29.1M and 57.6M
+      instructions at n = 50 to 800, about 71,000 an element, 21 times
+      fewer at 800. Every template of 183 programs (the samples, the
+      sharing families, the levels study's) is the same as before but
+      for a copy fan's site, now its number in the whole net rather
+      than in the piece it was made in, which the kernel never reads
+      for a leveled fan; the 15 programs where it differs write the
+      same bytes with the same counts. `Nat.pow` is now 19% of a
+      profile at 800, likely a splice's array depth (`T.depth_for`), a
+      constant a splice.
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's

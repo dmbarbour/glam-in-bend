@@ -23,11 +23,17 @@ import ./parse.bend as G
 # with its key, is one data node, which no level concerns.
 #
 # Bend admits no mutual recursion, so one function, `expr`, walks the
-# expression, and each result is a piece of net (Sub) numbered from 0:
-# its nodes and links, its result port, and the uses of names it leaves
-# pending, each a port waiting where the name is bound, with the depth
-# and the boxes it sits in. A box is named by the position of the
-# expression that opens it, unique in the tree.
+# expression, a continuation passed where it must lower a second part
+# after a first. The net is built as it goes (B): each node numbered in
+# the whole net as it is made, its nodes, links and the uses of names
+# left pending accumulated last first and turned around once at the end,
+# so that putting pieces together costs nothing per node already made
+# (ladder-measure.lowering: shifting each piece past the one before it
+# was quadratic in the expression's nesting). Each piece lowered gives its
+# result port, or the name its result is; a use is a port waiting where
+# the name is bound, with the depth and the boxes it sits in, innermost
+# first. A box is named by the position of the expression that opens it,
+# unique in the tree.
 
 type Root is Data:
   REnd{e: T.TEnd}
@@ -38,12 +44,35 @@ type Root is Data:
 type Use is Data:
   Use{name: List<&2, U32>, +line: U32, at: T.TEnd, +depth: U32, boxes: List<&2, List<&2, U32>>}
 
+# a net finished: its nodes and links in order, its size, its result and
+# the uses of names it leaves pending, in order
 type Sub is Data:
   Sub{nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, +size: U32, root: Root, uses: List<&2, Use>}
 
+# the net being built: its nodes, links and pending uses, each last
+# first, and the next node's number
+type B is Data:
+  B{ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32, us: List<&2, Use>}
+
+# a piece lowered: the net built so far, and the piece's result
 type Lw is Data:
-  LOk{s: Sub}
+  LOk{b: B, r: Root}
   LErr{d: G.Diag}
+
+# links, or uses, put after those made, which are held last first
+def onto.l(xs: List<&2, T.TLink>, acc: List<&2, T.TLink>) -> List<&2, T.TLink>:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{x, rest}:
+      onto.l(rest, Con{x, acc})
+
+def onto.u(xs: List<&2, Use>, acc: List<&2, Use>) -> List<&2, Use>:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{x, rest}:
+      onto.u(rest, Con{x, acc})
 
 def codes(bs: List<&2, U32>) -> List<&2, V.Val>:
   match bs:
@@ -57,27 +86,11 @@ def codes(bs: List<&2, U32>) -> List<&2, V.Val>:
 def atom(name: List<&2, U32>) -> V.Val:
   V.VDict{[V.Ent{V.VList{codes(name)}, V.VUnit{}}]}
 
-def data(v: V.Val) -> Sub:
-  Sub{[T.TN{R.KData{}, V.PVal{v}}], Nil{}, 1, REnd{T.TE{0, 0}}, Nil{}}
-
-# Shifting a piece of net past n nodes
-# ====================================
-
-def sh_root(r: Root, +by: U32) -> Root:
-  match r:
-    case REnd{e}:
-      REnd{X.sh_end(e, by)}
-    case RVar{+l, n, +d, bx}:
-      RVar{l, n, d, bx}
-
-def sh_uses(us: List<&2, Use>, +by: U32) -> List<&2, Use>:
-  match us:
-    case Nil{}:
-      Nil{}
-    case Con{u, rest}:
-      match u:
-        case Use{n, +l, at, +d, bx}:
-          Con{Use{n, l, X.sh_end(at, by), d, bx}, sh_uses(rest, by)}
+# one data node holding v
+def data(v: V.Val, b: B) -> Lw:
+  match b:
+    case B{ns, ls, +k, us}:
+      LOk{B{Con{T.TN{R.KData{}, V.PVal{v}}, ns}, ls, (k + 1 : U32), us}, REnd{T.TE{k, 0}}}
 
 # a port wired to a result: a link, or a use where the result is a name
 type At is Data:
@@ -93,28 +106,29 @@ def attach(port: T.TEnd, r: Root) -> At:
 # Applications
 # ============
 
-def app.at(a1: At, a2: At, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, +k: U32, uses: List<&2, Use>) -> Sub:
+def app.at(a1: At, a2: At, +depth: U32, ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32, us: List<&2, Use>) -> Lw:
   match a1 a2:
     case At{l1, u1} At{l2, u2}:
-      Sub{nodes, List.append(&2, T.TLink, links, List.append(&2, T.TLink, l1, l2)), (k + 1 : U32), REnd{T.TE{k, 2}},
-        List.append(&2, Use, uses, List.append(&2, Use, u1, u2))}
+      LOk{B{Con{X.apl(depth), ns}, onto.l(l2, onto.l(l1, ls)), (k + 1 : U32), onto.u(u2, onto.u(u1, us))}, REnd{T.TE{k, 2}}}
 
-# f applied to x: the application bind at the depth, its principal on the
-# function, its first auxiliary the argument, its second the result
-def app.ab(+depth: U32, f: Sub, x: Sub) -> Sub:
-  match f x:
-    case Sub{fn, fl, +sf, fr, fu} Sub{xn, xl, +sx, xr, xu}:
-      app.at(attach(T.TE{(sf + sx : U32), 0}, fr), attach(T.TE{(sf + sx : U32), 1}, sh_root(xr, sf)),
-        List.append(&2, T.TNode, fn, List.append(&2, T.TNode, xn, [X.apl(depth)])),
-        List.append(&2, T.TLink, fl, X.sh_links(xl, sf)), (sf + sx : U32), List.append(&2, Use, fu, sh_uses(xu, sf)))
-
-def app(+depth: U32, f: Lw, x: Lw) -> Lw:
-  match f x:
-    case LOk{a} LOk{b}:
-      LOk{app.ab(depth, a, b)}
-    case LErr{d} _:
+# f applied to x, both lowered, x after f: the application bind at the
+# depth, its principal on the function, its first auxiliary the argument,
+# its second the result
+def app.x(r: Lw, fr: Root, +depth: U32) -> Lw:
+  match r:
+    case LOk{b, xr}:
+      match b:
+        case B{ns, ls, +k, us}:
+          app.at(attach(T.TE{k, 0}, fr), attach(T.TE{k, 1}, xr), depth, ns, ls, k, us)
+    case LErr{d}:
       LErr{d}
-    case LOk{a} LErr{d}:
+
+# the function lowered; then the argument, by `more`
+def app.f(r: Lw, +depth: U32, more: B -> Lw) -> Lw:
+  match r:
+    case LOk{b, fr}:
+      app.x(more(b), fr, depth)
+    case LErr{d}:
       LErr{d}
 
 # A variable's uses: the trie and its fans
@@ -156,6 +170,11 @@ def insert(rel: List<&2, List<&2, U32>>, t: Trie, +at: T.TEnd) -> Trie:
         case Trie{us, ks}:
           Trie{us, kids_put(ks, b, s => insert(rest, s, at))}
 
+# a use's boxes past the binder's nb, outermost first, from its boxes
+# innermost first
+def rel_of(+bx: List<&2, List<&2, U32>>, +nb: Nat) -> List<&2, List<&2, U32>>:
+  List.reverse(&2, List<&2, U32>, List.take(&2, List<&2, U32>, bx, Nat.sub(List.length(&2, List<&2, U32>, bx), nb)))
+
 # the uses' trie, their boxes past the binder's nb
 def trie_of(us: List<&2, Use>, +nb: Nat, t: Trie) -> Trie:
   match us:
@@ -164,7 +183,7 @@ def trie_of(us: List<&2, Use>, +nb: Nat, t: Trie) -> Trie:
     case Con{u, rest}:
       match u:
         case Use{n, +l, at, +d, bx}:
-          trie_of(rest, nb, insert(List.drop(&2, List<&2, U32>, bx, nb), t, at))
+          trie_of(rest, nb, insert(rel_of(bx, nb), t, at))
 
 # where an edge goes: a use at a depth, or a fan of a trie's point
 type Tgt is Data:
@@ -339,40 +358,49 @@ def em_out(r: Fj) -> Em:
     case Fj{em, jobs}:
       em
 
-def lam.fans(em: Em, +depth: U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, +k: U32, others: List<&2, Use>) -> Sub:
+def lam.fans(em: Em, +depth: U32, ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32, out: List<&2, Use>) -> Lw:
   match em:
-    case Em{ns, ls, +size}:
-      Sub{List.append(&2, T.TNode, nodes, Con{X.fnl(depth), List.reverse(&2, T.TNode, ns)}), List.append(&2, T.TLink, links, ls), size,
-        REnd{T.TE{k, 0}}, others}
+    case Em{ens, els, +size}:
+      LOk{B{List.append(&2, T.TNode, ens, Con{X.fnl(depth), ns}), List.append(&2, T.TLink, List.reverse(&2, T.TLink, els), ls), size, out},
+        REnd{T.TE{k, 0}}}
 
-# the function: its variable's uses, if any, wired from its third port
-def lam.sp(sp: Sp, +depth: U32, +nb: Nat, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, +k: U32) -> Sub:
+# the function at k: its variable's uses xs, if any, wired from its third
+# port; out the uses left pending, last first
+def lam.xs(xs: List<&2, Use>, out: List<&2, Use>, +depth: U32, +nb: Nat, ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32) -> Lw:
+  match xs:
+    case Nil{}:
+      LOk{B{Con{X.fndl(depth), ns}, ls, (k + 1 : U32), out}, REnd{T.TE{k, 0}}}
+    case Con{+u, +more}:
+      lam.fans(em_out(emit(fuel(Con{u, more}, 0n), Fj{Em{Nil{}, Nil{}, (k + 1 : U32)},
+          [Job{T.TE{k, 2}, depth, compress(trie_of(Con{u, more}, nb, Trie{Nil{}, Nil{}}), depth)}]})),
+        depth, ns, ls, k, out)
+
+def lam.sp(sp: Sp, saved: List<&2, Use>, +depth: U32, +nb: Nat, ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32) -> Lw:
   match sp:
     case Sp{xs, others}:
-      match xs:
-        case Nil{}:
-          Sub{List.append(&2, T.TNode, nodes, [X.fndl(depth)]), links, (k + 1 : U32), REnd{T.TE{k, 0}}, others}
-        case Con{+u, +more}:
-          lam.fans(em_out(emit(fuel(Con{u, more}, 0n), Fj{Em{Nil{}, Nil{}, (k + 1 : U32)},
-              [Job{T.TE{k, 2}, depth, compress(trie_of(Con{u, more}, nb, Trie{Nil{}, Nil{}}), depth)}]})),
-            depth, nodes, links, k, others)
+      lam.xs(xs, onto.u(others, saved), depth, nb, ns, ls, k)
 
-def lam.at(a: At, +depth: U32, +nb: Nat, x: List<&2, U32>, bn: List<&2, T.TNode>, bl: List<&2, T.TLink>, +bs: U32, bu: List<&2, Use>) -> Sub:
+# the body's uses, its result's among them, in order, split into x's and
+# the others; saved, the uses pending before the body, last first
+def lam.at(a: At, ns: List<&2, T.TNode>, ls: List<&2, T.TLink>, +k: U32, us: List<&2, Use>, saved: List<&2, Use>, +depth: U32, +nb: Nat, x: List<&2, U32>) -> Lw:
   match a:
     case At{al, au}:
-      lam.sp(split(List.append(&2, Use, bu, au), x), depth, nb, bn, List.append(&2, T.TLink, bl, al), bs)
+      lam.sp(split(List.reverse(&2, Use, onto.u(au, us)), x), saved, depth, nb, ns, onto.l(al, ls), k)
 
-def lam.b(+depth: U32, +nb: Nat, x: List<&2, U32>, b: Sub) -> Sub:
-  match b:
-    case Sub{bn, bl, +bs, br, bu}:
-      lam.at(attach(T.TE{bs, 1}, br), depth, nb, x, bn, bl, bs, bu)
-
-def lam(+depth: U32, +nb: Nat, x: List<&2, U32>, b: Lw) -> Lw:
-  match b:
-    case LOk{s}:
-      LOk{lam.b(depth, nb, x, s)}
+def lam.f(r: Lw, saved: List<&2, Use>, +depth: U32, +nb: Nat, x: List<&2, U32>) -> Lw:
+  match r:
+    case LOk{b, br}:
+      match b:
+        case B{ns, ls, +k, us}:
+          lam.at(attach(T.TE{k, 1}, br), ns, ls, k, us, saved, depth, nb, x)
     case LErr{d}:
       LErr{d}
+
+# the body lowered by `more` with no use pending, those before it saved
+def lam.go(b: B, more: B -> Lw, +depth: U32, +nb: Nat, x: List<&2, U32>) -> Lw:
+  match b:
+    case B{ns, ls, +k, us}:
+      lam.f(more(B{ns, ls, k, Nil{}}), us, depth, nb, x)
 
 # Lists of literals
 # =================
@@ -409,10 +437,10 @@ def consts(es: List<&2, G.Expr>) -> Maybe<&2, List<&2, V.Val>>:
         case _:
           None{}
 
-def list(r: Maybe<&2, List<&2, V.Val>>, +line: U32) -> Lw:
+def list(r: Maybe<&2, List<&2, V.Val>>, +line: U32, b: B) -> Lw:
   match r:
     case Some{vs}:
-      LOk{data(V.VList{vs})}
+      data(V.VList{vs}, b)
     case None{}:
       LErr{G.Diag{line, "a list's members must be literals for now"}}
 
@@ -485,57 +513,67 @@ def dents(ms: G.Expr, +seen: List<&2, V.Val>) -> Dc:
     case _:
       DcOk{Nil{}}
 
-def dict(r: Dc) -> Lw:
+def dict(r: Dc, b: B) -> Lw:
   match r:
     case DcOk{es}:
-      LOk{data(V.VDict{es})}
+      data(V.VDict{es}, b)
     case DcErr{d}:
       LErr{d}
 
-def name(+line: U32, path: List<&2, List<&2, U32>>, +depth: U32, boxes: List<&2, List<&2, U32>>) -> Lw:
+def name(+line: U32, path: List<&2, List<&2, U32>>, +depth: U32, boxes: List<&2, List<&2, U32>>, b: B) -> Lw:
   match path:
     case Con{n, rest}:
       match rest:
         case Nil{}:
-          LOk{Sub{Nil{}, Nil{}, 0, RVar{line, n, depth, boxes}, Nil{}}}
+          LOk{b, RVar{line, n, depth, boxes}}
         case _:
           LErr{G.Diag{line, "a field of a name is not supported yet (ladder-lambda.dicts): " ++ G.path_str(Con{n, rest})}}
     case Nil{}:
       LErr{G.Diag{line, "an empty name"}}
 
-# an expression lowered at a depth within boxes, at a position; the line
-# its diagnostics name where it has none
-def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&2, List<&2, U32>>) -> Lw:
+# an expression lowered at a depth within boxes (innermost first), at a
+# position, into the net built so far; the line its diagnostics name
+# where it has none
+def expr(e: G.Expr, +line: U32, +depth: U32, +pos: List<&2, U32>, +boxes: List<&2, List<&2, U32>>, b: B) -> Lw:
   match e:
     case G.EText{s}:
-      LOk{data(V.VList{codes(s)})}
+      data(V.VList{codes(s)}, b)
     case G.ENum{+n}:
-      LOk{data(V.VNum{n})}
+      data(V.VNum{n}, b)
     case G.EList{xs}:
-      list(consts(xs), line)
+      list(consts(xs), line, b)
     case G.EBuiltin{+op, +need}:
-      LOk{data(V.VFun{op, need, Nil{}})}
+      data(V.VFun{op, need, Nil{}}, b)
     case G.EDict{+l, ms}:
-      dict(dents(ms, Nil{}))
+      dict(dents(ms, Nil{}), b)
     case G.ETag{+l, k, v}:
-      dict(dents(G.EMem{G.ETag{l, k, v}, G.EMemEnd{}}, Nil{}))
+      dict(dents(G.EMem{G.ETag{l, k, v}, G.EMemEnd{}}, Nil{}), b)
     case G.EAtom{n}:
-      LOk{data(atom(n))}
+      data(atom(n), b)
     case G.EConst{v}:
-      LOk{data(v)}
+      data(v, b)
     case G.EEsc{x}:
       LErr{G.Diag{line, "`^` steps out of an object's body; at module scope there is none"}}
     case G.EField{+l, k}:
-      LOk{data(V.VFun{5, 1, [atom(k)]})}
+      data(V.VFun{5, 1, [atom(k)]}, b)
     case G.EName{+l, path}:
-      name(l, path, depth, boxes)
+      name(l, path, depth, boxes, b)
     case G.EApp{+l, f, x}:
-      app(depth, expr(f, l, depth, Con{1, pos}, boxes),
-        expr(x, l, (depth + 1 : U32), Con{2, pos}, List.append(&2, List<&2, U32>, boxes, [Con{2, pos}])))
+      app.f(expr(f, l, depth, Con{1, pos}, boxes, b), depth,
+        bx => expr(x, l, (depth + 1 : U32), Con{2, pos}, Con{Con{2, pos}, boxes}, bx))
     case G.ELam{+l, n, body}:
-      lam(depth, List.length(&2, List<&2, U32>, boxes), n, expr(body, l, depth, Con{1, pos}, boxes))
+      lam.go(b, bb => expr(body, l, depth, Con{1, pos}, boxes, bb), depth, List.length(&2, List<&2, U32>, boxes), n)
     case _:
       LErr{G.Diag{line, "this form is not lowered yet"}}
+
+# the net built, finished: its lists in order
+def finish(b: B, r: Root) -> Sub:
+  match b:
+    case B{ns, ls, +k, us}:
+      Sub{List.reverse(&2, T.TNode, ns), List.reverse(&2, T.TLink, ls), k, r, List.reverse(&2, Use, us)}
+
+def start() -> B:
+  B{Nil{}, Nil{}, 0, Nil{}}
 
 # The whole expression
 # ====================
@@ -571,14 +609,14 @@ def top.s(s: Sub) -> Top:
 
 def top.w(w: Lw) -> Top:
   match w:
-    case LOk{s}:
-      top.s(s)
+    case LOk{b, r}:
+      top.s(finish(b, r))
     case LErr{d}:
       TErr{d}
 
 # a desugared expression to its net
 def top(e: G.Expr, +line: U32) -> Top:
-  top.w(expr(e, line, 0, Nil{}, Nil{}))
+  top.w(expr(e, line, 0, Nil{}, Nil{}, start()))
 
 # Templates and their leaves
 # ==========================
@@ -672,8 +710,8 @@ def tg.s(s: Sub, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>) -> Top:
 
 def tg.w(w: Lw, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>) -> Top:
   match w:
-    case LOk{s}:
-      tg.s(s, rs, vals)
+    case LOk{b, r}:
+      tg.s(finish(b, r), rs, vals)
     case LErr{d}:
       TErr{d}
 
@@ -681,4 +719,4 @@ def tg.w(w: Lw, +rs: List<&2, Ref>, +vals: List<&2, List<&2, U32>>) -> Top:
 # holding its handle; a name in vals, a value definition, reported as
 # needing cells
 def top_g(e: G.Expr, +line: U32, rs: List<&2, Ref>, vals: List<&2, List<&2, U32>>) -> Top:
-  tg.w(expr(e, line, 0, Nil{}, Nil{}), rs, vals)
+  tg.w(expr(e, line, 0, Nil{}, Nil{}, start()), rs, vals)
