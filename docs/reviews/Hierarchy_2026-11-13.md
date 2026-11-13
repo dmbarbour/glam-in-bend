@@ -263,12 +263,20 @@ the batch kept, no per-node pulls (its F17, F24).
 - *The rings make a graph, not a tree* (its F1): every `g{i}` of
   `nested_sources.g` holds a copy of the one `p`. A tree of owners and
   a graph of use are different structures, and the image needs both.
-- *Positions are stable only under plain demand* (its F8, F18, R1): the
-  busy key, the joins and the rings all name positions, which hold
-  because the core runs mode 0, no events and no collection, while the
-  finished mark (`copied-nodes-untouched`) is unbuilt. A self ring names
-  positions in the very net being reduced, so the mark comes before
-  `.nested.self`. This review's F7 missed it.
+- *Positions are stable only under plain demand* (its F8): the busy
+  key, the joins and the rings all name positions, which hold because
+  the core runs mode 0, no events and no collection, while the finished
+  mark (`copied-nodes-untouched`) is unbuilt. Adopted in its F8 form:
+  the mark comes before anything runs events or collection in a source.
+  Its R1 (F18) went further, the mark before `.nested.self`, since a self
+  ring names positions in the net being reduced. On checking, the agent
+  withdrew that ordering (2026-11-13), after the maintainer had accepted
+  the combined order: every walk glam runs is plain demand
+  (`KD.Demand.demand` in `step`, `K.demand_ev(0, ...)` in
+  `glam/position.bend`), a finished node is in no active pair, and the
+  one rewrite that touches a finished node, fusion, already refuses a
+  copied control (`marked_unfused`). A self ring's positions are as
+  stable as any other's, and a bitmap built now would have no reader.
 - *The self copy against the code* (its F10): today's path would meet
   `SrcOut`, the host holding the source itself; the self case needs the
   reentered host released by construction, a one-net serve, and a host
@@ -316,10 +324,14 @@ the batch kept, no per-node pulls (its F17, F24).
 1. The vocabulary; copies, and a splice's nodes, folded into
    interactions, `SLACK_SERVES` and `sources=N` retired, the families'
    bound set after measuring (both; on the maintainer's tuning).
-2. The finished mark, `copied-nodes-untouched` (its R1).
+2. `cells-freeze.nested.self`: the reentered host released, a one-net
+   serve (its F10). Before the segments, since the host of a self copy
+   is a frame without a walk, a host kind the protocol has, and a
+   refactor is better done once over the whole protocol: a judgment
+   call.
 3. The stack as segments (its R4).
-4. `cells-freeze.nested.self`: the reentered host released, a one-net
-   serve (its F10).
+4. The finished mark (its F8): when a source first runs events or
+   collection, not before (`cells-freeze.cursors.stability`).
 5. The path law in `spike/`, then the write-set law in `glam/` (its R3,
    `cells-freeze.nested.host`).
 6. A count of rings per source, and the book and the sources as one
