@@ -21,8 +21,11 @@ nested 1, 2, 4 and 8 times into a copy under results/sharing/, run with
 `--count` both ways. Every size must write the same bytes both ways, and
 from 4 uses to 8 a use may cost at most SLACK_ITRS interactions more than
 it does linked, at most SLACK_SPLICES splices and at most SLACK_SERVES
-serves of a live source's cursors (glam/materialize.bend): work that
-needs no argument is done once, however many times it is used. A family
+serves of a live source's cursors (glam/materialize.bend) for each live
+source the use goes through: one, unless the line says `sources=N`, as
+a use of a source holding a copy of another is served from both
+(cells-freeze.nested). Work that needs no argument is done once, however
+many times it is used. A family
 marked `loss` is known not to share until its step is built, and fails
 once it shares, until the mark is removed. What the check cannot see:
 splices and serves are no interactions, so the size of the copies is
@@ -174,7 +177,8 @@ def run_one(rung, path):
 
 
 def families():
-    """(step, path, known loss, prefix) for each line of glam/sharing.txt"""
+    """(step, path, known loss, prefix, live sources a use goes through)
+    for each line of glam/sharing.txt"""
     out = []
     with open(SHARING) as f:
         for line in f:
@@ -182,7 +186,11 @@ def families():
             if not line or line.startswith("#"):
                 continue
             step, path, mark, prefix = line.split(None, 3)
-            out.append((step, path, mark == "loss", prefix))
+            sources = 1
+            if prefix.startswith("sources="):
+                n, prefix = prefix.split(None, 1)
+                sources = int(n[len("sources="):])
+            out.append((step, path, mark == "loss", prefix, sources))
     return out
 
 
@@ -244,7 +252,7 @@ def rewalked(path):
     return None
 
 
-def family(step, path, loss, prefix):
+def family(step, path, loss, prefix, sources):
     """None if the family behaves as its mark says, else what went wrong"""
     runs = {}
     for n in USES:
@@ -264,7 +272,8 @@ def family(step, path, loss, prefix):
     per = USES[-1] - USES[-2]
     itrs, splices, linked = (b[0] - a[0]) / per, (b[1] - a[1]) / per, (b[2] - a[2]) / per
     serves = (b[3] - a[3]) / per
-    shares = itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES and serves <= SLACK_SERVES
+    shares = (itrs <= linked + SLACK_ITRS and splices <= SLACK_SPLICES
+              and serves <= SLACK_SERVES * sources)
     said = (f"a use costs {itrs:g} interactions, {splices:g} splices and {serves:g} serves, "
             f"{linked:g} linked")
     if shares and loss:
@@ -307,8 +316,8 @@ def main(args):
             print(f"ok {rung} {path}")
     fs = families()
     bad_fs, losses = 0, 0
-    for step, path, loss, prefix in fs:
-        said = family(step, path, loss, prefix)
+    for step, path, loss, prefix, sources in fs:
+        said = family(step, path, loss, prefix, sources)
         print(said)
         if said.startswith("FAIL"):
             bad_fs += 1

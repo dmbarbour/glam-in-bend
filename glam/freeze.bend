@@ -51,9 +51,24 @@ def fz.push.q(+go: Bool, +q: U32, s: List<&2, U32>) -> List<&2, U32>:
     case False{}:
       s
 
+# a peer reached unless it is a cursor (kind 18): a cursor is never a
+# node to copy, but a crossing, so that a copy of a source holding a copy
+# of another gets a cursor into this source where that cursor stood, the
+# deep cursor chained through the source between (cells-freeze.nested)
+def fz.port.c(r: P.H & U32, +q: U32, s: List<&2, U32>) -> P.H & List<&2, U32>:
+  (h, +hd) = r
+  (h, fz.push.q(U32.is_ne(P.rk(hd), 18), q, s))
+
+def fz.port.k(+go: Bool, h: P.H, +q: U32, s: List<&2, U32>) -> P.H & List<&2, U32>:
+  match go:
+    case True{}:
+      fz.port.c(P.rd(h, P.base(q)), q, s)
+    case False{}:
+      (h, s)
+
 def fz.port.q(r: P.H & U32, +all: Bool, s: List<&2, U32>) -> P.H & List<&2, U32>:
   (h, +q) = r
-  (h, fz.push.q(fz.reach.q(all, q), q, s))
+  fz.port.k(fz.reach.q(all, q), h, q, s)
 
 # port p's peer, of the node at base b, pushed
 def fz.port(h: P.H, +all: Bool, +b: U32, +p: U32, s: List<&2, U32>) -> P.H & List<&2, U32>:

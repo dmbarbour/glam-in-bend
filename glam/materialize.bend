@@ -31,7 +31,10 @@ import ./position.bend as Q
 #   the served one directly, nothing copied (the identity's case); else
 #   the finished tree holding that port is found by climbing its
 #   principal links to a position of the ring, and materialized;
-# - a static: the served cursor's peer gets it.
+# - a static: the served cursor's peer gets it;
+# - a cursor of the source, a copy it holds of another live source: left
+#   to the core, which serves that one into this source first, then this
+#   one again (cells-freeze.nested).
 #
 # Not yet: the marks on copied nodes (`copied-nodes-untouched`), so a
 # source must run no events, fusion or collection near copied nodes;
@@ -280,13 +283,14 @@ def materialize(s: P.H, h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root
 # Serving
 # =======
 
-# what a serve leaves: the source and the host, or a stop of positioned
-# demand in the source, for the core, with the host as it was
 # a serve's end: the source and the host, or positioned demand's stop in
 # the source, as it stood; with the interactions made in the source
 type Sv is Type:
   SvOk{s: P.H, h: P.H, +n: U32}
   SvStop{d: KD.D, h: P.H, +n: U32}
+  # the position faces cursor x of the source, a copy it holds of another
+  # live source, which the core serves into it first (cells-freeze.nested)
+  SvCur{s: P.H, h: P.H, +x: U32, +n: U32}
 
 # a climb from a finished node of the source toward the root of its tree,
 # a node whose principal faces a position the ring holds
@@ -356,6 +360,8 @@ def sv.pd(p: Q.Pd, h: P.H, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv:
       sv.pair(materialize(s, h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())), n)
     case Q.PdFront{s, +q, +n}:
       sv.front.m(rg.find(h, situ, q), s, situ, k, nc, q, n)
+    case Q.PdCur{s, +x, +n}:
+      SvCur{s, h, x, n}
     case Q.PdStatic{s, +n}:
       sv.static.w(P.rd(h, (nc + 1 : U32)), s, nc, n)
     case Q.PdStop{d, +n}:

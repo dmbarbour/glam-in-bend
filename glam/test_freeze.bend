@@ -13,8 +13,8 @@ import ./freeze.bend as F
 # covers the templates lowering makes; these cover what it never makes
 # and live nets will: a function whose result is wired straight to its
 # own variable (the identity without a control), a static eraser at a
-# port, a level, a control's index and offset, a value. Run by
-# scripts/ladder.py, which expects `ok` alone.
+# port, a level, a control's index and offset, a value, a cursor met in a
+# source. Run by scripts/ladder.py, which expects `ok` alone.
 #
 #   bend glam/test_freeze.bend
 
@@ -168,6 +168,14 @@ def pending() -> T.Tpl:
   T.Tpl{[T.TN{R.KAp{}, V.PNone{}}, T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KData{}, V.PVal{V.VNum{1}}}],
     [T.TL{T.TE{0, 0}, T.TE{1, 0}}, T.TL{T.TE{1, 1}, T.TE{1, 2}}, T.TL{T.TE{0, 1}, T.TE{2, 0}}], T.TE{0, 2}, 3}
 
+# `\x -> c`, c a copy of another live source standing at the result: the
+# cursor a crossing, never a node copied, so that the copy gets a cursor
+# into this source where it stood (`cells-freeze.nested`); read back
+# whole, the cursor is its placeholder
+def fn_cur() -> T.Tpl:
+  T.Tpl{[T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KCur{}, V.PNone{}}, T.TN{R.KEraN{}, V.PNone{}}],
+    [T.TL{T.TE{0, 1}, T.TE{1, 0}}, T.TL{T.TE{0, 2}, T.TE{2, 0}}], T.TE{0, 0}, 3}
+
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
     case True{}:
@@ -197,4 +205,6 @@ def main() -> String:
     check(frozen_fin(id_lift()), "s2 l2 r0.0 []", "id_lift finished") ++
     check(frozen_fin(fxx()), "s5 l7 r0.0 []", "fxx finished") ++
     check(frozen_fin(gcx()), "s3 l2 r0.0 [1:33n 2:34p ]", "gcx finished") ++
-    check(frozen_fin(pending()), "s1 l0 r0.0 [0:28n ]", "pending finished"))
+    check(frozen_fin(pending()), "s1 l0 r0.0 [0:28n ]", "pending finished") ++
+    check(frozen_fin(fn_cur()), "s3 l2 r0.0 [1:33n ]", "fn_cur finished") ++
+    check(frozen(fn_cur()), "[1:- 18:- 6:- | 0.2-2.0 0.1-1.0 | 0.0 3]", "fn_cur"))

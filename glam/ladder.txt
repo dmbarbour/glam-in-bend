@@ -30,6 +30,9 @@ cells-data samples/invalid/eval/value_cycle.g
 cells-freeze.cells samples/hello/hello_live_positions.g
 cells-freeze.cells samples/invalid/eval/live_cycle.g
 cells-freeze.rewalk samples/hello/hello_deep_needs.g
+cells-freeze.nested samples/hello/hello_nested_through.g
+cells-freeze.nested samples/hello/hello_nested_wait.g
+cells-freeze.nested samples/invalid/eval/live_mutual_cycle.g
 ladder-objects samples/hello/hello_override.g
 ladder-objects samples/hello/hello_object.g
 ladder-objects samples/hello/hello_object_as.g

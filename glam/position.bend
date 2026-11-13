@@ -21,6 +21,9 @@ import ../spike/kdemand.bend as KD
 #   node, met when a walk steps forward into finished nodes (the walk's
 #   state 7, "a variable demanded outside its function's body", read
 #   here as reaching what a copy may already hold);
+# - a cursor: the principal port facing the position is a cursor's, a
+#   copy this source holds of another live source, to be served into
+#   this one before anything is copied from here (cells-freeze.nested);
 # - a static: the position's port holds one, its value erased or void;
 # - a stop the core must handle: a need, stuck, a cycle, out of fuel or
 #   memory, the walk's own state.
@@ -32,6 +35,8 @@ type Pd is Type:
   PdValue{h: P.H, +q: U32, +n: U32}
   # the auxiliary port q of a finished node faces it
   PdFront{h: P.H, +q: U32, +n: U32}
+  # the principal port of cursor x faces it
+  PdCur{h: P.H, +x: U32, +n: U32}
   # its port holds a static
   PdStatic{h: P.H, +n: U32}
   # a walk stopped otherwise, as it stood
@@ -76,6 +81,18 @@ def pd.ended(d: KD.D, +pos: U32, +acc: U32) -> PdS:
 def pd.walk(h: P.H, +b: U32, +f: Nat) -> KD.D:
   K.demand_ev(0, f, KD.d.go(h, KS.d.path(KM.m_new(6n, P.w_maxd())), b, 0, 0))
 
+def pd.v.k(+cur: Bool, h: P.H, +q: U32, +acc: U32) -> PdS:
+  match cur:
+    case True{}:
+      PdEnd{PdCur{h, P.base(q), acc}}
+    case False{}:
+      PdEnd{PdValue{h, q, acc}}
+
+# principal port q facing the position: a value, or a cursor
+def pd.v(r: P.H & U32, +q: U32, +acc: U32) -> PdS:
+  (h, +hd) = r
+  pd.v.k(U32.is_eq(P.rk(hd), 18), h, q, acc)
+
 def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   match st:
     case True{}:
@@ -83,7 +100,7 @@ def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32)
     case False{}:
       match pr:
         case True{}:
-          PdEnd{PdValue{h, q, acc}}
+          pd.v(P.rd(h, P.base(q)), q, acc)
         case False{}:
           pd.ended(pd.walk(h, P.base(q), f), pos, acc)
 

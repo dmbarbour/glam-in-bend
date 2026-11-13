@@ -3,14 +3,16 @@
 # samples/sharing/, `shares` or `loss`, and a prefix. The prefix is
 # applied to the string literal after it in the sample 1, 2, 4 and 8
 # times (a prefix holding `{i}` numbered, and the definitions holding it
-# repeated alike), as assembled and linked (--link), and each size must write the
-# same bytes both ways. From 4 uses to 8, a use may cost at most 8
-# interactions more than it does linked, at most 2 splices and at most 2
-# serves of a live source's cursors. A `loss`
-# is known not to share until its step is built; it fails the check once
-# it shares, until its mark is removed.
+# repeated alike), as assembled and linked (--link), and each size must
+# write the same bytes both ways. From 4 uses to 8, a use may cost at
+# most 8 interactions more than it does linked, at most 2 splices and at
+# most 2 serves of a live source's cursors for each live source it goes
+# through: one, unless the mark is followed by `sources=N` (a use of a
+# source holding a copy of another is served from both). A `loss` is
+# known not to share until its step is built; it fails the check once it
+# shares, until its mark is removed.
 cells-freeze.templates samples/sharing/closed_work.g loss f
 cells-freeze.cells samples/sharing/partial_in_cell.g shares use
 cells-splice.templates samples/sharing/partial_in_net.g shares g id
 cells-data.root samples/sharing/data_in_cell.g shares f
-cells-freeze.nested samples/sharing/nested_sources.g loss g{i} x
+cells-freeze.nested samples/sharing/nested_sources.g shares sources=2 g{i} x

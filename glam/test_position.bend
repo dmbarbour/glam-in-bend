@@ -11,7 +11,8 @@ import ./position.bend as Q
 # Positioned demand on small sources (the Cells plan's
 # cells-freeze.demand): each loaded, demanded at a position, and its end
 # written out: a value and the kind facing the position, the frontier
-# and the port reached, a static, or the walk's own stop. A template's
+# and the port reached, a cursor facing it, a static, or the walk's own
+# stop. A template's
 # node i is the net's node i + 8, so its function at node 0 has its
 # result at reference 33 and its variable at 34; the interface is 28.
 # Run by scripts/ladder.py, which expects `ok` alone.
@@ -45,6 +46,16 @@ def gcx() -> T.Tpl:
   T.Tpl{[fn(), ap(), ap(), T.TN{R.KData{}, V.PVal{V.VLazy{5}}}, num(1)],
     [ln(0, 1, 1, 2), ln(1, 0, 2, 2), ln(1, 1, 0, 2), ln(2, 0, 3, 0), ln(2, 1, 4, 0)], T.TE{0, 0}, 5}
 
+# `\x -> c`, c a copy of another live source: the cursor faces the
+# position (cells-freeze.nested)
+def fn_cur() -> T.Tpl:
+  T.Tpl{[fn(), T.TN{R.KCur{}, V.PNone{}}, T.TN{R.KEraN{}, V.PNone{}}], [ln(0, 1, 1, 0), ln(0, 2, 2, 0)], T.TE{0, 0}, 3}
+
+# `\x -> (\y -> c) x`: the beta leaves the cursor facing the result
+def cur_redex() -> T.Tpl:
+  T.Tpl{[fn(), ap(), fn(), T.TN{R.KCur{}, V.PNone{}}, T.TN{R.KEraN{}, V.PNone{}}],
+    [ln(0, 1, 1, 2), ln(1, 0, 2, 0), ln(1, 1, 0, 2), ln(2, 1, 3, 0), ln(2, 2, 4, 0)], T.TE{0, 0}, 5}
+
 def kind_at.r(r: P.H & U32) -> String:
   (h, +hd) = r
   U32.show(P.rk(hd))
@@ -60,6 +71,8 @@ def show(p: Q.Pd) -> String:
       "value " ++ kind_at.r(P.rd(h, P.base(q)))
     case Q.PdFront{h, +q, +n}:
       "front " ++ U32.show(q)
+    case Q.PdCur{h, +x, +n}:
+      "cursor " ++ U32.show(x)
     case Q.PdStatic{h, +n}:
       "static"
     case Q.PdStop{d, +n}:
@@ -93,4 +106,6 @@ def main() -> String:
     check(at(id_redex(), 33), "front 34", "id_redex") ++
     check(at(const_redex(), 33), "value 1", "const_redex") ++
     check(at(gcx(), 33), "stop needs", "gcx") ++
-    check(at(id_redex(), 28), "value 1", "root"))
+    check(at(id_redex(), 28), "value 1", "root") ++
+    check(at(fn_cur(), 33), "cursor 36", "fn_cur") ++
+    check(at(cur_redex(), 33), "cursor 44", "cur_redex"))

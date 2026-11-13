@@ -127,6 +127,8 @@ def rn.sv(v: M.Sv) -> Rn:
       Rn{s, h, "", False{}}
     case M.SvStop{d, h, +n}:
       rn.stop(d, h)
+    case M.SvCur{s, h, +x, +n}:
+      Rn{s, h, "a cursor of the source at " ++ U32.show(x), True{}}
 
 def rn.need(r: P.H & U32, s: P.H) -> Rn:
   (h, +c) = r
