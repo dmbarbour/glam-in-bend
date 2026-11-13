@@ -250,8 +250,10 @@ one, is tried at `bridge-recursion`.
        meetings, 9, are in a term of 142 interactions. Fused, each saves
        only the crossings of the run that follow, so the whole corpus
        stands to save well under 1% on demand, and drop fusion does not
-       contain accumulation. Built no further: the model and the laws
-       stay, for a workload that shows drops piling up;
+       contain accumulation, whose remedies remain
+       `pairing-overhead.stratify` and `pairing-overhead.safe-ops`.
+       Built no further: the model and the laws stay, for a workload
+       that shows drops piling up;
      - `pairing-fusion.drops.kernel` — tentative — the model's and the
        kernel's compose and peeling, for a workload where drops pile up:
        a drop run peeled at any index in the generated Lift-against-LiftC

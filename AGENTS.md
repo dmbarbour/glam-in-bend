@@ -120,6 +120,11 @@ Lessons carried over from the Rust bootstrap:
 - Measure workloads as families at n, 2n and 4n and fit cost to a + b·n^k:
   one size hides superlinear growth.
 - Take sizes from the command line; Bend folds constant inputs away.
+- Before building for a situation in the kernel, count how often it
+  arises: in a measurement build in a worktree, count each occurrence as
+  a kernel error (`P.err_if`), run the differential test, and read the
+  error columns against a baseline run (store run 320 counted drops
+  meeting, `pairing-fusion.drops`). Note the run as a measurement.
 - Run anything that may run away, such as reducing a net that may not
   normalize, under `scripts/capped.sh MB SECONDS command`: an uncapped run
   once exhausted the machine's memory and crashed the session. Prefer
