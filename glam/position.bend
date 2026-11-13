@@ -53,9 +53,31 @@ def pd.h(d: KD.D) -> P.H:
     case KD.D{h, path, +top, +depth, +n, +st}:
       h
 
+def pd.f.k(+cur: Bool, h: P.H, +q: U32, +n: U32) -> Pd:
+  match cur:
+    case True{}:
+      PdCur{h, P.base(q), n}
+    case False{}:
+      PdFront{h, q, n}
+
+def pd.f.c(r: P.H & U32, +q: U32, +n: U32) -> Pd:
+  (h, +hd) = r
+  pd.f.k(U32.is_eq(P.rk(hd), 18), h, q, n)
+
+def pd.f.p(+pr: Bool, h: P.H, +q: U32, +n: U32) -> Pd:
+  match pr:
+    case True{}:
+      pd.f.c(P.rd(h, P.base(q)), q, n)
+    case False{}:
+      PdFront{h, q, n}
+
+# the frontier's end, port q facing the position: a cursor if q is one's
+# principal, as the first read of the position has it (pd.v); a guard,
+# the walk reaching the frontier only while the node it started at still
+# faces the position (cells-freeze.nested)
 def pd.peer.r(r: P.H & U32, +n: U32) -> Pd:
   (h, +q) = r
-  PdFront{h, q, n}
+  pd.f.p(Bool.not(P.is_static(q)) && U32.is_eq((q .&. 3 : U32), 0), h, q, n)
 
 # what the position's port faces
 def pd.peer(h: P.H, +pos: U32) -> P.H & U32:

@@ -419,6 +419,17 @@ named, and marked there when a rung is built.
       same bytes with the same counts. `Nat.pow` is now 19% of a
       profile at 800, likely a splice's array depth (`T.depth_for`), a
       constant a splice.
+    - `ladder-measure.names` — tentative — the front end is quadratic
+      in a program's definitions. Found measuring `cells-freeze.nested`
+      (2026-11-13): the `nested_sources` family, one definition added a
+      use, costs 21.7M, 109M and 719M instructions at 16, 32 and 64
+      definitions (747M at 64 on main before it), while its
+      interactions grow by 6 a use. 85% of a profile at 64 is the Bend
+      runtime dropping terms (`term_drop`, `span_fade`) under
+      `parse.bytes_eq` and `lower.has_key`: names copied for each
+      comparison of a lookup and dropped after it, each lookup
+      walking every definition. Comparing without copying, or keying
+      the definitions once, should make it linear.
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's
