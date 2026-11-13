@@ -234,9 +234,10 @@ type FzC is Data:
   FzC{+at: U32, +src: U32, neg: Bool, +far: U32}
 
 # a freeze of the finished part: the template and its cursors, the first
-# placeholder first
+# placeholder first, and how many of its nodes were read back, not
+# standing for a static or a cursor
 type Fz is Data:
-  Fz{tpl: T.Tpl, curs: List<&2, FzC>}
+  Fz{tpl: T.Tpl, curs: List<&2, FzC>, +n: U32}
 
 # the template being written: the net, the index map, the nodes read so
 # far (the last first), the nodes standing for statics and cursors (the
@@ -356,18 +357,18 @@ def fz.emits(seen: List<&2, U32>, z: FzE, +i: U32) -> FzE:
     case Con{b, rest}:
       fz.emits(rest, fz.emit(z, b, i), (i - 1 : U32))
 
-def fz.tpl(z: FzE) -> P.H & Fz:
+def fz.tpl(z: FzE, +n: U32) -> P.H & Fz:
   match z:
     case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
-      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, FzC, curs)})
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, FzC, curs), n})
 
 # nothing finished: the root itself is a cursor, at the interface
 def fz.written.k(+none: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>) -> P.H & Fz:
   match none:
     case True{}:
-      (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [FzC{0, P.iface(), True{}, P.iface()}]})
+      (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [FzC{0, P.iface(), True{}, P.iface()}], 0})
     case False{}:
-      fz.tpl(fz.emits(seen, FzE{h, map, Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)))
+      fz.tpl(fz.emits(seen, FzE{h, map, Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)), n)
 
 def fz.written(z: FzR) -> P.H & Fz:
   match z:
@@ -387,7 +388,7 @@ def fz.cap(r: P.H & P.HS, +all: Bool) -> P.H & Fz:
 def fz.whole(r: P.H & Fz) -> P.H & T.Tpl:
   (h, f) = r
   match f:
-    case Fz{t, curs}:
+    case Fz{t, curs, +n}:
       (h, t)
 
 # the whole net the interface reaches, frozen

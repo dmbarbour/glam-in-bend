@@ -123,7 +123,7 @@ def rn.stop(d: KD.D, h: P.H) -> Rn:
 
 def rn.sv(v: M.Sv) -> Rn:
   match v:
-    case M.SvOk{s, h, +n}:
+    case M.SvOk{s, h, +n, +m}:
       Rn{s, h, "", False{}}
     case M.SvStop{d, h, +n}:
       rn.stop(d, h)

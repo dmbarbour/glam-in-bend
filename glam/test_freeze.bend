@@ -132,10 +132,21 @@ def count.l(ls: List<&2, T.TLink>) -> U32:
 
 def frozen_fin.f(f: F.Fz) -> String:
   match f:
-    case F.Fz{t, cs}:
+    case F.Fz{t, cs, +n}:
       match t:
         case T.Tpl{nodes, links, root, +size}:
           "s" ++ sh.u(size) ++ " l" ++ sh.u(count.l(links)) ++ " r" ++ sh.end(root) ++ " [" ++ frozen_fin.cs(cs) ++ "]"
+
+def nodes_read.r(r: P.H & F.Fz) -> String:
+  (h, f) = r
+  match f:
+    case F.Fz{t, cs, +n}:
+      sh.u(n)
+
+# how many nodes freezing the finished part read back, the placeholders
+# of statics and cursors not among them
+def nodes_read(t: T.Tpl) -> String:
+  nodes_read.r(F.freeze_finished(KN.load(t)))
 
 def frozen_fin.r(r: P.H & F.Fz) -> String:
   (h, f) = r
@@ -207,4 +218,8 @@ def main() -> String:
     check(frozen_fin(gcx()), "s3 l2 r0.0 [1:33n 2:34p ]", "gcx finished") ++
     check(frozen_fin(pending()), "s1 l0 r0.0 [0:28n ]", "pending finished") ++
     check(frozen_fin(fn_cur()), "s3 l2 r0.0 [1:33n ]", "fn_cur finished") ++
-    check(frozen(fn_cur()), "[1:- 18:- 6:- | 0.2-2.0 0.1-1.0 | 0.0 3]", "fn_cur"))
+    check(frozen(fn_cur()), "[1:- 18:- 6:- | 0.2-2.0 0.1-1.0 | 0.0 3]", "fn_cur") ++
+    check(nodes_read(fxx()), "5", "fxx read") ++
+    check(nodes_read(gcx()), "1", "gcx read") ++
+    check(nodes_read(fn_cur()), "1", "fn_cur read") ++
+    check(nodes_read(pending()), "0", "pending read"))

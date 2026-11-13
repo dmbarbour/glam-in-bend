@@ -34,7 +34,7 @@ import ../spike/kmem_grow.bend as KM
 # source with the steps they had descended (for --count); or the
 # diagnostics
 type Out is Data:
-  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32}
+  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32}
   OErrs{ds: List<&2, G.Diag>}
 
 # An entry of the book (Cells, re-scoped by the bridge), named by a
@@ -43,8 +43,9 @@ type Out is Data:
 # recipe kept), its value, or a function. A function's net is kept live
 # as a source (cells-freeze.cells; copy-reduced-function-nets), its place
 # i among the sources, and each use materializes it; its recipe is kept
-# for a need from inside another source, spliced there as a template is
-# until sources hold copies of sources
+# for --refreeze, and for a need from inside its own source, spliced
+# there as a template is until a source's copy of itself is a cursor into
+# itself (self-copies-are-cursors)
 type Ent is Data:
   ETpl{t: T.Tpl}
   ERecipe{t: T.Tpl, name: List<&2, U32>}
@@ -83,11 +84,12 @@ type Stk is Type:
   TkCon{t: Tk, rest: Stk}
 
 # counted for --count: interactions of the cells' nets and the sources,
-# splices, values forced, cursors served, and the frames' stops in their
+# splices, values forced, cursors served, the frames' stops in their
 # sources with the depth each walk had reached, which the frame's next
-# step walks again (cells-freeze.rewalk)
+# step walks again (cells-freeze.rewalk), and the serves' cursor
+# interactions, a node copied each (glam/materialize.bend's Sv)
 type Cn is Data:
-  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32}
+  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32, +copies: U32}
 
 # where an assembly stands: done, or a task to go on with, the tasks
 # waiting, the book and the counts
@@ -145,7 +147,7 @@ def bytes(xs: List<&2, V.Val>) -> Bs:
 def out.bs(r: Bs, +itrs: U32) -> Out:
   match r:
     case BOk{bs}:
-      OBytes{bs, itrs, 0, 0, 0, 0, 0}
+      OBytes{bs, itrs, 0, 0, 0, 0, 0, 0}
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
@@ -213,37 +215,43 @@ def slice() -> Nat:
 
 def cn.add(c: Cn, +i: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
-      Cn{(itrs + i : U32), sp, fo, sv, st, rw}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{(itrs + i : U32), sp, fo, sv, st, rw, cp}
 
 def cn.splice(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
-      Cn{itrs, (sp + 1 : U32), fo, sv, st, rw}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{itrs, (sp + 1 : U32), fo, sv, st, rw, cp}
 
 def cn.force(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
-      Cn{itrs, sp, (fo + 1 : U32), sv, st, rw}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{itrs, sp, (fo + 1 : U32), sv, st, rw, cp}
 
 def cn.serve(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
-      Cn{itrs, sp, fo, (sv + 1 : U32), st, rw}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{itrs, sp, fo, (sv + 1 : U32), st, rw, cp}
+
+# a serve's cursor interactions: the nodes it copied into the host
+def cn.copy(c: Cn, +m: U32) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{itrs, sp, fo, sv, st, rw, (cp + m : U32)}
 
 # a frame's walk stopped in its source at depth d, to be walked again
 def cn.stop(c: Cn, +d: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
-      Cn{itrs, sp, fo, sv, (st + 1 : U32), (rw + d : U32)}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw, +cp}:
+      Cn{itrs, sp, fo, sv, (st + 1 : U32), (rw + d : U32), cp}
 
 # the counts added to the bytes' own
 def counted(o: Out, c: Cn) -> Out:
   match o:
-    case OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw}:
+    case OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw, +cp}:
       match c:
-        case Cn{+i, +s2, +f2, +v2, +t2, +r2}:
-          OBytes{bs, (itrs + i : U32), s2, f2, v2, t2, r2}
+        case Cn{+i, +s2, +f2, +v2, +t2, +r2, +c2}:
+          OBytes{bs, (itrs + i : U32), s2, f2, v2, t2, r2, c2}
     case OErrs{ds}:
       OErrs{ds}
 
@@ -816,8 +824,8 @@ def frame.cur(r: HT, hs: P.H, +x: U32, rest: Stk, +i: U32, +name: List<&2, U32>,
 
 def frame.sv(v: M.Sv, ho: Hb, +i: U32, +name: List<&2, U32>, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match v:
-    case M.SvOk{hs, h, +n}:
-      frame.ok(host.go(ho, h, srcs.put(ss, i, hs)), rest, b, cn.serve(cn.add(c, n)))
+    case M.SvOk{hs, h, +n, +m}:
+      frame.ok(host.go(ho, h, srcs.put(ss, i, hs)), rest, b, cn.copy(cn.serve(cn.add(c, n)), m))
     case M.SvStop{d, h, +n}:
       frame.back(host.back(ho, h, ss), d, rest, i, name, k, nc, pos, b, cn.add(c, n))
     case M.SvCur{hs, h, +x, +n}:
@@ -1031,7 +1039,7 @@ def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
 def lowered(w: W.Top, b: List<&2, Ent>) -> Run:
   match w:
     case W.TOk{t}:
-      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0, 0, 0}, SrsNil{})
+      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0, 0, 0, 0}, SrsNil{})
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 

@@ -266,27 +266,35 @@ def mz.sp(s: S.Sp, curs: List<&2, F.FzC>, root: T.TEnd, +situ: U32, +nc: U32, +a
     case S.Sp{h, map}:
       mz.sp.r(mz.curs(curs, (map, h), situ), root, nc, at_root)
 
-def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & P.H:
+# a materialization's end: the source, the host, and the nodes copied,
+# each a cursor interaction: the cursor replaced by a node, new cursors
+# behind it (the maintainer, 2026-11-13)
+type Mz is Type:
+  Mz{s: P.H, h: P.H, +m: U32}
+
+def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   (s, f) = r
   match f:
-    case F.Fz{t, curs}:
+    case F.Fz{t, curs, +m}:
       match t:
         case T.Tpl{nodes, links, root, +size}:
-          (s, mz.sp(S.sp.statics(U32.to_nat(size), S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), 0), curs, root, situ, nc, at_root))
+          Mz{s, mz.sp(S.sp.statics(U32.to_nat(size), S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), 0), curs, root, situ, nc, at_root), m}
 
 # the finished tree at node base v of source s copied into host h at
 # offset k, its wires joined in situ's ring; at_root where it is the
 # source's root, faced by the interface, served by cursor nc
-def materialize(s: P.H, h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & P.H:
+def materialize(s: P.H, h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   mz.fz(F.freeze_tree(s, v), h, situ, k, nc, at_root)
 
 # Serving
 # =======
 
 # a serve's end: the source and the host, or positioned demand's stop in
-# the source, as it stood; with the interactions made in the source
+# the source, as it stood; with the interactions made in the source, and
+# a done serve's cursor interactions: the nodes it copied, or one where
+# it joined the cursor or gave it a static
 type Sv is Type:
-  SvOk{s: P.H, h: P.H, +n: U32}
+  SvOk{s: P.H, h: P.H, +n: U32, +m: U32}
   SvStop{d: KD.D, h: P.H, +n: U32}
   # the position faces cursor x of the source, a copy it holds of another
   # live source, which the core serves into it first (cells-freeze.nested)
@@ -325,9 +333,10 @@ def cl.go(g: Nat, c: Cl, +situ: U32) -> Cl:
             case False{}:
               cl.go(k, cl.f(P.rd(s, (x + 1 : U32)), h, x, situ), situ)
 
-def sv.pair(r: P.H & P.H, +n: U32) -> Sv:
-  (s, h) = r
-  SvOk{s, h, n}
+def sv.pair(r: Mz, +n: U32) -> Sv:
+  match r:
+    case Mz{s, h, +m}:
+      SvOk{s, h, n, m}
 
 def sv.climbed(c: Cl, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
   match c:
@@ -340,13 +349,13 @@ def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +
   (h, m) = r
   match m:
     case Some{+c}:
-      SvOk{s, join(h, nc, c), n}
+      SvOk{s, join(h, nc, c), n, 1}
     case None{}:
       sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
 def sv.static.w(r: P.H & U32, s: P.H, +nc: U32, +n: U32) -> Sv:
   (h, +w) = r
-  SvOk{s, P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n}
+  SvOk{s, P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
 
 # a stop, its own walk's interactions added
 def sv.stop(d: KD.D, h: P.H, +acc: U32) -> Sv:
