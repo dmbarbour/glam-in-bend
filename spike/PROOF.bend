@@ -3109,10 +3109,6 @@ def Laws.raise_lift_drop(k, n, by, p, hn, hp):
     case V.PFan{f}:
       raise_lift_drop.fan(k, n, by, f, hn, hp)
 
-# raise_lift_drop, its premise unused
-def Laws.raise_lift_down(k, n, by, p, hn, hp, hd):
-  Laws.raise_lift_drop(k, n, by, p, hn, hp)
-
 # a fusion on its test, raised
 def raise_ok(c: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
   {V.compose.ok(c, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.ok(c, n1, b1, b2)) : V.Fuse}:

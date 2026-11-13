@@ -25,14 +25,14 @@ a fan's level replaced by the offset: every raised pair of fans pairs
     case False{}:
       k
 
-=== ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_down raise_lift_drop raise_compose
+=== ctl_index_offset raise_ctl_eq raise_lift_up raise_lift_drop raise_compose
 a control's index replaced by the offset
 --- val.bend
       PLift{(n + k : U32), up, by}
 +++
       PLift{k, up, by}
 
-=== ctl_index_kept raise_lift_up raise_lift_down raise_lift_drop
+=== ctl_index_kept raise_lift_up raise_lift_drop
 a control's index left unraised while levels rise: a raised level passes
 a control it passed below
 --- val.bend
@@ -40,7 +40,7 @@ a control it passed below
 +++
       PLift{n, up, by}
 
-=== lift_index_ignored raise_lift_up raise_lift_down raise_lift_drop
+=== lift_index_ignored raise_lift_up raise_lift_drop
 a control moves every level above 0, its index ignored
 --- val.bend
   lift_lvl.go(U32.is_gt(j, n), up, lift_by(n, up, by, j), j)
