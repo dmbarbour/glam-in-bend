@@ -41,7 +41,11 @@ it alone taught. Add to this file what a new proof teaches.
   is stronger, and often feasible by a potential (below). Try it before
   settling for the weaker law.
 - **Mutate the code after a proof passes**: break what the law is about
-  in a copy, and see the proofs fail. A law that survives the mutation
+  in a copy, and see the proofs fail, by a refutation: a mutant that
+  only overflows the checker's stack (`RangeError: Maximum call stack
+  size exceeded`) is not caught. `scripts/one_law.py` does not yet tell
+  the two apart; on 2026-11-13 ten of the gate's mutant runs, all of the
+  `raise_*` laws', failed so (`cells-freeze.levels.shift`). A law that survives the mutation
   claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
@@ -155,6 +159,20 @@ it alone taught. Add to this file what a new proof teaches.
   first, then rewrite in each branch.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
+- **A linear value a proof names often is mirrored as data.** A goal
+  over an `Array` (a `Type`) may name it once only in a proof's terms,
+  where a rewrite and a law's arguments want it several times. Take it
+  erased (`-w`) in a helper with its mirror, a tree that is `Data` and an
+  equation back (lawful-arrays' `Mirror`, `mirror`, `fromT`), rewrite
+  the goal onto the tree's array with that equation, and name
+  `fromT(t)` as often as needed; the law's def passes the array to the
+  erased parameter and to `mirror` (`rd_wr_same.go` in
+  `spike/PROOF.bend`).
+- **A function destructuring a pair reduces once the pair is a
+  literal**: rewrite `Array.get(...)` with the law that gives it as
+  `(a, snd(...))` (lawful-arrays' `get_pair`) under a hole at the
+  destructuring function (`P.rd.fin(KM.m_get.fin(_), a)`), and the goal
+  reduces to the array law's own.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

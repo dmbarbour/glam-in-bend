@@ -111,3 +111,41 @@ fusion tests only the first control's mark
   fz.copied(marked(h1) || marked(h2), compose(fld(h1), o1, fld(h2), o2))
 +++
   fz.copied(marked(h1), compose(fld(h1), o1, fld(h2), o2))
+
+# Reading the heap after a write (the laws rd_*): P.rd and P.wr pass
+# straight to the word array; each mutation misroutes a read or a write.
+
+=== wr_next_word rd_wr_same
+a write lands on the next word: reading the word written misses it
+--- kprim.bend
+      H{KM.m_set(w, i, v), a}
++++
+      H{KM.m_set(w, (i + 1 : U32), v), a}
+
+=== set_drops_value rd_wr_same
+the memory's write stores 0 whatever is written
+--- kmem_grow.bend
+      MG{Array.set(U32, a, i, v)}
++++
+      MG{Array.set(U32, a, i, 0)}
+
+=== rd_other_word rd_wr_same rd_wr_other
+a read looks at the word after the one asked for
+--- kprim.bend
+      rd.fin(KM.m_get(w, i), a)
++++
+      rd.fin(KM.m_get(w, (i + 1 : U32)), a)
+
+=== wr_clears_neighbour rd_wr_other
+a write also clears the word after it
+--- kprim.bend
+      H{KM.m_set(w, i, v), a}
++++
+      H{KM.m_set(KM.m_set(w, (i + 1 : U32), 0), i, v), a}
+
+=== rd_bumps rd_kept
+a read hands the heap back with the word it read cleared
+--- kmem_grow.bend
+  (MG{a}, v)
++++
+  (MG{Array.set(U32, a, 0, 0)}, v)
