@@ -63,19 +63,19 @@ def emit(bs: List<&2, U32>) -> IO(Unit):
     r : File & Result<&1, &1, U32 & String, Unit> <- File.write_bytes(f, bs)
     wrote(r)
 
-def counted(+count: Bool, +itrs: U32, +sp: U32, +fo: U32, +sv: U32, bs: List<&2, U32>) -> IO(Unit):
+def counted(+count: Bool, +itrs: U32, +sp: U32, +fo: U32, +sv: U32, +st: U32, +rw: U32, bs: List<&2, U32>) -> IO(Unit):
   match count:
     case True{}:
       do IO<Unit>:
-        IO.print_err(U32.show(itrs) ++ " interactions, " ++ U32.show(sp) ++ " splices, " ++ U32.show(fo) ++ " values forced, " ++ U32.show(sv) ++ " serves")
+        IO.print_err(U32.show(itrs) ++ " interactions, " ++ U32.show(sp) ++ " splices, " ++ U32.show(fo) ++ " values forced, " ++ U32.show(sv) ++ " serves, " ++ U32.show(st) ++ " source stops, " ++ U32.show(rw) ++ " steps walked again")
         emit(bs)
     case False{}:
       emit(bs)
 
 def finish(o: C.Out, +count: Bool) -> IO(Unit):
   match o:
-    case C.OBytes{bs, +itrs, +sp, +fo, +sv}:
-      counted(count, itrs, sp, fo, sv, bs)
+    case C.OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw}:
+      counted(count, itrs, sp, fo, sv, st, rw, bs)
     case C.OErrs{ds}:
       report(ds)
 

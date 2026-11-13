@@ -30,9 +30,11 @@ import ../spike/kmem_grow.bend as KM
 # reach (glam/main.bend); no @unsafe is needed.
 
 # the bytes, with the interactions of every net reduced, the splices, the
-# values forced and the cursors served (for --count); or the diagnostics
+# values forced, the cursors served, and the walks a frame lost in its
+# source with the steps they had descended (for --count); or the
+# diagnostics
 type Out is Data:
-  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32}
+  OBytes{bs: List<&2, U32>, +itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32}
   OErrs{ds: List<&2, G.Diag>}
 
 # An entry of the book (Cells, re-scoped by the bridge), named by a
@@ -65,10 +67,14 @@ type Srcs is Type:
 # A task, the protocol's state: a demand, the entry it computes (none,
 # no_cell, for asm.result's net) and the entry it waits on; or a frame
 # serving a negative cursor nc, at position pos of source k, in the net of
-# the task below it (cells-freeze.cells), holding no net between steps
+# the task below it (cells-freeze.cells), holding no net between steps;
+# or such a frame going on with its walk in the source, which it holds
+# from one step to the next, on top of the stack, so that nothing else
+# runs between (cells-freeze.rewalk)
 type Tk is Type:
   Tk{d: KD.D, +cell: U32, +waits: U32}
   TkSv{+k: U32, +nc: U32, +pos: U32}
+  TkSvD{+k: U32, +nc: U32, +pos: U32, d: KD.D}
 
 # the tasks set aside, each waiting on the one above it: one stack,
 # forcing depth first, the first container of tasks
@@ -77,9 +83,11 @@ type Stk is Type:
   TkCon{t: Tk, rest: Stk}
 
 # counted for --count: interactions of the cells' nets and the sources,
-# splices, values forced, cursors served
+# splices, values forced, cursors served, and the frames' stops in their
+# sources with the depth each walk had reached, which the frame's next
+# step walks again (cells-freeze.rewalk)
 type Cn is Data:
-  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32}
+  Cn{+itrs: U32, +splices: U32, +forced: U32, +serves: U32, +stops: U32, +rewalk: U32}
 
 # where an assembly stands: done, or a task to go on with, the tasks
 # waiting, the book and the counts
@@ -137,7 +145,7 @@ def bytes(xs: List<&2, V.Val>) -> Bs:
 def out.bs(r: Bs, +itrs: U32) -> Out:
   match r:
     case BOk{bs}:
-      OBytes{bs, itrs, 0, 0, 0}
+      OBytes{bs, itrs, 0, 0, 0, 0, 0}
     case BNo{}:
       OErrs{[G.Diag{0, "asm.result is not a binary: an element is not a byte"}]}
 
@@ -205,31 +213,37 @@ def slice() -> Nat:
 
 def cn.add(c: Cn, +i: U32) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv}:
-      Cn{(itrs + i : U32), sp, fo, sv}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
+      Cn{(itrs + i : U32), sp, fo, sv, st, rw}
 
 def cn.splice(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv}:
-      Cn{itrs, (sp + 1 : U32), fo, sv}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
+      Cn{itrs, (sp + 1 : U32), fo, sv, st, rw}
 
 def cn.force(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv}:
-      Cn{itrs, sp, (fo + 1 : U32), sv}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
+      Cn{itrs, sp, (fo + 1 : U32), sv, st, rw}
 
 def cn.serve(c: Cn) -> Cn:
   match c:
-    case Cn{+itrs, +sp, +fo, +sv}:
-      Cn{itrs, sp, fo, (sv + 1 : U32)}
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
+      Cn{itrs, sp, fo, (sv + 1 : U32), st, rw}
+
+# a frame's walk stopped in its source at depth d, to be walked again
+def cn.stop(c: Cn, +d: U32) -> Cn:
+  match c:
+    case Cn{+itrs, +sp, +fo, +sv, +st, +rw}:
+      Cn{itrs, sp, fo, sv, (st + 1 : U32), (rw + d : U32)}
 
 # the counts added to the bytes' own
 def counted(o: Out, c: Cn) -> Out:
   match o:
-    case OBytes{bs, +itrs, +sp, +fo, +sv}:
+    case OBytes{bs, +itrs, +sp, +fo, +sv, +st, +rw}:
       match c:
-        case Cn{+i, +s2, +f2, +v2}:
-          OBytes{bs, (itrs + i : U32), s2, f2, v2}
+        case Cn{+i, +s2, +f2, +v2, +t2, +r2}:
+          OBytes{bs, (itrs + i : U32), s2, f2, v2, t2, r2}
     case OErrs{ds}:
       OErrs{ds}
 
@@ -373,6 +387,8 @@ def busy.hit(t: Tk, +k: U32, +pos: U32) -> Tk & Bool:
       (Tk{d, cell, w}, False{})
     case TkSv{+k2, +nc2, +pos2}:
       (TkSv{k2, nc2, pos2}, U32.is_eq(k2, k) && U32.is_eq(pos2, pos))
+    case TkSvD{+k2, +nc2, +pos2, d}:
+      (TkSvD{k2, nc2, pos2, d}, U32.is_eq(k2, k) && U32.is_eq(pos2, pos))
 
 def busy.r2(r: Tk & Bool, s: Stk, +y: Bool) -> Bu:
   (t, +x) = r
@@ -525,43 +541,50 @@ def need.at(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +cell: U3
 # template spliced, a value resumed, another live source's recipe spliced
 # until sources hold copies), or a cell forced on a task above it
 
-def frame.back(d: KD.D, s2: Stk, +i: U32, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
-  RMore{TkSv{k, nc, pos}, s2, b, c, srcs.put(ss, i, dh(d))}
+# a walk set going again, its interactions so far counted already
+def d.again(d: KD.D) -> KD.D:
+  match d:
+    case KD.D{h, path, +top, +depth, +n, +st}:
+      KD.D{h, path, top, depth, 0, 0}
 
-def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +h2: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+# the frame goes on with its walk at the next step, the source kept out
+def frame.keep(d: KD.D, s2: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  RMore{TkSvD{k, nc, pos, d.again(d)}, s2, b, c, ss}
+
+def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +depth: U32, +h2: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
     case Some{e}:
       match e:
         case ETpl{t}:
-          frame.back(S.splice(d, t), s2, i, k, nc, pos, b, cn.splice(c), ss)
+          frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c), ss)
         case ESrc{+i2, t, name2}:
-          frame.back(S.splice(d, t), s2, i, k, nc, pos, b, cn.splice(c), ss)
+          frame.keep(S.splice(d, t), s2, k, nc, pos, b, cn.splice(c), ss)
         case EValue{v}:
-          frame.back(KS.resume(d, v), s2, i, k, nc, pos, b, c, ss)
+          frame.keep(KS.resume(d, v), s2, k, nc, pos, b, c, ss)
         case ERecipe{+t, +name2}:
-          RMore{Tk{KS.d.start(KN.load(t)), h2, no_cell()}, TkCon{TkSv{k, nc, pos}, s2}, book_set(b, h2, EBusy{t, name2}), cn.force(c), srcs.put(ss, i, dh(d))}
+          RMore{Tk{KS.d.start(KN.load(t)), h2, no_cell()}, TkCon{TkSv{k, nc, pos}, s2}, book_set(b, h2, EBusy{t, name2}), cn.stop(cn.force(c), depth), srcs.put(ss, i, dh(d))}
         case EBusy{t, name2}:
           err("`" ++ G.str(name2) ++ "` needs its own value: a cycle")
     case None{}:
       err("a leaf names no definition")
 
-def frame.need.c(ch: Ch, d: KD.D, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+def frame.need.c(ch: Ch, d: KD.D, +depth: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match ch:
     case ChAt{+h2}:
-      frame.need.e(book_get(b, h2), d, h2, s2, i, name, k, nc, pos, b, c, ss)
+      frame.need.e(book_get(b, h2), d, depth, h2, s2, i, name, k, nc, pos, b, c, ss)
     case ChLoop{}:
       err("definitions name each other alone, with no value: a cycle")
 
-def frame.need.l(r: KD.D & U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+def frame.need.l(r: KD.D & U32, +depth: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (d, +h2) = r
-  frame.need.c(chase(List.length(&2, Ent, b), b, h2), d, s2, i, name, k, nc, pos, b, c, ss)
+  frame.need.c(chase(List.length(&2, Ent, b), b, h2), d, depth, s2, i, name, k, nc, pos, b, c, ss)
 
 def frame.need.k(+cur: Bool, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match cur:
     case True{}:
       err("`" ++ G.str(name) ++ "` uses a copy of a live function inside its own net, not yet served")
     case False{}:
-      frame.need.l(KS.need(KD.D{h, path, top, depth, n, 2}), s2, i, name, k, nc, pos, b, c, ss)
+      frame.need.l(KS.need(KD.D{h, path, top, depth, n, 2}), depth, s2, i, name, k, nc, pos, b, c, ss)
 
 def frame.need.hd(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +hd) = r
@@ -575,7 +598,7 @@ def frame.need.at(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, s2:
 def frame.st(+st: U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, s2: Stk, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match st:
     case 4:
-      RMore{TkSv{k, nc, pos}, s2, b, c, srcs.put(ss, i, h)}
+      RMore{TkSvD{k, nc, pos, KD.D{h, path, top, depth, 0, 0}}, s2, b, c, ss}
     case 2:
       frame.need.at(KS.d.at(h, top), path, top, depth, n, s2, i, name, k, nc, pos, b, c, ss)
     case _:
@@ -627,6 +650,39 @@ def frame(s: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Sr
           frame.e(book_get(b, k), d0, cell0, w0, rest, k, nc, pos, b, c, ss)
         case TkSv{+k2, +nc2, +pos2}:
           err("a frame serves no host")
+        case TkSvD{+k2, +nc2, +pos2, d2}:
+          err("a frame serves no host")
+    case TkNil{}:
+      err("a frame serves no host")
+
+# a frame going on with its walk d in the source, out of the sources
+def frame.dc(d: KD.D, d0: KD.D, +i: U32, +name: List<&2, U32>, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match d0:
+    case KD.D{h0, path0, +top0, +depth0, +n0, +st0}:
+      frame.sv(M.serve.from(d, h0, nc, 8n, slice()), path0, top0, depth0, n0, st0, i, name, cell0, w0, rest, k, nc, pos, b, c, ss)
+
+def frame.cd(m: Maybe<&2, Ent>, d: KD.D, d0: KD.D, +cell0: U32, +w0: U32, rest: Stk, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match m:
+    case Some{e}:
+      match e:
+        case ESrc{+i, t, +name}:
+          frame.dc(d, d0, i, name, cell0, w0, rest, k, nc, pos, b, c, ss)
+        case _:
+          err("a cursor's source is no live source")
+    case None{}:
+      err("a cursor's source names no definition")
+
+# a step of a frame going on with its walk, its host the task below it
+def frame.c(s: Stk, +k: U32, +nc: U32, +pos: U32, d: KD.D, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match s:
+    case TkCon{below, rest}:
+      match below:
+        case Tk{d0, +cell0, +w0}:
+          frame.cd(book_get(b, k), d, d0, cell0, w0, rest, k, nc, pos, b, c, ss)
+        case TkSv{+k2, +nc2, +pos2}:
+          err("a frame serves no host")
+        case TkSvD{+k2, +nc2, +pos2, d2}:
+          err("a frame serves no host")
     case TkNil{}:
       err("a frame serves no host")
 
@@ -643,6 +699,8 @@ def finished.v(s: Stk, +v: V.Val, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs
           go(KS.resume(d0, v), cell0, rest, book_set(b, cell, EValue{v}), c, ss)
         case TkSv{+k, +nc, +pos}:
           RMore{TkSv{k, nc, pos}, rest, book_set(b, cell, EValue{v}), c, ss}
+        case TkSvD{+k, +nc, +pos, d}:
+          err("a value forced for a frame going on")
     case TkNil{}:
       err("a value forced for no one")
 
@@ -654,6 +712,8 @@ def finished.src(s: Stk, +cell: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
           use.src(d0, cell, cell0, rest, b, c, ss)
         case TkSv{+k, +nc, +pos}:
           RMore{TkSv{k, nc, pos}, rest, b, c, ss}
+        case TkSvD{+k, +nc, +pos, d}:
+          err("a value forced for a frame going on")
     case TkNil{}:
       err("a value forced for no one")
 
@@ -757,6 +817,8 @@ def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
       sliced(KD.Demand.demand(slice(), d), cell, s, b, c, ss)
     case TkSv{+k, +nc, +pos}:
       frame(s, k, nc, pos, b, c, ss)
+    case TkSvD{+k, +nc, +pos, d}:
+      frame.c(s, k, nc, pos, d, b, c, ss)
 
 # Starting
 # ========
@@ -764,7 +826,7 @@ def step(t: Tk, s: Stk, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
 def lowered(w: W.Top, b: List<&2, Ent>) -> Run:
   match w:
     case W.TOk{t}:
-      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0}, SrsNil{})
+      go(KS.d.start(KN.load(t)), no_cell(), TkNil{}, b, Cn{0, 0, 0, 0, 0, 0}, SrsNil{})
     case W.TErr{d}:
       RDone{OErrs{[d]}}
 

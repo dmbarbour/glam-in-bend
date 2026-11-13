@@ -33,7 +33,9 @@ with `--refreeze`: each template loaded and frozen back before the run
 (glam/freeze.bend, the Cells plan's cells-freeze.cursors). It must write
 the same bytes and report the same counts as the plain run. Then each
 unit test of TESTS runs, `bend` printing `"ok"` alone, its pass kept as
-the build is while its inputs are unchanged.
+the build is while its inputs are unchanged. Last, each sample of
+NO_REWALK must report no step walked again (cells-freeze.rewalk): a
+frame meeting a need on the spot in its source goes on with its walk.
 
 The build is kept while its inputs are unchanged, keyed as scripts/kept.py
 keys a check (the file and every file it imports, and Bend as it stands),
@@ -215,6 +217,23 @@ def counted(path, linked):
     return r.stdout, int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
+# samples whose live sources meet every need on the spot, so that a
+# frame never walks again what it walked (the Cells plan's
+# cells-freeze.rewalk): each must report no step walked again
+NO_REWALK = ["samples/hello/hello_deep_needs.g"]
+
+
+def rewalked(path):
+    """None if the run reports no step walked again, else what it reports"""
+    r = subprocess.run([EXE, "-f", os.path.join(ROOT, path), "--count"], capture_output=True)
+    m = re.search(rb"(\d+) steps walked again", r.stderr)
+    if r.returncode != 0 or not m:
+        return f"FAIL cells-freeze.rewalk {path}: no count of steps walked again"
+    if int(m.group(1)) != 0:
+        return f"FAIL cells-freeze.rewalk {path}: {int(m.group(1))} steps walked again, none expected"
+    return None
+
+
 def family(step, path, loss, prefix):
     """None if the family behaves as its mark says, else what went wrong"""
     runs = {}
@@ -293,9 +312,18 @@ def main(args):
             print(said)
         else:
             print(f"ok test {os.path.relpath(t, ROOT)}")
+    bad_rw = 0
+    for path in NO_REWALK:
+        said = rewalked(path)
+        if said:
+            bad_rw += 1
+            print(said)
+        else:
+            print(f"ok cells-freeze.rewalk {path}: no step walked again")
     print(f"{len(ss)} samples, {failures} failing; {len(fs)} sharing families, "
-          f"{bad_fs} failing, {losses} known losses; {len(TESTS)} tests, {bad_ts} failing")
-    return 1 if failures or bad_fs or bad_ts else 0
+          f"{bad_fs} failing, {losses} known losses; {len(TESTS)} tests, {bad_ts} failing; "
+          f"{len(NO_REWALK)} without walking again, {bad_rw} failing")
+    return 1 if failures or bad_fs or bad_ts or bad_rw else 0
 
 
 if __name__ == "__main__":

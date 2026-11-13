@@ -378,3 +378,20 @@ def sv.pos(r: P.H & U32, s: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv:
 # joined or given a static
 def serve(s: P.H, h: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv:
   sv.pos(P.rd(h, (nc + 2 : U32)), s, nc, g, f)
+
+def sv.from.k(r: P.H & U32, d: KD.D, +situ: U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv:
+  (h, +hd) = r
+  sv.pd(Q.positioned.from(d, pos, g, f), h, situ, P.fld(hd), nc, pos)
+
+def sv.from.situ(r: P.H & U32, d: KD.D, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv:
+  (h, +situ) = r
+  sv.from.k(P.rd(h, situ), d, situ, nc, pos, g, f)
+
+def sv.from.pos(r: P.H & U32, d: KD.D, +nc: U32, +g: Nat, +f: Nat) -> Sv:
+  (h, +pos) = r
+  sv.from.situ(rg.situ(h, nc), d, nc, pos, g, f)
+
+# and served going on from d, a walk in the source stopped and set going
+# again, its path kept (cells-freeze.rewalk)
+def serve.from(d: KD.D, h: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv:
+  sv.from.pos(P.rd(h, (nc + 2 : U32)), d, nc, g, f)

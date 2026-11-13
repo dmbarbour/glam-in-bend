@@ -391,6 +391,18 @@ named, and marked there when a rung is built.
     kernel's workloads become glam programs, and a performance review of
     what the rungs found, as the maintainer prefers: features first, the
     review after, anything past 10% looked at as it appears.
+    - `ladder-measure.lowering` — tentative — lowering is quadratic in
+      an expression's nesting. Found measuring `cells-freeze.rewalk`
+      (2026-11-13): n strings concatenated right-nested,
+      `c "a" ++ (c "b" ++ ...)`, cost 8.6M, 25.6M, 86.5M, 315.5M and
+      1203M instructions at n = 50 to 800, about x3.6 a doubling, while
+      their evaluation is linear and under 0.2% of a profile at 800.
+      The profile's top is `List.append`, `sh_links` (`spike/nets.bend`)
+      and `sh_uses` (`glam/lower.bend`): each composition appends the
+      parts' node lists and shifts the right part's links past the
+      left's nodes, so a right-nested chain shifts its tail again at
+      every level. A builder carrying the next node's index, or
+      composition by offsets alone, makes it linear.
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's

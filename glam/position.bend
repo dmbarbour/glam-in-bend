@@ -114,3 +114,9 @@ def pd.loop(g: Nat, +f: Nat, h: P.H, +pos: U32, +acc: U32) -> Pd:
 # reference, node and port), at most g walks of f steps each
 def positioned(h: P.H, +pos: U32, +g: Nat, +f: Nat) -> Pd:
   pd.loop(g, f, h, pos, 0)
+
+# and from a walk d at position pos set going again where it stopped,
+# its path kept: a template spliced or a value resumed at the need it
+# stopped at, or its fuel run out (cells-freeze.rewalk)
+def positioned.from(d: KD.D, +pos: U32, +g: Nat, +f: Nat) -> Pd:
+  pd.loop.r(pd.ended(K.demand_ev(0, f, d), pos, 0), 0, h2 => a2 => pd.loop(g, f, h2, pos, a2))
