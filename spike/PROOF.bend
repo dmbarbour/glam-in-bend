@@ -2480,6 +2480,116 @@ def gt_is_above(a: Nat, b: Nat) -> {Nat.is_gt(a, b) == CT.above(a, b) : Bool}:
     case 1n+p 1n+m:
       gt_is_above(p, m)
 
+# Drop runs
+# =========
+#
+# Over CT's Nat model (drops-stop-at-index): a drop at n never takes a
+# level above n below n, so a level either stays above n, falling by the
+# whole amount, or lands on n and stays there.
+
+# a level is not above itself
+def above_irrefl(m: Nat) -> {CT.above(m, m) == False{} : Bool}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+p:
+      above_irrefl(p)
+
+# n's max with x is above n exactly when x is
+def max_above(n: Nat, x: Nat) -> {CT.above(x, n) == CT.above(Nat.max(n, x), n) : Bool}:
+  match n x:
+    case 0n _:
+      {==}
+    case 1n+m 0n:
+      Equal.sym(Bool, CT.above(1n+m, 1n+m), False{}, above_irrefl(1n+m))
+    case 1n+m 1n+y:
+      max_above(m, y)
+
+# x above n is n's max with x
+def max_of_above(n: Nat, x: Nat, e: {CT.above(x, n) == True{} : Bool}) -> {Nat.max(n, x) == x : Nat}:
+  match n x:
+    case 0n _:
+      {==}
+    case 1n+m 0n:
+      Empty.absurd({Nat.max(1n+m, 0n) == 0n : Nat}, MNat.internal_false_ne_true(e))
+    case 1n+m 1n+y:
+      Equal.cong(Nat, Nat, z => 1n+z, Nat.max(m, y), y, max_of_above(m, y, e))
+
+# x not above n leaves n's max with x at n
+def max_of_below(n: Nat, x: Nat, e: {CT.above(x, n) == False{} : Bool}) -> {Nat.max(n, x) == n : Nat}:
+  match n x:
+    case 0n 0n:
+      {==}
+    case 0n 1n+y:
+      Empty.absurd({Nat.max(0n, 1n+y) == 0n : Nat}, MNat.internal_false_ne_true(Equal.sym(Bool, True{}, False{}, e)))
+    case 1n+m 0n:
+      {==}
+    case 1n+m 1n+y:
+      Equal.cong(Nat, Nat, z => 1n+z, Nat.max(m, y), m, max_of_below(m, y, e))
+
+# x not above n puts n no lower than x
+def not_above_lt(+x: Nat, +n: Nat, e: {CT.above(x, n) == False{} : Bool}) -> {Nat.is_lt(n, x) == False{} : Bool}:
+  %MNat.is_gt_eq_is_lt(x, n) : {_ == False{} : Bool}
+  %Equal.sym(Bool, Nat.is_gt(x, n), CT.above(x, n), gt_is_above(x, n)) : {_ == False{} : Bool}
+  e
+
+# nor is x - r above n
+def above_sub(+x: Nat, +r: Nat, +n: Nat, e: {CT.above(x, n) == False{} : Bool}) -> {CT.above(Nat.sub(x, r), n) == False{} : Bool}:
+  %gt_is_above(Nat.sub(x, r), n) : {_ == False{} : Bool}
+  %Equal.sym(Bool, Nat.is_gt(Nat.sub(x, r), n), Nat.is_lt(n, Nat.sub(x, r)), MNat.is_gt_eq_is_lt(Nat.sub(x, r), n)) : {_ == False{} : Bool}
+  MNat.not_lt_of_le(Nat.sub(x, r), n,
+    MNat.le_trans(Nat.sub(x, r), x, n, MNat.sub_le(x, r), MNat.le_of_not_lt(n, x, not_above_lt(x, n, e))))
+
+# j - k not above n, nor is j - (k + r)
+def above_sub2(+j: Nat, +k: Nat, +r: Nat, +n: Nat, e: {CT.above(Nat.sub(j, k), n) == False{} : Bool}) ->
+  {CT.above(Nat.sub(j, Nat.add(k, r)), n) == False{} : Bool}:
+  %MNat.sub_sub(j, k, r) : {CT.above(_, n) == False{} : Bool}
+  above_sub(Nat.sub(j, k), r, n, e)
+
+# the second drop of a split, on whether the first left the level above n
+def splits.b(b: Bool, +r: Nat, +n: Nat, +j: Nat, +k: Nat, +eb: {CT.above(Nat.sub(j, k), n) == b : Bool}) ->
+  {CT.drop.go(b, n, Nat.max(n, Nat.sub(j, k)), r) == Nat.max(n, Nat.sub(j, Nat.add(k, r))) : Nat}:
+  match b:
+    case True{}:
+      %Equal.sym(Nat, Nat.max(n, Nat.sub(j, k)), Nat.sub(j, k), max_of_above(n, Nat.sub(j, k), eb)) :
+        {Nat.max(n, Nat.sub(_, r)) == Nat.max(n, Nat.sub(j, Nat.add(k, r))) : Nat}
+      Equal.cong(Nat, Nat, z => Nat.max(n, z), Nat.sub(Nat.sub(j, k), r), Nat.sub(j, Nat.add(k, r)), MNat.sub_sub(j, k, r))
+    case False{}:
+      %Equal.sym(Nat, Nat.max(n, Nat.sub(j, k)), n, max_of_below(n, Nat.sub(j, k), eb)) :
+        {_ == Nat.max(n, Nat.sub(j, Nat.add(k, r))) : Nat}
+      Equal.sym(Nat, Nat.max(n, Nat.sub(j, Nat.add(k, r))), n, max_of_below(n, Nat.sub(j, Nat.add(k, r)), above_sub2(j, k, r, n, eb)))
+
+# a split drop, on whether the level starts above n
+def splits.a(a: Bool, +k: Nat, +r: Nat, +n: Nat, +j: Nat, ea: {CT.above(j, n) == a : Bool}) ->
+  {CT.drop(n, r, CT.drop.go(a, n, j, k)) == CT.drop.go(a, n, j, Nat.add(k, r)) : Nat}:
+  match a:
+    case False{}:
+      %Equal.sym(Bool, CT.above(j, n), False{}, ea) : {CT.drop.go(_, n, j, r) == j : Nat}
+      {==}
+    case True{}:
+      %max_above(n, Nat.sub(j, k)) : {CT.drop.go(_, n, Nat.max(n, Nat.sub(j, k)), r) == Nat.max(n, Nat.sub(j, Nat.add(k, r))) : Nat}
+      splits.b(CT.above(Nat.sub(j, k), n), r, n, j, k, {==})
+
+def Laws.drop_run_splits(k, r, n, j):
+  splits.a(CT.above(j, n), k, r, n, j, {==})
+
+# no drop at all, on whether the level starts above n
+def dunits_zero.a(a: Bool, +n: Nat, +j: Nat, ea: {CT.above(j, n) == a : Bool}) -> {j == CT.drop.go(a, n, j, 0n) : Nat}:
+  match a:
+    case False{}:
+      {==}
+    case True{}:
+      %MNat.sub_zero_sym(j) : {j == Nat.max(n, _) : Nat}
+      Equal.sym(Nat, Nat.max(n, j), j, max_of_above(n, j, ea))
+
+def Laws.drop_units_are_run(b, n, j):
+  match b:
+    case 0n:
+      dunits_zero.a(CT.above(j, n), n, j, {==})
+    case 1n+p:
+      Equal.trans(Nat, CT.dunits(p, n, CT.drop(n, 1n, j)), CT.drop(n, p, CT.drop(n, 1n, j)), CT.drop(n, 1n+p, j),
+        Laws.drop_units_are_run(p, n, CT.drop(n, 1n, j)), Laws.drop_run_splits(1n, p, n, j))
+
 # over a Bool guard: raising by b in U32 is raising in Nat, when j + b fits
 def raise_g(g: Bool, +b: U32, +j: U32, h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))) ->
   {U32.to_nat(P.lift.go(g, True{}, b, j)) == CT.raise.go(g, U32.to_nat(j), U32.to_nat(b)) : Nat}:
