@@ -118,8 +118,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   holding copies of sources, set beside the maintainer's hierarchical
   heaps, at the maintainer's request: a glossary both ways, re-entry and
   cycles, the kept walk under an inner frame's writes (docketed for a
-  proof), and copies counted as cursor interactions. Drafted for the
-  maintainer.
+  proof), and copies counted as cursor interactions. Compared with the
+  second reviewer's: the finished mark and the stack as segments before
+  the self copy, the proof as a path law and a write-set law, copies
+  folded into the families' check. Drafted for the maintainer.
+- [`HierarchyFable_2026-11-13.md`](HierarchyFable_2026-11-13.md): the
+  second reviewer's review of the same question, by a Fable sub-agent,
+  kept as written.
 
 ## Retired
 

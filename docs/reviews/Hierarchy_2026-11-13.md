@@ -239,4 +239,90 @@ In order of value, with what each costs to reverse:
 
 ## The second reviewer
 
-Added when the second reviewer's review is in.
+A Fable sub-agent wrote `HierarchyFable_2026-11-13.md` from the same
+sources without reading this review: 24 findings, its recommendations
+R1 to R7 (its F18 to F24). The agent checked the quotations it rests on
+against their sources: the walk's path (`spike/kdemand.blend:19-21`,
+"Only the path's last node can be in a pair, the others facing
+auxiliary ports"), the cursor met as a need (`:317-326`), the gate
+admitting a `LAWS.bend` beside a `PROOF.bend` anywhere outside `bench/`
+(`scripts/check.sh:55-60`), the demand modes (`spike/kernel.bend:215-218`)
+and the path law proposed before (`Positions_2026-11-11.md:183-185`).
+
+**Where the two agree.** A heap per net below the core, one level above
+it, the only hierarchy dynamic (its F1, this review's F1 and F2); no
+transfer, a count of a source's rings the first step toward one (its F2,
+F23; this review's F4); the serve as a batch of cursor interactions,
+counted per node and folded into the families' check, `SLACK_SERVES`
+and `sources=N` retired (its F3, F14, F15, F19; this review's F9, F11),
+its measurements the same as the agent's; release coarser than the
+maintainer's rule (its F4, this review's F6); `SvCur` kept (its F11);
+the batch kept, no per-node pulls (its F17, F24).
+
+**What it adds, adopted.**
+- *The rings make a graph, not a tree* (its F1): every `g{i}` of
+  `nested_sources.g` holds a copy of the one `p`. A tree of owners and
+  a graph of use are different structures, and the image needs both.
+- *Positions are stable only under plain demand* (its F8, F18, R1): the
+  busy key, the joins and the rings all name positions, which hold
+  because the core runs mode 0, no events and no collection, while the
+  finished mark (`copied-nodes-untouched`) is unbuilt. A self ring names
+  positions in the very net being reduced, so the mark comes before
+  `.nested.self`. This review's F7 missed it.
+- *The self copy against the code* (its F10): today's path would meet
+  `SrcOut`, the host holding the source itself; the self case needs the
+  reentered host released by construction, a one-net serve, and a host
+  that is the net itself. Sharper than this review's F7.
+- *The stack as segments* (its F7, F21, R4): a cell's task with the
+  frames above it as one value, only the top segment's frames keeping
+  walks, so the invariant holds by shape and the three guards ("a value
+  forced for a frame going on" twice, "a live source served twice at
+  once") become unreachable. As AGENTS asks of state shapes.
+- *The proof in two laws* (its F12, F13, R3): the walk reads only path
+  nodes' principal links when it climbs, so a join rewiring a path
+  node's auxiliary port is transparent, and a cursor, one port, is never
+  pushed. First a path law in `spike/`, which the kernel already
+  assumes and which serves `cells-freeze.rewalk` and the cell host too;
+  then a write-set law over a host-side function split out of the
+  serve, in a new `glam/LAWS.bend`, with three mutants. Sharper than
+  this review's F8.
+- *Quotas* (its F16): fuel meters walks, not copies, so a serve is one
+  step of unbounded size; charge its nodes after the fact, a slice
+  overrunning by at most one serve.
+- *Per-node pulls do not fit Bend* (its F17): a rule rewrites one net,
+  and the source is another affine array it cannot hold; the batch is
+  the grain Bend allows, not only the cheaper one.
+
+**Where they differ.**
+- *Mutual recursion through live sources* (its F9, R5, not run): it
+  expects n^2/2 steps walked again, each level releasing the walk below.
+  The agent ran two live functions recursing through each other over a
+  list of n Church pairs, n = 8, 16, 32: one source stop and no step
+  walked again at every size, 16, 28 and 52 serves. Each level's work
+  waits on its argument, so it is copied into the host and served from
+  the host's task, not nested in the other source. The re-walk needs
+  work independent of the argument at a new position each level, which
+  neither reviewer has built; open, lower than its R5 ranks it. A side
+  finding of the same run: the traversal costs 2,033, 7,565 and 29,189
+  interactions, quadratic, and the same with `ev` and `od` as templates
+  (2,037, 7,577, 29,217), while the list alone costs 16 at every size.
+  The quadratic is in sharing the Church pairs, not in live functions.
+- *Release* (its F4, this review's F6): it would narrow only the frame
+  case, keeping release at a wait; this review would also keep a
+  frame's walk across its own wait. Compatible: narrow the frame case
+  first, measure waits before the rest.
+
+**The combined order.**
+1. The vocabulary; copies, and a splice's nodes, folded into
+   interactions, `SLACK_SERVES` and `sources=N` retired, the families'
+   bound set after measuring (both; on the maintainer's tuning).
+2. The finished mark, `copied-nodes-untouched` (its R1).
+3. The stack as segments (its R4).
+4. `cells-freeze.nested.self`: the reentered host released, a one-net
+   serve (its F10).
+5. The path law in `spike/`, then the write-set law in `glam/` (its R3,
+   `cells-freeze.nested.host`).
+6. A count of rings per source, and the book and the sources as one
+   array of entries (its R6); local cells after (this review's F4).
+7. Release narrowed per source, when measured (both).
+8. No per-node pulls (both).
