@@ -32461,13 +32461,31 @@ def alloc_pop(+t: LAT.Tree<U32>, -a: Array<V.Val>, +fh: U32,
     {P.alloc.pop(KM.m_get.fin(_), ((fh - 1 : U32) << 2n : U32), a) == (P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))))}, a}, ((fh - 1 : U32) << 2n : U32)) : P.H & U32}
   {==}
 
+# a node's payload word, 2 or 3 by its kind: the slot it writes is
+# neither of the slots the law's premises keep it from
+def word_ne(+hd: U32, +n: U32, +d: Nat, +j: U32, +b: Bool, e: {U32.is_eq((hd .&. 63 : U32), 5) == b : Bool},
+  +h2: {Nat.is_eq(AD.slot((n + 2 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +h3: {Nat.is_eq(AD.slot((n + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}) ->
+  {Nat.is_eq(AD.slot((n + P.node.word(hd) : U32), d), AD.slot(j, d)) == False{} : Bool}:
+  match b:
+    case True{}:
+      %Equal.sym(Bool, U32.is_eq((hd .&. 63 : U32), 5), True{}, e) :
+        {Nat.is_eq(AD.slot((n + P.node.word.t(_) : U32), d), AD.slot(j, d)) == False{} : Bool}
+      h2
+    case False{}:
+      %Equal.sym(Bool, U32.is_eq((hd .&. 63 : U32), 5), False{}, e) :
+        {Nat.is_eq(AD.slot((n + P.node.word.t(_) : U32), d), AD.slot(j, d)) == False{} : Bool}
+      h3
+
 def node_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +fh: U32, +hd: U32, +p: U32, +j: U32,
   hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
   hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32},
   +hne: {U32.is_eq(fh, 0) == False{} : Bool},
   +hj0: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool},
-  +hj1: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(j, d)) == False{} : Bool},
-  +hj2: {Nat.is_eq(AD.slot(((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +hw0: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(j, d)) == False{} : Bool},
+  -hw1: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +hw2: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 2 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +hw3: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool},
   m: LAT.Mirror(U32, w)) ->
   {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
   (+t, +e) = m
@@ -32483,13 +32501,13 @@ def node_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +fh: U32, +hd: U32,
   %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), j), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j))), LA.get_pair(U32, LAT.fromT(U32, t), j)) :
     {Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j)) == Pair.snd(P.H, U32, P.rd.fin(KM.m_get.fin(_), a)) : U32}
   Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), p), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)),
-    LA.get_set_other(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), d, ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), j, p, hf2, hd32, hj2),
+    LA.get_set_other(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), d, ((((fh - 1 : U32) << 2n : U32)) + P.node.word(hd) : U32), j, p, hf2, hd32, word_ne(hd, ((fh - 1 : U32) << 2n : U32), d, j, U32.is_eq((hd .&. 63 : U32), 5), {==}, hw2, hw3)),
     Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), ((fh - 1 : U32) << 2n : U32), hd), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)),
-      LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), j, hd, hf1, hd32, hj1),
+      LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), P.at_fh(), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32)))), d, ((fh - 1 : U32) << 2n : U32), j, hd, hf1, hd32, hw0),
       LA.get_set_other(U32, LAT.fromT(U32, t), d, P.at_fh(), j, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), ((((fh - 1 : U32) << 2n : U32)) + 1 : U32))), hft, hd32, hj0)))
 
-def Laws.node_keeps(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hj1, hj2):
-  node_keeps.go(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hj1, hj2, LAT.mirror(U32, w))
+def Laws.node_keeps(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hw0, hw1, hw2, hw3):
+  node_keeps.go(w, a, d, fh, hd, p, j, hf, hd32, hfh, hne, hj0, hw0, hw1, hw2, hw3, LAT.mirror(U32, w))
 
 def node_next.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +fh: U32, +hd: U32, +p: U32,
   hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
