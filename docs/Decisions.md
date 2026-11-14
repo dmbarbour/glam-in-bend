@@ -173,6 +173,12 @@ where the shared lazy state that Bend cannot hold goes.
 - [`serve-write-sets-hybrid`](decisions/serve-write-sets-hybrid.md): a
   serve's writes stated by what decides them: the splice's as an exact
   list of words, the joins' and cursors', decided by walks, by regions.
+- [`ring-walks-fueled-by-heap`](decisions/ring-walks-fueled-by-heap.md):
+  a walk round a ring takes as fuel the size of the heap's words array,
+  so that no law names a fuel.
+- [`corruption-reported-when-cheap`](decisions/corruption-reported-when-cheap.md):
+  correctness proved, not guarded; but a state only corruption reaches,
+  detected for free (a walk out of fuel), raises the kernel's error.
 - [`copied-controls-unfused`](decisions/copied-controls-unfused.md): a
   control a copy has taken out of a live source is marked, and runtime
   fusion refuses it; fusion stays everywhere else.
