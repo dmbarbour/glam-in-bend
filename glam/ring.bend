@@ -1,0 +1,179 @@
+import Base
+import ../spike/kprim.bend as P
+
+# A copy's ring and its joins (the Cells plan's
+# cells-freeze.cursors.materialize; docs/reviews/Joins_2026-11-11.md),
+# out of glam/materialize.bend, which uses them, so that the laws of
+# rings (glam/LAWS.bend) import the heap's primitives alone: a ring is a
+# copy's cursors linked through word 3, round a situating node of form 2
+# holding the source's handle; a join replaces two cursors by one wire.
+
+# A ring
+# ======
+
+def rg.next(h: P.H, +x: U32) -> P.H & U32:
+  P.rd(h, (x + 3 : U32))
+
+# a walk round a ring: the net, the node reached, the one before it, and
+# what was found, the walk done once it is
+type Rw is Type:
+  Rw{h: P.H, +x: U32, +p: U32, found: Maybe<&2, U32>, done: Bool}
+
+def rw.on(r: P.H & U32, +x: U32) -> Rw:
+  (h, +n) = r
+  Rw{h, n, x, None{}, False{}}
+
+# looking for position far: at the situating node again, none; x's
+# position far, x; else on to the next
+def rw.find.k(+hit: Bool, h: P.H, +x: U32) -> Rw:
+  match hit:
+    case True{}:
+      Rw{h, x, x, Some{x}, True{}}
+    case False{}:
+      rw.on(rg.next(h, x), x)
+
+def rw.find.p(r: P.H & U32, +x: U32, +far: U32) -> Rw:
+  (h, +pos) = r
+  rw.find.k(U32.is_eq(pos, far), h, x)
+
+def rw.find.s(+home: Bool, h: P.H, +x: U32, +far: U32) -> Rw:
+  match home:
+    case True{}:
+      Rw{h, x, x, None{}, True{}}
+    case False{}:
+      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
+
+def rg.find.go(f: Nat, w: Rw, +situ: U32, +far: U32) -> Rw:
+  match f:
+    case 0n:
+      w
+    case 1n+g:
+      match w:
+        case Rw{h, +x, +p, found, done}:
+          match done:
+            case True{}:
+              Rw{h, x, p, found, True{}}
+            case False{}:
+              rg.find.go(g, rw.find.s(U32.is_eq(x, situ), h, x, far), situ, far)
+
+def rg.found(w: Rw) -> P.H & Maybe<&2, U32>:
+  match w:
+    case Rw{h, +x, +p, found, done}:
+      (h, found)
+
+# the cursor of situ's ring at position far, if any
+def rg.find(h: P.H, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
+  rg.found(rg.find.go(1000000n, rw.on(rg.next(h, situ), situ), situ, far))
+
+# looking for x's predecessor: the node reached is x, the one before it
+# found
+def rw.pred.k(+hit: Bool, h: P.H, +n: U32, +p: U32) -> Rw:
+  match hit:
+    case True{}:
+      Rw{h, n, p, Some{p}, True{}}
+    case False{}:
+      rw.on(rg.next(h, n), n)
+
+def rg.pred.go(f: Nat, w: Rw, +x: U32) -> Rw:
+  match f:
+    case 0n:
+      w
+    case 1n+g:
+      match w:
+        case Rw{h, +n, +p, found, done}:
+          match done:
+            case True{}:
+              Rw{h, n, p, found, True{}}
+            case False{}:
+              rg.pred.go(g, rw.pred.k(U32.is_eq(n, x), h, n, p), x)
+
+def rg.pred.w(w: Rw) -> P.H & U32:
+  match w:
+    case Rw{h, +n, +p, found, done}:
+      (h, p)
+
+# x's predecessor in its ring, found by walking from x
+def rg.pred(h: P.H, +x: U32) -> P.H & U32:
+  rg.pred.w(rg.pred.go(1000000n, rw.on(rg.next(h, x), x), x))
+
+def rg.unlink.set(r: P.H & U32, +p: U32) -> P.H:
+  (h, +nx) = r
+  P.wr(h, (p + 3 : U32), nx)
+
+def rg.unlink.p(r: P.H & U32, +x: U32) -> P.H:
+  (h, +p) = r
+  rg.unlink.set(rg.next(h, x), p)
+
+# x taken out of its ring: its predecessor's word 3 given x's
+def rg.unlink(h: P.H, +x: U32) -> P.H:
+  rg.unlink.p(rg.pred(h, x), x)
+
+# x put in situ's ring, after situ
+def rg.insert.r(r: P.H & U32, +situ: U32, +x: U32) -> P.H:
+  (h, +n) = r
+  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
+
+def rg.insert(h: P.H, +situ: U32, +x: U32) -> P.H:
+  rg.insert.r(rg.next(h, situ), situ, x)
+
+# looking for the situating node: its form 2
+def rw.situ.k(+yes: Bool, h: P.H, +n: U32) -> Rw:
+  match yes:
+    case True{}:
+      Rw{h, n, n, Some{n}, True{}}
+    case False{}:
+      rw.on(rg.next(h, n), n)
+
+def rw.situ.f(r: P.H & U32, +n: U32) -> Rw:
+  (h, +hd) = r
+  rw.situ.k(U32.is_eq(P.form(hd), 2), h, n)
+
+def rg.situ.go(f: Nat, w: Rw) -> Rw:
+  match f:
+    case 0n:
+      w
+    case 1n+g:
+      match w:
+        case Rw{h, +n, +p, found, done}:
+          match done:
+            case True{}:
+              Rw{h, n, p, found, True{}}
+            case False{}:
+              rg.situ.go(g, rw.situ.f(P.rd(h, n), n))
+
+def rg.situ.w(w: Rw) -> P.H & U32:
+  match w:
+    case Rw{h, +n, +p, found, done}:
+      (h, n)
+
+# the situating node of x's ring
+def rg.situ(h: P.H, +x: U32) -> P.H & U32:
+  rg.situ.w(rg.situ.go(1000000n, Rw{h, x, x, None{}, False{}}))
+
+# Joins
+# =====
+
+def jn.w(r: P.H & U32, +u: U32, +x: U32, +y: U32) -> P.H:
+  (h, +w) = r
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
+
+def jn.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
+  (h, +u) = r
+  jn.w(P.rd(h, (y + 1 : U32)), u, x, y)
+
+# two cursors x and y of one ring (or a placeholder x, not in the ring,
+# and a cursor y) replaced by one wire between what each faced
+def join(h: P.H, +x: U32, +y: U32) -> P.H:
+  jn.u(P.rd(h, (x + 1 : U32)), x, y)
+
+def jn1.w(r: P.H & U32, +u: U32, +x: U32, +y: U32) -> P.H:
+  (h, +w) = r
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
+
+def jn1.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
+  (h, +u) = r
+  jn1.w(P.rd(h, (y + 1 : U32)), u, x, y)
+
+# a placeholder x, in no ring, and a ring's cursor y, replaced by a wire
+def join1(h: P.H, +x: U32, +y: U32) -> P.H:
+  jn1.u(P.rd(h, (x + 1 : U32)), x, y)
