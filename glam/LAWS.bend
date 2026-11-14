@@ -215,3 +215,39 @@ law insert_exact:
   for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hx: {RG.apart(Con{s, t}, d, x) == True{} : Bool}
   {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
+
+# LAW: a join of two cursors x and y of an exact ring leaves the ring
+# exact without both: listed as pa, x, pb, and pa, pb as pc, y, pd, the
+# ring after the join is pc, pd (cells-freeze.nested.host.ring.exact).
+# Premises not yet derived, each of the nodes' forms and bases: the two
+# faced ports' link words are no member's word 3; nor are the words the
+# frees write, x's and y's words 0 and 1 and the head, any remaining
+# member's; and x and y node bases.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law join_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +pa: List<&2, U32>
+  for +x: U32
+  for +pb: List<&2, U32>
+  for +pc: List<&2, U32>
+  for +y: U32
+  for +pd: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pa, Con{x, pb})) == True{} : Bool}
+  for hsp: {List.append(&2, U32, pa, pb) == List.append(&2, U32, pc, Con{y, pd}) : List<&2, U32>}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pa, Con{x, pb})), 1000000n) == True{} : Bool}
+  for hbx: {P.base(x) == x : U32}
+  for hby: {P.base(y) == y : U32}
+  for hu: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{x, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hw: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{x, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hx0: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, x) == True{} : Bool}
+  for hx1: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, (x + 1 : U32)) == True{} : Bool}
+  for hy0: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, y) == True{} : Bool}
+  for hy1: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, (y + 1 : U32)) == True{} : Bool}
+  for hh: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, P.at_fh()) == True{} : Bool}
+  {RG.ring(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, List.append(&2, U32, pc, pd)) == True{} : Bool}

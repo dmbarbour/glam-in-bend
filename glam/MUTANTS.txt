@@ -67,7 +67,7 @@ the cursor inserted given situ's word 2, its position, as its next
 # A join (join_keeps): each mutation writes a word outside the ring's
 # members, the free list's head and the faced ports' link words.
 
-=== join_unlink_faced join_keeps
+=== join_unlink_faced join_keeps join_exact
 the port x faced unlinked, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
@@ -153,3 +153,12 @@ the predecessor given itself as its next
 >>> witness unlink_exact
 def witness() -> {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)}, [V.VUnit{} : V.Val^1n]}, 12))), 6n, 8, Con{16, Nil{}}) == True{} : Bool}:
   {==}
+
+=== join_unlinks_x_twice join_exact
+x unlinked twice and y never: y left in the ring (its witness, a walk
+out of fuel, too long for the checker; shown by running the code,
+docs/reviews/JoinLaws_2026-11-14.md)
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), x), x), y)
