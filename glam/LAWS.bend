@@ -102,8 +102,7 @@ law insert_closed:
 # which the serve's next finds and joins read, and the kernel's error
 # count, which no walk round an exact ring raises
 # (cells-freeze.nested.host.join; docs/reviews/JoinLaws_2026-11-14.md,
-# F1). Premise not yet derived: fewer cursors than the heap's words (a
-# pigeonhole to come).
+# F1).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_keeps:
@@ -121,7 +120,6 @@ law join_keeps:
   for hx: {RG.has(t, x) == True{} : Bool}
   for hy: {RG.has(t, y) == True{} : Bool}
   for hxy: {U32.is_eq(x, y) == False{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
@@ -151,7 +149,6 @@ law join1_keeps:
   for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hx: {RG.node.ok(AD.view(U32, w), d, Con{s, t}, x) == True{} : Bool}
   for hy: {RG.has(t, y) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
@@ -164,10 +161,9 @@ law join1_keeps:
 # node s, then its cursors t in walk order, each one's word 3 the next,
 # the last's s, no two word 3 in one slot), the node the walk finds
 # before a cursor x is the one listed before it (RG.before)
-# (cells-freeze.nested.host.ring.exact). The ring has fewer cursors than
-# the heap has words, the walk's fuel (ring-walks-fueled-by-heap); a
-# pigeonhole over the members' distinct word-3 slots will make that a
-# theorem.
+# (cells-freeze.nested.host.ring.exact). The walk's fuel, the heap's
+# words (ring-walks-fueled-by-heap), is enough: an exact ring's members'
+# word 3 lie in distinct slots of them.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law pred_exact:
@@ -181,7 +177,6 @@ law pred_exact:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hx: {RG.has(t, x) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.before(t, s, x) : U32}
 
 # LAW: unlinking a cursor x of an exact ring leaves the ring exact
@@ -200,7 +195,6 @@ law unlink_exact:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hx: {RG.has(t, x) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, s, RG.without(t, x)) == True{} : Bool}
 
 # LAW: inserting a cursor x after the situating node s of an exact ring,
@@ -225,8 +219,7 @@ law insert_exact:
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each
 # facing a port whose link word is off the ring's links) leaves it so
-# without both (cells-freeze.nested.host.ring.exact). Premise not yet
-# derived: fewer cursors than the heap's words (a pigeonhole to come).
+# without both (cells-freeze.nested.host.ring.exact).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_exact:
@@ -243,13 +236,10 @@ law join_exact:
   for hx: {RG.has(t, x) == True{} : Bool}
   for hy: {RG.has(t, y) == True{} : Bool}
   for hxy: {U32.is_eq(x, y) == False{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(RG.without(t, x), y)) == True{} : Bool}
 # LAW: a join of a placeholder x, a node apart from the ring
 # (RG.node.ok), with a cursor y of a ring exact with its nodes
 # (RG.ring.ok) leaves it so without y (cells-freeze.nested.host.ring.exact).
-# Premise not yet derived: fewer cursors than the heap's words (a
-# pigeonhole to come).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join1_exact:
@@ -265,15 +255,12 @@ law join1_exact:
   for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hx: {RG.node.ok(AD.view(U32, w), d, Con{s, t}, x) == True{} : Bool}
   for hy: {RG.has(t, y) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y)) == True{} : Bool}
 
 # LAW: a cursor c of a ring exact with its nodes leaving it, the port it
 # faced linked to a port p whose link word is off the ring's links (a
 # copied node's port, or the static eraser, whose link word is the
 # head's), leaves the ring so without c (cells-freeze.nested.host.ring.exact).
-# Premise not yet derived: fewer cursors than the heap's words (a
-# pigeonhole to come).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law leave_exact:
@@ -289,5 +276,4 @@ law leave_exact:
   for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hc: {RG.has(t, c) == True{} : Bool}
   for hp: {RG.off.links(Con{s, t}, d, (p + 1 : U32)) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, RG.without(t, c)) == True{} : Bool}
