@@ -5,7 +5,7 @@
 # Unlinking a cursor from its ring (unlink_keeps): each mutation writes a
 # word the law says is left alone.
 
-=== unlink_word2 unlink_keeps
+=== unlink_word2 unlink_keeps unlink_closed
 the predecessor's word 2, its position, given the cursor's next
 --- ring.bend
   P.wr(h, (p + 3 : U32), nx)
@@ -39,3 +39,27 @@ def rg.next(h: P.H, +x: U32) -> P.H & U32:
 +++
 def rg.next(h: P.H, +x: U32) -> P.H & U32:
   P.rd(h, (x + 2 : U32))
+
+# The ring closed (unlink_closed, insert_closed): each mutation leaves a
+# link out of the ring's members.
+
+=== unlink_to_self unlink_closed
+the predecessor given the cursor unlinked, not the cursor's next
+--- ring.bend
+  rg.unlink.set(rg.next(h, x), p)
++++
+  rg.unlink.set((h, x), p)
+
+=== insert_word2 insert_closed
+the cursor inserted given its next in its word 2, its position
+--- ring.bend
+  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
++++
+  P.wr(P.wr(h, (x + 2 : U32), n), (situ + 3 : U32), x)
+
+=== insert_next_by_position insert_closed
+the cursor inserted given situ's word 2, its position, as its next
+--- ring.bend
+  rg.insert.r(rg.next(h, situ), situ, x)
++++
+  rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)

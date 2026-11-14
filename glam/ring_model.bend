@@ -1,4 +1,6 @@
 import Base
+import ../spike/kprim.bend as P
+import ../spike/kmem_grow.bend as KM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # Rings, modelled for glam's laws (glam/LAWS.bend; the Cells plan's
@@ -38,3 +40,21 @@ def closed.go(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, ys: List<&2, U32>)
 # that a walk round it from a member meets members alone
 def closed(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>) -> Bool:
   closed.go(v, d, xs, xs)
+
+# a heap's words, as the laws read a heap after a step
+def words(h: P.H) -> Array<U32>:
+  match h:
+    case P.H{w, a}:
+      match w:
+        case KM.MG{x}:
+          x
+
+# x's word 3 is no member's word 3, slot by slot: a node apart from the
+# ring xs, as a cursor new to it is
+def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, t}:
+      Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot((y + 3 : U32), d))) && apart(t, d, x)
+
