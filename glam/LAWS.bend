@@ -94,83 +94,70 @@ law insert_closed:
   {RG.closed(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, situ, x))), d, Con{x, xs}) == True{} : Bool}
 
 
-# LAW: a join of two members x and y of a closed ring, each a node's
-# base, writes no word but the members' word 3, x's and y's own four
-# words, the free list's head and the link words of the two ports x and
-# y faced (each one's word 1 holds the port it faces): every other word
-# reads as before, the other members' words 0 to 2 among them, which the
-# serve's next finds and joins read (cells-freeze.nested.host.join;
-# docs/reviews/JoinLaws_2026-11-14.md, F1). Premises not yet derived: the
-# ports' link words are no member's word 3 (off.links), so that the link
-# leaves the ring closed for the two walks that follow; and x and y node
-# bases (P.base). Not claimed: which members' word 3 are written, nor
-# that the ring left is a cycle without x and y.
-# The kernel's error count may be written too, where a walk runs out of
-# fuel on a ring not closed into a cycle (corruption-reported-when-cheap),
-# and is no member's word 3.
+# LAW: a join of two distinct cursors x and y of a ring exact with its
+# nodes (RG.ring.ok) writes no word but the members' word 3, x's and y's
+# own four words, the free list's head and the link words of the two
+# ports x and y faced (each one's word 1 holds the port it faces): every
+# other word reads as before, the other members' words 0 to 2 among them,
+# which the serve's next finds and joins read, and the kernel's error
+# count, which no walk round an exact ring raises
+# (cells-freeze.nested.host.join; docs/reviews/JoinLaws_2026-11-14.md,
+# F1). Premise not yet derived: fewer cursors than the heap's words (a
+# pigeonhole to come).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
   for +x: U32
   for +y: U32
-  for +xs: List<&2, U32>
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}
-  for hx: {RG.has(xs, x) == True{} : Bool}
-  for hy: {RG.has(xs, y) == True{} : Bool}
-  for hbx: {P.base(x) == x : U32}
-  for hby: {P.base(y) == y : U32}
-  for hu: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hw: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hj: {RG.off.links(xs, d, j) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.has(t, x) == True{} : Bool}
+  for hy: {RG.has(t, y) == True{} : Bool}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}
-  for he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
-# LAW: and a join of a placeholder x, in no ring (or in it: x's words
-# are allowed either way), with a member y of a closed ring writes no
+# LAW: and a join of a placeholder x, a node apart from the ring
+# (RG.node.ok), with a cursor y of a ring exact with its nodes writes no
 # word but the members' word 3, x's and y's own four words, the free
 # list's head and the two faced ports' link words
 # (cells-freeze.nested.host.join), on the same premises.
-# The kernel's error count may be written too, where a walk runs out of
-# fuel on a ring not closed into a cycle (corruption-reported-when-cheap),
-# and is no member's word 3.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join1_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
   for +x: U32
   for +y: U32
-  for +xs: List<&2, U32>
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}
-  for hy: {RG.has(xs, y) == True{} : Bool}
-  for hbx: {P.base(x) == x : U32}
-  for hby: {P.base(y) == y : U32}
-  for hu: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hw: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hj: {RG.off.links(xs, d, j) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.node.ok(AD.view(U32, w), d, Con{s, t}, x) == True{} : Bool}
+  for hy: {RG.has(t, y) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}
-  for he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: in an exact ring (glam/ring_model.bend's ring: the situating
