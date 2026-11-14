@@ -51,8 +51,14 @@ it alone taught. Add to this file what a new proof teaches.
   at a small instance, proved by `{==}`, which checks unmutated (so the
   instance meets the premises left out) and is refuted mutated. A
   witness is the stronger evidence: it shows the statement excludes the
-  fault, however the proof is built. A law that survives the mutation
-  claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  fault, however the proof is built. A mutation counted caught shows
+  only that the proof broke: one that changes the steps a proof follows
+  breaks it even where the law stays true of the mutated code (an unlink
+  that also clears its predecessor's position breaks `join_keeps`'s
+  proof, which allows that word; `docs/reviews/JoinLaws_2026-11-14.md`,
+  F1). To show a law excludes a fault, check a witness both ways by
+  hand: `scripts/one_law.py` runs one only where the checker crashes. A
+  law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are

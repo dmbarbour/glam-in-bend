@@ -91,7 +91,7 @@ law insert_closed:
 # LAW: a join of two members x and y of a closed ring, each a node's
 # base, writes no word outside the ring's members' four words, the free
 # list's head and the link words of the two ports x and y faced (each
-# one's word 1 holds its port): every other word reads as before
+# one's word 1 holds the port it faces): every other word reads as before
 # (cells-freeze.nested.host.join). Premises not yet derived: the ports'
 # link words are no member's word 3 (off.links), so that the link leaves
 # the ring closed for the two walks that follow; and x and y node bases
