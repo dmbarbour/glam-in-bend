@@ -179,6 +179,15 @@ it alone taught. Add to this file what a new proof teaches.
   `(a, snd(...))` (lawful-arrays' `get_pair`) under a hole at the
   destructuring function (`P.rd.fin(KM.m_get.fin(_), a)`), and the goal
   reduces to the array law's own.
+- **A chain of steps composes through each step's parts.** Laws over a
+  heap are stated on its parts (`P.H{KM.MG{w}, a}`); a step's result is
+  not syntactically so. Give each step a lemma restating its result in
+  parts, `P.H{KM.MG{words(op(h))}, a} == op(h)`, and rewrite the chain
+  from the inside out, so that each next law applies with `w` the
+  previous step's `words(...)`; take that `w` erased with its mirror, so
+  that the composition names it freely, and each term grows by one step,
+  not by the copies a step's explicit words would make (`join_keeps.go`
+  in `glam/PROOF.bend`, five steps, checked in seconds).
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

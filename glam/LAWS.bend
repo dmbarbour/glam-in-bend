@@ -87,3 +87,66 @@ law insert_closed:
   for hx: {RG.apart(xs, d, x) == True{} : Bool}
   {RG.closed(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, situ, x))), d, Con{x, xs}) == True{} : Bool}
 
+
+# LAW: a join of two members x and y of a closed ring, each a node's
+# base, writes no word outside the ring's members' four words, the free
+# list's head and the link words of the two ports x and y faced (each
+# one's word 1 holds its port): every other word reads as before
+# (cells-freeze.nested.host.join). Premises not yet derived: the ports'
+# link words are no member's word 3 (off.links), so that the link leaves
+# the ring closed for the two walks that follow; and x and y node bases
+# (P.base). Not claimed: which members' words are written, nor that the
+# ring left is a cycle without x and y.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law join_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +x: U32
+  for +y: U32
+  for +xs: List<&2, U32>
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}
+  for hx: {RG.has(xs, x) == True{} : Bool}
+  for hy: {RG.has(xs, y) == True{} : Bool}
+  for hbx: {P.base(x) == x : U32}
+  for hby: {P.base(y) == y : U32}
+  for hu: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hw: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hj: {RG.outside(xs, d, j) == True{} : Bool}
+  for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: and a join of a placeholder x, in no ring, with a member y of a
+# closed ring writes no word outside the ring's members' four words, x's
+# own four, the free list's head and the two faced ports' link words
+# (cells-freeze.nested.host.join), on the same premises.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law join1_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +x: U32
+  for +y: U32
+  for +xs: List<&2, U32>
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}
+  for hy: {RG.has(xs, y) == True{} : Bool}
+  for hbx: {P.base(x) == x : U32}
+  for hby: {P.base(y) == y : U32}
+  for hu: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hw: {RG.off.links(xs, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hj: {RG.outside(xs, d, j) == True{} : Bool}
+  for hjx: {RG.off.node(d, x, j) == True{} : Bool}
+  for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}

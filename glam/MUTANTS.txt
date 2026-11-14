@@ -63,3 +63,48 @@ the cursor inserted given situ's word 2, its position, as its next
   rg.insert.r(rg.next(h, situ), situ, x)
 +++
   rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)
+
+# A join (join_keeps): each mutation writes a word outside the ring's
+# members, the free list's head and the faced ports' link words.
+
+=== join_unlink_faced join_keeps
+the port x faced unlinked, not x
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), u), y), x), y)
+
+=== join_link_next_port join_keeps
+the port y faced linked one word on
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), x), y), x), y)
+
+=== join_frees_next_node join_keeps
+the node after x freed, not x
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), (x + 4 : U32)), y)
+
+=== join_port_by_position join_keeps
+y's word 2, its position, read as the port it faced
+--- ring.bend
+  jn.w(P.rd(h, (y + 1 : U32)), u, x, y)
++++
+  jn.w(P.rd(h, (y + 2 : U32)), u, x, y)
+
+=== join1_unlinks_placeholder join1_keeps
+the placeholder unlinked, not the ring's cursor
+--- ring.bend
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
++++
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), x), x), y)
+
+=== join1_frees_faced join1_keeps
+the port the placeholder faced freed, not the placeholder
+--- ring.bend
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
++++
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), u), y)
