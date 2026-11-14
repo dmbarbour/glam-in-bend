@@ -220,11 +220,10 @@ law insert_exact:
 
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
-# sharing a word's slot nor any on the head's, each member a base) leaves
-# it so without both (cells-freeze.nested.host.ring.exact). Premises not yet
-# derived: the two faced ports' link words no member's word 3 (a ring
-# invariant to come, faces); fewer cursors than the heap's words (a
-# pigeonhole to come).
+# sharing a word's slot nor any on the head's, each member a base, each
+# facing a port whose link word is off the ring's links) leaves it so
+# without both (cells-freeze.nested.host.ring.exact). Premise not yet
+# derived: fewer cursors than the heap's words (a pigeonhole to come).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_exact:
@@ -242,6 +241,4 @@ law join_exact:
   for hy: {RG.has(t, y) == True{} : Bool}
   for hxy: {U32.is_eq(x, y) == False{} : Bool}
   for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
-  for hu: {RG.off.links(Con{s, t}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hw: {RG.off.links(Con{s, t}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(RG.without(t, x), y)) == True{} : Bool}

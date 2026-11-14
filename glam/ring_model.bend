@@ -202,6 +202,24 @@ def bases(ys: List<&2, U32>) -> Bool:
     case Con{+m, t}:
       U32.is_eq(P.base(m), m) && bases(t)
 
-# the ring exact, its nodes laid out apart, each member a base
+# what a member faces, by its word 1: a port whose link word is no word
+# 3 of M's, so that linking it leaves the ring's links alone; a static
+# eraser (all ones) has its link word on the head's word, off them too
+def faces.m(m: Maybe<&2, U32>, +d: Nat, +M: List<&2, U32>) -> Bool:
+  match m:
+    case Some{+r}:
+      off.links(M, d, (r + 1 : U32))
+    case None{}:
+      False{}
+
+def faces(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +M: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+m, t}:
+      faces.m(List.get(&2, U32, v, AD.slot((m + 1 : U32), d)), d, M) && faces(t, v, d, M)
+
+# the ring exact, its nodes laid out apart, each member a base, each
+# facing a port off its links
 def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
-  ring(v, d, s, t) && (layout(Con{s, t}, d) && bases(Con{s, t}))
+  ring(v, d, s, t) && (layout(Con{s, t}, d) && (bases(Con{s, t}) && faces(Con{s, t}, v, d, Con{s, t})))
