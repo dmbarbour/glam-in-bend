@@ -258,3 +258,49 @@ law join_exact:
   for hxy: {U32.is_eq(x, y) == False{} : Bool}
   for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(RG.without(t, x), y)) == True{} : Bool}
+# LAW: a join of a placeholder x, a node apart from the ring
+# (RG.node.ok), with a cursor y of a ring exact with its nodes
+# (RG.ring.ok) leaves it so without y (cells-freeze.nested.host.ring.exact).
+# Premise not yet derived: fewer cursors than the heap's words (a
+# pigeonhole to come).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law join1_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for +y: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.node.ok(AD.view(U32, w), d, Con{s, t}, x) == True{} : Bool}
+  for hy: {RG.has(t, y) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y)) == True{} : Bool}
+
+# LAW: a cursor c of a ring exact with its nodes leaving it, the port it
+# faced linked to a port p whose link word is off the ring's links (a
+# copied node's port, or the static eraser, whose link word is the
+# head's), leaves the ring so without c (cells-freeze.nested.host.ring.exact).
+# Premise not yet derived: fewer cursors than the heap's words (a
+# pigeonhole to come).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law leave_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +p: U32
+  for +c: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hc: {RG.has(t, c) == True{} : Bool}
+  for hp: {RG.off.links(Con{s, t}, d, (p + 1 : U32)) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, RG.without(t, c)) == True{} : Bool}

@@ -223,3 +223,10 @@ def faces(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +M: List<&2, U32>) -> B
 # facing a port off its links
 def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
   ring(v, d, s, t) && (layout(Con{s, t}, d) && (bases(Con{s, t}) && faces(Con{s, t}, v, d, Con{s, t})))
+
+# a node x apart from the ring M, as a placeholder joined to it is: none
+# of its words in a slot of a member's, its own base, facing a port off
+# the ring's links (the serve's to show, from the allocator and the
+# splice)
+def node.ok(+v: List<&2, U32>, +d: Nat, +M: List<&2, U32>, +x: U32) -> Bool:
+  cross(M, d, x) && (U32.is_eq(P.base(x), x) && faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, M))

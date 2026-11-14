@@ -79,14 +79,10 @@ def mz.curs(cs: List<&2, F.FzC>, q: Array<U32> & P.H, +situ: U32) -> Array<U32> 
       mz.curs(rest, mz.cur(q, c, situ), situ)
 
 # the copy's root, where the tree faced the source's interface (a first
-# copy): joined to the served cursor nc
-def mz.root.w(r: P.H & U32, +x: U32, +nc: U32) -> P.H:
-  (h, +w) = r
-  P.free(R.rg.unlink(P.link_xx(h, x, w), nc), nc)
-
+# copy): joined to the served cursor nc, which leaves its ring
 def mz.root.e(r: Array<U32> & U32, h: P.H, +p: U32, +nc: U32) -> P.H:
   (map, +n) = r
-  mz.root.w(P.rd(h, (nc + 1 : U32)), (n + p : U32), nc)
+  R.leave(h, (n + p : U32), nc)
 
 def mz.root(+at_root: Bool, map: Array<U32>, h: P.H, root: T.TEnd, +nc: U32) -> P.H:
   match at_root:
@@ -193,10 +189,6 @@ def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +
     case None{}:
       sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
-def sv.static.w(r: P.H & U32, s: P.H, +nc: U32, +n: U32) -> Sv:
-  (h, +w) = r
-  SvOk{s, P.free(R.rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
-
 # a stop, its own walk's interactions added
 def sv.stop(d: KD.D, h: P.H, +acc: U32) -> Sv:
   match d:
@@ -212,7 +204,7 @@ def sv.pd(p: Q.Pd, h: P.H, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv:
     case Q.PdCur{s, +x, +n}:
       SvCur{s, h, x, n}
     case Q.PdStatic{s, +n}:
-      sv.static.w(P.rd(h, (nc + 1 : U32)), s, nc, n)
+      SvOk{s, R.leave(h, P.era(), nc), n, 1}
     case Q.PdStop{d, +n}:
       sv.stop(d, h, n)
 
@@ -328,10 +320,6 @@ def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32,
     case None{}:
       sv1.climbed(cl1.go(1000000n, Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
 
-def sv1.static.w(r: P.H & U32, +nc: U32, +n: U32) -> Sv1:
-  (h, +w) = r
-  S1Ok{P.free(R.rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
-
 def sv1.stop(d: KD.D, +acc: U32) -> Sv1:
   match d:
     case KD.D{h, path, +top, +depth, +n, +st}:
@@ -346,7 +334,7 @@ def sv1.pd(p: Q.Pd, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv1:
     case Q.PdCur{h, +x, +n}:
       S1Cur{h, x, n}
     case Q.PdStatic{h, +n}:
-      sv1.static.w(P.rd(h, (nc + 1 : U32)), nc, n)
+      S1Ok{R.leave(h, P.era(), nc), n, 1}
     case Q.PdStop{d, +n}:
       sv1.stop(d, n)
 

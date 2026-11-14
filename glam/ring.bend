@@ -208,3 +208,13 @@ def jn1.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
 # a placeholder x, in no ring, and a ring's cursor y, replaced by a wire
 def join1(h: P.H, +x: U32, +y: U32) -> P.H:
   jn1.u(P.rd(h, (x + 1 : U32)), x, y)
+
+def lv.w(r: P.H & U32, +p: U32, +c: U32) -> P.H:
+  (h, +w) = r
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
+
+# a ring's cursor c left: the port it faced linked to port p, which may
+# be static (the copy's root, joined to the served cursor; or the eraser,
+# given to the served cursor's peer), c unlinked and freed
+def leave(h: P.H, +p: U32, +c: U32) -> P.H:
+  lv.w(P.rd(h, (c + 1 : U32)), p, c)

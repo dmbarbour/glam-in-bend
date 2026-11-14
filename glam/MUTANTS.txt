@@ -95,14 +95,14 @@ y's word 2, its position, read as the port it faced
 +++
   jn.w(P.rd(h, (y + 2 : U32)), u, x, y)
 
-=== join1_unlinks_placeholder join1_keeps
+=== join1_unlinks_placeholder join1_keeps join1_exact
 the placeholder unlinked, not the ring's cursor
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), x), x), y)
 
-=== join1_frees_faced join1_keeps
+=== join1_frees_faced join1_keeps join1_exact
 the port the placeholder faced freed, not the placeholder
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
@@ -162,3 +162,32 @@ docs/reviews/JoinLaws_2026-11-14.md)
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), x), x), y)
+
+# A placeholder joined, a cursor leaving (join1_exact, leave_exact): each
+# mutation leaves the ring other than the list without the cursor. The
+# witness, a ring of three meeting ring.ok (checked by hand, as is the
+# witness both ways), s at 8 and cursors at 12 and 16, the first leaving.
+
+=== join1_skips_unlink join1_exact
+the ring's cursor freed without being unlinked: it stays in the ring
+--- ring.bend
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
++++
+  P.free(P.free(P.link_xx(h, u, w), x), y)
+
+=== leave_skips_unlink leave_exact
+the cursor leaving freed without being unlinked: it stays in the ring
+--- ring.bend
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
++++
+  P.free(P.link_xx(h, p, w), c)
+>>> witness leave_exact
+def witness() -> {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8)}, [V.VUnit{} : V.Val^1n]}, 61, 12))), 6n, 8, Con{16, Nil{}}) == True{} : Bool}:
+  {==}
+
+=== leave_frees_port leave_exact
+the port's node freed, not the cursor leaving
+--- ring.bend
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
++++
+  P.free(rg.unlink(P.link_xx(h, p, w), c), p)
