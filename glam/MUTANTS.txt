@@ -108,3 +108,13 @@ the port the placeholder faced freed, not the placeholder
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), u), y)
+
+=== unlink_clears_pred_position join_keeps join1_keeps
+the predecessor's word 2, its position, cleared as its word 3 is given
+--- ring.bend
+  P.wr(h, (p + 3 : U32), nx)
++++
+  P.wr(P.wr(h, (p + 3 : U32), nx), (p + 2 : U32), 0)
+>>> witness join_keeps
+def witness() -> {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)}, [V.VUnit{} : V.Val^1n]}, 12, 20), 18)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)}, [V.VUnit{} : V.Val^1n]}, 18)) : U32}:
+  {==}

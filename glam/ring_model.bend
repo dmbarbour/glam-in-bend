@@ -63,15 +63,8 @@ def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
 def off.node(+d: Nat, +m: U32, +j: U32) -> Bool:
   Bool.not(Nat.is_eq(AD.slot(m, d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)))))
 
-# word j outside the ring ys: off every member's four words
-def outside(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
-  match ys:
-    case Nil{}:
-      True{}
-    case Con{+y, t}:
-      off.node(d, y, j) && outside(t, d, j)
-
-# word i's slot no member's word 3: a write there leaves the ring's links
+# word i's slot no member's word 3: a write there leaves the ring's
+# links, and a word so placed is none a join writes in the ring
 def off.links(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
   match ys:
     case Nil{}:
