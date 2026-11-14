@@ -162,7 +162,9 @@ law join1_keeps:
 # the last's s, no two word 3 in one slot), the node the walk finds
 # before a cursor x is the one listed before it: the last of s and the
 # cursors before x (cells-freeze.nested.host.ring.exact). The ring has
-# fewer cursors than the walk's fuel, a million.
+# fewer cursors than the heap has words, the walk's fuel
+# (ring-walks-fueled-by-heap); a pigeonhole over the members' distinct
+# word-3 slots will make that a theorem.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law pred_exact:
@@ -176,7 +178,7 @@ law pred_exact:
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), 1000000n) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.last(pre, s) : U32}
 
 # LAW: unlinking a cursor x of an exact ring leaves the ring exact
@@ -195,7 +197,7 @@ law unlink_exact:
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), 1000000n) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, s, List.append(&2, U32, pre, post)) == True{} : Bool}
 
 # LAW: inserting a cursor x after the situating node s of an exact ring,
@@ -240,7 +242,7 @@ law join_exact:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pa, Con{x, pb})) == True{} : Bool}
   for hsp: {List.append(&2, U32, pa, pb) == List.append(&2, U32, pc, Con{y, pd}) : List<&2, U32>}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pa, Con{x, pb})), 1000000n) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pa, Con{x, pb})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
   for hbx: {P.base(x) == x : U32}
   for hby: {P.base(y) == y : U32}
   for hu: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{x, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}

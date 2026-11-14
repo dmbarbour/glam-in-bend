@@ -1,10 +1,13 @@
 import Base
 import ../spike/kprim.bend as P
+import ../spike/kmem_grow.bend as KM
+import ../spike/val.bend as V
 
 # A copy's ring and its joins (the Cells plan's
 # cells-freeze.cursors.materialize; docs/reviews/Joins_2026-11-11.md),
 # out of glam/materialize.bend, which uses them, so that the laws of
-# rings (glam/LAWS.bend) import the heap's primitives alone: a ring is a
+# rings (glam/LAWS.bend) import the heap's primitives alone (kprim, its
+# store and its values): a ring is a
 # copy's cursors linked through word 3, round a situating node of form 2
 # holding the source's handle; a join replaces two cursors by one wire.
 
@@ -13,6 +16,20 @@ import ../spike/kprim.bend as P
 
 def rg.next(h: P.H, +x: U32) -> P.H & U32:
   P.rd(h, (x + 3 : U32))
+
+# a walk's fuel: the heap's words, so that a walk round an exact ring,
+# whose members' word 3 lie in distinct words, never runs out
+# (ring-walks-fueled-by-heap)
+def rg.fuel.s(r: Array<U32> & U32, a: Array<V.Val>) -> P.H & Nat:
+  (w, +n) = r
+  (P.H{KM.MG{w}, a}, U32.to_nat(n))
+
+def rg.fuel(h: P.H) -> P.H & Nat:
+  match h:
+    case P.H{w, a}:
+      match w:
+        case KM.MG{x}:
+          rg.fuel.s(Array.size(U32, x), a)
 
 # a walk round a ring: the net, the node reached, the one before it, and
 # what was found, the walk done once it is
@@ -62,8 +79,12 @@ def rg.found(w: Rw) -> P.H & Maybe<&2, U32>:
       (h, found)
 
 # the cursor of situ's ring at position far, if any
+def rg.find.f(r: P.H & Nat, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
+  (h, f) = r
+  rg.found(rg.find.go(f, rw.on(rg.next(h, situ), situ), situ, far))
+
 def rg.find(h: P.H, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
-  rg.found(rg.find.go(1000000n, rw.on(rg.next(h, situ), situ), situ, far))
+  rg.find.f(rg.fuel(h), situ, far)
 
 # looking for x's predecessor: the node reached is x, the one before it
 # found
@@ -93,8 +114,12 @@ def rg.pred.w(w: Rw) -> P.H & U32:
       (h, p)
 
 # x's predecessor in its ring, found by walking from x
+def rg.pred.f(r: P.H & Nat, +x: U32) -> P.H & U32:
+  (h, f) = r
+  rg.pred.w(rg.pred.go(f, rw.on(rg.next(h, x), x), x))
+
 def rg.pred(h: P.H, +x: U32) -> P.H & U32:
-  rg.pred.w(rg.pred.go(1000000n, rw.on(rg.next(h, x), x), x))
+  rg.pred.f(rg.fuel(h), x)
 
 def rg.unlink.set(r: P.H & U32, +p: U32) -> P.H:
   (h, +nx) = r
@@ -147,8 +172,12 @@ def rg.situ.w(w: Rw) -> P.H & U32:
       (h, n)
 
 # the situating node of x's ring
+def rg.situ.f(r: P.H & Nat, +x: U32) -> P.H & U32:
+  (h, f) = r
+  rg.situ.w(rg.situ.go(f, Rw{h, x, x, None{}, False{}}))
+
 def rg.situ(h: P.H, +x: U32) -> P.H & U32:
-  rg.situ.w(rg.situ.go(1000000n, Rw{h, x, x, None{}, False{}}))
+  rg.situ.f(rg.fuel(h), x)
 
 # Joins
 # =====
