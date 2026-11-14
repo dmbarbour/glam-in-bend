@@ -7,6 +7,7 @@ import ../spike/kmem_grow.bend as KM
 import ./splice.bend as S
 import ./freeze.bend as F
 import ./position.bend as Q
+import ./ring.bend as R
 
 # Materializing (the Cells plan's cells-freeze.cursors.materialize, the
 # design in docs/reviews/Joins_2026-11-11.md): a copy's cursor served
@@ -41,176 +42,6 @@ import ./position.bend as Q
 # source must run no events, fusion or collection near copied nodes;
 # scratch the size of the source in each freeze.
 
-# A ring
-# ======
-
-def rg.next(h: P.H, +x: U32) -> P.H & U32:
-  P.rd(h, (x + 3 : U32))
-
-# a walk round a ring: the net, the node reached, the one before it, and
-# what was found, the walk done once it is
-type Rw is Type:
-  Rw{h: P.H, +x: U32, +p: U32, found: Maybe<&2, U32>, done: Bool}
-
-def rw.on(r: P.H & U32, +x: U32) -> Rw:
-  (h, +n) = r
-  Rw{h, n, x, None{}, False{}}
-
-# looking for position far: at the situating node again, none; x's
-# position far, x; else on to the next
-def rw.find.k(+hit: Bool, h: P.H, +x: U32) -> Rw:
-  match hit:
-    case True{}:
-      Rw{h, x, x, Some{x}, True{}}
-    case False{}:
-      rw.on(rg.next(h, x), x)
-
-def rw.find.p(r: P.H & U32, +x: U32, +far: U32) -> Rw:
-  (h, +pos) = r
-  rw.find.k(U32.is_eq(pos, far), h, x)
-
-def rw.find.s(+home: Bool, h: P.H, +x: U32, +far: U32) -> Rw:
-  match home:
-    case True{}:
-      Rw{h, x, x, None{}, True{}}
-    case False{}:
-      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
-
-def rg.find.go(f: Nat, w: Rw, +situ: U32, +far: U32) -> Rw:
-  match f:
-    case 0n:
-      w
-    case 1n+g:
-      match w:
-        case Rw{h, +x, +p, found, done}:
-          match done:
-            case True{}:
-              Rw{h, x, p, found, True{}}
-            case False{}:
-              rg.find.go(g, rw.find.s(U32.is_eq(x, situ), h, x, far), situ, far)
-
-def rg.found(w: Rw) -> P.H & Maybe<&2, U32>:
-  match w:
-    case Rw{h, +x, +p, found, done}:
-      (h, found)
-
-# the cursor of situ's ring at position far, if any
-def rg.find(h: P.H, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
-  rg.found(rg.find.go(1000000n, rw.on(rg.next(h, situ), situ), situ, far))
-
-# looking for x's predecessor: the node reached is x, the one before it
-# found
-def rw.pred.k(+hit: Bool, h: P.H, +n: U32, +p: U32) -> Rw:
-  match hit:
-    case True{}:
-      Rw{h, n, p, Some{p}, True{}}
-    case False{}:
-      rw.on(rg.next(h, n), n)
-
-def rg.pred.go(f: Nat, w: Rw, +x: U32) -> Rw:
-  match f:
-    case 0n:
-      w
-    case 1n+g:
-      match w:
-        case Rw{h, +n, +p, found, done}:
-          match done:
-            case True{}:
-              Rw{h, n, p, found, True{}}
-            case False{}:
-              rg.pred.go(g, rw.pred.k(U32.is_eq(n, x), h, n, p), x)
-
-def rg.pred.w(w: Rw) -> P.H & U32:
-  match w:
-    case Rw{h, +n, +p, found, done}:
-      (h, p)
-
-# x's predecessor in its ring, found by walking from x
-def rg.pred(h: P.H, +x: U32) -> P.H & U32:
-  rg.pred.w(rg.pred.go(1000000n, rw.on(rg.next(h, x), x), x))
-
-def rg.unlink.set(r: P.H & U32, +p: U32) -> P.H:
-  (h, +nx) = r
-  P.wr(h, (p + 3 : U32), nx)
-
-def rg.unlink.p(r: P.H & U32, +x: U32) -> P.H:
-  (h, +p) = r
-  rg.unlink.set(rg.next(h, x), p)
-
-# x taken out of its ring: its predecessor's word 3 given x's
-def rg.unlink(h: P.H, +x: U32) -> P.H:
-  rg.unlink.p(rg.pred(h, x), x)
-
-# x put in situ's ring, after situ
-def rg.insert.r(r: P.H & U32, +situ: U32, +x: U32) -> P.H:
-  (h, +n) = r
-  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
-
-def rg.insert(h: P.H, +situ: U32, +x: U32) -> P.H:
-  rg.insert.r(rg.next(h, situ), situ, x)
-
-# looking for the situating node: its form 2
-def rw.situ.k(+yes: Bool, h: P.H, +n: U32) -> Rw:
-  match yes:
-    case True{}:
-      Rw{h, n, n, Some{n}, True{}}
-    case False{}:
-      rw.on(rg.next(h, n), n)
-
-def rw.situ.f(r: P.H & U32, +n: U32) -> Rw:
-  (h, +hd) = r
-  rw.situ.k(U32.is_eq(P.form(hd), 2), h, n)
-
-def rg.situ.go(f: Nat, w: Rw) -> Rw:
-  match f:
-    case 0n:
-      w
-    case 1n+g:
-      match w:
-        case Rw{h, +n, +p, found, done}:
-          match done:
-            case True{}:
-              Rw{h, n, p, found, True{}}
-            case False{}:
-              rg.situ.go(g, rw.situ.f(P.rd(h, n), n))
-
-def rg.situ.w(w: Rw) -> P.H & U32:
-  match w:
-    case Rw{h, +n, +p, found, done}:
-      (h, n)
-
-# the situating node of x's ring
-def rg.situ(h: P.H, +x: U32) -> P.H & U32:
-  rg.situ.w(rg.situ.go(1000000n, Rw{h, x, x, None{}, False{}}))
-
-# Joins
-# =====
-
-def jn.w(r: P.H & U32, +u: U32, +x: U32, +y: U32) -> P.H:
-  (h, +w) = r
-  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
-
-def jn.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
-  (h, +u) = r
-  jn.w(P.rd(h, (y + 1 : U32)), u, x, y)
-
-# two cursors x and y of one ring (or a placeholder x, not in the ring,
-# and a cursor y) replaced by one wire between what each faced
-def join(h: P.H, +x: U32, +y: U32) -> P.H:
-  jn.u(P.rd(h, (x + 1 : U32)), x, y)
-
-def jn1.w(r: P.H & U32, +u: U32, +x: U32, +y: U32) -> P.H:
-  (h, +w) = r
-  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
-
-def jn1.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
-  (h, +u) = r
-  jn1.w(P.rd(h, (y + 1 : U32)), u, x, y)
-
-# a placeholder x, in no ring, and a ring's cursor y, replaced by a wire
-def join1(h: P.H, +x: U32, +y: U32) -> P.H:
-  jn1.u(P.rd(h, (x + 1 : U32)), x, y)
-
 def mz.neg.form(+neg: Bool) -> U32:
   match neg:
     case True{}:
@@ -220,19 +51,19 @@ def mz.neg.form(+neg: Bool) -> U32:
 
 # a placeholder made a cursor at position src and put in the ring
 def mz.cursor(h: P.H, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
-  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, mz.neg.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
+  R.rg.insert(P.wr(P.wr(h, pl, P.hd2(18, mz.neg.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 
 def mz.found(r: P.H & Maybe<&2, U32>, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
   (h, m) = r
   match m:
     case Some{+y}:
-      join1(h, pl, y)
+      R.join1(h, pl, y)
     case None{}:
       mz.cursor(h, situ, pl, src, neg)
 
 def mz.pl(r: Array<U32> & U32, h: P.H, +situ: U32, +src: U32, +neg: Bool, +far: U32) -> Array<U32> & P.H:
   (map, +pl) = r
-  (map, mz.found(rg.find(h, situ, far), situ, pl, src, neg))
+  (map, mz.found(R.rg.find(h, situ, far), situ, pl, src, neg))
 
 def mz.cur(q: Array<U32> & P.H, c: F.FzC, +situ: U32) -> Array<U32> & P.H:
   (map, h) = q
@@ -251,7 +82,7 @@ def mz.curs(cs: List<&2, F.FzC>, q: Array<U32> & P.H, +situ: U32) -> Array<U32> 
 # copy): joined to the served cursor nc
 def mz.root.w(r: P.H & U32, +x: U32, +nc: U32) -> P.H:
   (h, +w) = r
-  P.free(rg.unlink(P.link_xx(h, x, w), nc), nc)
+  P.free(R.rg.unlink(P.link_xx(h, x, w), nc), nc)
 
 def mz.root.e(r: Array<U32> & U32, h: P.H, +p: U32, +nc: U32) -> P.H:
   (map, +n) = r
@@ -327,7 +158,7 @@ def cl.found(r: P.H & Maybe<&2, U32>, s: P.H, +x: U32, +f: U32) -> Cl:
 
 def cl.f(r: P.H & U32, h: P.H, +x: U32, +situ: U32) -> Cl:
   (s, +f) = r
-  cl.found(rg.find(h, situ, f), s, x, f)
+  cl.found(R.rg.find(h, situ, f), s, x, f)
 
 def cl.go(g: Nat, c: Cl, +situ: U32) -> Cl:
   match g:
@@ -358,13 +189,13 @@ def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +
   (h, m) = r
   match m:
     case Some{+c}:
-      SvOk{s, join(h, nc, c), n, 1}
+      SvOk{s, R.join(h, nc, c), n, 1}
     case None{}:
       sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
 def sv.static.w(r: P.H & U32, s: P.H, +nc: U32, +n: U32) -> Sv:
   (h, +w) = r
-  SvOk{s, P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
+  SvOk{s, P.free(R.rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
 
 # a stop, its own walk's interactions added
 def sv.stop(d: KD.D, h: P.H, +acc: U32) -> Sv:
@@ -377,7 +208,7 @@ def sv.pd(p: Q.Pd, h: P.H, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv:
     case Q.PdValue{s, +q, +n}:
       sv.pair(materialize(s, h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())), n)
     case Q.PdFront{s, +q, +n}:
-      sv.front.m(rg.find(h, situ, q), s, situ, k, nc, q, n)
+      sv.front.m(R.rg.find(h, situ, q), s, situ, k, nc, q, n)
     case Q.PdCur{s, +x, +n}:
       SvCur{s, h, x, n}
     case Q.PdStatic{s, +n}:
@@ -395,7 +226,7 @@ def sv.situ(r: P.H & U32, s: P.H, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv:
 
 def sv.pos(r: P.H & U32, s: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv:
   (h, +pos) = r
-  sv.situ(rg.situ(h, nc), s, nc, pos, g, f)
+  sv.situ(R.rg.situ(h, nc), s, nc, pos, g, f)
 
 # the negative cursor nc of host h served from its source s: positioned
 # demand at its position, at most g walks of f steps, then materialized,
@@ -413,7 +244,7 @@ def sv.from.situ(r: P.H & U32, d: KD.D, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -
 
 def sv.from.pos(r: P.H & U32, d: KD.D, +nc: U32, +g: Nat, +f: Nat) -> Sv:
   (h, +pos) = r
-  sv.from.situ(rg.situ(h, nc), d, nc, pos, g, f)
+  sv.from.situ(R.rg.situ(h, nc), d, nc, pos, g, f)
 
 # and served going on from d, a walk in the source stopped and set going
 # again, its path kept (cells-freeze.rewalk)
@@ -469,7 +300,7 @@ def cl1.found(r: P.H & Maybe<&2, U32>, +x: U32, +f: U32) -> Cl1:
 
 def cl1.f(r: P.H & U32, +x: U32, +situ: U32) -> Cl1:
   (h, +f) = r
-  cl1.found(rg.find(h, situ, f), x, f)
+  cl1.found(R.rg.find(h, situ, f), x, f)
 
 def cl1.go(g: Nat, c: Cl1, +situ: U32) -> Cl1:
   match g:
@@ -493,13 +324,13 @@ def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32,
   (h, m) = r
   match m:
     case Some{+c}:
-      S1Ok{join(h, nc, c), n, 1}
+      S1Ok{R.join(h, nc, c), n, 1}
     case None{}:
       sv1.climbed(cl1.go(1000000n, Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
 
 def sv1.static.w(r: P.H & U32, +nc: U32, +n: U32) -> Sv1:
   (h, +w) = r
-  S1Ok{P.free(rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
+  S1Ok{P.free(R.rg.unlink(P.put_st(h, w, P.era()), nc), nc), n, 1}
 
 def sv1.stop(d: KD.D, +acc: U32) -> Sv1:
   match d:
@@ -511,7 +342,7 @@ def sv1.pd(p: Q.Pd, +situ: U32, +k: U32, +nc: U32, +pos: U32) -> Sv1:
     case Q.PdValue{h, +q, +n}:
       sv1.ok(materialize1(h, situ, P.base(q), k, nc, U32.is_eq(pos, P.iface())), n)
     case Q.PdFront{h, +q, +n}:
-      sv1.front.m(rg.find(h, situ, q), situ, k, nc, q, n)
+      sv1.front.m(R.rg.find(h, situ, q), situ, k, nc, q, n)
     case Q.PdCur{h, +x, +n}:
       S1Cur{h, x, n}
     case Q.PdStatic{h, +n}:
@@ -529,7 +360,7 @@ def sv1.situ(r: P.H & U32, +nc: U32, +pos: U32, +g: Nat, +f: Nat) -> Sv1:
 
 def sv1.pos(r: P.H & U32, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
   (h, +pos) = r
-  sv1.situ(rg.situ(h, nc), nc, pos, g, f)
+  sv1.situ(R.rg.situ(h, nc), nc, pos, g, f)
 
 # the negative cursor nc of net h served from h itself
 def serve1(h: P.H, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
@@ -545,7 +376,7 @@ def sv1.from.situ(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st
 
 def sv1.from.pos(r: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +st: U32, +nc: U32, +g: Nat, +f: Nat) -> Sv1:
   (h, +pos) = r
-  sv1.from.situ(rg.situ(h, nc), path, top, depth, n, st, nc, pos, g, f)
+  sv1.from.situ(R.rg.situ(h, nc), path, top, depth, n, st, nc, pos, g, f)
 
 # and served going on from d, a walk in the net stopped and set going
 # again, its path kept

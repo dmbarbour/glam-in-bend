@@ -15,6 +15,7 @@ import ../spike/net.bend as N
 import ./freeze.bend as F
 import ../spike/kprim.bend as P
 import ./materialize.bend as M
+import ./ring.bend as R
 import ../spike/kmem_grow.bend as KM
 
 # The core (pure-core-io-shell): a source's bytes to the assembly's
@@ -812,7 +813,7 @@ def frame.at.s(r: P.H & U32, +x: U32, +pos: U32, path: KM.M, +top: U32, +depth: 
 
 def frame.at.p(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +pos) = r
-  frame.at.s(M.rg.situ(h, x), x, pos, path, top, depth, n, who, b, c, ss)
+  frame.at.s(R.rg.situ(h, x), x, pos, path, top, depth, n, who, b, c, ss)
 
 # A need served by entry k: a template spliced, a value resumed, a recipe
 # forced on a task of its own above this one, in a segment of its own, a
@@ -1007,7 +1008,7 @@ def frame.cur.s(r: P.H & U32, +x: U32, +pos2: U32, cx: Cx, +i: U32, +k: U32, +nc
 
 def frame.cur.p(r: P.H & U32, +x: U32, cx: Cx, +i: U32, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (hs, +pos2) = r
-  frame.cur.s(M.rg.situ(hs, x), x, pos2, cx, i, k, nc, pos, b, c, ss)
+  frame.cur.s(R.rg.situ(hs, x), x, pos2, cx, i, k, nc, pos, b, c, ss)
 
 # a negative cursor, standing for a value, as a position wants; a
 # positive one there a fault of the copies' layout

@@ -7,14 +7,35 @@
 
 === unlink_word2 unlink_keeps
 the predecessor's word 2, its position, given the cursor's next
---- materialize.bend
+--- ring.bend
   P.wr(h, (p + 3 : U32), nx)
 +++
   P.wr(h, (p + 2 : U32), nx)
 
 === unlink_clears_own unlink_keeps
 the cursor unlinked has its own word 3 cleared too
---- materialize.bend
+--- ring.bend
   rg.unlink.set(rg.next(h, x), p)
 +++
   P.wr(rg.unlink.set(rg.next(h, x), p), (x + 3 : U32), 0)
+
+# The ring's walk (pred_in_ring): each mutation lets the node found leave
+# the ring.
+
+=== pred_next_node pred_in_ring
+the node found reported as the one after it in the heap
+--- ring.bend
+    case Rw{h, +n, +p, found, done}:
+      (h, p)
++++
+    case Rw{h, +n, +p, found, done}:
+      (h, (p + 4 : U32))
+
+=== walk_by_position pred_in_ring
+the walk follows each cursor's word 2, its position, not its word 3
+--- ring.bend
+def rg.next(h: P.H, +x: U32) -> P.H & U32:
+  P.rd(h, (x + 3 : U32))
++++
+def rg.next(h: P.H, +x: U32) -> P.H & U32:
+  P.rd(h, (x + 2 : U32))
