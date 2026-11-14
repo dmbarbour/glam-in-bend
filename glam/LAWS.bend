@@ -219,9 +219,9 @@ law insert_exact:
   {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
 
 # LAW: a join of two distinct cursors x and y of a ring exact with its
-# nodes (RG.ring.ok: the ring exact, its members' words 0 and 1 off its
-# links, each member a base, the head off its links) leaves it so
-# without both (cells-freeze.nested.host.ring.exact). Premises not yet
+# nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
+# sharing a word's slot nor any on the head's, each member a base) leaves
+# it so without both (cells-freeze.nested.host.ring.exact). Premises not yet
 # derived: the two faced ports' link words no member's word 3 (a ring
 # invariant to come, faces); fewer cursors than the heap's words (a
 # pigeonhole to come).

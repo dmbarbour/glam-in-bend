@@ -149,18 +149,50 @@ def before(ys: List<&2, U32>, +a: U32, +x: U32) -> U32:
     case Con{+y, t}:
       pick(U32.is_eq(y, x), a, before(t, y, x))
 
-# The ring's nodes (JoinExact review, F3; the second reviewer's F2, F4):
-# facts of the members' other words, stated on the list alone, so that
+# The ring's nodes laid out (JoinExact review, F3; the second reviewer's
+# F2, F4): facts of the members' words, stated on the list alone, so that
 # taking members out keeps them by computation
 
-# every member of ys has its words 0 and 1 off every member of M's
-# word 3: what a free writes leaves the ring's links
-def nodes.go(ys: List<&2, U32>, +d: Nat, +M: List<&2, U32>) -> Bool:
+# a node's four words
+def nw(+a: U32) -> List<&2, U32>:
+  Con{a, Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}}
+
+# word j's slot none of ws's
+def off(ws: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
+  match ws:
+    case Nil{}:
+      True{}
+    case Con{+v, t}:
+      Bool.not(Nat.is_eq(AD.slot(v, d), AD.slot(j, d))) && off(t, d, j)
+
+# no two of ws in one slot
+def apartw(ws: List<&2, U32>, +d: Nat) -> Bool:
+  match ws:
+    case Nil{}:
+      True{}
+    case Con{+v, +t}:
+      off(t, d, v) && apartw(t, d)
+
+# none of node a's words in a slot of node b's
+def disj4(+d: Nat, +a: U32, +b: U32) -> Bool:
+  off(nw(b), d, a) && (off(nw(b), d, (a + 1 : U32)) && (off(nw(b), d, (a + 2 : U32)) && off(nw(b), d, (a + 3 : U32))))
+
+# node a apart from every node of ys
+def cross(ys: List<&2, U32>, +d: Nat, +a: U32) -> Bool:
   match ys:
     case Nil{}:
       True{}
-    case Con{+m, t}:
-      off.links(M, d, m) && (off.links(M, d, (m + 1 : U32)) && nodes.go(t, d, M))
+    case Con{+b, t}:
+      disj4(d, a, b) && cross(t, d, a)
+
+# the nodes of ys laid out apart: each node's four words in four slots,
+# none on the free list's head, no two nodes sharing a slot
+def layout(ys: List<&2, U32>, +d: Nat) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+a, +t}:
+      apartw(nw(a), d) && (off(nw(a), d, P.at_fh()) && (cross(t, d, a) && layout(t, d)))
 
 # every member its own node's base
 def bases(ys: List<&2, U32>) -> Bool:
@@ -170,7 +202,6 @@ def bases(ys: List<&2, U32>) -> Bool:
     case Con{+m, t}:
       U32.is_eq(P.base(m), m) && bases(t)
 
-# the ring exact, its nodes apart from its links, each member a base,
-# the free list's head no member's word 3
+# the ring exact, its nodes laid out apart, each member a base
 def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
-  ring(v, d, s, t) && (nodes.go(Con{s, t}, d, Con{s, t}) && (bases(Con{s, t}) && off.links(Con{s, t}, d, P.at_fh())))
+  ring(v, d, s, t) && (layout(Con{s, t}, d) && bases(Con{s, t}))
