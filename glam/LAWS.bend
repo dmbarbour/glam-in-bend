@@ -158,13 +158,13 @@ law join1_keeps:
   {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: in an exact ring (glam/ring_model.bend's ring: the situating
-# node s, then its cursors in walk order, each one's word 3 the next,
+# node s, then its cursors t in walk order, each one's word 3 the next,
 # the last's s, no two word 3 in one slot), the node the walk finds
-# before a cursor x is the one listed before it: the last of s and the
-# cursors before x (cells-freeze.nested.host.ring.exact). The ring has
-# fewer cursors than the heap has words, the walk's fuel
-# (ring-walks-fueled-by-heap); a pigeonhole over the members' distinct
-# word-3 slots will make that a theorem.
+# before a cursor x is the one listed before it (RG.before)
+# (cells-freeze.nested.host.ring.exact). The ring has fewer cursors than
+# the heap has words, the walk's fuel (ring-walks-fueled-by-heap); a
+# pigeonhole over the members' distinct word-3 slots will make that a
+# theorem.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law pred_exact:
@@ -172,18 +172,18 @@ law pred_exact:
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +pre: List<&2, U32>
+  for +t: List<&2, U32>
   for +x: U32
-  for +post: List<&2, U32>
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
-  {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.last(pre, s) : U32}
+  for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.has(t, x) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.before(t, s, x) : U32}
 
 # LAW: unlinking a cursor x of an exact ring leaves the ring exact
-# without it: the one listed before x now links the one after
-# (cells-freeze.nested.host.ring.exact).
+# without it (RG.without): the one listed before x now links the one
+# after (cells-freeze.nested.host.ring.exact).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law unlink_exact:
@@ -191,14 +191,14 @@ law unlink_exact:
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +pre: List<&2, U32>
+  for +t: List<&2, U32>
   for +x: U32
-  for +post: List<&2, U32>
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
-  {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, s, List.append(&2, U32, pre, post)) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.has(t, x) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, s, RG.without(t, x)) == True{} : Bool}
 
 # LAW: inserting a cursor x after the situating node s of an exact ring,
 # x's word 3 in no member's slot, leaves the ring exact with x listed
@@ -218,13 +218,13 @@ law insert_exact:
   for hx: {RG.apart(Con{s, t}, d, x) == True{} : Bool}
   {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
 
-# LAW: a join of two cursors x and y of an exact ring leaves the ring
-# exact without both: listed as pa, x, pb, and pa, pb as pc, y, pd, the
-# ring after the join is pc, pd (cells-freeze.nested.host.ring.exact).
-# Premises not yet derived, each of the nodes' forms and bases: the two
-# faced ports' link words are no member's word 3; nor are the words the
-# frees write, x's and y's words 0 and 1 and the head, any remaining
-# member's; and x and y node bases.
+# LAW: a join of two distinct cursors x and y of a ring exact with its
+# nodes (RG.ring.ok: the ring exact, its members' words 0 and 1 off its
+# links, each member a base, the head off its links) leaves it so
+# without both (cells-freeze.nested.host.ring.exact). Premises not yet
+# derived: the two faced ports' link words no member's word 3 (a ring
+# invariant to come, faces); fewer cursors than the heap's words (a
+# pigeonhole to come).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_exact:
@@ -232,24 +232,16 @@ law join_exact:
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +pa: List<&2, U32>
+  for +t: List<&2, U32>
   for +x: U32
-  for +pb: List<&2, U32>
-  for +pc: List<&2, U32>
   for +y: U32
-  for +pd: List<&2, U32>
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pa, Con{x, pb})) == True{} : Bool}
-  for hsp: {List.append(&2, U32, pa, pb) == List.append(&2, U32, pc, Con{y, pd}) : List<&2, U32>}
-  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pa, Con{x, pb})), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
-  for hbx: {P.base(x) == x : U32}
-  for hby: {P.base(y) == y : U32}
-  for hu: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{x, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hw: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{x, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
-  for hx0: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, x) == True{} : Bool}
-  for hx1: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, (x + 1 : U32)) == True{} : Bool}
-  for hy0: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, y) == True{} : Bool}
-  for hy1: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, (y + 1 : U32)) == True{} : Bool}
-  for hh: {RG.off.links(Con{s, List.append(&2, U32, pc, pd)}, d, P.at_fh()) == True{} : Bool}
-  {RG.ring(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, List.append(&2, U32, pc, pd)) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.has(t, x) == True{} : Bool}
+  for hy: {RG.has(t, y) == True{} : Bool}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, t), U32.to_nat(U32.shln(1, d))) == True{} : Bool}
+  for hu: {RG.off.links(Con{s, t}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  for hw: {RG.off.links(Con{s, t}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(RG.without(t, x), y)) == True{} : Bool}
