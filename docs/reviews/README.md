@@ -133,6 +133,19 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   package proves; deficiencies to present, by package. Drafted for the
   maintainer.
 
+- [`JoinLaws_2026-11-14.md`](JoinLaws_2026-11-14.md): the join laws
+  `join_keeps` and `join1_keeps`, explained word by word on a worked
+  ring, at the maintainer's request. Their write set is coarser than a
+  serve's next steps bear (a sharper law proved, a mutation and its
+  witness to show it); cursors left listed after a join break the model
+  at the next serve; the premises taken and how to derive them; set
+  beside the second reviewer's, which adds the materializer's own joins
+  and the positive laws missing. Four questions. Drafted for the
+  maintainer.
+- [`JoinLawsFable_2026-11-14.md`](JoinLawsFable_2026-11-14.md): the
+  second reviewer's review of the same laws, by a Fable sub-agent, kept
+  as written.
+
 ## Retired
 
 - `LawsInBend_2026-11-06.md`: where Blend writes laws and proofs, against

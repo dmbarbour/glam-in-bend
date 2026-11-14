@@ -51,8 +51,14 @@ it alone taught. Add to this file what a new proof teaches.
   at a small instance, proved by `{==}`, which checks unmutated (so the
   instance meets the premises left out) and is refuted mutated. A
   witness is the stronger evidence: it shows the statement excludes the
-  fault, however the proof is built. A law that survives the mutation
-  claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  fault, however the proof is built. A mutation counted caught shows
+  only that the proof broke: one that changes the steps a proof follows
+  breaks it even where the law stays true of the mutated code (an unlink
+  that also clears its predecessor's position breaks `join_keeps`'s
+  proof, which allows that word; `docs/reviews/JoinLaws_2026-11-14.md`,
+  F1). To show a law excludes a fault, check a witness both ways by
+  hand: `scripts/one_law.py` runs one only where the checker crashes. A
+  law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are
@@ -179,6 +185,15 @@ it alone taught. Add to this file what a new proof teaches.
   `(a, snd(...))` (lawful-arrays' `get_pair`) under a hole at the
   destructuring function (`P.rd.fin(KM.m_get.fin(_), a)`), and the goal
   reduces to the array law's own.
+- **A chain of steps composes through each step's parts.** Laws over a
+  heap are stated on its parts (`P.H{KM.MG{w}, a}`); a step's result is
+  not syntactically so. Give each step a lemma restating its result in
+  parts, `P.H{KM.MG{words(op(h))}, a} == op(h)`, and rewrite the chain
+  from the inside out, so that each next law applies with `w` the
+  previous step's `words(...)`; take that `w` erased with its mirror, so
+  that the composition names it freely, and each term grows by one step,
+  not by the copies a step's explicit words would make (`join_keeps.go`
+  in `glam/PROOF.bend`, five steps, checked in seconds).
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).
