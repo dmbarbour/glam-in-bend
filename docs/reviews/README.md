@@ -147,6 +147,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   second reviewer's review of the same laws, by a Fable sub-agent, kept
   as written.
 
+- [`JoinExact_2026-11-14.md`](JoinExact_2026-11-14.md): `join_exact`'s
+  fourteen premises, at the maintainer's request: sorted by cause,
+  membership in place of splits, the walk's fuel taken from the heap,
+  the model taught its nodes and their ports; set beside the second
+  reviewer's, which adds the interference of rings, the materializer's
+  other walks and joins, and the model route for nodes the agent then
+  takes. Four questions. Drafted for the maintainer.
+- [`JoinExactFable_2026-11-14.md`](JoinExactFable_2026-11-14.md): the
+  second reviewer's review of the same law, by a Fable sub-agent, kept
+  as written.
+
 ## Retired
 
 - `LawsInBend_2026-11-06.md`: where Blend writes laws and proofs, against
