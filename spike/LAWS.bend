@@ -379,14 +379,16 @@ law rd_kept:
   for +i: U32
   {Pair.fst(P.H, U32, P.rd(P.H{KM.MG{w}, a}, i)) == P.H{KM.MG{w}, a} : P.H}
 
-# LAW: a node taken from a free list that has one writes three words
-# alone (cells-freeze.nested.host.alloc): the list's head (word
-# P.at_fh()), the node's header and its payload word (P.node.fin); every
-# other word reads as before. The head fh, a node's index plus one, is
-# not 0, and the node taken is (fh - 1) << 2. The words a perfect tree of
-# depth d below 32. Not claimed: the reserve's and the doubling's paths,
-# where the list is empty; that the node taken was free (the free list's
-# exactness, FL's laws over a model).
+# LAW: a node taken from a free list that has one leaves every word
+# outside that node and the list's head (word P.at_fh()) as it was
+# (cells-freeze.nested.host.alloc). The node's own four words are not
+# claimed, none for code to rely on (the maintainer, 2026-11-13): the
+# code writes its header and its payload word (P.node.fin) and leaves the
+# others as the free list left them. The head fh, a node's index plus
+# one, is not 0, and the node taken is (fh - 1) << 2. The words a perfect
+# tree of depth d below 32. Not claimed: the reserve's and the doubling's
+# paths, where the list is empty; that the node taken was free (the free
+# list's exactness, FL's laws over a model).
 # Record: net-nodes-double
 # Record: hub-laws-reused
 law node_keeps:
@@ -402,8 +404,10 @@ law node_keeps:
   for hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32}
   for hne: {U32.is_eq(fh, 0) == False{} : Bool}
   for hj0: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
-  for hj1: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hj2: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + P.node.word(hd) : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hw0: {Nat.is_eq(AD.slot(((fh - 1 : U32) << 2n : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hw1: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hw2: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 2 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hw3: {Nat.is_eq(AD.slot((((fh - 1 : U32) << 2n : U32) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: and the head then reads the next free node, the link the node
@@ -438,6 +442,48 @@ law node_index:
   for hfh: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) == fh : U32}
   for hne: {U32.is_eq(fh, 0) == False{} : Bool}
   {Pair.snd(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)) == ((fh - 1 : U32) << 2n : U32) : U32}
+
+# LAW: linking two ports writes at most their two link words
+# (cells-freeze.nested.host.join): port y's, word y + 1, unless y is
+# static, and z's, word z + 1, unless z is; every other word reads as
+# before. The words a perfect tree of depth d below 32.
+# Record: net-nodes-double
+# Record: hub-laws-reused
+law link_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +y: U32
+  for +z: U32
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hy: {Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hz: {Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(P.link_xx(P.H{KM.MG{w}, a}, y, z), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: freeing the node behind reference r leaves every word outside
+# that node and the free list's head as it was. The freed node's four
+# words are not claimed, none of them for code to rely on (the
+# maintainer, 2026-11-13): the code writes its header and its word 1,
+# the next free node, and leaves words 2 and 3 as they were, which no
+# law promises.
+# Record: net-nodes-double
+# Record: hub-laws-reused
+law free_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +r: U32
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for h0: {Nat.is_eq(AD.slot(P.base(r), d), AD.slot(j, d)) == False{} : Bool}
+  for h1: {Nat.is_eq(AD.slot((P.base(r) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for h2: {Nat.is_eq(AD.slot((P.base(r) + 2 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for h3: {Nat.is_eq(AD.slot((P.base(r) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(P.free(P.H{KM.MG{w}, a}, r), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says

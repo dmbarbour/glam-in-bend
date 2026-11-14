@@ -184,8 +184,10 @@ a read hands the heap back with the word it read cleared
   (MG{Array.set(U32, a, 0, 0)}, v)
 
 # A node taken from the free list (the laws node_*): each mutation
-# misplaces one of the pop's three writes or the index it returns; each
-# is refuted by the proofs, so none needs a witness.
+# misplaces one of the pop's writes outside the node taken, or the index
+# it returns; node_keeps claims nothing of the node's own words, so a
+# write inside them is no fault of its. Each is refuted by the proofs, so
+# none needs a witness.
 
 === head_next_word node_keeps node_next
 the pop writes the new head one word past the head's word
@@ -201,12 +203,12 @@ the pop leaves the head as it was: the same node taken again next
 +++
   (H{w, a}, n)
 
-=== payload_next_word node_keeps
-a node's payload written at its port 0's link word, after its header
+=== payload_past_node node_keeps
+a node's payload written into the next node's header, past its own words
 --- kprim.bend
   (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
 +++
-  (wr(wr(h, n, hd), (n + 1 : U32), p), n)
+  (wr(wr(h, n, hd), (n + 4 : U32), p), n)
 
 === index_of_head node_index
 the node returned is the head's index times four, not its node's
@@ -214,3 +216,31 @@ the node returned is the head's index times four, not its node's
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
 +++
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), (fh << 2n : U32), a)
+
+# Linking and freeing (the laws link_keeps, free_keeps): each mutation
+# writes a word the law says is left alone. free_keeps claims nothing of
+# the freed node's own words, so a mutation inside that node is no fault
+# of its.
+
+=== link_at_header link_keeps
+a link written into the node's header, word x, not its port's link word
+--- kprim.bend
+    case False{}:
+      wr(h, (x + 1 : U32), y)
++++
+    case False{}:
+      wr(h, x, y)
+
+=== free_zeroes_next free_keeps
+the header zeroed is the next node's, outside the node freed
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 4 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+
+=== free_head_next_word free_keeps
+the freed node made the head one word past the head's word
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), (at_fh() + 1 : U32), ((r >> 2n : U32) + 1 : U32)), a}
