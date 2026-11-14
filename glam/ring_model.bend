@@ -71,3 +71,48 @@ def off.links(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
       True{}
     case Con{+y, t}:
       Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d))) && off.links(t, d, i)
+
+# The ring exact (cells-freeze.nested.host.ring.exact): its members
+# listed in walk order, so that a cycle holds by computation and a
+# member taken out leaves the list
+
+# member m's word 3, among words v, holds n
+def link.is.m(m: Maybe<&2, U32>, +n: U32) -> Bool:
+  match m:
+    case Some{+l}:
+      U32.is_eq(l, n)
+    case None{}:
+      False{}
+
+def link.is(+v: List<&2, U32>, +d: Nat, +m: U32, +n: U32) -> Bool:
+  link.is.m(List.get(&2, U32, v, AD.slot((m + 3 : U32), d)), n)
+
+# through ys in order from a to b: a's word 3 the first of ys (or b),
+# each one's the next, the last's b
+def chain(+v: List<&2, U32>, +d: Nat, ys: List<&2, U32>, +a: U32, +b: U32) -> Bool:
+  match ys:
+    case Nil{}:
+      link.is(v, d, a, b)
+    case Con{+y, t}:
+      link.is(v, d, a, y) && chain(v, d, t, y, b)
+
+# no two members' word 3 in one slot
+def apart.all(ys: List<&2, U32>, +d: Nat) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, +t}:
+      apart(t, d, y) && apart.all(t, d)
+
+# the ring exact: the situating node s, then its cursors t in walk
+# order, the last's word 3 s again; no two word 3 in one slot
+def ring(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
+  chain(v, d, t, s, s) && apart.all(Con{s, t}, d)
+
+# the last of ys, or a where ys is empty
+def last(ys: List<&2, U32>, +a: U32) -> U32:
+  match ys:
+    case Nil{}:
+      a
+    case Con{+y, t}:
+      last(t, y)

@@ -156,3 +156,62 @@ law join1_keeps:
   for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: in an exact ring (glam/ring_model.bend's ring: the situating
+# node s, then its cursors in walk order, each one's word 3 the next,
+# the last's s, no two word 3 in one slot), the node the walk finds
+# before a cursor x is the one listed before it: the last of s and the
+# cursors before x (cells-freeze.nested.host.ring.exact). The ring has
+# fewer cursors than the walk's fuel, a million.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law pred_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +pre: List<&2, U32>
+  for +x: U32
+  for +post: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), 1000000n) == True{} : Bool}
+  {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.last(pre, s) : U32}
+
+# LAW: unlinking a cursor x of an exact ring leaves the ring exact
+# without it: the one listed before x now links the one after
+# (cells-freeze.nested.host.ring.exact).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law unlink_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +pre: List<&2, U32>
+  for +x: U32
+  for +post: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pre, Con{x, post})) == True{} : Bool}
+  for hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pre, Con{x, post})), 1000000n) == True{} : Bool}
+  {RG.ring(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, s, List.append(&2, U32, pre, post)) == True{} : Bool}
+
+# LAW: inserting a cursor x after the situating node s of an exact ring,
+# x's word 3 in no member's slot, leaves the ring exact with x listed
+# first (cells-freeze.nested.host.ring.exact).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law insert_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.apart(Con{s, t}, d, x) == True{} : Bool}
+  {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}

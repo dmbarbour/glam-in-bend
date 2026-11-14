@@ -170,7 +170,12 @@ it alone taught. Add to this file what a new proof teaches.
   onto an accumulator (`List.reverse.go(rest, q)`) steps by computation
   (`reverse.go(Con{x, r}, q)` is `reverse.go(r, Con{x, q})`), where the
   reversal of an append wants lemmas.
-- **A rewrite is a local statement**: no `match` may follow it. Match
+- **A recursive definition reads its arguments left to right**: each
+  passed unchanged until one shrinks, so put the list that shrinks
+  before any argument that changes (`RG.chain(v, d, ys, a, b)`, not
+  `chain(v, d, a, ys, b)`).
+- **A rewrite is a local statement**: no `match` may follow it, nor may
+  one follow a let (`+h = ...`). Match
   first, then rewrite in each branch.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
