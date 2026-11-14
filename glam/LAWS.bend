@@ -14,7 +14,9 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: unlinking a cursor x from its ring writes one word alone: word 3
 # of the node the ring's walk finds before x (R.rg.pred), given x's next;
-# every other word reads as before (cells-freeze.nested.host.join). Not
+# every other word reads as before, but the kernel's error count, which a
+# walk out of fuel raises on a ring not closed into a cycle
+# (corruption-reported-when-cheap; cells-freeze.nested.host.join). Not
 # claimed: that the node found is x's predecessor, a member of its ring,
 # which a model of rings would show; so that its word 3 is no word a
 # walk's path reads.
@@ -29,6 +31,7 @@ law unlink_keeps:
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hj: {Nat.is_eq(AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.rg.unlink(P.H{KM.MG{w}, a}, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: the node the ring's walk finds before a member x, the one whose
@@ -54,6 +57,8 @@ law pred_in_ring:
 # pred_in_ring), given x's next, itself a member (cells-freeze.nested.
 # host.ring). The member list is the same: x stays listed, its own word
 # 3 a member still.
+# The kernel's error count is no member's word 3: a walk out of fuel
+# raises it (corruption-reported-when-cheap).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law unlink_closed:
@@ -66,6 +71,7 @@ law unlink_closed:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}
   for hx: {RG.has(xs, x) == True{} : Bool}
+  for he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}
   {RG.closed(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, xs) == True{} : Bool}
 
 # LAW: inserting a cursor x apart from a closed ring, after its member
@@ -99,6 +105,9 @@ law insert_closed:
 # leaves the ring closed for the two walks that follow; and x and y node
 # bases (P.base). Not claimed: which members' word 3 are written, nor
 # that the ring left is a cycle without x and y.
+# The kernel's error count may be written too, where a walk runs out of
+# fuel on a ring not closed into a cycle (corruption-reported-when-cheap),
+# and is no member's word 3.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_keeps:
@@ -124,6 +133,8 @@ law join_keeps:
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}
+  for he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: and a join of a placeholder x, in no ring (or in it: x's words
@@ -131,6 +142,9 @@ law join_keeps:
 # word but the members' word 3, x's and y's own four words, the free
 # list's head and the two faced ports' link words
 # (cells-freeze.nested.host.join), on the same premises.
+# The kernel's error count may be written too, where a walk runs out of
+# fuel on a ring not closed into a cycle (corruption-reported-when-cheap),
+# and is no member's word 3.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join1_keeps:
@@ -155,6 +169,8 @@ law join1_keeps:
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
   for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}
+  for he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: in an exact ring (glam/ring_model.bend's ring: the situating

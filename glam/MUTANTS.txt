@@ -26,10 +26,10 @@ the cursor unlinked has its own word 3 cleared too
 the node found reported as the one after it in the heap
 --- ring.bend
     case Rw{h, +n, +p, found, done}:
-      (h, p)
+      (P.err_if(Bool.not(done), h), p)
 +++
     case Rw{h, +n, +p, found, done}:
-      (h, (p + 4 : U32))
+      (P.err_if(Bool.not(done), h), (p + 4 : U32))
 
 === walk_by_position pred_in_ring pred_exact unlink_exact
 the walk follows each cursor's word 2, its position, not its word 3

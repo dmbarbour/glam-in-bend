@@ -73,10 +73,12 @@ def rg.find.go(f: Nat, w: Rw, +situ: U32, +far: U32) -> Rw:
             case False{}:
               rg.find.go(g, rw.find.s(U32.is_eq(x, situ), h, x, far), situ, far)
 
+# a walk's end; one out of fuel, on a corrupt ring, raises the kernel's
+# error (corruption-reported-when-cheap)
 def rg.found(w: Rw) -> P.H & Maybe<&2, U32>:
   match w:
     case Rw{h, +x, +p, found, done}:
-      (h, found)
+      (P.err_if(Bool.not(done), h), found)
 
 # the cursor of situ's ring at position far, if any
 def rg.find.f(r: P.H & Nat, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
@@ -111,7 +113,7 @@ def rg.pred.go(f: Nat, w: Rw, +x: U32) -> Rw:
 def rg.pred.w(w: Rw) -> P.H & U32:
   match w:
     case Rw{h, +n, +p, found, done}:
-      (h, p)
+      (P.err_if(Bool.not(done), h), p)
 
 # x's predecessor in its ring, found by walking from x
 def rg.pred.f(r: P.H & Nat, +x: U32) -> P.H & U32:
@@ -169,7 +171,7 @@ def rg.situ.go(f: Nat, w: Rw) -> Rw:
 def rg.situ.w(w: Rw) -> P.H & U32:
   match w:
     case Rw{h, +n, +p, found, done}:
-      (h, n)
+      (P.err_if(Bool.not(done), h), n)
 
 # the situating node of x's ring
 def rg.situ.f(r: P.H & Nat, +x: U32) -> P.H & U32:
