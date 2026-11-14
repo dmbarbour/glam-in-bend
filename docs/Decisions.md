@@ -170,6 +170,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`self-copies-are-cursors`](decisions/self-copies-are-cursors.md): a
   source's copy of itself is a ring of cursors into itself, served in
   one net, not its recipe spliced again.
+- [`serve-write-sets-hybrid`](decisions/serve-write-sets-hybrid.md): a
+  serve's writes stated by what decides them: the splice's as an exact
+  list of words, the joins' and cursors', decided by walks, by regions.
 - [`copied-controls-unfused`](decisions/copied-controls-unfused.md): a
   control a copy has taken out of a live source is marked, and runtime
   fusion refuses it; fusion stays everywhere else.
