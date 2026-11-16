@@ -57,6 +57,94 @@ the cursor inserted given situ's word 2, its position, as its next
 +++
   rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)
 
+# A placeholder made a cursor (cursor_ok, cursor_head, cursor_pos): each
+# mutation writes the cursor's header or position to the wrong word, or
+# the wrong header. Each witness is the inserts' ring, s at 8 and cursors
+# at 12 and 16, x at 20; word 22, x's word 2, holds 5 and word 20 holds
+# 18 before.
+
+=== cursor_pos_in_word1 cursor_ok cursor_pos
+the position written to the cursor's word 1, the port it faces
+--- ring.bend
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
++++
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 1 : U32), src), situ, pl)
+>>> witness cursor_ok
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 10
+neg = True{}
+>>> witness cursor_pos
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 10
+neg = True{}
+
+=== cursor_pos_in_word3 cursor_pos
+the position written to the cursor's word 3, which the insert overwrites
+--- ring.bend
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
++++
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 3 : U32), src), situ, pl)
+>>> witness cursor_pos
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 7
+neg = True{}
+
+=== cursor_head_in_word1 cursor_ok cursor_head
+the header written to the cursor's word 1
+--- ring.bend
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
++++
+  rg.insert(P.wr(P.wr(h, (pl + 1 : U32), P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
+>>> witness cursor_ok
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 7
+neg = False{}
+>>> witness cursor_head
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 7
+neg = False{}
+
+=== cursor_form_flipped cursor_head
+a negative cursor given the positive form
+--- ring.bend
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
++++
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(Bool.not(neg)), 0)), (pl + 2 : U32), src), situ, pl)
+>>> witness cursor_head
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+src = 7
+neg = True{}
+
 # A join (join_keeps): each mutation writes a word outside the ring's
 # members, the free list's head and the faced ports' link words.
 

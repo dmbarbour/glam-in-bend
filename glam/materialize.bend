@@ -42,24 +42,13 @@ import ./ring.bend as R
 # source must run no events, fusion or collection near copied nodes;
 # scratch the size of the source in each freeze.
 
-def mz.neg.form(+neg: Bool) -> U32:
-  match neg:
-    case True{}:
-      0
-    case False{}:
-      1
-
-# a placeholder made a cursor at position src and put in the ring
-def mz.cursor(h: P.H, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
-  R.rg.insert(P.wr(P.wr(h, pl, P.hd2(18, mz.neg.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
-
 def mz.found(r: P.H & Maybe<&2, U32>, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
   (h, m) = r
   match m:
     case Some{+y}:
       R.join1(h, pl, y)
     case None{}:
-      mz.cursor(h, situ, pl, src, neg)
+      R.cursor(h, situ, pl, src, neg)
 
 def mz.pl(r: Array<U32> & U32, h: P.H, +situ: U32, +src: U32, +neg: Bool, +far: U32) -> Array<U32> & P.H:
   (map, +pl) = r

@@ -192,6 +192,64 @@ law insert_ok:
   for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
 
+# LAW: a placeholder x made a cursor (R.cursor: its header and its
+# position src written, then inserted after s) of a ring exact with its
+# nodes, x ready to enter it, leaves the ring so with x listed first: the
+# two words written, x's words 0 and 2, are no member's word 1 or 3 nor
+# x's own (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cursor_ok:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, Con{x, t}) == True{} : Bool}
+
+# LAW: a placeholder x made a cursor, x ready to enter the ring, holds
+# its header, a cursor's kind (18) and form (0 negative, 1 positive), at word 0 (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cursor_head:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), x)) == P.hd2(18, R.cur.form(neg), 0) : U32}
+
+# LAW: a placeholder x made a cursor, x ready to enter the ring, holds
+# its position src at word 2, where a find reads it (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cursor_pos:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), (x + 2 : U32))) == src : U32}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each

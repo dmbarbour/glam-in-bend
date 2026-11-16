@@ -143,6 +143,21 @@ def rg.insert.r(r: P.H & U32, +situ: U32, +x: U32) -> P.H:
 def rg.insert(h: P.H, +situ: U32, +x: U32) -> P.H:
   rg.insert.r(rg.next(h, situ), situ, x)
 
+# a cursor's form: 0 negative, standing for a value; 1 positive,
+# receiving one
+def cur.form(+neg: Bool) -> U32:
+  match neg:
+    case True{}:
+      0
+    case False{}:
+      1
+
+# a placeholder pl made a cursor at position src, its header and word 2
+# written, and put in situ's ring (out of glam/materialize.bend, as leave
+# is, so that its laws import the heap's primitives alone)
+def cursor(h: P.H, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
+
 # looking for the situating node: its form 2
 def rw.situ.k(+yes: Bool, h: P.H, +n: U32) -> Rw:
   match yes:
