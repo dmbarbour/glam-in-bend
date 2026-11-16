@@ -43,14 +43,14 @@ the predecessor given the cursor unlinked, not the cursor's next
 +++
   rg.unlink.set((h, x), p)
 
-=== insert_word2 insert_closed insert_exact
+=== insert_word2 insert_closed insert_exact insert_ok
 the cursor inserted given its next in its word 2, its position
 --- ring.bend
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
 +++
   P.wr(P.wr(h, (x + 2 : U32), n), (situ + 3 : U32), x)
 
-=== insert_next_by_position insert_closed insert_exact
+=== insert_next_by_position insert_closed insert_exact insert_ok
 the cursor inserted given situ's word 2, its position, as its next
 --- ring.bend
   rg.insert.r(rg.next(h, situ), situ, x)
@@ -117,7 +117,7 @@ def witness() -> {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{Array.set(U32, Array.
 # breaks the ring's order. Each witness is a ring of three, s at 8 and
 # cursors at 12 and 16, x at 20 inserted.
 
-=== insert_self_loop insert_exact
+=== insert_self_loop insert_exact insert_ok
 the cursor inserted given itself as its next
 --- ring.bend
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
@@ -126,8 +126,11 @@ the cursor inserted given itself as its next
 >>> witness insert_exact
 def witness() -> {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)}, [V.VUnit{} : V.Val^1n]}, 8, 20))), 6n, 8, Con{20, Con{12, Con{16, Nil{}}}}) == True{} : Bool}:
   {==}
+>>> witness insert_ok
+def witness() -> {RG.ring.ok(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)}, [V.VUnit{} : V.Val^1n]}, 8, 20))), 6n, 8, Con{20, Con{12, Con{16, Nil{}}}}) == True{} : Bool}:
+  {==}
 
-=== insert_skips_situ insert_exact
+=== insert_skips_situ insert_exact insert_ok
 the situating node's word 3 left as it was, the cursor unreachable
 --- ring.bend
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
@@ -135,6 +138,9 @@ the situating node's word 3 left as it was, the cursor unreachable
   P.wr(h, (x + 3 : U32), n)
 >>> witness insert_exact
 def witness() -> {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)}, [V.VUnit{} : V.Val^1n]}, 8, 20))), 6n, 8, Con{20, Con{12, Con{16, Nil{}}}}) == True{} : Bool}:
+  {==}
+>>> witness insert_ok
+def witness() -> {RG.ring.ok(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)}, [V.VUnit{} : V.Val^1n]}, 8, 20))), 6n, 8, Con{20, Con{12, Con{16, Nil{}}}}) == True{} : Bool}:
   {==}
 
 === unlink_pred_to_self unlink_exact
