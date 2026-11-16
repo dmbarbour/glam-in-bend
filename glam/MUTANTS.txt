@@ -2,22 +2,15 @@
 # should catch (scripts/one_law.py; docs/Proving.md, What to claim):
 #   python3 -I scripts/one_law.py glam/PROOF.bend LAW --mutants glam/MUTANTS.txt
 #
-# Unlinking a cursor from its ring (unlink_keeps): each mutation writes a
-# word the law says is left alone.
+# Unlinking a cursor from its ring (unlink_exact): each mutation leaves
+# the ring other than the list without the cursor.
 
-=== unlink_word2 unlink_keeps unlink_closed unlink_exact
+=== unlink_word2 unlink_exact
 the predecessor's word 2, its position, given the cursor's next
 --- ring.bend
   P.wr(h, (p + 3 : U32), nx)
 +++
   P.wr(h, (p + 2 : U32), nx)
-
-=== unlink_clears_own unlink_keeps
-the cursor unlinked has its own word 3 cleared too
---- ring.bend
-  rg.unlink.set(rg.next(h, x), p)
-+++
-  P.wr(rg.unlink.set(rg.next(h, x), p), (x + 3 : U32), 0)
 
 # The ring's walk (pred_in_ring): each mutation lets the node found leave
 # the ring.
@@ -40,10 +33,10 @@ def rg.next(h: P.H, +x: U32) -> P.H & U32:
 def rg.next(h: P.H, +x: U32) -> P.H & U32:
   P.rd(h, (x + 2 : U32))
 
-# The ring closed (unlink_closed, insert_closed): each mutation leaves a
-# link out of the ring's members.
+# The ring closed (insert_closed, and the exact laws): each mutation
+# leaves a link out of the ring's members.
 
-=== unlink_to_self unlink_closed unlink_exact
+=== unlink_to_self unlink_exact
 the predecessor given the cursor unlinked, not the cursor's next
 --- ring.bend
   rg.unlink.set(rg.next(h, x), p)

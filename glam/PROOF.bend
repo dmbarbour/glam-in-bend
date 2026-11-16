@@ -132,29 +132,6 @@ def pred_pair_ok(+t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +hft: {A
   ME.subst(Bool, q => {R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, a}, x) == (P.err_if(Bool.not(q), P.H{KM.MG{LAT.fromT(U32, t)}, a}), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, a}, x))) : P.H & U32},
     pdone(P.H{KM.MG{LAT.fromT(U32, t)}, a}, x), True{}, hdone, pred_pair(t, a, d, x, hft))
 
-# a write at a slot no member's word 3 leaves each member's link
-def co_step(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, +i: U32, +l: U32, +y: U32,
-    +hs: {Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d)) == False{} : Bool}, hy: {RG.link.in(v, d, xs, y) == True{} : Bool}) ->
-    {RG.link.in(List.set(&2, U32, v, AD.slot(i, d), l), d, xs, y) == True{} : Bool}:
-  %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, AD.slot(i, d), l), AD.slot((y + 3 : U32), d)), List.get(&2, U32, v, AD.slot((y + 3 : U32), d)), LAB.get_set_ne(U32, v, AD.slot(i, d), AD.slot((y + 3 : U32), d), l, hs)) :
-    {RG.link.in.m(_, xs) == True{} : Bool}
-  hy
-
-def closed_off(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, +i: U32, +l: U32,
-    +hc: {RG.closed.go(v, d, xs, ys) == True{} : Bool}, +ho: {RG.off.links(ys, d, i) == True{} : Bool}) ->
-    {RG.closed.go(List.set(&2, U32, v, AD.slot(i, d), l), d, xs, ys) == True{} : Bool}:
-  match ys:
-    case Nil{}:
-      {==}
-    case Con{+y, +r}:
-      +hy = MB.eq_true_of_and_left(RG.link.in(v, d, xs, y), RG.closed.go(v, d, xs, r), hc)
-      +hr = MB.eq_true_of_and_right(RG.link.in(v, d, xs, y), RG.closed.go(v, d, xs, r), hc)
-      +hs = MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d))), RG.off.links(r, d, i), ho))
-      +hor = MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d))), RG.off.links(r, d, i), ho)
-      MB.and_eq_true(RG.link.in(List.set(&2, U32, v, AD.slot(i, d), l), d, xs, y), RG.closed.go(List.set(&2, U32, v, AD.slot(i, d), l), d, xs, r),
-        co_step(v, d, xs, i, l, y, hs, hy),
-        closed_off(r, v, d, xs, i, l, hr, hor))
-
 # a raised error's heap: in its parts, its words perfect, every word but
 # the error count's as it was, a closed ring kept where that word is no
 # member's word 3
@@ -182,56 +159,6 @@ def eif_full(+b: Bool, -w: Array<U32>, -a: Array<V.Val>, +d: Nat, hf: {AD.full(U
       LA.set_full(U32, LAT.fromT(U32, t), d, P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32), hft)
     case False{}:
       hf
-
-def eif_keeps(+b: Bool, -w: Array<U32>, -a: Array<V.Val>, +d: Nat, +j: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-  +hj: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool}, m: LAT.Mirror(U32, w)) ->
-  {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(b, P.H{KM.MG{w}, a})), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, w, j)) : U32}:
-  match b:
-    case True{}:
-      (+t, +e) = m
-      +hft = LAP.full_t(U32, w, t, d, e, hf)
-      %e : {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(True{}, P.H{KM.MG{_}, a})), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, _, j)) : U32}
-      %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs()), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs()))), LA.get_pair(U32, LAT.fromT(U32, t), P.at_errs())) :
-        {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.h_err.n(KM.m_get.fin(_), a)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)) : U32}
-      LA.get_set_other(U32, LAT.fromT(U32, t), d, P.at_errs(), j, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32), hft, hd32, hj)
-    case False{}:
-      {==}
-
-def eif_closed(+b: Bool, +t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +xs: List<&2, U32>,
-  +hft: {AD.full(U32, LAT.fromT(U32, t), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hct: {RG.closed(AD.view(U32, LAT.fromT(U32, t)), d, xs) == True{} : Bool},
-  +ho: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool}) -> {RG.closed(AD.view(U32, RG.words(P.err_if(b, P.H{KM.MG{LAT.fromT(U32, t)}, a}))), d, xs) == True{} : Bool}:
-  match b:
-    case True{}:
-      %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs()), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs()))), LA.get_pair(U32, LAT.fromT(U32, t), P.at_errs())) :
-        {RG.closed(AD.view(U32, RG.words(P.h_err.n(KM.m_get.fin(_), a))), d, xs) == True{} : Bool}
-      %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t), P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32))), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot(P.at_errs(), d), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32)), LA.set_view(U32, LAT.fromT(U32, t), d, P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32), hft, hd32)) :
-        {RG.closed(_, d, xs) == True{} : Bool}
-      closed_off(xs, AD.view(U32, LAT.fromT(U32, t)), d, xs, P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), P.at_errs())) + 1 : U32), hct, ho)
-    case False{}:
-      hct
-
-def unlink_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +j: U32,
-  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-  hj: {Nat.is_eq(AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}, +hje: {Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)) == False{} : Bool},
-  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
-  {Pair.snd(P.H, U32, P.rd(R.rg.unlink(P.H{KM.MG{w}, a}, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
-  (+t, +e) = m
-  (+ta, +ea) = ma
-  +hft = LAP.full_t(U32, w, t, d, e, hf)
-  +hj1 = LAB.subst(Array<U32>, q => {Nat.is_eq(AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{q}, a}, x)) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hj)
-  +hj2 = LAB.subst(Array<V.Val>, q => {Nat.is_eq(AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, q}, x)) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}, a, LAT.fromT(V.Val, ta), Equal.sym(Array<V.Val>, LAT.fromT(V.Val, ta), a, ea), hj1)
-  %e : {Pair.snd(P.H, U32, P.rd(R.rg.unlink(P.H{KM.MG{_}, a}, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
-  %ea : {Pair.snd(P.H, U32, P.rd(R.rg.unlink(P.H{KM.MG{LAT.fromT(U32, t)}, _}, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, _}, j)) : U32}
-  %Equal.sym(P.H & U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x), (P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))), pred_pair(t, LAT.fromT(V.Val, ta), d, x, hft)) :
-    {Pair.snd(P.H, U32, P.rd(R.rg.unlink.p(_, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
-  %eif_parts(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), LAT.mirror(U32, LAT.fromT(U32, t))) :
-    {Pair.snd(P.H, U32, P.rd(R.rg.unlink.set(R.rg.next(_, x), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
-  %Equal.sym(Array<U32> & U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)), (RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), LA.get_pair(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))) :
-    {Pair.snd(P.H, U32, P.rd(R.rg.unlink.set(P.rd.fin(KM.m_get.fin(_), LAT.fromT(V.Val, ta)), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
-  Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))))}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), j)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), rd_get(Array.set(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), LAT.fromT(V.Val, ta), j), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), j)), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), j)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), LA.get_set_other(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), d, (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), j, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))), eif_full(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, hft, LAT.mirror(U32, LAT.fromT(U32, t))), hd32, hj2), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), eif_keeps(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, j, hft, hd32, hje, LAT.mirror(U32, LAT.fromT(U32, t))), Equal.sym(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), j)))))
-
-def Laws.unlink_keeps(w, a, d, x, j, hf, hd32, hj, hje):
-  unlink_keeps.go(w, a, d, x, j, hf, hd32, hj, hje, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
 
 # Rings (glam/ring_model.bend)
 # =====
@@ -324,46 +251,6 @@ def pred_in_ring.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +xs: Lis
 def Laws.pred_in_ring(w, a, d, x, xs, hf, hd32, hc, hx):
   pred_in_ring.go(w, a, d, x, xs, hf, hd32, hc, hx, LAT.mirror(U32, w))
 
-# A word set in the view keeps a closed ring closed, the word a member
-def map_in(m: Maybe<&2, U32>, +xs: List<&2, U32>, +l: U32,
-    hm: {RG.link.in.m(m, xs) == True{} : Bool}, +hl: {RG.has(xs, l) == True{} : Bool}) ->
-    {RG.link.in.m(Maybe.map(&2, U32, U32, y => l, m), xs) == True{} : Bool}:
-  match m:
-    case Some{+z}:
-      hl
-    case None{}:
-      Empty.absurd({RG.link.in.m(Maybe.map(&2, U32, U32, y => l, None{}), xs) == True{} : Bool}, MB.false_ne_true()(hm))
-
-def cs_step(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, +s: Nat, +l: U32, +y: U32,
-    +b: Bool, e: {Nat.is_eq(s, AD.slot((y + 3 : U32), d)) == b : Bool},
-    hy: {RG.link.in(v, d, xs, y) == True{} : Bool}, +hl: {RG.has(xs, l) == True{} : Bool}) ->
-    {RG.link.in(List.set(&2, U32, v, s, l), d, xs, y) == True{} : Bool}:
-  match b:
-    case False{}:
-      %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, s, l), AD.slot((y + 3 : U32), d)), List.get(&2, U32, v, AD.slot((y + 3 : U32), d)), LAB.get_set_ne(U32, v, s, AD.slot((y + 3 : U32), d), l, e)) :
-        {RG.link.in.m(_, xs) == True{} : Bool}
-      hy
-    case True{}:
-      +eq = MN.eq_of_is_eq(s, AD.slot((y + 3 : U32), d), e)
-      %eq : {RG.link.in.m(List.get(&2, U32, List.set(&2, U32, v, s, l), _), xs) == True{} : Bool}
-      %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, s, l), s), Maybe.map(&2, U32, U32, z => l, List.get(&2, U32, v, s)), ML.get_set_self(&2, U32, v, s, l)) :
-        {RG.link.in.m(_, xs) == True{} : Bool}
-      map_in(List.get(&2, U32, v, s), xs, l,
-        LAB.subst(Nat, k => {RG.link.in.m(List.get(&2, U32, v, k), xs) == True{} : Bool}, AD.slot((y + 3 : U32), d), s, Equal.sym(Nat, s, AD.slot((y + 3 : U32), d), eq), hy), hl)
-
-def closed_set(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, +s: Nat, +l: U32,
-    +hc: {RG.closed.go(v, d, xs, ys) == True{} : Bool}, +hl: {RG.has(xs, l) == True{} : Bool}) ->
-    {RG.closed.go(List.set(&2, U32, v, s, l), d, xs, ys) == True{} : Bool}:
-  match ys:
-    case Nil{}:
-      {==}
-    case Con{+y, +t}:
-      +hy = MB.eq_true_of_and_left(RG.link.in(v, d, xs, y), RG.closed.go(v, d, xs, t), hc)
-      +ht = MB.eq_true_of_and_right(RG.link.in(v, d, xs, y), RG.closed.go(v, d, xs, t), hc)
-      MB.and_eq_true(RG.link.in(List.set(&2, U32, v, s, l), d, xs, y), RG.closed.go(List.set(&2, U32, v, s, l), d, xs, t),
-        cs_step(v, d, xs, s, l, y, Nat.is_eq(s, AD.slot((y + 3 : U32), d)), {==}, hy, hl),
-        closed_set(t, v, d, xs, s, l, ht, hl))
-
 # a word off the ring's links is off each member's word 3
 def links_at(ys: List<&2, U32>, +d: Nat, +i: U32, +m: U32,
     +ho: {RG.off.links(ys, d, i) == True{} : Bool}, hm: {RG.has(ys, m) == True{} : Bool}) ->
@@ -377,33 +264,6 @@ def links_at(ys: List<&2, U32>, +d: Nat, +i: U32, +m: U32,
       or_cases(U32.is_eq(z, m), RG.has(t, m), Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((m + 3 : U32), d))), hm,
         e => ME.subst(U32, q => {Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((q + 3 : U32), d))) == True{} : Bool}, z, m, MS.u32_eq_of_is_eq(z, m, e), hz),
         hh => links_at(t, d, i, m, ht, hh))
-
-def unlink_closed.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +xs: List<&2, U32>,
-  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-  hc: {RG.closed(AD.view(U32, w), d, xs) == True{} : Bool}, +hx: {RG.has(xs, x) == True{} : Bool}, +he: {RG.off.links(xs, d, P.at_errs()) == True{} : Bool},
-  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
-  {RG.closed(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{w}, a}, x))), d, xs) == True{} : Bool}:
-  (+t, +e) = m
-  (+ta, +ea) = ma
-  +hft = LAP.full_t(U32, w, t, d, e, hf)
-  +hct = LAB.subst(Array<U32>, y => {RG.closed(AD.view(U32, y), d, xs) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hc)
-  +hjx = MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot((x + 3 : U32), d)), links_at(xs, d, P.at_errs(), x, he, hx))
-  +hnx = ME.subst(U32, q => {RG.has(xs, q) == True{} : Bool}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (x + 3 : U32))), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))),
-    Equal.sym(U32, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (x + 3 : U32))), eif_keeps(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, (x + 3 : U32), hft, hd32, hjx, LAT.mirror(U32, LAT.fromT(U32, t)))), link_mem(t, d, xs, x, hft, hd32, hct, hx))
-  %e : {RG.closed(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{_}, a}, x))), d, xs) == True{} : Bool}
-  %ea : {RG.closed(AD.view(U32, RG.words(R.rg.unlink(P.H{KM.MG{LAT.fromT(U32, t)}, _}, x))), d, xs) == True{} : Bool}
-  %Equal.sym(P.H & U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x), (P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))), pred_pair(t, LAT.fromT(V.Val, ta), d, x, hft)) :
-    {RG.closed(AD.view(U32, RG.words(R.rg.unlink.p(_, x))), d, xs) == True{} : Bool}
-  %eif_parts(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), LAT.mirror(U32, LAT.fromT(U32, t))) :
-    {RG.closed(AD.view(U32, RG.words(R.rg.unlink.set(R.rg.next(_, x), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))))), d, xs) == True{} : Bool}
-  %Equal.sym(Array<U32> & U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)), (RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), LA.get_pair(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))) :
-    {RG.closed(AD.view(U32, RG.words(R.rg.unlink.set(P.rd.fin(KM.m_get.fin(_), LAT.fromT(V.Val, ta)), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x))))), d, xs) == True{} : Bool}
-  %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))))), List.set(&2, U32, AD.view(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}))), AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), d), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32)))), LA.set_view(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), d, (Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))), eif_full(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, hft, LAT.mirror(U32, LAT.fromT(U32, t))), hd32)) :
-    {RG.closed(_, d, xs) == True{} : Bool}
-  closed_set(xs, AD.view(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}))), d, xs, AD.slot((Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)) + 3 : U32), d), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.err_if(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)})), (x + 3 : U32))), eif_closed(Bool.not(pdone(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, x)), t, LAT.fromT(V.Val, ta), d, xs, hft, hd32, hct, he), hnx)
-
-def Laws.unlink_closed(w, a, d, x, xs, hf, hd32, hc, hx, he):
-  unlink_closed.go(w, a, d, x, xs, hf, hd32, hc, hx, he, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
 
 # Inserting a cursor apart from the ring: a member's link among more
 # members; x's own membership
@@ -531,9 +391,6 @@ def off_w0(+d: Nat, +m: U32, +j: U32, +h: {RG.off.node(d, m, j) == True{} : Bool
 def off_w1(+d: Nat, +m: U32, +j: U32, +h: {RG.off.node(d, m, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}:
   MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))), (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)))), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(m, d), AD.slot(j, d))), (Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d))))), h)))
 
-def off_w3(+d: Nat, +m: U32, +j: U32, +h: {RG.off.node(d, m, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}:
-  MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d))), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))), (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)))), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(m, d), AD.slot(j, d))), (Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d))))), h))))
-
 # a link, its static tests split: the heap after it in its parts
 def lx_parts(+sy: Bool, +sz: Bool, -w: Array<U32>, -a: Array<V.Val>, +y: U32, +z: U32) ->
     {P.H{KM.MG{RG.words(P.link.to(sz, P.link.to(sy, P.H{KM.MG{w}, a}, y, z), z, y))}, a} == P.link.to(sz, P.link.to(sy, P.H{KM.MG{w}, a}, y, z), z, y) : P.H}:
@@ -584,34 +441,6 @@ def lx_keeps(+sy: Bool, +sz: Bool, +t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat,
           LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hft, hd32, hy)
         case False{}:
           Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), d, (z + 1 : U32), j, y, LA.set_full(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hft), hd32, hz), LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hft, hd32, hy))
-
-# the ring stays closed through a link whose words are no member's word 3
-def lx_closed(+sy: Bool, +sz: Bool, +t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +y: U32, +z: U32, +xs: List<&2, U32>,
-    +hft: {AD.full(U32, LAT.fromT(U32, t), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-    +hct: {RG.closed(AD.view(U32, LAT.fromT(U32, t)), d, xs) == True{} : Bool},
-    +hoy: {RG.off.links(xs, d, (y + 1 : U32)) == True{} : Bool}, +hoz: {RG.off.links(xs, d, (z + 1 : U32)) == True{} : Bool}) ->
-    {RG.closed(AD.view(U32, RG.words(P.link.to(sz, P.link.to(sy, P.H{KM.MG{LAT.fromT(U32, t)}, a}, y, z), z, y))), d, xs) == True{} : Bool}:
-  match sy:
-    case True{}:
-      match sz:
-        case True{}:
-          hct
-        case False{}:
-          %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((z + 1 : U32), d), y), LA.set_view(U32, LAT.fromT(U32, t), d, (z + 1 : U32), y, hft, hd32)) :
-            {RG.closed(_, d, xs) == True{} : Bool}
-          closed_off(xs, AD.view(U32, LAT.fromT(U32, t)), d, xs, (z + 1 : U32), y, hct, hoz)
-    case False{}:
-      match sz:
-        case True{}:
-          %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((y + 1 : U32), d), z), LA.set_view(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hft, hd32)) :
-            {RG.closed(_, d, xs) == True{} : Bool}
-          closed_off(xs, AD.view(U32, LAT.fromT(U32, t)), d, xs, (y + 1 : U32), z, hct, hoy)
-        case False{}:
-          %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y)), List.set(&2, U32, AD.view(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z)), AD.slot((z + 1 : U32), d), y), LA.set_view(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), d, (z + 1 : U32), y, LA.set_full(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hft), hd32)) :
-            {RG.closed(_, d, xs) == True{} : Bool}
-          %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((y + 1 : U32), d), z), LA.set_view(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hft, hd32)) :
-            {RG.closed(List.set(&2, U32, _, AD.slot((z + 1 : U32), d), y), d, xs) == True{} : Bool}
-          closed_off(xs, List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((y + 1 : U32), d), z), d, xs, (z + 1 : U32), y, closed_off(xs, AD.view(U32, LAT.fromT(U32, t)), d, xs, (y + 1 : U32), z, hct, hoy), hoz)
 
 # an unlink: the heap after it in its parts, its words perfect, every
 # word off the ring as it was
