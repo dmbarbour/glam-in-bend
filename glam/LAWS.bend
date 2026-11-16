@@ -135,6 +135,23 @@ law pred_exact:
   for hx: {RG.has(t, x) == True{} : Bool}
   {Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{w}, a}, x)) == RG.before(t, s, x) : U32}
 
+# LAW: a find for position far on an exact ring hands the heap back, no
+# error raised, and finds the first member in walk order whose word 2 is
+# far, or none (RG.first) (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law find_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +far: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring(AD.view(U32, w), d, s, t) == True{} : Bool}
+  {R.rg.find(P.H{KM.MG{w}, a}, s, far) == (P.H{KM.MG{w}, a}, RG.first(t, AD.view(U32, w), d, far)) : P.H & Maybe<&2, U32>}
+
 # LAW: unlinking a cursor x of an exact ring leaves the ring exact
 # without it (RG.without): the one listed before x now links the one
 # after (cells-freeze.nested.host.ring.exact).

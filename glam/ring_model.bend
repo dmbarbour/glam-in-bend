@@ -153,6 +153,33 @@ def before(ys: List<&2, U32>, +a: U32, +x: U32) -> U32:
 # F2, F4): facts of the members' words, stated on the list alone, so that
 # taking members out keeps them by computation
 
+# A find's model (cells-freeze.nested.host.serve): a member's word 2, its
+# position, among words v, is far
+def pos.is.m(m: Maybe<&2, U32>, +far: U32) -> Bool:
+  match m:
+    case Some{+q}:
+      U32.is_eq(q, far)
+    case None{}:
+      False{}
+
+def pos.is(+v: List<&2, U32>, +d: Nat, +y: U32, +far: U32) -> Bool:
+  pos.is.m(List.get(&2, U32, v, AD.slot((y + 2 : U32), d)), far)
+
+def first.k(+b: Bool, +y: U32, +r: Maybe<&2, U32>) -> Maybe<&2, U32>:
+  match b:
+    case True{}:
+      Some{y}
+    case False{}:
+      r
+
+# the first of ys, in walk order, at position far, as a find stops at it
+def first(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32) -> Maybe<&2, U32>:
+  match ys:
+    case Nil{}:
+      None{}
+    case Con{+y, r}:
+      first.k(pos.is(v, d, y, far), y, first(r, v, d, far))
+
 # a node's four words
 def nw(+a: U32) -> List<&2, U32>:
   Con{a, Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}}
