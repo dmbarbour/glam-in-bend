@@ -171,6 +171,27 @@ law insert_exact:
   for hx: {RG.apart(Con{s, t}, d, x) == True{} : Bool}
   {RG.ring(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
 
+# LAW: inserting a cursor x after the situating node s of a ring exact
+# with its nodes, x ready to enter it (RG.enter.ok: its words apart from
+# each other, the head's and the members', its own base, facing a port
+# off the links with its own, no member facing one whose link word is
+# x's), leaves the ring so with x listed first
+# (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law insert_ok:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +x: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, s, x))), d, s, Con{x, t}) == True{} : Bool}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each

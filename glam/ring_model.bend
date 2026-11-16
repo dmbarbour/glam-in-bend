@@ -230,3 +230,12 @@ def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
 # splice)
 def node.ok(+v: List<&2, U32>, +d: Nat, +M: List<&2, U32>, +x: U32) -> Bool:
   cross(M, d, x) && (U32.is_eq(P.base(x), x) && faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, M))
+
+# a node x ready to enter the ring Con{s, t} after s, as a cursor new to
+# it is: what node.ok asks and more, x becoming a member: its own words
+# in four slots, none the head's, none a member's, its own base, facing
+# a port off the links with its own, and no member facing a port whose
+# link word is x's word 3 (the serve's to show: the allocator gives x's
+# words and that nothing faces into x, the splice x's port)
+def enter.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +x: U32) -> Bool:
+  apartw(nw(x), d) && (off(nw(x), d, P.at_fh()) && (cross(Con{s, t}, d, x) && (U32.is_eq(P.base(x), x) && (faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, Con{s, Con{x, t}}) && faces(Con{s, t}, v, d, Con{x, Nil{}})))))
