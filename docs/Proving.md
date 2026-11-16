@@ -47,21 +47,28 @@ it alone taught. Add to this file what a new proof teaches.
   stack setting lets the report finish (`ulimit -s`, Bun's JSC options).
   `scripts/one_law.py` reports such a run as a crash. Where a mutated
   proof crashes so, as the `raise_*` laws' do while reporting a mismatch
-  over symbolic words, give the mutation a witness: the law's statement
-  at a small instance, proved by `{==}`, which checks unmutated (so the
-  instance meets the premises left out) and is refuted mutated. A
-  witness is the stronger evidence: it shows the statement excludes the
-  fault, however the proof is built. A mutation counted caught shows
-  only that the proof broke: one that changes the steps a proof follows
-  breaks it even where the law stays true of the mutated code (an unlink
-  that also clears its predecessor's position breaks `join_keeps`'s
-  proof, which allows that word; `docs/reviews/JoinLaws_2026-11-14.md`,
-  F1). To show a law excludes a fault, check a witness both ways by
-  hand: `scripts/one_law.py` runs one only where the checker crashes. A
-  witness whose mutated code walks out its fuel (a million steps) does
-  not finish in the checker within fifteen minutes: run the code on the
-  same instance instead, the premises still checked by `{==}`. A law
-  that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  over symbolic words, give the mutation a witness: the law at a small
+  instance, a term for each of its binders (`NAME = TERM`, a premise
+  left out proved by `{==}`). `scripts/one_law.py` writes from the
+  law's own text a def per binder and the conclusion last, so that the
+  premises checked are the law's, and asks them all to check unmutated
+  and, mutated, the premises to hold and the conclusion to be refuted:
+  the mutated code then a counterexample. A witness is the stronger
+  evidence: it shows the statement excludes the fault, however the
+  proof is built. A mutation counted caught by its proof shows only
+  that the proof broke: one that changes the steps a proof follows
+  breaks it even where the law stays true of the mutated code (an
+  unlink that also clears its predecessor's position breaks
+  `join_keeps`'s proof, which allows that word;
+  `docs/reviews/JoinLaws_2026-11-14.md`, F1). So a mutation with a
+  witness is caught by its witness alone, which the tool runs every
+  time, a broken proof beside a witness that holds reported not
+  caught. A witness whose mutated code walks out a fuel far past the
+  instance (the climb's million steps) does not finish in the checker
+  within fifteen minutes: run the code on the same instance instead,
+  the premises still checked by `{==}`; a walk fuelled by the heap's
+  size runs out within the instance's words. A law that survives the
+  mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are
@@ -214,4 +221,7 @@ it alone taught. Add to this file what a new proof teaches.
   `python3 -I scripts/one_law.py PROOF LAW` checks a copy cut to the law,
   its proof and the defs it reaches; with `--mutants FILE`, the copy
   unmutated and then each mutation naming the law, each expected to fail
-  it, and where.
+  it, and where, and each witness both ways. The runs go in parallel,
+  as many as the available memory holds at the cap (1500 MB, the
+  largest run near 380 MB), at most half the processors (`--jobs N`
+  to choose), reported in order.
