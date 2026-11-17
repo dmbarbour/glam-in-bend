@@ -191,8 +191,9 @@ law insert_exact:
 # LAW: inserting a cursor x after the situating node s of a ring exact
 # with its nodes, x ready to enter it (RG.enter.ok: its words apart from
 # each other, the head's and the members', its own base, facing a port
-# off the links with its own, no member facing one whose link word is
-# x's), leaves the ring so with x listed first
+# whose link word is no word 2 or 3 of the members' or its own, no
+# member facing one whose link word is x's word 2 or 3), leaves the ring
+# so with x listed first
 # (cells-freeze.nested.host.serve).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
@@ -270,8 +271,9 @@ law cursor_pos:
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each
-# facing a port whose link word is off the ring's links) leaves it so
-# without both (cells-freeze.nested.host.ring.exact).
+# facing a port whose link word is no member's word 2 nor 3, so that
+# linking it leaves the ring's positions and links) leaves it so without
+# both (cells-freeze.nested.host.ring.exact).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law join_exact:
@@ -310,9 +312,10 @@ law join1_exact:
   {RG.ring.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y)) == True{} : Bool}
 
 # LAW: a cursor c of a ring exact with its nodes leaving it, the port it
-# faced linked to a port p whose link word is off the ring's links (a
-# copied node's port, or the static eraser, whose link word is the
-# head's), leaves the ring so without c (cells-freeze.nested.host.ring.exact).
+# faced linked to a port p faceable by the ring's members (RG.port.ok,
+# its link word no member's word 2 nor 3: a copied node's port, or the
+# static eraser, whose link word is the head's), leaves the ring so
+# without c (cells-freeze.nested.host.ring.exact).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law leave_exact:
@@ -327,5 +330,5 @@ law leave_exact:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
   for hc: {RG.has(t, c) == True{} : Bool}
-  for hp: {RG.off.links(Con{s, t}, d, (p + 1 : U32)) == True{} : Bool}
+  for hp: {RG.port.ok(Con{s, t}, d, p) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, RG.without(t, c)) == True{} : Bool}

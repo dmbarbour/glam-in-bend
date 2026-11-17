@@ -229,13 +229,28 @@ def bases(ys: List<&2, U32>) -> Bool:
     case Con{+m, t}:
       U32.is_eq(P.base(m), m) && bases(t)
 
-# what a member faces, by its word 1: a port whose link word is no word
-# 3 of M's, so that linking it leaves the ring's links alone; a static
-# eraser (all ones) has its link word on the head's word, off them too
+# word i's slot no member's word 2, its position: a write there leaves
+# the positions a find reads
+def off.pos(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, t}:
+      Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 2 : U32), d))) && off.pos(t, d, i)
+
+# a port r faceable by M's members: its link word, r + 1, in no member's
+# word 3 nor word 2, so that linking it leaves the ring's links and
+# positions (ring-ports-faced-off-positions); a member's word 1 may be
+# faced, two cursors facing each other, and a static eraser (all ones)
+# has its link word on the head's word, off them all
+def port.ok(+M: List<&2, U32>, +d: Nat, +r: U32) -> Bool:
+  off.links(M, d, (r + 1 : U32)) && off.pos(M, d, (r + 1 : U32))
+
+# what a member faces, by its word 1: a port faceable by M's members
 def faces.m(m: Maybe<&2, U32>, +d: Nat, +M: List<&2, U32>) -> Bool:
   match m:
     case Some{+r}:
-      off.links(M, d, (r + 1 : U32))
+      port.ok(M, d, r)
     case None{}:
       False{}
 
@@ -247,22 +262,22 @@ def faces(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +M: List<&2, U32>) -> B
       faces.m(List.get(&2, U32, v, AD.slot((m + 1 : U32), d)), d, M) && faces(t, v, d, M)
 
 # the ring exact, its nodes laid out apart, each member a base, each
-# facing a port off its links
+# facing a port faceable by them, its link word no member's word 2 or 3
 def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
   ring(v, d, s, t) && (layout(Con{s, t}, d) && (bases(Con{s, t}) && faces(Con{s, t}, v, d, Con{s, t})))
 
 # a node x apart from the ring M, as a placeholder joined to it is: none
-# of its words in a slot of a member's, its own base, facing a port off
-# the ring's links (the serve's to show, from the allocator and the
-# splice)
+# of its words in a slot of a member's, its own base, facing a port
+# faceable by the ring's members (the serve's to show, from the
+# allocator and the splice)
 def node.ok(+v: List<&2, U32>, +d: Nat, +M: List<&2, U32>, +x: U32) -> Bool:
   cross(M, d, x) && (U32.is_eq(P.base(x), x) && faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, M))
 
 # a node x ready to enter the ring Con{s, t} after s, as a cursor new to
 # it is: what node.ok asks and more, x becoming a member: its own words
 # in four slots, none the head's, none a member's, its own base, facing
-# a port off the links with its own, and no member facing a port whose
-# link word is x's word 3 (the serve's to show: the allocator gives x's
+# a port faceable by the members and x, and no member facing a port whose
+# link word is x's word 2 or 3 (the serve's to show: the allocator gives x's
 # words and that nothing faces into x, the splice x's port)
 def enter.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +x: U32) -> Bool:
   apartw(nw(x), d) && (off(nw(x), d, P.at_fh()) && (cross(Con{s, t}, d, x) && (U32.is_eq(P.base(x), x) && (faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, Con{s, Con{x, t}}) && faces(Con{s, t}, v, d, Con{x, Nil{}})))))
