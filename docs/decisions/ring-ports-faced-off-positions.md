@@ -26,8 +26,10 @@ member's word 1 may still be faced: two cursors may face each other.
 - A join keeps the members' positions, so the serve's composition finds
   by the positions the members had, not by reading the heap as it
   changes.
-- The situating node's word 1, its static eraser, is not protected: no
-  law reads it, and naming it would single out the situating node in
-  every list the faces are stated against.
+- The situating node's word 1, its static eraser, is not protected, the
+  decision deferred (the maintainer, 2026-11-17): no law reads it, and
+  naming it in `port.ok` would single out the situating node in every
+  list the faces are stated against, so it would be a conjunct of
+  `ring.ok` of its own (`cells-freeze.nested.host.situ`).
 
 **Rule lives in:** `glam/ring_model.bend`, `port.ok` and `faces.m`.
