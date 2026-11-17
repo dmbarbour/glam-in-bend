@@ -41,6 +41,30 @@ def closed.go(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, ys: List<&2, U32>)
 def closed(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>) -> Bool:
   closed.go(v, d, xs, xs)
 
+# members of ys all members of M
+def sub(ys: List<&2, U32>, +M: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, t}:
+      has(M, y) && sub(t, M)
+
+# no member of ys a member of M
+def none.in(ys: List<&2, U32>, +M: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, t}:
+      Bool.not(has(M, y)) && none.in(t, M)
+
+# no member of ys listed twice
+def distinct(ys: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+y, +t}:
+      Bool.not(has(t, y)) && distinct(t)
+
 # a heap's words, as the laws read a heap after a step
 def words(h: P.H) -> Array<U32>:
   match h:
