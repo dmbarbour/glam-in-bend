@@ -305,3 +305,13 @@ def node.ok(+v: List<&2, U32>, +d: Nat, +M: List<&2, U32>, +x: U32) -> Bool:
 # words and that nothing faces into x, the splice x's port)
 def enter.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +x: U32) -> Bool:
   apartw(nw(x), d) && (off(nw(x), d, P.at_fh()) && (cross(Con{s, t}, d, x) && (U32.is_eq(P.base(x), x) && (faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, Con{s, Con{x, t}}) && faces(Con{s, t}, v, d, Con{x, Nil{}})))))
+
+# The serve's pending placeholders (cells-freeze.nested.host.serve): the
+# ring s, t exact; the placeholders ps not yet joined nor made cursors,
+# none of the ring's and none listed twice; every node of either in the
+# list L, laid out apart, each its own base, each facing a port faceable
+# by all of L. L is carried, not computed from the others: a join takes
+# its placeholder and its cursor out of it, a cursor made moves a
+# placeholder from ps to t and leaves L as it was
+def pend.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>) -> Bool:
+  ring(v, d, s, t) && (sub(Con{s, t}, L) && (sub(ps, L) && (none.in(ps, Con{s, t}) && (distinct(ps) && (layout(L, d) && (bases(L) && faces(L, v, d, L)))))))
