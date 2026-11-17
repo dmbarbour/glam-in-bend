@@ -57,6 +57,28 @@ the cursor inserted given situ's word 2, its position, as its next
 +++
   rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)
 
+# A port's link word off the members' positions (leave_exact, the faces
+# strengthened: ring-ports-faced-off-positions): the mutation links one
+# word past the port given, so that a member faces a port whose link
+# word is another's position, and writes that position. Its witness is a
+# ring of three, s at 8, cursors 12, 16 and 20, 12 and 16 facing each
+# other; 12 leaves, the port it faced linked to 20's principal.
+
+=== leave_links_past_port leave_exact
+the port given linked one word past it, a member's position written
+--- ring.bend
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
++++
+  P.free(rg.unlink(P.link_xx(h, (p + 1 : U32), w), c), c)
+>>> witness leave_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 16), 14, 7), 15, 16), 16, 18), 17, 12), 18, 9), 19, 20), 20, 18), 21, 41), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+p = 20
+c = 12
+
 # A find (find_exact): each mutation finds another member, or none, or
 # raises the error. Each witness is the inserts' ring, s at 8 holding 99
 # at word 2, 12 at position 7 and 16 at position 9.
