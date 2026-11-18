@@ -408,3 +408,18 @@ a = [V.VUnit{} : V.Val^1n]
 d = 4n
 r = 4
 j = 1
+
+=== link_writes_static link_keeps
+a link written into a static's "link word", the word after it, as
+though the static were a node's port: a static has none (KMd.off.port)
+--- kprim.bend
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
++++
+  link(h, y, z)
+>>> witness link_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+y = 7
+z = 8
+j = 8

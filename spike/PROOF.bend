@@ -14,6 +14,8 @@ import ./kplace.bend as KP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
 import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
 import ./kmem_grow.bend as KM
+import ./kmodel.bend as KMd
+import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
@@ -32590,8 +32592,8 @@ def rd_get(w: Array<U32>, -a: Array<V.Val>, +j: U32) ->
 # Linking: by the two static tests, each a write or none
 def link2(+sy: Bool, +sz: Bool, +t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +y: U32, +z: U32, +j: U32,
   +hf: {AD.full(U32, LAT.fromT(U32, t), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-  +hy: {Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)) == False{} : Bool},
-  +hz: {Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}) ->
+  +hy: {KMd.off.lw(KMd.lw.k(sy, y), d, j) == True{} : Bool},
+  +hz: {KMd.off.lw(KMd.lw.k(sz, z), d, j) == True{} : Bool}) ->
   {Pair.snd(P.H, U32, P.rd(P.link.to(sz, P.link.to(sy, P.H{KM.MG{LAT.fromT(U32, t)}, a}, y, z), z, y), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)) : U32}:
   match sy:
     case True{}:
@@ -32599,18 +32601,18 @@ def link2(+sy: Bool, +sz: Bool, +t: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +y
         case True{}:
           rd_get(LAT.fromT(U32, t), a, j)
         case False{}:
-          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y), a, j), LA.get_set_other(U32, LAT.fromT(U32, t), d, (z + 1 : U32), j, y, hf, hd32, hz))
+          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, LAT.fromT(U32, t), (z + 1 : U32), y), a, j), LA.get_set_other(U32, LAT.fromT(U32, t), d, (z + 1 : U32), j, y, hf, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)), hz)))
     case False{}:
       match sz:
         case True{}:
-          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), a, j), LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hf, hd32, hy))
+          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), a, j), LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hf, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)), hy)))
         case False{}:
-          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), a, j), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), d, (z + 1 : U32), j, y, LA.set_full(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hf), hd32, hz), LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hf, hd32, hy)))
+          Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y)}, a}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), a, j), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), (z + 1 : U32), y), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t), (y + 1 : U32), z), d, (z + 1 : U32), j, y, LA.set_full(U32, LAT.fromT(U32, t), d, (y + 1 : U32), z, hf), hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)), hz)), LA.get_set_other(U32, LAT.fromT(U32, t), d, (y + 1 : U32), j, z, hf, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)), hy))))
 
 def link_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +y: U32, +z: U32, +j: U32,
   hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
-  +hy: {Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)) == False{} : Bool},
-  +hz: {Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +hy: {KMd.off.port(d, y, j) == True{} : Bool},
+  +hz: {KMd.off.port(d, z, j) == True{} : Bool},
   m: LAT.Mirror(U32, w)) ->
   {Pair.snd(P.H, U32, P.rd(P.link_xx(P.H{KM.MG{w}, a}, y, z), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
   (+t, +e) = m

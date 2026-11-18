@@ -182,6 +182,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`ring-ports-faced-off-positions`](decisions/ring-ports-faced-off-positions.md):
   a port a ring's member faces has its link word in no member's
   position (word 2) nor link (word 3), so that a join keeps both.
+- [`laws-name-link-words`](decisions/laws-name-link-words.md): laws name
+  a port's link word through a heap model (`KMd.lw`, none for a static),
+  not as the reference plus one.
 - [`copied-controls-unfused`](decisions/copied-controls-unfused.md): a
   control a copy has taken out of a live source is marked, and runtime
   fusion refuses it; fusion stays everywhere else.

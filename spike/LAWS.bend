@@ -13,6 +13,7 @@ import ./wiring.bend as W
 import ./kplace.bend as KP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MNat
 import ./kmem_grow.bend as KM
+import ./kmodel.bend as KMd
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: allocating conserves a page's slots: live, recycled and fresh slots
@@ -455,9 +456,9 @@ law node_index:
   {Pair.snd(P.H, U32, P.node(P.H{KM.MG{w}, a}, hd, p)) == ((fh - 1 : U32) << 2n : U32) : U32}
 
 # LAW: linking two ports writes at most their two link words
-# (cells-freeze.nested.host.join): port y's, word y + 1, unless y is
-# static, and z's, word z + 1, unless z is; every other word reads as
-# before. The words a perfect tree of depth d below 32.
+# (cells-freeze.nested.host.join): port y's, unless y is static, and
+# z's, unless z is (KMd.off.port; a static has none); every other word
+# reads as before. The words a perfect tree of depth d below 32.
 # Record: net-nodes-double
 # Record: hub-laws-reused
 law link_keeps:
@@ -469,8 +470,8 @@ law link_keeps:
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hy: {Nat.is_eq(AD.slot((y + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hz: {Nat.is_eq(AD.slot((z + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hy: {KMd.off.port(d, y, j) == True{} : Bool}
+  for hz: {KMd.off.port(d, z, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(P.link_xx(P.H{KM.MG{w}, a}, y, z), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: freeing the node behind reference r leaves every word outside
