@@ -432,3 +432,14 @@ def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
       True{}
     case Con{+f, r}:
       KMd.off.port(d, f, j) && off.ports(r, d, j)
+
+# no crossing of cs looks for c's position in v, as the find reads it
+# (pos.is): the served cursor, which no crossing then joins (serve_exact)
+def unfound(cs: List<&2, R.FzC>, +v: List<&2, U32>, +d: Nat, +c: U32) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{f, r}:
+      match f:
+        case R.FzC{+at, +src, neg, +far}:
+          Bool.not(pos.is(v, d, c, far)) && unfound(r, v, d, c)
