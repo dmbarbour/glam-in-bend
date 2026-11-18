@@ -221,7 +221,11 @@ it alone taught. Add to this file what a new proof teaches.
   `python3 -I scripts/one_law.py PROOF LAW` checks a copy cut to the law,
   its proof and the defs it reaches; with `--mutants FILE`, the copy
   unmutated and then each mutation naming the law, each expected to fail
-  it, and where, and each witness both ways. The runs go in parallel,
+  it, and where, a mutation with a witness by its witness alone, every
+  witness unmutated in one run. A run is kept while the files it checks
+  are unchanged, so that a witness, which checks the code's modules and
+  not the proof file, reruns only when the code or its law's statement
+  changes. The runs go in parallel,
   as many as the available memory holds at the cap (1500 MB, the
   largest run near 380 MB), at most half the processors (`--jobs N`
   to choose), reported in order.

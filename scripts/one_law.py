@@ -10,7 +10,8 @@ runs `bend` on the copy. A proof file that
 imports no laws file is cut to the def LAW names.
 
 With --mutants FILE, each mutation of FILE naming the law is tried on a
-copy of its own, after the copy unmutated (the control): a law that
+copy of its own, after the copy unmutated (the control; left out with
+--gate, the gate's verdict having checked the whole file): a law that
 survives a mutation of what it is about claims less than meant
 (docs/Proving.md). FILE holds mutations as
 
@@ -25,9 +26,9 @@ survives a mutation of what it is about claims less than meant
     ...
 
 PATH relative to the proof file's directory, the code found there exactly
-once; lines before the first `===` are comments. A mutation is caught
-where Bend refutes the law's proof on the mutated copy (SOME PROOFS
-FAIL). A run that ends with no verdict, Bend's checker overflowing its
+once; lines before the first `===` are comments. A mutation without a
+witness for the law is caught where Bend refutes the law's proof on the
+mutated copy (SOME PROOFS FAIL). A run that ends with no verdict, Bend's checker overflowing its
 stack (as it does building the report of a mismatch over symbolic
 words) or the run's cap reached, is a crash, and catches nothing.
 
@@ -41,10 +42,11 @@ conclusion, `witness`, proved by {==}; so that its premises are the
 law's by construction. It runs in a copy of its own, the proof file's
 imports and the witness alone (its laws files left out), as
 WITNESS.bend beside the proof file: Bend asks a file named PROOF.bend
-to import its laws. A law's witnesses check unmutated together, in one
-file, their names told apart; a failure there is laid to the witness it
-names. A mutation that carries a witness for the law is
-caught by it alone: the witness must check on a copy unmutated, and on
+to import its laws. Every witness of the file checks unmutated in one
+run, the names told apart (_w<law>_<case>); a failure there is laid to
+the witness it names, the rest unknown, Bend reporting the first alone.
+A mutation that carries a witness for the law is caught by it alone,
+its proof mutated not run: the witness must check unmutated, and on
 the mutated one be refuted at its conclusion, Bend reporting the first
 def that fails in the file's order, so that the premises still hold
 there, the mutated code the law's counterexample; a refuted proof whose
@@ -54,9 +56,14 @@ does: MUTANTS.txt beside PROOF.bend, X_MUTANTS.txt beside X_PROOF.bend.
 Given only the mutants file, every law it names is tried, as the gate
 does (scripts/check.sh, through scripts/kept.py). The runs are made in
 parallel, as many at once as fit the machine's available memory at the
-cap, at most half its processors, and reported in order. Exits 0 where
-each control passes and every mutation is caught, 1 otherwise, 2 on bad
-usage.
+cap, at most half its processors, and reported in order. A run whose
+outcome is the one its role wants (a control passing, a mutated proof
+refuted, a mutated witness refuted at its conclusion) is kept while the
+files it checks are unchanged, with Bend, this tool and the cap
+(results/one_law_kept/): a witness's run checks the code's modules and
+not the proof file, so that an edit to the proofs reruns none of them;
+nothing else is kept. Exits 0 where each control passes and every
+mutation is caught, 1 otherwise, 2 on bad usage.
 
 Run from the root of the project the proof file is in (the repository, or
 Blend's directory), its copies written under that project's results/:
@@ -70,8 +77,10 @@ Blend's directory), its copies written under that project's results/:
   --cap MB SECONDS   each run's cap (scripts/capped.sh), 1500 MB 300 s by
                      default, the largest run 380 MB (2026-11-16)
   --jobs N           at most N runs at once
+  --gate             no law checked alone, as the gate runs it
 """
 
+import hashlib
 import os
 import re
 import subprocess
@@ -85,6 +94,11 @@ os.environ["BEND_NO_TELEMETRY"] = "1"
 IMPORT = re.compile(r"^import\s+(\S+)(?:\s+as\s+(\S+))?", re.M)
 NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 OUT = os.path.join("results", "one_law")
+KEPT = os.path.join("results", "one_law_kept")
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import kept  # noqa: E402
+TOOLS = b""
 
 
 def closure(path):
@@ -308,22 +322,55 @@ def write(files, proof, root, out, dest, mutation):
     return os.path.join(dest, os.path.relpath(proof, root))
 
 
-def check(path, cap):
+def run_key(path, dest, cap):
+    """A run's key: the file it checks and every local file that imports,
+    as the copy has them (laid out under dest, so that two runs of one
+    content share it), the imports of no local file by name, Bend's and
+    this tool's versions, and the cap."""
+    files, others = kept.closure(path)
+    h = hashlib.sha256(TOOLS)
+    h.update(f"{cap[0]} {cap[1]}\0{os.path.relpath(path, dest)}\0".encode())
+    for f in sorted(files):
+        h.update(os.path.relpath(f, dest).encode() + b"\0" + hashlib.sha256(files[f]).digest())
+    for o in sorted(others):
+        h.update(o.encode() + b"\0")
+    return h.hexdigest()
+
+
+def check(path, cap, dest=None, want=None):
     """Bend's check of the copied proof file: pass; refuted, with the first
     failure's location; or crash, with why: a run that ends with no verdict
-    (docstring above)."""
+    (docstring above). A run whose outcome is the one its role wants (want:
+    "pass", "refuted", or "witness", refuted at its conclusion) keeps it
+    while the files it checks are unchanged (results/one_law_kept/); no
+    other outcome is kept."""
+    mark = os.path.join(KEPT, run_key(path, dest, cap)) if want else None
+    if mark and os.path.exists(mark):
+        with open(mark) as f:
+            kind, _, where = f.read().partition(" ")
+        check.kept += 1
+        return kind, where
     capped = os.path.join(os.path.dirname(os.path.abspath(__file__)), "capped.sh")
     run = subprocess.run([capped, cap[0], cap[1], os.environ.get("BEND", "bend"),
                           os.path.basename(path)],
                          cwd=os.path.dirname(path), capture_output=True, text=True)
     lines = (run.stdout + run.stderr).splitlines()
     if run.returncode == 0 and any(l.startswith("ALL PROOFS CHECK") for l in lines):
-        return "pass", ""
-    if any(l.startswith("SOME PROOFS FAIL") for l in lines):
+        res = "pass", ""
+    elif any(l.startswith("SOME PROOFS FAIL") for l in lines):
         loc = [l.split()[-1] for l in lines if l.startswith("Location:")]
-        return "refuted", loc[0] if loc else " / ".join(lines[:3])
-    why = [l.strip() for l in lines if "RangeError" in l or l.startswith("capped.sh:")]
-    return "crash", why[0] if why else " / ".join(lines[:3])
+        res = "refuted", loc[0] if loc else " / ".join(lines[:3])
+    else:
+        why = [l.strip() for l in lines if "RangeError" in l or l.startswith("capped.sh:")]
+        res = "crash", why[0] if why else " / ".join(lines[:3])
+    good = {"pass": res[0] == "pass", "refuted": res[0] == "refuted",
+            "witness": res == ("refuted", "witness")}.get(want, False)
+    if good:
+        os.makedirs(KEPT, exist_ok=True)
+        with open(mark, "w") as f:
+            f.write(f"{res[0]} {res[1]}")
+    return res
+check.kept = 0
 
 
 def beside(muts):
@@ -332,81 +379,81 @@ def beside(muts):
     return os.path.join(d, b.removesuffix("MUTANTS.txt") + "PROOF.bend")
 
 
-def plan_law(files, proof, law, muts):
-    """The runs a law asks, as (path, then): the law checked alone, each
-    mutation naming it, with its witness mutated, and its witnesses
-    unmutated in one file; then reports the results, (lines, status)."""
+def plan_law(files, proof, law, muts, li, alone=True):
+    """The runs a law asks, as (path, dest, want): the law checked alone
+    (unless the gate's verdict has checked the whole file), then each
+    mutation naming it: its witness mutated where it has one, which decides
+    alone, else its proof mutated. Its witnesses' defs unmutated, named
+    apart (_w<law>_<case>), go to the file's one joint run. Then reports the
+    results, given the joint run's, (lines, status)."""
     tag = proof.replace(os.sep, "_").removesuffix(".bend")
     laws = laws_file(files, proof)
-    runs = [copy(files, proof, law, os.path.join(OUT, tag, law, "control"))]
-    heads = [f"-- {law} alone", copy.kept]
+    runs, heads = [], [f"-- {law}" + (" alone" if alone else "")]
+    if alone:
+        d = os.path.join(OUT, tag, law, "control")
+        runs.append((copy(files, proof, law, d), d, "pass"))
+        heads.append(copy.kept)
     cases, controls = [], []
     for m in mutants(muts) if muts else []:
         name, ls, what, witness = m[0], m[1], m[2], m[6]
         if law not in ls:
             continue
         dest = os.path.join(OUT, tag, law, name)
-        paths = [copy(files, proof, law, dest, m)]
-        kept = copy.kept
         if law in witness:
             if laws is None:
                 sys.exit(f"one_law: {name}'s witness for {law}: the proof file imports no laws file")
-            controls.append(witness_body(laws, law, witness[law], f"_w{len(cases)}"))
-            paths.append(copy(files, proof, law, dest + "_witness", m,
-                              witness=witness_body(laws, law, witness[law])))
-        cases.append((name, what, kept, len(runs), law in witness))
-        runs += paths
-    ctl = len(runs)
-    if controls:
-        runs.append(copy(files, proof, law, os.path.join(OUT, tag, law, "witness_control"),
-                          witness="\n".join(controls)))
+            controls.append(witness_body(laws, law, witness[law], f"_w{li}_{len(cases)}"))
+            d = dest + "_witness"
+            runs.append((copy(files, proof, law, d, m, witness=witness_body(laws, law, witness[law])), d, "witness"))
+            cases.append((name, what, "", len(runs) - 1, True))
+        else:
+            runs.append((copy(files, proof, law, dest, m), dest, "refuted"))
+            cases.append((name, what, copy.kept, len(runs) - 1, False))
 
-    def report(res):
-        kind, where = res[0]
-        lines = heads + [f"{law}: " + {"pass": "passes", "refuted": "FAILS at " + where,
-                                       "crash": "CRASHES the checker: " + where}[kind]]
-        status = 0 if kind == "pass" else 1
+    def report(res, joint):
+        lines, status = list(heads), 0
+        if alone:
+            kind, where = res[0]
+            lines.append(f"{law}: " + {"pass": "passes", "refuted": "FAILS at " + where,
+                                       "crash": "CRASHES the checker: " + where}[kind])
+            status = 0 if kind == "pass" else 1
         for k, (name, what, kept, at, wit) in enumerate(cases):
-            end = cases[k + 1][3] if k + 1 < len(cases) else ctl
-            got = res[at:end]
+            got = [res[at]]
             if wit:
                 # the witnesses' joint check unmutated: this one's failure,
                 # or another's, Bend reporting the first alone
-                kc, wc = res[ctl]
-                m = re.search(r"_w(\d+)$", wc) if kc == "refuted" else None
-                mine = kc == "pass" or (m is not None and int(m.group(1)) != k)
-                got = [got[0], ("pass", "") if mine else (kc, wc), got[1]]
+                kc, wc = joint
+                mt = re.search(r"_w(\d+)_(\d+)$", wc) if kc == "refuted" else None
+                mine = kc == "pass" or (mt is not None and (int(mt.group(1)), int(mt.group(2))) != (li, k))
+                got = [("pass", "") if mine else (kc, wc), res[at]]
             line, bad = verdict(name, law, got)
             lines += [f"-- {name}: {what}", kept, line]
             status |= bad
         return lines, status
-    return runs, report
+    return runs, controls, report
 
 
 def verdict(name, law, res):
-    """A mutation's line and whether it is not caught, from its runs: the
-    mutated proof, and its witness unmutated and mutated if it has one."""
-    kind, where = res[0]
-    proof = {"pass": "the proof checks", "refuted": f"fails {law} at {where}",
-             "crash": f"crashes the checker ({where})"}[kind]
+    """A mutation's line and whether it is not caught, from its runs: its
+    proof mutated, or its witness unmutated (in the joint run) and
+    mutated."""
     if len(res) == 1:
+        kind, where = res[0]
         if kind == "pass":
             return f"{name}: SURVIVES", 1
         if kind == "refuted":
-            return f"{name}: {proof}", 0
+            return f"{name}: fails {law} at {where}", 0
         return f"{name}: CRASHES the checker ({where}), and has no witness for {law}: not caught", 1
-    (kc, wc), (km, wm) = res[1], res[2]
+    (kc, wc), (km, wm) = res
     if kc != "pass":
-        return f"{name}: {proof}; its witness for {law} does not check unmutated ({kc} at {wc}): NOT CAUGHT", 1
+        return f"{name}: its witness for {law} does not check unmutated ({kc} at {wc}): NOT CAUGHT", 1
     if km == "refuted" and wm == "witness":
-        if kind == "pass":
-            return f"{name}: the proof checks, yet its witness refutes {law}: THE CHECKER DISAGREES WITH ITSELF", 1
-        return f"{name}: {proof}; its witness refutes {law}", 0
+        return f"{name}: its witness refutes {law}", 0
     if km == "refuted":
-        return f"{name}: {proof}; its witness's premise {wm.removeprefix('wit_')} fails on the mutated code, not the law's instance there: NOT CAUGHT", 1
+        return f"{name}: its witness's premise {wm.removeprefix('wit_')} fails on the mutated code, not the law's instance there: NOT CAUGHT", 1
     if km == "pass":
-        return f"{name}: {proof}, but its witness holds on the mutated code: NOT CAUGHT", 1
-    return f"{name}: {proof}; its witness crashes the checker on the mutated code ({wm}): NOT CAUGHT", 1
+        return f"{name}: its witness holds on the mutated code: NOT CAUGHT", 1
+    return f"{name}: its witness crashes the checker on the mutated code ({wm}): NOT CAUGHT", 1
 
 
 def jobs_for(cap, asked):
@@ -428,6 +475,8 @@ def jobs_for(cap, asked):
 def main(args):
     cap = ("1500", "300")
     muts, jobs = None, 0
+    alone = "--gate" not in args
+    args = [a for a in args if a != "--gate"]
     if "--cap" in args:
         i = args.index("--cap")
         cap, args = tuple(args[i + 1:i + 3]), args[:i] + args[i + 3:]
@@ -448,17 +497,29 @@ def main(args):
         if not os.path.isfile(proof):
             print(f"one_law: {muts} has no {proof} beside it", file=sys.stderr)
             return 2
+    global TOOLS
+    TOOLS = kept.tool_key(kept.bend_exe())
+    for t in (os.path.abspath(__file__), os.path.join(HERE, "capped.sh"), os.path.join(HERE, "kept.py")):
+        with open(t, "rb") as f:
+            TOOLS += hashlib.sha256(f.read()).digest()
     files = closure(proof)
-    plans = [plan_law(files, proof, law, muts) for law in laws]
-    paths = [p for runs, _ in plans for p in runs]
+    plans = [plan_law(files, proof, law, muts, li, alone) for li, law in enumerate(laws)]
+    runs = [r for rs, _, _ in plans for r in rs]
+    controls = [c for _, cs, _ in plans for c in cs]
+    if controls:
+        tag = proof.replace(os.sep, "_").removesuffix(".bend")
+        d = os.path.join(OUT, tag, "witness_control")
+        runs.append((copy(files, proof, None, d, witness="\n".join(controls)), d, "pass"))
     with ThreadPoolExecutor(jobs_for(cap, jobs)) as pool:
-        results = list(pool.map(lambda p: check(p, cap), paths))
+        results = list(pool.map(lambda r: check(r[0], cap, r[1], r[2]), runs))
+    joint = results[-1] if controls else ("pass", "")
     status, at = 0, 0
-    for runs, report in plans:
-        lines, bad = report(results[at:at + len(runs)])
-        at += len(runs)
+    for rs, _, report in plans:
+        lines, bad = report(results[at:at + len(rs)], joint)
+        at += len(rs)
         print("\n".join(l for l in lines if l), flush=True)
         status |= bad
+    print(f"one_law: {len(runs)} runs, {check.kept} kept", flush=True)
     return status
 
 
