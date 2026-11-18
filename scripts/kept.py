@@ -145,7 +145,7 @@ def main(args):
             continue
         ran += 1
         if mode == "mutants":
-            run = subprocess.run([sys.executable, "-I", TRIES[0], "--mutants", path],
+            run = subprocess.run([sys.executable, "-I", TRIES[0], "--mutants", path, "--gate"],
                                  env=dict(os.environ, BEND=bend))
         elif mode == "verdict":
             run = subprocess.run([bend, path, FLAGS[mode]])

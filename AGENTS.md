@@ -184,7 +184,8 @@ law history, then runs `bend PROOF.bend --verdict` (the proofs rechecked
 by BendTT's kernel, itself proved in Lean; a pass kept while the file, its
 imports, Bend and Lean are unchanged, `scripts/kept.py`, as each Bend
 file's typecheck is), each `MUTANTS.txt`'s mutations against the laws
-they name (`scripts/one_law.py`, kept the same way) and the library of nets
+they name (`scripts/one_law.py`, kept the same way, and each run within
+it while the files it checks are unchanged) and the library of nets
 (`spike/library.txt`), and names the tree it checked. It times each
 section and ends with their summary: watch it, a slow gate costing every
 commit. A check whose inputs are unchanged keeps its pass (a verdict, a
