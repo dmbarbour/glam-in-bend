@@ -383,8 +383,9 @@ law crossings_pend:
 
 # LAW: and a copy's crossings leave every word as it was but the words
 # of the nodes of L, the free list's head, and the link word of each port
-# a node of L faced at the start (RG.faced): the crossings' writes by
-# region, what the demand's walk resumed reads (cells-freeze.nested.host.serve).
+# a node of L faced at the start (RG.faced), static ports having none:
+# the crossings' writes by region, what the demand's walk resumed reads
+# (cells-freeze.nested.host.serve).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
 law crossings_keeps:

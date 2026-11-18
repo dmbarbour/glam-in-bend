@@ -884,3 +884,23 @@ t = Con{12, Con{16, Nil{}}}
 L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 3}, Nil{}}
 j = 28
+
+=== join1_links_static crossings_keeps
+the placeholder's static port linked as a node's: word 28, the "link
+word" of the static 27 placeholder 24 faces, written, which the region
+leaves out only for ports that are not static
+--- ring.bend
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
++++
+  P.free(P.free(rg.unlink(P.link(h, u, w), y), x), y)
+>>> witness crossings_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 27), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+d = 6n
+dm = 1n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
+j = 28

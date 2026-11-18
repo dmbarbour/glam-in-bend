@@ -419,10 +419,11 @@ def off.nodes(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
     case Con{+m, r}:
       off.node(d, m, j) && off.nodes(r, d, j)
 
-# word j no link word of a port of fs
+# word j no link word of a port of fs: a static port, no node's, has
+# none (P.link_xx writes none for it)
 def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
   match fs:
     case Nil{}:
       True{}
     case Con{+f, r}:
-      Bool.not(Nat.is_eq(AD.slot((f + 1 : U32), d), AD.slot(j, d))) && off.ports(r, d, j)
+      (P.is_static(f) || Bool.not(Nat.is_eq(AD.slot((f + 1 : U32), d), AD.slot(j, d)))) && off.ports(r, d, j)
