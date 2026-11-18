@@ -268,6 +268,26 @@ law cursor_pos:
   for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
   {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), (x + 2 : U32))) == src : U32}
 
+# LAW: a placeholder x made a cursor leaves every word as it was but its
+# own node's and the situating node's word 3 (cells-freeze.nested.host.serve,
+# the frame law beside join_keeps, join1_keeps and leave_keeps).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cursor_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hjx: {RG.off.node(d, x, j) == True{} : Bool}
+  for hjs: {Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
 # LAW: the serve's first pending placeholder x made a cursor keeps the
 # pending placeholders' invariant (RG.pend.ok: the ring exact, the rest
 # pending outside it and none twice, every node of either in L, laid out
@@ -360,6 +380,33 @@ law crossings_pend:
   for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
   for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, RG.pls(cs, AD.view(U32, map), dm), L) == True{} : Bool}
   {RG.pend.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, Pair.fst(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, map), dm, AD.view(U32, w), d, t, L)), Nil{}, Pair.snd(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, map), dm, AD.view(U32, w), d, t, L))) == True{} : Bool}
+
+# LAW: and a copy's crossings leave every word as it was but the words
+# of the nodes of L, the free list's head, and the link word of each port
+# a node of L faced at the start (RG.faced): the crossings' writes by
+# region, what the demand's walk resumed reads (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law crossings_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +L: List<&2, U32>
+  for +cs: List<&2, R.FzC>
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, RG.pls(cs, AD.view(U32, map), dm), L) == True{} : Bool}
+  for hj: {RG.off.nodes(L, d, j) == True{} : Bool}
+  for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  for hjf: {RG.off.ports(RG.faced(L, AD.view(U32, w), d), d, j) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
