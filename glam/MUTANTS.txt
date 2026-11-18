@@ -211,6 +211,51 @@ x = 20
 y = 16
 j = 25
 
+# A crossing (cross_pend): each mutation joins where it should make a
+# cursor, or finds by the wrong position. Its witnesses: the pending
+# ring, the crossing's placeholder 20 standing at 7 (12's position) and
+# looking for 9 (16's).
+
+=== cross_cursor_always cross_pend
+the placeholder made a cursor even where its far end's cursor was found
+--- ring.bend
+    case Some{+y}:
+      join1(h, pl, y)
++++
+    case Some{+y}:
+      cursor(h, situ, pl, src, neg)
+>>> witness cross_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+ps = Con{24, Nil{}}
+L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+x = 20
+src = 7
+neg = True{}
+far = 9
+
+=== cross_find_by_src cross_pend
+the cursor looked for at the placeholder's own position, not its far end's
+--- ring.bend
+  cross.k(rg.find(h, situ, far), situ, pl, src, neg)
++++
+  cross.k(rg.find(h, situ, src), situ, pl, src, neg)
+>>> witness cross_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+ps = Con{24, Nil{}}
+L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+x = 20
+src = 7
+neg = True{}
+far = 9
+
 # A find (find_exact): each mutation finds another member, or none, or
 # raises the error. Each witness is the inserts' ring, s at 8 holding 99
 # at word 2, 12 at position 7 and 16 at position 9.

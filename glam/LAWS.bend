@@ -312,6 +312,30 @@ law join1_pend:
   for hy: {RG.has(t, y) == True{} : Bool}
   {RG.pend.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y), ps, RG.without(RG.without(L, x), y)) == True{} : Bool}
 
+# LAW: a crossing of the serve (R.cross), its placeholder x the first
+# pending, keeps the pending placeholders' invariant: x joined to the
+# cursor found at its far position, if any, both then out of the ring and
+# of L; else x made a cursor (RG.cross.t, RG.cross.L, by the find's model,
+# RG.first) (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cross_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for +far: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(t, AD.view(U32, w), d, far), x, t), ps, RG.cross.L(RG.first(t, AD.view(U32, w), d, far), x, L)) == True{} : Bool}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each

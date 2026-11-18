@@ -3243,3 +3243,73 @@ def leave_keeps.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<
 def Laws.leave_keeps(w, a, d, s, t, p, c, j, hf, hd32, hr, hc, hp, hj, hjc, hjh, hjp, hjw):
   leave_keeps.m(w, a, d, s, t, p, c, j, hf, hd32, hr, hc, hp, hj, hjc, hjh, hjp, hjw, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
 
+# A crossing: the find, then a join or a cursor
+
+# a Maybe's value, or z where there is none, and whether there is one
+def mval(m: Maybe<&2, U32>, +z: U32) -> U32:
+  match m:
+    case Some{+q}:
+      q
+    case None{}:
+      z
+
+def issome(m: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+q}:
+      True{}
+    case None{}:
+      False{}
+
+# the find's model names a member of the list it walked
+def fh_step(+z: U32, +r: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32, +y: U32, +b: Bool,
+    h: {RG.first.k(b, z, RG.first(r, v, d, far)) == Some{y} : Maybe<&2, U32>},
+    ih: {RG.first(r, v, d, far) == Some{y} : Maybe<&2, U32>} -> {RG.has(r, y) == True{} : Bool}) -> {RG.has(Con{z, r}, y) == True{} : Bool}:
+  match b:
+    case True{}:
+      ME.subst(U32, k => {RG.has(Con{z, r}, k) == True{} : Bool}, z, y, ME.subst(Maybe<&2, U32>, mm => {z == mval(mm, z) : U32}, Some{z}, Some{y}, h, {==}), has_self(z, r))
+    case False{}:
+      has_cons(z, r, y, ih(h))
+
+def first_has(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32, +y: U32, h: {RG.first(ys, v, d, far) == Some{y} : Maybe<&2, U32>}) -> {RG.has(ys, y) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      Empty.absurd({RG.has(Nil{}, y) == True{} : Bool}, MB.false_ne_true()(ME.subst(Maybe<&2, U32>, mm => {False{} == issome(mm) : Bool}, None{}, Some{y}, h, {==})))
+    case Con{+z, +r}:
+      fh_step(z, r, v, d, far, y, RG.pos.is(v, d, z, far), h, q => first_has(r, v, d, far, y, q))
+
+# a crossing by what its find found: a join, or a cursor made
+def cross_step(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32,
+  m: Maybe<&2, U32>, e: {RG.first(cs, AD.view(U32, w), d, far) == m : Maybe<&2, U32>},
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hp: {RG.pend.ok(AD.view(U32, w), d, s, cs, Con{x, ps}, L) == True{} : Bool},
+  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{w}, a}, m), s, x, src, neg))), d, s, RG.cross.t(m, x, cs), ps, RG.cross.L(m, x, L)) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      (+t, +et) = mw
+      (+ta, +eta) = ma
+      +hft = LAP.full_t(U32, w, t, d, et, hf)
+      +hpt = LAB.subst(Array<U32>, q => {RG.pend.ok(AD.view(U32, q), d, s, cs, Con{x, ps}, L) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, et), hp)
+      +eyt = LAB.subst(Array<U32>, q => {RG.first(cs, AD.view(U32, q), d, far) == Some{y} : Maybe<&2, U32>}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, et), e)
+      %et : {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{_}, a}, Some{y}), s, x, src, neg))), d, s, RG.cross.t(Some{y}, x, cs), ps, RG.cross.L(Some{y}, x, L)) == True{} : Bool}
+      %eta : {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{LAT.fromT(U32, t)}, _}, Some{y}), s, x, src, neg))), d, s, RG.cross.t(Some{y}, x, cs), ps, RG.cross.L(Some{y}, x, L)) == True{} : Bool}
+      join1_pend.m(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, ps, L, x, y, hft, hd32, hpt, first_has(cs, AD.view(U32, LAT.fromT(U32, t)), d, far, y, eyt), LAT.mirror(U32, LAT.fromT(U32, t)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+    case None{}:
+      cursor_pend.m(w, a, d, s, cs, ps, L, x, src, neg, hf, hd32, hp, mw, ma)
+
+def cross_pend.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hp: {RG.pend.ok(AD.view(U32, w), d, s, cs, Con{x, ps}, L) == True{} : Bool},
+  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, w), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, w), d, far), x, L)) == True{} : Bool}:
+  (+t, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hpt = LAB.subst(Array<U32>, q => {RG.pend.ok(AD.view(U32, q), d, s, cs, Con{x, ps}, L) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hp)
+  +hr0 = MB.eq_true_of_and_left(RG.ring(AD.view(U32, LAT.fromT(U32, t)), d, s, cs), Bool.and(RG.sub(Con{s, cs}, L), Bool.and(RG.sub(Con{x, ps}, L), Bool.and(RG.none.in(Con{x, ps}, Con{s, cs}), Bool.and(RG.distinct(Con{x, ps}), Bool.and(RG.layout(L, d), Bool.and(RG.bases(L), RG.faces(L, AD.view(U32, LAT.fromT(U32, t)), d, L))))))), hpt)
+  %e : {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{_}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, _), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, _), d, far), x, L)) == True{} : Bool}
+  %ea : {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{LAT.fromT(U32, t)}, _}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, L)) == True{} : Bool}
+  %Equal.sym(P.H & Maybe<&2, U32>, R.rg.find(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, s, far), (P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far)), find_exact.m(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, far, hft, hd32, hr0, LAT.mirror(U32, LAT.fromT(U32, t)))) :
+    {RG.pend.ok(AD.view(U32, RG.words(R.cross.k(_, s, x, src, neg))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, L)) == True{} : Bool}
+  cross_step(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, ps, L, x, src, neg, far, RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), {==}, hft, hd32, hpt, LAT.mirror(U32, LAT.fromT(U32, t)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+
+def Laws.cross_pend(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp):
+  cross_pend.m(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
