@@ -11,6 +11,13 @@ the predecessor's word 2, its position, given the cursor's next
   P.wr(h, (p + 3 : U32), nx)
 +++
   P.wr(h, (p + 2 : U32), nx)
+>>> witness unlink_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 12
 
 # The ring's walk (pred_in_ring): each mutation lets the node found leave
 # the ring.
@@ -23,6 +30,19 @@ the node found reported as the one after it in the heap
 +++
     case Rw{h, +n, +p, found, done}:
       (P.err_if(Bool.not(done), h), (p + 4 : U32))
+>>> witness pred_in_ring
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+x = 8
+xs = Con{8, Con{12, Con{16, Nil{}}}}
+>>> witness pred_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 16
 
 === walk_by_position pred_in_ring pred_exact unlink_exact
 the walk follows each cursor's word 2, its position, not its word 3
@@ -32,6 +52,26 @@ def rg.next(h: P.H, +x: U32) -> P.H & U32:
 +++
 def rg.next(h: P.H, +x: U32) -> P.H & U32:
   P.rd(h, (x + 2 : U32))
+>>> witness pred_in_ring
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+x = 12
+xs = Con{8, Con{12, Con{16, Nil{}}}}
+>>> witness pred_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 12
+>>> witness unlink_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 12
 
 # The ring closed (insert_closed, and the exact laws): each mutation
 # leaves a link out of the ring's members.
@@ -42,6 +82,13 @@ the predecessor given the cursor unlinked, not the cursor's next
   rg.unlink.set(rg.next(h, x), p)
 +++
   rg.unlink.set((h, x), p)
+>>> witness unlink_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 12
 
 === insert_word2 insert_closed insert_exact insert_ok
 the cursor inserted given its next in its word 2, its position
@@ -49,6 +96,27 @@ the cursor inserted given its next in its word 2, its position
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
 +++
   P.wr(P.wr(h, (x + 2 : U32), n), (situ + 3 : U32), x)
+>>> witness insert_closed
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+situ = 8
+x = 20
+xs = Con{8, Con{12, Con{16, Nil{}}}}
+>>> witness insert_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+>>> witness insert_ok
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
 
 === insert_next_by_position insert_closed insert_exact insert_ok
 the cursor inserted given situ's word 2, its position, as its next
@@ -56,6 +124,27 @@ the cursor inserted given situ's word 2, its position, as its next
   rg.insert.r(rg.next(h, situ), situ, x)
 +++
   rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)
+>>> witness insert_closed
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+situ = 8
+x = 20
+xs = Con{8, Con{12, Con{16, Nil{}}}}
+>>> witness insert_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+>>> witness insert_ok
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
 
 # A port's link word off the members' positions (leave_exact, the faces
 # strengthened: ring-ports-faced-off-positions): the mutation links one
@@ -298,6 +387,23 @@ the port x faced unlinked, not x
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), u), y), x), y)
+>>> witness join_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
+j = 1
+>>> witness join_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
 
 === join_link_next_port join_keeps
 the port y faced linked one word on
@@ -305,6 +411,15 @@ the port y faced linked one word on
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), x), y), x), y)
+>>> witness join_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
+j = 50
 
 === join_frees_next_node join_keeps
 the node after x freed, not x
@@ -312,6 +427,15 @@ the node after x freed, not x
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), (x + 4 : U32)), y)
+>>> witness join_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
+j = 16
 
 === join_port_by_position join_keeps
 y's word 2, its position, read as the port it faced
@@ -319,6 +443,15 @@ y's word 2, its position, read as the port it faced
   jn.w(P.rd(h, (y + 1 : U32)), u, x, y)
 +++
   jn.w(P.rd(h, (y + 2 : U32)), u, x, y)
+>>> witness join_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
+j = 6
 
 === join1_unlinks_placeholder join1_keeps join1_exact join1_pend
 the placeholder unlinked, not the ring's cursor
@@ -334,6 +467,23 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 ps = Con{24, Nil{}}
 L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+x = 20
+y = 16
+>>> witness join1_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+y = 16
+j = 1
+>>> witness join1_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
 x = 20
 y = 16
 
@@ -370,6 +520,15 @@ t = Con{12, Con{16, Con{20, Nil{}}}}
 x = 12
 y = 20
 j = 18
+>>> witness join1_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+y = 16
+j = 14
 
 # The ring exact (pred_exact, unlink_exact, insert_exact): each mutation
 # leaves every link a member's, so that the closed laws allow it, but
@@ -444,13 +603,22 @@ t = Con{12, Con{16, Nil{}}}
 x = 12
 
 === join_unlinks_x_twice join_exact
-x unlinked twice and y never: y left in the ring (its witness, a walk
-out of fuel, too long for the checker; shown by running the code,
-docs/reviews/JoinLaws_2026-11-14.md)
+x unlinked twice and y never: y left in the ring (its witness's walk
+out of fuel, too long for the checker at a million steps,
+docs/reviews/JoinLaws_2026-11-14.md, now checked, the fuel the heap's
+size)
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), x), x), y)
+>>> witness join_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
 
 # A placeholder joined, a cursor leaving (join1_exact, leave_exact): each
 # mutation leaves the ring other than the list without the cursor. The
@@ -473,6 +641,14 @@ ps = Con{24, Nil{}}
 L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 x = 20
 y = 16
+>>> witness join1_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+y = 16
 
 === leave_skips_unlink leave_exact
 the cursor leaving freed without being unlinked: it stays in the ring
@@ -491,10 +667,22 @@ c = 12
 
 === leave_frees_port leave_exact
 the port's node freed, not the cursor leaving
+(refuted where the port is a member's, its word 1 then the free list's
+head, a port whose link word is a member's word 3; a copied node's port
+freed leaves the ring exact, leave_exact surviving, and leave has no
+frame law yet: leave_keeps, cells-freeze.nested.host.serve)
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
 +++
   P.free(rg.unlink(P.link_xx(h, p, w), c), p)
+>>> witness leave_exact
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 16), 14, 7), 15, 16), 16, 18), 17, 12), 18, 9), 19, 20), 20, 18), 21, 41), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+p = 20
+c = 12
 
 # The frame laws over the exact ring (join_keeps, join1_keeps) allow no
 # error: a walk round an exact ring finishes. The witness, the ring of four
@@ -517,4 +705,13 @@ s = 8
 t = Con{12, Con{16, Con{20, Nil{}}}}
 x = 12
 y = 20
+j = 1
+>>> witness join1_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 20
+y = 16
 j = 1
