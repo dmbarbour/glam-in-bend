@@ -228,6 +228,13 @@ it alone taught. Add to this file what a new proof teaches.
   `snd(rd(H{w1}, j)) == snd(rd(H{w2}, j))` (`cursor_keeps.m`). Over two
   computed heaps it is written out where the heaps are `Data` terms,
   not as a function over two arrays, which cannot be `+`.
+- **Before calling a model's fact an accident, read its neighbours.** A
+  review read `RG.port.ok` as holding of the eraser only because all
+  ones plus one wraps to the head; it holds of every static, because
+  `bases` and `layout`, conjuncts beside it, make a member's words 2 and
+  3 end in `10` and `11` and a static's `r + 1` ends in `00`
+  (`docs/reviews/Refs_2026-11-18.md`, Corrections). What a predicate's
+  other conjuncts give decides what a change to one of them changes.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

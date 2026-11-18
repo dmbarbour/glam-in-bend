@@ -10,6 +10,7 @@ import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V
 import ./ring.bend as R
 import ./ring_model.bend as RG
+import ../spike/kmodel.bend as KMd
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the node the ring's walk finds before a member x, the one whose
@@ -53,7 +54,8 @@ law insert_closed:
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok) writes no word but the members' word 3, x's and y's
 # own four words, the free list's head and the link words of the two
-# ports x and y faced (each one's word 1 holds the port it faces): every
+# ports x and y faced (each one's word 1 holds the port it faces; a
+# static has none, KMd.off.port): every
 # other word reads as before, the other members' words 0 to 2 among them,
 # which the serve's next finds and joins read, and the kernel's error
 # count, which no walk round an exact ring raises
@@ -80,14 +82,14 @@ law join_keeps:
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
-  for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hju: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))), j) == True{} : Bool}
+  for hjw: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))), j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: and a join of a placeholder x, a node apart from the ring
 # (RG.node.ok), with a cursor y of a ring exact with its nodes writes no
 # word but the members' word 3, x's and y's own four words, the free
-# list's head and the two faced ports' link words
+# list's head and the two faced ports' link words, a static having none
 # (cells-freeze.nested.host.join), on the same premises.
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
@@ -109,8 +111,8 @@ law join1_keeps:
   for hjx: {RG.off.node(d, x, j) == True{} : Bool}
   for hjy: {RG.off.node(d, y, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
-  for hju: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hju: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))), j) == True{} : Bool}
+  for hjw: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))), j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join1(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: in an exact ring (glam/ring_model.bend's ring: the situating
@@ -477,7 +479,7 @@ law leave_exact:
 # faced linked to a port p faceable by the ring's members, leaves every
 # word as it was but the ring's links (the word 3 its predecessor gets),
 # c's own node, the free list's head, and the two ports' link words, p's
-# and the one c faced (cells-freeze.nested.host.serve, the frame law
+# and the one c faced, a static having none (cells-freeze.nested.host.serve, the frame law
 # leave lacked: .host.witness.audit).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
@@ -498,7 +500,7 @@ law leave_keeps:
   for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
   for hjc: {RG.off.node(d, c, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
-  for hjp: {Nat.is_eq(AD.slot((p + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
-  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (c + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hjp: {KMd.off.port(d, p, j) == True{} : Bool}
+  for hjw: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (c + 1 : U32))), j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 

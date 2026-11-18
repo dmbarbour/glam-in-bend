@@ -3,6 +3,7 @@ import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import ./ring.bend as R
+import ../spike/kmodel.bend as KMd
 
 # Rings, modelled for glam's laws (glam/LAWS.bend; the Cells plan's
 # cells-freeze.nested.host.ring): no code of the materializer calls these.
@@ -266,8 +267,12 @@ def off.pos(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
 # a port r faceable by M's members: its link word, r + 1, in no member's
 # word 3 nor word 2, so that linking it leaves the ring's links and
 # positions (ring-ports-faced-off-positions); a member's word 1 may be
-# faced, two cursors facing each other, and a static eraser (all ones)
-# has its link word on the head's word, off them all
+# faced, two cursors facing each other. A static has no link word, and
+# r + 1 holds of every static by alignment, not by its value: r ends in
+# 11, so r + 1 in 00, a node's word 0, while a member is a node's base
+# (bases) and the heap's depth at least 2 (layout), so that a slot keeps
+# a word's low two bits and a member's words 2 and 3 end in 10 and 11
+# (docs/reviews/Refs_2026-11-18.md, Corrections)
 def port.ok(+M: List<&2, U32>, +d: Nat, +r: U32) -> Bool:
   off.links(M, d, (r + 1 : U32)) && off.pos(M, d, (r + 1 : U32))
 
@@ -419,11 +424,11 @@ def off.nodes(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
     case Con{+m, r}:
       off.node(d, m, j) && off.nodes(r, d, j)
 
-# word j no link word of a port of fs: a static port, no node's, has
-# none (P.link_xx writes none for it)
+# word j no link word of a port of fs (KMd.off.port: a static, no
+# node's, has none)
 def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
   match fs:
     case Nil{}:
       True{}
     case Con{+f, r}:
-      (P.is_static(f) || Bool.not(Nat.is_eq(AD.slot((f + 1 : U32), d), AD.slot(j, d)))) && off.ports(r, d, j)
+      KMd.off.port(d, f, j) && off.ports(r, d, j)

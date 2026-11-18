@@ -885,7 +885,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 3}, Nil{}}
 j = 28
 
-=== join1_links_static crossings_keeps
+=== join1_links_static crossings_keeps join1_keeps
 the placeholder's static port linked as a node's: word 28, the "link
 word" of the static 27 placeholder 24 faces, written, which the region
 leaves out only for ports that are not static
@@ -903,4 +903,47 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
+j = 28
+>>> witness join1_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 27), 26, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+x = 24
+y = 16
+j = 28
+
+=== join_links_static join_keeps
+the port x faced, the static 27, linked as a node's port: its "link
+word" 28 written, which a static does not have
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link(h, u, w), x), y), x), y)
+>>> witness join_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 27), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+x = 12
+y = 20
+j = 28
+
+=== leave_links_static leave_keeps
+the port given, the static 27, linked as a node's port: its "link word"
+28 written, which a static does not have
+--- ring.bend
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
++++
+  P.free(rg.unlink(P.link(h, p, w), c), c)
+>>> witness leave_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 16), 14, 7), 15, 16), 16, 18), 17, 12), 18, 9), 19, 20), 20, 18), 21, 41), 22, 5), 23, 8)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+t = Con{12, Con{16, Con{20, Nil{}}}}
+p = 27
+c = 12
 j = 28
