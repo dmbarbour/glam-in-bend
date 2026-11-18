@@ -64,6 +64,14 @@ k = 1
 n = 1
 by = 1
 p = V.PLvl{1}
+>>> witness raise_compose
+k = 1
+n1 = 5
+u1 = True{}
+b1 = 1
+n2 = 6
+u2 = True{}
+b2 = 1
 
 === ctl_index_kept raise_lift_up raise_lift_drop
 a control's index left unraised while levels rise: a raised level passes
@@ -116,13 +124,18 @@ n2 = 1
 u2 = True{}
 b2 = 1
 
-=== drop_unclamped raise_lift_drop
+=== drop_unclamped lift_lvl_drop
 a drop falls by its whole amount, below its index and through zero: a
-fan's level can wrap to the marker of a fan without levels
+fan's level can wrap to the marker of a fan without levels (raise_lift_drop survives it, measured: an unclamped
+drop commutes with raising too)
 --- val.bend
   drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
 +++
   by
+>>> witness lift_lvl_drop
+n = 2
+by = 2
+j = 3
 
 === kdrop_unclamped lift_drop
 the kernel's drop falls by its whole amount, wrapping below zero
@@ -130,6 +143,10 @@ the kernel's drop falls by its whole amount, wrapping below zero
   drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
 +++
   by
+>>> witness lift_drop
+n = 2
+o = 2
+j = 3
 
 === kdrop_floor lift_drop
 the kernel's drop stops one above its index
@@ -137,6 +154,10 @@ the kernel's drop stops one above its index
   drop_by.k(U32.is_le(by, (j - n : U32)), by, (j - n : U32))
 +++
   drop_by.k(U32.is_le(by, (j - n : U32)), by, ((j - n : U32) - 1 : U32))
+>>> witness lift_drop
+n = 2
+o = 2
+j = 3
 
 === drop_model_unclamped drop_units_are_run drop_run_splits lift_drop
 the model's drop falls by its whole amount, below its index: a run then
@@ -145,6 +166,19 @@ does more than its units, which stop at the index one at a time
       Nat.max(n, Nat.sub(j, b))
 +++
       Nat.sub(j, b)
+>>> witness drop_units_are_run
+b = 3n
+n = 2n
+j = 3n
+>>> witness drop_run_splits
+k = 4n
+r = 2n
+n = 2n
+j = 5n
+>>> witness lift_drop
+n = 2
+o = 2
+j = 3
 
 === dunits_double drop_units_are_run
 a drop run's units counted twice over: each unit drops two
@@ -152,6 +186,10 @@ a drop run's units counted twice over: each unit drops two
       dunits(p, n, drop(n, 1n, j))
 +++
       dunits(p, n, drop(n, 2n, j))
+>>> witness drop_units_are_run
+b = 2n
+n = 0n
+j = 5n
 
 === mark_ignored marked_unfused
 fusion folds a new control into one a copy has taken
@@ -165,6 +203,11 @@ fusion folds a new control into one a copy has taken
       f
     case False{}:
       f
+>>> witness marked_unfused
+h1 = 73
+o1 = 2147483649
+h2 = 265
+o2 = 2147483649
 
 === mark_first_only marked_unfused
 fusion tests only the first control's mark
@@ -172,6 +215,11 @@ fusion tests only the first control's mark
   fz.copied(marked(h1) || marked(h2), compose(fld(h1), o1, fld(h2), o2))
 +++
   fz.copied(marked(h1), compose(fld(h1), o1, fld(h2), o2))
+>>> witness marked_unfused
+h1 = 9
+o1 = 2147483649
+h2 = 329
+o2 = 2147483649
 
 # Reading the heap after a write (the laws rd_*): P.rd and P.wr pass
 # straight to the word array; each mutation misroutes a read or a write.
@@ -182,6 +230,11 @@ a write lands on the next word: reading the word written misses it
       H{KM.m_set(w, i, v), a}
 +++
       H{KM.m_set(w, (i + 1 : U32), v), a}
+>>> witness rd_wr_same
+w = [0 : U32^2n]
+a = [V.VUnit{} : V.Val^1n]
+i = 0
+v = 7
 
 === set_drops_value rd_wr_same
 the memory's write stores 0 whatever is written
@@ -189,6 +242,11 @@ the memory's write stores 0 whatever is written
       MG{Array.set(U32, a, i, v)}
 +++
       MG{Array.set(U32, a, i, 0)}
+>>> witness rd_wr_same
+w = [0 : U32^2n]
+a = [V.VUnit{} : V.Val^1n]
+i = 0
+v = 7
 
 === rd_other_word rd_wr_same rd_wr_other
 a read looks at the word after the one asked for
@@ -196,6 +254,18 @@ a read looks at the word after the one asked for
       rd.fin(KM.m_get(w, i), a)
 +++
       rd.fin(KM.m_get(w, (i + 1 : U32)), a)
+>>> witness rd_wr_same
+w = [0 : U32^2n]
+a = [V.VUnit{} : V.Val^1n]
+i = 0
+v = 7
+>>> witness rd_wr_other
+w = [0 : U32^2n]
+a = [V.VUnit{} : V.Val^1n]
+d = 2n
+i = 2
+j = 1
+v = 7
 
 === wr_clears_neighbour rd_wr_other
 a write also clears the word after it
@@ -203,6 +273,13 @@ a write also clears the word after it
       H{KM.m_set(w, i, v), a}
 +++
       H{KM.m_set(KM.m_set(w, (i + 1 : U32), 0), i, v), a}
+>>> witness rd_wr_other
+w = Array.set(U32, [0 : U32^2n], 1, 9)
+a = [V.VUnit{} : V.Val^1n]
+d = 2n
+i = 0
+j = 1
+v = 7
 
 === rd_bumps rd_kept
 a read hands the heap back with the word it read cleared
@@ -210,6 +287,10 @@ a read hands the heap back with the word it read cleared
   (MG{a}, v)
 +++
   (MG{Array.set(U32, a, 0, 0)}, v)
+>>> witness rd_kept
+w = Array.set(U32, [0 : U32^2n], 0, 9)
+a = [V.VUnit{} : V.Val^1n]
+i = 1
 
 # A node taken from the free list (the laws node_*): each mutation
 # misplaces one of the pop's writes outside the node taken, or the index
@@ -223,6 +304,21 @@ the pop writes the new head one word past the head's word
   (H{KM.m_set(w, at_fh(), next), a}, n)
 +++
   (H{KM.m_set(w, (at_fh() + 1 : U32), next), a}, n)
+>>> witness node_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+j = 1
+>>> witness node_next
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
 
 === head_kept node_next
 the pop leaves the head as it was: the same node taken again next
@@ -230,6 +326,13 @@ the pop leaves the head as it was: the same node taken again next
   (H{KM.m_set(w, at_fh(), next), a}, n)
 +++
   (H{w, a}, n)
+>>> witness node_next
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
 
 === payload_past_node node_keeps
 a node's payload written into the next node's header, past its own words
@@ -237,6 +340,14 @@ a node's payload written into the next node's header, past its own words
   (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
 +++
   (wr(wr(h, n, hd), (n + 4 : U32), p), n)
+>>> witness node_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+j = 8
 
 === index_of_head node_index
 the node returned is the head's index times four, not its node's
@@ -244,6 +355,12 @@ the node returned is the head's index times four, not its node's
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
 +++
       alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), (fh << 2n : U32), a)
+>>> witness node_index
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+fh = 2
+hd = 9
+p = 7
 
 # Linking and freeing (the laws link_keeps, free_keeps): each mutation
 # writes a word the law says is left alone. free_keeps claims nothing of
@@ -258,6 +375,13 @@ a link written into the node's header, word x, not its port's link word
 +++
     case False{}:
       wr(h, x, y)
+>>> witness link_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+y = 4
+z = 8
+j = 4
 
 === free_zeroes_next free_keeps
 the header zeroed is the next node's, outside the node freed
@@ -265,6 +389,12 @@ the header zeroed is the next node's, outside the node freed
   H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
 +++
   H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 4 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness free_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 1), 8, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+r = 4
+j = 8
 
 === free_head_next_word free_keeps
 the freed node made the head one word past the head's word
@@ -272,3 +402,9 @@ the freed node made the head one word past the head's word
   H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
 +++
   H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), (at_fh() + 1 : U32), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness free_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 1), 8, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+r = 4
+j = 1

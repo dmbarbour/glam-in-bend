@@ -36,6 +36,12 @@ it alone taught. Add to this file what a new proof teaches.
   function the program itself calls, never a copy of its body: a law
   over a copy proves the copy, and a fault in the program's wiring
   survives it (`heap-laws-align.named`).
+- **A law that a function commutes with another does not pin it.**
+  `raise_lift_drop` says a drop commutes with raising a level, and an
+  unclamped drop commutes too: the mutation that removed the clamp left
+  the law true, its proof alone broken (measured by a witness, 2026-11-18).
+  Claim what a function computes against a model (`lift_lvl_drop`,
+  `CT.drop`), and let the commutation laws claim the commuting.
 - **Termination where feasible.** A walk bounded by fuel can carry a law
   that a walk cut short reports an error; a proof that the fuel suffices
   is stronger, and often feasible by a potential (below). Try it before

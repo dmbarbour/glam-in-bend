@@ -202,6 +202,17 @@ law lift_drop:
   for dn: {P.off_up(o) == False{} : Bool}
   {U32.to_nat(P.lift(n, o, j)) == CT.drop(U32.to_nat(n), U32.to_nat(P.off_by(o)), U32.to_nat(j)) : Nat}
 
+# LAW: and so is the values' drop (val.bend's lift_lvl, a lowering
+# control): a level j through it, read as a Nat, is CT.drop, never below
+# n. raise_lift_drop alone did not pin it: an unclamped drop commutes
+# with raising too (cells-freeze.nested.host.witness.audit).
+# Record: fuse-control-runs
+law lift_lvl_drop:
+  for +n: U32
+  for +by: U32
+  for +j: U32
+  {U32.to_nat(V.lift_lvl(n, False{}, by, j)) == CT.drop(U32.to_nat(n), U32.to_nat(by), U32.to_nat(j)) : Nat}
+
 # LAW: the kernel's level check suffices: a raise of a decoded level that
 # lift_wraps passes has 24 bits, so it fits the field it is written to.
 # Record: fuse-control-runs
