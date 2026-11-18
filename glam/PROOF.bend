@@ -3313,3 +3313,35 @@ def cross_pend.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&
 
 def Laws.cross_pend(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp):
   cross_pend.m(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# A copy's crossings: the find on agreeing views
+
+# two words read alike give a position test alike
+def meq_pos(a: Maybe<&2, U32>, b: Maybe<&2, U32>, +far: U32, h: {RG.meq(a, b) == True{} : Bool}) -> {RG.pos.is.m(a, far) == RG.pos.is.m(b, far) : Bool}:
+  match a:
+    case Some{+x}:
+      match b:
+        case Some{+y}:
+          ME.subst(U32, k => {U32.is_eq(x, far) == U32.is_eq(k, far) : Bool}, x, y, MS.u32_eq_of_is_eq(x, y, h), {==})
+        case None{}:
+          Empty.absurd({RG.pos.is.m(Some{x}, far) == RG.pos.is.m(None{}, far) : Bool}, MB.false_ne_true()(h))
+    case None{}:
+      match b:
+        case Some{+y}:
+          Empty.absurd({RG.pos.is.m(None{}, far) == RG.pos.is.m(Some{y}, far) : Bool}, MB.false_ne_true()(h))
+        case None{}:
+          {==}
+
+# a find's model the same on two views agreeing at the members' words 2:
+# the model of a copy's crossings shares none of the code's finds
+def first_agree(ys: List<&2, U32>, +v1: List<&2, U32>, +v2: List<&2, U32>, +d: Nat, +far: U32, +h: {RG.agree(ys, v1, v2, d) == True{} : Bool}) ->
+    {RG.first(ys, v1, d, far) == RG.first(ys, v2, d, far) : Maybe<&2, U32>}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+m, +r}:
+      +ep = meq_pos(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), List.get(&2, U32, v2, AD.slot((m + 2 : U32), d)), far, MB.eq_true_of_and_left(RG.meq(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), List.get(&2, U32, v2, AD.slot((m + 2 : U32), d))), RG.agree(r, v1, v2, d), h))
+      +ih = first_agree(r, v1, v2, d, far, MB.eq_true_of_and_right(RG.meq(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), List.get(&2, U32, v2, AD.slot((m + 2 : U32), d))), RG.agree(r, v1, v2, d), h))
+      %ep : {RG.first.k(RG.pos.is.m(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), far), m, RG.first(r, v1, d, far)) == RG.first.k(_, m, RG.first(r, v2, d, far)) : Maybe<&2, U32>}
+      %ih : {RG.first.k(RG.pos.is.m(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), far), m, RG.first(r, v1, d, far)) == RG.first.k(RG.pos.is.m(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), far), m, _) : Maybe<&2, U32>}
+      {==}
