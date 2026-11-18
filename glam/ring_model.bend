@@ -2,6 +2,7 @@ import Base
 import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
+import ./ring.bend as R
 
 # Rings, modelled for glam's laws (glam/LAWS.bend; the Cells plan's
 # cells-freeze.nested.host.ring): no code of the materializer calls these.
@@ -332,3 +333,71 @@ def cross.L(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>) -> List<&2, U32>:
       without(without(L, x), y)
     case None{}:
       L
+
+# A copy's crossings, modelled (R.crossings): two words read alike
+def meq(m: Maybe<&2, U32>, +n: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+x}:
+      match n:
+        case Some{+y}:
+          U32.is_eq(x, y)
+        case None{}:
+          False{}
+    case None{}:
+      match n:
+        case Some{+y}:
+          False{}
+        case None{}:
+          True{}
+
+# every member of ys holding at its word 2, its position, the same in v1
+# as in v2: the heap and a view of the positions agreeing
+def agree(ys: List<&2, U32>, +v1: List<&2, U32>, +v2: List<&2, U32>, +d: Nat) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+m, r}:
+      meq(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), List.get(&2, U32, v2, AD.slot((m + 2 : U32), d))) && agree(r, v1, v2, d)
+
+def pl.of(m: Maybe<&2, U32>) -> U32:
+  match m:
+    case Some{+q}:
+      q
+    case None{}:
+      0
+
+# the placeholders a copy's crossings name, each through the map's view vm
+# (the map a perfect tree of depth dm: each the node map holds at the
+# crossing's index, LA.get_view)
+def pls(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat) -> List<&2, U32>:
+  match cs:
+    case Nil{}:
+      Nil{}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          Con{pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), pls(r, vm, dm)}
+
+# the view of the positions after a crossing: a cursor made, its word 2
+# its position src
+def cr.pv(m: Maybe<&2, U32>, +x: U32, +src: U32, +pv: List<&2, U32>, +d: Nat) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      pv
+    case None{}:
+      List.set(&2, U32, pv, AD.slot((x + 2 : U32), d), src)
+
+# the ring and the nodes' list after a copy's crossings: each crossing's
+# find modelled over the view of the positions pv (RG.first), the ring
+# and list stepped by cross.t and cross.L, so that the model shares none
+# of the code's finds
+def cr(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +pv: List<&2, U32>, +d: Nat, +t: List<&2, U32>, +L: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
+  match cs:
+    case Nil{}:
+      (t, L)
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          cr(r, vm, dm, cr.pv(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, pv, d), d,
+            cross.t(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), t),
+            cross.L(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L))

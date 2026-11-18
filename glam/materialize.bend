@@ -42,23 +42,6 @@ import ./ring.bend as R
 # source must run no events, fusion or collection near copied nodes;
 # scratch the size of the source in each freeze.
 
-def mz.pl(r: Array<U32> & U32, h: P.H, +situ: U32, +src: U32, +neg: Bool, +far: U32) -> Array<U32> & P.H:
-  (map, +pl) = r
-  (map, R.cross(h, situ, pl, src, neg, far))
-
-def mz.cur(q: Array<U32> & P.H, c: F.FzC, +situ: U32) -> Array<U32> & P.H:
-  (map, h) = q
-  match c:
-    case F.FzC{+at, +src, neg, +far}:
-      mz.pl(Array.get(U32, map, at), h, situ, src, neg, far)
-
-def mz.curs(cs: List<&2, F.FzC>, q: Array<U32> & P.H, +situ: U32) -> Array<U32> & P.H:
-  match cs:
-    case Nil{}:
-      q
-    case Con{c, rest}:
-      mz.curs(rest, mz.cur(q, c, situ), situ)
-
 # the copy's root, where the tree faced the source's interface (a first
 # copy): joined to the served cursor nc, which leaves its ring
 def mz.root.e(r: Array<U32> & U32, h: P.H, +p: U32, +nc: U32) -> P.H:
@@ -78,10 +61,10 @@ def mz.sp.r(q: Array<U32> & P.H, root: T.TEnd, +nc: U32, +at_root: Bool) -> P.H:
   (map, h) = q
   mz.root(at_root, map, h, root, nc)
 
-def mz.sp(s: S.Sp, curs: List<&2, F.FzC>, root: T.TEnd, +situ: U32, +nc: U32, +at_root: Bool) -> P.H:
+def mz.sp(s: S.Sp, curs: List<&2, R.FzC>, root: T.TEnd, +situ: U32, +nc: U32, +at_root: Bool) -> P.H:
   match s:
     case S.Sp{h, map}:
-      mz.sp.r(mz.curs(curs, (map, h), situ), root, nc, at_root)
+      mz.sp.r(R.crossings(curs, (map, h), situ), root, nc, at_root)
 
 # a materialization's end: the source, the host, and the nodes copied,
 # each a cursor interaction: the cursor replaced by a node, new cursors

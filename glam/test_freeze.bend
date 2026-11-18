@@ -6,6 +6,7 @@ import ../spike/net.bend as N
 import ../spike/kprim.bend as P
 import ../spike/knet.bend as KN
 import ./freeze.bend as F
+import ./ring.bend as RN
 
 # Freezing on small templates (the Cells plan's `cells-freeze.cursors`):
 # each loaded and frozen back, the template it gives written out and
@@ -114,13 +115,13 @@ def id_lift() -> T.Tpl:
   T.Tpl{[T.TN{R.KFn{}, V.PLvl{1}}, T.TN{R.KLift{}, V.PLift{1, True{}, 3}}],
     [T.TL{T.TE{0, 2}, T.TE{1, 0}}, T.TL{T.TE{1, 1}, T.TE{0, 1}}], T.TE{0, 0}, 2}
 
-def frozen_fin.cs(cs: List<&2, F.FzC>) -> String:
+def frozen_fin.cs(cs: List<&2, RN.FzC>) -> String:
   match cs:
     case Nil{}:
       ""
     case Con{c, rest}:
       match c:
-        case F.FzC{+at, +src, neg, +far}:
+        case RN.FzC{+at, +src, neg, +far}:
           sh.u(at) ++ ":" ++ sh.u(src) ++ sh.neg(neg) ++ " " ++ frozen_fin.cs(rest)
 
 def count.l(ls: List<&2, T.TLink>) -> U32:

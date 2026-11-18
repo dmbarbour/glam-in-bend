@@ -149,6 +149,8 @@ Lessons carried over from the Rust bootstrap:
   recorded with the Bend version, the commit and the CPU. Count
   instructions too (`scripts/count.sh`, under `perf`): stable to a few
   parts in a hundred million where times wander by tens of percent.
+  Compare two builds under names of one length: a binary's own name
+  enters its count, two characters about 540 instructions (2026-11-18).
   Bend leaves inlining to clang, which a small change can flip by 15%:
   before crediting or blaming a change, compare builds with every Bend
   function forced inline and profile-guided
