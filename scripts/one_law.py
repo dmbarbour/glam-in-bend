@@ -41,7 +41,9 @@ conclusion, `witness`, proved by {==}; so that its premises are the
 law's by construction. It runs in a copy of its own, the proof file's
 imports and the witness alone (its laws files left out), as
 WITNESS.bend beside the proof file: Bend asks a file named PROOF.bend
-to import its laws. A mutation that carries a witness for the law is
+to import its laws. A law's witnesses check unmutated together, in one
+file, their names told apart; a failure there is laid to the witness it
+names. A mutation that carries a witness for the law is
 caught by it alone: the witness must check on a copy unmutated, and on
 the mutated one be refuted at its conclusion, Bend reporting the first
 def that fails in the file's order, so that the premises still hold
@@ -224,9 +226,10 @@ def subst(text, terms):
     return pat.sub(lambda m: terms[m.group(1)], text)
 
 
-def witness_body(laws, law, terms):
+def witness_body(laws, law, terms, tag=""):
     """The witness's defs: one per binder, its term (or {==}) at its type,
-    and the conclusion last."""
+    and the conclusion last; each name ending in tag, so that the
+    witnesses of one law check unmutated in one file."""
     binders, concl = law_parts(laws, law)
     names = {n for n, _ in binders}
     if set(terms) - names:
@@ -235,8 +238,8 @@ def witness_body(laws, law, terms):
     for n, _ in binders:
         if n not in terms and re.search(r"(?<![\w.])" + re.escape(n) + r"(?![\w.])", used):
             sys.exit(f"one_law: the witness for {law} binds no term for {n}, which its statement uses")
-    defs = [f"def wit_{n}() -> {subst(t, terms)}:\n  {terms.get(n, '{==}')}\n" for n, t in binders]
-    return "\n".join(defs + [f"def witness() -> {subst(concl, terms)}:\n  {{==}}\n"])
+    defs = [f"def wit_{n}{tag}() -> {subst(t, terms)}:\n  {terms.get(n, '{==}')}\n" for n, t in binders]
+    return "\n".join(defs + [f"def witness{tag}() -> {subst(concl, terms)}:\n  {{==}}\n"])
 
 
 def witness_text(text, body):
@@ -330,14 +333,14 @@ def beside(muts):
 
 
 def plan_law(files, proof, law, muts):
-    """The runs a law asks, as (path, then): the law checked alone, then
-    each mutation naming it, with its witness unmutated and mutated; then
-    reports the results, (lines, status)."""
+    """The runs a law asks, as (path, then): the law checked alone, each
+    mutation naming it, with its witness mutated, and its witnesses
+    unmutated in one file; then reports the results, (lines, status)."""
     tag = proof.replace(os.sep, "_").removesuffix(".bend")
     laws = laws_file(files, proof)
     runs = [copy(files, proof, law, os.path.join(OUT, tag, law, "control"))]
     heads = [f"-- {law} alone", copy.kept]
-    cases = []
+    cases, controls = [], []
     for m in mutants(muts) if muts else []:
         name, ls, what, witness = m[0], m[1], m[2], m[6]
         if law not in ls:
@@ -348,20 +351,32 @@ def plan_law(files, proof, law, muts):
         if law in witness:
             if laws is None:
                 sys.exit(f"one_law: {name}'s witness for {law}: the proof file imports no laws file")
-            body = witness_body(laws, law, witness[law])
-            paths += [copy(files, proof, law, dest + "_witness_control", witness=body),
-                      copy(files, proof, law, dest + "_witness", m, witness=body)]
-        cases.append((name, what, kept, len(runs)))
+            controls.append(witness_body(laws, law, witness[law], f"_w{len(cases)}"))
+            paths.append(copy(files, proof, law, dest + "_witness", m,
+                              witness=witness_body(laws, law, witness[law])))
+        cases.append((name, what, kept, len(runs), law in witness))
         runs += paths
+    ctl = len(runs)
+    if controls:
+        runs.append(copy(files, proof, law, os.path.join(OUT, tag, law, "witness_control"),
+                          witness="\n".join(controls)))
 
     def report(res):
         kind, where = res[0]
         lines = heads + [f"{law}: " + {"pass": "passes", "refuted": "FAILS at " + where,
                                        "crash": "CRASHES the checker: " + where}[kind]]
         status = 0 if kind == "pass" else 1
-        for k, (name, what, kept, at) in enumerate(cases):
-            end = cases[k + 1][3] if k + 1 < len(cases) else len(runs)
-            line, bad = verdict(name, law, res[at:end])
+        for k, (name, what, kept, at, wit) in enumerate(cases):
+            end = cases[k + 1][3] if k + 1 < len(cases) else ctl
+            got = res[at:end]
+            if wit:
+                # the witnesses' joint check unmutated: this one's failure,
+                # or another's, Bend reporting the first alone
+                kc, wc = res[ctl]
+                m = re.search(r"_w(\d+)$", wc) if kc == "refuted" else None
+                mine = kc == "pass" or (m is not None and int(m.group(1)) != k)
+                got = [got[0], ("pass", "") if mine else (kc, wc), got[1]]
+            line, bad = verdict(name, law, got)
             lines += [f"-- {name}: {what}", kept, line]
             status |= bad
         return lines, status
@@ -384,7 +399,9 @@ def verdict(name, law, res):
     if kc != "pass":
         return f"{name}: {proof}; its witness for {law} does not check unmutated ({kc} at {wc}): NOT CAUGHT", 1
     if km == "refuted" and wm == "witness":
-        return f"{name}: {proof}; its witness refutes {law}", 1 if kind == "pass" else 0
+        if kind == "pass":
+            return f"{name}: the proof checks, yet its witness refutes {law}: THE CHECKER DISAGREES WITH ITSELF", 1
+        return f"{name}: {proof}; its witness refutes {law}", 0
     if km == "refuted":
         return f"{name}: {proof}; its witness's premise {wm.removeprefix('wit_')} fails on the mutated code, not the law's instance there: NOT CAUGHT", 1
     if km == "pass":
