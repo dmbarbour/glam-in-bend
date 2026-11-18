@@ -3347,6 +3347,35 @@ def Laws.lift_drop(n, o, j, dn):
     {U32.to_nat(P.lift.go(U32.is_gt(j, n), False{}, P.drop_by(n, P.off_by(o), j), j)) == CT.drop.go(_, U32.to_nat(n), U32.to_nat(j), U32.to_nat(P.off_by(o))) : Nat}
   drop_nat.g(U32.is_gt(j, n), n, P.off_by(o), j, {==})
 
+# The values' drop, as the kernel's: val.bend's drop_by, its fit read as
+# a Nat (vdrop_nat.f, drop_nat.f's twin), its guard (vdrop_nat.g)
+def vdrop_nat.f(f: Bool, +n: U32, +b: U32, +j: U32, ef: {U32.is_le(b, U32.sub(j, n)) == f : Bool}, +hnj: MNat.le(U32.to_nat(n), U32.to_nat(j))) ->
+  {Nat.sub(U32.to_nat(j), U32.to_nat(V.drop_by.k(f, b, U32.sub(j, n)))) == Nat.max(U32.to_nat(n), Nat.sub(U32.to_nat(j), U32.to_nat(b))) : Nat}:
+  match f:
+    case True{}:
+      drop_fit(U32.to_nat(n), U32.to_nat(b), U32.to_nat(j), hnj, drop_nat.fit(n, b, j, ef, hnj))
+    case False{}:
+      %MU.u32_sub_exact_sym(j, n, hnj) : {Nat.sub(U32.to_nat(j), _) == Nat.max(U32.to_nat(n), Nat.sub(U32.to_nat(j), U32.to_nat(b))) : Nat}
+      drop_over(U32.to_nat(n), U32.to_nat(b), U32.to_nat(j), hnj, drop_nat.over(n, b, j, ef, hnj))
+
+def vdrop_nat.g(g: Bool, +n: U32, +b: U32, +j: U32, eg: {U32.is_gt(j, n) == g : Bool}) ->
+  {U32.to_nat(V.lift_lvl.go(g, False{}, V.drop_by(n, b, j), j)) == CT.drop.go(g, U32.to_nat(n), U32.to_nat(j), U32.to_nat(b)) : Nat}:
+  match g:
+    case True{}:
+      +hnj = le_of_gt(j, n, eg)
+      %MU.u32_sub_exact_sym(j, V.drop_by(n, b, j), drop_le(n, b, j, hnj)) :
+        {_ == Nat.max(U32.to_nat(n), Nat.sub(U32.to_nat(j), U32.to_nat(b))) : Nat}
+      vdrop_nat.f(U32.is_le(b, U32.sub(j, n)), n, b, j, {==}, hnj)
+    case False{}:
+      {==}
+
+def Laws.lift_lvl_drop(n, by, j):
+  %gt_is_above(U32.to_nat(j), U32.to_nat(n)) :
+    {U32.to_nat(V.lift_lvl.go(U32.is_gt(j, n), False{}, V.drop_by(n, by, j), j)) == CT.drop.go(_, U32.to_nat(n), U32.to_nat(j), U32.to_nat(by)) : Nat}
+  %MU.u32_is_gt_to_nat(j, n) :
+    {U32.to_nat(V.lift_lvl.go(U32.is_gt(j, n), False{}, V.drop_by(n, by, j), j)) == CT.drop.go(_, U32.to_nat(n), U32.to_nat(j), U32.to_nat(by)) : Nat}
+  vdrop_nat.g(U32.is_gt(j, n), n, by, j, {==})
+
 # a marked control's fusion test rewritten to its mark, then nothing
 def Laws.marked_unfused(h1, o1, h2, o2, m):
   %Equal.sym(Bool, P.marked(h1) || P.marked(h2), True{}, m) :
