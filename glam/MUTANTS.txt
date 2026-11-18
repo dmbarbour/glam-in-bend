@@ -248,7 +248,7 @@ src = 7
 neg = True{}
 far = 9
 
-=== cross_find_by_src cross_pend
+=== cross_find_by_src cross_pend serve_exact
 the cursor looked for at the placeholder's own position, not its far end's
 --- ring.bend
   cross.k(rg.find(h, situ, far), situ, pl, src, neg)
@@ -266,6 +266,18 @@ x = 20
 src = 7
 neg = True{}
 far = 9
+>>> witness serve_exact
+w = WB.pending(KMd.ref(48, 0))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+d = 6n
+dm = 1n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+cs = Con{R.FzC{0, 7, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
+r = KMd.ref(32, 0)
+nc = 12
 
 # A copy's crossings (crossings_pend): each mutation skips a crossing or
 # reads the map at the wrong index. Its witness: the pending ring, the map
@@ -755,7 +767,7 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 y = 16
 
-=== leave_skips_unlink leave_exact
+=== leave_skips_unlink leave_exact serve_exact
 the cursor leaving freed without being unlinked: it stays in the ring
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
@@ -769,6 +781,18 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 p = 61
 c = 12
+>>> witness serve_exact
+w = WB.pending(KMd.ref(48, 0))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+d = 6n
+dm = 1n
+s = 8
+t = Con{12, Con{16, Nil{}}}
+L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
+cs = Con{R.FzC{0, 0, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
+r = KMd.ref(32, 0)
+nc = 12
 
 === leave_frees_port leave_exact leave_keeps
 the port's node freed, not the cursor leaving

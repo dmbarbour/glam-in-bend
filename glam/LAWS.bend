@@ -411,6 +411,36 @@ law crossings_keeps:
   for hjf: {RG.off.ports(RG.faced(L, AD.view(U32, w), d), d, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
+# LAW: a serve's end, its crossings and then its root's leave (the
+# copy's root port r joined to the served cursor nc), keeps the ring
+# exact with its nodes, nc out of the ring the crossings leave, on the
+# crossings' invariant, nc in the ring, no crossing looking for nc's
+# position (RG.unfound), and r faceable by L's nodes, a spliced node's
+# port (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law serve_exact:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +L: List<&2, U32>
+  for +cs: List<&2, R.FzC>
+  for +r: U32
+  for +nc: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, RG.pls(cs, AD.view(U32, map), dm), L) == True{} : Bool}
+  for hc: {RG.has(t, nc) == True{} : Bool}
+  for hu: {RG.unfound(cs, AD.view(U32, w), d, nc) == True{} : Bool}
+  for hr: {RG.port.ok(L, d, r) == True{} : Bool}
+  {RG.ring.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)), r, nc))), d, s, RG.without(Pair.fst(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, map), dm, AD.view(U32, w), d, t, L)), nc)) == True{} : Bool}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each
