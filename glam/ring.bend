@@ -224,6 +224,20 @@ def jn1.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
 def join1(h: P.H, +x: U32, +y: U32) -> P.H:
   jn1.u(P.rd(h, (x + 1 : U32)), x, y)
 
+# a crossing's placeholder pl, standing at position src, its far end at
+# position far: joined to the cursor of situ's ring there, if any, else
+# made a cursor in the ring (out of glam/materialize.bend, as cursor is)
+def cross.k(r: P.H & Maybe<&2, U32>, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
+  (h, m) = r
+  match m:
+    case Some{+y}:
+      join1(h, pl, y)
+    case None{}:
+      cursor(h, situ, pl, src, neg)
+
+def cross(h: P.H, +situ: U32, +pl: U32, +src: U32, +neg: Bool, +far: U32) -> P.H:
+  cross.k(rg.find(h, situ, far), situ, pl, src, neg)
+
 def lv.w(r: P.H & U32, +p: U32, +c: U32) -> P.H:
   (h, +w) = r
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)

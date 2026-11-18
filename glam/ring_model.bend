@@ -315,3 +315,20 @@ def enter.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +x: U32) ->
 # placeholder from ps to t and leaves L as it was
 def pend.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>) -> Bool:
   ring(v, d, s, t) && (sub(Con{s, t}, L) && (sub(ps, L) && (none.in(ps, Con{s, t}) && (distinct(ps) && (layout(L, d) && (bases(L) && faces(L, v, d, L)))))))
+
+# a crossing's ring after it (R.cross): the cursor m found at its far
+# position out, the placeholder x joined to it; else x made a cursor
+def cross.t(m: Maybe<&2, U32>, +x: U32, +t: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      without(t, y)
+    case None{}:
+      Con{x, t}
+
+# and the nodes' list after it: both out, or as it was
+def cross.L(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      without(without(L, x), y)
+    case None{}:
+      L

@@ -312,6 +312,30 @@ law join1_pend:
   for hy: {RG.has(t, y) == True{} : Bool}
   {RG.pend.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y), ps, RG.without(RG.without(L, x), y)) == True{} : Bool}
 
+# LAW: a crossing of the serve (R.cross), its placeholder x the first
+# pending, keeps the pending placeholders' invariant: x joined to the
+# cursor found at its far position, if any, both then out of the ring and
+# of L; else x made a cursor (RG.cross.t, RG.cross.L, by the find's model,
+# RG.first) (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cross_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for +far: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(t, AD.view(U32, w), d, far), x, t), ps, RG.cross.L(RG.first(t, AD.view(U32, w), d, far), x, L)) == True{} : Bool}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each
@@ -376,3 +400,32 @@ law leave_exact:
   for hc: {RG.has(t, c) == True{} : Bool}
   for hp: {RG.port.ok(Con{s, t}, d, p) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, RG.without(t, c)) == True{} : Bool}
+# LAW: a cursor c of a ring exact with its nodes leaving it, the port it
+# faced linked to a port p faceable by the ring's members, leaves every
+# word as it was but the ring's links (the word 3 its predecessor gets),
+# c's own node, the free list's head, and the two ports' link words, p's
+# and the one c faced (cells-freeze.nested.host.serve, the frame law
+# leave lacked: .host.witness.audit).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law leave_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +p: U32
+  for +c: U32
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for hc: {RG.has(t, c) == True{} : Bool}
+  for hp: {RG.port.ok(Con{s, t}, d, p) == True{} : Bool}
+  for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
+  for hjc: {RG.off.node(d, c, j) == True{} : Bool}
+  for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
+  for hjp: {Nat.is_eq(AD.slot((p + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  for hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (c + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+

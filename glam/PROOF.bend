@@ -3155,3 +3155,161 @@ def join1_keeps.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<
 
 def Laws.join1_keeps(w, a, d, s, t, x, y, j, hf, hd32, hr, hx, hy, hj, hjx, hjy, hjh, hju, hjw):
   join1_keeps.m(w, a, d, s, t, x, y, j, hf, hd32, hr, hx, hy, hj, hjx, hjy, hjh, hju, hjw, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# A leave keeps every word but its own: its predecessor's word 3, its own node, the
+# head, the two ports' link words; join1_keeps's steps with the port given
+# and one free
+def leave_keeps.x(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +pa: List<&2, U32>, +pp: U32, +y: U32, +pb: List<&2, U32>, +j: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  hr: {RG.ring(AD.view(U32, w), d, s, List.append(&2, U32, pa, Con{y, pb})) == True{} : Bool}, +hn: {Nat.is_lt(List.length(&2, U32, List.append(&2, U32, pa, Con{y, pb})), U32.to_nat(U32.shln(1, d))) == True{} : Bool},
+  +hu: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{y, pb})}, d, (pp + 1 : U32)) == True{} : Bool}, hw: {RG.off.links(Con{s, List.append(&2, U32, pa, Con{y, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32)) == True{} : Bool},
+  +hjp: {Nat.is_eq(AD.slot((pp + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, +hp1: {Nat.is_eq(AD.slot((RG.last(pa, s) + 3 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  +h0y: {Nat.is_eq(AD.slot(P.base(y), d), AD.slot(j, d)) == False{} : Bool}, +h1y: {Nat.is_eq(AD.slot((P.base(y) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, +hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool},
+  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hrt = LAB.subst(Array<U32>, q => {RG.ring(AD.view(U32, q), d, s, List.append(&2, U32, pa, Con{y, pb})) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hr)
+  +hwt = LAB.subst(Array<U32>, q => {RG.off.links(Con{s, List.append(&2, U32, pa, Con{y, pb})}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, q, (y + 1 : U32))) + 1 : U32)) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hw)
+  +hjwt = LAB.subst(Array<U32>, q => {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, q, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hjw)
+  +hr1 = lx_ring(P.is_static(pp), P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), t, LAT.fromT(V.Val, ta), d, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), s, List.append(&2, U32, pa, Con{y, pb}), hft, hd32, hrt, hu, hwt)
+  +hf1 = lx_full(P.is_static(pp), P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), t, LAT.fromT(V.Val, ta), d, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), hft)
+  +k1 = lx_keeps(P.is_static(pp), P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), t, LAT.fromT(V.Val, ta), d, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), j, hft, hd32, hjp, hjwt)
+  +pe1 = pred_exact.go(RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), LAT.fromT(V.Val, ta), d, s, pa, y, pb, hf1, hd32, hr1, hn, LAT.mirror(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))))
+  +k2 = ulx_keeps(RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), LAT.fromT(V.Val, ta), d, y, j, hf1, hd32, pdone_exact.go(RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), LAT.fromT(V.Val, ta), d, s, pa, y, pb, hf1, hd32, hr1, hn, LAT.mirror(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)))),
+    ME.subst(U32, q => {Nat.is_eq(AD.slot((q + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}, RG.last(pa, s), Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), Equal.sym(U32, Pair.snd(P.H, U32, R.rg.pred(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), RG.last(pa, s), pe1), hp1), LAT.mirror(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+  +hf2 = ul_full(RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), LAT.fromT(V.Val, ta), d, y, hf1, LAT.mirror(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+  +k3 = fr_keeps(RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), LAT.fromT(V.Val, ta), d, y, j, hf2, hd32, h0y, h1y, hjh, LAT.mirror(U32, RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))))
+  %e : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{_}, a}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %ea : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{LAT.fromT(U32, t)}, _}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, _}, j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)), (LAT.fromT(U32, t), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), LA.get_pair(U32, LAT.fromT(U32, t), (y + 1 : U32))) :
+    {Pair.snd(P.H, U32, P.rd(R.lv.w(P.rd.fin(KM.m_get.fin(_), LAT.fromT(V.Val, ta)), pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
+  %lx_parts(P.is_static(pp), P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), LAT.fromT(U32, t), LAT.fromT(V.Val, ta), pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))) :
+    {Pair.snd(P.H, U32, P.rd(P.free(R.rg.unlink(_, y), y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
+  %ul_parts(RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), LAT.fromT(V.Val, ta), d, y, hf1, LAT.mirror(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))), LAT.mirror(V.Val, LAT.fromT(V.Val, ta))) :
+    {Pair.snd(P.H, U32, P.rd(P.free(_, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
+  %fr_parts(RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), LAT.fromT(V.Val, ta), y, LAT.mirror(U32, RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)))) :
+    {Pair.snd(P.H, U32, P.rd(_, j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)) : U32}
+  Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{RG.words(P.free(P.H{KM.MG{RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.free(P.H{KM.MG{RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, y)), j)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), rd_get(RG.words(P.free(P.H{KM.MG{RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, y)), LAT.fromT(V.Val, ta), j),
+    Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.free(P.H{KM.MG{RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, y)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)),
+      Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.free(P.H{KM.MG{RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y))}, LAT.fromT(V.Val, ta)}, y)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), k3, Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.rg.unlink(P.H{KM.MG{RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp))}, LAT.fromT(V.Val, ta)}, y)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(P.link.to(P.is_static(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), P.link.to(P.is_static(pp), P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, pp, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))), pp)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), k2, k1)),
+      Equal.sym(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), j)), rd_get(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), j))))
+
+def leave_keeps.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&2, U32>, +pp: U32, +y: U32, +j: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hr: {RG.ring.ok(AD.view(U32, w), d, s, cs) == True{} : Bool},
+  +hy: {RG.has(cs, y) == True{} : Bool}, +hp: {RG.port.ok(Con{s, cs}, d, pp) == True{} : Bool},
+  +hj: {RG.off.links(Con{s, cs}, d, j) == True{} : Bool}, +hjy: {RG.off.node(d, y, j) == True{} : Bool}, +hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool},
+  +hjp: {Nat.is_eq(AD.slot((pp + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, hjw: {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool},
+  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hrt = LAB.subst(Array<U32>, q => {RG.ring.ok(AD.view(U32, q), d, s, cs) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hr)
+  +hring = MB.eq_true_of_and_left(RG.ring(AD.view(U32, LAT.fromT(U32, t)), d, s, cs), Bool.and(RG.layout(Con{s, cs}, d), Bool.and(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}))), hrt)
+  +hbases = MB.eq_true_of_and_left(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}), MB.eq_true_of_and_right(RG.layout(Con{s, cs}, d), Bool.and(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs})), MB.eq_true_of_and_right(RG.ring(AD.view(U32, LAT.fromT(U32, t)), d, s, cs), Bool.and(RG.layout(Con{s, cs}, d), Bool.and(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}))), hrt)))
+  +hfaces = MB.eq_true_of_and_right(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}), MB.eq_true_of_and_right(RG.layout(Con{s, cs}, d), Bool.and(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs})), MB.eq_true_of_and_right(RG.ring(AD.view(U32, LAT.fromT(U32, t)), d, s, cs), Bool.and(RG.layout(Con{s, cs}, d), Bool.and(RG.bases(Con{s, cs}), RG.faces(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}))), hrt)))
+  +hap = MB.eq_true_of_and_right(RG.chain(AD.view(U32, LAT.fromT(U32, t)), d, cs, s, s), RG.apart.all(Con{s, cs}, d), hring)
+  +hn = len_ok(t, d, s, cs, hft, hd32, hap)
+  +hjwt = LAB.subst(Array<U32>, q => {Nat.is_eq(AD.slot((Pair.snd(Array<U32>, U32, Array.get(U32, q, (y + 1 : U32))) + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hjw)
+  %e : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{_}, a}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %ea : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{LAT.fromT(U32, t)}, _}, pp, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t)}, _}, j)) : U32}
+  +hby = MS.u32_eq_of_is_eq(P.base(y), y, bases_at(Con{s, cs}, y, hbases, has_cons(s, cs, y, hy)))
+  leave_keeps.x(LAT.fromT(U32, t),
+    LAT.fromT(V.Val, ta),
+    d,
+    s,
+    lpre(cs, y),
+    pp,
+    y,
+    lpost(cs, y),
+    j,
+    hft,
+    hd32,
+    ring_split(AD.view(U32, LAT.fromT(U32, t)), d, s, cs, y, hring, hy),
+    ME.subst(List<&2, U32>, q => {Nat.is_lt(List.length(&2, U32, q), U32.to_nat(U32.shln(1, d))) == True{} : Bool}, cs, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), Equal.sym(List<&2, U32>, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), cs, split_of_has(cs, y, hy)), hn),
+    ME.subst(List<&2, U32>, q => {RG.off.links(Con{s, q}, d, (pp + 1 : U32)) == True{} : Bool}, cs, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), Equal.sym(List<&2, U32>, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), cs, split_of_has(cs, y, hy)), MB.eq_true_of_and_left(RG.off.links(Con{s, cs}, d, (pp + 1 : U32)), RG.off.pos(Con{s, cs}, d, (pp + 1 : U32)), hp)),
+    ME.subst(List<&2, U32>, q => {RG.off.links(Con{s, q}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))) + 1 : U32)) == True{} : Bool}, cs, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), Equal.sym(List<&2, U32>, List.append(&2, U32, lpre(cs, y), Con{y, lpost(cs, y)}), cs, split_of_has(cs, y, hy)), MB.eq_true_of_and_left(RG.off.links(Con{s, cs}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))) + 1 : U32)), RG.off.pos(Con{s, cs}, d, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32))) + 1 : U32)), LAB.subst(Maybe<&2, U32>, mm => {RG.faces.m(mm, d, Con{s, cs}) == True{} : Bool}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((y + 1 : U32), d)), Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))}, Equal.sym(Maybe<&2, U32>, Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t), (y + 1 : U32)))}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((y + 1 : U32), d)), LA.get_view(U32, LAT.fromT(U32, t), d, (y + 1 : U32), hft, hd32)), faces_at(Con{s, cs}, AD.view(U32, LAT.fromT(U32, t)), d, Con{s, cs}, y, hfaces, has_cons(s, cs, y, hy))))),
+    hjp,
+    hjwt,
+    Equal.trans(Bool, Nat.is_eq(AD.slot((RG.last(lpre(cs, y), s) + 3 : U32), d), AD.slot(j, d)), Nat.is_eq(AD.slot(j, d), AD.slot((RG.last(lpre(cs, y), s) + 3 : U32), d)), False{}, MN.is_eq_comm(AD.slot((RG.last(lpre(cs, y), s) + 3 : U32), d), AD.slot(j, d)), MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(j, d), AD.slot((RG.last(lpre(cs, y), s) + 3 : U32), d)), links_at(Con{s, cs}, d, j, RG.last(lpre(cs, y), s), hj, sub_has(Con{s, lpre(cs, y)}, Con{s, cs}, RG.last(lpre(cs, y), s), MB.and_eq_true(RG.has(Con{s, cs}, s), RG.sub(lpre(cs, y), Con{s, cs}), has_self(s, cs), sub_cons_r(lpre(cs, y), s, cs, sub_lpre(cs, y))), last_mem(lpre(cs, y), s))))),
+    ME.subst(U32, q => {Nat.is_eq(AD.slot(q, d), AD.slot(j, d)) == False{} : Bool}, y, P.base(y), Equal.sym(U32, P.base(y), y, hby), off_w0(d, y, j, hjy)),
+    ME.subst(U32, q => {Nat.is_eq(AD.slot((q + 1 : U32), d), AD.slot(j, d)) == False{} : Bool}, y, P.base(y), Equal.sym(U32, P.base(y), y, hby), off_w1(d, y, j, hjy)),
+    hjh,
+    LAT.mirror(U32, LAT.fromT(U32, t)),
+    LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+
+def Laws.leave_keeps(w, a, d, s, t, p, c, j, hf, hd32, hr, hc, hp, hj, hjc, hjh, hjp, hjw):
+  leave_keeps.m(w, a, d, s, t, p, c, j, hf, hd32, hr, hc, hp, hj, hjc, hjh, hjp, hjw, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# A crossing: the find, then a join or a cursor
+
+# a Maybe's value, or z where there is none, and whether there is one
+def mval(m: Maybe<&2, U32>, +z: U32) -> U32:
+  match m:
+    case Some{+q}:
+      q
+    case None{}:
+      z
+
+def issome(m: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+q}:
+      True{}
+    case None{}:
+      False{}
+
+# the find's model names a member of the list it walked
+def fh_step(+z: U32, +r: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32, +y: U32, +b: Bool,
+    h: {RG.first.k(b, z, RG.first(r, v, d, far)) == Some{y} : Maybe<&2, U32>},
+    ih: {RG.first(r, v, d, far) == Some{y} : Maybe<&2, U32>} -> {RG.has(r, y) == True{} : Bool}) -> {RG.has(Con{z, r}, y) == True{} : Bool}:
+  match b:
+    case True{}:
+      ME.subst(U32, k => {RG.has(Con{z, r}, k) == True{} : Bool}, z, y, ME.subst(Maybe<&2, U32>, mm => {z == mval(mm, z) : U32}, Some{z}, Some{y}, h, {==}), has_self(z, r))
+    case False{}:
+      has_cons(z, r, y, ih(h))
+
+def first_has(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32, +y: U32, h: {RG.first(ys, v, d, far) == Some{y} : Maybe<&2, U32>}) -> {RG.has(ys, y) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      Empty.absurd({RG.has(Nil{}, y) == True{} : Bool}, MB.false_ne_true()(ME.subst(Maybe<&2, U32>, mm => {False{} == issome(mm) : Bool}, None{}, Some{y}, h, {==})))
+    case Con{+z, +r}:
+      fh_step(z, r, v, d, far, y, RG.pos.is(v, d, z, far), h, q => first_has(r, v, d, far, y, q))
+
+# a crossing by what its find found: a join, or a cursor made
+def cross_step(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32,
+  m: Maybe<&2, U32>, e: {RG.first(cs, AD.view(U32, w), d, far) == m : Maybe<&2, U32>},
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hp: {RG.pend.ok(AD.view(U32, w), d, s, cs, Con{x, ps}, L) == True{} : Bool},
+  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{w}, a}, m), s, x, src, neg))), d, s, RG.cross.t(m, x, cs), ps, RG.cross.L(m, x, L)) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      (+t, +et) = mw
+      (+ta, +eta) = ma
+      +hft = LAP.full_t(U32, w, t, d, et, hf)
+      +hpt = LAB.subst(Array<U32>, q => {RG.pend.ok(AD.view(U32, q), d, s, cs, Con{x, ps}, L) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, et), hp)
+      +eyt = LAB.subst(Array<U32>, q => {RG.first(cs, AD.view(U32, q), d, far) == Some{y} : Maybe<&2, U32>}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, et), e)
+      %et : {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{_}, a}, Some{y}), s, x, src, neg))), d, s, RG.cross.t(Some{y}, x, cs), ps, RG.cross.L(Some{y}, x, L)) == True{} : Bool}
+      %eta : {RG.pend.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{LAT.fromT(U32, t)}, _}, Some{y}), s, x, src, neg))), d, s, RG.cross.t(Some{y}, x, cs), ps, RG.cross.L(Some{y}, x, L)) == True{} : Bool}
+      join1_pend.m(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, ps, L, x, y, hft, hd32, hpt, first_has(cs, AD.view(U32, LAT.fromT(U32, t)), d, far, y, eyt), LAT.mirror(U32, LAT.fromT(U32, t)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+    case None{}:
+      cursor_pend.m(w, a, d, s, cs, ps, L, x, src, neg, hf, hd32, hp, mw, ma)
+
+def cross_pend.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hp: {RG.pend.ok(AD.view(U32, w), d, s, cs, Con{x, ps}, L) == True{} : Bool},
+  m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, w), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, w), d, far), x, L)) == True{} : Bool}:
+  (+t, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t, d, e, hf)
+  +hpt = LAB.subst(Array<U32>, q => {RG.pend.ok(AD.view(U32, q), d, s, cs, Con{x, ps}, L) == True{} : Bool}, w, LAT.fromT(U32, t), Equal.sym(Array<U32>, LAT.fromT(U32, t), w, e), hp)
+  +hr0 = MB.eq_true_of_and_left(RG.ring(AD.view(U32, LAT.fromT(U32, t)), d, s, cs), Bool.and(RG.sub(Con{s, cs}, L), Bool.and(RG.sub(Con{x, ps}, L), Bool.and(RG.none.in(Con{x, ps}, Con{s, cs}), Bool.and(RG.distinct(Con{x, ps}), Bool.and(RG.layout(L, d), Bool.and(RG.bases(L), RG.faces(L, AD.view(U32, LAT.fromT(U32, t)), d, L))))))), hpt)
+  %e : {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{_}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, _), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, _), d, far), x, L)) == True{} : Bool}
+  %ea : {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{LAT.fromT(U32, t)}, _}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, L)) == True{} : Bool}
+  %Equal.sym(P.H & Maybe<&2, U32>, R.rg.find(P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, s, far), (P.H{KM.MG{LAT.fromT(U32, t)}, LAT.fromT(V.Val, ta)}, RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far)), find_exact.m(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, far, hft, hd32, hr0, LAT.mirror(U32, LAT.fromT(U32, t)))) :
+    {RG.pend.ok(AD.view(U32, RG.words(R.cross.k(_, s, x, src, neg))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, L)) == True{} : Bool}
+  cross_step(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, ps, L, x, src, neg, far, RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), {==}, hft, hd32, hpt, LAT.mirror(U32, LAT.fromT(U32, t)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
+
+def Laws.cross_pend(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp):
+  cross_pend.m(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp, LAT.mirror(U32, w), LAT.mirror(V.Val, a))

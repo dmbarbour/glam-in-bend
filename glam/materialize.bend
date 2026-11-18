@@ -42,17 +42,9 @@ import ./ring.bend as R
 # source must run no events, fusion or collection near copied nodes;
 # scratch the size of the source in each freeze.
 
-def mz.found(r: P.H & Maybe<&2, U32>, +situ: U32, +pl: U32, +src: U32, +neg: Bool) -> P.H:
-  (h, m) = r
-  match m:
-    case Some{+y}:
-      R.join1(h, pl, y)
-    case None{}:
-      R.cursor(h, situ, pl, src, neg)
-
 def mz.pl(r: Array<U32> & U32, h: P.H, +situ: U32, +src: U32, +neg: Bool, +far: U32) -> Array<U32> & P.H:
   (map, +pl) = r
-  (map, mz.found(R.rg.find(h, situ, far), situ, pl, src, neg))
+  (map, R.cross(h, situ, pl, src, neg, far))
 
 def mz.cur(q: Array<U32> & P.H, c: F.FzC, +situ: U32) -> Array<U32> & P.H:
   (map, h) = q
