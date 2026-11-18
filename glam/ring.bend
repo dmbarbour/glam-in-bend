@@ -238,6 +238,36 @@ def cross.k(r: P.H & Maybe<&2, U32>, +situ: U32, +pl: U32, +src: U32, +neg: Bool
 def cross(h: P.H, +situ: U32, +pl: U32, +src: U32, +neg: Bool, +far: U32) -> P.H:
   cross.k(rg.find(h, situ, far), situ, pl, src, neg)
 
+# A serve's crossings
+# ===================
+
+# a cursor of the copy, a crossing of the ring it joins: the placeholder's
+# index in the template, the source's reference of the finished node's
+# port, whether that port is negative, the copy awaiting a value there,
+# and the port it faces in the source, its far end (built by
+# glam/freeze.bend; here so that the ring's laws take it)
+type FzC is Data:
+  FzC{+at: U32, +src: U32, neg: Bool, +far: U32}
+
+def crossing.pl(r: Array<U32> & U32, h: P.H, +situ: U32, +src: U32, +neg: Bool, +far: U32) -> Array<U32> & P.H:
+  (map, +pl) = r
+  (map, cross(h, situ, pl, src, neg, far))
+
+def crossing(q: Array<U32> & P.H, c: FzC, +situ: U32) -> Array<U32> & P.H:
+  (map, h) = q
+  match c:
+    case FzC{+at, +src, neg, +far}:
+      crossing.pl(Array.get(U32, map, at), h, situ, src, neg, far)
+
+# the copy's crossings in turn, each placeholder found through map, the
+# template's index to its node (moved from glam/materialize.bend)
+def crossings(cs: List<&2, FzC>, q: Array<U32> & P.H, +situ: U32) -> Array<U32> & P.H:
+  match cs:
+    case Nil{}:
+      q
+    case Con{c, rest}:
+      crossings(rest, crossing(q, c, situ), situ)
+
 def lv.w(r: P.H & U32, +p: U32, +c: U32) -> P.H:
   (h, +w) = r
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)

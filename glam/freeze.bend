@@ -5,6 +5,7 @@ import ../spike/tpl.bend as T
 import ../spike/net.bend as N
 import ../spike/kprim.bend as P
 import ../spike/knet.bend as KN
+import ./ring.bend as RN
 
 # Freezing (the Cells plan's `cells-freeze.cursors`): a live net read back
 # into a template, the inverse of KN.load, so that loading what is frozen
@@ -226,25 +227,21 @@ def fz.node.c(+c: U32, h: P.H, +hd: U32, +b: U32) -> P.H & T.TNode:
 # Writing the template
 # ====================
 
-# a cursor: the placeholder's index in the template, the source's
-# reference of the finished node's port, whether that port is negative,
-# the copy awaiting a value there, and the port it faces in the source,
-# its far end
-type FzC is Data:
-  FzC{+at: U32, +src: U32, neg: Bool, +far: U32}
+# a cursor, as a crossing of the ring the copy joins (RN.FzC, in
+# glam/ring.bend, whose laws take it)
 
 # a freeze of the finished part: the template and its cursors, the first
 # placeholder first, and how many of its nodes were read back, not
 # standing for a static or a cursor
 type Fz is Data:
-  Fz{tpl: T.Tpl, curs: List<&2, FzC>, +n: U32}
+  Fz{tpl: T.Tpl, curs: List<&2, RN.FzC>, +n: U32}
 
 # the template being written: the net, the index map, the nodes read so
 # far (the last first), the nodes standing for statics and cursors (the
 # last first), the next such node's index, the links, the root, and the
 # cursors (the last first)
 type FzE is Type:
-  FzE{h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, links: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>}
+  FzE{h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, links: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>}
 
 # the eraser standing for a static at a port of polarity pol: the other
 def fz.era(pol: R.Pol) -> T.TNode:
@@ -278,14 +275,14 @@ def fz.link.k(+first: Bool, +i: U32, +p: U32, +j: U32, +pq: U32, ls: List<&2, T.
 
 # the peer at port q of a node reached (v its index plus one), or, v
 # being 0, of one not finished: a cursor
-def fz.peer.v(+unf: Bool, h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +v: U32) -> FzE:
+def fz.peer.v(+unf: Bool, h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +v: U32) -> FzE:
   match unf:
     case True{}:
-      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
     case False{}:
       FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (v - 1 : U32), (q .&. 3 : U32), ls), root, curs}
 
-def fz.peer.j(r: Array<U32> & U32, h: P.H, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32) -> FzE:
+def fz.peer.j(r: Array<U32> & U32, h: P.H, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32) -> FzE:
   (map, +v) = r
   fz.peer.v(U32.is_eq(v, 0), h, map, nodes, eras, ne, ls, root, curs, k, b, i, p, q, v)
 
@@ -308,7 +305,7 @@ def fz.peer.k(+st: Bool, +rt: Bool, z: FzE, k: R.NodeKind, +b: U32, +i: U32, +p:
             case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
               fz.peer.j(Array.get(U32, map, fz.at(q)), h, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
 
-def fz.peer.q(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32) -> FzE:
+def fz.peer.q(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32) -> FzE:
   (h, +q) = r
   fz.peer.k(P.is_static(q), U32.is_eq(P.base(q), P.iface()), FzE{h, map, nodes, eras, ne, ls, root, curs}, k, b, i, p, q)
 
@@ -334,11 +331,11 @@ def fz.peers(z: FzE, +k: R.NodeKind, +b: U32, +i: U32, a: Nat) -> FzE:
             case 1n+y:
               fz.peer(fz.peer(fz.peer(z, k, b, i, 0), k, b, i, 1), k, b, i, 2)
 
-def fz.emit.t(r: P.H & T.TNode, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, +c: U32, +b: U32, +i: U32) -> FzE:
+def fz.emit.t(r: P.H & T.TNode, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +c: U32, +b: U32, +i: U32) -> FzE:
   (h, t) = r
   fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, N.kof(c), b, i, R.arity(N.kof(c)))
 
-def fz.emit.hd(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, FzC>, +b: U32, +i: U32) -> FzE:
+def fz.emit.hd(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +b: U32, +i: U32) -> FzE:
   (h, +hd) = r
   fz.emit.t(fz.node.c(P.rk(hd), h, hd, b), map, nodes, eras, ne, ls, root, curs, P.rk(hd), b, i)
 
@@ -360,13 +357,13 @@ def fz.emits(seen: List<&2, U32>, z: FzE, +i: U32) -> FzE:
 def fz.tpl(z: FzE, +n: U32) -> P.H & Fz:
   match z:
     case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
-      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, FzC, curs), n})
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
 
 # nothing finished: the root itself is a cursor, at the interface
 def fz.written.k(+none: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>) -> P.H & Fz:
   match none:
     case True{}:
-      (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [FzC{0, P.iface(), True{}, P.iface()}], 0})
+      (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [RN.FzC{0, P.iface(), True{}, P.iface()}], 0})
     case False{}:
       fz.tpl(fz.emits(seen, FzE{h, map, Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)), n)
 
