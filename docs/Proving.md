@@ -215,6 +215,19 @@ it alone taught. Add to this file what a new proof teaches.
   that the composition names it freely, and each term grows by one step,
   not by the copies a step's explicit words would make (`join_keeps.go`
   in `glam/PROOF.bend`, five steps, checked in seconds).
+- **An invariant renaming one test in another is built by its twins.**
+  `faced.in` is `faces` with `port.ok(N, d, r)` replaced by membership
+  `has(N, r)`: `faces`' lemmas, the join's and the cursor's steps among
+  them, copied with the test and their names renamed, checked unchanged
+  (`faced_keep`, `join1_faced.go`, `cur_faced` in `glam/PROOF.bend`). A
+  fold's frame is then carried by an invariant over the region fixed at
+  its start (the ports faced then), not by a model of the fold.
+- **A fact on views reads back as a word**: `get_view` on both heaps and
+  `Some`'s injectivity (`some_inj`, by `Maybe.default`) turn
+  `List.get(view(w1), slot(j)) == List.get(view(w2), slot(j))` into
+  `snd(rd(H{w1}, j)) == snd(rd(H{w2}, j))` (`cursor_keeps.m`). Over two
+  computed heaps it is written out where the heaps are `Data` terms,
+  not as a function over two arrays, which cannot be `+`.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

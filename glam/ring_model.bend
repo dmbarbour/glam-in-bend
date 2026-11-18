@@ -401,3 +401,29 @@ def cr(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +pv: List<&2, U32>, +d
           cr(r, vm, dm, cr.pv(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, pv, d), d,
             cross.t(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), t),
             cross.L(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L))
+
+# The crossings' writes by region (crossings_keeps): the ports the nodes
+# of ys face, by their words 1 among v
+def faced(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> List<&2, U32>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{+m, r}:
+      Con{pl.of(List.get(&2, U32, v, AD.slot((m + 1 : U32), d))), faced(r, v, d)}
+
+# word j in no node of ys
+def off.nodes(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+m, r}:
+      off.node(d, m, j) && off.nodes(r, d, j)
+
+# word j no link word of a port of fs: a static port, no node's, has
+# none (P.link_xx writes none for it)
+def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
+  match fs:
+    case Nil{}:
+      True{}
+    case Con{+f, r}:
+      (P.is_static(f) || Bool.not(Nat.is_eq(AD.slot((f + 1 : U32), d), AD.slot(j, d)))) && off.ports(r, d, j)
