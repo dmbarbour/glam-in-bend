@@ -192,7 +192,7 @@ the node after the placeholder freed, not the placeholder
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), (x + 4 : U32)), y)
 >>> witness join1_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -202,7 +202,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 x = 20
 y = 16
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -211,7 +211,7 @@ x = 20
 y = 16
 j = 25
 >>> witness crossings_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
 d = 6n
@@ -236,7 +236,7 @@ the placeholder made a cursor even where its far end's cursor was found
     case Some{+y}:
       cursor(h, situ, pl, src, neg)
 >>> witness cross_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -255,7 +255,7 @@ the cursor looked for at the placeholder's own position, not its far end's
 +++
   cross.k(rg.find(h, situ, src), situ, pl, src, neg)
 >>> witness cross_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -280,7 +280,7 @@ a crossing skipped, its placeholder neither joined nor made a cursor
 +++
       crossings(rest, q, situ)
 >>> witness crossings_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 20), 1, 24)
 d = 6n
@@ -297,7 +297,7 @@ each placeholder read at the next index of the map
 +++
       crossing.pl(Array.get(U32, map, (at + 1 : U32)), h, situ, src, neg, far)
 >>> witness crossings_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 20), 1, 24)
 d = 6n
@@ -404,7 +404,7 @@ x = 20
 src = 10
 neg = True{}
 >>> witness cursor_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -456,7 +456,7 @@ x = 20
 src = 7
 neg = False{}
 >>> witness cursor_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -565,7 +565,7 @@ the placeholder unlinked, not the ring's cursor
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), x), x), y)
 >>> witness join1_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -575,7 +575,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 x = 20
 y = 16
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -584,7 +584,7 @@ x = 20
 y = 16
 j = 1
 >>> witness join1_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -626,7 +626,7 @@ x = 12
 y = 20
 j = 18
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -661,7 +661,7 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 x = 20
 >>> witness cursor_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -737,7 +737,7 @@ the ring's cursor freed without being unlinked: it stays in the ring
 +++
   P.free(P.free(P.link_xx(h, u, w), x), y)
 >>> witness join1_pend
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -747,7 +747,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 x = 20
 y = 16
 >>> witness join1_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -821,7 +821,7 @@ x = 12
 y = 20
 j = 1
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -838,7 +838,7 @@ the cursor's link word written, outside the region
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), y), x), y)
 >>> witness crossings_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
 d = 6n
@@ -849,7 +849,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
 j = 54
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -865,7 +865,7 @@ a cursor's header written past its node, on the next node's word 0
 +++
   rg.insert(P.wr(P.wr(h, (pl + 4 : U32), P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 >>> witness cursor_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
@@ -874,7 +874,7 @@ src = 0
 neg = False{}
 j = 28
 >>> witness crossings_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3)
+w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
 d = 6n
@@ -894,7 +894,7 @@ leaves out only for ports that are not static
 +++
   P.free(P.free(rg.unlink(P.link(h, u, w), y), x), y)
 >>> witness crossings_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 27), 26, 3)
+w = WB.pending(27)
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
 d = 6n
@@ -905,7 +905,7 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
 j = 28
 >>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 27), 26, 3)
+w = WB.pending(27)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8

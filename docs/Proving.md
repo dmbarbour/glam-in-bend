@@ -73,8 +73,13 @@ it alone taught. Add to this file what a new proof teaches.
   instance (the climb's million steps) does not finish in the checker
   within fifteen minutes: run the code on the same instance instead,
   the premises still checked by `{==}`; a walk fuelled by the heap's
-  size runs out within the instance's words. A law that survives the
-  mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  size runs out within the instance's words. A witness's heap may be
+  built, not spelled: by the kernel's own writes and named references
+  (`glam/witness.bend`, a face by `P.link`, a reference by `KMd.ref`),
+  so that it follows a change of encoding; but only by code no mutation
+  in its file touches, since a heap built by the mutated function
+  changes with it (a ring built by `R.cursor`, under a mutation of the
+  cursor). A law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are

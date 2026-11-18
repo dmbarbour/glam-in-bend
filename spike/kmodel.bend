@@ -30,3 +30,8 @@ def off.lw(m: Maybe<&2, U32>, +d: Nat, +j: U32) -> Bool:
 # word j not port r's link word, which linking r writes
 def off.port(+d: Nat, +r: U32, +j: U32) -> Bool:
   off.lw(lw(r), d, j)
+
+# the reference of port p of the node at b (the code writes b + p in
+# place); for witnesses built by the code's writes (Refs_2026-11-18, R4)
+def ref(+b: U32, +p: U32) -> U32:
+  (b + p : U32)

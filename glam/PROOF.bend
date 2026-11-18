@@ -58,6 +58,7 @@ import ../spike/val.bend as V
 import ./ring.bend as R
 import ./ring_model.bend as RG
 import ../spike/kmodel.bend as KMd
+import ./witness.bend as WB
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
