@@ -268,6 +268,50 @@ law cursor_pos:
   for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
   {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), (x + 2 : U32))) == src : U32}
 
+# LAW: the serve's first pending placeholder x made a cursor keeps the
+# pending placeholders' invariant (RG.pend.ok: the ring exact, the rest
+# pending outside it and none twice, every node of either in L, laid out
+# apart, its own base, facing a port faceable by all of L), x now the
+# ring's first cursor, L as it was (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law cursor_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +x: U32
+  for +src: U32
+  for +neg: Bool
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
+  {RG.pend.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, Con{x, t}, ps, L) == True{} : Bool}
+
+# LAW: the serve's first pending placeholder x joined to a cursor y of
+# the ring keeps the pending placeholders' invariant (RG.pend.ok), y out
+# of the ring and both out of L (cells-freeze.nested.host.serve).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law join1_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +t: List<&2, U32>
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +x: U32
+  for +y: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
+  for hy: {RG.has(t, y) == True{} : Bool}
+  {RG.pend.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y), ps, RG.without(RG.without(L, x), y)) == True{} : Bool}
+
 # LAW: a join of two distinct cursors x and y of a ring exact with its
 # nodes (RG.ring.ok: the ring exact, its nodes laid out apart, no two
 # sharing a word's slot nor any on the head's, each member a base, each
