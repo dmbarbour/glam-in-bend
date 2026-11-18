@@ -157,6 +157,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`JoinExactFable_2026-11-14.md`](JoinExactFable_2026-11-14.md): the
   second reviewer's review of the same law, by a Fable sub-agent, kept
   as written.
+- [`Refs_2026-11-18.md`](Refs_2026-11-18.md): how references are
+  encoded (statics at port bits `00`, a node's ports at `01` to `11`,
+  the maintainer's question) and how far the laws state the encoding.
+  The second review checked against the source, five findings added.
+  Recommended: laws over a link word that is a `Maybe`, none for a
+  static, first; the encoding decided with `netdata-refs`'s integer
+  tag, before immediates land. Five questions. Drafted for the
+  maintainer.
+- [`RefsFable_2026-11-18.md`](RefsFable_2026-11-18.md): the second
+  reviewer's review of the same question, by a Fable sub-agent, kept as
+  written beside `Refs_2026-11-18.md`, which checks and extends it.
 
 ## Retired
 
