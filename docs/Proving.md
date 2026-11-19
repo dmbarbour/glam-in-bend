@@ -268,6 +268,14 @@ it alone taught. Add to this file what a new proof teaches.
   checker shows `List - Nil{}`), which reduces none of the code's own
   matches; name each constructor the code's `_` covers, nine for a
   `V.Val` (`put_k`, `put2_k`).
+- **32-bit addition associates, proved over the modulus.** A word
+  computed as `(base + port) + 1` is the node's word `base + (port + 1)`
+  only by associativity, which the hub lacks: `u32_assoc` in
+  `glam/SPLICE_PROOF.bend` takes `to_nat` of both sides through the
+  hub's `u32_add_wrap`, two `mod` lemmas of its own (`mod_add_l`,
+  `mod_add_r`) and `add_assoc`, then `u32_to_nat_inj`; the modulus a
+  variable `m` with the equation `Nat.pow(2n, 32n) == m`, so that 2^32
+  is never computed. Hub candidates, all three.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

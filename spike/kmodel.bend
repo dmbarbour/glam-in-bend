@@ -144,3 +144,11 @@ def vals(h: P.H) -> Array<V.Val>:
   match h:
     case P.H{w, a}:
       a
+
+# x among xs
+def has(xs: List<&2, U32>, +x: U32) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+y, r}:
+      U32.is_eq(y, x) || has(r, x)

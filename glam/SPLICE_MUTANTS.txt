@@ -21,3 +21,20 @@ i = 0
 by = 0
 ns = [36]
 j = 3
+
+=== link_past_end links_keeps
+a link written one word past its first end: from a node's port 2, the
+next node's header, outside the fresh nodes
+--- splice.bend
+  Sp{P.link(h, x, y), map}
++++
+  Sp{P.link(h, (x + 1 : U32), y), map}
+>>> witness links_keeps
+w = [0 : U32^6n]
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 36)
+d = 6n
+dm = 1n
+ls = [T.TL{T.TE{0, 2}, T.TE{0, 0}}]
+ns = [36]
+j = 40

@@ -45,3 +45,26 @@ law nodes_keeps:
   for hjh: {KMd.off.words(KMd.hdr_all(), d, j) == True{} : Bool}
   for hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: the splice's links pass, each link's ends naming through the map
+# a fresh node of ns and a node's port (SM.ends.ok), writes no word but
+# the fresh nodes': every other word reads as before
+# (cells-freeze.nested.host.splice; splice-frame-premises).
+# Record: splice-frame-premises
+# Record: serve-write-sets-hybrid
+law links_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ls: List<&2, T.TLink>
+  for +ns: List<&2, U32>
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for he: {SM.ends.ok(ls, AD.view(U32, map), dm, ns) == True{} : Bool}
+  for hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w}, a}, map})), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
