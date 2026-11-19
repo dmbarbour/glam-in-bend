@@ -1,0 +1,23 @@
+# Mutations of the splice's code (glam/splice.bend), each naming the laws
+# of glam/SPLICE_LAWS.bend it should fail (docs/Proving.md; the gate runs
+# scripts/one_law.py --mutants on this file).
+
+=== node_in_place nodes_keeps
+each template node made in place at slot 0, not taken from the free
+list: the header's words 0 and 3 written, word 3 outside the list (one
+node, a lift, its payload word not 0, so that no later node writes word 3
+back)
+--- splice.bend
+      sp.put(sp.node(True{}, h, 0, t, by), map, i)
++++
+      sp.put(sp.node(False{}, h, 0, t, by), map, i)
+>>> witness nodes_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}]
+i = 0
+by = 0
+ns = [36]
+j = 3
