@@ -173,6 +173,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`serve-write-sets-hybrid`](decisions/serve-write-sets-hybrid.md): a
   serve's writes stated by what decides them: the splice's as an exact
   list of words, the joins' and cursors', decided by walks, by regions.
+- [`splice-frame-premises`](decisions/splice-frame-premises.md): the
+  splice's fresh nodes a premise, discharged by the allocator's prefix
+  law; the template's a predicate, discharged by a law on freeze; the
+  header's words an exact list.
 - [`ring-walks-fueled-by-heap`](decisions/ring-walks-fueled-by-heap.md):
   a walk round a ring takes as fuel the size of the heap's words array,
   so that no law names a fuel.
