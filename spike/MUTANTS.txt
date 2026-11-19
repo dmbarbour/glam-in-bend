@@ -423,3 +423,30 @@ d = 4n
 y = 7
 z = 8
 j = 8
+
+=== table_count_at_itrs put_keeps
+the table's count written back on the interaction count, word 2, not its
+own word 5
+--- kprim.bend
+      H{KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_tfh(), fh), at_tn(), n), at_tcap(), cap), at_td(), U32.from_nat(d)), a}
++++
+      H{KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_tfh(), fh), at_itrs(), n), at_tcap(), cap), at_td(), U32.from_nat(d)), a}
+>>> witness put_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+v = V.VUnit{}
+j = 2
+
+=== error_count_at_itrs err_keeps
+an error counted on the interaction count, word 2, not the error count
+--- kprim.bend
+  H{KM.m_set(w, at_errs(), (e + 1 : U32)), a}
++++
+  H{KM.m_set(w, at_itrs(), (e + 1 : U32)), a}
+>>> witness err_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+b = True{}
+j = 2

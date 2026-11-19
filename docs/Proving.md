@@ -240,6 +240,19 @@ it alone taught. Add to this file what a new proof teaches.
   3 end in `10` and `11` and a static's `r + 1` ends in `00`
   (`docs/reviews/Refs_2026-11-18.md`, Corrections). What a predicate's
   other conjuncts give decides what a change to one of them changes.
+- **A step whose middle does not reduce is crossed by a lemma over its
+  result.** The value table's put matches on a word it reads
+  (`dt_put`), so it never reduces over symbolic words, and the pair it
+  returns is never a literal for the next function to take apart. A
+  lemma taking that pair as a variable and matching it
+  (`match r: case (tb, i):`), then the record inside (`P.DT{...}`),
+  states the step's frame whatever the middle computed (`dto_keeps`,
+  `dtb_keeps` in `spike/PROOF.bend`).
+- **A proof's match reduces the code's only at a constructor.** A
+  `case _` in a proof refines its scrutinee to "not the others" (the
+  checker shows `List - Nil{}`), which reduces none of the code's own
+  matches; name each constructor the code's `_` covers, nine for a
+  `V.Val` (`put_k`, `put2_k`).
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

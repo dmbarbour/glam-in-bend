@@ -32648,3 +32648,178 @@ def free_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +r: U32, +j: U32,
 def Laws.free_keeps(w, a, d, r, j, hf, hd32, h0, h1, h2, h3, hh):
   free_keeps.go(w, a, d, r, j, hf, hd32, h0, h1, h2, h3, hh, LAT.mirror(U32, w))
 
+# The splice's header words (cells-freeze.nested.host.splice.put)
+
+# the table's bookkeeping written back (dt_back): its four words alone,
+# whatever the table holds
+def dtb_keeps(+t0: LAT.Tree<U32>, tb: P.DT, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(P.dt_back(KM.MG{LAT.fromT(U32, t0)}, tb), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match tb:
+    case P.DT{a2, +fh, +n, +cap, +dd}:
+      +hf1 = LA.set_full(U32, LAT.fromT(U32, t0), d, P.at_tfh(), fh, hft)
+      +hf2 = LA.set_full(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), d, P.at_tn(), n, hf1)
+      +hf3 = LA.set_full(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), d, P.at_tcap(), cap, hf2)
+      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), P.at_td(), U32.from_nat(dd))}, a2}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), P.at_td(), U32.from_nat(dd)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), rd_get(Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), P.at_td(), U32.from_nat(dd)), a2, j), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), P.at_td(), U32.from_nat(dd)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), LA.get_set_other(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), d, P.at_td(), j, U32.from_nat(dd), hf3, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_td(), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_td(), d), AD.slot(j, d))), KMd.off.words(Nil{}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tcap(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_td(), Nil{}}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tn(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tcap(), Con{P.at_td(), Nil{}}}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tn(), Con{P.at_tcap(), Con{P.at_td(), Nil{}}}}, d, j), hj)))))), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), P.at_tcap(), cap), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), LA.get_set_other(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), d, P.at_tcap(), j, cap, hf2, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_tcap(), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_tcap(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_td(), Nil{}}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tn(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tcap(), Con{P.at_td(), Nil{}}}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tn(), Con{P.at_tcap(), Con{P.at_td(), Nil{}}}}, d, j), hj))))), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), P.at_tn(), n), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), LA.get_set_other(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_tfh(), fh), d, P.at_tn(), j, n, hf1, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_tn(), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_tn(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tcap(), Con{P.at_td(), Nil{}}}, d, j), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tn(), Con{P.at_tcap(), Con{P.at_td(), Nil{}}}}, d, j), hj)))), LA.get_set_other(U32, LAT.fromT(U32, t0), d, P.at_tfh(), j, fh, hft, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_tfh(), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), d), AD.slot(j, d))), KMd.off.words(Con{P.at_tn(), Con{P.at_tcap(), Con{P.at_td(), Nil{}}}}, d, j), hj)))))))
+
+# and through the table's put, its pair matched, whatever it computed
+def dto_keeps(+t0: LAT.Tree<U32>, r: P.DT & U32, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.dt_op.fin(r, KM.MG{LAT.fromT(U32, t0)})), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match r:
+    case (tb, +i):
+      dtb_keeps(t0, tb, d, j, hft, hd32, hj)
+
+# a value put in the table: its four reads of the header made pairs,
+# then the table's put, whatever it computed
+def tab_keeps(+t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +x: V.Val, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, x)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh()), (LAT.fromT(U32, t0), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh()))), LA.get_pair(U32, LAT.fromT(U32, t0), P.at_tfh())) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.tab_put.t(P.dt.fh(KM.m_get.fin(_), LAT.fromT(V.Val, ta)), x)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tn()), (LAT.fromT(U32, t0), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tn()))), LA.get_pair(U32, LAT.fromT(U32, t0), P.at_tn())) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.tab_put.t(P.dt.n(KM.m_get.fin(_), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh()))), x)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tcap()), (LAT.fromT(U32, t0), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tcap()))), LA.get_pair(U32, LAT.fromT(U32, t0), P.at_tcap())) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.tab_put.t(P.dt.cap(KM.m_get.fin(_), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tn()))), x)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}
+  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t0), P.at_td()), (LAT.fromT(U32, t0), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_td()))), LA.get_pair(U32, LAT.fromT(U32, t0), P.at_td())) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, P.tab_put.t(P.dt.d(KM.m_get.fin(_), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tn())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tcap()))), x)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}
+  dto_keeps(t0, P.dt_put(P.DT{LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tfh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tn())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_tcap())), U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_td())))}, x), d, j, hft, hd32, hj)
+
+# a pair's node form put beside it (pw.tab), the heap its first
+def pwt_keeps(r: P.H & U32, +f: U32, +t0: LAT.Tree<U32>, +j: U32, h: {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, U32, r), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.pw.tab(r, f)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match r:
+    case (h2, +i):
+      h
+
+# P.put's cases, as it takes them: a number or a builtin that fits
+# written in the node, nothing in the heap; anything else an entry. Each
+# value named: a proof's match reduces the code's only at a constructor
+def put2_k(t: List<&2, V.Val>, +op: U32, +need: U32, +a: U32, +v: V.Val, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put.two(t, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, op, need, a, v)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match t:
+    case Nil{}:
+      pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+    case Con{x, +u}:
+      match x:
+        case V.VNum{+b}:
+          match u:
+            case Nil{}:
+              pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VP2{op, need, a, b}), P.benc(op, need), t0, j, tab_keeps(t0, ta, V.VP2{op, need, a, b}, d, j, hft, hd32, hj))
+            case Con{+y, +z}:
+              pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VUnit{}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VLazy{+h}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VFun{+op2, +need2, +args2}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VList{+xs}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VDict{+es}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VErr{+e}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VFree{+next}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VP2{+op2, +need2, +a2, +b2}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+
+def putgo_k(args: List<&2, V.Val>, +op: U32, +need: U32, +v: V.Val, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put.fun.go(args, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, op, need, v)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match args:
+    case Nil{}:
+      rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)
+    case Con{x, +t}:
+      match x:
+        case V.VNum{+n}:
+          match t:
+            case Nil{}:
+              rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)
+            case Con{+y, +z}:
+              put2_k(Con{y, z}, op, need, n, v, t0, ta, d, j, hft, hd32, hj)
+        case V.VUnit{}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VLazy{+h}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VFun{+op2, +need2, +args2}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VList{+xs}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VDict{+es}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VErr{+e}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VFree{+next}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+        case V.VP2{+op2, +need2, +a2, +b2}:
+          pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), P.benc(op, need), t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+
+def putfun_k(fits: Bool, args: List<&2, V.Val>, +op: U32, +need: U32, +v: V.Val, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put.fun(fits, args, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, op, need, v)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match fits:
+    case True{}:
+      putgo_k(args, op, need, v, t0, ta, d, j, hft, hd32, hj)
+    case False{}:
+      pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v), 0, t0, j, tab_keeps(t0, ta, v, d, j, hft, hd32, hj))
+
+def put_k(v: V.Val, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match v:
+    case V.VNum{+n}:
+      rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)
+    case V.VFun{+op, +need, +args}:
+      putfun_k(P.bfits(op, need), args, op, need, V.VFun{op, need, args}, t0, ta, d, j, hft, hd32, hj)
+    case V.VP2{+op, +need, +a, +b}:
+      putfun_k(P.bfits(op, need), [V.VNum{a}, V.VNum{b}], op, need, V.VP2{op, need, a, b}, t0, ta, d, j, hft, hd32, hj)
+      case V.VUnit{}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VUnit{}), 0, t0, j, tab_keeps(t0, ta, V.VUnit{}, d, j, hft, hd32, hj))
+      case V.VLazy{+h}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VLazy{h}), 0, t0, j, tab_keeps(t0, ta, V.VLazy{h}, d, j, hft, hd32, hj))
+      case V.VList{+xs}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VList{xs}), 0, t0, j, tab_keeps(t0, ta, V.VList{xs}, d, j, hft, hd32, hj))
+      case V.VDict{+es}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VDict{es}), 0, t0, j, tab_keeps(t0, ta, V.VDict{es}, d, j, hft, hd32, hj))
+      case V.VErr{+e}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VErr{e}), 0, t0, j, tab_keeps(t0, ta, V.VErr{e}, d, j, hft, hd32, hj))
+      case V.VFree{+next}:
+        pwt_keeps(P.tab_put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, V.VFree{next}), 0, t0, j, tab_keeps(t0, ta, V.VFree{next}, d, j, hft, hd32, hj))
+
+
+def put_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +v: V.Val, +j: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool},
+    m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{w}, a}, v)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t0, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  %e : {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{_}, a}, v)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %ea : {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, v)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, j)) : U32}
+  %Equal.sym(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)) :
+    {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v)), j)) == _ : U32}
+  put_k(v, t0, ta, d, j, hft, hd32, hj)
+
+def Laws.put_keeps(w, a, d, v, j, hf, hd32, hj):
+  put_keeps.go(w, a, d, v, j, hf, hd32, hj, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# an error counted writes the error count alone
+def err_k(b: Bool, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +j: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.err_words(), d, j) == True{} : Bool}) ->
+    {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}:
+  match b:
+    case True{}:
+      %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs()), (LAT.fromT(U32, t0), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs()))), LA.get_pair(U32, LAT.fromT(U32, t0), P.at_errs())) :
+        {Pair.snd(P.H, U32, P.rd(P.h_err.n(KM.m_get.fin(_), LAT.fromT(V.Val, ta)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)) : U32}
+      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{Array.set(U32, LAT.fromT(U32, t0), P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs())) + 1 : U32))}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, t0), P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs())) + 1 : U32)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), rd_get(Array.set(U32, LAT.fromT(U32, t0), P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs())) + 1 : U32)), LAT.fromT(V.Val, ta), j), LA.get_set_other(U32, LAT.fromT(U32, t0), d, P.at_errs(), j, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_errs())) + 1 : U32), hft, hd32, MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(j, d))), KMd.off.words(Nil{}, d, j), hj))))
+    case False{}:
+      rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)
+
+def err_keeps.go(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +b: Bool, +j: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hj: {KMd.off.words(KMd.err_words(), d, j) == True{} : Bool},
+    m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+    {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{w}, a}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
+  (+t0, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  %e : {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{_}, a}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
+  %ea : {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{LAT.fromT(U32, t0)}, _}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, j)) : U32}
+  %Equal.sym(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), j)), rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), j)) :
+    {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), j)) == _ : U32}
+  err_k(b, t0, ta, d, j, hft, hd32, hj)
+
+def Laws.err_keeps(w, a, d, b, j, hf, hd32, hj):
+  err_keeps.go(w, a, d, b, j, hf, hd32, hj, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
