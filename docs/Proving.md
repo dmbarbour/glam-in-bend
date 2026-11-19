@@ -219,7 +219,22 @@ it alone taught. Add to this file what a new proof teaches.
   previous step's `words(...)`; take that `w` erased with its mirror, so
   that the composition names it freely, and each term grows by one step,
   not by the copies a step's explicit words would make (`join_keeps.go`
-  in `glam/PROOF.bend`, five steps, checked in seconds).
+  in `glam/PROOF.bend`, five steps, checked in seconds). One lemma over
+  a heap variable restates any heap in its parts (`heta`: match the
+  heap, then its memory, `P.H{KM.MG{words(h)}, vals(h)} == h`), which
+  replaces a parts lemma per operation (`glam/SPLICE_PROOF.bend`; the
+  per-operation ones of `glam/PROOF.bend` came before it).
+- **A step that branches before a common operation is put in one form
+  first.** The node pass's step is an error counted, a value put or
+  nothing, then a pop: one lemma matching the template node rewrites it
+  as `P.node(pre, header, payload)` (`nf`), and each fact of the pop is
+  proved of that form once; the branches stay only where the form's
+  parts differ (`pre_rd`, `pre_full`).
+- **Cite another proof file's laws with its proofs.** A file importing a
+  `LAWS.bend` alone owes every law there a proof (Bend counted spike's
+  101 as TODOs); import its `PROOF.bend` beside it, as glam's proofs do
+  the hub's (`LA` with `LAP`). `spike/PROOF.bend` so imported costs
+  seconds.
 - **An invariant renaming one test in another is built by its twins.**
   `faced.in` is `faces` with `port.ok(N, d, r)` replaced by membership
   `has(N, r)`: `faces`' lemmas, the join's and the cursor's steps among
