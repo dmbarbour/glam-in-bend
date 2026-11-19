@@ -168,6 +168,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`RefsFable_2026-11-18.md`](RefsFable_2026-11-18.md): the second
   reviewer's review of the same question, by a Fable sub-agent, kept as
   written beside `Refs_2026-11-18.md`, which checks and extends it.
+- [`Splice_2026-11-19.md`](Splice_2026-11-19.md): the splice's frame
+  law, three questions with pros and cons (the fresh nodes, the
+  template's premises, the header's words), the second reviewer's advice
+  checked against the source. Recommended: the fresh nodes a premise
+  now, the allocator's prefix law to discharge it; a template predicate
+  discharged by a law on freeze; the header's words as an exact list. A
+  fault to confirm first: an eraser node at a source's root. Drafted for
+  the maintainer.
+- [`SpliceFable_2026-11-19.md`](SpliceFable_2026-11-19.md): the second
+  reviewer's advice on the same questions, by a Fable sub-agent, kept as
+  written beside `Splice_2026-11-19.md`.
 
 ## Retired
 
