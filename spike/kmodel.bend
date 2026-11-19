@@ -35,3 +35,25 @@ def off.port(+d: Nat, +r: U32, +j: U32) -> Bool:
 # place); for witnesses built by the code's writes (Refs_2026-11-18, R4)
 def ref(+b: U32, +p: U32) -> U32:
   (b + p : U32)
+
+# The header's words a splice writes besides the head (the splice's
+# frame, an exact list: splice-frame-premises): the error count, which an
+# error counted writes (P.err_if), and the value table's bookkeeping, its
+# free head, count, capacity and depth, which a value put in the table
+# writes (P.tab_put's dt_back)
+def err_words() -> List<&2, U32>:
+  [P.at_errs()]
+
+def tab_words() -> List<&2, U32>:
+  [P.at_tfh(), P.at_tn(), P.at_tcap(), P.at_td()]
+
+def hdr_words() -> List<&2, U32>:
+  Con{P.at_errs(), tab_words()}
+
+# word j's slot none of ws's: j off every word a step writes
+def off.words(ws: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
+  match ws:
+    case Nil{}:
+      True{}
+    case Con{+w, t}:
+      Bool.not(Nat.is_eq(AD.slot(w, d), AD.slot(j, d))) && off.words(t, d, j)

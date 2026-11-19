@@ -497,6 +497,39 @@ law free_keeps:
   for hh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(P.free(P.H{KM.MG{w}, a}, r), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
+# LAW: a value put in the form a node holds it (P.put) writes no word of
+# the net but the value table's bookkeeping in the header (KMd.tab_words:
+# its free head, count, capacity and depth), so that a splice's value
+# nodes write nothing else of the host (cells-freeze.nested.host.splice.put).
+# The table's values are no words, and not claimed.
+# Record: splice-frame-premises
+# Record: hub-laws-reused
+law put_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +v: V.Val
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hj: {KMd.off.words(KMd.tab_words(), d, j) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{w}, a}, v)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: and an error counted, or not (P.err_if), writes no word but the
+# error count (KMd.err_words) (cells-freeze.nested.host.splice.put).
+# Record: splice-frame-premises
+# Record: hub-laws-reused
+law err_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +b: Bool
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hj: {KMd.off.words(KMd.err_words(), d, j) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(P.err_if(b, P.H{KM.MG{w}, a}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
 # LAW: taking a slot keeps the net's free list exact. In the free-list
 # model (freelist.bend, the kernel's nodes and links in Nat), FL.ok says
 # the links from the head spell a list holding every free slot and no
