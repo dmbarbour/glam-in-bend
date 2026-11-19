@@ -25,6 +25,8 @@ import ../spike/kdemand.bend as KD
 #   copy this source holds of another live source, to be served into
 #   this one before anything is copied from here (cells-freeze.nested);
 # - a static: the position's port holds one, its value erased or void;
+#   or, at the interface, an eraser node's principal faces it, the same
+#   value;
 # - a stop the core must handle: a need, stuck, a cycle, out of fuel or
 #   memory, the walk's own state.
 # Each end carries n, the interactions of the walks done before it; a
@@ -103,17 +105,29 @@ def pd.ended(d: KD.D, +pos: U32, +acc: U32) -> PdS:
 def pd.walk(h: P.H, +b: U32, +f: Nat) -> KD.D:
   K.demand_ev(0, f, KD.d.go(h, KS.d.path(KM.m_new(6n, P.w_maxd())), b, 0, 0))
 
-def pd.v.k(+cur: Bool, h: P.H, +q: U32, +acc: U32) -> PdS:
+def pd.v.e(+era: Bool, h: P.H, +q: U32, +acc: U32) -> PdS:
+  match era:
+    case True{}:
+      PdEnd{PdStatic{h, acc}}
+    case False{}:
+      PdEnd{PdValue{h, q, acc}}
+
+def pd.v.k(+cur: Bool, +era: Bool, h: P.H, +q: U32, +acc: U32) -> PdS:
   match cur:
     case True{}:
       PdEnd{PdCur{h, P.base(q), acc}}
     case False{}:
-      PdEnd{PdValue{h, q, acc}}
+      pd.v.e(era, h, q, acc)
 
-# principal port q facing the position: a value, or a cursor
-def pd.v(r: P.H & U32, +q: U32, +acc: U32) -> PdS:
+# principal port q facing the position: a cursor; at the interface, an
+# eraser node, served as the static eraser is, the value the same
+# (static-links-count-as-nodes), so that no eraser is copied as a tree of
+# its own with its one port the root, which the splice's statics pass
+# would read before the root is linked (docs/reviews/Splice_2026-11-19.md,
+# S1; elsewhere freeze links it to a crossing first); else a value
+def pd.v(r: P.H & U32, +q: U32, +root: Bool, +acc: U32) -> PdS:
   (h, +hd) = r
-  pd.v.k(U32.is_eq(P.rk(hd), 18), h, q, acc)
+  pd.v.k(U32.is_eq(P.rk(hd), 18), root && U32.is_eq((P.rk(hd) .|. 1 : U32), 7), h, q, acc)
 
 def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   match st:
@@ -122,7 +136,7 @@ def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32)
     case False{}:
       match pr:
         case True{}:
-          pd.v(P.rd(h, P.base(q)), q, acc)
+          pd.v(P.rd(h, P.base(q)), q, U32.is_eq(pos, P.iface()), acc)
         case False{}:
           pd.ended(pd.walk(h, P.base(q), f), pos, acc)
 
