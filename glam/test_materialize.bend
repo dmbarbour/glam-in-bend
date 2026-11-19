@@ -19,7 +19,12 @@ import ./materialize.bend as M
 #   joined to the variable's cursor, so 7;
 # - `\x -> (\y -> \z -> y) x` applied to 7 then 8: a value materialized
 #   whose body joins the variable's cursor, so 7;
-# - `\x -> (\y -> \z -> z) x` applied to 7: a function.
+# - `\x -> (\y -> \z -> z) x` applied to 7: a function;
+# - an erased source applied to 7, its root a static eraser or an eraser
+#   node (what an eraser event leaves facing the interface): void alike,
+#   the eraser node served as the static is (Splice_2026-11-19.md, S1;
+#   copied, its statics pass read a word the pop left and wrote a header
+#   word, and the host stuck).
 # Run by scripts/ladder.py, which expects `ok` alone.
 #
 #   bend glam/test_materialize.bend
@@ -169,8 +174,23 @@ def rn.out(r: Rn) -> String:
     case Rn{s, h, out, done}:
       out
 
+def applied.h(s: P.H, host: T.Tpl) -> String:
+  rn.out(rn.go(16n, Rn{s, ring(KN.load(host)), "", False{}}))
+
 def applied(src: T.Tpl, host: T.Tpl) -> String:
-  rn.out(rn.go(16n, Rn{KN.load(src), ring(KN.load(host)), "", False{}}))
+  applied.h(KN.load(src), host)
+
+# an erased source: its root a static eraser, as the loader makes one
+def erased() -> T.Tpl:
+  T.Tpl{[era()], [], T.TE{0, 0}, 1}
+
+# and its interface facing an eraser node instead
+def era_node.l(r: P.H & U32) -> P.H:
+  (h, +e) = r
+  P.link(h, P.iface(), e)
+
+def era_node() -> P.H:
+  era_node.l(P.node(KN.load(id_redex()), P.hd(6, 0), 0))
 
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
@@ -196,4 +216,6 @@ def main() -> String:
   report(
     check(applied(id_redex(), host1(7)), "7", "id_redex 7") ++
     check(applied(k_redex(), host2(7, 8)), "7", "k_redex 7 8") ++
-    check(applied(const_redex(), host1(7)), "fn", "const_redex 7"))
+    check(applied(const_redex(), host1(7)), "fn", "const_redex 7") ++
+    check(applied(erased(), host1(7)), "stop a void", "erased 7") ++
+    check(applied.h(era_node(), host1(7)), "stop a void", "eraser node 7"))
