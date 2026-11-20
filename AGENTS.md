@@ -43,10 +43,12 @@ Contingent:
 
 `scripts/dev-setup.sh` installs the pinned Bend release, checked by hash,
 links `clang`, installs `perf`, the LLVM profile tools, Node and Lean
-(for `--verdict`), builds
-GCC 16 from source (the first time, a quarter of an hour or more),
-checks out the Blend submodule and enables the commit hooks, Blend's
-too; run it once per container.
+(for `--verdict`), checks out the Blend submodule and enables the commit
+hooks, Blend's too; run it once per container. GCC 16, a second compiler
+for reference builds (`GCC_BUILDS=1`), is built only by hand,
+`scripts/gcc-setup.sh`, a quarter of an hour or more. Kept passes key
+Bend by its binary's contents, so a rebuilt container with the same
+release keeps them.
 `scripts/cgroup-delegate.sh` lets `scripts/capped.sh` cap memory in the
 kernel instead of polling; run it at each container start.
 

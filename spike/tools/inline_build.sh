@@ -82,6 +82,9 @@ GEN=""
 # shellcheck disable=SC2086
 together "$OUT.c $OUT" "${OUT}_ai.c ${OUT}_ai" ${GEN:+"$GEN"}
 GCC=${GCC:-/opt/gcc-16.2.0/bin/gcc}
+if [ "${GCC_BUILDS:-0}" = 1 ] && [ ! -x "$GCC" ]; then
+  echo "inline_build: GCC_BUILDS=1 but no $GCC: scripts/gcc-setup.sh builds it, or set GCC" >&2
+fi
 if [ "${GCC_BUILDS:-0}" = 1 ] && [ -x "$GCC" ]; then
   "$GCC" -std=c11 -O3 "$OUT.c" -o "${OUT}_gcc" -lpthread -lm 2>/dev/null &
   g1=$!

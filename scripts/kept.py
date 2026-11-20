@@ -55,14 +55,36 @@ def bend_exe():
     return os.environ.get("BEND") or shutil.which("bend") or os.path.expanduser("~/.bend/bin/bend")
 
 
+def digest(real):
+    """A file's contents hashed, the hash kept beside the passes under its
+    stamp (size, time, inode), so that it is read once per install: a
+    reinstall of the same release, as a rebuilt container makes, keys its
+    checks alike and keeps their passes."""
+    st = os.stat(real)
+    stamp = f"{real} {st.st_size} {st.st_mtime_ns} {st.st_ino}"
+    mark = os.path.join(CACHE, "tool-" + hashlib.sha256(stamp.encode()).hexdigest())
+    try:
+        with open(mark) as f:
+            return f.read().strip()
+    except OSError:
+        pass
+    h = hashlib.sha256()
+    with open(real, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    os.makedirs(CACHE, exist_ok=True)
+    with open(mark, "w") as f:
+        f.write(h.hexdigest())
+    return h.hexdigest()
+
+
 def tool_key(bend):
     """Bend and Lean, as they stand: what a verdict depends on besides the
     files."""
     h = hashlib.sha256()
     h.update(subprocess.run([bend, "version"], capture_output=True).stdout)
     real = os.path.realpath(shutil.which(bend) or bend)
-    st = os.stat(real)
-    h.update(f"{st.st_size} {st.st_mtime_ns} {st.st_ino}".encode())
+    h.update(digest(real).encode())
     lib = os.path.join(os.path.dirname(real), "..", "bend2")
     for path in [os.path.join(lib, "base.bend")] + sorted(
             os.path.join(lib, "effs", n) for n in os.listdir(os.path.join(lib, "effs"))):
