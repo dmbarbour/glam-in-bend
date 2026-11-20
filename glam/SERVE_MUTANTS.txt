@@ -74,3 +74,30 @@ s = 8
 t = Nil{}
 cs = [R.FzC{0, 7, True{}, 9}]
 j = 3
+
+=== serve_map_unwritten serve_ring_exact
+the copy's map left as it was, no node's reference put at its index:
+the root, read through it, then a stale entry, here word 18, so that the
+leave links the cursor's partner into the next member's word 3 and the
+ring loses its way back to s; the template one function node, no links
+nor holes, the ring s with the cursors 12 (leaving) and 16
+--- splice_copy.bend
+  Sp{h, Array.set(U32, map, i, ref)}
++++
+  Sp{h, map}
+>>> witness serve_ring_exact
+w = RG.words(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 18)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = [36]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = Nil{}
+nc = 12
+rn = 0
+rp = 0

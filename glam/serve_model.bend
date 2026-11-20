@@ -100,3 +100,10 @@ def dyn(ns: List<&2, U32>) -> Bool:
       True{}
     case Con{+n, r}:
       Bool.not(P.is_static(n)) && dyn(r)
+
+# the copy's root, at the source's root (the materializer's mz.root): a
+# node's index no hole shares a slot with, at a port below 3. An eraser
+# there never reaches the copy: the position serves it as the static
+# eraser (glam/position.bend's pd.v)
+def root.ok(+rn: U32, +rp: U32, +ts: List<&2, T.TNode>, +dm: Nat, +cs: List<&2, R.FzC>) -> Bool:
+  node.at(ts, dm, rn) && (Bool.not(sl.in(ats(cs), dm, rn)) && SM.port3(rp))
