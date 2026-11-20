@@ -70,7 +70,7 @@ ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
 ns = [36]
 j = 41
 
-=== link_static_plain links_keeps
+=== link_static_plain links_keeps links_words
 a link written without the static test: an eraser's end, mapped to the
 static, has its "link word" written, static + 1, word 0 of the header
 --- splice.bend
@@ -85,6 +85,14 @@ d = 6n
 dm = 1n
 ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
 ns = [36]
+j = 0
+>>> witness links_words
+w = [0 : U32^6n]
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, P.era()), 1, 36)
+d = 6n
+dm = 1n
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
 j = 0
 
 === eraser_maps_zero nodes_maps
@@ -137,3 +145,19 @@ ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
 by = 0
 ns = [36]
 j = 2
+
+=== link_drops_second links_words
+a link writing its first end's link word alone: node 36's port 1, the
+second end, never told of port 0, its link word 38 left as it was
+--- splice.bend
+  Sp{P.link_xx(h, x, y), map}
++++
+  Sp{P.link.to(P.is_static(x), h, x, y), map}
+>>> witness links_words
+w = [0 : U32^6n]
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 36)
+d = 6n
+dm = 1n
+ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
+j = 38
