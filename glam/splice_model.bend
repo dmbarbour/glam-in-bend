@@ -104,6 +104,31 @@ def ends.ok(ls: List<&2, T.TLink>, +vm: List<&2, U32>, +dm: Nat, +ns: List<&2, U
     case Con{l, r}:
       link.ok(l, vm, dm, ns) && ends.ok(r, vm, dm, ns)
 
+# The links pass's words (links_words): a link word written, at a port's
+# x + 1, unless x is static; the link writes its first end's then its
+# second's (P.link_xx), a later write over an earlier at one slot
+def lw.w(+st: Bool, +x: U32, +y: U32, +d: Nat, +j: U32, +old: U32) -> U32:
+  match st:
+    case True{}:
+      old
+    case False{}:
+      pick(Nat.is_eq(AD.slot((x + 1 : U32), d), AD.slot(j, d)), y, old)
+
+# word j after the links pass over ls, the map's view vm at depth dm, the
+# heap at depth d, old the word before
+def lw(ls: List<&2, T.TLink>, +vm: List<&2, U32>, +dm: Nat, +d: Nat, +j: U32, +old: U32) -> U32:
+  match ls:
+    case Nil{}:
+      old
+    case Con{l, r}:
+      match l:
+        case T.TL{a, b}:
+          match a:
+            case T.TE{+n1, +p1}:
+              match b:
+                case T.TE{+n2, +p2}:
+                  lw(r, vm, dm, d, j, lw.w(P.is_static((KMd.word(vm, dm, n2) + p2 : U32)), (KMd.word(vm, dm, n2) + p2 : U32), (KMd.word(vm, dm, n1) + p1 : U32), d, j, lw.w(P.is_static((KMd.word(vm, dm, n1) + p1 : U32)), (KMd.word(vm, dm, n1) + p1 : U32), (KMd.word(vm, dm, n2) + p2 : U32), d, j, old)))
+
 # The template's premise (cells-freeze.nested.host.splice.tpl), over the
 # same fold: the kind the node pass last wrote at index ix's slot, 0 none,
 # 1 a node, 2 an eraser

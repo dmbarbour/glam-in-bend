@@ -105,6 +105,28 @@ law links_keeps:
   for hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w}, a}, map})), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
+# LAW: the splice's links pass leaves every word as the model folds its
+# writes (SM.lw): each link writes its first end's link word with the
+# second end, then the second's with the first, a static end's none, a
+# later write over an earlier at one slot; the heap and the map full, no
+# premise on the ends (cells-freeze.nested.host.serve.pend: a hole's
+# word 1, the port it faces, read from it).
+# Record: splice-frame-premises
+# Record: splice-erasers-static
+law links_words:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ls: List<&2, T.TLink>
+  for +j: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w}, a}, map})), j)) == SM.lw(ls, AD.view(U32, map), dm, d, j, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j))) : U32}
+
 # LAW: the copy's two passes, the node pass from index 0 then the links
 # pass, write no word but the fresh nodes', the head and the header's
 # words a value or an error writes, under the node pass's premises, the
