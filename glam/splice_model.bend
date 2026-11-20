@@ -2,7 +2,7 @@ import Base
 import ../spike/kprim.bend as P
 import ../spike/tpl.bend as T
 import ../spike/kmodel.bend as KMd
-import ./splice.bend as S
+import ./splice_copy.bend as S
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # What the splice's laws (glam/SPLICE_LAWS.bend) name of its state and the

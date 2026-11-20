@@ -49,6 +49,6 @@ them, go to a design review of their own
   each eraser served, and, by inference, one doubling of the store
   fewer where the erasers' nodes had tipped it.
 
-**Rule lives in:** `glam/splice.bend` (`sp.node_k`, `sp.link2`),
+**Rule lives in:** `glam/splice_copy.bend` (`sp.node_k`, `sp.link2`),
 `glam/SPLICE_LAWS.bend`, and `docs/plans/Cells_2026-11-09.md`,
 `cells-freeze.nested.host.splice.single`.

@@ -12,7 +12,7 @@ import ../spike/tpl.bend as T
 import ../spike/kmodel.bend as KMd
 import ./ring.bend as R
 import ./ring_model.bend as RG
-import ./splice.bend as S
+import ./splice_copy.bend as S
 import ./splice_model.bend as SM
 import ./serve_model.bend as SV
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD

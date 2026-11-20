@@ -1837,3 +1837,51 @@ def h_ok(h: H, +held: U32) -> Bool:
   match h:
     case H{w, a}:
       h_ok.t(dt_of(w, a), held)
+
+# Template headers (the loader's, spike/knet.bend's KN.load, and the
+# splice's, glam/splice_copy.bend): a node's header from its template, a
+# field past its 24 bits an error. Here, beside the headers they build,
+# so that the splice's passes import the primitives, not the kernel
+
+def lift_word(+up: Bool, +by: U32) -> U32:
+  match up:
+    case True{}:
+      (by .|. 2147483648 : U32)
+    case False{}:
+      by
+
+def fan_hd.go(none: Bool, +k: U32, +site: U32, +lvl: U32) -> U32:
+  match none:
+    case True{}:
+      hd2(k, unlev(), site)
+    case False{}:
+      hd(k, lvl)
+
+# a fan's header: its level, or for a net built without levels its site,
+# marked so
+def fan_hd(+k: U32, +site: U32, +lvl: U32) -> U32:
+  fan_hd.go(U32.is_eq(lvl, V.nolvl()), k, site, lvl)
+
+# a node with no payload: a function (its variable dead too, 17) or an
+# application without a level marked so
+def bare_hd(+k: U32) -> U32:
+  match k:
+    case 1:
+      hd2(k, unlev(), 0)
+    case 2:
+      hd2(k, unlev(), 0)
+    case 17:
+      hd2(k, unlev(), 0)
+    case _:
+      hd(k, 0)
+
+def too_big(+f: U32) -> Bool:
+  U32.is_ge(f, lvl_cap())
+
+# the field a fan keeps, its site without a level, else its level
+def fan_too_big(none: Bool, +site: U32, +lvl: U32) -> Bool:
+  match none:
+    case True{}:
+      too_big(site)
+    case False{}:
+      too_big(lvl)

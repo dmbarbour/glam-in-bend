@@ -4,7 +4,7 @@ import ../spike/tpl.bend as T
 import ../spike/kprim.bend as P
 import ../spike/kdemand.bend as KD
 import ../spike/kmem_grow.bend as KM
-import ./splice.bend as S
+import ./splice_copy.bend as S
 import ./freeze.bend as F
 import ./position.bend as Q
 import ./ring.bend as R
