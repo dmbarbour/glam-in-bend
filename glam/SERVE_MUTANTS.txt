@@ -1,0 +1,30 @@
+# Mutations of the code the serve's laws follow (glam/splice.bend), each
+# naming the laws of glam/SERVE_LAWS.bend it should fail (docs/Proving.md;
+# the gate runs scripts/one_law.py --mutants on this file). A witness is
+# the law's instance, its premises the template's and the allocator's:
+# here the ring a situating node 8 alone (its word 3 itself, its face the
+# static), the fresh nodes 36 then 40 (the head 10, node 36's word 1 11),
+# a template of a function and a hole linked port 0 to port 0, the hole a
+# crossing's.
+
+=== hole_unlinked copy_pend
+a link writing its first end's link word alone: the hole, the link's
+second end, keeps in its word 1 what the free list's pop left there,
+port 10, whose link word is the situating node's word 3
+--- splice.bend
+  Sp{P.link_xx(h, x, y), map}
++++
+  Sp{P.link.to(P.is_static(x), h, x, y), map}
+>>> witness copy_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
