@@ -5,8 +5,8 @@
 
 import Base
 import ./SPLICE_LAWS.bend as Laws
-import ../spike/LAWS.bend as SL
-import ../spike/PROOF.bend as SP
+import ../spike/HEAP_LAWS.bend as SL
+import ../spike/HEAP_PROOF.bend as SP
 import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V

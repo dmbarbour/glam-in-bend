@@ -1,0 +1,162 @@
+# Mutations of the heap's primitives (spike/kprim.bend, spike/kmem_grow.bend),
+# each naming the laws of spike/HEAP_LAWS.bend it should fail
+# (scripts/one_law.py; docs/Proving.md, What to claim).
+
+# A node taken from the free list (the laws node_*): each mutation
+# misplaces one of the pop's writes outside the node taken, or the index
+# it returns; node_keeps claims nothing of the node's own words, so a
+# write inside them is no fault of its. Each is refuted by the proofs, so
+# none needs a witness.
+
+=== head_next_word node_keeps node_next
+the pop writes the new head one word past the head's word
+--- kprim.bend
+  (H{KM.m_set(w, at_fh(), next), a}, n)
++++
+  (H{KM.m_set(w, (at_fh() + 1 : U32), next), a}, n)
+>>> witness node_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+j = 1
+>>> witness node_next
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+
+=== head_kept node_next
+the pop leaves the head as it was: the same node taken again next
+--- kprim.bend
+  (H{KM.m_set(w, at_fh(), next), a}, n)
++++
+  (H{w, a}, n)
+>>> witness node_next
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+
+=== payload_past_node node_keeps
+a node's payload written into the next node's header, past its own words
+--- kprim.bend
+  (wr(wr(h, n, hd), (n + node.word(hd) : U32), p), n)
++++
+  (wr(wr(h, n, hd), (n + 4 : U32), p), n)
+>>> witness node_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+fh = 2
+hd = 9
+p = 7
+j = 8
+
+=== index_of_head node_index
+the node returned is the head's index times four, not its node's
+--- kprim.bend
+      alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), ((fh - 1 : U32) << 2n : U32), a)
++++
+      alloc.pop(KM.m_get(w, (((fh - 1 : U32) << 2n : U32) + 1 : U32)), (fh << 2n : U32), a)
+>>> witness node_index
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 2), 5, 3)
+a = [V.VUnit{} : V.Val^1n]
+fh = 2
+hd = 9
+p = 7
+
+# Linking and freeing (the laws link_keeps, free_keeps): each mutation
+# writes a word the law says is left alone. free_keeps claims nothing of
+# the freed node's own words, so a mutation inside that node is no fault
+# of its.
+
+=== link_at_header link_keeps
+a link written into the node's header, word x, not its port's link word
+--- kprim.bend
+    case False{}:
+      wr(h, (x + 1 : U32), y)
++++
+    case False{}:
+      wr(h, x, y)
+>>> witness link_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+y = 4
+z = 8
+j = 4
+
+=== free_zeroes_next free_keeps
+the header zeroed is the next node's, outside the node freed
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 4 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness free_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 1), 8, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+r = 4
+j = 8
+
+=== free_head_next_word free_keeps
+the freed node made the head one word past the head's word
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), (at_fh() + 1 : U32), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness free_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^4n], 0, 1), 8, 5)
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+r = 4
+j = 1
+
+=== link_writes_static link_keeps
+a link written into a static's "link word", the word after it, as
+though the static were a node's port: a static has none (KMd.off.port)
+--- kprim.bend
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
++++
+  link(h, y, z)
+>>> witness link_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+y = 7
+z = 8
+j = 8
+
+=== table_count_at_itrs put_keeps
+the table's count written back on the interaction count, word 2, not its
+own word 5
+--- kprim.bend
+      H{KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_tfh(), fh), at_tn(), n), at_tcap(), cap), at_td(), U32.from_nat(d)), a}
++++
+      H{KM.m_set(KM.m_set(KM.m_set(KM.m_set(w, at_tfh(), fh), at_itrs(), n), at_tcap(), cap), at_td(), U32.from_nat(d)), a}
+>>> witness put_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+v = V.VUnit{}
+j = 2
+
+=== error_count_at_itrs err_keeps
+an error counted on the interaction count, word 2, not the error count
+--- kprim.bend
+  H{KM.m_set(w, at_errs(), (e + 1 : U32)), a}
++++
+  H{KM.m_set(w, at_itrs(), (e + 1 : U32)), a}
+>>> witness err_keeps
+w = [0 : U32^4n]
+a = [V.VUnit{} : V.Val^1n]
+d = 4n
+b = True{}
+j = 2
