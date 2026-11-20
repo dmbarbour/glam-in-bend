@@ -28,3 +28,25 @@ ns = [36, 40]
 s = 8
 t = Nil{}
 cs = [R.FzC{1, 7, True{}, 9}]
+
+=== hole_in_place copy_pend
+each template node made in place at slot 0, not taken from the free
+list: the hole's map entry 0, node 0, whose words hold the free list's
+head, so that the holes and the ring are not laid out apart
+--- splice.bend
+          sp.put(sp.node(True{}, h, 0, t, by), map, i)
++++
+          sp.put(sp.node(False{}, h, 0, t, by), map, i)
+>>> witness copy_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
