@@ -73,8 +73,10 @@ def digest(real):
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     os.makedirs(CACHE, exist_ok=True)
-    with open(mark, "w") as f:
+    # written whole, then named: gate runs at once must not read it half
+    with open(mark + ".tmp" + str(os.getpid()), "w") as f:
         f.write(h.hexdigest())
+    os.replace(mark + ".tmp" + str(os.getpid()), mark)
     return h.hexdigest()
 
 

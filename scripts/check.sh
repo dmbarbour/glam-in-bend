@@ -60,11 +60,31 @@ for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' 
   [ -f "${laws%LAWS.bend}PROOF.bend" ] || { echo "$laws has no ${laws%LAWS.bend}PROOF.bend beside it"; status=1; }
 done
 if [ -n "$proofs" ]; then
-  for f in $proofs; do
-    echo "-- $f"
+  # the files' verdicts run at once, a gigabyte or so each (1.3 GB the
+  # serve's, 2026-11-20), their outputs printed in order after: the
+  # section the longest verdict, not their sum. Serially where BendTT is
+  # not yet built (a new container), so that its build runs once.
+  vdir=results/gate-verdicts
+  mkdir -p "$vdir"
+  if ls "$HOME"/.bend/bendtt/*/bendtt >/dev/null 2>&1; then par=1; else par=0; fi
+  # one file's verdict, its output, status and time under its name
+  one() {
     at=$(date +%s.%N)
-    BEND=$BEND python3 -I scripts/kept.py verdict "$f" || status=1
-    echo "   ($f: $(since "$at") s)"
+    BEND=$BEND python3 -I scripts/kept.py verdict "$1" > "$vdir/$2.log" 2>&1
+    echo $? > "$vdir/$2.status"
+    since "$at" > "$vdir/$2.time"
+  }
+  for f in $proofs; do
+    n=$(echo "$f" | tr / _)
+    if [ "$par" = 1 ]; then one "$f" "$n" & else one "$f" "$n"; fi
+  done
+  wait
+  for f in $proofs; do
+    n=$(echo "$f" | tr / _)
+    echo "-- $f"
+    cat "$vdir/$n.log"
+    [ "$(cat "$vdir/$n.status")" = 0 ] || status=1
+    echo "   ($f: $(cat "$vdir/$n.time") s)"
   done
 elif git ls-files --cached --others --exclude-standard -- '*.bend' ':!bench/' | grep -q .; then
   echo "Bend sources exist but no PROOF.bend does"
