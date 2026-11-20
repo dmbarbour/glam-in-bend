@@ -63,3 +63,48 @@ law copy_pend:
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   {RG.pend.ok(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, s, t, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm), List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
+
+# LAW: a serve's writes, its copy then its crossings (R.crossings, the
+# holes joined to the ring's cursors or made cursors), as the materializer
+# makes them off the source's root: no word but the fresh nodes', the
+# ring's nodes', the header's a value or an error writes, and the link
+# words of the ports the ring's members faced; under copy_pend's premises
+# (cells-freeze.nested.host.serve.frame). The bound the Hierarchy review
+# asked of a serve, what the demand's walk resumed may read past. At the
+# source's root the served cursor leaves after (R.leave), a law to come.
+# Record: copy-reduced-function-nets
+# Record: serve-write-sets-hybrid
+law serve_keeps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ts: List<&2, T.TNode>
+  for +ls: List<&2, T.TLink>
+  for +by: U32
+  for +ns: List<&2, U32>
+  for +s: U32
+  for +t: List<&2, U32>
+  for +cs: List<&2, R.FzC>
+  for +j: U32
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for +hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
+  for +hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
+  for +hbs: {RG.bases(ns) == True{} : Bool}
+  for +hdy: {SV.dyn(ns) == True{} : Bool}
+  for +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
+  for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
+  for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
+  for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
+  for +hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
+  for +hjr: {RG.off.nodes(Con{s, t}, d, j) == True{} : Bool}
+  for +hjh: {KMd.off.words(KMd.hdr_all(), d, j) == True{} : Bool}
+  for +hjf: {RG.off.ports(RG.faced(Con{s, t}, AD.view(U32, w), d), d, j) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}

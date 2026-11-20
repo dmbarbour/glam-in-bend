@@ -50,3 +50,27 @@ ns = [36, 40]
 s = 8
 t = Nil{}
 cs = [R.FzC{1, 7, True{}, 9}]
+
+=== serve_in_place serve_keeps
+each template node made in place at slot 0: the copy writes the header's
+word 3, a lift's payload word there last, which no fresh node, ring node,
+header word written or faced port's link word covers; the template a
+hole then a lift, the hole's crossing making it a cursor
+--- splice_copy.bend
+          sp.put(sp.node(True{}, h, 0, t, by), map, i)
++++
+          sp.put(sp.node(False{}, h, 0, t, by), map, i)
+>>> witness serve_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KCur{}, V.PNone{}}, T.TN{RU.KLift{}, V.PLift{0, True{}, 3}}]
+ls = [T.TL{T.TE{1, 0}, T.TE{0, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{0, 7, True{}, 9}]
+j = 3
