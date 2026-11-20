@@ -11,9 +11,10 @@ import ./ring_model.bend as RG
 # of encoding changes them with the code. Only the kernel's primitives,
 # which glam's mutations leave alone: a witness built by R.cursor would
 # change under a mutation of it. A ring's words are laid out in place
-# (word 2 a position, word 3 the next member). glam/MUTANTS.txt's
-# witnesses name them; glam/PROOF.bend imports this file so that a
-# witness, written beside it, may.
+# (word 2 a position, word 3 the next member). The witnesses of
+# glam/MUTANTS.txt and glam/SERVE_MUTANTS.txt name them; glam/PROOF.bend
+# and glam/SERVE_PROOF.bend import this file so that a witness, written
+# beside them, may.
 
 # an empty heap of 64 words, the free list's head hd
 def empty(+hd: U32) -> P.H:
