@@ -4,9 +4,12 @@
 # profile tools of its version for profile-guided builds
 # (spike/tools/inline_build.sh); `perf` for instruction counts
 # (scripts/count.sh); Node, to run Bend's JavaScript output; Lean at a
-# pinned release, checked by hash, for `bend --verdict`; GCC 16, built
-# from source (scripts/gcc-setup.sh); the Blend submodule, and `blend`
-# beside `bend` running it; the commit hooks, Blend's too.
+# pinned release, checked by hash, for `bend --verdict`; the Blend
+# submodule, and `blend` beside `bend` running it; the commit hooks,
+# Blend's too. GCC 16, a second compiler for reference builds, is no
+# longer built here: a quarter of an hour on every rebuild, for builds
+# nothing runs by default (`GCC_BUILDS=1` in spike/tools/inline_build.sh);
+# run scripts/gcc-setup.sh by hand to have it.
 # Idempotent. Run as root from the repository root, as the devcontainer's
 # postCreateCommand; scripts/cgroup-delegate.sh is its postStartCommand.
 set -eu
@@ -80,9 +83,6 @@ fi
 # the system's headers, which Bend's native builds must not find first
 line='export PATH="$PATH:$HOME/.lean/bin"'
 grep -qxF "$line" "$HOME/.bashrc" 2>/dev/null || echo "$line" >> "$HOME/.bashrc"
-
-# GCC 16 from source, a second compiler for reference (slow the first time)
-sh scripts/gcc-setup.sh
 
 git config core.hooksPath .githooks
 # Blend, a submodule (blend-own-repository), checked out once: on its main

@@ -3,7 +3,9 @@
 # second C compiler for Bend's emitted C, as a point of reference beside
 # clang (spike/tools/inline_build.sh). Debian 13 packages GCC 14, which
 # cannot build that C (it needs `musttail`). C only, no bootstrap: a
-# quarter to half an hour on 8 threads. Idempotent; run as root.
+# quarter to half an hour on 8 threads. Idempotent; run as root, by hand:
+# scripts/dev-setup.sh no longer runs it (the maintainer, 2026-11-20), the
+# reference builds being run by no tool by default.
 set -eu
 V=16.2.0
 SHA512=c51c30ca7422d0cbecf504b2e0f33c3aca31e0f90a76b65217f465163fa6fa17b3f5de39e145c47e5bab90ac0ce7fff3b03c8d553ae36e01faaea5a50f8648d1
