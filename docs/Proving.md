@@ -202,7 +202,8 @@ it alone taught. Add to this file what a new proof teaches.
   `chain(v, d, a, ys, b)`).
 - **A rewrite is a local statement**: no `match` may follow it, nor may
   one follow a let (`+h = ...`). Match
-  first, then rewrite in each branch.
+  first, then rewrite in each branch. A pair destructured (`(+t, +e) =
+  m`, a mirror) is a match: it too goes before every let.
 - **Templates prove as code does**: a proof def may take `~p`, and
   template parameters come first.
 - **A linear value a proof names often is mirrored as data.** A goal

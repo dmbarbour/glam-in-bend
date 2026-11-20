@@ -75,3 +75,41 @@ dm = 1n
 ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
 ns = [36]
 j = 0
+
+=== eraser_maps_zero nodes_maps
+an eraser's map entry left 0, not the static: the links pass would
+then write the eraser's peer through node 0, the header
+--- splice.bend
+          Sp{h, Array.set(U32, map, i, P.era())}
++++
+          Sp{h, Array.set(U32, map, i, 0)}
+>>> witness nodes_maps
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KEraP{}, V.PNone{}}]
+i = 0
+by = 0
+ns = Nil{}
+ix = 0
+
+=== node_maps_next nodes_maps
+a node's map entry set at the next index: index 0, the template's one
+node, reads as before, not the node popped, 36
+--- splice.bend
+  Sp{h, Array.set(U32, map, i, ref)}
++++
+  Sp{h, Array.set(U32, map, (i + 1 : U32), ref)}
+>>> witness nodes_maps
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}]
+i = 0
+by = 0
+ns = [36]
+ix = 0

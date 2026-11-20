@@ -48,6 +48,37 @@ law nodes_keeps:
   for hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
+# LAW: the splice's node pass, under nodes_keeps's premises and the map
+# full at a depth below 32, leaves the map as the model folds the pass's
+# writes (SM.ent): at an eraser's slot the static, at a node's the next
+# fresh node of ns, in order, a later write over an earlier at one slot
+# (the index mod 2^dm), every other slot as before
+# (cells-freeze.nested.host.splice.maps). Which slot holds what for the
+# links is the template's premise to say (.splice.tpl).
+# Record: splice-frame-premises
+# Record: splice-erasers-static
+law nodes_maps:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ts: List<&2, T.TNode>
+  for +i: U32
+  for +by: U32
+  for +ns: List<&2, U32>
+  for +ix: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for hap: {KMd.apart(ns, d) == True{} : Bool}
+  for hpa: {KMd.past(ns, d) == True{} : Bool}
+  for hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  {KMd.word(AD.view(U32, SM.map(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by))), dm, ix) == SM.ent(ts, ns, i, dm, ix, KMd.word(AD.view(U32, map), dm, ix)) : U32}
+
 # LAW: the splice's links pass, each link's ends naming through the map
 # a static or a fresh node of ns and a node's port (SM.ends.ok), writes
 # no word but the fresh nodes': a static's link word is none, so that an
