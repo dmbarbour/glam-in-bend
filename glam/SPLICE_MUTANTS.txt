@@ -22,7 +22,7 @@ by = 0
 ns = [36]
 j = 3
 
-=== eraser_takes_node nodes_keeps
+=== eraser_takes_node nodes_keeps splice_keeps
 an eraser made a node, as before the splice made erasers static in one
 pass (cells-freeze.nested.host.splice.single): the free list's head
 taken, node 36's header written, outside the fresh nodes, none for a
@@ -38,6 +38,17 @@ map = [0 : U32^1n]
 d = 6n
 ts = [T.TN{R.KEraP{}, V.PNone{}}]
 i = 0
+by = 0
+ns = Nil{}
+j = 36
+>>> witness splice_keeps
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KEraP{}, V.PNone{}}]
+ls = Nil{}
 by = 0
 ns = Nil{}
 j = 36
