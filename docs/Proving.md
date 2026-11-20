@@ -129,6 +129,11 @@ it alone taught. Add to this file what a new proof teaches.
 - **An absurd case names its type**: `Empty.absurd(T, e)`, `T` written
   out; refute a clash of constructors through a motive sending one to
   `Unit` and the other to `Empty`.
+- **Two functions of one body do not convert**, nor does `x + 0` for
+  a U32 x: `RG.pl.of(m)` against `KMd.word.m(m)` wants a lemma matching
+  `m`, and `x + 0` the sum's value through `U32.to_nat`
+  (`glam/SERVE_PROOF.bend`'s `plof`, `u32_add0`). A function without a
+  match (`KMd.nw`, `RG.nw`) unfolds and converts.
 - **A big constant is reasoned under a variable** `N` with
   `{N == Nat.pow(2n, 32n)}`, the power met only against a symbolic value
   or where both forms match exactly (BendIssues.md, "Big constants in

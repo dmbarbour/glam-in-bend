@@ -40,7 +40,7 @@ substituted, the witness is written as a def per binder (its term at
 the binder's type: the values typed, the premises proved) and last the
 conclusion, `witness`, proved by {==}; so that its premises are the
 law's by construction. It runs in a copy of its own, the proof file's
-imports and the witness alone (its laws files left out), as
+imports and the witness alone (its laws and proof files left out), as
 WITNESS.bend beside the proof file: Bend asks a file named PROOF.bend
 to import its laws. Every witness of the file checks unmutated in one
 run, the names told apart (_w<law>_<case>); a failure there is laid to
@@ -258,9 +258,13 @@ def witness_body(laws, law, terms, tag=""):
 
 def witness_text(text, body):
     """A proof file of the witness alone: the proof file's imports but its
-    laws files, and the witness."""
+    laws and proof files, and the witness. A witness evaluates the law at
+    its instance, which needs the code and the models, never a proof: an
+    imported proof file a mutation breaks (glam/SERVE_PROOF.bend importing
+    the splice's, whose code is the one mutated) would refute the witness
+    before its instance."""
     imps = [l for l in text.splitlines()
-            if l.startswith("import ") and not l.split()[1].endswith("LAWS.bend")]
+            if l.startswith("import ") and not l.split()[1].endswith(("LAWS.bend", "PROOF.bend"))]
     return "\n".join(imps) + "\n\n" + body
 
 
