@@ -95,9 +95,11 @@ by = 0
 ns = Nil{}
 ix = 0
 
-=== node_maps_next nodes_maps
+=== node_maps_next nodes_maps splice_keeps
 a node's map entry set at the next index: index 0, the template's one
-node, reads as before, not the node popped, 36
+node, reads as before, not the node popped, 36; the copy's link from
+its port 0 to its port 1 then joins node 0's, writing word 2, outside
+every word the copy may write
 --- splice.bend
   Sp{h, Array.set(U32, map, i, ref)}
 +++
@@ -113,3 +115,14 @@ i = 0
 by = 0
 ns = [36]
 ix = 0
+>>> witness splice_keeps
+w = Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11), 2, 5)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
+by = 0
+ns = [36]
+j = 2
