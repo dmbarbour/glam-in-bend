@@ -103,3 +103,44 @@ def ends.ok(ls: List<&2, T.TLink>, +vm: List<&2, U32>, +dm: Nat, +ns: List<&2, U
       True{}
     case Con{l, r}:
       link.ok(l, vm, dm, ns) && ends.ok(r, vm, dm, ns)
+
+# The template's premise (cells-freeze.nested.host.splice.tpl), over the
+# same fold: the kind the node pass last wrote at index ix's slot, 0 none,
+# 1 a node, 2 an eraser
+def kc(+e: Bool) -> U32:
+  match e:
+    case True{}:
+      2
+    case False{}:
+      1
+
+def kind_at(ts: List<&2, T.TNode>, +i: U32, +dm: Nat, +ix: U32, +old: U32) -> U32:
+  match ts:
+    case Nil{}:
+      old
+    case Con{+t, rest}:
+      kind_at(rest, (i + 1 : U32), dm, ix, pick(Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), kc(S.sp.is_era(t)), old))
+
+# an end's port fits what its index names: an eraser's principal, or a
+# node's port below 3
+def tm.k(+k: U32, +p: U32) -> Bool:
+  (U32.is_eq(k, 2) && U32.is_eq(p, 0)) || (U32.is_eq(k, 1) && port3(p))
+
+def tm.end(e: T.TEnd, +ts: List<&2, T.TNode>, +dm: Nat) -> Bool:
+  match e:
+    case T.TE{+n, +p}:
+      tm.k(kind_at(ts, 0, dm, n, 0), p)
+
+def tm.link(l: T.TLink, +ts: List<&2, T.TNode>, +dm: Nat) -> Bool:
+  match l:
+    case T.TL{a, b}:
+      tm.end(a, ts, dm) && tm.end(b, ts, dm)
+
+# every link's ends name, at the map's depth dm, a slot the node pass
+# writes from index 0, at a port its node has
+def tpl.ok(ls: List<&2, T.TLink>, +ts: List<&2, T.TNode>, +dm: Nat) -> Bool:
+  match ls:
+    case Nil{}:
+      True{}
+    case Con{l, r}:
+      tm.link(l, ts, dm) && tpl.ok(r, ts, dm)

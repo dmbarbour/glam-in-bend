@@ -47,5 +47,11 @@ record Fable's target for allocation."
 - A runtime check stands at the compiler's boundary, marked to go when a
   law replaces it (the maintainer's direction: laws over audits).
 
+Since `splice-erasers-static` (2026-11-20), the template's predicate is
+`SM.tpl.ok`: each end names a slot the node pass writes, at port 0 for
+an eraser and below 3 for a node; the clauses on erasers' principals,
+on `size` and on the root went with the statics pass (the Cells plan's
+`.splice.tpl`).
+
 **Rule lives in:** `docs/plans/Cells_2026-11-09.md`,
 `cells-freeze.nested.host.splice` and `cells-freeze.nested.host.alloc`.
