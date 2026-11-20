@@ -41,11 +41,13 @@ them, go to a design review of their own
 - An eraser at a source's root no longer reads a stale word: its map
   entry is the static, which the materializer's root leaves with, as it
   does a static eraser.
-- Measured (the Cells plan's `.splice.single`, runs 326 and 327): no
-  instructions moved where no eraser is copied, none of the sharing
-  families copying one; about 120 instructions saved for each eraser
-  served, and one doubling of the store fewer where the erasers' nodes
-  tipped it.
+- Measured (the Cells plan's `.splice.single`, runs 326 to 328, four
+  builds of each tree): outputs and counts alike; where no eraser is
+  copied, which none of the sharing families did, the work a few
+  instructions a node less, clang's inlining moving the default builds
+  by a tenth of a percent either way; about 120 instructions saved for
+  each eraser served, and, by inference, one doubling of the store
+  fewer where the erasers' nodes had tipped it.
 
 **Rule lives in:** `glam/splice.bend` (`sp.node_k`, `sp.link2`),
 `glam/SPLICE_LAWS.bend`, and `docs/plans/Cells_2026-11-09.md`,
