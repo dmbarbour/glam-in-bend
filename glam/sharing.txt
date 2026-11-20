@@ -14,3 +14,4 @@ cells-freeze.cells samples/sharing/partial_in_cell.g shares use
 cells-splice.templates samples/sharing/partial_in_net.g shares g id
 cells-data.root samples/sharing/data_in_cell.g shares f
 cells-freeze.nested samples/sharing/nested_sources.g shares g{i} x
+cells-freeze.nested.host.splice.single samples/sharing/erased_args.g shares use

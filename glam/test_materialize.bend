@@ -24,7 +24,9 @@ import ./materialize.bend as M
 #   node (what an eraser event leaves facing the interface): void alike,
 #   the eraser node served as the static is (Splice_2026-11-19.md, S1;
 #   copied, its statics pass read a word the pop left and wrote a header
-#   word, and the host stuck).
+#   word, and the host stuck);
+# - `\x -> void`, its variable and body facing eraser nodes, applied to
+#   7: void, the eraser nodes copied as statics.
 # Run by scripts/ladder.py, which expects `ok` alone.
 #
 #   bend glam/test_materialize.bend
@@ -192,6 +194,25 @@ def era_node.l(r: P.H & U32) -> P.H:
 def era_node() -> P.H:
   era_node.l(P.node(KN.load(id_redex()), P.hd(6, 0), 0))
 
+# a function whose variable and body face eraser nodes, `\x -> void` as
+# rules leave it: served, its eraser nodes read back as nodes, each made
+# static in the copy as it is linked
+# (cells-freeze.nested.host.splice.single)
+def fn_void.b(r: P.H & U32, +f: U32) -> P.H:
+  (h, +e) = r
+  P.link(h, (f + 2 : U32), e)
+
+def fn_void.v(r: P.H & U32, +f: U32) -> P.H:
+  (h, +e) = r
+  fn_void.b(P.node(P.link(h, (f + 1 : U32), e), P.hd(6, 0), 0), f)
+
+def fn_void.f(r: P.H & U32) -> P.H:
+  (h, +f) = r
+  fn_void.v(P.node(h, P.hd(6, 0), 0), f)
+
+def fn_void() -> P.H:
+  fn_void.f(P.rd(KN.load(T.Tpl{[fn()], [], T.TE{0, 0}, 1}), (P.iface() + 1 : U32)))
+
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
     case True{}:
@@ -218,4 +239,5 @@ def main() -> String:
     check(applied(k_redex(), host2(7, 8)), "7", "k_redex 7 8") ++
     check(applied(const_redex(), host1(7)), "fn", "const_redex 7") ++
     check(applied(erased(), host1(7)), "stop a void", "erased 7") ++
-    check(applied.h(era_node(), host1(7)), "stop a void", "eraser node 7"))
+    check(applied.h(era_node(), host1(7)), "stop a void", "eraser node 7") ++
+    check(applied.h(fn_void(), host1(7)), "stop a void", "fn_void 7"))

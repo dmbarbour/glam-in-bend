@@ -250,16 +250,14 @@ def tpl.made.k(+era: Bool, +acc: U32) -> U32:
     case False{}:
       (acc + 1 : U32)
 
+# the nodes a template makes, its erasers none (S.sp.is_era, the
+# splice's own test)
 def tpl.made.l(ts: List<&2, T.TNode>, +acc: U32) -> U32:
   match ts:
     case Nil{}:
       acc
     case Con{t, rest}:
-      match t:
-        case T.TN{k, p}:
-          tpl.made.l(rest, tpl.made.k(U32.is_eq((N.kcode(k) .|. 1 : U32), 7), acc))
-        case T.TF{k, +site, +lvl}:
-          tpl.made.l(rest, (acc + 1 : U32))
+      tpl.made.l(rest, tpl.made.k(S.sp.is_era(t), acc))
 
 def tpl.made(t: T.Tpl) -> U32:
   match t:

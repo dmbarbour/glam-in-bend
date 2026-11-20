@@ -16,8 +16,9 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the splice's node pass, its fresh nodes ns the free list's first
 # ones (KMd.chain), laid out apart and past the header's words a splice
-# writes, one for each template node, writes no word but theirs, the
-# head, and the header's words a value or an error writes
+# writes, one for each template node but an eraser, which makes none
+# (SM.made; cells-freeze.nested.host.splice.single), writes no word but
+# theirs, the head, and the header's words a value or an error writes
 # (KMd.hdr_all), the heap deep enough that those words are apart from
 # the head's: every other word reads as before
 # (cells-freeze.nested.host.splice.pops). Not claimed: the reserve's and
@@ -25,6 +26,7 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 # live (the allocator's prefix law, to come).
 # Record: splice-frame-premises
 # Record: serve-write-sets-hybrid
+# Record: splice-erasers-static
 law nodes_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -38,7 +40,7 @@ law nodes_keeps:
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
-  for hl: {List.length(&2, T.TNode, ts) == List.length(&2, U32, ns) : Nat}
+  for hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
   for hap: {KMd.apart(ns, d) == True{} : Bool}
   for hpa: {KMd.past(ns, d) == True{} : Bool}
   for hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
@@ -47,11 +49,14 @@ law nodes_keeps:
   {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: the splice's links pass, each link's ends naming through the map
-# a fresh node of ns and a node's port (SM.ends.ok), writes no word but
-# the fresh nodes': every other word reads as before
-# (cells-freeze.nested.host.splice; splice-frame-premises).
+# a static or a fresh node of ns and a node's port (SM.ends.ok), writes
+# no word but the fresh nodes': a static's link word is none, so that an
+# eraser mapped to the static writes nothing of its own; every other
+# word reads as before (cells-freeze.nested.host.splice,
+# .splice.single; splice-frame-premises).
 # Record: splice-frame-premises
 # Record: serve-write-sets-hybrid
+# Record: splice-erasers-static
 law links_keeps:
   for w: Array<U32>
   for a: Array<V.Val>

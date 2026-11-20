@@ -177,6 +177,10 @@ where the shared lazy state that Bend cannot hold goes.
   splice's fresh nodes a premise, discharged by the allocator's prefix
   law; the template's a predicate, discharged by a law on freeze; the
   header's words an exact list.
+- [`splice-erasers-static`](decisions/splice-erasers-static.md): the
+  splice makes a template's erasers static as it links, no node made
+  and freed for them; two erasers linked to each other, a pair demand
+  never reaches, write nothing.
 - [`ring-walks-fueled-by-heap`](decisions/ring-walks-fueled-by-heap.md):
   a walk round a ring takes as fuel the size of the heap's words array,
   so that no law names a fuel.
