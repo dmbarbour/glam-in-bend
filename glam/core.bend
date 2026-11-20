@@ -9,6 +9,7 @@ import ./parse.bend as G
 import ./desugar.bend as D
 import ./lower.bend as W
 import ./splice.bend as S
+import ./splice_copy.bend as SC
 import ./objects.bend as O
 import ../spike/tpl.bend as T
 import ../spike/net.bend as N
@@ -257,7 +258,7 @@ def tpl.made.l(ts: List<&2, T.TNode>, +acc: U32) -> U32:
     case Nil{}:
       acc
     case Con{t, rest}:
-      tpl.made.l(rest, tpl.made.k(S.sp.is_era(t), acc))
+      tpl.made.l(rest, tpl.made.k(SC.sp.is_era(t), acc))
 
 def tpl.made(t: T.Tpl) -> U32:
   match t:

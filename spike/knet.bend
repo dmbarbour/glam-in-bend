@@ -1167,13 +1167,6 @@ def interact.e(~after: P.E -> @+x:N.Ext -> P.E, h: P.H, st: P.Stk, +fast: Bool, 
 # Loading a template
 # ==================
 
-def lift_word(+up: Bool, +by: U32) -> U32:
-  match up:
-    case True{}:
-      (by .|. 2147483648 : U32)
-    case False{}:
-      by
-
 def drop_ref(r: P.H & U32) -> P.H:
   (h, +n) = r
   h
@@ -1182,60 +1175,24 @@ def load.data(r: P.H & P.PW, +k: U32) -> P.H:
   (h, pw) = r
   drop_ref(P.node_pw(h, k, pw))
 
-def fan_hd.go(none: Bool, +k: U32, +site: U32, +lvl: U32) -> U32:
-  match none:
-    case True{}:
-      P.hd2(k, P.unlev(), site)
-    case False{}:
-      P.hd(k, lvl)
-
-# a fan's header: its level, or for a net built without levels its site,
-# marked so
-def fan_hd(+k: U32, +site: U32, +lvl: U32) -> U32:
-  fan_hd.go(U32.is_eq(lvl, V.nolvl()), k, site, lvl)
-
-# a node with no payload: a function (its variable dead too, 17) or an
-# application without a level marked so
-def bare_hd(+k: U32) -> U32:
-  match k:
-    case 1:
-      P.hd2(k, P.unlev(), 0)
-    case 2:
-      P.hd2(k, P.unlev(), 0)
-    case 17:
-      P.hd2(k, P.unlev(), 0)
-    case _:
-      P.hd(k, 0)
-
-def too_big(+f: U32) -> Bool:
-  U32.is_ge(f, P.lvl_cap())
-
-# the field a fan keeps, its site without a level, else its level
-def fan_too_big(none: Bool, +site: U32, +lvl: U32) -> Bool:
-  match none:
-    case True{}:
-      too_big(site)
-    case False{}:
-      too_big(lvl)
-
 # a node from its template; a level, site or index past the field's 24
 # bits, or an offset past 31, would be cut short: an error
 def load.node(h: P.H, t: T.TNode) -> P.H:
   match t:
     case T.TF{k, +site, +lvl}:
-      P.err_if(fan_too_big(U32.is_eq(lvl, V.nolvl()), site, lvl),
-        drop_ref(P.node(h, fan_hd(N.kcode(k), site, lvl), 0)))
+      P.err_if(P.fan_too_big(U32.is_eq(lvl, V.nolvl()), site, lvl),
+        drop_ref(P.node(h, P.fan_hd(N.kcode(k), site, lvl), 0)))
     case T.TN{k, p}:
       match p:
         case V.PVal{v}:
           load.data(P.put(h, v), N.kcode(k))
         case V.PLvl{+l}:
-          P.err_if(too_big(l), drop_ref(P.node(h, P.hd(N.kcode(k), l), 0)))
+          P.err_if(P.too_big(l), drop_ref(P.node(h, P.hd(N.kcode(k), l), 0)))
         case V.PLift{+n, +up, +by}:
-          P.err_if(too_big(n) || U32.is_ge(by, 2147483648),
-            drop_ref(P.node(h, P.hd(N.kcode(k), n), lift_word(up, by))))
+          P.err_if(P.too_big(n) || U32.is_ge(by, 2147483648),
+            drop_ref(P.node(h, P.hd(N.kcode(k), n), P.lift_word(up, by))))
         case _:
-          drop_ref(P.node(h, bare_hd(N.kcode(k)), 0))
+          drop_ref(P.node(h, P.bare_hd(N.kcode(k)), 0))
 
 def load.nodes(ns: List<&2, T.TNode>, h: P.H) -> P.H:
   match ns:

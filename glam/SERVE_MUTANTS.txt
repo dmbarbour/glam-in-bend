@@ -11,7 +11,7 @@
 a link writing its first end's link word alone: the hole, the link's
 second end, keeps in its word 1 what the free list's pop left there,
 port 10, whose link word is the situating node's word 3
---- splice.bend
+--- splice_copy.bend
   Sp{P.link_xx(h, x, y), map}
 +++
   Sp{P.link.to(P.is_static(x), h, x, y), map}
@@ -33,7 +33,7 @@ cs = [R.FzC{1, 7, True{}, 9}]
 each template node made in place at slot 0, not taken from the free
 list: the hole's map entry 0, node 0, whose words hold the free list's
 head, so that the holes and the ring are not laid out apart
---- splice.bend
+--- splice_copy.bend
           sp.put(sp.node(True{}, h, 0, t, by), map, i)
 +++
           sp.put(sp.node(False{}, h, 0, t, by), map, i)

@@ -18,7 +18,7 @@ import ../spike/rules.bend as RU
 import ../spike/kmodel.bend as KMd
 import ./ring.bend as R
 import ./ring_model.bend as RG
-import ./splice.bend as S
+import ./splice_copy.bend as S
 import ./splice_model.bend as SM
 import ./serve_model.bend as SV
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB

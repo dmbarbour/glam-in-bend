@@ -13,9 +13,8 @@ import ../spike/val.bend as V
 import ../spike/tpl.bend as T
 import ../spike/rules.bend as R
 import ../spike/net.bend as N
-import ../spike/knet.bend as KN
 import ../spike/kmodel.bend as KMd
-import ./splice.bend as S
+import ./splice_copy.bend as S
 import ./splice_model.bend as SM
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
@@ -218,9 +217,9 @@ def pre.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>) -> P.H:
     case V.PVal{+v}:
       Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v))
     case V.PLvl{+l}:
-      P.err_if(KN.too_big(l), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
+      P.err_if(P.too_big(l), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
     case V.PLift{+i, +up, +amt}:
-      P.err_if(KN.too_big(i) || U32.is_ge(amt, 2147483648), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
+      P.err_if(P.too_big(i) || U32.is_ge(amt, 2147483648), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
     case V.PNone{}:
       P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}
     case V.PFan{+f}:
@@ -235,9 +234,9 @@ def hd.p(pp: V.Pay, +k: R.NodeKind, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>) ->
     case V.PLift{+i, +up, +amt}:
       P.hd(N.kcode(k), i)
     case V.PNone{}:
-      KN.bare_hd(N.kcode(k))
+      P.bare_hd(N.kcode(k))
     case V.PFan{+f}:
-      KN.bare_hd(N.kcode(k))
+      P.bare_hd(N.kcode(k))
 
 def pl.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>) -> U32:
   match pp:
@@ -246,7 +245,7 @@ def pl.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>) -> U32:
     case V.PLvl{+l}:
       0
     case V.PLift{+i, +up, +amt}:
-      KN.lift_word(up, amt)
+      P.lift_word(up, amt)
     case V.PNone{}:
       0
     case V.PFan{+f}:
@@ -255,14 +254,14 @@ def pl.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>) -> U32:
 def pre(t: T.TNode, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +by: U32) -> P.H:
   match t:
     case T.TF{+k, +site, +lvl}:
-      P.err_if(KN.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
+      P.err_if(P.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})
     case T.TN{+k, +p}:
       pre.p(V.raise_pay(by, p), t0, ta)
 
 def hdf(t: T.TNode, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +by: U32) -> U32:
   match t:
     case T.TF{+k, +site, +lvl}:
-      KN.fan_hd(N.kcode(k), site, V.raise_lvl(by, lvl))
+      P.fan_hd(N.kcode(k), site, V.raise_lvl(by, lvl))
     case T.TN{+k, +p}:
       hd.p(V.raise_pay(by, p), k, t0, ta)
 
@@ -309,9 +308,9 @@ def pre_rd.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +ix: 
     case V.PVal{+v}:
       Equal.trans(U32, Pair.snd(P.H, U32, P.rd(Pair.fst(P.H, P.PW, P.put(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, v)), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.put_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, v, ix, hft, hd32, MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi)), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
     case V.PLvl{+l}:
-      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(KN.too_big(l), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, KN.too_big(l), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
+      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(P.too_big(l), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, P.too_big(l), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
     case V.PLift{+i2, +up, +amt}:
-      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(KN.too_big(i2) || U32.is_ge(amt, 2147483648), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, KN.too_big(i2) || U32.is_ge(amt, 2147483648), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
+      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(P.too_big(i2) || U32.is_ge(amt, 2147483648), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, P.too_big(i2) || U32.is_ge(amt, 2147483648), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
     case V.PNone{}:
       SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix)
     case V.PFan{+f}:
@@ -321,7 +320,7 @@ def pre_rd(t: T.TNode, +by: U32, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: N
   {Pair.snd(P.H, U32, P.rd(pre(t, t0, ta, by), ix)) == Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)) : U32}:
   match t:
     case T.TF{+k, +site, +lvl}:
-      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(KN.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, KN.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
+      Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.err_if(P.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}), ix)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, ix)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), ix)), SL.err_keeps(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, P.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), ix, hft, hd32, MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(Nil{}, d, ix), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), d), AD.slot(ix, d))), KMd.off.words(KMd.tab_words(), d, ix), hi), {==})), SP.rd_get(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), ix))
     case T.TN{+k, +p}:
       pre_rd.p(V.raise_pay(by, p), t0, ta, d, ix, hft, hd32, hi)
 
@@ -335,9 +334,9 @@ def pre_full.p(pp: V.Pay, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +hf
     case V.PVal{+v}:
       put_f(v, t0, ta, d, hft)
     case V.PLvl{+l}:
-      err_full(KN.too_big(l), t0, LAT.fromT(V.Val, ta), d, hft)
+      err_full(P.too_big(l), t0, LAT.fromT(V.Val, ta), d, hft)
     case V.PLift{+i2, +up, +amt}:
-      err_full(KN.too_big(i2) || U32.is_ge(amt, 2147483648), t0, LAT.fromT(V.Val, ta), d, hft)
+      err_full(P.too_big(i2) || U32.is_ge(amt, 2147483648), t0, LAT.fromT(V.Val, ta), d, hft)
     case V.PNone{}:
       hft
     case V.PFan{+f}:
@@ -347,7 +346,7 @@ def pre_full(t: T.TNode, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +by: U32, +d:
   {AD.full(U32, KMd.words(pre(t, t0, ta, by)), d) == True{} : Bool}:
   match t:
     case T.TF{+k, +site, +lvl}:
-      err_full(KN.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), t0, LAT.fromT(V.Val, ta), d, hft)
+      err_full(P.fan_too_big(U32.is_eq(V.raise_lvl(by, lvl), V.nolvl()), site, V.raise_lvl(by, lvl)), t0, LAT.fromT(V.Val, ta), d, hft)
     case T.TN{+k, +p}:
       pre_full.p(V.raise_pay(by, p), t0, ta, d, hft)
 
