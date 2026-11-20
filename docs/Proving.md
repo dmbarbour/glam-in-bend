@@ -110,6 +110,14 @@ it alone taught. Add to this file what a new proof teaches.
   step lemma takes the `Bool` as a parameter, an equation tying it to its
   test, and every induction hypothesis the cases need, and splits it; the
   recursion stays in the caller, Bend having no mutual recursion.
+  Where each arm's hypothesis needs terms only that arm computes (a
+  mirror destructured, a list matched), the recursion itself may take
+  the `Bool` as a parameter with its equation, `+e: Bool, +he: {e ==
+  f(ts)}`, declared before every binder matched after it: match the
+  list, then `e`, then the rest; in each arm rewrite the goal with `he`
+  (`%he`, its `Bool` first so that the test turns into the constant)
+  after the matches; the recursive call passes `f(rest)` and `{==}`
+  (`glam/SPLICE_PROOF.bend`'s `nodes_go`, an eraser making no node).
 - **`%e : P` rewrites with `e : {a == b}`**: the goal is `P` with `b`
   where `_` stands, and becomes `P` with `a`. State lemmas so that `a` is
   the simple form and `b` the complex one, so that a rewrite turns the

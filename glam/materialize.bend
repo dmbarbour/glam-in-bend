@@ -78,7 +78,7 @@ def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) 
     case F.Fz{t, curs, +m}:
       match t:
         case T.Tpl{nodes, links, root, +size}:
-          Mz{s, mz.sp(S.sp.statics(U32.to_nat(size), S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), 0), curs, root, situ, nc, at_root), m}
+          Mz{s, mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m}
 
 # the finished tree at node base v of source s copied into host h at
 # offset k, its wires joined in situ's ring; at_root where it is the
@@ -228,7 +228,7 @@ def mz1.fz(r: P.H & F.Fz, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H 
     case F.Fz{t, curs, +m}:
       match t:
         case T.Tpl{nodes, links, root, +size}:
-          (mz.sp(S.sp.statics(U32.to_nat(size), S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), 0), curs, root, situ, nc, at_root), m)
+          (mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m)
 
 # the finished tree at node base v of net h copied into h itself at
 # offset k, as materialize does between two nets

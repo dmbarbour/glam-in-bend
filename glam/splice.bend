@@ -17,8 +17,10 @@ import ../spike/kdemand.bend as KD
 # (kstrat.bend's d.at): that node is freed, its entry dropped, and the
 # copy's root linked to the application in its place, so that demand walks
 # on from where it stopped. Every node of the copy is made fresh, its
-# template index mapped to its reference; erasers are made static as the
-# loader makes them (KN.load). A template is lowered at depth 0, so every
+# template index mapped to its reference, but an eraser, which makes no
+# node: its index maps to the static, which its link then writes in its
+# peer's link word, in the one pass (as the loader's statics, KN.load,
+# without a node made and freed). A template is lowered at depth 0, so every
 # level in the copy is raised by the application's level, where it is
 # applied (the Cells plan's item 2, an experiment); a level past the
 # header's field is an error, as at load. A handle met by an operator,
@@ -83,10 +85,31 @@ def sp.put(q: P.H & U32, map: Array<U32>, +i: U32) -> Sp:
   (h, +ref) = q
   Sp{h, Array.set(U32, map, i, ref)}
 
-def sp.node_at(s: Sp, t: T.TNode, +i: U32, +by: U32) -> Sp:
-  match s:
-    case Sp{h, map}:
-      sp.put(sp.node(True{}, h, 0, t, by), map, i)
+# an eraser of the template, kind 6 or 7, as tpl.made counts it
+def sp.is_era(+t: T.TNode) -> Bool:
+  match t:
+    case T.TN{k, p}:
+      U32.is_eq((N.kcode(k) .|. 1 : U32), 7)
+    case T.TF{k, +site, +lvl}:
+      False{}
+
+# an eraser makes no node: its index holds the static in the map, so that
+# a link to it writes the static in its peer's link word (the splice in
+# one pass for statics, cells-freeze.nested.host.splice.single); an
+# eraser linked to an eraser writes nothing, a pair demand never reaches
+def sp.node_k(+era: Bool, s: Sp, +t: T.TNode, +i: U32, +by: U32) -> Sp:
+  match era:
+    case True{}:
+      match s:
+        case Sp{h, map}:
+          Sp{h, Array.set(U32, map, i, P.era())}
+    case False{}:
+      match s:
+        case Sp{h, map}:
+          sp.put(sp.node(True{}, h, 0, t, by), map, i)
+
+def sp.node_at(s: Sp, +t: T.TNode, +i: U32, +by: U32) -> Sp:
+  sp.node_k(sp.is_era(t), s, t, i, by)
 
 def sp.nodes(ts: List<&2, T.TNode>, +i: U32, s: Sp, +by: U32) -> Sp:
   match ts:
@@ -95,8 +118,8 @@ def sp.nodes(ts: List<&2, T.TNode>, +i: U32, s: Sp, +by: U32) -> Sp:
     case Con{t, rest}:
       sp.nodes(rest, (i + 1 : U32), sp.node_at(s, t, i, by), by)
 
-# Links and statics
-# =================
+# Links
+# =====
 
 def sp.ref(q: Array<U32> & U32, +p: U32) -> Array<U32> & U32:
   (map, +b) = q
@@ -109,7 +132,7 @@ def sp.end(map: Array<U32>, e: T.TEnd) -> Array<U32> & U32:
 
 def sp.link2(q: Array<U32> & U32, +x: U32, h: P.H) -> Sp:
   (map, +y) = q
-  Sp{P.link(h, x, y), map}
+  Sp{P.link_xx(h, x, y), map}
 
 def sp.link1(q: Array<U32> & U32, b: T.TEnd, h: P.H) -> Sp:
   (map, +x) = q
@@ -129,27 +152,13 @@ def sp.links(ls: List<&2, T.TLink>, s: Sp) -> Sp:
     case Con{l, rest}:
       sp.links(rest, sp.link(s, l))
 
-def sp.static(q: Array<U32> & U32, h: P.H) -> Sp:
-  (map, +x) = q
-  Sp{KN.ld.hd(P.rd(h, x), x), map}
-
-# the template's k nodes from index i, each eraser made static
-def sp.statics(k: Nat, s: Sp, +i: U32) -> Sp:
-  match k:
-    case 0n:
-      s
-    case 1n+p:
-      match s:
-        case Sp{h, map}:
-          sp.statics(p, sp.static(Array.get(U32, map, i), h), (i + 1 : U32))
-
 # The splice
 # ==========
 
 # the copy's root linked to the application, demand walking on
 def sp.walk2(q: Array<U32> & U32, h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32) -> KD.D:
   (map, +x) = q
-  KD.d.go(P.link(h, top, x), path, top, depth, n)
+  KD.d.go(P.link_xx(h, top, x), path, top, depth, n)
 
 def sp.walk(s: Sp, root: T.TEnd, path: KM.M, +top: U32, +depth: U32, +n: U32) -> KD.D:
   match s:
@@ -169,7 +178,7 @@ def sp.by(+hd: U32) -> U32:
   sp.by.k(U32.is_eq(P.rk(hd), N.kcode(R.KAp{})), hd)
 
 def sp.copy(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +by: U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, root: T.TEnd, +size: U32) -> KD.D:
-  sp.walk(sp.statics(U32.to_nat(size), sp.links(links, sp.nodes(nodes, 0, Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, by)), 0),
+  sp.walk(sp.links(links, sp.nodes(nodes, 0, Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, by)),
     root, path, top, depth, n)
 
 def sp.top(q: P.H & U32, path: KM.M, +top: U32, +depth: U32, +n: U32, nodes: List<&2, T.TNode>, links: List<&2, T.TLink>, root: T.TEnd, +size: U32) -> KD.D:
