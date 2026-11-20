@@ -3,6 +3,7 @@ import ../spike/kprim.bend as P
 import ../spike/tpl.bend as T
 import ../spike/kmodel.bend as KMd
 import ./splice.bend as S
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # What the splice's laws (glam/SPLICE_LAWS.bend) name of its state and the
 # heap: no code calls these (cells-freeze.nested.host.splice).
@@ -28,6 +29,55 @@ def made(ts: List<&2, T.TNode>) -> Nat:
       0n
     case Con{t, rest}:
       made.k(S.sp.is_era(t), made(rest))
+
+# The node pass's map (nodes_maps): the splice's map
+def map(s: S.Sp) -> Array<U32>:
+  match s:
+    case S.Sp{h, m}:
+      m
+
+def pick(+b: Bool, +x: U32, +y: U32) -> U32:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
+# what a step of the pass writes in the map: for an eraser the static,
+# else the next fresh node
+def ent.w(+e: Bool, +ns: List<&2, U32>) -> U32:
+  match e:
+    case True{}:
+      P.era()
+    case False{}:
+      match ns:
+        case Nil{}:
+          0
+        case Con{+m, +r}:
+          m
+
+# the fresh nodes left after a step
+def ent.ns(+e: Bool, +ns: List<&2, U32>) -> List<&2, U32>:
+  match e:
+    case True{}:
+      ns
+    case False{}:
+      match ns:
+        case Nil{}:
+          Nil{}
+        case Con{+m, +r}:
+          r
+
+# the map's word at index ix after the pass over ts from index i, old
+# the word before: each step's write folded in the pass's order, at its
+# index's slot (the map's array takes an index mod 2^dm), a later write
+# over an earlier
+def ent(ts: List<&2, T.TNode>, +ns: List<&2, U32>, +i: U32, +dm: Nat, +ix: U32, +old: U32) -> U32:
+  match ts:
+    case Nil{}:
+      old
+    case Con{+t, rest}:
+      ent(rest, ent.ns(S.sp.is_era(t), ns), (i + 1 : U32), dm, ix, pick(Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), ent.w(S.sp.is_era(t), ns), old))
 
 # A template's links, as the links pass reads them: a node's port, 0, 1
 # or 2 (port 3's "link word" would be the next node's header)
