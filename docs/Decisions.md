@@ -153,6 +153,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`static-links-count-as-nodes`](decisions/static-links-count-as-nodes.md):
   a static link counts as the node it stands for, in every count and
   profile; its value means only what the layout gives it.
+- [`representations-interchangeable`](decisions/representations-interchangeable.md):
+  equivalent representations are interchangeable in context, modulo
+  reflection, an eraser node and its static among them; code telling
+  them apart is a fault for a review of discrepancies.
 - [`erasure-at-write`](decisions/erasure-at-write.md): a static eraser at
   an auxiliary port acts where it is written, never tested on a rewrite's
   path, which costs every rewrite in Bend.
