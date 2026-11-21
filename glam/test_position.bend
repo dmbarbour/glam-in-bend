@@ -81,6 +81,17 @@ def show(p: Q.Pd) -> String:
 def at(t: T.Tpl, +pos: U32) -> String:
   show(Q.positioned(KN.load(t), pos, 16n, 1000n))
 
+# an eraser held as a node at the function's variable, where the
+# loader leaves the static: served as the static, off the interface too
+# (representations-interchangeable; docs/reviews/Erasers_2026-11-21.md,
+# E2)
+def era_at.r(r: P.H & U32, +at: U32) -> P.H:
+  (h, +e) = r
+  P.link(h, at, e)
+
+def at_h(h: P.H, +pos: U32) -> String:
+  show(Q.positioned(h, pos, 16n, 1000n))
+
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
     case True{}:
@@ -108,4 +119,6 @@ def main() -> String:
     check(at(gcx(), 33), "stop needs", "gcx") ++
     check(at(id_redex(), 28), "value 1", "root") ++
     check(at(fn_cur(), 33), "cursor 36", "fn_cur") ++
-    check(at(cur_redex(), 33), "cursor 44", "cur_redex"))
+    check(at(cur_redex(), 33), "cursor 44", "cur_redex") ++
+    check(at(const_redex(), 34), "static", "const_redex's variable") ++
+    check(at_h(era_at.r(P.node(KN.load(const_redex()), P.hd(6, 0), 0), 34), 34), "static", "const_redex's variable, a node"))

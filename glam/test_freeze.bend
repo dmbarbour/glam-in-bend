@@ -188,6 +188,31 @@ def fn_cur() -> T.Tpl:
   T.Tpl{[T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KCur{}, V.PNone{}}, T.TN{R.KEraN{}, V.PNone{}}],
     [T.TL{T.TE{0, 1}, T.TE{1, 0}}, T.TL{T.TE{0, 2}, T.TE{2, 0}}], T.TE{0, 0}, 3}
 
+# a net whose value is void: the eraser alone at the interface, a static
+# once loaded; frozen whole or finished, the eraser again, not the cursor
+# of "nothing finished" (docs/reviews/Erasers_2026-11-21.md, E1)
+def void_root() -> T.Tpl:
+  T.Tpl{[T.TN{R.KEraP{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}
+
+# An eraser held as a node where the loader leaves the static, which
+# freezing reads alike (representations-interchangeable; E1, E3): at the
+# function's variable (reference 34) or at the interface (28)
+def era_at.r(r: P.H & U32, +at: U32) -> P.H:
+  (h, +e) = r
+  P.link(h, at, e)
+
+def era_at(t: T.Tpl, +k: U32, +at: U32) -> P.H:
+  era_at.r(P.node(KN.load(t), P.hd(k, 0), 0), at)
+
+def frozen_h(h: P.H) -> String:
+  frozen.r(F.freeze(h))
+
+def frozen_fin_h(h: P.H) -> String:
+  frozen_fin.r(F.freeze_finished(h))
+
+def nodes_read_h(h: P.H) -> String:
+  nodes_read.r(F.freeze_finished(h))
+
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
     case True{}:
@@ -220,6 +245,12 @@ def main() -> String:
     check(frozen_fin(pending()), "s1 l0 r0.0 [0:28n ]", "pending finished") ++
     check(frozen_fin(fn_cur()), "s3 l2 r0.0 [1:33n ]", "fn_cur finished") ++
     check(frozen(fn_cur()), "[1:- 18:- 6:- | 0.2-2.0 0.1-1.0 | 0.0 3]", "fn_cur") ++
+    check(frozen(void_root()), "[7:- | | 0.0 1]", "void_root") ++
+    check(frozen_fin(void_root()), "s1 l0 r0.0 []", "void_root finished") ++
+    check(frozen_h(era_at(void_root(), 7, 28)), frozen(void_root()), "void_root, a node") ++
+    check(frozen_h(era_at(const_lvl(), 6, 34)), frozen(const_lvl()), "const_lvl, a node") ++
+    check(frozen_fin_h(era_at(const_lvl(), 6, 34)), frozen_fin(const_lvl()), "const_lvl finished, a node") ++
+    check(nodes_read_h(era_at(const_lvl(), 6, 34)), nodes_read(const_lvl()), "const_lvl read, a node") ++
     check(nodes_read(fxx()), "5", "fxx read") ++
     check(nodes_read(gcx()), "1", "gcx read") ++
     check(nodes_read(fn_cur()), "1", "fn_cur read") ++
