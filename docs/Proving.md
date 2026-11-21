@@ -79,7 +79,14 @@ it alone taught. Add to this file what a new proof teaches.
   so that it follows a change of encoding; but only by code no mutation
   in its file touches, since a heap built by the mutated function
   changes with it (a ring built by `R.cursor`, under a mutation of the
-  cursor). A law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  cursor). A proof file whose witnesses build so imports the builders,
+  since a witness sees the proof file's imports but its laws' and
+  proofs' (`glam/SERVE_PROOF.bend` imports `glam/witness.bend`). A
+  witness must leave something for the fault to break: a ring exact
+  after the served cursor leaves holds of a lone `s` whatever the leave
+  wrote elsewhere, so the witness of `serve_map_unwritten` keeps a
+  second cursor in the ring, its word 3 where the stale root sends the
+  write. A law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are
@@ -219,7 +226,9 @@ it alone taught. Add to this file what a new proof teaches.
   the goal onto the tree's array with that equation, and name
   `fromT(t)` as often as needed; the law's def passes the array to the
   erased parameter and to `mirror` (`rd_wr_same.go` in
-  `spike/PROOF.bend`).
+  `spike/PROOF.bend`). An erased array named in a proof's terms without
+  its mirror fails with an error naming the definition and nothing more
+  (`cr_map` in `glam/SERVE_PROOF.bend`, 2026-11-20).
 - **A function destructuring a pair reduces once the pair is a
   literal**: rewrite `Array.get(...)` with the law that gives it as
   `(a, snd(...))` (lawful-arrays' `get_pair`) under a hole at the

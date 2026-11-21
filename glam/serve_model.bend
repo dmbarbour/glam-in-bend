@@ -100,3 +100,16 @@ def dyn(ns: List<&2, U32>) -> Bool:
       True{}
     case Con{+n, r}:
       Bool.not(P.is_static(n)) && dyn(r)
+
+# the copy's root, at the source's root (the materializer's mz.root): a
+# node's index no hole shares a slot with, at a port below 3. So freeze
+# builds it there, read 2026-11-20: the materializer is at the root only
+# for a value at the interface (sv.pd's PdValue), its node neither a
+# cursor nor an eraser (glam/position.bend's pd.v serves those as a
+# cursor and as the static); freeze_tree reaches the interface through
+# that node's port, its index a node's, the holes' after the nodes'. The
+# one template with a hole for root, nothing finished (fz.written.k),
+# is never a value's. The slots apart: the nodes no more than the map's
+# slots, an obligation of freeze's already
+def root.ok(+rn: U32, +rp: U32, +ts: List<&2, T.TNode>, +dm: Nat, +cs: List<&2, R.FzC>) -> Bool:
+  node.at(ts, dm, rn) && (Bool.not(sl.in(ats(cs), dm, rn)) && SM.port3(rp))
