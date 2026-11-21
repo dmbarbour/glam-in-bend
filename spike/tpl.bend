@@ -43,13 +43,24 @@ def pick_nat(b: Bool, +x: Nat, +y: Nat) -> Nat:
     case False{}:
       y
 
-# the least d, up to f more, with 2^d >= n
-def depth_for(f: Nat, +n: U32, +d: Nat) -> Nat:
+# the least d, up to f more, with 2^d >= n: stopping at the first, the
+# power doubled as it goes. Before (2026-11-21), every level was walked,
+# a call's arguments evaluated before it, each with its Nat.pow anew:
+# near a third of a serve's instructions, two calls a serve (the freeze's
+# map and the splice's)
+def depth_for.go(f: Nat, +fits: Bool, +n: U32, +d: Nat, +pw: U32) -> Nat:
   match f:
     case 0n:
       d
     case 1n+p:
-      pick_nat(U32.is_le(n, U32.from_nat(Nat.pow(2n, d))), d, depth_for(p, n, 1n+d))
+      match fits:
+        case True{}:
+          d
+        case False{}:
+          depth_for.go(p, U32.is_le(n, (pw * 2 : U32)), n, 1n+d, (pw * 2 : U32))
+
+def depth_for(f: Nat, +n: U32, +d: Nat) -> Nat:
+  depth_for.go(f, U32.is_le(n, U32.from_nat(Nat.pow(2n, d))), n, d, U32.from_nat(Nat.pow(2n, d)))
 
 def tnode_pay(t: TNode, +inst: U32) -> V.Pay:
   match t:
