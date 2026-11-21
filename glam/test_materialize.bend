@@ -136,6 +136,8 @@ def rn.sv(v: M.Sv) -> Rn:
       rn.stop(d, h)
     case M.SvCur{s, h, +x, +n}:
       Rn{s, h, "a cursor of the source at " ++ U32.show(x), True{}}
+    case M.SvBad{s, h, +n}:
+      Rn{s, h, "a climb met no position of the ring", True{}}
 
 def rn.need(r: P.H & U32, s: P.H) -> Rn:
   (h, +c) = r
@@ -234,29 +236,26 @@ def report(+s: String) -> String:
   report.k(String.eq(s, ""), s)
 
 # A climb that found no position of the ring, which only corruption
-# reaches: the host's error raised, nothing copied
-# (docs/reviews/Freeze_2026-11-21.md, B4)
-def climb_err.k(r: P.H & P.HS, +m: U32) -> String:
-  (h, hs) = r
-  match hs:
-    case P.HS{+itrs, +errs, +cap}:
-      "errs " ++ U32.show(errs) ++ " copied " ++ U32.show(m)
-
+# reaches: reported, nothing copied, the core stopping with an error
+# rather than serving the cursor again (docs/reviews/Freeze_2026-11-21.md,
+# B4)
 def climb_err.v(v: M.Sv) -> String:
   match v:
     case M.SvOk{s, h, +n, +m}:
-      climb_err.k(P.stats(h), m)
+      "ok, " ++ U32.show(m) ++ " copied"
     case M.SvStop{d, h, +n}:
       "stop"
     case M.SvCur{s, h, +x, +n}:
       "cursor"
+    case M.SvBad{s, h, +n}:
+      "bad"
 
 def climb_err(+t: T.Tpl) -> String:
   climb_err.v(M.sv.climbed(M.Cl{KN.load(t), KN.load(t), 32, False{}}, 0, 0, 0, 0))
 
 def main() -> String:
   report(
-    check(climb_err(id_redex()), "errs 1 copied 0", "a failed climb") ++
+    check(climb_err(id_redex()), "bad", "a failed climb") ++
     check(applied(id_redex(), host1(7)), "7", "id_redex 7") ++
     check(applied(k_redex(), host2(7, 8)), "7", "k_redex 7 8") ++
     check(applied(const_redex(), host1(7)), "fn", "const_redex 7") ++
