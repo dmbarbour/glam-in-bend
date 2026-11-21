@@ -196,6 +196,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   freeze review); a whole freeze of a static root, positioned demand off
   the interface and freeze's count to fix; the collector's count to
   measure.
+- [`RecursionFable_2026-11-21.md`](RecursionFable_2026-11-21.md): the
+  second reviewer's account of why a recursion through a lambda costs
+  interactions quadratic in its depth (`cells-recursion.depth`): one
+  unit drop more a call on the tail's wire, drops never fusing; drop
+  runs in the kernel (`pairing-fusion.drops.kernel`) to cut it six fold,
+  a whole-run crossing to end it. Kept as written; checked against a
+  trace.
 - [`FreezeFable_2026-11-21.md`](FreezeFable_2026-11-21.md): the second
   reviewer's review of freeze and templates, by a Fable sub-agent, kept
   as written beside `Freeze_2026-11-21.md`, which checks it.
