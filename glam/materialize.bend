@@ -138,10 +138,28 @@ def sv.pair(r: Mz, +n: U32) -> Sv:
     case Mz{s, h, +m}:
       SvOk{s, h, n, m}
 
+# a climb that found no position of the ring: corruption, which a
+# well-formed source and ring never reach (each tree a copy takes hangs
+# from a node it holds), the kernel's error raised and nothing copied
+# (corruption-reported-when-cheap; docs/reviews/Freeze_2026-11-21.md, B4)
+def sv.climbed.k(+done: Bool, s: P.H, h: P.H, +x: U32, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
+  match done:
+    case True{}:
+      sv.pair(materialize(s, h, situ, x, k, nc, False{}), n)
+    case False{}:
+      SvOk{s, P.err_if(True{}, h), n, 0}
+
 def sv.climbed(c: Cl, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
   match c:
     case Cl{s, h, +x, done}:
-      sv.pair(materialize(s, h, situ, x, k, nc, False{}), n)
+      sv.climbed.k(done, s, h, x, situ, k, nc, n)
+
+# a climb's fuel: the source's nodes, one step a node at most
+def sv.climb.f(r: P.H & P.HS, h: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv:
+  (s, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      sv.climbed(cl.go(U32.to_nat((cap + 1 : U32)), Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
 # the frontier at port q: a cursor of the ring there, joined to nc; else
 # the tree holding q climbed to and materialized
@@ -151,7 +169,7 @@ def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +
     case Some{+c}:
       SvOk{s, R.join(h, nc, c), n, 1}
     case None{}:
-      sv.climbed(cl.go(1000000n, Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
+      sv.climb.f(P.stats(s), h, situ, k, nc, q, n)
 
 # a stop, its own walk's interactions added
 def sv.stop(d: KD.D, h: P.H, +acc: U32) -> Sv:
@@ -271,10 +289,23 @@ def cl1.go(g: Nat, c: Cl1, +situ: U32) -> Cl1:
             case False{}:
               cl1.go(k, cl1.f(P.rd(h, (x + 1 : U32)), x, situ), situ)
 
+def sv1.climbed.k(+done: Bool, h: P.H, +x: U32, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv1:
+  match done:
+    case True{}:
+      sv1.ok(materialize1(h, situ, x, k, nc, False{}), n)
+    case False{}:
+      S1Ok{P.err_if(True{}, h), n, 0}
+
 def sv1.climbed(c: Cl1, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv1:
   match c:
     case Cl1{h, +x, done}:
-      sv1.ok(materialize1(h, situ, x, k, nc, False{}), n)
+      sv1.climbed.k(done, h, x, situ, k, nc, n)
+
+def sv1.climb.f(r: P.H & P.HS, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv1:
+  (h, hs) = r
+  match hs:
+    case P.HS{+itrs, +errs, +cap}:
+      sv1.climbed(cl1.go(U32.to_nat((cap + 1 : U32)), Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
 
 def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv1:
   (h, m) = r
@@ -282,7 +313,7 @@ def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32,
     case Some{+c}:
       S1Ok{R.join(h, nc, c), n, 1}
     case None{}:
-      sv1.climbed(cl1.go(1000000n, Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
+      sv1.climb.f(P.stats(h), situ, k, nc, q, n)
 
 def sv1.stop(d: KD.D, +acc: U32) -> Sv1:
   match d:

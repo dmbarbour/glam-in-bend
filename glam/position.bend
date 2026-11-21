@@ -119,15 +119,17 @@ def pd.v.k(+cur: Bool, +era: Bool, h: P.H, +q: U32, +acc: U32) -> PdS:
     case False{}:
       pd.v.e(era, h, q, acc)
 
-# principal port q facing the position: a cursor; at the interface, an
-# eraser node, served as the static eraser is, the value the same
-# (static-links-count-as-nodes), so that no eraser is copied as a tree of
-# its own with its one port the root, which the splice's statics pass
-# would read before the root is linked (docs/reviews/Splice_2026-11-19.md,
-# S1; elsewhere freeze links it to a crossing first); else a value
-def pd.v(r: P.H & U32, +q: U32, +root: Bool, +acc: U32) -> PdS:
+# principal port q facing the position: a cursor; an eraser node, at any
+# position, served as the static eraser is, the value the same
+# (representations-interchangeable, static-links-count-as-nodes), so that
+# no eraser is copied as a tree of its own: at the interface its one port
+# the root, which the splice's statics pass would read before the root is
+# linked (docs/reviews/Splice_2026-11-19.md, S1); elsewhere a placeholder
+# made, joined and freed for nothing, its template outside the serve's
+# laws (docs/reviews/Erasers_2026-11-21.md, E2); else a value
+def pd.v(r: P.H & U32, +q: U32, +acc: U32) -> PdS:
   (h, +hd) = r
-  pd.v.k(U32.is_eq(P.rk(hd), 18), root && U32.is_eq((P.rk(hd) .|. 1 : U32), 7), h, q, acc)
+  pd.v.k(U32.is_eq(P.rk(hd), 18), U32.is_eq((P.rk(hd) .|. 1 : U32), 7), h, q, acc)
 
 def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   match st:
@@ -136,7 +138,7 @@ def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32)
     case False{}:
       match pr:
         case True{}:
-          pd.v(P.rd(h, P.base(q)), q, U32.is_eq(pos, P.iface()), acc)
+          pd.v(P.rd(h, P.base(q)), q, acc)
         case False{}:
           pd.ended(pd.walk(h, P.base(q), f), pos, acc)
 

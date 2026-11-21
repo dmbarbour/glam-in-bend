@@ -14,8 +14,10 @@ import ./ring.bend as RN
 # payload from its header and words, a data node's or an operator's value
 # read from the table, the entry kept; then every link between two of
 # them, once; each static at a port written as an eraser node, of the
-# polarity other than its port's, which the loader makes static again;
-# and the root, the port the interface faces.
+# polarity other than its port's, which the loader makes static again,
+# and an eraser node met read back as that static, never as a node
+# (representations-interchangeable); and the root, the port the
+# interface faces, a void root the eraser alone.
 #
 # Frozen whole (`freeze`), every node the interface reaches is read back.
 # Frozen finished (`freeze_finished`), only the finished part is: the
@@ -52,13 +54,19 @@ def fz.push.q(+go: Bool, +q: U32, s: List<&2, U32>) -> List<&2, U32>:
     case False{}:
       s
 
-# a peer reached unless it is a cursor (kind 18): a cursor is never a
-# node to copy, but a crossing, so that a copy of a source holding a copy
-# of another gets a cursor into this source where that cursor stood, the
-# deep cursor chained through the source between (cells-freeze.nested)
+# a node's header that of an eraser (kind 6 or 7): read back as the
+# static it stands for, never as a node (representations-interchangeable)
+def fz.is_era(+hd: U32) -> Bool:
+  U32.is_eq((P.rk(hd) .|. 1 : U32), 7)
+
+# a peer reached unless it is a cursor (kind 18) or an eraser: a cursor is
+# never a node to copy, but a crossing, so that a copy of a source holding
+# a copy of another gets a cursor into this source where that cursor
+# stood, the deep cursor chained through the source between
+# (cells-freeze.nested); an eraser node is its static
 def fz.port.c(r: P.H & U32, +q: U32, s: List<&2, U32>) -> P.H & List<&2, U32>:
   (h, +hd) = r
-  (h, fz.push.q(U32.is_ne(P.rk(hd), 18), q, s))
+  (h, fz.push.q(U32.is_ne(P.rk(hd), 18) && Bool.not(fz.is_era(hd)), q, s))
 
 def fz.port.k(+go: Bool, h: P.H, +q: U32, s: List<&2, U32>) -> P.H & List<&2, U32>:
   match go:
@@ -305,9 +313,21 @@ def fz.peer.k(+st: Bool, +rt: Bool, z: FzE, k: R.NodeKind, +b: U32, +i: U32, +p:
             case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
               fz.peer.j(Array.get(U32, map, fz.at(q)), h, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
 
+# a peer that is an eraser node, written as its static would be
+def fz.peer.e(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32) -> FzE:
+  (h, +hd) = r
+  fz.peer.k(fz.is_era(hd), U32.is_eq(P.base(q), P.iface()), FzE{h, map, nodes, eras, ne, ls, root, curs}, k, b, i, p, q)
+
+def fz.peer.s(+st: Bool, h: P.H, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32) -> FzE:
+  match st:
+    case True{}:
+      fz.peer.k(True{}, False{}, FzE{h, map, nodes, eras, ne, ls, root, curs}, k, b, i, p, q)
+    case False{}:
+      fz.peer.e(P.rd(h, P.base(q)), map, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
+
 def fz.peer.q(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32) -> FzE:
   (h, +q) = r
-  fz.peer.k(P.is_static(q), U32.is_eq(P.base(q), P.iface()), FzE{h, map, nodes, eras, ne, ls, root, curs}, k, b, i, p, q)
+  fz.peer.s(P.is_static(q), h, map, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
 
 # port p of node i at base b
 def fz.peer(z: FzE, k: R.NodeKind, +b: U32, +i: U32, +p: U32) -> FzE:
@@ -376,11 +396,40 @@ def fz.start(r: P.H & U32, +all: Bool, map: Array<U32>) -> FzR:
   (h, +q) = r
   FzR{h, map, 0, Nil{}, fz.push.q(fz.reach.q(all, q) || U32.is_eq(P.base(q), P.iface()), q, Nil{})}
 
+# the interface facing a static or an eraser node, the void: the eraser
+# alone, its root, no node read back (the loader makes it the static
+# again), whether the whole net or its finished part is frozen; not the
+# cursor of "nothing finished" (docs/reviews/Erasers_2026-11-21.md, E1)
+def fz.void.in(h: P.H) -> P.H & Fz:
+  (h, Fz{T.Tpl{[fz.era(R.Neg{})], Nil{}, T.TE{0, 0}, 1}, Nil{}, 0})
+
+def fz.cap.e(+era: Bool, h: P.H, +all: Bool, +cap: U32, +q: U32) -> P.H & Fz:
+  match era:
+    case True{}:
+      fz.void.in(h)
+    case False{}:
+      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), all, fz.start((h, q), all, [0 : U32^T.depth_for(31n, cap, 0n)])))
+
+def fz.cap.h(r: P.H & U32, +all: Bool, +cap: U32, +q: U32) -> P.H & Fz:
+  (h, +hd) = r
+  fz.cap.e(fz.is_era(hd), h, all, cap, q)
+
+def fz.cap.s(+st: Bool, h: P.H, +all: Bool, +cap: U32, +q: U32) -> P.H & Fz:
+  match st:
+    case True{}:
+      fz.void.in(h)
+    case False{}:
+      fz.cap.h(P.rd(h, P.base(q)), all, cap, q)
+
+def fz.cap.q(r: P.H & U32, +all: Bool, +cap: U32) -> P.H & Fz:
+  (h, +q) = r
+  fz.cap.s(P.is_static(q), h, all, cap, q)
+
 def fz.cap(r: P.H & P.HS, +all: Bool) -> P.H & Fz:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), all, fz.start(P.rd(h, (P.iface() + 1 : U32)), all, [0 : U32^T.depth_for(31n, cap, 0n)])))
+      fz.cap.q(P.rd(h, (P.iface() + 1 : U32)), all, cap)
 
 def fz.whole(r: P.H & Fz) -> P.H & T.Tpl:
   (h, f) = r
