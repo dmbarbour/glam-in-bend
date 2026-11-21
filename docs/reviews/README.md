@@ -189,6 +189,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   recommendations and the second reviewer's checked against the source
   (three latent faults, a stale far end a cache must not keep),
   compared, with an order proposed.
+- [`Erasers_2026-11-21.md`](Erasers_2026-11-21.md): every place an
+  eraser node is treated otherwise than its static, the review
+  `representations-interchangeable` asks for. Plain demand runs eraser
+  events, so copied nodes are not kept from them (X1, correcting the
+  freeze review); a whole freeze of a static root, positioned demand off
+  the interface and freeze's count to fix; the collector's count to
+  measure.
 - [`FreezeFable_2026-11-21.md`](FreezeFable_2026-11-21.md): the second
   reviewer's review of freeze and templates, by a Fable sub-agent, kept
   as written beside `Freeze_2026-11-21.md`, which checks it.
