@@ -3,6 +3,7 @@ import ../spike/val.bend as V
 import ../spike/rules.bend as R
 import ../spike/tpl.bend as T
 import ../spike/kprim.bend as P
+import ../spike/net.bend as N
 import ../spike/knet.bend as KN
 import ./freeze.bend as F
 
@@ -13,7 +14,10 @@ import ./freeze.bend as F
 # - two raises in series, (0, +1) then (1, +1), fuse into (0, +2);
 # - with either marked, they do not;
 # - a LiftC at a source's interface, taken by freezing the finished tree
-#   under it, is marked; read back whole, it is not.
+#   under it, is marked; read back whole, it is not;
+# - an eraser at that LiftC's port 1 makes its event, the LiftC an
+#   eraser node, unless it is marked (copied-nodes-untouched; the erasers
+#   review's X1).
 # Run by scripts/ladder.py, which expects `ok` alone.
 #
 #   bend glam/test_mark.bend
@@ -64,6 +68,18 @@ def whole_marks(r: P.H & T.Tpl) -> Bool:
   (h, t) = r
   is_marked(P.rd(h, 32))
 
+# a LiftC at the interface, an eraser at its port 1 (a static once
+# loaded): the event at its port 1 settled
+def erased_out() -> T.Tpl:
+  T.Tpl{[ctl(R.KLiftC{}, 0), T.TN{R.KEraN{}, V.PNone{}}], [ln(0, 1, 1, 0)], T.TE{0, 0}, 2}
+
+def kind_at(r: P.H & U32) -> U32:
+  (h, +hd) = r
+  P.rk(hd)
+
+def settled_kind(h: P.H) -> U32:
+  kind_at(P.rd(KN.ev.settle(h, N.Ext4{33, P.era(), P.era(), P.era()}), 32))
+
 def check.k(+same: Bool, got: String, want: String, name: String) -> String:
   match same:
     case True{}:
@@ -97,4 +113,6 @@ def main() -> String:
     check(U32.show(fused_by(marked_at(KN.load(lifts()), 32))), "1", "first marked") ++
     check(U32.show(fused_by(marked_at(KN.load(lifts()), 36))), "1", "second marked") ++
     check(bool_s(tree_marks(F.freeze_tree(KN.load(at_root()), 32))), "marked", "taken by a copy") ++
-    check(bool_s(whole_marks(F.freeze(KN.load(at_root())))), "unmarked", "read back whole"))
+    check(bool_s(whole_marks(F.freeze(KN.load(at_root())))), "unmarked", "read back whole") ++
+    check(U32.show(settled_kind(KN.load(erased_out()))), "7", "an unmarked control's event") ++
+    check(U32.show(settled_kind(marked_at(KN.load(erased_out()), 32))), "11", "a marked control kept"))
