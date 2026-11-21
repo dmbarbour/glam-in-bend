@@ -127,8 +127,10 @@ the copy's hole, its link and a crossing all present: the template a
 function node and a hole, the hole's port 0 linked to the node's port 1,
 the root the node's port 0; the crossing's far end no member's
 position, so that the hole becomes a cursor of the ring; the ring s
-with the cursors 12 (leaving) and 16; against serve_root_keeps the stale
-entry 44 and the word 45, as above
+with the cursors 12 (leaving) and 16. Against serve_root_keeps the
+crossing a join instead: 12 and 16 facing each other, the crossing's far
+end 16's position, so that the join links the hole's partner to 12, the
+port the leave then reads; the stale entry 44 and the word 45, as above
 --- splice_copy.bend
   Sp{h, Array.set(U32, map, i, ref)}
 +++
@@ -150,7 +152,7 @@ nc = 12
 rn = 0
 rp = 0
 >>> witness serve_root_keeps
-w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)), 37, 11))
+w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, 16), 16, 9, 8, 12), 37, 11))
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, [0 : U32^1n], 0, 44)
 d = 6n
@@ -161,7 +163,7 @@ by = 0
 ns = [36, 40]
 s = 8
 t = Con{12, Con{16, Nil{}}}
-cs = [R.FzC{1, 5, True{}, 3}]
+cs = [R.FzC{1, 5, True{}, 9}]
 nc = 12
 rn = 0
 rp = 0
