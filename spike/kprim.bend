@@ -1362,21 +1362,33 @@ def peel.amt.r(+ub: Bool, +ba: U32, +bb: U32) -> U32:
     case False{}:
       sel_u(U32.is_lt(1, ba), 1, 0)
 
-# how much of a run (ua, ba) to keep facing (ub, bb), 0 to peel none: a
-# raise run at one index only, as many units as the other raises or one
-# facing a drop; a drop run of more than one at any index, one unit, the
-# rest staying at its index (ctlwire.py's rule: a control crossing a drop
-# run can reach the run's index partway, the units left its partners)
-def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +same: Bool) -> U32:
+# how much of a run (ua, ba) at na to keep facing (ub, bb) at nb, 0 to
+# peel none: a raise run at one index only, as many units as the other
+# raises or one facing a drop; a drop run of more than one at any index,
+# one unit, the rest staying at its index, unless the other crosses it
+# whole (ctlwire.py's rule: a control crossing a drop run can reach the
+# run's index partway, the units left its partners)
+def peel.amt.u(+same: Bool, +ub: Bool, +ba: U32, +bb: U32) -> U32:
+  match same:
+    case True{}:
+      peel.amt.r(ub, ba, bb)
+    case False{}:
+      0
+
+# may a control at index nb, up ub by bb, cross the drop run at na by ba
+# whole? At another index, no drop run, and not above na by less than
+# ba, where each unit it crosses lowers it by one until it reaches na
+# partway (ctlwire.py's whole_ok; pairing-fusion.drops.kernel)
+def cross_whole(+na: U32, +ba: U32, +ub: Bool, +bb: U32, +nb: U32) -> Bool:
+  U32.is_ne(na, nb) && (ub || U32.is_lt(bb, 2)) &&
+    Bool.not(U32.is_lt(na, nb) && U32.is_lt(nb, (na + ba : U32)))
+
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +na: U32, +nb: U32) -> U32:
   match ua:
     case False{}:
-      sel_u(U32.is_lt(1, ba), 1, 0)
+      sel_u(U32.is_lt(1, ba) && Bool.not(cross_whole(na, ba, ub, bb, nb)), 1, 0)
     case True{}:
-      match same:
-        case True{}:
-          peel.amt.r(ub, ba, bb)
-        case False{}:
-          0
+      peel.amt.u(U32.is_eq(na, nb), ub, ba, bb)
 
 # what peeling one control leaves: the state, its offset word, the peer
 # of its port 1
@@ -1430,8 +1442,8 @@ def peel_ctl.go(+same: Bool, eq: Bool, h: H, +a: U32, +b: U32, +na: U32, +nb: U3
     case True{}:
       Pl{h, True{}, pa, pb, e0, e2}
     case False{}:
-      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb), same), h, a, 10, na, pa, e0), same, b, nb,
-        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa), same), pb, e2)
+      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb), na, nb), h, a, 10, na, pa, e0), same, b, nb,
+        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa), nb, na), pb, e2)
 
 # Lift a (header ha, offset pa, port 1's peer e0) facing LiftC b (hb, pb,
 # e2): peeled where they meet at one index as different runs. The

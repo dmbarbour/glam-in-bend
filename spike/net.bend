@@ -860,17 +860,28 @@ def peel.amt.r(+ub: Bool, +ba: U32, +bb: U32) -> U32:
 
 # how much of a run to keep facing, the rest peeled behind: 0 for none; a
 # raise run at one index only, a drop run of more than one at any index,
-# one unit (kprim.bend's peel.amt)
-def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +same: Bool) -> U32:
+# one unit, unless the other crosses it whole (kprim.bend's peel.amt)
+def peel.amt.u(+same: Bool, +ub: Bool, +ba: U32, +bb: U32) -> U32:
+  match same:
+    case True{}:
+      peel.amt.r(ub, ba, bb)
+    case False{}:
+      0
+
+# may a control at index nb, up ub by bb, cross the drop run at na by ba
+# whole? At another index, no drop run, and not above na by less than
+# ba, where each unit it crosses lowers it by one until it reaches na
+# partway (ctlwire.py's whole_ok; pairing-fusion.drops.kernel)
+def cross_whole(+na: U32, +ba: U32, +ub: Bool, +bb: U32, +nb: U32) -> Bool:
+  U32.is_ne(na, nb) && (ub || U32.is_lt(bb, 2)) &&
+    Bool.not(U32.is_lt(na, nb) && U32.is_lt(nb, (na + ba : U32)))
+
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +na: U32, +nb: U32) -> U32:
   match ua:
     case False{}:
-      sel_lt(U32.is_lt(1, ba), 1, 0)
+      sel_lt(U32.is_lt(1, ba) && Bool.not(cross_whole(na, ba, ub, bb, nb)), 1, 0)
     case True{}:
-      match same:
-        case True{}:
-          peel.amt.r(ub, ba, bb)
-        case False{}:
-          0
+      peel.amt.u(U32.is_eq(na, nb), ub, ba, bb)
 
 # x keeps the first k units of its run of `by` at index n; a control of
 # kind k2 takes the rest behind it, on x's port 1, whose peer is e
@@ -904,7 +915,7 @@ def peel.go(+same: Bool, eq: Bool, q: Q, +l: U32, +c: U32, +nl: U32, +nc: U32, +
     case True{}:
       q
     case False{}:
-      peel.if(peel.amt(uc, bc, ul, bl, same), peel.if(peel.amt(ul, bl, uc, bc, same), q, l, R.KLift{}, nl, ul, bl), c, R.KLiftC{}, nc, uc, bc)
+      peel.if(peel.amt(uc, bc, ul, bl, nc, nl), peel.if(peel.amt(ul, bl, uc, bc, nl, nc), q, l, R.KLift{}, nl, ul, bl), c, R.KLiftC{}, nc, uc, bc)
 
 # l a Lift, c a LiftC, facing: peel l's run against c, or c's against l
 def peel.pays(+pl: V.Pay, +pc: V.Pay, q: Q, +l: U32, +c: U32) -> Q:
