@@ -75,12 +75,14 @@ t = Nil{}
 cs = [R.FzC{0, 7, True{}, 9}]
 j = 3
 
-=== serve_map_unwritten serve_ring_exact
+=== serve_map_unwritten serve_ring_exact serve_root_keeps
 the copy's map left as it was, no node's reference put at its index:
 the root, read through it, then a stale entry, here word 18, so that the
 leave links the cursor's partner into the next member's word 3 and the
 ring loses its way back to s; the template one function node, no links
-nor holes, the ring s with the cursors 12 (leaving) and 16
+nor holes, the ring s with the cursors 12 (leaving) and 16. Against
+serve_root_keeps the stale entry 44, the leave then writing word 45, off
+every node and every faced port
 --- splice_copy.bend
   Sp{h, Array.set(U32, map, i, ref)}
 +++
@@ -101,14 +103,32 @@ cs = Nil{}
 nc = 12
 rn = 0
 rp = 0
+>>> witness serve_root_keeps
+w = RG.words(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 44)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = [36]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = Nil{}
+nc = 12
+rn = 0
+rp = 0
+j = 45
 
-=== serve_map_unwritten_crossed serve_ring_exact
+=== serve_map_unwritten_crossed serve_ring_exact serve_root_keeps
 the same fault at an instance with a crossing, its witness holding with
 the copy's hole, its link and a crossing all present: the template a
 function node and a hole, the hole's port 0 linked to the node's port 1,
 the root the node's port 0; the crossing's far end no member's
 position, so that the hole becomes a cursor of the ring; the ring s
-with the cursors 12 (leaving) and 16
+with the cursors 12 (leaving) and 16; against serve_root_keeps the stale
+entry 44 and the word 45, as above
 --- splice_copy.bend
   Sp{h, Array.set(U32, map, i, ref)}
 +++
@@ -129,3 +149,20 @@ cs = [R.FzC{1, 5, True{}, 3}]
 nc = 12
 rn = 0
 rp = 0
+>>> witness serve_root_keeps
+w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)), 37, 11))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 44)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 1}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = [R.FzC{1, 5, True{}, 3}]
+nc = 12
+rn = 0
+rp = 0
+j = 45

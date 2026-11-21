@@ -229,6 +229,16 @@ it alone taught. Add to this file what a new proof teaches.
   `spike/PROOF.bend`). An erased array named in a proof's terms without
   its mirror fails with an error naming the definition and nothing more
   (`cr_map` in `glam/SERVE_PROOF.bend`, 2026-11-20).
+- **A fold's twin is derived from its text.** Where a new conclusion
+  follows the same recursion as a proved fold, the generator reads the
+  fold from its proof file, swaps the goal (a call matched by its
+  arguments, not by a pattern over the text) and adds the step lemma's
+  let, so that the twin keeps every rewrite the original needed: `crfi.go`
+  from `crs.go`, and `crl_keeps.m` from `serve_exact.m`'s lets, both
+  checked on the first run (`glam/SERVE_PROOF.bend`, 2026-11-21). Choose
+  the fold whose model matches the conclusion's: `crk.go` and `crs.go`
+  recurse alike over the crossings, but only `crs.go` follows `RG.cr`,
+  which finds positions through a fixed view.
 - **A function destructuring a pair reduces once the pair is a
   literal**: rewrite `Array.get(...)` with the law that gives it as
   `(a, snd(...))` (lawful-arrays' `get_pair`) under a hole at the
