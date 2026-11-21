@@ -1159,9 +1159,27 @@ def fz.ok(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
 # the one control acting as the first (index n1, offset o1) then the
 # second, if any (V.compose): both raise, the second's index where the
 # first's raise ends; a raise past the field's range is refused
+def fz.d(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
+  match ok:
+    case True{}:
+      FzTo{n1, (b1 + b2 : U32)}
+    case False{}:
+      FzNo{}
+
+def fz.or(f: FZ, ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> FZ:
+  match f:
+    case FzTo{+n, +o}:
+      FzTo{n, o}
+    case FzNo{}:
+      fz.d(ok, n1, b1, b2)
+
+# a raise run as before; else two drops at one index, a drop run by their
+# sum (V.compose; pairing-fusion.drops.kernel)
 def compose(+n1: U32, +o1: U32, +n2: U32, +o2: U32) -> FZ:
-  fz.ok(off_up(o1) && off_up(o2) && U32.is_eq(n2, (n1 + off_by(o1) : U32)) &&
+  fz.or(fz.ok(off_up(o1) && off_up(o2) && U32.is_eq(n2, (n1 + off_by(o1) : U32)) &&
       U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap()),
+    n1, off_by(o1), off_by(o2)),
+    Bool.not(off_up(o1)) && Bool.not(off_up(o2)) && U32.is_eq(n2, n1) && U32.is_lt((off_by(o1) + off_by(o2) : U32), lvl_cap()),
     n1, off_by(o1), off_by(o2))
 
 # A control a copy has taken out of a live source (copied-controls-unfused)
@@ -1337,15 +1355,28 @@ def sel_u(c: Bool, +x: U32, +y: U32) -> U32:
     case False{}:
       y
 
-# how much of a run (ua, ba) to keep facing (ub, bb), 0 to peel none
-def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32) -> U32:
-  match ua ub:
-    case True{} True{}:
+def peel.amt.r(+ub: Bool, +ba: U32, +bb: U32) -> U32:
+  match ub:
+    case True{}:
       sel_u(U32.is_lt(bb, ba), bb, 0)
-    case True{} False{}:
+    case False{}:
       sel_u(U32.is_lt(1, ba), 1, 0)
-    case _ _:
-      0
+
+# how much of a run (ua, ba) to keep facing (ub, bb), 0 to peel none: a
+# raise run at one index only, as many units as the other raises or one
+# facing a drop; a drop run of more than one at any index, one unit, the
+# rest staying at its index (ctlwire.py's rule: a control crossing a drop
+# run can reach the run's index partway, the units left its partners)
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +same: Bool) -> U32:
+  match ua:
+    case False{}:
+      sel_u(U32.is_lt(1, ba), 1, 0)
+    case True{}:
+      match same:
+        case True{}:
+          peel.amt.r(ub, ba, bb)
+        case False{}:
+          0
 
 # what peeling one control leaves: the state, its offset word, the peer
 # of its port 1
@@ -1359,43 +1390,55 @@ def pe.at(r: H & U32, +x: U32, +e: U32, +o: U32) -> Pe:
 # control x, of kind k2 at index n with offset o and port 1's peer e,
 # keeps k units of its run; a new control of its kind takes the rest
 # behind it, between its port 1 and e
+# a raise keeps k units, the rest from n + k; a drop run keeps one unit,
+# the rest at n
+def pe.do.u(+up: Bool, +k: U32, h: H, +x: U32, +k2: U32, +n: U32, +o: U32, +e: U32) -> Pe:
+  match up:
+    case True{}:
+      pe.at(node(err_if(U32.is_ge((n + k : U32), lvl_cap()), wr(h, (x + 3 : U32), (k .|. 2147483648 : U32))),
+          hd(k2, (n + k : U32)), ((off_by(o) - k : U32) .|. 2147483648 : U32)), x, e, (k .|. 2147483648 : U32))
+    case False{}:
+      pe.at(node(wr(h, (x + 3 : U32), 1), hd(k2, n), (off_by(o) - 1 : U32)), x, e, 1)
+
 def pe.do(+k: U32, h: H, +x: U32, +k2: U32, +n: U32, +o: U32, +e: U32) -> Pe:
   match k:
     case 0:
       Pe{h, o, e}
     case _:
-      pe.at(node(err_if(U32.is_ge((n + k : U32), lvl_cap()), wr(h, (x + 3 : U32), (k .|. 2147483648 : U32))),
-          hd(k2, (n + k : U32)), ((off_by(o) - k : U32) .|. 2147483648 : U32)), x, e, (k .|. 2147483648 : U32))
+      pe.do.u(off_up(o), k, h, x, k2, n, o, e)
 
 # the rule's payload test (ctl_eq) on what peeling leaves, the offsets,
 # and the peers of the two ports 1
 type Pl is Type:
   Pl{h: H, +t: Bool, +pa: U32, +pb: U32, +e0: U32, +e2: U32}
 
-def pl.fin(r: Pe, +pa: U32, +e0: U32) -> Pl:
+def pl.fin(r: Pe, +same: Bool, +pa: U32, +e0: U32) -> Pl:
   match r:
     case Pe{h, +pb, +e2}:
-      Pl{h, U32.is_eq(pa, pb), pa, pb, e0, e2}
+      Pl{h, same && U32.is_eq(pa, pb), pa, pb, e0, e2}
 
-def pl.c(r: Pe, +b: U32, +n: U32, +kc: U32, +pb: U32, +e2: U32) -> Pl:
+def pl.c(r: Pe, +same: Bool, +b: U32, +nb: U32, +kc: U32, +pb: U32, +e2: U32) -> Pl:
   match r:
     case Pe{h, +pa, +e0}:
-      pl.fin(pe.do(kc, h, b, 11, n, pb, e2), pa, e0)
+      pl.fin(pe.do(kc, h, b, 11, nb, pb, e2), same, pa, e0)
 
-def peel_ctl.go(same: Bool, h: H, +a: U32, +b: U32, +n: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
-  match same:
+# equal, they cancel whole; else each run peeled as peel.amt says, a and b
+# at their own indices na and nb, and the units left facing cancel only at
+# one index
+def peel_ctl.go(+same: Bool, eq: Bool, h: H, +a: U32, +b: U32, +na: U32, +nb: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
+  match eq:
     case True{}:
-      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb)), h, a, 10, n, pa, e0), b, n,
-        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa)), pb, e2)
+      Pl{h, True{}, pa, pb, e0, e2}
     case False{}:
-      Pl{h, False{}, pa, pb, e0, e2}
+      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb), same), h, a, 10, na, pa, e0), same, b, nb,
+        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa), same), pb, e2)
 
 # Lift a (header ha, offset pa, port 1's peer e0) facing LiftC b (hb, pb,
 # e2): peeled where they meet at one index as different runs. The
 # generated rewrite for this pair alone calls it (gen_krules.bend), so no
 # other pair pays for the test.
 def peel_ctl(h: H, +a: U32, +b: U32, +ha: U32, +hb: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
-  peel_ctl.go(U32.is_eq(fld(ha), fld(hb)), h, a, b, fld(ha), pa, pb, e0, e2)
+  peel_ctl.go(U32.is_eq(fld(ha), fld(hb)), U32.is_eq(fld(ha), fld(hb)) && U32.is_eq(pa, pb), h, a, b, fld(ha), fld(hb), pa, pb, e0, e2)
 
 
 # A strategy's stack

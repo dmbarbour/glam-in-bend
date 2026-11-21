@@ -987,19 +987,39 @@ def one_if(b: Bool) -> U32:
 def lg.cross(+b: U32, +c: U32) -> U32 & Bool:
   ((b * c : U32), U32.is_gt(c, (4294967295 / P.sel_u(U32.is_eq(b, 0), 1, b) : U32)))
 
-def lg.same(up: Bool, +b: U32, +c: U32) -> U32:
-  match up:
-    case True{}:
-      P.sel_u(U32.is_lt(b, c), b, c)
-    case False{}:
-      1
+# what a control keeps facing after peeling k of its units (0: all)
+def lg.kept(+k: U32, +o: U32) -> U32:
+  match k:
+    case 0:
+      o
+    case _:
+      P.sel_u(P.off_up(o), (k .|. 2147483648 : U32), k)
 
-def lg.cc(same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
-  match same:
+# the units left facing: cancelling unit by unit where equal at one index,
+# else crossing
+def lg.after(+cancel: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+  match cancel:
     case True{}:
-      (lg.same(P.off_up(oa) && P.off_up(ob), P.off_by(oa), P.off_by(ob)), False{})
+      (P.off_by(oa), False{})
     case False{}:
       lg.cross(P.off_by(oa), P.off_by(ob))
+
+def lg.peeled(+same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+  lg.after(same && U32.is_eq(oa, ob), oa, ob)
+
+# a Lift meeting a LiftC, as the rewrite does it after peeling (kprim.bend's
+# peel_ctl): equal, their runs cancel unit by unit; else what each keeps
+# facing cancels or crosses
+def lg.cc.k(+eq: Bool, +same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+  match eq:
+    case True{}:
+      (P.off_by(oa), False{})
+    case False{}:
+      lg.peeled(same, lg.kept(P.peel.amt(P.off_up(oa), P.off_by(oa), P.off_up(ob), P.off_by(ob), same), oa),
+        lg.kept(P.peel.amt(P.off_up(ob), P.off_by(ob), P.off_up(oa), P.off_by(oa), same), ob))
+
+def lg.cc(+same: Bool, +oa: U32, +ob: U32) -> U32 & Bool:
+  lg.cc.k(same && U32.is_eq(oa, ob), same, oa, ob)
 
 def logical.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
   match ca cb:
@@ -1016,11 +1036,15 @@ def logical.k(ca: Bool, cb: Bool, +ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32
 def logical(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> U32 & Bool:
   logical.k(is_ctl(P.rk(ha)), is_ctl(P.rk(hb)), ha, hb, oa, ob)
 
-# does peeling split either control? (kprim.bend's peel_ctl)
+# does peeling split either control? (kprim.bend's peel_ctl: not where
+# they are equal; a raise run at one index, a drop run at any)
+def peeled.s(+same: Bool, +oa: U32, +ob: U32) -> Bool:
+  Bool.not(same && U32.is_eq(oa, ob)) &&
+    U32.is_ne((P.peel.amt(P.off_up(oa), P.off_by(oa), P.off_up(ob), P.off_by(ob), same) +
+      P.peel.amt(P.off_up(ob), P.off_by(ob), P.off_up(oa), P.off_by(oa), same) : U32), 0)
+
 def peeled(+ha: U32, +hb: U32, +oa: U32, +ob: U32) -> Bool:
-  U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11) && U32.is_eq(P.fld(ha), P.fld(hb)) &&
-    U32.is_ne((P.peel.amt(P.off_up(oa), P.off_by(oa), P.off_up(ob), P.off_by(ob)) +
-      P.peel.amt(P.off_up(ob), P.off_by(ob), P.off_up(oa), P.off_by(oa)) : U32), 0)
+  U32.is_eq(P.rk(ha), 10) && U32.is_eq(P.rk(hb), 11) && peeled.s(U32.is_eq(P.fld(ha), P.fld(hb)), oa, ob)
 
 def pf.fin(kp: KM.M, +lo: U32, +hi: U32, +peels: U32, +wide: U32, +w: U32, +pl: Bool, +wd: Bool) -> Pf:
   Pf{kp, (lo + w : U32), (hi + one_if(U32.is_lt((lo + w : U32), lo)) : U32), (peels + one_if(pl) : U32), (wide + one_if(wd) : U32)}
