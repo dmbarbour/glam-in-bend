@@ -185,7 +185,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   templates. Their direction: finished trees cached per position, a
   wholly finished source frozen into its cell's value, early evaluation
   and net-layer GC finding nets to freeze; a bytecode with stacks the
-  likely frozen form. Six findings; the full review's agenda.
+  likely frozen form. Six findings; then the full review, the agent's
+  recommendations and the second reviewer's checked against the source
+  (three latent faults, a stale far end a cache must not keep),
+  compared, with an order proposed.
+- [`FreezeFable_2026-11-21.md`](FreezeFable_2026-11-21.md): the second
+  reviewer's review of freeze and templates, by a Fable sub-agent, kept
+  as written beside `Freeze_2026-11-21.md`, which checks it.
 
 ## Retired
 
