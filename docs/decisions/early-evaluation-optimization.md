@@ -31,7 +31,10 @@ it does not emit. Whatever it leaves stays lazy.
   freeze nets insofar as it doesn't lead to divergence or extra
   reflection tasks. The Rust bootstrap has something like this." A net
   so found wholly finished freezes into its cell's value
-  (`finished-sources-freeze`; `cells-freeze.early`).
+  (`finished-sources-freeze`; `cells-freeze.early`). The net's
+  collection is the one a net runs before growing its node heap, not
+  only to recover memory; the cell layer's, not yet built, is another
+  (the maintainer, 2026-11-21).
 - Fuel is the guarantee of termination that `net-demand-whnf` asks of
   a strategy past weak head normal form. A reflection task is the
   other stop.
