@@ -99,6 +99,10 @@ type Sv is Type:
   # the position faces cursor x of the source, a copy it holds of another
   # live source, which the core serves into it first (cells-freeze.nested)
   SvCur{s: P.H, h: P.H, +x: U32, +n: U32}
+  # corruption a well-formed source and ring never reach: a climb that
+  # found no position of the ring; the core stops with an error, since
+  # the cursor left unserved would be served again without end
+  SvBad{s: P.H, h: P.H, +n: U32}
 
 # a climb from a finished node of the source toward the root of its tree,
 # a node whose principal faces a position the ring holds
@@ -140,14 +144,14 @@ def sv.pair(r: Mz, +n: U32) -> Sv:
 
 # a climb that found no position of the ring: corruption, which a
 # well-formed source and ring never reach (each tree a copy takes hangs
-# from a node it holds), the kernel's error raised and nothing copied
+# from a node it holds), reported and nothing copied
 # (corruption-reported-when-cheap; docs/reviews/Freeze_2026-11-21.md, B4)
 def sv.climbed.k(+done: Bool, s: P.H, h: P.H, +x: U32, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
   match done:
     case True{}:
       sv.pair(materialize(s, h, situ, x, k, nc, False{}), n)
     case False{}:
-      SvOk{s, P.err_if(True{}, h), n, 0}
+      SvBad{s, h, n}
 
 def sv.climbed(c: Cl, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:
   match c:
@@ -239,6 +243,7 @@ type Sv1 is Type:
   S1Ok{h: P.H, +n: U32, +m: U32}
   S1Stop{d: KD.D, +n: U32}
   S1Cur{h: P.H, +x: U32, +n: U32}
+  S1Bad{h: P.H, +n: U32}
 
 def mz1.fz(r: P.H & F.Fz, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
   (h, f) = r
@@ -294,7 +299,7 @@ def sv1.climbed.k(+done: Bool, h: P.H, +x: U32, +situ: U32, +k: U32, +nc: U32, +
     case True{}:
       sv1.ok(materialize1(h, situ, x, k, nc, False{}), n)
     case False{}:
-      S1Ok{P.err_if(True{}, h), n, 0}
+      S1Bad{h, n}
 
 def sv1.climbed(c: Cl1, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv1:
   match c:
