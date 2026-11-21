@@ -117,7 +117,10 @@ law serve_keeps:
 # position (RG.unfound), and the root a node no hole at a port below 3
 # (SV.root.ok) (cells-freeze.nested.host.serve.exact). Not claimed: the
 # frame of the leave at the root (.serve.root); that freeze builds such
-# roots.
+# roots; the net's links two-way after the leave, which overwrites the
+# root port's link word: a template linking the root's port would leave
+# its partner facing the root alone, the ring exact still (freeze links
+# no root port, fz.peer.k, an obligation for its review).
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
 law serve_ring_exact:

@@ -101,3 +101,31 @@ cs = Nil{}
 nc = 12
 rn = 0
 rp = 0
+
+=== serve_map_unwritten_crossed serve_ring_exact
+the same fault at an instance with a crossing, its witness holding with
+the copy's hole, its link and a crossing all present: the template a
+function node and a hole, the hole's port 0 linked to the node's port 1,
+the root the node's port 0; the crossing's far end no member's
+position, so that the hole becomes a cursor of the ring; the ring s
+with the cursors 12 (leaving) and 16
+--- splice_copy.bend
+  Sp{h, Array.set(U32, map, i, ref)}
++++
+  Sp{h, map}
+>>> witness serve_ring_exact
+w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)), 37, 11))
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 18)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 1}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = [R.FzC{1, 5, True{}, 3}]
+nc = 12
+rn = 0
+rp = 0
