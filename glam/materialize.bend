@@ -71,14 +71,36 @@ def mz.sp(s: S.Sp, curs: List<&2, R.FzC>, root: T.TEnd, +situ: U32, +nc: U32, +a
 # behind it (the maintainer, 2026-11-13)
 type Mz is Type:
   Mz{s: P.H, h: P.H, +m: U32}
+  # and the source wholly finished, its whole template t: frozen at its
+  # root with no crossing, so that everything its interface reaches was
+  # copied (finished-sources-freeze; cells-freeze.whole)
+  MzW{s: P.H, h: P.H, +m: U32, t: T.Tpl}
+
+# no crossing
+def mz.none(cs: List<&2, R.FzC>) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{c, r}:
+      False{}
+
+def mz.end(+whole: Bool, s: P.H, h: P.H, +m: U32, +t: T.Tpl) -> Mz:
+  match whole:
+    case True{}:
+      MzW{s, h, m, t}
+    case False{}:
+      Mz{s, h, m}
+
+def mz.fz.t(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
+  match t:
+    case T.Tpl{nodes, links, root, +size}:
+      mz.end(whole, s, mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m, t)
 
 def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   (s, f) = r
   match f:
-    case F.Fz{t, curs, +m}:
-      match t:
-        case T.Tpl{nodes, links, root, +size}:
-          Mz{s, mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m}
+    case F.Fz{+t, +curs, +m}:
+      mz.fz.t(at_root && mz.none(curs), s, t, curs, m, h, situ, k, nc, at_root)
 
 # the finished tree at node base v of source s copied into host h at
 # offset k, its wires joined in situ's ring; at_root where it is the
@@ -99,6 +121,10 @@ type Sv is Type:
   # the position faces cursor x of the source, a copy it holds of another
   # live source, which the core serves into it first (cells-freeze.nested)
   SvCur{s: P.H, h: P.H, +x: U32, +n: U32}
+  # a done serve at the source's root that found the source wholly
+  # finished: its whole template t, which the source's cell takes, later
+  # uses splicing it (finished-sources-freeze)
+  SvWhole{s: P.H, h: P.H, +n: U32, +m: U32, t: T.Tpl}
   # corruption a well-formed source and ring never reach: a climb that
   # found no position of the ring; the core stops with an error, since
   # the cursor left unserved would be served again without end
@@ -141,6 +167,8 @@ def sv.pair(r: Mz, +n: U32) -> Sv:
   match r:
     case Mz{s, h, +m}:
       SvOk{s, h, n, m}
+    case MzW{s, h, +m, t}:
+      SvWhole{s, h, n, m, t}
 
 # a climb that found no position of the ring: corruption, which a
 # well-formed source and ring never reach (each tree a copy takes hangs

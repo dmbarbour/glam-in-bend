@@ -138,6 +138,8 @@ def rn.sv(v: M.Sv) -> Rn:
       Rn{s, h, "a cursor of the source at " ++ U32.show(x), True{}}
     case M.SvBad{s, h, +n}:
       Rn{s, h, "a climb met no position of the ring", True{}}
+    case M.SvWhole{s, h, +n, +m, t}:
+      Rn{s, h, "", False{}}
 
 def rn.need(r: P.H & U32, s: P.H) -> Rn:
   (h, +c) = r
@@ -249,13 +251,28 @@ def climb_err.v(v: M.Sv) -> String:
       "cursor"
     case M.SvBad{s, h, +n}:
       "bad"
+    case M.SvWhole{s, h, +n, +m, t}:
+      "whole"
 
 def climb_err(+t: T.Tpl) -> String:
   climb_err.v(M.sv.climbed(M.Cl{KN.load(t), KN.load(t), 32, False{}}, 0, 0, 0, 0))
 
+# A source served at its root: wholly finished, every node its interface
+# reaches finished and copied, no crossing (the identity, its result
+# wired to its variable), the whole template returned; a redex left in
+# the source, a crossing, so not (finished-sources-freeze)
+def id_bare() -> T.Tpl:
+  T.Tpl{[fn()], [ln(0, 1, 0, 2)], T.TE{0, 0}, 1}
+
+def served_as(src: T.Tpl, host: T.Tpl) -> String:
+  climb_err.v(M.serve(KN.load(src), ring(KN.load(host)), 32, 16n, 1000n))
+
 def main() -> String:
   report(
     check(climb_err(id_redex()), "bad", "a failed climb") ++
+    check(served_as(id_bare(), host1(7)), "whole", "a whole source at its root") ++
+    check(served_as(const_redex(), host1(7)), "ok, 1 copied", "a source with a redex at its root") ++
+    check(applied(id_bare(), host1(7)), "7", "id_bare 7") ++
     check(applied(id_redex(), host1(7)), "7", "id_redex 7") ++
     check(applied(k_redex(), host2(7, 8)), "7", "k_redex 7 8") ++
     check(applied(const_redex(), host1(7)), "fn", "const_redex 7") ++
