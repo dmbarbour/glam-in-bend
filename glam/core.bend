@@ -53,7 +53,7 @@ type Ent is Data:
   ERecipe{t: T.Tpl, name: List<&2, U32>}
   EBusy{t: T.Tpl, name: List<&2, U32>}
   EValue{v: V.Val}
-  ESrc{+i: U32, t: T.Tpl, name: List<&2, U32>}
+  ESrc{+i: U32, t: T.Tpl, name: List<&2, U32>, +whole: Bool}
 
 # The live sources, a net each, linear as nets are: the book is copied
 # freely and holds none. A frame takes its source out for a step and puts
@@ -519,7 +519,7 @@ def src.name(m: Maybe<&2, Ent>) -> String:
   match m:
     case Some{e}:
       match e:
-        case ESrc{+i, t, name}:
+        case ESrc{+i, t, name, +whole}:
           G.str(name)
         case _:
           "a value"
@@ -531,7 +531,7 @@ def src.i(m: Maybe<&2, Ent>) -> U32:
   match m:
     case Some{e}:
       match e:
-        case ESrc{+i, t, name}:
+        case ESrc{+i, t, name, +whole}:
           i
         case _:
           4294967295
@@ -816,6 +816,16 @@ def frame.at.p(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U3
 
 # A need served by entry k: a template spliced, a value resumed, a recipe
 # forced on a task of its own above this one, in a segment of its own, a
+# a live source's use: its template spliced once the source was found
+# wholly finished (finished-sources-freeze), as a template entry's is; else
+# a ring served from the source
+def needed.src(+whole: Bool, +t: T.Tpl, d: KD.D, +k: U32, +cell: U32, low: Lo, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match whole:
+    case True{}:
+      go(S.splice(d, t), cell, low, b, cn.splice(c, t), ss)
+    case False{}:
+      use.src(d, k, WhTk{cell, low}, b, c, ss)
+
 # busy cell a cycle, a function's live source used
 def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, low: Lo, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
@@ -823,8 +833,8 @@ def needed.e(m: Maybe<&2, Ent>, d: KD.D, +k: U32, +cell: U32, low: Lo, +b: List<
       match e:
         case ETpl{+t}:
           go(S.splice(d, t), cell, low, b, cn.splice(c, t), ss)
-        case ESrc{+i, t, name}:
-          use.src(d, k, WhTk{cell, low}, b, c, ss)
+        case ESrc{+i, +t, name, +whole}:
+          needed.src(whole, t, d, k, cell, low, b, c, ss)
         case EValue{v}:
           go(KS.resume(d, v), cell, low, b, c, ss)
         case ERecipe{+t, +name}:
@@ -895,14 +905,23 @@ def frame.wait(cx: Cx, d: KD.D, +depth: U32, +h2: U32, +t: T.Tpl, +name2: List<&
     case Cx{fs, cd, +cell, +waits, low}:
       frame.wait.r(seal(fs, ss, c, b), d, depth, h2, t, name2, i, k, nc, pos, cd, cell, waits, low, b)
 
+# a frame's walk needing a live source: its template spliced once the
+# source was found wholly finished, else a ring served from it
+def frame.need.src(+whole: Bool, +t: T.Tpl, d: KD.D, +h2: U32, +i2: U32, cx: Cx, +i: U32, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match whole:
+    case True{}:
+      frame.keep(S.splice(d, t), cx, k, nc, pos, b, cn.splice(c, t), ss)
+    case False{}:
+      use.src(d.again(d), h2, who.self(U32.is_eq(i2, i), k, nc, pos, cx), b, c, ss)
+
 def frame.need.e(m: Maybe<&2, Ent>, d: KD.D, +depth: U32, +h2: U32, cx: Cx, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match m:
     case Some{e}:
       match e:
         case ETpl{+t}:
           frame.keep(S.splice(d, t), cx, k, nc, pos, b, cn.splice(c, t), ss)
-        case ESrc{+i2, t, name2}:
-          use.src(d.again(d), h2, who.self(U32.is_eq(i2, i), k, nc, pos, cx), b, c, ss)
+        case ESrc{+i2, +t, name2, +whole}:
+          frame.need.src(whole, t, d, h2, i2, cx, i, k, nc, pos, b, c, ss)
         case EValue{v}:
           frame.keep(KS.resume(d, v), cx, k, nc, pos, b, c, ss)
         case ERecipe{+t, +name2}:
@@ -1027,10 +1046,26 @@ def frame.cur(r: CS, hs: P.H, +x: U32, +i: U32, +name: List<&2, U32>, +k: U32, +
     case CS{cx, ss}:
       frame.cur.h(P.rd(hs, x), x, cx, i, name, k, nc, pos, b, c, ss)
 
+# the source k found wholly finished: its entry takes the whole template,
+# later uses splicing it; the source stays live for the copies whose
+# cursors still reach it (cells-freeze.release)
+def src.whole(m: Maybe<&2, Ent>, +k: U32, t: T.Tpl, +b: List<&2, Ent>) -> List<&2, Ent>:
+  match m:
+    case Some{e}:
+      match e:
+        case ESrc{+i, t0, name, +w}:
+          book_set(b, k, ESrc{i, t, name, True{}})
+        case _:
+          b
+    case None{}:
+      b
+
 def frame.sv(v: M.Sv, ho: Hb, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match v:
     case M.SvOk{hs, h, +n, +m}:
       host.go(ho, h, srcs.put(ss, i, hs), b, cn.copy(cn.serve(cn.add(c, n)), m))
+    case M.SvWhole{hs, h, +n, +m, t}:
+      host.go(ho, h, srcs.put(ss, i, hs), src.whole(book_get(b, k), k, t, b), cn.copy(cn.serve(cn.add(c, n)), m))
     case M.SvStop{d, h, +n}:
       frame.back(host.back(ho, h, ss), d, i, name, k, nc, pos, b, cn.add(c, n))
     case M.SvCur{hs, h, +x, +n}:
@@ -1057,7 +1092,7 @@ def frame.e(m: Maybe<&2, Ent>, fd: Fd, h0: P.H, ho: Hb, +k: U32, +nc: U32, +pos:
   match m:
     case Some{e}:
       match e:
-        case ESrc{+i, t, +name}:
+        case ESrc{+i, t, +name, +whole}:
           match fd:
             case FdNew{}:
               frame.t(srcs.take(ss, i), h0, ho, i, name, k, nc, pos, b, c)
@@ -1081,7 +1116,7 @@ def frame.ho(m: Maybe<&2, Ent>, fd: Fd, +k1: U32, +nc1: U32, +pos1: U32, cx: Cx,
   match m:
     case Some{e}:
       match e:
-        case ESrc{+i1, t, name}:
+        case ESrc{+i1, t, name, +whole}:
           frame.ho.t(srcs.take(ss, i1), fd, i1, k1, nc1, pos1, cx, k, nc, pos, b, c)
         case _:
           err("a frame's host is no live source")
@@ -1115,7 +1150,7 @@ def frame.one(m: Maybe<&2, Ent>, fd: Fd, +nc1: U32, +pos1: U32, cx: Cx, +k: U32,
   match m:
     case Some{e}:
       match e:
-        case ESrc{+i, t, +name}:
+        case ESrc{+i, t, +name, +whole}:
           match fd:
             case FdNew{}:
               frame.one.t(srcs.take(ss, i), i, name, nc1, pos1, cx, k, nc, pos, b, c)
@@ -1189,7 +1224,7 @@ def cell.src.e(m: Maybe<&2, Ent>, +i: U32, +cell: U32, low: Lo, +b: List<&2, Ent
     case Some{e}:
       match e:
         case EBusy{+t, +name}:
-          finished.src(low, cell, book_set(b, cell, ESrc{i, t, name}), c, ss)
+          finished.src(low, cell, book_set(b, cell, ESrc{i, t, name, False{}}), c, ss)
         case _:
           err("a value forced was not busy")
     case None{}:
@@ -2490,8 +2525,8 @@ def refrozen.e(e: Ent) -> Ent:
       EBusy{refrozen.t(t), name}
     case EValue{v}:
       EValue{v}
-    case ESrc{+i, t, name}:
-      ESrc{i, refrozen.t(t), name}
+    case ESrc{+i, t, name, +whole}:
+      ESrc{i, refrozen.t(t), name, whole}
 
 def refrozen.b(b: List<&2, Ent>) -> List<&2, Ent>:
   match b:
