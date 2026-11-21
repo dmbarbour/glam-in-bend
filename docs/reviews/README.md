@@ -179,6 +179,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`SpliceFable_2026-11-19.md`](SpliceFable_2026-11-19.md): the second
   reviewer's advice on the same questions, by a Fable sub-agent, kept as
   written beside `Splice_2026-11-19.md`.
+- [`Freeze_2026-11-21.md`](Freeze_2026-11-21.md): what freeze does, where
+  it sits, what a fully evaluated net becomes, caching and compression;
+  a discussion with the maintainer before the full review of freeze and
+  templates. Their direction: finished trees cached per position, a
+  wholly finished source frozen into its cell's value, early evaluation
+  and net-layer GC finding nets to freeze; a bytecode with stacks the
+  likely frozen form. Six findings; the full review's agenda.
 
 ## Retired
 

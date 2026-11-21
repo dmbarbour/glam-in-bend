@@ -1,6 +1,6 @@
 # Evaluation ahead of demand is an optimization; divergence and reflection block it
 
-`early-evaluation-optimization` · maintainer · rev 93243b7
+`early-evaluation-optimization` · maintainer · rev b6d806f
 
 **Context.** The design round on laziness inside data asked whether a
 captured local not yet evaluated may be forced where a function enters
@@ -25,6 +25,13 @@ it does not emit. Whatever it leaves stays lazy.
 **Consequences.**
 - Laziness is the semantics. Captures, members and a function's body
   stay lazy; early evaluation only makes them cheaper.
+- Early evaluation and the net's collection both look for chances to
+  freeze a net, within these bounds (the maintainer, 2026-11-21): "We
+  can do both early eval and net-layer GC to find opportunities to
+  freeze nets insofar as it doesn't lead to divergence or extra
+  reflection tasks. The Rust bootstrap has something like this." A net
+  so found wholly finished freezes into its cell's value
+  (`finished-sources-freeze`; `cells-freeze.early`).
 - Fuel is the guarantee of termination that `net-demand-whnf` asks of
   a strategy past weak head normal form. A reflection task is the
   other stop.

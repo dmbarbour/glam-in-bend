@@ -25,7 +25,8 @@ needs them.
 - Recursion, direct and mutual, runs through templates: each use copies
   the template whole, as lowered. `copy-reduced-function-nets` would
   either reduce it first or leave its unfinished work in the source
-  behind cursors, and neither is built. So closed work in a function's
+  behind cursors, and neither was built when this was decided (the
+  second since, for values whose outcome is a function, below). So closed work in a function's
   body is done again at every splice, where the linker shared it: 147
   interactions and 8 splices a use
   (`docs/reviews/InsideData_2026-11-10.md`, F2, run 312 of the analysis

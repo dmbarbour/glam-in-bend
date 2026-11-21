@@ -199,6 +199,12 @@ where the shared lazy state that Bend cannot hold goes.
 - [`copied-nodes-untouched`](decisions/copied-nodes-untouched.md): in a
   source, nodes copied into a host are marked, and no eraser event,
   fusion or collection touches them.
+- [`finished-sources-freeze`](decisions/finished-sources-freeze.md): a
+  wholly finished source's cell reduces to a frozen template, its uses
+  splices; the source's release waits on the tactic for cursors.
+- [`finished-trees-cached`](decisions/finished-trees-cached.md): a tree
+  frozen at a source's position is cached for later serves there, its
+  space accounted and bounded against the time it saves.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
   only into runs of raises, peeled where a facing control meets them at
   their index; other fusion waits on a safety criterion.
