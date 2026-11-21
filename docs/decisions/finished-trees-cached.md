@@ -1,11 +1,13 @@
 # Finished trees frozen at a source's position are cached, their space accounted
 
-`finished-trees-cached` · maintainer · rev b6d806f
+`finished-trees-cached` · maintainer · rev 2884596
 
 **Context.** Each serve at a source's position walks the finished tree
 there and reads it back anew (`freeze_tree`), though a finished tree
-never changes: no rewrite reaches it, and the marks keep eraser events,
-fusion and the collector off copied nodes (`copied-nodes-untouched`). The
+never changes: no rewrite reaches it, and `copied-nodes-untouched`
+keeps eraser events, fusion and the collector off copied nodes; built so
+far for controls alone, the rest held by sources running plain demand
+(`docs/reviews/Freeze_2026-11-21.md`, the second reviewer's B3). The
 second reviewer proposed fragments "cached in the source, so the second
 copy to demand it splices the fragment instead of walking"
 (`docs/reviews/CursorsFable_2026-11-10.md`, idea 3); the agent raised it
@@ -22,8 +24,13 @@ inherent to caching."
   drops an entry, is chosen by measured space against time.
 
 **Consequences.**
-- The cache is sound by `copied-nodes-untouched`: a position's finished
-  tree is fixed once a copy has taken it.
+- The cache is sound by `copied-nodes-untouched`: a finished tree is
+  fixed once a copy has taken it. The marks on copied nodes, or a check
+  that sources run plain demand, come before it: the cache's key and its
+  holes' source ports must name nodes no step reuses.
+- A hole's far end is no part of an entry: where it faced unfinished
+  structure, that structure's reduction has rewritten the wire, so a
+  serve reads it from the source when it runs.
 - A compact frozen form saves more with every serve a cache answers, so
   the form and the cache are designed together (`cells-freeze.format`;
   the maintainer: "Efficient representations become more valuable with
