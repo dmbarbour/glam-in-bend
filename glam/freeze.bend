@@ -42,6 +42,88 @@ type FzR is Type:
 def fz.at(+r: U32) -> U32:
   (P.base(r) >> 2n : U32)
 
+# The nodes reached, by base, their template indices plus one (0 for
+# none): open addressing over pairs of words, a base (never 0) then its
+# value, twice as many pairs as the nodes it holds, so that a freeze of a
+# tree costs the tree, not its source (docs/reviews/Freeze_2026-11-21.md,
+# F1: an array the size of the source, filled and dropped at every
+# serve, near half of a lazy list's serves at 400 elements)
+type Hp is Type:
+  Hp{a: Array<U32>, +i: U32, +done: Bool, +v: U32}
+
+def hm.mask(r: Array<U32> & U32) -> Array<U32> & U32:
+  (a, +sz) = r
+  (a, ((sz >> 1n : U32) - 1 : U32))
+
+def hm.at.v(r: Array<U32> & U32, +i: U32) -> Hp:
+  (a, +v) = r
+  Hp{a, i, True{}, v}
+
+def hm.at.c(+hit: Bool, +empty: Bool, a: Array<U32>, +i: U32, +mask: U32) -> Hp:
+  match hit:
+    case True{}:
+      hm.at.v(Array.get(U32, a, ((i << 1n : U32) + 1 : U32)), i)
+    case False{}:
+      match empty:
+        case True{}:
+          Hp{a, i, True{}, 0}
+        case False{}:
+          Hp{a, ((i + 1 : U32) .&. mask : U32), False{}, 0}
+
+def hm.at.k(r: Array<U32> & U32, +b: U32, +i: U32, +mask: U32) -> Hp:
+  (a, +key) = r
+  hm.at.c(U32.is_eq(key, b), U32.is_eq(key, 0), a, i, mask)
+
+def hm.at.d(+done: Bool, a: Array<U32>, +b: U32, +i: U32, +mask: U32, +v: U32) -> Hp:
+  match done:
+    case True{}:
+      Hp{a, i, True{}, v}
+    case False{}:
+      hm.at.k(Array.get(U32, a, (i << 1n : U32)), b, i, mask)
+
+# base b's slot probed for: its own, or the first empty one
+def hm.at.go(f: Nat, +b: U32, +mask: U32, p: Hp) -> Hp:
+  match f:
+    case 0n:
+      p
+    case 1n+g:
+      match p:
+        case Hp{a, +i, +done, +v}:
+          hm.at.go(g, b, mask, hm.at.d(done, a, b, i, mask, v))
+
+def hm.at(r: Array<U32> & U32, +b: U32) -> Hp:
+  (a, +mask) = r
+  hm.at.go(U32.to_nat((mask + 1 : U32)), b, mask, Hp{a, (fz.at(b) .&. mask : U32), False{}, 0})
+
+def hm.get.p(p: Hp) -> Array<U32> & U32:
+  match p:
+    case Hp{a, +i, +done, +v}:
+      (a, v)
+
+# base b's value, 0 for none
+def hm.get(a: Array<U32>, +b: U32) -> Array<U32> & U32:
+  hm.get.p(hm.at(hm.mask(Array.size(U32, a)), b))
+
+def hm.put.p(p: Hp, +b: U32, +v: U32) -> Array<U32>:
+  match p:
+    case Hp{a, +i, +done, +w}:
+      Array.set(U32, Array.set(U32, a, (i << 1n : U32), b), ((i << 1n : U32) + 1 : U32), v)
+
+def hm.put(a: Array<U32>, +b: U32, +v: U32) -> Array<U32>:
+  hm.put.p(hm.at(hm.mask(Array.size(U32, a)), b), b, v)
+
+# a map for n nodes
+def hm.new(+n: U32) -> Array<U32>:
+  [0 : U32^(1n+T.depth_for(31n, (n << 1n : U32), 0n))]
+
+# seen's nodes, the last first, valued n down to 1, their indices plus one
+def hm.fill(seen: List<&2, U32>, a: Array<U32>, +v: U32) -> Array<U32>:
+  match seen:
+    case Nil{}:
+      a
+    case Con{+b, rest}:
+      hm.fill(rest, hm.put(a, b, v), (v - 1 : U32))
+
 # a peer q pushed unless static or the interface; reaching the finished
 # part only, unless it is a principal port
 def fz.reach.q(+all: Bool, +q: U32) -> Bool:
@@ -128,9 +210,19 @@ def fz.copied.k(+take: Bool, h: P.H, +b: U32, +hd: U32) -> P.H:
 def fz.copied(+all: Bool, h: P.H, +b: U32, +hd: U32) -> P.H:
   fz.copied.k(Bool.not(all) && (U32.is_eq(P.rk(hd), 10) || U32.is_eq(P.rk(hd), 11)), h, b, hd)
 
+# a node reached recorded where the walk itself tells nodes apart (the
+# whole net's); the finished part's walk meets each node once, from the
+# one port its principal faces, its map made after it
+def fz.mark.set(+all: Bool, map: Array<U32>, +b: U32, +v: U32) -> Array<U32>:
+  match all:
+    case True{}:
+      hm.put(map, b, v)
+    case False{}:
+      map
+
 def fz.mark.hd(r: P.H & U32, +all: Bool, map: Array<U32>, +b: U32, +n: U32, seen: List<&2, U32>, s: List<&2, U32>) -> FzR:
   (h, +hd) = r
-  fz.mark.s(fz.ports(all, fz.copied(all, h, b, hd), b, R.arity(N.kof(P.rk(hd))), s), Array.set(U32, map, fz.at(b), (n + 1 : U32)), (n + 1 : U32), Con{b, seen})
+  fz.mark.s(fz.ports(all, fz.copied(all, h, b, hd), b, R.arity(N.kof(P.rk(hd))), s), fz.mark.set(all, map, b, (n + 1 : U32)), (n + 1 : U32), Con{b, seen})
 
 def fz.mark.k(+seen0: Bool, +all: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>, +b: U32, s: List<&2, U32>) -> FzR:
   match seen0:
@@ -145,7 +237,11 @@ def fz.mark.m(r: Array<U32> & U32, +all: Bool, h: P.H, +n: U32, seen: List<&2, U
 
 # the node at base b reached, unless it was already
 def fz.mark(+all: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>, +b: U32, s: List<&2, U32>) -> FzR:
-  fz.mark.m(Array.get(U32, map, fz.at(b)), all, h, n, seen, b, s)
+  match all:
+    case True{}:
+      fz.mark.m(hm.get(map, b), all, h, n, seen, b, s)
+    case False{}:
+      fz.mark.k(False{}, all, h, map, n, seen, b, s)
 
 # every node reached from the stack, fuel f bounding the visits, which the
 # ports of the nodes in the net bound
@@ -311,7 +407,7 @@ def fz.peer.k(+st: Bool, +rt: Bool, z: FzE, k: R.NodeKind, +b: U32, +i: U32, +p:
         case False{}:
           match z:
             case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
-              fz.peer.j(Array.get(U32, map, fz.at(q)), h, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
+              fz.peer.j(hm.get(map, P.base(q)), h, nodes, eras, ne, ls, root, curs, k, b, i, p, q)
 
 # a peer that is an eraser node, written as its static would be
 def fz.peer.e(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32) -> FzE:
@@ -380,17 +476,25 @@ def fz.tpl(z: FzE, +n: U32) -> P.H & Fz:
       (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
 
 # nothing finished: the root itself is a cursor, at the interface
-def fz.written.k(+none: Bool, h: P.H, map: Array<U32>, +n: U32, seen: List<&2, U32>) -> P.H & Fz:
+# the finished part's map, made from the nodes its walk met
+def fz.map.of(+all: Bool, map: Array<U32>, +seen: List<&2, U32>, +n: U32) -> Array<U32>:
+  match all:
+    case True{}:
+      map
+    case False{}:
+      hm.fill(seen, hm.new(n), n)
+
+def fz.written.k(+none: Bool, +all: Bool, h: P.H, map: Array<U32>, +n: U32, +seen: List<&2, U32>) -> P.H & Fz:
   match none:
     case True{}:
       (h, Fz{T.Tpl{[T.TN{R.KCur{}, V.PNone{}}], Nil{}, T.TE{0, 0}, 1}, [RN.FzC{0, P.iface(), True{}, P.iface()}], 0})
     case False{}:
-      fz.tpl(fz.emits(seen, FzE{h, map, Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)), n)
+      fz.tpl(fz.emits(seen, FzE{h, fz.map.of(all, map, seen, n), Nil{}, Nil{}, n, Nil{}, T.TE{0, 0}, Nil{}}, (n - 1 : U32)), n)
 
-def fz.written(z: FzR) -> P.H & Fz:
+def fz.written(z: FzR, +all: Bool) -> P.H & Fz:
   match z:
     case FzR{h, map, +n, seen, s}:
-      fz.written.k(U32.is_eq(n, 0), h, map, n, seen)
+      fz.written.k(U32.is_eq(n, 0), all, h, map, n, seen)
 
 def fz.start(r: P.H & U32, +all: Bool, map: Array<U32>) -> FzR:
   (h, +q) = r
@@ -403,12 +507,21 @@ def fz.start(r: P.H & U32, +all: Bool, map: Array<U32>) -> FzR:
 def fz.void.in(h: P.H) -> P.H & Fz:
   (h, Fz{T.Tpl{[fz.era(R.Neg{})], Nil{}, T.TE{0, 0}, 1}, Nil{}, 0})
 
+# the walk's map: the whole net's, by the source's nodes; none for the
+# finished part's (fz.map.of)
+def fz.map0(+all: Bool, +cap: U32) -> Array<U32>:
+  match all:
+    case True{}:
+      hm.new(cap)
+    case False{}:
+      [0 : U32^1n]
+
 def fz.cap.e(+era: Bool, h: P.H, +all: Bool, +cap: U32, +q: U32) -> P.H & Fz:
   match era:
     case True{}:
       fz.void.in(h)
     case False{}:
-      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), all, fz.start((h, q), all, [0 : U32^T.depth_for(31n, cap, 0n)])))
+      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), all, fz.start((h, q), all, fz.map0(all, cap))), all)
 
 def fz.cap.h(r: P.H & U32, +all: Bool, +cap: U32, +q: U32) -> P.H & Fz:
   (h, +hd) = r
@@ -449,7 +562,7 @@ def fz.tree.cap(r: P.H & P.HS, +v: U32) -> P.H & Fz:
   (h, hs) = r
   match hs:
     case P.HS{+itrs, +errs, +cap}:
-      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), False{}, FzR{h, [0 : U32^T.depth_for(31n, cap, 0n)], 0, Nil{}, [v]}))
+      fz.written(fz.reach(U32.to_nat(((cap << 2n : U32) + 4 : U32)), False{}, FzR{h, [0 : U32^1n], 0, Nil{}, [v]}), False{})
 
 # the finished tree rooted at the node at base v frozen, with its
 # cursors: every wire leaving it, its root's principal among them, a

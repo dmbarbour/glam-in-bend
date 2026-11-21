@@ -419,7 +419,7 @@ named, and marked there when a rung is built.
       same bytes with the same counts. `Nat.pow` is now 19% of a
       profile at 800, likely a splice's array depth (`T.depth_for`), a
       constant a splice.
-    - `ladder-measure.names` — tentative — the front end is quadratic
+    - `ladder-measure.names` — planned — the front end is quadratic
       in a program's definitions. Found measuring `cells-freeze.nested`
       (2026-11-13): the `nested_sources` family, one definition added a
       use, costs 21.7M, 109M and 719M instructions at 16, 32 and 64
@@ -429,7 +429,15 @@ named, and marked there when a rung is built.
       `parse.bytes_eq` and `lower.has_key`: names copied for each
       comparison of a lookup and dropped after it, each lookup
       walking every definition. Comparing without copying, or keying
-      the definitions once, should make it linear.
+      the definitions once, should make it linear. On the docket (the
+      maintainer, 2026-11-21: "you mentioned a non-linear front-end cost.
+      Let's get investigating that onto the docket"). Seen again
+      2026-11-21: 74 per cent of `nested_sources` at 32 definitions, and
+      a lambda of n parameters applied to n arguments spends most of its
+      instructions in the same lookups (`parse.bytes_eq`, and
+      `lower.split`, `desugar.without` over the parameters), so names in
+      one scope grow it too, not definitions alone
+      (`cells-freeze.sharing.cursors`).
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's
