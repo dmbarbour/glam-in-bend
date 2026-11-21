@@ -728,12 +728,25 @@ def ev.w2(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> 
   ev.w3.r(~S, ~note, ~room, P.rd(h, (a + 2 : U32)), st, ws, a, b, ha, hb, p, x0)
 
 # node a's port p facing eraser b's principal, if ok: its words read
-def ev.at(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, ok: Bool, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ev<S>:
+# a control a copy has taken, marked by freeze (copied-controls-unfused)
+def ev.ctl_marked(+ha: U32) -> Bool:
+  (U32.is_eq(P.rk(ha), 10) || U32.is_eq(P.rk(ha), 11)) && P.marked(ha)
+
+def ev.at.k(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, ok: Bool, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ev<S>:
   match ok:
     case True{}:
       ev.w2(~S, ~note, ~room, P.rd(h, (a + 1 : U32)), st, ws, a, b, ha, hb, p)
     case False{}:
       Ev{h, st, ws}
+
+# node a's event with eraser b, unless a is a control a copy has taken:
+# no eraser event modifies a node a copy took, the eraser left in the
+# link word, as strategies that run no events leave it
+# (copied-nodes-untouched); plain demand runs events in a source, and
+# one turned a copied lift into an eraser (docs/reviews/Erasers_2026-11-21.md,
+# X1). Other kinds wait on a mark of their own.
+def ev.at(~S: Type, ~note: S -> @+x:U32 -> @+y:U32 -> S, ~room: S -> @+n:U32 -> S, ok: Bool, h: P.H, st: S, ws: List<&2, U32>, +a: U32, +b: U32, +ha: U32, +hb: U32, +p: U32) -> Ev<S>:
+  ev.at.k(~S, ~note, ~room, ok && Bool.not(ev.ctl_marked(ha)), h, st, ws, a, b, ha, hb, p)
 
 # end e, header hx, and its peer y, header hy: which is the node, which
 # the eraser
