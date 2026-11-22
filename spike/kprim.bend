@@ -1434,16 +1434,28 @@ def pl.c(r: Pe, +same: Bool, +b: U32, +nb: U32, +kc: U32, +pb: U32, +e2: U32) ->
     case Pe{h, +pa, +e0}:
       pl.fin(pe.do(kc, h, b, 11, nb, pb, e2), same, pa, e0)
 
+def peel_ctl.k(any: Bool, +same: Bool, h: H, +a: U32, +b: U32, +na: U32, +nb: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
+  match any:
+    case True{}:
+      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb), na, nb), h, a, 10, na, pa, e0), same, b, nb,
+        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa), nb, na), pb, e2)
+    case False{}:
+      Pl{h, False{}, pa, pb, e0, e2}
+
+# a drop of more than one: a drop run (offset below the up bit, above 1)
+def drop_run(+o: U32) -> Bool:
+  U32.is_lt(1, o) && U32.is_lt(o, 2147483648)
+
 # equal, they cancel whole; else each run peeled as peel.amt says, a and b
 # at their own indices na and nb, and the units left facing cancel only at
-# one index
+# one index; at two indices with no drop run, nothing to peel, as before
+# drop runs (the levels workload's crossings, spike/tools/spot.sh)
 def peel_ctl.go(+same: Bool, eq: Bool, h: H, +a: U32, +b: U32, +na: U32, +nb: U32, +pa: U32, +pb: U32, +e0: U32, +e2: U32) -> Pl:
   match eq:
     case True{}:
       Pl{h, True{}, pa, pb, e0, e2}
     case False{}:
-      pl.c(pe.do(peel.amt(off_up(pa), off_by(pa), off_up(pb), off_by(pb), na, nb), h, a, 10, na, pa, e0), same, b, nb,
-        peel.amt(off_up(pb), off_by(pb), off_up(pa), off_by(pa), nb, na), pb, e2)
+      peel_ctl.k(same || drop_run(pa) || drop_run(pb), same, h, a, b, na, nb, pa, pb, e0, e2)
 
 # Lift a (header ha, offset pa, port 1's peer e0) facing LiftC b (hb, pb,
 # e2): peeled where they meet at one index as different runs. The

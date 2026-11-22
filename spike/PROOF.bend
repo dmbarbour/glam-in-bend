@@ -3227,22 +3227,33 @@ def Laws.raise_lift_drop(k, n, by, p, hn, hp):
     case V.PFan{f}:
       raise_lift_drop.fan(k, n, by, f, hn, hp)
 
-# a fusion on its test, raised
-def raise_ok(c: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
-  {V.compose.ok(c, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.ok(c, n1, b1, b2)) : V.Fuse}:
-  match c:
-    case True{}:
+# a fusion on its tests, raised: a raise run's, else a drop run's
+# (pairing-fusion.drops.kernel)
+def raise_or(c: Bool, d: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
+  {V.compose.or(V.compose.ok(c, U32.add(n1, k), b1, b2), d, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.or(V.compose.ok(c, n1, b1, b2), d, n1, b1, b2)) : V.Fuse}:
+  match c d:
+    case True{} True{}:
       {==}
-    case False{}:
+    case True{} False{}:
+      {==}
+    case False{} True{}:
+      {==}
+    case False{} False{}:
       {==}
 
+# the raise test carried through the raise as before, the drop test's
+# indices n2 + k and n1 + k compared as n2 and n1 (cmp_raise, n1 + k
+# fitting by h1)
 def Laws.raise_compose(k, n1, u1, b1, n2, u2, b2, h1, h2):
   +h1 = h1
+  +h2 = h2
   %add_swap(n1, k, b1, h1) :
-    {V.compose.ok(u1 && u2 && U32.is_eq(U32.add(n2, k), _), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+    {V.compose.or(V.compose.ok(u1 && u2 && U32.is_eq(U32.add(n2, k), _), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(U32.add(n2, k), U32.add(n1, k)), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
   %cmp_raise(n2, U32.add(n1, b1), k, h2, lt_add_raise(n1, b1, k, h1)) :
-    {V.compose.ok(u1 && u2 && Cmp.is_eq(_), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
-  raise_ok(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), n1, b1, b2, k)
+    {V.compose.or(V.compose.ok(u1 && u2 && Cmp.is_eq(_), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(U32.add(n2, k), U32.add(n1, k)), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  %cmp_raise(n2, n1, k, h2, lt_jk(n1, b1, k, h1)) :
+    {V.compose.or(V.compose.ok(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && Cmp.is_eq(_), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  raise_or(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), Bool.not(u1) && Bool.not(u2) && U32.is_eq(n2, n1), n1, b1, b2, k)
 
 # The kernel's drop
 # =================

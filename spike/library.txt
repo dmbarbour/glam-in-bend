@@ -182,10 +182,13 @@ unfused: 27 logical 1275 peels 0
 
 name: fused-crossing-22
 why: under the old fusion, a fused control crossing a facing control its
-  first part would have cancelled: the full reduction ran out of fuel
+  first part would have cancelled: the full reduction ran out of fuel.
+  Two drops at one index fuse into a run, which gives up a unit to a
+  control that can reach its index partway (pairing-fusion.drops.kernel):
+  one peel, the logical interactions as before
 term: ((\f. add (f #3) (f (mul (pow #2 #3) (pow #1 #2)))) (\n. mul n #2)) succ 0
-levels: 22 logical 423 peels 0
-unfused: 22 logical 1663 peels 0
+levels: 22 logical 423 peels 1
+unfused: 22 logical 1663 peels 1
 
 # The costliest leveled terms of the random corpus (pairing-overhead.profile;
 # store run 44): bookkeeping, controls crossing controls and fans
@@ -655,3 +658,36 @@ fuel: 100000
 levels: demand 1
 labels: demand 1
 unfused: demand 1
+
+name: scott-walk-16
+why: a recursion walking a Scott numeral of 16 to its end, by a fixpoint,
+  the shape of glam's walk of a Scott list
+  (docs/reviews/RecursionFable_2026-11-21.md), where each step left a
+  unit drop on the tail wire, unfused, and each later step's controls
+  crossed every one. With drops at one index fused into a run that a
+  control crosses whole (pairing-fusion.drops.kernel), glam's walk is
+  linear; here demand fell from about 5.8n^2 + 88n interactions to
+  0.8n^2 + 85n with levels, labels linear throughout, and what is left
+  is not yet traced. A family with scott-walk-32 and -64. A full
+  reduction unfolds Y without end: demand alone gives the value
+term: Y (\walk m. m #0 (\m2. walk m2)) (pow #2 #4 (\m z s. s m) (\z s. z)) succ 0
+fuel: 100000
+levels: demand 0
+labels: demand 0
+unfused: demand 0
+
+name: scott-walk-32
+why: scott-walk-16 over 32
+term: Y (\walk m. m #0 (\m2. walk m2)) (pow #2 #5 (\m z s. s m) (\z s. z)) succ 0
+fuel: 100000
+levels: demand 0
+labels: demand 0
+unfused: demand 0
+
+name: scott-walk-64
+why: scott-walk-16 over 64
+term: Y (\walk m. m #0 (\m2. walk m2)) (pow #2 #6 (\m z s. s m) (\z s. z)) succ 0
+fuel: 100000
+levels: demand 0
+labels: demand 0
+unfused: demand 0

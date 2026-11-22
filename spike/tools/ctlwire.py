@@ -53,7 +53,9 @@ do not all total the interactions of its unit brackets reduced unfused
 (units), or when those depend on order: the logical interactions that
 heap-strategies.profile counts on whole nets.
 
-The kernel's rule: --peel --shapes 0. Its old fusion: --shapes 0,1,2,3,4,5.
+The kernel's rule: --peel --drops --cross --shapes 0,6 (before
+pairing-fusion.drops.kernel, --peel --shapes 0). Its old fusion: --shapes
+0,1,2,3,4,5.
 Without --drops, drops are by 1 only, as lowering emits. Memory grows with MAXLEN; run under
 scripts/capped.sh (length 4 exhaustive: about 0.7 GB, two minutes).
 """
