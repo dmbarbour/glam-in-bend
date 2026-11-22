@@ -58,16 +58,18 @@ def cur_redex() -> T.Tpl:
     [ln(0, 1, 1, 2), ln(1, 0, 2, 0), ln(1, 1, 0, 2), ln(2, 1, 3, 0), ln(2, 2, 4, 0)], T.TE{0, 0}, 5}
 
 # `\x -> L1 (L2 x)`, two raises the loader cannot fuse (L1 at 1, L2 at
-# 5): demanded at the result, the walk climbs L1, L2 and steps into the
-# variable, the frontier (cells-freeze.sharing.cursors.growth)
+# 5): demanded at the result, the climb passes L1, L2 and the function
+# to the interface, the start finished, the frontier answered with no
+# walk; a pair on the climb (id_redex) leaves the walk to run
+# (cells-freeze.sharing.cursors.growth.finished)
 def lift(+n: U32) -> T.TNode:
   T.TN{R.KLift{}, V.PLift{n, True{}, 1}}
 
 def two_lifts() -> T.Tpl:
   T.Tpl{[fn(), lift(1), lift(5)], [ln(0, 1, 1, 1), ln(1, 0, 2, 1), ln(2, 0, 0, 2)], T.TE{0, 0}, 3}
 
-# L2 marked as a copy's (kprim.bend's mark): the climb meets it, and the
-# frontier is answered with no walk, which the walk would have reached
+# L2 marked as a copy's (kprim.bend's mark): the climb stops at it, the
+# frontier answered with no walk
 def marked_at.r(r: P.H & U32, +x: U32) -> P.H:
   (h, +hd) = r
   P.wr(h, x, P.mark(hd))
@@ -141,7 +143,8 @@ def main() -> String:
     check(at(cur_redex(), 33), "cursor 44", "cur_redex") ++
     check(at(const_redex(), 34), "static", "const_redex's variable") ++
     check(at_h(era_at.r(P.node(KN.load(const_redex()), P.hd(6, 0), 0), 34), 34), "static", "const_redex's variable, a node") ++
-    check(at(two_lifts(), 33), "front 37", "two_lifts, walked") ++
+    check(at(two_lifts(), 33), "front 37", "two_lifts") ++
     check(at_h(two_lifts_marked(), 33), "front 37", "two_lifts, L2 marked") ++
-    check(show(Q.positioned(KN.load(two_lifts()), 33, 16n, 0n)), "stop out of fuel", "two_lifts, no fuel to walk") ++
-    check(show(Q.positioned(two_lifts_marked(), 33, 16n, 0n)), "front 37", "two_lifts, L2 marked, no walk needed"))
+    check(show(Q.positioned(KN.load(two_lifts()), 33, 16n, 0n)), "front 37", "two_lifts, climbed to the root, no fuel to walk") ++
+    check(show(Q.positioned(two_lifts_marked(), 33, 16n, 0n)), "front 37", "two_lifts, L2 marked, no fuel to walk") ++
+    check(show(Q.positioned(KN.load(id_redex()), 33, 16n, 0n)), "stop out of fuel", "id_redex, a pair on the climb, the walk run with no fuel"))
