@@ -428,7 +428,19 @@ one, is tried at `bridge-recursion`.
        table and the interpreter; kept by copies and fusion, the copied
        mark's form bit apart; `compose` admitting the window under a
        safe absorber); trusting it wants the paper's proof checked
-       against glam's translation, or a model of nets with lambdas;
+       against glam's translation, or a model of nets with lambdas.
+       Parked 2026-11-22 with the rest of the step, the paper not to
+       hand; the maintainer: "IIUC, we'd need to ensure the assumed
+       safety property at Net value boundaries. We'll park it for now,
+       but we might revisit later. The savings is big enough to seek out
+       the paper or even re-derive the safety we'd need in context." The
+       boundaries are where a net becomes a value or a value a net: a
+       tree frozen into a template (`freeze`, finished trees cached), a
+       template spliced into a host, a cell's source served through
+       cursors, data holding a net. A template's format carries no
+       safety bit, and a spliced copy's controls are new to the host, so
+       the safety a control has earned, or the host's controls assume of
+       it, must be kept or re-derived across each;
      - stratified lowering of the builder (`pairing-overhead.stratify`):
        an elementary term's cells box nothing, so no stack forms, but
        the walk's recursion is not elementary: a mixed regime, research.
