@@ -1477,6 +1477,311 @@ def remove.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: 
 def Laws.remove_tree(w, a, d, s, I, x, k, hf, hd32, hr, hi, hl, hx):
   remove.m(w, a, d, s, I, x, k, hf, hd32, hr, hi, hl, hx, LAT.mirror(U32, w))
 
+# Insert
+# ======
+
+# a branch's header, for each of the 32 bits it may test: a branch's,
+# decoding to its bit, its payload in word 3; the checker's evaluation,
+# case by case
+def hd_ok(+c: Nat, +h: {Nat.is_lt(c, 32n) == True{} : Bool}) -> {Bool.and(X.ix.branch(X.ix.hd(c)), Bool.and(Nat.is_eq(X.ix.bitof(X.ix.hd(c)), c), U32.is_eq(P.node.word(X.ix.hd(c)), 3))) == True{} : Bool}:
+  match c:
+    case 0n:
+      {==}
+    case 1n+(+c1):
+      match c1:
+        case 0n:
+          {==}
+        case 1n+(+c2):
+          match c2:
+            case 0n:
+              {==}
+            case 1n+(+c3):
+              match c3:
+                case 0n:
+                  {==}
+                case 1n+(+c4):
+                  match c4:
+                    case 0n:
+                      {==}
+                    case 1n+(+c5):
+                      match c5:
+                        case 0n:
+                          {==}
+                        case 1n+(+c6):
+                          match c6:
+                            case 0n:
+                              {==}
+                            case 1n+(+c7):
+                              match c7:
+                                case 0n:
+                                  {==}
+                                case 1n+(+c8):
+                                  match c8:
+                                    case 0n:
+                                      {==}
+                                    case 1n+(+c9):
+                                      match c9:
+                                        case 0n:
+                                          {==}
+                                        case 1n+(+c10):
+                                          match c10:
+                                            case 0n:
+                                              {==}
+                                            case 1n+(+c11):
+                                              match c11:
+                                                case 0n:
+                                                  {==}
+                                                case 1n+(+c12):
+                                                  match c12:
+                                                    case 0n:
+                                                      {==}
+                                                    case 1n+(+c13):
+                                                      match c13:
+                                                        case 0n:
+                                                          {==}
+                                                        case 1n+(+c14):
+                                                          match c14:
+                                                            case 0n:
+                                                              {==}
+                                                            case 1n+(+c15):
+                                                              match c15:
+                                                                case 0n:
+                                                                  {==}
+                                                                case 1n+(+c16):
+                                                                  match c16:
+                                                                    case 0n:
+                                                                      {==}
+                                                                    case 1n+(+c17):
+                                                                      match c17:
+                                                                        case 0n:
+                                                                          {==}
+                                                                        case 1n+(+c18):
+                                                                          match c18:
+                                                                            case 0n:
+                                                                              {==}
+                                                                            case 1n+(+c19):
+                                                                              match c19:
+                                                                                case 0n:
+                                                                                  {==}
+                                                                                case 1n+(+c20):
+                                                                                  match c20:
+                                                                                    case 0n:
+                                                                                      {==}
+                                                                                    case 1n+(+c21):
+                                                                                      match c21:
+                                                                                        case 0n:
+                                                                                          {==}
+                                                                                        case 1n+(+c22):
+                                                                                          match c22:
+                                                                                            case 0n:
+                                                                                              {==}
+                                                                                            case 1n+(+c23):
+                                                                                              match c23:
+                                                                                                case 0n:
+                                                                                                  {==}
+                                                                                                case 1n+(+c24):
+                                                                                                  match c24:
+                                                                                                    case 0n:
+                                                                                                      {==}
+                                                                                                    case 1n+(+c25):
+                                                                                                      match c25:
+                                                                                                        case 0n:
+                                                                                                          {==}
+                                                                                                        case 1n+(+c26):
+                                                                                                          match c26:
+                                                                                                            case 0n:
+                                                                                                              {==}
+                                                                                                            case 1n+(+c27):
+                                                                                                              match c27:
+                                                                                                                case 0n:
+                                                                                                                  {==}
+                                                                                                                case 1n+(+c28):
+                                                                                                                  match c28:
+                                                                                                                    case 0n:
+                                                                                                                      {==}
+                                                                                                                    case 1n+(+c29):
+                                                                                                                      match c29:
+                                                                                                                        case 0n:
+                                                                                                                          {==}
+                                                                                                                        case 1n+(+c30):
+                                                                                                                          match c30:
+                                                                                                                            case 0n:
+                                                                                                                              {==}
+                                                                                                                            case 1n+(+c31):
+                                                                                                                              match c31:
+                                                                                                                                case 0n:
+                                                                                                                                  {==}
+                                                                                                                                case 1n+(+c32):
+                                                                                                                                  match c32:
+                                                                                                                                    case 0n:
+                                                                                                                                      Empty.absurd({Bool.and(X.ix.branch(X.ix.hd(32n)), Bool.and(Nat.is_eq(X.ix.bitof(X.ix.hd(32n)), 32n), U32.is_eq(P.node.word(X.ix.hd(32n)), 3))) == True{} : Bool}, MB.false_ne_true()(h))
+                                                                                                                                    case 1n+(+c33):
+                                                                                                                                      Empty.absurd({Bool.and(X.ix.branch(X.ix.hd(33n+c33)), Bool.and(Nat.is_eq(X.ix.bitof(X.ix.hd(33n+c33)), 33n+c33), U32.is_eq(P.node.word(X.ix.hd(33n+c33)), 3))) == True{} : Bool}, MB.false_ne_true()(h))
+
+def le_refl_b(+i: Nat) -> {Nat.is_le(i, i) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+(+j):
+      le_refl_b(j)
+
+def le_add_b(+q: Nat, +i: Nat) -> {Nat.is_le(i, Nat.add(q, i)) == True{} : Bool}:
+  match q:
+    case 0n:
+      le_refl_b(i)
+    case 1n+(+r):
+      le_trans_b(i, Nat.add(r, i), 1n+Nat.add(r, i), le_add_b(r, i), le_succ_b(Nat.add(r, i)))
+
+def lt_of_le(+i: Nat, +n: Nat, +h: {Nat.is_le(i, n) == True{} : Bool}) -> {Nat.is_lt(i, 1n+n) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+(+j):
+      match n:
+        case 0n:
+          Empty.absurd({Nat.is_lt(1n+j, 1n) == True{} : Bool}, MB.false_ne_true()(h))
+        case 1n+(+m):
+          lt_of_le(j, m, h)
+
+# a scan from bit i that stopped, stopped below i plus its fuel
+def crit_lt(+f: Nat, +i: Nat, +a: U32, +b: U32, +eq: Bool, +heq: {X.ix.same(X.ix.side(a, i), X.ix.side(b, i)) == eq : Bool},
+  +hg: {IM.cr.go(X.ix.crit(f, X.Cr{i, True{}}, a, b)) == False{} : Bool}) ->
+  {Nat.is_lt(IM.cr.i(X.ix.crit(f, X.Cr{i, True{}}, a, b)), Nat.add(f, i)) == True{} : Bool}:
+  match f:
+    case 0n:
+      Empty.absurd({Nat.is_lt(i, i) == True{} : Bool}, MB.true_ne_false()(hg))
+    case 1n+(+q):
+      match eq:
+        case True{}:
+          %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), True{}, heq) :
+            {Nat.is_lt(IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b)), 1n+Nat.add(q, i)) == True{} : Bool}
+          %MN.add_succ(q, i) : {Nat.is_lt(IM.cr.i(X.ix.crit(q, X.Cr{1n+i, True{}}, a, b)), _) == True{} : Bool}
+          crit_lt(q, 1n+i, a, b, X.ix.same(X.ix.side(a, 1n+i), X.ix.side(b, 1n+i)), {==},
+            ME.subst(Bool, z => {IM.cr.go(X.ix.crit(q, X.cr.k(z, i), a, b)) == False{} : Bool}, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), True{}, heq, hg))
+        case False{}:
+          %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), False{}, heq) :
+            {Nat.is_lt(IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b)), 1n+Nat.add(q, i)) == True{} : Bool}
+          %Equal.sym(X.Cr, X.ix.crit(q, X.Cr{i, False{}}, a, b), X.Cr{i, False{}}, crit_stays(q, i, a, b)) :
+            {Nat.is_lt(IM.cr.i(_), 1n+Nat.add(q, i)) == True{} : Bool}
+          lt_of_le(i, Nat.add(q, i), le_add_b(q, i))
+
+# the bit a scan of unequal keys stops at, below 32
+def diff_lt(+a: U32, +b: U32, +hg: {IM.cr.go(X.ix.diff(a, b)) == False{} : Bool}) -> {Nat.is_lt(IM.cr.i(X.ix.diff(a, b)), 32n) == True{} : Bool}:
+  crit_lt(32n, 0n, a, b, X.ix.same(X.ix.side(a, 0n), X.ix.side(b, 0n)), {==}, hg)
+
+def cr_eta(+c: X.Cr) -> {c == X.Cr{IM.cr.i(c), IM.cr.go(c)} : X.Cr}:
+  match c:
+    case X.Cr{+i, +go}:
+      {==}
+
+# an insert's first descent: to the key its leaf holds (the model's near)
+def dsn.k(+sd: Bool, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +b: U32, +i: Nat, +k: U32, +g: Nat, +l: IM.Tr, +r: IM.Tr, +root: U32, +x: U32, +s: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +ihl: {X.ix.put.d(X.ds.run(g, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(l, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(l, k), root, k, x, s) : P.H},
+  +ihr: {X.ix.put.d(X.ds.run(g, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(r, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(r, k), root, k, x, s) : P.H}) ->
+  {X.ix.put.d(X.ds.run(g, X.ds.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(X.ix.side(k, i), b))), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) :
+        {X.ix.put.d(X.ds.run(g, X.ds.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b))), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 3 : U32)))), rd_eq(t0, a, (b + 3 : U32))) :
+        {X.ix.put.d(X.ds.run(g, X.ds.c(_), k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(r, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(r, k), root, k, x, s) : P.H}
+      %wd(t0, d, (b + 3 : U32), hft, hd32) : {X.ix.put.d(X.ds.run(g, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(r, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(r, k), root, k, x, s) : P.H}
+      ihr
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) :
+        {X.ix.put.d(X.ds.run(g, X.ds.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b))), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 2 : U32)))), rd_eq(t0, a, (b + 2 : U32))) :
+        {X.ix.put.d(X.ds.run(g, X.ds.c(_), k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(l, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(l, k), root, k, x, s) : P.H}
+      %wd(t0, d, (b + 2 : U32), hft, hd32) : {X.ix.put.d(X.ds.run(g, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(l, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(l, k), root, k, x, s) : P.H}
+      ihl
+
+def dsn(T: IM.Tr, f: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +k: U32, +p: U32, +lo: Nat, +root: U32, +x: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, p, s) == True{} : Bool}, +hok: {IM.tr.ok(T, lo) == True{} : Bool},
+  +hfu: {Nat.is_le(33n, Nat.add(f, lo)) == True{} : Bool}) ->
+  {X.ix.put.d(X.ds.run(f, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, p, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(T, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(T, k), root, k, x, s) : P.H}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      match f:
+        case 0n:
+          Empty.absurd({X.ix.put.d(X.ds.run(0n, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, p, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(IM.Lf{y, ky}, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(IM.Lf{y, ky}, k), root, k, x, s) : P.H}, MB.false_ne_true()(le_trans_b(33n, lo, 32n, hfu, hok)))
+        case 1n+(+q):
+          +h1 = and_r(U32.is_eq(p, y), Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))) && (U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s)), hre)
+          +h2 = and_r(Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s), h1)
+          +hpy = MS.u32_eq_of_is_eq(p, y, and_l(U32.is_eq(p, y), Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))) && (U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s)), hre))
+          +hnb = not_true(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), and_l(Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s), h1))
+          +hk2 = MS.u32_eq_of_is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky, and_l(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s), h2))
+          %Equal.sym(U32, p, y, hpy) : {X.ix.put.d(X.ds.run(1n+q, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), y))), rd_eq(t0, a, y)) :
+            {X.ix.put.d(X.ds.run(q, X.ds.hd(_, y, k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %wd(t0, d, y, hft, hd32) : {X.ix.put.d(X.ds.run(q, X.ds.k(X.ix.branch(_), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y, X.ix.bitof(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), y))), k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %Equal.sym(Bool, X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), False{}, hnb) :
+            {X.ix.put.d(X.ds.run(q, X.ds.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y, X.ix.bitof(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), y))), k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %Equal.sym(X.Ds, X.ds.run(q, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y, False{}}, k), X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y, False{}}, ds_stays(q, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y, k)) :
+            {X.ix.put.d(_, root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (y + 2 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (y + 2 : U32)))), rd_eq(t0, a, (y + 2 : U32))) :
+            {X.ix.put.l(_, root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %wd(t0, d, (y + 2 : U32), hft, hd32) : {X.ix.put.n(U32.is_eq(_, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky, hk2) : {X.ix.put.n(U32.is_eq(_, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, root, k, x, s) == X.ix.put.n(U32.is_eq(ky, k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, ky, root, k, x, s) : P.H}
+          {==}
+    case IM.Br{+b, +i, +l, +r}:
+      match f:
+        case 0n:
+          Empty.absurd({X.ix.put.d(X.ds.run(0n, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, p, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(IM.tr.near(IM.Br{b, i, l, r}, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(IM.Br{b, i, l, r}, k), root, k, x, s) : P.H},
+            MB.false_ne_true()(le_trans_b(33n, 1n+i, 32n, le_trans_b(33n, lo, 1n+i, hfu, le_trans_b(lo, i, 1n+i,
+              and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok), le_succ_b(i))),
+              lt_le(i, 32n, and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok))))))
+        case 1n+(+q):
+          +r1 = and_r(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre)
+          +r2 = and_r(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +r3 = and_r(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2)
+          +o1 = and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok)
+          +o4 = and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), o1)))
+          +hpb = MS.u32_eq_of_is_eq(p, b, and_l(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre))
+          +hbr = and_l(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +hbi = MN.eq_of_is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, and_l(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2))
+          +hfg = fuel_down(q, lo, i, hfu, and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok))
+          %Equal.sym(U32, p, b, hpb) : {X.ix.put.d(X.ds.run(1n+q, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, True{}}, k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), b))), rd_eq(t0, a, b)) :
+            {X.ix.put.d(X.ds.run(q, X.ds.hd(_, b, k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+          %wd(t0, d, b, hft, hd32) : {X.ix.put.d(X.ds.run(q, X.ds.k(X.ix.branch(_), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b, X.ix.bitof(_), k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+          %Equal.sym(Bool, X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), True{}, hbr) :
+            {X.ix.put.d(X.ds.run(q, X.ds.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+          %Equal.sym(Nat, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, hbi) :
+            {X.ix.put.d(X.ds.run(q, X.ds.k(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b, _, k), k), root, k, x, s) == X.ix.put.n(U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), root, k, x, s) : P.H}
+          dsn.k(X.ix.side(k, i), t0, a, d, b, i, k, q, l, r, root, x, s, {==}, hft, hd32,
+            dsn(l, q, t0, a, d, s, k, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), 1n+i, root, x, hft, hd32, and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg),
+            dsn(r, q, t0, a, d, s, k, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), 1n+i, root, x, hft, hd32, and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg))
+
+# k absent from a tree: the key its descent meets is not k
+def nn.k(+sd: Bool, +k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +ha: {IM.mb.pick(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k)) == None{} : Maybe<&2, U32>},
+  ihl: {IM.tr.look(l, k) == None{} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.near(l, k), k) == False{} : Bool},
+  ihr: {IM.tr.look(r, k) == None{} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.near(r, k), k) == False{} : Bool}) ->
+  {U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k) == False{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) : {U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k) == False{} : Bool}
+      ihr(ME.subst(Bool, z => {IM.mb.pick(z, IM.tr.look(r, k), IM.tr.look(l, k)) == None{} : Maybe<&2, U32>}, X.ix.side(k, i), True{}, hsd, ha))
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) : {U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k) == False{} : Bool}
+      ihl(ME.subst(Bool, z => {IM.mb.pick(z, IM.tr.look(r, k), IM.tr.look(l, k)) == None{} : Maybe<&2, U32>}, X.ix.side(k, i), False{}, hsd, ha))
+
+def hit_none(+b: Bool, +y: U32, +h: {IM.mb.hit(b, y) == None{} : Maybe<&2, U32>}) -> {b == False{} : Bool}:
+  match b:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MB.true_ne_false()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), Some{y}, None{}, h)))
+    case False{}:
+      {==}
+
+def near_ne(T: IM.Tr, +k: U32, +ha: {IM.tr.look(T, k) == None{} : Maybe<&2, U32>}) -> {U32.is_eq(IM.tr.near(T, k), k) == False{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      hit_none(U32.is_eq(ky, k), y, ha)
+    case IM.Br{+b, +i, +l, +r}:
+      nn.k(X.ix.side(k, i), k, i, l, r, {==}, ha, hl => near_ne(l, k, hl), hr => near_ne(r, k, hr))
+
 # Lookups
 # =======
 

@@ -75,7 +75,7 @@ def ix.same(+p: Bool, +q: Bool) -> Bool:
 
 # a scan of two keys' bits from the lowest: the bit it is at, and whether
 # the keys have agreed so far
-type Cr is Type:
+type Cr is Data:
   Cr{+i: Nat, +go: Bool}
 
 def cr.k(+eq: Bool, +i: Nat) -> Cr:
