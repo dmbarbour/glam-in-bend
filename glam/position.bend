@@ -131,6 +131,71 @@ def pd.v(r: P.H & U32, +q: U32, +acc: U32) -> PdS:
   (h, +hd) = r
   pd.v.k(U32.is_eq(P.rk(hd), 18), U32.is_eq((P.rk(hd) .|. 1 : U32), 7), h, q, acc)
 
+# A walk's climb known in advance (cells-freeze.sharing.cursors.growth):
+# a walk climbs from its start by principal-on-auxiliary links, no pair
+# among them, until something can reduce or it reaches what a copy holds.
+# A control a copy has taken is marked (kprim.bend's mark,
+# `copied-nodes-untouched`) and finished; a climb that meets one ends at
+# the frontier, state 7, with no interaction, every time over the ladder
+# and the cursor workloads (826 walks measured, none otherwise). A folded
+# list in a source climbs so at every element, a chain of copies of the
+# fold function a cell deep, each walk to its top; the climb looked at
+# here is at most pd.climb_most() nodes, marked controls joining it
+# within five, and else the walk runs.
+def pd.climb_most() -> Nat:
+  8n
+
+type Cl is Type:
+  Cl{h: P.H, +x: U32, +hit: Bool, +go: Bool}
+
+# node x reached: is it a marked control?
+def cl.hd(r: P.H & U32, +x: U32) -> Cl:
+  (h, +hd) = r
+  Cl{h, x, (U32.is_eq(P.rk(hd), 10) || U32.is_eq(P.rk(hd), 11)) && P.marked(hd), True{}}
+
+def cl.peer.k(+aux: Bool, h: P.H, +q: U32) -> Cl:
+  match aux:
+    case True{}:
+      cl.hd(P.rd(h, P.base(q)), P.base(q))
+    case False{}:
+      Cl{h, 0, False{}, False{}}
+
+# the peer q of the node's principal port: on to its node if q is an
+# auxiliary port, else the climb stops, a pair or a static
+def cl.peer(r: P.H & U32) -> Cl:
+  (h, +q) = r
+  cl.peer.k(Bool.not(P.is_static(q)) && U32.is_ne((q .&. 3 : U32), 0), h, q)
+
+def cl.step.k(+stop: Bool, h: P.H, +x: U32, +hit: Bool) -> Cl:
+  match stop:
+    case True{}:
+      Cl{h, x, hit, False{}}
+    case False{}:
+      cl.peer(P.rd(h, (x + 1 : U32)))
+
+def cl.step(c: Cl) -> Cl:
+  match c:
+    case Cl{h, +x, +hit, +go}:
+      cl.step.k(hit || Bool.not(go), h, x, hit)
+
+def cl.run(k: Nat, c: Cl) -> Cl:
+  match k:
+    case 0n:
+      c
+    case 1n+g:
+      cl.run(g, cl.step(c))
+
+# the climb met a marked control: the frontier, as the walk would end, no
+# walk made; else the walk from b
+def pd.climbed(c: Cl, +b: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
+  match c:
+    case Cl{h, +x, +hit, +go}:
+      match hit:
+        case True{}:
+          PdEnd{pd.peer.r(pd.peer(h, pos), acc)}
+        case False{}:
+          pd.ended(pd.walk(h, b, f), pos, acc)
+
 def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   match st:
     case True{}:
@@ -140,7 +205,7 @@ def pd.q.k(+st: Bool, +pr: Bool, h: P.H, +q: U32, +pos: U32, +f: Nat, +acc: U32)
         case True{}:
           pd.v(P.rd(h, P.base(q)), q, acc)
         case False{}:
-          pd.ended(pd.walk(h, P.base(q), f), pos, acc)
+          pd.climbed(cl.run(pd.climb_most(), Cl{h, P.base(q), False{}, True{}}), P.base(q), pos, f, acc)
 
 def pd.q(r: P.H & U32, +pos: U32, +f: Nat, +acc: U32) -> PdS:
   (h, +q) = r
