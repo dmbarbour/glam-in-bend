@@ -438,6 +438,26 @@ named, and marked there when a rung is built.
       `lower.split`, `desugar.without` over the parameters), so names in
       one scope grow it too, not definitions alone
       (`cells-freeze.sharing.cursors`).
+    - `ladder-measure.roi` — planned — whether the instructions buy
+      enough, and what to trim (the maintainer, 2026-11-22: "I am
+      concerned at the number of instructions growing out of control.
+      In the spike, IIRC we were managing a few hundred instructions per
+      interaction. ... Even with steps being tens of interactions, that's
+      a steep climb, and we should soon review whether we're getting an
+      adequate ROI and what we can trim."). Where it stands, 2026-11-22:
+      the kernel's own workloads cost 590 to 940 instructions an
+      interaction in the default build (store run 337: `lvl` 593, `succ`
+      638, `fma` 936; on demand 712 and 777); the cursor workload `seq`
+      at 1,600 elements costs 189K instructions an element, flat since
+      `cells-freeze.sharing.cursors.growth`, for about 25 interactions,
+      6 cursor interactions, 28 nodes spliced, 2 serves and 3 splices
+      an element: about 7,600 an interaction in all, about 70K of it
+      the program's text (`ladder-measure.names`) and the rest, near
+      4,800 an interaction, the cells' machinery (serving, splicing,
+      positioned demand, the core's frames). The review: where each
+      element's instructions go, by layer; what each layer's work buys
+      against what it costs; what can be trimmed, cached or left out;
+      and what a target per interaction should be.
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's
