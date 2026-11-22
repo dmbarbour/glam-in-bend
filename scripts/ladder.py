@@ -39,7 +39,8 @@ with `--refreeze`: each template loaded and frozen back before the run
 (glam/freeze.bend, the Cells plan's cells-freeze.cursors). It must write
 the same bytes and report the same counts as the plain run. Then each
 unit test of TESTS runs, `bend` printing `"ok"` alone, its pass kept as
-the build is while its inputs are unchanged. Last, each sample of
+the build is while its inputs are unchanged; those of NATIVE, too slow
+for Bend's interpreter, built and run as programs. Last, each sample of
 NO_REWALK must report no step walked again (cells-freeze.rewalk): a
 frame meeting a need on the spot in its source goes on with its walk.
 
@@ -78,7 +79,9 @@ HELLO = b"Hello, World!"
 TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
          os.path.join(ROOT, "glam", "test_position.bend"),
          os.path.join(ROOT, "glam", "test_materialize.bend"), os.path.join(ROOT, "glam", "test_mark.bend"),
-         os.path.join(ROOT, "glam", "test_index.bend")]
+         os.path.join(ROOT, "glam", "test_index.bend"), os.path.join(ROOT, "glam", "test_index_model.bend")]
+# tests too slow for Bend's interpreter, built and run as native programs
+NATIVE = {os.path.join(ROOT, "glam", "test_index_model.bend")}
 
 
 def build(fresh):
@@ -352,8 +355,16 @@ def unit_test(path):
         with open(keyfile) as f:
             if f.read().strip() == key:
                 return None
-    r = subprocess.run([os.path.join(HERE, "capped.sh"), "2000", "300", bend, path],
-                       capture_output=True, text=True)
+    if path in NATIVE:
+        exe = os.path.join(ROOT, "results", "build", os.path.basename(path)[:-len(".bend")])
+        b = subprocess.run([os.path.join(HERE, "capped.sh"), "4000", "600", bend, path, "-o", exe],
+                           capture_output=True, text=True)
+        if b.returncode != 0 or not os.path.exists(exe):
+            return f"FAIL {os.path.relpath(path, ROOT)}: the build failed: {(b.stdout + b.stderr).strip()[-600:]}"
+        cmd = [os.path.join(HERE, "capped.sh"), "2000", "120", exe]
+    else:
+        cmd = [os.path.join(HERE, "capped.sh"), "2000", "300", bend, path]
+    r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0 or r.stdout.strip() != '"ok"':
         return f"FAIL {os.path.relpath(path, ROOT)}: {(r.stdout + r.stderr).strip()[-600:]}"
     with open(keyfile, "w") as f:
