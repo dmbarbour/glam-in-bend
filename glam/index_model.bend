@@ -304,3 +304,104 @@ def ix.branches(I: Ix) -> List<&2, U32>:
       []
     case Has{t}:
       tr.branches(t)
+
+def tr.nodes(t: Tr) -> List<&2, U32>:
+  match t:
+    case Lf{+x, +k}:
+      [x]
+    case Br{+b, +i, l, r}:
+      Con{b, List.append(&2, U32, tr.nodes(l), tr.nodes(r))}
+
+def ix.nodes(I: Ix) -> List<&2, U32>:
+  match I:
+    case Ept{}:
+      []
+    case Has{t}:
+      tr.nodes(t)
+
+# Layout: the tree's nodes laid out apart (the ring's RG.layout, stated on
+# the tree so that a split of its nodes is a computation): each node's
+# four words in four slots, none the free list's head's, no two nodes
+# sharing a slot
+
+# no two of ws in one slot (the ring's RG.apartw)
+def ws.apart(ws: List<&2, U32>, +d: Nat) -> Bool:
+  match ws:
+    case Nil{}:
+      True{}
+    case Con{+v, +t}:
+      KMd.off.words(t, d, v) && ws.apart(t, d)
+
+# word j in no node of t
+def tr.off(t: Tr, +d: Nat, +j: U32) -> Bool:
+  match t:
+    case Lf{+x, +k}:
+      KMd.off.words(KMd.nw(x), d, j)
+    case Br{+b, +i, l, r}:
+      KMd.off.words(KMd.nw(b), d, j) && (tr.off(l, d, j) && tr.off(r, d, j))
+
+# node a's words in no node of t
+def tr.offn(+t: Tr, +d: Nat, +a: U32) -> Bool:
+  tr.off(t, d, a) && (tr.off(t, d, (a + 1 : U32)) && (tr.off(t, d, (a + 2 : U32)) && tr.off(t, d, (a + 3 : U32))))
+
+# every node of l apart from every node of r
+def tr.apart(l: Tr, +r: Tr, +d: Nat) -> Bool:
+  match l:
+    case Lf{+x, +k}:
+      tr.offn(r, d, x)
+    case Br{+b, +i, l2, r2}:
+      tr.offn(r, d, b) && (tr.apart(l2, r, d) && tr.apart(r2, r, d))
+
+# a node's own: its reference its base, as a free of it takes (P.free);
+# its words in four slots, none the free list's head's
+def nd.ok(+a: U32, +d: Nat) -> Bool:
+  U32.is_eq(P.base(a), a) && (ws.apart(KMd.nw(a), d) && KMd.off.words(KMd.nw(a), d, P.at_fh()))
+
+def tr.lay(t: Tr, +d: Nat) -> Bool:
+  match t:
+    case Lf{+x, +k}:
+      nd.ok(x, d)
+    case Br{+b, +i, +l, +r}:
+      nd.ok(b, d) && (tr.offn(l, d, b) && (tr.offn(r, d, b) && (tr.apart(l, r, d) && (tr.lay(l, d) && tr.lay(r, d)))))
+
+# the situating node and the tree laid out apart
+def ix.lay(I: Ix, +s: U32, +d: Nat) -> Bool:
+  match I:
+    case Ept{}:
+      nd.ok(s, d)
+    case Has{+t}:
+      nd.ok(s, d) && (tr.offn(t, d, s) && tr.lay(t, d))
+
+# A removal's writes, as the model gives them (X.rm.run): the word loc
+# holding the pointer to x's parent, the parent par, freed, and x's
+# sibling sib, written at loc; loc the word holding t's pointer
+type Cut is Data:
+  Cut{+loc: U32, +par: U32, +sib: U32}
+
+def cut.r(+hit: Bool, +b: U32, +al: U32, +loc: U32, cr: Cut) -> Cut:
+  match hit:
+    case True{}:
+      Cut{loc, b, al}
+    case False{}:
+      cr
+
+def cut.l(+hit: Bool, +b: U32, +ar: U32, +loc: U32, cl: Cut) -> Cut:
+  match hit:
+    case True{}:
+      Cut{loc, b, ar}
+    case False{}:
+      cl
+
+def cut.at.k(+sd: Bool, +b: U32, +l: Tr, +r: Tr, +x: U32, +loc: U32, cl: Cut, cr: Cut) -> Cut:
+  match sd:
+    case True{}:
+      cut.r(U32.is_eq(tr.addr(r), x), b, tr.addr(l), loc, cr)
+    case False{}:
+      cut.l(U32.is_eq(tr.addr(l), x), b, tr.addr(r), loc, cl)
+
+def tr.cutat(t: Tr, +x: U32, +k: U32, +loc: U32) -> Cut:
+  match t:
+    case Lf{+y, +ky}:
+      Cut{loc, 0, 0}
+    case Br{+b, +i, +l, +r}:
+      cut.at.k(X.ix.side(k, i), b, l, r, x, loc, tr.cutat(l, x, k, X.ix.kid(False{}, b)), tr.cutat(r, x, k, X.ix.kid(True{}, b)))

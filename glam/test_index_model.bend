@@ -178,7 +178,7 @@ def ck.finds(ps: List<&2, Kx>, r: P.H & String, +s: U32, +I: M.Ix) -> P.H & Stri
 def ck.view(w: Vw, +s: U32, +I: M.Ix) -> P.H & String:
   match w:
     case Vw{h, +v, +d}:
-      (h, ck.k(M.ix.real(v, d, s, I), "not realized; ") ++ ck.k(M.ix.inv(I), "invariant broken; "))
+      (h, ck.k(M.ix.real(v, d, s, I), "not realized; ") ++ ck.k(M.ix.inv(I), "invariant broken; ") ++ ck.k(M.ix.lay(I, s, d), "not laid out; "))
 
 def ck.absent(r: P.H & Maybe<&2, U32>, +ml: Maybe<&2, U32>, +k: U32) -> P.H & String:
   (h, +got) = r
@@ -277,14 +277,39 @@ def rem.e(r: P.H & String, +e0: String, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps
   (h, +e) = r
   St{h, s, I, ps, seed, fault(e0 ++ e), "remove " ++ U32.show(k) ++ " at " ++ U32.show(x) ++ ": " ++ e0 ++ e}
 
-def rem.f(r: P.H & U32, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
+def cut.of(I: M.Ix, +x: U32, +k: U32, +s: U32) -> M.Cut:
+  match I:
+    case M.Ept{}:
+      M.Cut{0, 0, 0}
+    case M.Has{+t}:
+      M.tr.cutat(t, x, k, (s + 3 : U32))
+
+def cut.ck(r: P.H & U32, +c: M.Cut, +par: Maybe<&2, U32>) -> P.H & String:
+  (h, +w) = r
+  match c:
+    case M.Cut{+loc, +cp, +sib}:
+      (h, ck.k(Bool.not(is_some(par)) || (meq(par, Some{cp}) && U32.is_eq(w, sib)), "cut: loc " ++ U32.show(loc) ++ " holds " ++ U32.show(w) ++ ", sib " ++ U32.show(sib) ++ ", par " ++ U32.show(cp) ++ "; "))
+
+def cut.loc(c: M.Cut) -> U32:
+  match c:
+    case M.Cut{+loc, +cp, +sib}:
+      loc
+
+def rem.f2(r: P.H & U32, +e0: String, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
   (h, +fh) = r
-  rem.e(ck.all(h, ps, s, k, M.ix.del(I, x, k)), rem.fh(fh, M.ix.par(I, x, k)), x, k, s, M.ix.del(I, x, k), ps, seed)
+  rem.e(ck.all(h, ps, s, k, M.ix.del(I, x, k)), e0 ++ rem.fh(fh, M.ix.par(I, x, k)), x, k, s, M.ix.del(I, x, k), ps, seed)
+
+def rem.c(r: P.H & String, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
+  (h, +e0) = r
+  rem.f2(P.rd(h, P.at_fh()), e0, x, k, s, I, ps, seed)
+
+def rem.w(h: P.H, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
+  rem.c(cut.ck(P.rd(h, cut.loc(cut.of(I, x, k, s))), cut.of(I, x, k, s), M.ix.par(I, x, k)), x, k, s, I, ps, seed)
 
 def rem.go(p: Kx, h: P.H, +j: Nat, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
   match p:
     case Kx{+x, +k}:
-      rem.f(P.rd(X.ix.remove(h, s, x), P.at_fh()), x, k, s, I, drop(ps, j), seed)
+      rem.w(X.ix.remove(h, s, x), x, k, s, I, drop(ps, j), seed)
 
 def step.k(+put: Bool, h: P.H, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
   match put:
