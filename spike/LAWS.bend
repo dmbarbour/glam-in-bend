@@ -141,6 +141,34 @@ law drop_run_splits:
   for +j: Nat
   {CT.drop(n, r, CT.drop(n, k, j)) == CT.drop(n, Nat.add(k, r), j) : Nat}
 
+# LAW: a control below a drop run's index keeps its index as it crosses
+# the run's units one by one: it meets each where it met the first, and
+# each leaves as the first did, so the run may be crossed whole, the
+# control at m and the run at its index through it (kprim.bend's
+# cross_whole; ctlwire.py --cross).
+# Record: drop-runs-fuse
+law drop_run_passed_below:
+  for +n: Nat
+  for +k: Nat
+  for +m: Nat
+  for +h: {CT.above(n, m) == True{} : Bool}
+  {CT.dunits(k, n, m) == m : Nat}
+
+# LAW: a control above a drop run's index by more than k is still above
+# it after crossing k of the run's units one by one. One at n + b or past
+# it never reaches n before the run's last unit: it crosses every unit,
+# none cancelled or peeled, each unit keeping n as it crosses a control
+# above it, so the run may be crossed whole, the control ending where
+# drop_units_are_run puts it. Above n by less than b, it reaches n
+# partway, the units left its partners: the run is peeled instead.
+# Record: drop-runs-fuse
+law drop_run_passed_above:
+  for +n: Nat
+  for +k: Nat
+  for +m: Nat
+  for +h: {CT.above(m, Nat.add(k, n)) == True{} : Bool}
+  {CT.above(CT.dunits(k, n, m), n) == True{} : Bool}
+
 # LAW: facing runs at one index, peeled, leave what their units would,
 # the inner pairs cancelling one by one.
 # Record: fuse-control-runs

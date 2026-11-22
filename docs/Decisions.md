@@ -210,11 +210,15 @@ where the shared lazy state that Bend cannot hold goes.
   frozen at a source's position is cached for later serves there, its
   space accounted and bounded against the time it saves.
 - [`fuse-control-runs`](decisions/fuse-control-runs.md): controls fuse
-  only into runs of raises, peeled where a facing control meets them at
-  their index; other fusion waits on a safety criterion.
+  only into runs, raises where each begins at the last's end, peeled
+  where a facing control meets them at their index; other fusion waits
+  on a safety criterion.
 - [`drops-stop-at-index`](decisions/drops-stop-at-index.md): a drop at n
   by b moves levels above n to max(n, j - b), never below its index, so
   no amount makes a level wrap.
+- [`drop-runs-fuse`](decisions/drop-runs-fuse.md): drops at one index
+  fuse into a run, which gives up a unit to a facing control that could
+  reach its index partway and is crossed whole by one that cannot.
 - [`header-kind-byte`](decisions/header-kind-byte.md): a node's header is
   a 6-bit kind, two bits of form and a 24-bit field.
 - [`fusions-as-components`](decisions/fusions-as-components.md): a fused

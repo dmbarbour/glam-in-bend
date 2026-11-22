@@ -27,6 +27,12 @@ fans pay an interaction a node copied (cells-freeze.sharing.copies).
 Work that needs no argument is done once, however many times it is
 used. A family marked `loss` is known not to share until its step is
 built, and fails once it shares, until the mark is removed.
+Then the growth families of glam/growth.txt: each sample's prefix,
+applied to a parenthesized argument, nested 16, 32 and 64 times under
+results/growth/, each size writing what the sample writes, and from 32
+to 64 an element costing at most the line's bound, counted as the
+sharing families count: a recursion's cost growing with its depth
+(cells-recursion.depth) fails it.
 
 Every hello sample and every size of a sharing family runs a third way,
 with `--refreeze`: each template loaded and frozen back before the run
@@ -61,6 +67,11 @@ LIST = os.path.join(ROOT, "glam", "ladder.txt")
 SHARING = os.path.join(ROOT, "glam", "sharing.txt")
 NESTED = os.path.join(ROOT, "results", "sharing")
 USES = (1, 2, 4, 8)
+# growth families (glam/growth.txt): each size nested, and the element's
+# cost read from the last two
+GROWTH = os.path.join(ROOT, "glam", "growth.txt")
+GROWN = os.path.join(ROOT, "results", "growth")
+SIZES = (16, 32, 64)
 SLACK_ITRS = 8
 EXE = os.path.join(ROOT, "results", "build", "glam")
 HELLO = b"Hello, World!"
@@ -214,6 +225,39 @@ def nested(path, prefix, n):
     return out
 
 
+def growths():
+    """(step, path, bound, prefix) for each line of glam/growth.txt"""
+    out = []
+    with open(GROWTH) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            step, path, bound, prefix = line.split(None, 3)
+            out.append((step, path, int(bound), prefix))
+    return out
+
+
+def grown(path, prefix, n):
+    """the sample with `prefix (...)` nested n times around its argument,
+    written under results/growth/; None where it is not met exactly once"""
+    with open(os.path.join(ROOT, path)) as f:
+        src = f.read()
+    at = re.compile(r"(?<![\w'.])" + re.escape(prefix) + r" \(([^()]*)\)")
+    if len(at.findall(src)) != 1:
+        return None
+    def wrap(m):
+        inner = m.group(1)
+        for _ in range(n):
+            inner = f"{prefix} ({inner})"
+        return inner
+    os.makedirs(GROWN, exist_ok=True)
+    out = os.path.join(GROWN, f"{os.path.basename(path)[:-2]}_{n}.g")
+    with open(out, "w") as f:
+        f.write(at.sub(wrap, src))
+    return out
+
+
 def counted(path, linked):
     """(stdout, interactions, splices, serves, cursor interactions, nodes
     spliced) of a run with --count; None on failure"""
@@ -275,6 +319,29 @@ def family(step, path, loss, prefix):
     return ("known loss" if loss else "ok") + f" {step} {path}: {said}"
 
 
+def growth(step, path, bound, prefix):
+    """the family's report, FAIL first where it went wrong"""
+    want = counted(os.path.join(ROOT, path), False)
+    if want is None:
+        return f"FAIL {step} {path}: the sample's run failed"
+    runs = {}
+    for n in SIZES:
+        src = grown(path, prefix, n)
+        if src is None:
+            return f"FAIL {step} {path}: `{prefix} (...)` must occur exactly once"
+        t = counted(src, False)
+        if t is None:
+            return f"FAIL {step} {path}: the run at {n} failed"
+        if t[0] != want[0]:
+            return f"FAIL {step} {path}: at {n} it writes {t[0]!r}, the sample {want[0]!r}"
+        runs[n] = t[1] + t[4] + t[5]
+    a, b = SIZES[-2], SIZES[-1]
+    per = (runs[b] - runs[a]) / (b - a)
+    said = (f"an element costs {per:g} interactions from {a} to {b}, at most {bound}; "
+            + ", ".join(f"{runs[n]} at {n}" for n in SIZES))
+    return ("ok" if per <= bound else "FAIL") + f" {step} {path}: {said}"
+
+
 def unit_test(path):
     """None if the test prints "ok" alone, its pass kept; else the failure"""
     bend = kept.bend_exe()
@@ -315,6 +382,13 @@ def main(args):
             bad_fs += 1
         elif loss:
             losses += 1
+    gs = growths()
+    bad_gs = 0
+    for step, path, bound, prefix in gs:
+        said = growth(step, path, bound, prefix)
+        print(said)
+        if said.startswith("FAIL"):
+            bad_gs += 1
     bad_ts = 0
     for t in TESTS:
         said = unit_test(t)
@@ -332,9 +406,10 @@ def main(args):
         else:
             print(f"ok cells-freeze.rewalk {path}: no step walked again")
     print(f"{len(ss)} samples, {failures} failing; {len(fs)} sharing families, "
-          f"{bad_fs} failing, {losses} known losses; {len(TESTS)} tests, {bad_ts} failing; "
+          f"{bad_fs} failing, {losses} known losses; {len(gs)} growth families, {bad_gs} failing; "
+          f"{len(TESTS)} tests, {bad_ts} failing; "
           f"{len(NO_REWALK)} without walking again, {bad_rw} failing")
-    return 1 if failures or bad_fs or bad_ts or bad_rw else 0
+    return 1 if failures or bad_fs or bad_gs or bad_ts or bad_rw else 0
 
 
 if __name__ == "__main__":

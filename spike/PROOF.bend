@@ -2598,6 +2598,77 @@ def Laws.drop_units_are_run(b, n, j):
       Equal.trans(Nat, CT.dunits(p, n, CT.drop(n, 1n, j)), CT.drop(n, p, CT.drop(n, 1n, j)), CT.drop(n, 1n+p, j),
         Laws.drop_units_are_run(p, n, CT.drop(n, 1n, j)), Laws.drop_run_splits(1n, p, n, j))
 
+# Drop runs crossed whole (drop-runs-fuse)
+# ----------------------------------------
+#
+# A control at m crossing a drop run's units one at a time, each unit at
+# n moving m as a drop by one: below n it never moves; above n by more
+# than the units crossed so far, it is still above n.
+
+# above is asymmetric
+def above_asym(a: Nat, b: Nat, e: {CT.above(a, b) == True{} : Bool}) -> {CT.above(b, a) == False{} : Bool}:
+  match a b:
+    case 0n _:
+      Empty.absurd({CT.above(b, 0n) == False{} : Bool}, MNat.internal_false_ne_true(e))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      above_asym(p, q, e)
+
+# above 1 + y is above y
+def above_pred(x: Nat, y: Nat, e: {CT.above(x, 1n+y) == True{} : Bool}) -> {CT.above(x, y) == True{} : Bool}:
+  match x y:
+    case 0n _:
+      Empty.absurd({CT.above(0n, y) == True{} : Bool}, MNat.internal_false_ne_true(e))
+    case 1n+a 0n:
+      {==}
+    case 1n+a 1n+b:
+      above_pred(a, b, e)
+
+# above p + n is above n
+def above_add(+x: Nat, +p: Nat, +n: Nat, e: {CT.above(x, Nat.add(p, n)) == True{} : Bool}) -> {CT.above(x, n) == True{} : Bool}:
+  match p:
+    case 0n:
+      e
+    case 1n+r:
+      above_add(x, r, n, above_pred(x, Nat.add(r, n), e))
+
+# above n, so is its successor
+def above_up(x: Nat, n: Nat, e: {CT.above(x, n) == True{} : Bool}) -> {CT.above(1n+x, n) == True{} : Bool}:
+  match x n:
+    case 0n _:
+      Empty.absurd({CT.above(1n, n) == True{} : Bool}, MNat.internal_false_ne_true(e))
+    case 1n+y 0n:
+      {==}
+    case 1n+y 1n+m:
+      above_up(y, m, e)
+
+# below n, each unit leaves the control where it was: the guard false
+def Laws.drop_run_passed_below(n, k, m, h):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      %Equal.sym(Bool, CT.above(m, n), False{}, above_asym(n, m, h)) :
+        {CT.dunits(p, n, CT.drop.go(_, n, m, 1n)) == m : Nat}
+      Laws.drop_run_passed_below(n, p, m, h)
+
+# above n + k + 1, the first unit lowers 1 + q to q, still above n + k
+def Laws.drop_run_passed_above(n, k, m, h):
+  match k m:
+    case 0n _:
+      h
+    case 1n+p 0n:
+      Empty.absurd({CT.above(CT.dunits(1n+p, n, 0n), n) == True{} : Bool}, MNat.internal_false_ne_true(h))
+    case 1n+p 1n+q:
+      +ha = above_add(q, p, n, h)
+      +hs = above_up(q, n, ha)
+      %Equal.sym(Bool, CT.above(1n+q, n), True{}, hs) :
+        {CT.above(CT.dunits(p, n, CT.drop.go(_, n, 1n+q, 1n)), n) == True{} : Bool}
+      %MNat.sub_zero_sym(q) : {CT.above(CT.dunits(p, n, Nat.max(n, _)), n) == True{} : Bool}
+      %Equal.sym(Nat, Nat.max(n, q), q, max_of_above(n, q, ha)) : {CT.above(CT.dunits(p, n, _), n) == True{} : Bool}
+      Laws.drop_run_passed_above(n, p, q, h)
+
 # over a Bool guard: raising by b in U32 is raising in Nat, when j + b fits
 def raise_g(g: Bool, +b: U32, +j: U32, h: MNat.lt(Nat.add(U32.to_nat(j), U32.to_nat(b)), Nat.pow(2n, 32n))) ->
   {U32.to_nat(P.lift.go(g, True{}, b, j)) == CT.raise.go(g, U32.to_nat(j), U32.to_nat(b)) : Nat}:
@@ -3227,22 +3298,33 @@ def Laws.raise_lift_drop(k, n, by, p, hn, hp):
     case V.PFan{f}:
       raise_lift_drop.fan(k, n, by, f, hn, hp)
 
-# a fusion on its test, raised
-def raise_ok(c: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
-  {V.compose.ok(c, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.ok(c, n1, b1, b2)) : V.Fuse}:
-  match c:
-    case True{}:
+# a fusion on its tests, raised: a raise run's, else a drop run's
+# (pairing-fusion.drops.kernel)
+def raise_or(c: Bool, d: Bool, +n1: U32, +b1: U32, +b2: U32, +k: U32) ->
+  {V.compose.or(V.compose.ok(c, U32.add(n1, k), b1, b2), d, U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose.or(V.compose.ok(c, n1, b1, b2), d, n1, b1, b2)) : V.Fuse}:
+  match c d:
+    case True{} True{}:
       {==}
-    case False{}:
+    case True{} False{}:
+      {==}
+    case False{} True{}:
+      {==}
+    case False{} False{}:
       {==}
 
+# the raise test carried through the raise as before, the drop test's
+# indices n2 + k and n1 + k compared as n2 and n1 (cmp_raise, n1 + k
+# fitting by h1)
 def Laws.raise_compose(k, n1, u1, b1, n2, u2, b2, h1, h2):
   +h1 = h1
+  +h2 = h2
   %add_swap(n1, k, b1, h1) :
-    {V.compose.ok(u1 && u2 && U32.is_eq(U32.add(n2, k), _), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+    {V.compose.or(V.compose.ok(u1 && u2 && U32.is_eq(U32.add(n2, k), _), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(U32.add(n2, k), U32.add(n1, k)), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
   %cmp_raise(n2, U32.add(n1, b1), k, h2, lt_add_raise(n1, b1, k, h1)) :
-    {V.compose.ok(u1 && u2 && Cmp.is_eq(_), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
-  raise_ok(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), n1, b1, b2, k)
+    {V.compose.or(V.compose.ok(u1 && u2 && Cmp.is_eq(_), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(U32.add(n2, k), U32.add(n1, k)), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  %cmp_raise(n2, n1, k, h2, lt_jk(n1, b1, k, h1)) :
+    {V.compose.or(V.compose.ok(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), U32.add(n1, k), b1, b2), Bool.not(u1) && Bool.not(u2) && Cmp.is_eq(_), U32.add(n1, k), b1, b2) == V.raise_fuse(k, V.compose(V.PLift{n1, u1, b1}, V.PLift{n2, u2, b2})) : V.Fuse}
+  raise_or(u1 && u2 && U32.is_eq(n2, U32.add(n1, b1)), Bool.not(u1) && Bool.not(u2) && U32.is_eq(n2, n1), n1, b1, b2, k)
 
 # The kernel's drop
 # =================

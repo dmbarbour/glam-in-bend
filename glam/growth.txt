@@ -1,0 +1,10 @@
+# The ladder's growth families, run by scripts/ladder.py in the gate: each
+# line a step, a sample, the most interactions an element may cost, and a
+# prefix. The sample holds the prefix once, applied to a parenthesized
+# argument holding no parentheses; the family nests it 16, 32 and 64
+# times around that argument, under results/growth/, each size run with
+# --count and writing what the sample writes. From 32 to 64 an element
+# may cost at most the bound, interactions, cursor interactions and nodes
+# spliced counted alike as the sharing families count them: a cost that
+# grows with the size, a quadratic, shows as an element costing more.
+cells-recursion.depth samples/hello/hello_scott_walk.g 38 cons ""

@@ -37,10 +37,15 @@ by 2 as well, a drop run's units are its unit drops (units), and with
 --peel a drop run meeting any facing control it does not equal gives up
 one unit to face it, the rest staying at n: a control crossing a drop
 run can reach the run's index partway, the units left then its partners
-(pairing-fusion.drops in docs/plans/NetPairing_2026-10-26.md).
+(pairing-fusion.drops in docs/plans/NetPairing_2026-10-26.md). With
+--cross, a control that cannot reach it so crosses the run whole: at a
+different index, no drop run, nor above the run's index by less than its
+length (pairing-fusion.drops.kernel). Two drop runs facing each give
+up a unit at once, as the kernel peels both sides of a pair against each
+other as they were.
 
-    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
-    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--drops] [--cross] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--drops] [--cross] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
 
 With --logical, a start fails instead when its fused reductions, each
 move counted as the logical interactions it stands for (Model.counted),
@@ -48,7 +53,9 @@ do not all total the interactions of its unit brackets reduced unfused
 (units), or when those depend on order: the logical interactions that
 heap-strategies.profile counts on whole nets.
 
-The kernel's rule: --peel --shapes 0. Its old fusion: --shapes 0,1,2,3,4,5.
+The kernel's rule: --peel --drops --cross --shapes 0,6 (before
+pairing-fusion.drops.kernel, --peel --shapes 0). Its old fusion: --shapes
+0,1,2,3,4,5.
 Without --drops, drops are by 1 only, as lowering emits. Memory grows with MAXLEN; run under
 scripts/capped.sh (length 4 exhaustive: about 0.7 GB, two minutes).
 """
@@ -92,15 +99,38 @@ def compose(first, second):
     return (n1, False, b2 - b1)
 
 
+def whole_ok(run, other):
+    """with --cross, may `other` cross the drop run `run` whole: at a
+    different index m, unless it is a drop run too, or above the run's
+    index by less than its length, n < m < n + by, where each unit it
+    crosses lowers it by one until it reaches n partway and faces the
+    units left there"""
+    _, n, up, by = run
+    _, m, u2, b2 = other
+    if up or by < 2 or m == n:
+        return False
+    if not u2 and b2 > 1:
+        return False
+    return not n < m < n + by
+
+
 class Model:
-    def __init__(self, shapes, peel):
-        self.shapes, self.peel = shapes, peel
+    def __init__(self, shapes, peel, cross=False):
+        self.shapes, self.peel, self.cross = shapes, peel, cross
+
+    def whole(self, a, b):
+        return whole_ok(a, b) or whole_ok(b, a)
 
     def facing(self, a, b):
         """C a then L b facing: what replaces them, and the unit
         logical interactions that stands for (--logical)"""
         if a[1:] == b[1:]:
             return (), a[3]
+        if self.cross and self.whole(a, b):
+            return (("L", lift(a, b[1]), b[2], b[3]), ("C", lift(b, a[1]), a[2], a[3])), a[3] * b[3]
+        if self.peel and not a[2] and a[3] > 1 and not b[2] and b[3] > 1:
+            rep, k = self.facing(("C", a[1], False, 1), ("L", b[1], False, 1))
+            return (("C", a[1], False, a[3] - 1),) + rep + (("L", b[1], False, b[3] - 1),), k
         if self.peel and not a[2] and a[3] > 1:
             rep, k = self.facing(("C", a[1], False, 1), b)
             return (("C", a[1], False, a[3] - 1),) + rep, k
@@ -227,9 +257,10 @@ def smaller(state):
 
 def main(argv):
     peel = "--peel" in argv
+    cross = "--cross" in argv
     logical = "--logical" in argv
     drops = "--drops" in argv
-    argv = [a for a in argv if a not in ("--peel", "--logical", "--drops")]
+    argv = [a for a in argv if a not in ("--peel", "--logical", "--drops", "--cross")]
     shapes = {0, 1, 2, 3, 4, 5}
     if "--shapes" in argv:
         i = argv.index("--shapes")
@@ -242,7 +273,7 @@ def main(argv):
         length, count, seed, rest = int(argv[1]), int(argv[2]), int(argv[3]), argv[4:]
     maxn = int(rest[0]) if rest else 2
     maxlvl = int(rest[1]) if len(rest) > 1 else 5
-    model = Model(shapes, peel)
+    model = Model(shapes, peel, cross)
     cs = [(k, n, up, by) for k in "LC" for n in range(maxn + 1) for up in (True, False)
           for by in (1, 2) if up or drops or by == 1]
     fm, um = {}, {}

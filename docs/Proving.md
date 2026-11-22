@@ -132,7 +132,13 @@ it alone taught. Add to this file what a new proof teaches.
   other way in `Equal.sym` once: `Equal.sym(T, a, b, e)` takes
   `e : {a == b}` and gives `{b == a}`.
 - **Mark what a proof reuses**: `+` on a law's `for` binders, a proof's
-  parameters and its patterns (`case Con{+h, +t}`, `case 1n+(+k)`).
+  parameters and its patterns (`case Con{+h, +t}`, `case 1n+(+k)`). A
+  pattern's variable used twice wants its matched parameter marked:
+  `case 1n+r` of a `p` without `+`, `r` passed twice, fails at `r`
+  with no goal named (`above_add` in `spike/PROOF.bend`, 2026-11-22).
+- **A name already defined fails at the second definition's name**, the
+  report saying nothing more: search the proof file before naming a
+  lemma (`above_succ`, taken, 2026-11-22).
 - **An absurd case names its type**: `Empty.absurd(T, e)`, `T` written
   out; refute a clash of constructors through a motive sending one to
   `Unit` and the other to `Empty`.

@@ -4,9 +4,13 @@ import Base
 # docs/plans/NetPairing_2026-10-26.md). Levels and indices are Nat. A
 # control that raises levels above n by b (kprim.bend's lift, up) stands
 # for a run of unit brackets at n, n + 1, ..., n + b - 1, crossed in that
-# order: what fusion makes (V.compose) and peeling takes apart. Facing
-# units of one index cancel; at different indices, the higher index moves
-# through the lower unit.
+# order: what fusion makes (V.compose) and peeling takes apart. A drop by
+# b is b unit drops at n (drops-stop-at-index), which fuse and peel the
+# same way (drop-runs-fuse). Facing units of one index cancel; at
+# different indices, the higher index moves through the lower unit, so a
+# control crossing a drop run's units one at a time may reach its index
+# partway (laws drop_run_passed_below and drop_run_passed_above say
+# where it cannot).
 
 # j > n
 def above(j: Nat, n: Nat) -> Bool:

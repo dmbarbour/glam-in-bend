@@ -851,15 +851,37 @@ def sel_lt(c: Bool, +x: U32, +y: U32) -> U32:
     case False{}:
       y
 
-# how much of a run to keep facing, the rest peeled behind: 0 for none
-def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32) -> U32:
-  match ua ub:
-    case True{} True{}:
+def peel.amt.r(+ub: Bool, +ba: U32, +bb: U32) -> U32:
+  match ub:
+    case True{}:
       sel_lt(U32.is_lt(bb, ba), bb, 0)
-    case True{} False{}:
+    case False{}:
       sel_lt(U32.is_lt(1, ba), 1, 0)
-    case _ _:
+
+# how much of a run to keep facing, the rest peeled behind: 0 for none; a
+# raise run at one index only, a drop run of more than one at any index,
+# one unit, unless the other crosses it whole (kprim.bend's peel.amt)
+def peel.amt.u(+same: Bool, +ub: Bool, +ba: U32, +bb: U32) -> U32:
+  match same:
+    case True{}:
+      peel.amt.r(ub, ba, bb)
+    case False{}:
       0
+
+# may a control at index nb, up ub by bb, cross the drop run at na by ba
+# whole? At another index, no drop run, and not above na by less than
+# ba, where each unit it crosses lowers it by one until it reaches na
+# partway (ctlwire.py's whole_ok; pairing-fusion.drops.kernel)
+def cross_whole(+na: U32, +ba: U32, +ub: Bool, +bb: U32, +nb: U32) -> Bool:
+  U32.is_ne(na, nb) && (ub || U32.is_lt(bb, 2)) &&
+    Bool.not(U32.is_lt(na, nb) && U32.is_lt(nb, (na + ba : U32)))
+
+def peel.amt(+ua: Bool, +ba: U32, +ub: Bool, +bb: U32, +na: U32, +nb: U32) -> U32:
+  match ua:
+    case False{}:
+      sel_lt(U32.is_lt(1, ba) && Bool.not(cross_whole(na, ba, ub, bb, nb)), 1, 0)
+    case True{}:
+      peel.amt.u(U32.is_eq(na, nb), ub, ba, bb)
 
 # x keeps the first k units of its run of `by` at index n; a control of
 # kind k2 takes the rest behind it, on x's port 1, whose peer is e
@@ -867,29 +889,39 @@ def peel.at(r: Q & U32, +x: U32, +e: U32) -> Q:
   (q, +rest) = r
   link(link(q, S.ref_at(x, 1), rest), S.ref_at(rest, 1), e)
 
-def peel.do(r: Q & U32, +x: U32, k2: R.NodeKind, +n: U32, +k: U32, +by: U32) -> Q:
-  (q, +e) = r
-  peel.at(node(err_if(U32.is_lt((n + k : U32), n), q_set_pay(q, x, V.PLift{n, True{}, k})), k2, V.PLift{(n + k : U32), True{}, (by - k : U32)}), x, e)
+# a raise keeps k units, the rest from n + k; a drop run keeps one, the
+# rest at n
+def peel.do.u(+up: Bool, q: Q, +e: U32, +x: U32, k2: R.NodeKind, +n: U32, +k: U32, +by: U32) -> Q:
+  match up:
+    case True{}:
+      peel.at(node(err_if(U32.is_lt((n + k : U32), n), q_set_pay(q, x, V.PLift{n, True{}, k})), k2, V.PLift{(n + k : U32), True{}, (by - k : U32)}), x, e)
+    case False{}:
+      peel.at(node(q_set_pay(q, x, V.PLift{n, False{}, 1}), k2, V.PLift{n, False{}, (by - 1 : U32)}), x, e)
 
-def peel.if(+k: U32, q: Q, +x: U32, k2: R.NodeKind, +n: U32, +by: U32) -> Q:
+def peel.do(r: Q & U32, +x: U32, k2: R.NodeKind, +n: U32, +k: U32, +up: Bool, +by: U32) -> Q:
+  (q, +e) = r
+  peel.do.u(up, q, e, x, k2, n, k, by)
+
+def peel.if(+k: U32, q: Q, +x: U32, k2: R.NodeKind, +n: U32, +up: Bool, +by: U32) -> Q:
   match k:
     case 0:
       q
     case _:
-      peel.do(q_word(q, x, 2), x, k2, n, k, by)
+      peel.do(q_word(q, x, 2), x, k2, n, k, up, by)
 
-def peel.same(same: Bool, q: Q, +l: U32, +c: U32, +n: U32, +ul: Bool, +bl: U32, +uc: Bool, +bc: U32) -> Q:
-  match same:
+# equal, nothing to peel; else each run as peel.amt says, at its own index
+def peel.go(+same: Bool, eq: Bool, q: Q, +l: U32, +c: U32, +nl: U32, +nc: U32, +ul: Bool, +bl: U32, +uc: Bool, +bc: U32) -> Q:
+  match eq:
     case True{}:
-      peel.if(peel.amt(uc, bc, ul, bl), peel.if(peel.amt(ul, bl, uc, bc), q, l, R.KLift{}, n, bl), c, R.KLiftC{}, n, bc)
-    case False{}:
       q
+    case False{}:
+      peel.if(peel.amt(uc, bc, ul, bl, nc, nl), peel.if(peel.amt(ul, bl, uc, bc, nl, nc), q, l, R.KLift{}, nl, ul, bl), c, R.KLiftC{}, nc, uc, bc)
 
 # l a Lift, c a LiftC, facing: peel l's run against c, or c's against l
 def peel.pays(+pl: V.Pay, +pc: V.Pay, q: Q, +l: U32, +c: U32) -> Q:
   match pl pc:
     case V.PLift{+n, +ul, +bl} V.PLift{+m, +uc, +bc}:
-      peel.same(U32.is_eq(n, m), q, l, c, n, ul, bl, uc, bc)
+      peel.go(U32.is_eq(n, m), U32.is_eq(n, m) && V.bool_eq(ul, uc) && U32.is_eq(bl, bc), q, l, c, n, m, ul, bl, uc, bc)
     case _ _:
       q
 

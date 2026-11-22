@@ -1,6 +1,6 @@
-# Controls fuse only into runs of raises, peeled where a partner meets them
+# Controls fuse only into runs, peeled where a partner meets them
 
-`fuse-control-runs` · agent · rev 8786a68
+`fuse-control-runs` · agent · rev eb04e99
 
 **Context.** Control fusion (NetPairing) merged any two controls in
 series whose composite moves every level as the two do: raises, a raise
@@ -23,8 +23,10 @@ index is where the first's raise ends, n2 = n1 + k1: the composite
 controls, the run that raises further is peeled before the rule applies:
 it keeps as many units facing as the other raises, which then cancel, or
 one unit facing a drop, which crosses it, and a new control takes the
-rest from the index where the kept units end. Nothing else fuses until a
-safety criterion licenses it.
+rest from the index where the kept units end. Two drops at one index
+fuse too, into a drop run, peeled at any index or crossed whole, as
+`drop-runs-fuse` records. Nothing else fuses until a safety criterion
+licenses it.
 
 **Consequences.**
 - Fused and unfused reductions agree in the model on every start

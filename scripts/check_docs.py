@@ -102,7 +102,11 @@ def check_decisions(root):
             fail(record, f"slug `{slug}` differs from its file name")
         if not git_ok("cat-file", "-e", f"{rev}^{{commit}}"):
             fail(record, f"rev {rev} is not a commit")
-        elif not git_ok("merge-base", "--is-ancestor", rev, "HEAD"):
+        elif not (git_ok("merge-base", "--is-ancestor", rev, "HEAD") or
+                  # a merge in progress: its commit will have MERGE_HEAD's
+                  # ancestors too, a record revised on the branch among them
+                  (git_ok("rev-parse", "-q", "--verify", "MERGE_HEAD") and
+                   git_ok("merge-base", "--is-ancestor", rev, "MERGE_HEAD"))):
             fail(record, f"rev {rev} is not an ancestor of HEAD")
         if record.resolve() not in listed:
             fail(record, f"not listed in {index}")

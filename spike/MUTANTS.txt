@@ -112,9 +112,9 @@ p = V.PLvl{0}
 two controls fuse when the second's index is the first's amount, the
 first's index ignored
 --- val.bend
-      compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
+      compose.or(compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(n2, n1), n1, b1, b2)
 +++
-      compose.ok(u1 && u2 && U32.is_eq(n2, b1), n1, b1, b2)
+      compose.or(compose.ok(u1 && u2 && U32.is_eq(n2, b1), n1, b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(n2, n1), n1, b1, b2)
 >>> witness raise_compose
 k = 1
 n1 = 1
@@ -180,8 +180,9 @@ n = 2
 o = 2
 j = 3
 
-=== dunits_double drop_units_are_run
-a drop run's units counted twice over: each unit drops two
+=== dunits_double drop_units_are_run drop_run_passed_above
+a drop run's units counted twice over: each unit drops two, and a
+control at the run's window's end reaches its index partway
 --- ctl.bend
       dunits(p, n, drop(n, 1n, j))
 +++
@@ -190,6 +191,23 @@ a drop run's units counted twice over: each unit drops two
 b = 2n
 n = 0n
 j = 5n
+>>> witness drop_run_passed_above
+n = 0n
+k = 1n
+m = 2n
+
+=== drop_guard_ignored drop_run_passed_below
+a drop lowers every level, those at or below its index too: a control
+below a drop run falls as it crosses the units, and the units it then
+meets are not where the first met it
+--- ctl.bend
+  drop.go(above(j, n), n, j, b)
++++
+  drop.go(True{}, n, j, b)
+>>> witness drop_run_passed_below
+n = 1n
+k = 1n
+m = 0n
 
 === mark_ignored marked_unfused
 fusion folds a new control into one a copy has taken

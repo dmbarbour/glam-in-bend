@@ -810,10 +810,13 @@ def ctl_eq(a: Pay, b: Pay) -> Bool:
 # first's raise ends, n2 = n1 + k1: a run of unit brackets n1, n1 + 1,
 # ..., which (n1, k1 + k2) stands for exactly, so that a control facing
 # it can be matched against its first units (peeling, net.bend and
-# kprim.bend). No other pair fuses: a raise and a drop that compose to
-# less, or to nothing, or raises split some other way, would hide a
-# control a facing one cancels, and the fused control would cross it
-# instead (heap-demand and pairing-fusion in the plans).
+# kprim.bend); or when both drop at one index, n2 = n1: a drop run, k1 +
+# k2 unit drops at n1 (drops-stop-at-index), a facing control it does
+# not equal taking one unit at a time (peeling). No other pair fuses: a
+# raise and a drop that compose to less, or to nothing, or raises split
+# some other way, would hide a control a facing one cancels, and the
+# fused control would cross it instead (heap-demand and pairing-fusion in
+# the plans).
 type Fuse is Data:
   FNo{}
   FTo{p: Pay}
@@ -825,11 +828,26 @@ def compose.ok(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> Fuse:
     case False{}:
       FNo{}
 
+def compose.d(ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> Fuse:
+  match ok:
+    case True{}:
+      FTo{PLift{n1, False{}, (b1 + b2 : U32)}}
+    case False{}:
+      FNo{}
+
+# a raise run's fusion, else a drop run's
+def compose.or(f: Fuse, ok: Bool, +n1: U32, +b1: U32, +b2: U32) -> Fuse:
+  match f:
+    case FTo{p}:
+      FTo{p}
+    case FNo{}:
+      compose.d(ok, n1, b1, b2)
+
 # the one control acting as `first` then `second`, when there is one
 def compose(first: Pay, second: Pay) -> Fuse:
   match first second:
     case PLift{+n1, +u1, +b1} PLift{+n2, +u2, +b2}:
-      compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2)
+      compose.or(compose.ok(u1 && u2 && U32.is_eq(n2, (n1 + b1 : U32)), n1, b1, b2), Bool.not(u1) && Bool.not(u2) && U32.is_eq(n2, n1), n1, b1, b2)
     case _ _:
       FNo{}
 
