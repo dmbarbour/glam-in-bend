@@ -2,6 +2,7 @@ import Base
 import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V
+import ./index.bend as X
 
 # A copy's ring and its joins (the Cells plan's
 # cells-freeze.cursors.materialize; docs/reviews/Joins_2026-11-11.md),
@@ -85,8 +86,9 @@ def rg.find.f(r: P.H & Nat, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
   (h, f) = r
   rg.found(rg.find.go(f, rw.on(rg.next(h, situ), situ), situ, far))
 
+# SPIKE (cells-freeze.sharing.cursors.index): through the copy's index
 def rg.find(h: P.H, +situ: U32, +far: U32) -> P.H & Maybe<&2, U32>:
-  rg.find.f(rg.fuel(h), situ, far)
+  X.ix.find(h, situ, far)
 
 # looking for x's predecessor: the node reached is x, the one before it
 # found
@@ -131,17 +133,22 @@ def rg.unlink.p(r: P.H & U32, +x: U32) -> P.H:
   (h, +p) = r
   rg.unlink.set(rg.next(h, x), p)
 
-# x taken out of its ring: its predecessor's word 3 given x's
+def rg.unlink.s(r: P.H & U32, +x: U32) -> P.H:
+  (h, +s) = r
+  X.ix.remove(h, s, x)
+
+# SPIKE: x taken out of its home's index
 def rg.unlink(h: P.H, +x: U32) -> P.H:
-  rg.unlink.p(rg.pred(h, x), x)
+  rg.unlink.s(X.ix.home(h, x), x)
 
 # x put in situ's ring, after situ
 def rg.insert.r(r: P.H & U32, +situ: U32, +x: U32) -> P.H:
   (h, +n) = r
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
 
+# SPIKE: x put in situ's index, its position already in word 2
 def rg.insert(h: P.H, +situ: U32, +x: U32) -> P.H:
-  rg.insert.r(rg.next(h, situ), situ, x)
+  X.ix.insert(h, situ, x)
 
 # a cursor's form: 0 negative, standing for a value; 1 positive,
 # receiving one
@@ -193,8 +200,9 @@ def rg.situ.f(r: P.H & Nat, +x: U32) -> P.H & U32:
   (h, f) = r
   rg.situ.w(rg.situ.go(f, Rw{h, x, x, None{}, False{}}))
 
+# SPIKE: a cursor's home, one read
 def rg.situ(h: P.H, +x: U32) -> P.H & U32:
-  rg.situ.f(rg.fuel(h), x)
+  X.ix.home(h, x)
 
 # Joins
 # =====
