@@ -340,9 +340,22 @@ def tr.off(t: Tr, +d: Nat, +j: U32) -> Bool:
     case Br{+b, +i, l, r}:
       KMd.off.words(KMd.nw(b), d, j) && (tr.off(l, d, j) && tr.off(r, d, j))
 
-# node a's words in no node of t
-def tr.offn(+t: Tr, +d: Nat, +a: U32) -> Bool:
-  tr.off(t, d, a) && (tr.off(t, d, (a + 1 : U32)) && (tr.off(t, d, (a + 2 : U32)) && tr.off(t, d, (a + 3 : U32))))
+# none of node a's words in a slot of node b's (the ring's RG.disj4)
+def nd.disj(+d: Nat, +a: U32, +b: U32) -> Bool:
+  KMd.off.words(KMd.nw(b), d, a) && (KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))))
+
+# nodes a and b apart, stated both ways round, so that its symmetry is a
+# swap of its two halves
+def nd.sep(+d: Nat, +a: U32, +b: U32) -> Bool:
+  nd.disj(d, a, b) && nd.disj(d, b, a)
+
+# node a apart from every node of t
+def tr.offn(t: Tr, +d: Nat, +a: U32) -> Bool:
+  match t:
+    case Lf{+x, +k}:
+      nd.sep(d, x, a)
+    case Br{+b, +i, l, r}:
+      nd.sep(d, b, a) && (tr.offn(l, d, a) && tr.offn(r, d, a))
 
 # every node of l apart from every node of r
 def tr.apart(l: Tr, +r: Tr, +d: Nat) -> Bool:
@@ -378,26 +391,30 @@ def ix.lay(I: Ix, +s: U32, +d: Nat) -> Bool:
 type Cut is Data:
   Cut{+loc: U32, +par: U32, +sib: U32}
 
-def cut.r(+hit: Bool, +b: U32, +al: U32, +loc: U32, cr: Cut) -> Cut:
-  match hit:
+# the child on side sd, the other given second
+def pick.t(+sd: Bool, +a: Tr, +b: Tr) -> Tr:
+  match sd:
     case True{}:
-      Cut{loc, b, al}
+      a
     case False{}:
-      cr
+      b
 
-def cut.l(+hit: Bool, +b: U32, +ar: U32, +loc: U32, cl: Cut) -> Cut:
+# a branch's cut, x tested against the child on k's side: x there, the
+# branch b the parent and the other child's address the sibling; else
+# the cut below
+def cut.k.of(+hit: Bool, +b: U32, +sib: U32, +loc: U32, cd: Cut) -> Cut:
   match hit:
     case True{}:
-      Cut{loc, b, ar}
+      Cut{loc, b, sib}
     case False{}:
-      cl
+      cd
 
 def cut.at.k(+sd: Bool, +b: U32, +l: Tr, +r: Tr, +x: U32, +loc: U32, cl: Cut, cr: Cut) -> Cut:
   match sd:
     case True{}:
-      cut.r(U32.is_eq(tr.addr(r), x), b, tr.addr(l), loc, cr)
+      cut.k.of(U32.is_eq(tr.addr(r), x), b, tr.addr(l), loc, cr)
     case False{}:
-      cut.l(U32.is_eq(tr.addr(l), x), b, tr.addr(r), loc, cl)
+      cut.k.of(U32.is_eq(tr.addr(l), x), b, tr.addr(r), loc, cl)
 
 def tr.cutat(t: Tr, +x: U32, +k: U32, +loc: U32) -> Cut:
   match t:

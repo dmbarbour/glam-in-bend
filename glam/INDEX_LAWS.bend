@@ -10,6 +10,7 @@ import Base
 import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V
+import ../spike/kmodel.bend as KMd
 import ./index.bend as X
 import ./index_model.bend as IM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
@@ -56,3 +57,27 @@ law find_tree:
   for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
   for hi: {IM.ix.inv(I) == True{} : Bool}
   {X.ix.find(P.H{KM.MG{w}, a}, s, k) == (P.H{KM.MG{w}, a}, IM.ix.look(I, k)) : P.H & Maybe<&2, U32>}
+
+# LAW: removing cursor x, the leaf at key k (IM.ix.look), from the index
+# of situating node s, the heap's words realizing the model I on its
+# invariant and its nodes laid out apart (IM.ix.lay), leaves the words
+# realizing the model without x (IM.ix.del): x's parent, if any, given
+# up for x's sibling, the pointer to it rewritten and the parent freed
+# (IM.tr.cutat); where x was the tree, the index empty.
+# Record: cursors-indexed
+# Record: hub-laws-reused
+law remove_tree:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {IM.ix.real(AD.view(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x))), d, s, IM.ix.del(I, x, k)) == True{} : Bool}

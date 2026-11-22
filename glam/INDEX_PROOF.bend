@@ -27,6 +27,7 @@ import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
+import 0x8ae61ec3a6615abd35f196c07232ad28/list.bend as ML
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
@@ -508,6 +509,251 @@ def find_tree.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +
 
 def Laws.find_tree(w, a, d, s, I, k, hf, hd32, hr, hi):
   find_tree.m(w, a, d, s, I, k, hf, hd32, hr, hi, LAT.mirror(U32, w))
+
+# Writes on the view
+# ==================
+
+# a word of a view not written reads as before (stated plain, then
+# written, so that a rewrite by it takes a written view's read back)
+def wl_ne(+v: List<&2, U32>, +d: Nat, +j: U32, +i: U32, +val: U32, +h: {Nat.is_eq(AD.slot(j, d), AD.slot(i, d)) == False{} : Bool}) ->
+  {KMd.word(v, d, i) == KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, i) : U32}:
+  %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, AD.slot(j, d), val), AD.slot(i, d)), List.get(&2, U32, v, AD.slot(i, d)), LAB.get_set_ne(U32, v, AD.slot(j, d), AD.slot(i, d), val, h)) :
+    {KMd.word(v, d, i) == KMd.word.m(_) : U32}
+  {==}
+
+# the word written reads the value written, where the view holds a word
+def wl_eq(+v: List<&2, U32>, +d: Nat, +j: U32, +val: U32, +q: U32, +h: {List.get(&2, U32, v, AD.slot(j, d)) == Some{q} : Maybe<&2, U32>}) ->
+  {KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, j) == val : U32}:
+  %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, AD.slot(j, d), val), AD.slot(j, d)), Maybe.map(&2, U32, U32, y => val, List.get(&2, U32, v, AD.slot(j, d))), ML.get_set_self(&2, U32, v, AD.slot(j, d), val)) :
+    {KMd.word.m(_) == val : U32}
+  %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, v, AD.slot(j, d)), Some{q}, h) : {KMd.word.m(Maybe.map(&2, U32, U32, y => val, _)) == val : U32}
+  {==}
+
+# word j off node x's words: each of x's words' slots, written j's not
+def offk(+a: Nat, +b: Nat, +h: {Bool.not(Nat.is_eq(a, b)) == True{} : Bool}) -> {Nat.is_eq(b, a) == False{} : Bool}:
+  %MN.is_eq_comm(a, b) : {_ == False{} : Bool}
+  not_true(Nat.is_eq(a, b), h)
+
+def off0(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words(KMd.nw(x), d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot(x, d)) == False{} : Bool}:
+  offk(AD.slot(x, d), AD.slot(j, d), and_l(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), KMd.off.words([(x + 1 : U32), (x + 2 : U32), (x + 3 : U32)], d, j), h))
+
+def off1(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words(KMd.nw(x), d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot((x + 1 : U32), d)) == False{} : Bool}:
+  offk(AD.slot((x + 1 : U32), d), AD.slot(j, d), and_l(Bool.not(Nat.is_eq(AD.slot((x + 1 : U32), d), AD.slot(j, d))), KMd.off.words([(x + 2 : U32), (x + 3 : U32)], d, j),
+    and_r(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), KMd.off.words([(x + 1 : U32), (x + 2 : U32), (x + 3 : U32)], d, j), h)))
+
+def off23(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words(KMd.nw(x), d, j) == True{} : Bool}) -> {KMd.off.words([(x + 2 : U32), (x + 3 : U32)], d, j) == True{} : Bool}:
+  and_r(Bool.not(Nat.is_eq(AD.slot((x + 1 : U32), d), AD.slot(j, d))), KMd.off.words([(x + 2 : U32), (x + 3 : U32)], d, j),
+    and_r(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), KMd.off.words([(x + 1 : U32), (x + 2 : U32), (x + 3 : U32)], d, j), h))
+
+def off2(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words(KMd.nw(x), d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot((x + 2 : U32), d)) == False{} : Bool}:
+  offk(AD.slot((x + 2 : U32), d), AD.slot(j, d), and_l(Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))), KMd.off.words([(x + 3 : U32)], d, j), off23(x, d, j, h)))
+
+def off3(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words(KMd.nw(x), d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot((x + 3 : U32), d)) == False{} : Bool}:
+  offk(AD.slot((x + 3 : U32), d), AD.slot(j, d), and_l(Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))), True{},
+    and_r(Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))), KMd.off.words([(x + 3 : U32)], d, j), off23(x, d, j, h))))
+
+# a write off every node of a tree leaves its realization as it was
+def real_set(T: IM.Tr, +v: List<&2, U32>, +d: Nat, +j: U32, +val: U32, +p: U32, +s: U32, +ho: {IM.tr.off(T, d, j) == True{} : Bool}) ->
+  {IM.tr.real(v, d, T, p, s) == IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, T, p, s) : Bool}:
+  match T:
+    case IM.Lf{+x, +kk}:
+      %wl_ne(v, d, j, x, val, off0(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(_)) && (U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 2 : U32)), kk) && U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 3 : U32)), s)))) : Bool}
+      %wl_ne(v, d, j, (x + 2 : U32), val, off2(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(_, kk) && U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 3 : U32)), s)))) : Bool}
+      %wl_ne(v, d, j, (x + 3 : U32), val, off3(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk) && U32.is_eq(_, s)))) : Bool}
+      {==}
+    case IM.Br{+b, +i, +l, +r}:
+      +hb = and_l(KMd.off.words(KMd.nw(b), d, j), IM.tr.off(l, d, j) && IM.tr.off(r, d, j), ho)
+      +hlr = and_r(KMd.off.words(KMd.nw(b), d, j), IM.tr.off(l, d, j) && IM.tr.off(r, d, j), ho)
+      %wl_ne(v, d, j, b, val, off0(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(_) && (Nat.is_eq(X.ix.bitof(_), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 2 : U32)), s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 3 : U32)), s))))) : Bool}
+      %wl_ne(v, d, j, (b + 2 : U32), val, off2(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, _, s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 3 : U32)), s))))) : Bool}
+      %wl_ne(v, d, j, (b + 3 : U32), val, off3(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, _, s))))) : Bool}
+      %real_set(l, v, d, j, val, KMd.word(v, d, (b + 2 : U32)), s, and_l(IM.tr.off(l, d, j), IM.tr.off(r, d, j), hlr)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (_ && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(v, d, (b + 3 : U32)), s))))) : Bool}
+      %real_set(r, v, d, j, val, KMd.word(v, d, (b + 3 : U32)), s, and_r(IM.tr.off(l, d, j), IM.tr.off(r, d, j), hlr)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && _)))) : Bool}
+      {==}
+
+# Removal
+# =======
+
+def cut.lo(c: IM.Cut) -> U32:
+  match c:
+    case IM.Cut{+loc, +par, +sib}:
+      loc
+
+def cut.pa(c: IM.Cut) -> U32:
+  match c:
+    case IM.Cut{+loc, +par, +sib}:
+      par
+
+def cut.si(c: IM.Cut) -> U32:
+  match c:
+    case IM.Cut{+loc, +par, +sib}:
+      sib
+
+def is_some(m: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+q}:
+      True{}
+    case None{}:
+      False{}
+
+def un_some(m: Maybe<&2, U32>, +z: U32) -> U32:
+  match m:
+    case Some{+q}:
+      q
+    case None{}:
+      z
+
+# a leaf's hit giving x: the leaf is x
+def hit_some(+b: Bool, +y: U32, +x: U32, +h: {IM.mb.hit(b, y) == Some{x} : Maybe<&2, U32>}) -> {y == x : U32}:
+  match b:
+    case True{}:
+      Equal.cong(Maybe<&2, U32>, U32, m => un_some(m, y), Some{y}, Some{x}, h)
+    case False{}:
+      Empty.absurd({y == x : U32}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{x}, h)))
+
+# a realized tree's pointer is its root's address
+def real_addr(T: IM.Tr, +v: List<&2, U32>, +d: Nat, +p: U32, +s: U32, +h: {IM.tr.real(v, d, T, p, s) == True{} : Bool}) -> {p == IM.tr.addr(T) : U32}:
+  match T:
+    case IM.Lf{+x, +kk}:
+      MS.u32_eq_of_is_eq(p, x, and_l(U32.is_eq(p, x), Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)), h))
+    case IM.Br{+b, +i, +l, +r}:
+      MS.u32_eq_of_is_eq(p, b, and_l(U32.is_eq(p, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), h))
+
+def rm_stays(+f: Nat, -h: P.H, +loc: U32, +cur: U32, +k: U32, +x: U32) -> {X.rm.run(f, X.Rm{h, loc, cur, False{}}, k, x) == X.Rm{h, loc, cur, False{}} : X.Rm}:
+  match f:
+    case 0n:
+      {==}
+    case 1n+(+g):
+      {==}
+
+# the child on the key's side, its address tested against x: x there,
+# its sibling written where loc points and the branch b freed; else on
+# down from the child, as the model's cut follows
+def rmA.h(+hit: Bool, +sd: Bool, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +b: U32, +k: U32, +x: U32, +g: Nat, +loc: U32, +l: IM.Tr, +r: IM.Tr, +s: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hhit: {U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x) == hit : Bool},
+  +hq: {KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b)) == IM.tr.addr(IM.pick.t(sd, r, l)) : U32},
+  +hq2: {KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(Bool.not(sd), b)) == IM.tr.addr(IM.pick.t(sd, l, r)) : U32},
+  ih: {U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x) == False{} : Bool} -> {X.rm.h(X.rm.run(g, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(sd, b), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b)), True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))), cut.si(IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.pa(IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))) : P.H}) ->
+  {X.rm.h(X.rm.run(g, X.rm.child(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b)), x), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, sd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b))), k, x)) ==
+    P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.si(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))), cut.pa(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))) : P.H}:
+  match hit:
+    case True{}:
+      %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b)), IM.tr.addr(IM.pick.t(sd, r, l)), hq) :
+        {X.rm.h(X.rm.run(g, X.rm.child(U32.is_eq(_, x), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, sd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b))), k, x)) ==
+          P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.si(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))), cut.pa(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))) : P.H}
+      %Equal.sym(Bool, U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), True{}, hhit) :
+        {X.rm.h(X.rm.run(g, X.rm.child(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, sd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b))), k, x)) ==
+          P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.si(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))), cut.pa(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))) : P.H}
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(Bool.not(sd), b)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), X.ix.kid(Bool.not(sd), b)))), rd_eq(t0, a, X.ix.kid(Bool.not(sd), b))) :
+        {X.rm.h(X.rm.run(g, X.rm.found(_, loc, b), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))}), cut.si(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})), cut.pa(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})) : P.H}
+      %wd(t0, d, X.ix.kid(Bool.not(sd), b), hft, hd32) :
+        {X.rm.h(X.rm.run(g, X.Rm{P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, _), b), loc, b, False{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))}), cut.si(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})), cut.pa(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})) : P.H}
+      %Equal.sym(X.Rm, X.rm.run(g, X.Rm{P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(Bool.not(sd), b))), b), loc, b, False{}}, k, x), X.Rm{P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(Bool.not(sd), b))), b), loc, b, False{}},
+        rm_stays(g, P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(Bool.not(sd), b))), b), loc, b, k, x)) :
+        {X.rm.h(_) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))}), cut.si(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})), cut.pa(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})) : P.H}
+      %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(Bool.not(sd), b)), IM.tr.addr(IM.pick.t(sd, l, r)), hq2) :
+        {P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, _), b) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))}), cut.si(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})), cut.pa(IM.Cut{loc, b, IM.tr.addr(IM.pick.t(sd, l, r))})) : P.H}
+      {==}
+    case False{}:
+      %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b)), IM.tr.addr(IM.pick.t(sd, r, l)), hq) :
+        {X.rm.h(X.rm.run(g, X.rm.child(U32.is_eq(_, x), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, sd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b))), k, x)) ==
+          P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.si(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))), cut.pa(IM.cut.k.of(U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))) : P.H}
+      %Equal.sym(Bool, U32.is_eq(IM.tr.addr(IM.pick.t(sd, r, l)), x), False{}, hhit) :
+        {X.rm.h(X.rm.run(g, X.rm.child(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, sd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, X.ix.kid(sd, b))), k, x)) ==
+          P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b)))), cut.si(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))), cut.pa(IM.cut.k.of(_, b, IM.tr.addr(IM.pick.t(sd, l, r)), loc, IM.tr.cutat(IM.pick.t(sd, r, l), x, k, X.ix.kid(sd, b))))) : P.H}
+      ih(hhit)
+
+# a branch at bit i, its children l and r realized below its words 2
+# and 3: the removal's walk on the key's side
+def rmA.k(+sd: Bool, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +b: U32, +i: Nat, +k: U32, +x: U32, +g: Nat, +loc: U32, +l: IM.Tr, +r: IM.Tr, +s: U32,
+  +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hx: {IM.mb.pick(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k)) == Some{x} : Maybe<&2, U32>},
+  +hrl: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) == True{} : Bool}, +hrr: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s) == True{} : Bool},
+  ihl: {IM.tr.look(l, k) == Some{x} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.addr(l), x) == False{} : Bool} -> {X.rm.h(X.rm.run(g, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(l, x, k, (b + 2 : U32))), cut.si(IM.tr.cutat(l, x, k, (b + 2 : U32)))), cut.pa(IM.tr.cutat(l, x, k, (b + 2 : U32)))) : P.H},
+  ihr: {IM.tr.look(r, k) == Some{x} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.addr(r), x) == False{} : Bool} -> {X.rm.h(X.rm.run(g, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(r, x, k, (b + 3 : U32))), cut.si(IM.tr.cutat(r, x, k, (b + 3 : U32)))), cut.pa(IM.tr.cutat(r, x, k, (b + 3 : U32)))) : P.H}) ->
+  {X.rm.h(X.rm.run(g, X.rm.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(X.ix.side(k, i), b)), loc, b, X.ix.side(k, i), x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}:
+  match sd:
+    case True{}:
+      +hxr = ME.subst(Bool, z => {IM.mb.pick(z, IM.tr.look(r, k), IM.tr.look(l, k)) == Some{x} : Maybe<&2, U32>}, X.ix.side(k, i), True{}, hsd, hx)
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) :
+        {X.rm.h(X.rm.run(g, X.rm.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b)), loc, b, _, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 3 : U32)))), rd_eq(t0, a, (b + 3 : U32))) :
+        {X.rm.h(X.rm.run(g, X.rm.c(_, loc, b, True{}, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      %wd(t0, d, (b + 3 : U32), hft, hd32) :
+        {X.rm.h(X.rm.run(g, X.rm.child(U32.is_eq(_, x), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, True{}, _), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(True{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      rmA.h(U32.is_eq(IM.tr.addr(r), x), True{}, t0, a, d, b, k, x, g, loc, l, r, s, hft, hd32, {==},
+        real_addr(r, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s, hrr), real_addr(l, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s, hrl), hn => ihr(hxr)(hn))
+    case False{}:
+      +hxl = ME.subst(Bool, z => {IM.mb.pick(z, IM.tr.look(r, k), IM.tr.look(l, k)) == Some{x} : Maybe<&2, U32>}, X.ix.side(k, i), False{}, hsd, hx)
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) :
+        {X.rm.h(X.rm.run(g, X.rm.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b)), loc, b, _, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(_, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 2 : U32)))), rd_eq(t0, a, (b + 2 : U32))) :
+        {X.rm.h(X.rm.run(g, X.rm.c(_, loc, b, False{}, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      %wd(t0, d, (b + 2 : U32), hft, hd32) :
+        {X.rm.h(X.rm.run(g, X.rm.child(U32.is_eq(_, x), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, False{}, _), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(False{}, b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+      rmA.h(U32.is_eq(IM.tr.addr(l), x), False{}, t0, a, d, b, k, x, g, loc, l, r, s, hft, hd32, {==},
+        real_addr(l, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s, hrl), real_addr(r, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s, hrr), hn => ihl(hxl)(hn))
+
+# The removal's walk from the pointer p, held at loc, to a tree the words
+# realize, x a leaf on k's way below its root: the heap as the model's
+# cut has it, x's sibling written at the word holding the parent's
+# pointer, the parent freed
+def rmA(T: IM.Tr, f: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +k: U32, +x: U32, +loc: U32, +p: U32, +lo: Nat,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, p, s) == True{} : Bool}, +hok: {IM.tr.ok(T, lo) == True{} : Bool},
+  +hfu: {Nat.is_le(33n, Nat.add(f, lo)) == True{} : Bool},
+  +hx: {IM.tr.look(T, k) == Some{x} : Maybe<&2, U32>}, +hne: {U32.is_eq(IM.tr.addr(T), x) == False{} : Bool}) ->
+  {X.rm.h(X.rm.run(f, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(T, x, k, loc)), cut.si(IM.tr.cutat(T, x, k, loc))), cut.pa(IM.tr.cutat(T, x, k, loc))) : P.H}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      Empty.absurd({X.rm.h(X.rm.run(f, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(IM.Lf{y, ky}, x, k, loc)), cut.si(IM.tr.cutat(IM.Lf{y, ky}, x, k, loc))), cut.pa(IM.tr.cutat(IM.Lf{y, ky}, x, k, loc))) : P.H},
+        MB.false_ne_true()(Equal.trans(Bool, False{}, U32.is_eq(x, x), True{},
+          Equal.sym(Bool, U32.is_eq(x, x), False{}, ME.subst(U32, z => {U32.is_eq(z, x) == False{} : Bool}, y, x, hit_some(U32.is_eq(ky, k), y, x, hx), hne)),
+          is_eq_self(x))))
+    case IM.Br{+b, +i, +l, +r}:
+      match f:
+        case 0n:
+          Empty.absurd({X.rm.h(X.rm.run(0n, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.tr.cutat(IM.Br{b, i, l, r}, x, k, loc)), cut.si(IM.tr.cutat(IM.Br{b, i, l, r}, x, k, loc))), cut.pa(IM.tr.cutat(IM.Br{b, i, l, r}, x, k, loc))) : P.H},
+            MB.false_ne_true()(le_trans_b(33n, 1n+i, 32n, le_trans_b(33n, lo, 1n+i, hfu, le_trans_b(lo, i, 1n+i,
+              and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok), le_succ_b(i))),
+              lt_le(i, 32n, and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))),
+                and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok))))))
+        case 1n+(+g):
+          +r1 = and_r(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre)
+          +r2 = and_r(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +r3 = and_r(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2)
+          +o1 = and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok)
+          +o2 = and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), o1)
+          +o3 = and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)), o2)
+          +o4 = and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i), o3)
+          +hli = and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok)
+          +hi32 = and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), o1)
+          +hpb = MS.u32_eq_of_is_eq(p, b, and_l(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre))
+          +hbr = and_l(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +hbi = MN.eq_of_is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, and_l(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2))
+          +hfg = fuel_down(g, lo, i, hfu, hli)
+          %Equal.sym(U32, p, b, hpb) : {X.rm.h(X.rm.run(1n+g, X.Rm{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, _, True{}}, k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), b))), rd_eq(t0, a, b)) :
+            {X.rm.h(X.rm.run(g, X.rm.hd(_, loc, b, k, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+          %wd(t0, d, b, hft, hd32) : {X.rm.h(X.rm.run(g, X.rm.br(X.ix.branch(_), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, X.ix.bitof(_), k, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+          %Equal.sym(Bool, X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), True{}, hbr) :
+            {X.rm.h(X.rm.run(g, X.rm.br(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), k, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+          %Equal.sym(Nat, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, hbi) :
+            {X.rm.h(X.rm.run(g, X.rm.br(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, _, k, x), k, x)) == P.free(P.wr(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, cut.lo(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b)))), cut.si(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))), cut.pa(IM.cut.at.k(X.ix.side(k, i), b, l, r, x, loc, IM.tr.cutat(l, x, k, X.ix.kid(False{}, b)), IM.tr.cutat(r, x, k, X.ix.kid(True{}, b))))) : P.H}
+          rmA.k(X.ix.side(k, i), t0, a, d, b, i, k, x, g, loc, l, r, s, {==}, hft, hd32, hx,
+            and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3),
+            hxl => hnl => rmA(l, g, t0, a, d, s, k, x, (b + 2 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), 1n+i, hft, hd32, and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg, hxl, hnl),
+            hxr => hnr => rmA(r, g, t0, a, d, s, k, x, (b + 3 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), 1n+i, hft, hd32, and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg, hxr, hnr))
 
 # Lookups
 # =======
