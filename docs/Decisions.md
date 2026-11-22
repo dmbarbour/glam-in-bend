@@ -206,10 +206,11 @@ where the shared lazy state that Bend cannot hold goes.
 - [`copied-nodes-untouched`](decisions/copied-nodes-untouched.md): in a
   source, nodes copied into a host are marked, and no eraser event,
   fusion or collection touches them.
-- [`cursors-indexed`](decisions/cursors-indexed.md): a copy's cursors are
-  indexed by position, the ring and its order replaced; dead cursors
-  kept; the index's home decided by measurement, the net's nodes
-  favoured; one cursor a position a law.
+- [`cursors-indexed`](decisions/cursors-indexed.md): a copy's cursors
+  live in a crit-bit tree of the net's own nodes, keyed by position, the
+  ring and its order replaced, for performance (no walk grows with the
+  copy; nothing allocated or counted by Bend); dead cursors kept; one
+  cursor a position a law.
 - [`finished-sources-freeze`](decisions/finished-sources-freeze.md): a
   wholly finished source's cell reduces to a frozen template, its uses
   splices; the source's release waits on the tactic for cursors.
