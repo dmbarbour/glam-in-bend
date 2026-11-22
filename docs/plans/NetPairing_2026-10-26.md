@@ -288,19 +288,33 @@ one, is tried at `bridge-recursion`.
        a drop run's, which the model and the library's nets check; the
        interpreter's copy of the rule is checked by values alone, the
        library reading no level from a number;
-     - `pairing-fusion.drops.fixpoint` — tentative — a walk of a Scott
-       numeral by a fixpoint (`scott-walk-16`, `-32`, `-64`) keeps a
-       quadratic on demand where glam's walk lost it: about 0.8n² + 85n
-       interactions with levels, 5.8n² + 88n before drop runs, labels
-       linear in both, and about 21n² unfused (25n² before). Its live
-       nodes end at 28 at every size, but demand's heap doubles with the
-       size (128, 256 and 512 nodes with levels, 512 to 2,048 unfused,
-       labels 128 to 256), so what is live at its peak grows, faster with
-       controls than without: a lead, the end state no evidence. To
-       trace at lengths 1 to 4 before any theory; one candidate to
-       try in the model first, a unit raise at a run's own index, which
-       swaps with every unit without either index moving yet is peeled a
-       unit at a time.
+     - `pairing-fusion.drops.fixpoint` — built 2026-11-22, traced, not
+       the fixpoint and not drops — a walk of a Scott numeral by a
+       fixpoint (`scott-walk-16`, `-32`, `-64`) kept a quadratic on demand
+       where glam's walk lost it: about 0.8n² + 85n interactions with
+       levels, 5.8n² + 88n before drop runs. Narrowed by measurement
+       (the samples under `results/trace/fix/`, out of git): over a
+       literal numeral the same walk is linear, 68 interactions an
+       element in the library and 70 in glam's own fixpoint walk, as is
+       a list built by a plain Church numeral (93) and the exponent alone
+       with a trivial step (11); a list built by exponentiation, `ck two
+       (cons "") nil` with 2^k elements as `pow #2 #k` builds the
+       library's numeral, walked by glam's named recursion as by the
+       fixpoint, is quadratic (783, 2,049, 6,107 and 20,357 interactions
+       at 16 to 128). Traced at 2 to 64 (the trace build of
+       `cells-recursion.depth`): the growth is all in controls (Lift·LiftC,
+       Ap·LiftC, Lift·Fn, Lift·FnD), and almost all after the list is
+       built, in the walk itself. Each step's function carries a stack
+       of n/4 raises at mixed indices into its beta (n = 64: `2+5 5+1
+       4+2 4+1 3+3 4+1 3+2 3+1 2+4 4+1 3+2 3+1 2+3 3+1 2+2 2+1`, the
+       nested `two` boxes' pattern), crossing the Fn and FnD one control
+       at a time, and their copies on the variable then cancel against
+       them one at a time: n/2 periods of about two elements, each
+       crossing n/4 raises several times. Fusion cannot merge the stack:
+       only a contiguous raise run stands for exactly its units
+       (`fuse-control-runs`). The drop run beside them (`1-49` at n = 64)
+       is fused and crossed whole, as built. A remedy is
+       `pairing-overhead.stacks`.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
    interactions and four 61% (store run 28). Two of those four, #124 of
@@ -339,6 +353,18 @@ one, is tried at `bridge-recursion`.
      — criteria for merging a raise with a drop where no partner can
      reach it (Asperti and Chroboczek), each checked in `ctlwire.py`
      before the corpus.
+   - `pairing-overhead.stacks` — tentative — a stack of raises at mixed
+     indices that a function carries into every beta, copied across its
+     lambda and cancelled against the copies one control at a time: n/4
+     of them in a walk of a list built by exponentiation, quadratic
+     (`pairing-fusion.drops.fixpoint`). Ideas, none checked: a control
+     holding a word of unit brackets rather than one run, so that a
+     stack crosses a node and cancels against its equal copy in one
+     interaction while a facing control unequal to it is peeled unit by
+     unit, a shape for `spike/tools/ctlwire.py` first; stratifying such
+     terms at lowering (`pairing-overhead.stratify`); merging where no
+     partner can reach (`pairing-overhead.safe-ops`). glam's own lists,
+     literal or built by recursion, do not meet it.
    - `pairing-overhead.lowering` — tentative — optimizing at lowering,
      where the term's structure is known (the maintainer, 2026-10-28).
      The lowering's fused controls already do 85% less unit work than
