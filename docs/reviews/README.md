@@ -196,6 +196,15 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   freeze review); a whole freeze of a static root, positioned demand off
   the interface and freeze's count to fix; the collector's count to
   measure.
+- [`ClimbFable_2026-11-22.md`](ClimbFable_2026-11-22.md): the second
+  reviewer's review of positioned demand's climb
+  (`cells-freeze.sharing.cursors.growth.climb`): sound, but because
+  finished is closed along the climb, not because walks stop at marks
+  (they run to the root); the bound of eight fitted to one term and
+  failing on wider cells, as measured; the climb to a known-finished
+  node or the interface, fuelled by the source's nodes, then marks on
+  every copied kind; laws on finishedness, not on the walk. Kept as
+  written; its prediction checked.
 - [`StacksFable_2026-11-22.md`](StacksFable_2026-11-22.md): the second
   reviewer's brainstorm on `pairing-overhead.stacks`, a walk of a list
   built by exponentiation carrying a stack of raises down the list's
