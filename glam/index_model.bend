@@ -2,6 +2,7 @@ import Base
 import ../spike/kprim.bend as P
 import ../spike/kmodel.bend as KMd
 import ./index.bend as X
+import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # The model of a copy's index (glam/index.bend; the Cells plan's
 # cells-freeze.sharing.cursors.index.laws): its tree as a value, the
@@ -465,3 +466,32 @@ def ix.room(I: Ix, +v: List<&2, U32>, +d: Nat, +b: U32) -> Bool:
       True{}
     case Has{t}:
       KMd.chain([b], v, d, KMd.word(v, d, P.at_fh()))
+
+# The words an operation leaves: a removal and an insert write no
+# cursor's words but the new cursor's home; the region they write is the
+# situating node's word 3, the branches' words, the free list's head and,
+# for an insert, the new branch's words
+
+# word j in no branch of t
+def tr.offb(t: Tr, +d: Nat, +j: U32) -> Bool:
+  match t:
+    case Lf{+x, +k}:
+      True{}
+    case Br{+b, +i, l, r}:
+      KMd.off.words(KMd.nw(b), d, j) && (tr.offb(l, d, j) && tr.offb(r, d, j))
+
+# word j not the situating node's word 3, and in no branch of the index
+def ix.offb(I: Ix, +s: U32, +d: Nat, +j: U32) -> Bool:
+  match I:
+    case Ept{}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)))
+    case Has{t}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))) && tr.offb(t, d, j)
+
+# word j off the node an insert takes, where it takes one: a tree's
+def ix.newb(I: Ix, +b: U32, +d: Nat, +j: U32) -> Bool:
+  match I:
+    case Ept{}:
+      True{}
+    case Has{t}:
+      KMd.off.words(KMd.nw(b), d, j)
