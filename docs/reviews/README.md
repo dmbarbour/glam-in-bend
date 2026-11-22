@@ -196,6 +196,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   freeze review); a whole freeze of a static root, positioned demand off
   the interface and freeze's count to fix; the collector's count to
   measure.
+- [`Cost_2026-11-22.md`](Cost_2026-11-22.md): instructions against what
+  they buy (`ladder-measure.roi`), first findings on the cursor
+  workload: the machinery around the kernel is the cost, half of it
+  Bend's reference counting on shared values; the core's book a list
+  walked for each lookup, a splice's template a list, values dropped on
+  branches that leave them; the front end a fifth. For the
+  maintainer's direction before anything is trimmed.
 - [`ClimbFable_2026-11-22.md`](ClimbFable_2026-11-22.md): the second
   reviewer's review of positioned demand's climb
   (`cells-freeze.sharing.cursors.growth.climb`): sound, but because
