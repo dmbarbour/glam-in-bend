@@ -224,18 +224,18 @@ def pl.run(f: Nat, p: Pl, +c: Nat, +k: U32) -> Pl:
             case True{}:
               pl.run(g, pl.hd(P.rd(h, cur), loc, cur, c, k), c, k)
 
-# branch b of bit c in place at loc: x on k's side, cur on the other
+# branch b of bit c in place at loc: x on k's side, cur on the other,
+# the child set the node's payload word 3
 def ix.put.b(r: P.H & U32, +loc: U32, +cur: U32, +c: Nat, +k: U32, +x: U32, +s: U32) -> P.H:
   (h, +b) = r
-  P.wr(P.wr(P.wr(P.wr(P.wr(h, (b + 1 : U32), P.era()),
+  P.wr(P.wr(P.wr(P.wr(h, (b + 1 : U32), P.era()),
     (b + 2 : U32), ix.pick(ix.side(k, c), cur, x)),
-    (b + 3 : U32), ix.pick(ix.side(k, c), x, cur)),
     loc, b), (x + 3 : U32), s)
 
 def ix.put.p(p: Pl, +c: Nat, +k: U32, +x: U32, +s: U32) -> P.H:
   match p:
     case Pl{h, +loc, +cur, +go}:
-      ix.put.b(P.node(h, ix.hd(c), 0), loc, cur, c, k, x, s)
+      ix.put.b(P.node(h, ix.hd(c), ix.pick(ix.side(k, c), x, cur)), loc, cur, c, k, x, s)
 
 # the keys' lowest differing bit c, the new branch's; none found an error
 def ix.put.c(c: Cr, h: P.H, +root: U32, +k: U32, +x: U32, +s: U32) -> P.H:

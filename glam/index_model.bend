@@ -138,6 +138,30 @@ def ix.put(I: Ix, +x: U32, +k: U32, +b: U32) -> Ix:
     case Has{+t}:
       Has{tr.place(t, x, k, b, cr.i(X.ix.diff(k, tr.near(t, k))))}
 
+# where an insert puts its new branch (X.pl.run): the word holding the
+# pointer to the node it goes above, and that node, the first on k's way
+# not a branch of a bit below c; loc the word holding t's pointer
+type Plc is Data:
+  Plc{+loc: U32, +cur: U32}
+
+def plc.k(+lt: Bool, +sd: Bool, +b: U32, +loc: U32, pl: Plc, pr: Plc) -> Plc:
+  match lt:
+    case True{}:
+      match sd:
+        case True{}:
+          pr
+        case False{}:
+          pl
+    case False{}:
+      Plc{loc, b}
+
+def tr.plc(t: Tr, +c: Nat, +k: U32, +loc: U32) -> Plc:
+  match t:
+    case Lf{+y, +ky}:
+      Plc{loc, y}
+    case Br{+b, +i, l, r}:
+      plc.k(Nat.is_lt(i, c), X.ix.side(k, i), b, loc, tr.plc(l, c, k, X.ix.kid(False{}, b)), tr.plc(r, c, k, X.ix.kid(True{}, b)))
+
 # Remove: x's parent replaced by x's sibling; the branch freed, if any
 def tr.cut.r(+hit: Bool, +b: U32, +i: Nat, +l: Tr, cr: Tr) -> Tr:
   match hit:
@@ -422,3 +446,22 @@ def tr.cutat(t: Tr, +x: U32, +k: U32, +loc: U32) -> Cut:
       Cut{loc, 0, 0}
     case Br{+b, +i, +l, +r}:
       cut.at.k(X.ix.side(k, i), b, l, r, x, loc, tr.cutat(l, x, k, X.ix.kid(False{}, b)), tr.cutat(r, x, k, X.ix.kid(True{}, b)))
+
+# An insert's new nodes: the cursor x and, in a tree, the branch b, each
+# its own, apart from the situating node, each other and the tree's nodes
+def ix.fresh(I: Ix, +s: U32, +x: U32, +b: U32, +d: Nat) -> Bool:
+  match I:
+    case Ept{}:
+      nd.ok(x, d) && nd.sep(d, x, s)
+    case Has{+t}:
+      nd.ok(x, d) && (nd.ok(b, d) && (nd.sep(d, x, b) && (nd.sep(d, x, s) && (nd.sep(d, b, s) && (tr.offn(t, d, x) && tr.offn(t, d, b))))))
+
+# room for an insert's branch: in a tree, b the free list's first node
+# (KMd.chain), so that the allocation takes it; none needed in an empty
+# index
+def ix.room(I: Ix, +v: List<&2, U32>, +d: Nat, +b: U32) -> Bool:
+  match I:
+    case Ept{}:
+      True{}
+    case Has{t}:
+      KMd.chain([b], v, d, KMd.word(v, d, P.at_fh()))

@@ -245,10 +245,21 @@ def put.e(r: P.H & String, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx
   (h, +e) = r
   St{h, s, I, ps, seed, fault(e), "put " ++ U32.show(k) ++ " at " ++ U32.show(x) ++ ": " ++ e}
 
+# the insert law's premises, before a put: x and the free list's head
+# fresh, the head the branch's node
+def ck.pre(w: Vw, +s: U32, +I: M.Ix, +x: U32, +b: U32) -> P.H & String:
+  match w:
+    case Vw{h, +v, +d}:
+      (h, ck.k(M.ix.fresh(I, s, x, b, d), "not fresh; ") ++ ck.k(M.ix.room(I, v, d, b), "no room; "))
+
+def put.g(r: P.H & String, +x: U32, +k: U32, +fh: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
+  (h, +e0) = r
+  put.e(ck.acc(ck.all(X.ix.insert(h, s, x), Con{Kx{x, k}, ps}, s, key(rng(seed)), M.ix.put(I, x, k, KMd.at_idx(fh))), e0),
+    x, k, s, M.ix.put(I, x, k, KMd.at_idx(fh)), Con{Kx{x, k}, ps}, seed)
+
 def put.f(r: P.H & U32, +x: U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
   (h, +fh) = r
-  put.e(ck.all(X.ix.insert(h, s, x), Con{Kx{x, k}, ps}, s, key(rng(seed)), M.ix.put(I, x, k, KMd.at_idx(fh))),
-    x, k, s, M.ix.put(I, x, k, KMd.at_idx(fh)), Con{Kx{x, k}, ps}, seed)
+  put.g(ck.pre(view(h), s, I, x, KMd.at_idx(fh)), x, k, fh, s, I, ps, seed)
 
 def put.x(r: P.H & U32, +k: U32, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32) -> St:
   (h, +x) = r

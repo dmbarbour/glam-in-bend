@@ -83,3 +83,35 @@ law remove_tree:
   for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
   for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
   {IM.ix.real(AD.view(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x))), d, s, IM.ix.del(I, x, k)) == True{} : Bool}
+
+# LAW: inserting cursor x, its key k written at its word 2 and its
+# header a leaf's, into the index of situating node s, the heap's words
+# realizing the model I on its invariant and laid out apart, k absent
+# from it, x and the free list's first node b fresh (IM.ix.fresh,
+# IM.ix.room), leaves the words realizing the model with x put
+# (IM.ix.put): in an empty index, x alone; else a branch at b, of the
+# lowest bit k and the key its descent meets differ at, above the first
+# node on k's way not a branch of a bit below it. Not claimed: growth,
+# the free list empty with a tree to put into (the splice's precedent).
+# Record: cursors-indexed
+# Record: hub-laws-reused
+law insert_tree:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hfr: {IM.ix.fresh(I, s, x, b, d) == True{} : Bool}
+  for hm: {IM.ix.room(I, AD.view(U32, w), d, b) == True{} : Bool}
+  for hk: {KMd.word(AD.view(U32, w), d, (x + 2 : U32)) == k : U32}
+  for hb: {X.ix.branch(KMd.word(AD.view(U32, w), d, x)) == False{} : Bool}
+  for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
+  {IM.ix.real(AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, s, IM.ix.put(I, x, k, b)) == True{} : Bool}
