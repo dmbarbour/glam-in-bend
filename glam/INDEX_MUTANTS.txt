@@ -64,3 +64,40 @@ the invariant no longer placing a branch's right keys on their side
 (tr.all(r, tr.first(l), i, True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))
 +++
 (Bool.or(tr.all(r, tr.first(l), i, True{}), True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))
+
+=== rm_sibling_same_side remove_tree
+a removal writing back the cursor itself where its parent's pointer was,
+not its sibling
+--- index.bend
+      rm.found(P.rd(h, ix.kid(Bool.not(sd), cur)), loc, cur)
++++
+      rm.found(P.rd(h, ix.kid(sd, cur)), loc, cur)
+
+=== rm_root_kept remove_tree
+a lone cursor removed, its situating node still pointing at it
+--- index.bend
+      P.wr(h, (s + 3 : U32), s)
++++
+      h
+
+=== rm_loc_stale remove_tree
+a removal's walk not moving the word that holds the pointer down with
+it, so that the sibling lands in the grandparent's word
+--- index.bend
+      Rm{h, ix.kid(sd, cur), child, True{}}
++++
+      Rm{h, loc, child, True{}}
+
+=== rm_wrong_side remove_tree
+a removal's walk taking the child the key's bit does not give
+--- index.bend
+      rm.c(P.rd(h, ix.kid(ix.side(k, i), cur)), loc, cur, ix.side(k, i), x)
++++
+      rm.c(P.rd(h, ix.kid(Bool.not(ix.side(k, i)), cur)), loc, cur, Bool.not(ix.side(k, i)), x)
+
+=== rm_frees_sibling remove_tree
+a removal freeing the sibling it keeps, not the parent it drops
+--- index.bend
+  Rm{P.free(P.wr(h, loc, sib), cur), loc, cur, False{}}
++++
+  Rm{P.free(P.wr(h, loc, sib), sib), loc, cur, False{}}
