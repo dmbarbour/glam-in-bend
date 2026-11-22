@@ -147,3 +147,27 @@ the new branch testing the bit above the one the keys differ at
       ix.put.b(P.node(h, ix.hd(c), ix.pick(ix.side(k, c), x, cur)), loc, cur, c, k, x, s)
 +++
       ix.put.b(P.node(h, ix.hd(1n+c), ix.pick(ix.side(k, c), x, cur)), loc, cur, c, k, x, s)
+
+=== ins_writes_port insert_keeps
+an insert writing the new cursor's word 1, the port it faces, where the
+new branch's word 1 belongs: no word insert_tree reads
+--- index.bend
+  P.wr(P.wr(P.wr(P.wr(h, (b + 1 : U32), P.era()),
++++
+  P.wr(P.wr(P.wr(P.wr(h, (x + 1 : U32), P.era()),
+
+=== rm_writes_handle remove_keeps
+a lone cursor's removal also clearing its situating node's word 2, the
+source's handle: no word remove_tree reads
+--- index.bend
+      P.wr(h, (s + 3 : U32), s)
++++
+      P.wr(P.wr(h, (s + 3 : U32), s), (s + 2 : U32), 0)
+
+=== ins_writes_handle insert_keeps
+an insert into an empty index also clearing the situating node's word
+2
+--- index.bend
+      P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s)
++++
+      P.wr(P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s), (s + 2 : U32), 0)
