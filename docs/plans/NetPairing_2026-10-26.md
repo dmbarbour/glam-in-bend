@@ -304,16 +304,18 @@ one, is tried at `bridge-recursion`.
        at 16 to 128). Traced at 2 to 64 (the trace build of
        `cells-recursion.depth`): the growth is all in controls (Lift·LiftC,
        Ap·LiftC, Lift·Fn, Lift·FnD), and almost all after the list is
-       built, in the walk itself. Each step's function carries a stack
-       of n/4 raises at mixed indices into its beta (n = 64: `2+5 5+1
-       4+2 4+1 3+3 4+1 3+2 3+1 2+4 4+1 3+2 3+1 2+3 3+1 2+2 2+1`, the
-       nested `two` boxes' pattern), crossing the Fn and FnD one control
-       at a time, and their copies on the variable then cancel against
-       them one at a time: n/2 periods of about two elements, each
-       crossing n/4 raises several times. Fusion cannot merge the stack:
-       only a contiguous raise run stands for exactly its units
+       built, in the walk itself. Each cons cell the walk opens carries a
+       stack of raises at mixed indices down the list's tail (n = 64, the
+       last half's: `2+5 5+1 4+2 4+1 3+3 4+1 3+2 3+1 2+4 4+1 3+2 3+1 2+3
+       3+1 2+2 2+1`), crossing the cell one control at a time, their
+       copies on `c` cancelling against them one at a time, six
+       interactions a control a cell; the stack doubles at each of the
+       exponent's seams, n/4 controls on the last n/2 cells (the second
+       reviewer's correction of the agent's first reading,
+       `docs/reviews/StacksFable_2026-11-22.md`). Fusion cannot merge the
+       stack: only a contiguous raise run stands for exactly its units
        (`fuse-control-runs`). The drop run beside them (`1-49` at n = 64)
-       is fused and crossed whole, as built. A remedy is
+       is fused and crossed whole, as built. Remedies:
        `pairing-overhead.stacks`.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
@@ -353,18 +355,50 @@ one, is tried at `bridge-recursion`.
      — criteria for merging a raise with a drop where no partner can
      reach it (Asperti and Chroboczek), each checked in `ctlwire.py`
      before the corpus.
-   - `pairing-overhead.stacks` — tentative — a stack of raises at mixed
-     indices that a function carries into every beta, copied across its
-     lambda and cancelled against the copies one control at a time: n/4
-     of them in a walk of a list built by exponentiation, quadratic
-     (`pairing-fusion.drops.fixpoint`). Ideas, none checked: a control
-     holding a word of unit brackets rather than one run, so that a
-     stack crosses a node and cancels against its equal copy in one
-     interaction while a facing control unequal to it is peeled unit by
-     unit, a shape for `spike/tools/ctlwire.py` first; stratifying such
-     terms at lowering (`pairing-overhead.stratify`); merging where no
-     partner can reach (`pairing-overhead.safe-ops`). glam's own lists,
-     literal or built by recursion, do not meet it.
+   - `pairing-overhead.stacks` — tentative, parked 2026-11-22 (the
+     maintainer: pursue it now only if an obvious, simple remedy exists;
+     none does) — a stack of raises at mixed indices carried down a
+     list's tail, quadratic in a walk of a list built by exponentiation
+     (`pairing-fusion.drops.fixpoint`). The second reviewer's account
+     (`docs/reviews/StacksFable_2026-11-22.md`): the stack is a pending
+     shift of the list's tail, an application meeting a LiftC copying
+     each control onto its argument, the next cell's; each control costs
+     six interactions a cell (crossing the cell's Fn and FnD, the unit
+     drop on `c`, two applications, the cancel against its twin); the
+     stack doubles at the exponent's seams, assembled at run time, not by
+     lowering. As a map on levels the stack is one raise (`2+7` at
+     n = 16), and no raise in it ever meets one unequal to it (checked
+     at 4 to 64 elements): the quadratic is the cost of remembering a
+     split of units no partner asks about. Refuted in the model: fusing
+     raises at one index or overlapping (552 and 40 failures at three
+     controls; one foreign raise at the stack's index tells it from
+     `2+7`), reordering units into a canonical form (36 failures, a drop
+     among the partners), a raise then a drop as one smaller drop
+     (`fuse-control-runs`). Candidates, most promising first:
+     - a control holding its word of unit brackets, crossing a node as
+       one, cancelling an equal word in one interaction, a common prefix
+       cancelled and otherwise peeled unit by unit: sound by
+       construction, modelled (`results/advice/stacks/ctlword.py`, out of
+       git: 0 failures on 360,600 starts of up to three controls,
+       outcomes and logical interactions), but it pays here only if it
+       also crosses whole a control that stays above its every unit (the
+       unit drop on `c`, met at every cell), designed and not modelled;
+       the word in the data table first, its map's summary beside it.
+       Three to five days, the reviewer's guess;
+     - a safety criterion licensing the old fusion on such a stack, the
+       cheapest if one exists: Asperti and Chroboczek's tag, by the
+       reviewer's recall, is lost by every copy made for a lambda's
+       variable, which every control here descends from; to settle by
+       reading their rule against one control's lineage in the trace,
+       an hour or two;
+     - stratified lowering of the builder (`pairing-overhead.stratify`):
+       an elementary term's cells box nothing, so no stack forms, but
+       the walk's recursion is not elementary: a mixed regime, research.
+     Before building any, count where two raises meet and `compose`
+     refuses them over the library and the differential corpus, and how
+     long such chains get (a measurement build, AGENTS.md): if this walk
+     is alone, the step stays parked. glam's own lists, literal or
+     built by recursion, do not meet it.
    - `pairing-overhead.lowering` — tentative — optimizing at lowering,
      where the term's structure is known (the maintainer, 2026-10-28).
      The lowering's fused controls already do 85% less unit work than

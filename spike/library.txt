@@ -819,8 +819,8 @@ why: a recursion walking a Scott numeral of 16 to its end, by a fixpoint,
   control crosses whole (pairing-fusion.drops.kernel), glam's walk is
   linear; here demand fell from about 5.8n^2 + 88n interactions to
   0.8n^2 + 85n with levels, labels linear throughout. What is left is
-  the numeral's build by exponentiation, not the walk: n/4 raises at
-  mixed indices carried into every step's beta
+  the numeral's build by exponentiation, not the walk: up to n/4 raises
+  at mixed indices carried down the numeral's tail, crossing each cell
   (pairing-fusion.drops.fixpoint, pairing-overhead.stacks). A family
   with scott-walk-32 and -64. A full reduction unfolds Y without end:
   demand alone gives the value

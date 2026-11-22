@@ -196,6 +196,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   freeze review); a whole freeze of a static root, positioned demand off
   the interface and freeze's count to fix; the collector's count to
   measure.
+- [`StacksFable_2026-11-22.md`](StacksFable_2026-11-22.md): the second
+  reviewer's brainstorm on `pairing-overhead.stacks`, a walk of a list
+  built by exponentiation carrying a stack of raises down the list's
+  tail: no simple sound remedy; fusing, reordering and raise-drop
+  cancelling refuted in the model; a control holding its word sound and
+  modelled, days of kernel work; a safety criterion unsettled. Kept as
+  written; its deciding facts checked against the traces.
 - [`RecursionFable_2026-11-21.md`](RecursionFable_2026-11-21.md): the
   second reviewer's account of why a recursion through a lambda costs
   interactions quadratic in its depth (`cells-recursion.depth`): one

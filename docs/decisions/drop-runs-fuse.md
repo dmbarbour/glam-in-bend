@@ -60,7 +60,7 @@ agent's, within that ruling, each choice one the model checks:
 - A walk of a Scott numeral by a fixpoint (`scott-walk-*` in the
   library) keeps a quadratic, demand about 0.8n² where it was 5.8n²: not
   drops but raises, the numeral built by exponentiation leaving a stack
-  of n/4 at mixed indices that every step's beta carries
+  of up to n/4 at mixed indices carried down the list's tail
   (`pairing-fusion.drops.fixpoint`, `pairing-overhead.stacks`).
 
 **Rule lives in:** `spike/val.bend` (`V.compose`), `spike/kprim.bend`
