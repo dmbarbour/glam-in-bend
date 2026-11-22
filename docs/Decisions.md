@@ -69,6 +69,9 @@ IO shell.
 - [`hub-laws-reused`](decisions/hub-laws-reused.md): glam's proofs may
   use laws proven in third-party hub packages, imported by hash, their
   statements read before use.
+- [`cost-as-low-as-feasible`](decisions/cost-as-low-as-feasible.md): no
+  cost targets; performance cycles squeeze cost down, and regressions
+  between them are resisted.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its
