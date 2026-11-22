@@ -204,8 +204,21 @@ def ck.all(h: P.H, +ps: List<&2, Kx>, +s: U32, +k: U32, +I: M.Ix) -> P.H & Strin
 type St is Type:
   St{h: P.H, +s: U32, +I: M.Ix, +ps: List<&2, Kx>, +seed: U32, +bad: Bool, +msg: String}
 
+def kpick(+c: Bool, +a: U32, +b: U32) -> U32:
+  match c:
+    case True{}:
+      a
+    case False{}:
+      b
+
+# keys over all 32 bits, so that branches test high bits as well as
+# low: ten low bits (close keys, duplicates met), a whole word, ten bits
+# at the top, or ten low bits with the top one set
 def key(+seed: U32) -> U32:
-  ((seed >> 4n : U32) .&. 1023 : U32)
+  kpick(U32.is_eq(((seed >> 2n : U32) .&. 3 : U32), 0), ((seed >> 4n : U32) .&. 1023 : U32),
+    kpick(U32.is_eq(((seed >> 2n : U32) .&. 3 : U32), 1), (seed * 2654435761 : U32),
+      kpick(U32.is_eq(((seed >> 2n : U32) .&. 3 : U32), 2), (((seed >> 4n : U32) .&. 1023 : U32) << 22n : U32),
+        (((seed >> 4n : U32) .&. 1023 : U32) .|. 2147483648 : U32))))
 
 def drop(ps: List<&2, Kx>, +j: Nat) -> List<&2, Kx>:
   match ps:

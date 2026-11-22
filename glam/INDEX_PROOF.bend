@@ -13,6 +13,34 @@
 # may test. A scan of bits that may stop (X.ix.crit) is followed with its
 # test's Bool a parameter matched and the caller passing {==} for its
 # equation, so that the recursion needs no step lemma.
+#
+# More, from the tree's laws (find, removal, insert):
+# - `%e : {M}` with e: A == B turns a goal in B into one in A; to take a
+#   written read back to the plain one, state the lemma plain == written.
+# - No match may follow a let or a rewrite, in a proof or in code; a let
+#   may not bind a call's result in code (a helper destructures its
+#   parameter); match the Bool first, then rewrite and bind in each case.
+# - A definition used above its own fails at the call, with no message:
+#   keep helpers above their users (and_l above dsc cost an hour).
+# - Arguments pass unchanged, left to right, until the one that shrinks:
+#   a tree before the pointer that follows it (tr.real(v, d, t, p, s)).
+# - A value used twice must be `+`, its type Data (a model tree, X.Cr); a
+#   function premise cannot be `+`, so it is applied once.
+# - A wrapper of a hub lemma keeps the hub's erasure (and_l's and and_r's
+#   second Bool `-`); a relevant one fails at its callers.
+# - A comparison of a Nat stuck on a variable (is_lt(32 + c, 32)) needs
+#   one more match before it reduces.
+# - An induction hypothesis whose premises hold only on one side (the
+#   cursor's way) is passed as a function of them; one whose premises hold
+#   on both is computed for both children, eagerly, and needs no function.
+# - A long conjunction is built by and_intro, each part shown alone,
+#   rather than rewritten under one long motive; the realization after a
+#   step names the words written as parameters tied to the model by
+#   equations, so that the view's term stays one of variables.
+# - The mutants' runner matches whole lines.
+# - About half of this file was written by authoring aids under
+#   results/index_bits/ (gen_ins*.py, out of git): text written once,
+#   kept by hand since; not generated sources.
 
 import Base
 import ./INDEX_LAWS.bend as Laws

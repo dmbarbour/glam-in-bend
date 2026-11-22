@@ -319,6 +319,14 @@ it alone taught. Add to this file what a new proof teaches.
   `mod_add_r`) and `add_assoc`, then `u32_to_nat_inj`; the modulus a
   variable `m` with the equation `Nat.pow(2n, 32n) == m`, so that 2^32
   is never computed. Hub candidates, all three.
+- **A tree in the heap is proved against a tree as a value**
+  (glam/INDEX_PROOF.bend): the model a data type passed as the law's
+  parameter, its realization a recursion on the model reading the words'
+  view, its layout stated on the model too, so that a split of its nodes
+  is a computation; a step's walk proved to write exactly what a model
+  function names, then the realization after those writes, both by
+  induction along the model; the bit facts proved on the U32's Word,
+  generic in its width. Its header lists what it cost to find out.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).
