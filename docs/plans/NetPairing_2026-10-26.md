@@ -264,9 +264,10 @@ one, is tried at `bridge-recursion`.
        interpreter), alone it would leave the walk at 4n² + 15n + 9; and
        a control that cannot reach the run's index partway crosses it
        whole (`P.cross_whole`, `--cross` in the model), which leaves
-       19n + 9. The model with the rule: no failure on 2.4 million
-       starts exhaustive (to four controls at small indices, to three at
-       indices to 4) nor on samples to 10, logical interactions too. Laws
+       19n + 9. The model with the rule: no failure on every start of
+       up to four controls at its default bounds (12,463,200) nor of up
+       to three at indices to 4 (1,050,240), nor on samples to 10,
+       logical interactions too. Laws
        `drop_run_passed_below` and `drop_run_passed_above` over
        `spike/ctl.bend` (the window), `raise_compose`'s proof extended to
        drop fusion, the profile's logical interactions following the

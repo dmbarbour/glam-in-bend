@@ -39,9 +39,9 @@ agent's, within that ruling, each choice one the model checks:
 - The one-wire model with the rule (`spike/tools/ctlwire.py --peel
   --drops --cross --shapes 0,6`): fused and unit reductions reach the
   same outcomes and logical interactions on every start of up to four
-  controls at indices to 2 and levels to 1 (1,384,800), of up to three
-  at indices to 4 and levels to 3 (1,050,240), and on samples of 6, 8
-  and 10 (2026-11-22).
+  controls at the checker's default bounds, indices to 2 and levels to
+  5 (12,463,200), of up to three at indices to 4 and levels to 3
+  (1,050,240), and on samples of 6, 8 and 10 (2026-11-22).
 - Laws: `drop_units_are_run` and `drop_run_splits` (a run is its units;
   fusing and peeling a unit change nothing), `drop_run_passed_below` and
   `drop_run_passed_above` (where a control cannot reach a run's index
