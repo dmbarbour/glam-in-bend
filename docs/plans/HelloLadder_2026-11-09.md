@@ -457,7 +457,8 @@ named, and marked there when a rung is built.
       positioned demand, the core's frames). The review: where each
       element's instructions go, by layer; what each layer's work buys
       against what it costs; what can be trimmed, cached or left out;
-      and what a target per interaction should be.
+      and what a target per interaction should be. First findings,
+      2026-11-22: `docs/reviews/Cost_2026-11-22.md` (C1 to C7).
     - `ladder-measure.workload` — tentative — a workload nearer what
       glam is for than the capstone. The maintainer (2026-11-09): the
       direct-style hello world "is perhaps the closest, though even that's
