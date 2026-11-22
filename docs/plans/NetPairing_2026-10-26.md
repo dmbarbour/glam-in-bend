@@ -254,12 +254,49 @@ one, is tried at `bridge-recursion`.
        `pairing-overhead.stratify` and `pairing-overhead.safe-ops`.
        Built no further: the model and the laws stay, for a workload
        that shows drops piling up;
-     - `pairing-fusion.drops.kernel` — tentative — the model's and the
-       kernel's compose and peeling, for a workload where drops pile up:
-       a drop run peeled at any index in the generated Lift-against-LiftC
-       rewrite, which peels raises at one index today, with the laws of
-       `fusions-as-components`, then the differential test and the
-       library.
+     - `pairing-fusion.drops.kernel` — built 2026-11-22 — the model's
+       and the kernel's compose and peeling, for the workload where drops
+       pile up: glam's walk of a Scott list, 6n² + 15n + 9 interactions
+       (the Cells plan's `cells-recursion.depth`), the maintainer's yes
+       (2026-11-21) recorded as `drop-runs-fuse`. Two drops at one index
+       fuse (`V.compose`, `P.compose`); a drop run gives up a unit to a
+       facing control it does not equal (`peel.amt`, kernel and
+       interpreter), alone it would leave the walk at 4n² + 15n + 9; and
+       a control that cannot reach the run's index partway crosses it
+       whole (`P.cross_whole`, `--cross` in the model), which leaves
+       19n + 9. The model with the rule: no failure on 2.4 million
+       starts exhaustive (to four controls at small indices, to three at
+       indices to 4) nor on samples to 10, logical interactions too. Laws
+       `drop_run_passed_below` and `drop_run_passed_above` over
+       `spike/ctl.bend` (the window), `raise_compose`'s proof extended to
+       drop fusion, the profile's logical interactions following the
+       peel. The library: a net for each branch of the rule, its logical
+       interactions the model's unit reduction (19 entries, a wire from
+       a number to the root each; `results/measure/drop_library.py`, out
+       of git, writes them), each of eight mutations of the kernel's rule
+       failing them; interactions fall in 19 cases and demand's in 50
+       against main, none rise, logical unchanged where the reduction
+       finishes, `fused-crossing-22` peeling once (store runs 334, main,
+       and 335). The differential test
+       (store runs 330, main, and 329): no value changed, 3 and 27 terms
+       cheaper. Instructions: +0.26% in the default build on the leveled
+       workload once peeling is entered only at one index or for a drop
+       run (spot runs 331, main, and 333; the forced-inline build moves
+       0.3% to 2.5% even where no control is met). Not proved: the kernel's U32
+       test against the model's window, and a raise run's units against
+       a drop run's, which the model and the library's nets check; the
+       interpreter's copy of the rule is checked by values alone, the
+       library reading no level from a number;
+     - `pairing-fusion.drops.fixpoint` — tentative — a walk of a Scott
+       numeral by a fixpoint (`scott-walk-16`, `-32`, `-64`) keeps a
+       quadratic on demand where glam's walk lost it: about 0.8n² + 85n
+       interactions with levels, 5.8n² + 88n before drop runs, labels
+       linear in both, and about 21n² unfused (25n² before). Its live
+       nodes stay 28 at every size, so nothing piles up as the drops did.
+       To trace at lengths 1 to 4 before any theory; one candidate to
+       try in the model first, a unit raise at a run's own index, which
+       swaps with every unit without either index moving yet is peeled a
+       unit at a time.
 8. `pairing-overhead` — the bookkeeping that remains, where it sits:
    on the full differential test, two terms make 54.5% of all leveled
    interactions and four 61% (store run 28). Two of those four, #124 of

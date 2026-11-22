@@ -44,8 +44,8 @@ length (pairing-fusion.drops.kernel). Two drop runs facing each give
 up a unit at once, as the kernel peels both sides of a pair against each
 other as they were.
 
-    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
-    ctlwire.py [--peel] [--drops] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--drops] [--cross] [--shapes 0,1,..] [--logical] exhaustive MAXLEN [MAXN [MAXLVL]]
+    ctlwire.py [--peel] [--drops] [--cross] [--shapes 0,1,..] [--logical] sample LENGTH COUNT SEED [MAXN [MAXLVL]]
 
 With --logical, a start fails instead when its fused reductions, each
 move counted as the logical interactions it stands for (Model.counted),
