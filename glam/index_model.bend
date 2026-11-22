@@ -60,6 +60,29 @@ def ix.look(I: Ix, +k: U32) -> Maybe<&2, U32>:
     case Has{t}:
       tr.look(t, k)
 
+# The leaf at key k, the leftmost if any were two: what a find should
+# give, whatever the tree's shape (the law look_at: the descent finds it)
+def mb.or(a: Maybe<&2, U32>, b: Maybe<&2, U32>) -> Maybe<&2, U32>:
+  match a:
+    case Some{+x}:
+      Some{x}
+    case None{}:
+      b
+
+def tr.at(t: Tr, +k: U32) -> Maybe<&2, U32>:
+  match t:
+    case Lf{+x, +kk}:
+      mb.hit(U32.is_eq(kk, k), x)
+    case Br{+b, +i, l, r}:
+      mb.or(tr.at(l, k), tr.at(r, k))
+
+def ix.at(I: Ix, +k: U32) -> Maybe<&2, U32>:
+  match I:
+    case Ept{}:
+      None{}
+    case Has{t}:
+      tr.at(t, k)
+
 # Insert: the key at the leaf k leads to; the new branch b at bit c, the
 # leaf x on k's side; placed above the first node on k's way not a
 # branch of a lower bit
@@ -102,6 +125,11 @@ def cr.i(c: X.Cr) -> Nat:
   match c:
     case X.Cr{+i, +go}:
       i
+
+def cr.go(c: X.Cr) -> Bool:
+  match c:
+    case X.Cr{+i, +go}:
+      go
 
 def ix.put(I: Ix, +x: U32, +k: U32, +b: U32) -> Ix:
   match I:
@@ -195,13 +223,13 @@ def tr.real(+v: List<&2, U32>, +d: Nat, t: Tr, +p: U32, +s: U32) -> Bool:
       U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))))
 
 # situating node s's word 3 itself where the index is empty, else the
-# pointer to its tree
+# pointer to its tree, which is not s
 def ix.real(+v: List<&2, U32>, +d: Nat, +s: U32, I: Ix) -> Bool:
   match I:
     case Ept{}:
       U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)
     case Has{t}:
-      tr.real(v, d, t, KMd.word(v, d, (s + 3 : U32)), s)
+      Bool.not(U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)) && tr.real(v, d, t, KMd.word(v, d, (s + 3 : U32)), s)
 
 # The invariant: each branch's bit below 32 and below its children's;
 # every key below it alike below its bit, on its child's side at it
@@ -230,27 +258,23 @@ def tr.all(t: Tr, +p: U32, +i: Nat, +s: Bool) -> Bool:
     case Br{+b, +j, l, r}:
       tr.all(l, p, i, s) && tr.all(r, p, i, s)
 
-# t a leaf, or a branch of a bit above i
-def tr.above(t: Tr, +i: Nat) -> Bool:
+# t's branches testing bits from lo up, each below 32 and below its
+# children's, every key below one alike below its bit and on its child's
+# side at it; lo at most 32 at a leaf, so that a descent's fuel follows
+# (33 steps from lo 0)
+def tr.ok(t: Tr, +lo: Nat) -> Bool:
   match t:
     case Lf{+x, +k}:
-      True{}
-    case Br{+b, +j, l, r}:
-      Nat.is_lt(i, j)
-
-def tr.inv(t: Tr) -> Bool:
-  match t:
-    case Lf{+x, +k}:
-      True{}
+      Nat.is_le(lo, 32n)
     case Br{+b, +i, +l, +r}:
-      Nat.is_lt(i, 32n) && (tr.above(l, i) && (tr.above(r, i) && (tr.all(l, tr.first(l), i, False{}) && (tr.all(r, tr.first(l), i, True{}) && (tr.inv(l) && tr.inv(r))))))
+      Nat.is_le(lo, i) && (Nat.is_lt(i, 32n) && (tr.all(l, tr.first(l), i, False{}) && (tr.all(r, tr.first(l), i, True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))
 
 def ix.inv(I: Ix) -> Bool:
   match I:
     case Ept{}:
       True{}
     case Has{t}:
-      tr.inv(t)
+      tr.ok(t, 0n)
 
 # The tree's nodes: its leaves, the cursors; its branches
 def tr.leaves(t: Tr) -> List<&2, U32>:

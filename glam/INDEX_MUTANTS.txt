@@ -1,0 +1,66 @@
+Mutations of a copy's index (glam/index.bend) and of its model's lookup
+(glam/index_model.bend), each naming the laws of glam/INDEX_LAWS.bend it
+should fail (docs/Proving.md; the gate runs scripts/one_law.py --mutants
+on this file).
+
+=== scan_31 ne_found
+the scan of two keys' bits stops a bit short, so that keys differing
+only at bit 31 seem alike
+--- index.bend
+  ix.crit(32n, Cr{0n, True{}}, a, b)
++++
+  ix.crit(31n, Cr{0n, True{}}, a, b)
+
+=== scan_same_flipped ne_found
+a scan that stops where the keys agree
+--- index.bend
+  cr.k(ix.same(ix.side(a, i), ix.side(b, i)), i)
++++
+  cr.k(Bool.not(ix.same(ix.side(a, i), ix.side(b, i))), i)
+
+=== descent_wrong_side find_tree
+a descent taking the child the key's bit does not give
+--- index.bend
+      ds.c(P.rd(h, ix.kid(ix.side(k, i), x)))
++++
+      ds.c(P.rd(h, ix.kid(Bool.not(ix.side(k, i)), x)))
+
+=== descent_fuel_32 find_tree
+a descent one step short, so that a tree of 32 bits on its way ends
+in an error
+--- index.bend
+def ix.fuel() -> Nat:
+  33n
++++
+def ix.fuel() -> Nat:
+  32n
+
+=== found_any find_tree
+a find handing back whatever leaf it reaches, the key unchecked
+--- index.bend
+  ix.found.s(U32.is_eq(key, k), h, x)
++++
+  ix.found.s(True{}, h, x)
+
+=== empty_unread find_tree
+a find on an index whose situating node points to itself going down
+as though to a tree
+--- index.bend
+  ix.find.k(U32.is_eq(root, s), h, root, k)
++++
+  ix.find.k(False{}, h, root, k)
+
+=== look_wrong_side look_at find_tree
+the model's lookup going to the other child, so that it misses the
+keys present
+--- index_model.bend
+      mb.pick(X.ix.side(k, i), tr.look(r, k), tr.look(l, k))
++++
+      mb.pick(X.ix.side(k, i), tr.look(l, k), tr.look(r, k))
+
+=== side_unchecked look_at
+the invariant no longer placing a branch's right keys on their side
+--- index_model.bend
+(tr.all(r, tr.first(l), i, True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))
++++
+(Bool.or(tr.all(r, tr.first(l), i, True{}), True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))
