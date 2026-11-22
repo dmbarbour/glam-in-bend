@@ -2690,6 +2690,137 @@ def ik.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: U32,
 def Laws.insert_keeps(w, a, d, s, I, x, k, b, j, hf, hd32, hr, hi, hl, hfr, hm, hk, hb, ha, hj, hjb, hjh, hjx):
   ik.m(w, a, d, s, I, x, k, b, j, hf, hd32, hr, hi, hl, hfr, hm, hk, hb, ha, hj, hjb, hjh, hjx, LAT.mirror(U32, w))
 
+# Agreement
+# =========
+
+def same_sym(+p: Bool, +q: Bool) -> {X.ix.same(p, q) == X.ix.same(q, p) : Bool}:
+  match p:
+    case True{}:
+      match q:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+    case False{}:
+      match q:
+        case True{}:
+          {==}
+        case False{}:
+          {==}
+
+def same_trans(+p: Bool, +q: Bool, +r: Bool, +h1: {X.ix.same(p, q) == True{} : Bool}, +h2: {X.ix.same(q, r) == True{} : Bool}) -> {X.ix.same(p, r) == True{} : Bool}:
+  match p:
+    case True{}:
+      match q:
+        case True{}:
+          h2
+        case False{}:
+          Empty.absurd({X.ix.same(True{}, r) == True{} : Bool}, MB.false_ne_true()(h1))
+    case False{}:
+      match q:
+        case True{}:
+          Empty.absurd({X.ix.same(False{}, r) == True{} : Bool}, MB.false_ne_true()(h1))
+        case False{}:
+          h2
+
+def same_refl(+p: Bool) -> {X.ix.same(p, p) == True{} : Bool}:
+  match p:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# a and c differ where a and b agree and b and c differ
+def same_ne(+p: Bool, +q: Bool, +r: Bool, +h1: {X.ix.same(p, q) == True{} : Bool}, +h2: {X.ix.same(q, r) == False{} : Bool}) -> {X.ix.same(p, r) == False{} : Bool}:
+  match p:
+    case True{}:
+      match q:
+        case True{}:
+          h2
+        case False{}:
+          Empty.absurd({X.ix.same(True{}, r) == False{} : Bool}, MB.false_ne_true()(h1))
+    case False{}:
+      match q:
+        case True{}:
+          Empty.absurd({X.ix.same(False{}, r) == False{} : Bool}, MB.false_ne_true()(h1))
+        case False{}:
+          h2
+
+def agree_sym(+a: U32, +b: U32, +i: Nat, +h: {IM.tr.agree(a, b, i) == True{} : Bool}) -> {IM.tr.agree(b, a, i) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+(+j):
+      and_intro(X.ix.same(X.ix.side(b, j), X.ix.side(a, j)), IM.tr.agree(b, a, j),
+        Equal.trans(Bool, X.ix.same(X.ix.side(b, j), X.ix.side(a, j)), X.ix.same(X.ix.side(a, j), X.ix.side(b, j)), True{}, same_sym(X.ix.side(b, j), X.ix.side(a, j)), and_l(X.ix.same(X.ix.side(a, j), X.ix.side(b, j)), IM.tr.agree(a, b, j), h)),
+        agree_sym(a, b, j, and_r(X.ix.same(X.ix.side(a, j), X.ix.side(b, j)), IM.tr.agree(a, b, j), h)))
+
+def agree_trans(+a: U32, +b: U32, +c: U32, +i: Nat, +h1: {IM.tr.agree(a, b, i) == True{} : Bool}, +h2: {IM.tr.agree(b, c, i) == True{} : Bool}) -> {IM.tr.agree(a, c, i) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+(+j):
+      and_intro(X.ix.same(X.ix.side(a, j), X.ix.side(c, j)), IM.tr.agree(a, c, j),
+        same_trans(X.ix.side(a, j), X.ix.side(b, j), X.ix.side(c, j), and_l(X.ix.same(X.ix.side(a, j), X.ix.side(b, j)), IM.tr.agree(a, b, j), h1), and_l(X.ix.same(X.ix.side(b, j), X.ix.side(c, j)), IM.tr.agree(b, c, j), h2)),
+        agree_trans(a, b, c, j, and_r(X.ix.same(X.ix.side(a, j), X.ix.side(b, j)), IM.tr.agree(a, b, j), h1), and_r(X.ix.same(X.ix.side(b, j), X.ix.side(c, j)), IM.tr.agree(b, c, j), h2)))
+
+def agree_refl(+a: U32, +i: Nat) -> {IM.tr.agree(a, a, i) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+(+j):
+      and_intro(X.ix.same(X.ix.side(a, j), X.ix.side(a, j)), IM.tr.agree(a, a, j), same_refl(X.ix.side(a, j)), agree_refl(a, j))
+
+# agreement below a bit holds below any lower one
+def agree_down(+a: U32, +b: U32, +i: Nat, +n: Nat, +h: {IM.tr.agree(a, b, Nat.add(n, i)) == True{} : Bool}) -> {IM.tr.agree(a, b, i) == True{} : Bool}:
+  match n:
+    case 0n:
+      h
+    case 1n+(+m):
+      agree_down(a, b, i, m, and_r(X.ix.same(X.ix.side(a, Nat.add(m, i)), X.ix.side(b, Nat.add(m, i))), IM.tr.agree(a, b, Nat.add(m, i)), h))
+
+# below i, given i at most j: j is i plus their difference
+def le_wit(+i: Nat, +j: Nat, +h: {Nat.is_le(i, j) == True{} : Bool}) -> {j == Nat.add(Nat.sub(j, i), i) : Nat}:
+  match i:
+    case 0n:
+      match j:
+        case 0n:
+          {==}
+        case 1n+(+q):
+          Equal.cong(Nat, Nat, z => 1n+z, q, Nat.add(q, 0n), MN.add_zero_sym(q))
+    case 1n+(+p):
+      match j:
+        case 0n:
+          Empty.absurd({0n == Nat.add(Nat.sub(0n, 1n+p), 1n+p) : Nat}, MB.false_ne_true()(h))
+        case 1n+(+q):
+          %MN.add_succ_sym(Nat.sub(q, p), p) : {1n+q == _ : Nat}
+          Equal.cong(Nat, Nat, z => 1n+z, q, Nat.add(Nat.sub(q, p), p), le_wit(p, q, h))
+
+def agree_le(+a: U32, +b: U32, +i: Nat, +j: Nat, +hij: {Nat.is_le(i, j) == True{} : Bool}, +h: {IM.tr.agree(a, b, j) == True{} : Bool}) -> {IM.tr.agree(a, b, i) == True{} : Bool}:
+  agree_down(a, b, i, Nat.sub(j, i), ME.subst(Nat, z => {IM.tr.agree(a, b, z) == True{} : Bool}, j, Nat.add(Nat.sub(j, i), i), le_wit(i, j, hij), h))
+
+# The scan's stop: the keys alike below the bit it stops at, unalike at it
+def crit_ag(+f: Nat, +i: Nat, +a: U32, +b: U32, +eq: Bool, +heq: {X.ix.same(X.ix.side(a, i), X.ix.side(b, i)) == eq : Bool},
+  +hag: {IM.tr.agree(a, b, i) == True{} : Bool}, +hg: {IM.cr.go(X.ix.crit(f, X.Cr{i, True{}}, a, b)) == False{} : Bool}) ->
+  {Bool.and(IM.tr.agree(a, b, IM.cr.i(X.ix.crit(f, X.Cr{i, True{}}, a, b))), Bool.not(X.ix.same(X.ix.side(a, IM.cr.i(X.ix.crit(f, X.Cr{i, True{}}, a, b))), X.ix.side(b, IM.cr.i(X.ix.crit(f, X.Cr{i, True{}}, a, b)))))) == True{} : Bool}:
+  match f:
+    case 0n:
+      Empty.absurd({Bool.and(IM.tr.agree(a, b, i), Bool.not(X.ix.same(X.ix.side(a, i), X.ix.side(b, i)))) == True{} : Bool}, MB.true_ne_false()(hg))
+    case 1n+(+q):
+      match eq:
+        case True{}:
+          %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), True{}, heq) :
+            {Bool.and(IM.tr.agree(a, b, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b))), Bool.not(X.ix.same(X.ix.side(a, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b))), X.ix.side(b, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b)))))) == True{} : Bool}
+          crit_ag(q, 1n+i, a, b, X.ix.same(X.ix.side(a, 1n+i), X.ix.side(b, 1n+i)), {==}, and_intro(X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), IM.tr.agree(a, b, i), heq, hag),
+            ME.subst(Bool, z => {IM.cr.go(X.ix.crit(q, X.cr.k(z, i), a, b)) == False{} : Bool}, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), True{}, heq, hg))
+        case False{}:
+          %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), False{}, heq) :
+            {Bool.and(IM.tr.agree(a, b, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b))), Bool.not(X.ix.same(X.ix.side(a, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b))), X.ix.side(b, IM.cr.i(X.ix.crit(q, X.cr.k(_, i), a, b)))))) == True{} : Bool}
+          %Equal.sym(X.Cr, X.ix.crit(q, X.Cr{i, False{}}, a, b), X.Cr{i, False{}}, crit_stays(q, i, a, b)) :
+            {Bool.and(IM.tr.agree(a, b, IM.cr.i(_)), Bool.not(X.ix.same(X.ix.side(a, IM.cr.i(_)), X.ix.side(b, IM.cr.i(_))))) == True{} : Bool}
+          %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), False{}, heq) : {Bool.and(IM.tr.agree(a, b, i), Bool.not(_)) == True{} : Bool}
+          and_intro(IM.tr.agree(a, b, i), True{}, hag, {==})
+
 # Lookups
 # =======
 
