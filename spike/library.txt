@@ -49,6 +49,157 @@ links: 0.0-1.0 1.1-2.0
 root: 0.1
 net: 5 logical 4 peels 0
 
+# Drop runs (pairing-fusion.drops.kernel): two drops at one index fuse
+# into a run, which gives up one unit to any facing control it does not
+# equal, unless that control crosses it whole: at another index, no drop
+# run, and not above the run's index by less than its length. Each a
+# wire from a number to the root, written in the order
+# spike/tools/ctlwire.py reads it (results' drop_library.py), its logical
+# interactions the checker's unit reduction plus the value's arrival.
+
+name: drop-run-raise-run
+why: a drop run facing a raise run at its index: each gives up a unit,
+  which cross, the rest following (C1-2 L1+2)
+nodes: ctlc(1,-2) ctl(1,+2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 9 peels 1
+
+name: raise-run-drop-run
+why: drop-run-raise-run with the sides swapped (C1+2 L1-2)
+nodes: ctlc(1,+2) ctl(1,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 9 peels 2
+
+name: drop-run-unit-inside
+why: a unit drop above the run's index by less than its length reaches
+  that index partway: the run gives up a unit, the rest its partner (C0-2 L1-1)
+nodes: ctlc(0,-2) ctl(1,-1) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 4 peels 1
+
+name: unit-inside-drop-run
+why: drop-run-unit-inside with the sides swapped (C1-1 L0-2)
+nodes: ctlc(1,-1) ctl(0,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 4 peels 1
+
+name: drop-run-unit-at-end
+why: a unit drop at n + b, the window's end, never reaches n: it crosses
+  the run whole (C0-2 L2-1)
+nodes: ctlc(0,-2) ctl(2,-1) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: drop-run-raise-at-end
+why: a raise at n + b crosses the run whole (C0-2 L2+1)
+nodes: ctlc(0,-2) ctl(2,+1) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: unit-at-end-drop-run
+why: drop-run-unit-at-end with the sides swapped (C2-1 L0-2)
+nodes: ctlc(2,-1) ctl(0,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: drop-run-raise-below
+why: a raise below the run's index crosses it whole, raising it (C2-2 L1+1)
+nodes: ctlc(2,-2) ctl(1,+1) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: drop-run-unit-below
+why: a unit drop below the run's index crosses it whole, lowering it (C2-2 L1-1)
+nodes: ctlc(2,-2) ctl(1,-1) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: raise-below-drop-run
+why: drop-run-raise-below with the sides swapped (C1+1 L2-2)
+nodes: ctlc(1,+1) ctl(2,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 0
+
+name: drop-runs-apart
+why: two drop runs at different indices: each gives up a unit (C0-2 L1-2)
+nodes: ctlc(0,-2) ctl(1,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 6 peels 2
+
+name: drop-runs-far
+why: two drop runs past each other's window still each give up a unit:
+  a drop run is never crossed whole by another (C0-2 L3-2)
+nodes: ctlc(0,-2) ctl(3,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 9 peels 1
+
+name: drop-runs-one-index
+why: two drop runs at one index, unequal: a unit of each cancels, the
+  rests following (C0-2 L0-3)
+nodes: ctlc(0,-2) ctl(0,-3) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 4 peels 2
+
+name: drop-runs-equal
+why: equal drop runs cancel in one interaction, 2 logical ones (C0-2 L0-2)
+nodes: ctlc(0,-2) ctl(0,-2) num(5)
+links: 0.1-2.0 0.0-1.0
+root: 1.1
+net: 5 logical 3 peels 0
+
+name: drops-fuse-partway
+why: the model's first failure (NetPairing's pairing-fusion.drops): the
+  unit drop crosses one unit and cancels the other, fused or not (C0-1 C0-1 L1-1)
+nodes: ctlc(0,-1) ctlc(0,-1) ctl(1,-1) num(5)
+links: 0.1-3.0 0.0-1.1 1.0-2.0
+root: 2.1
+net: 5 logical 4 peels 0
+
+name: drop-run-crossed-probe
+why: a run crossed whole, the crossed unit drop then cancelling a unit
+  drop at the run's index: the index it lands at, checked (C0-1 C0-2 L2-1)
+nodes: ctlc(0,-1) ctlc(0,-2) ctl(2,-1) num(5)
+links: 0.1-3.0 0.0-1.1 1.0-2.0
+root: 2.1
+net: 5 logical 6 peels 0
+
+name: drop-run-crossed-probe-2
+why: a run crossed whole, then cancelling a run equal to it: its index
+  and length after the crossing, checked (C0-2 L2-1 L0-2)
+nodes: ctlc(0,-2) ctl(2,-1) ctl(0,-2) num(5)
+links: 0.1-3.0 0.0-1.0 1.1-2.0
+root: 2.1
+net: 5 logical 6 peels 0
+
+name: drop-run-peeled-probe
+why: a run peeled by a unit inside its window, the units then meeting a
+  unit drop at its index (C0-2 L1-1 L0-1)
+nodes: ctlc(0,-2) ctl(1,-1) ctl(0,-1) num(5)
+links: 0.1-3.0 0.0-1.0 1.1-2.0
+root: 2.1
+net: 5 logical 4 peels 1
+
+name: drop-runs-mixed-4
+why: four controls, a run crossed whole by a raise at its window's end
+  and peeled against a unit drop inside it (C1-1 C0-2 L3+1 L0-2)
+nodes: ctlc(1,-1) ctlc(0,-2) ctl(3,+1) ctl(0,-2) num(5)
+links: 0.1-4.0 0.0-1.1 1.0-2.0 2.1-3.0
+root: 3.1
+net: 5 logical 8 peels 0
+
 # Nets no lambda term lowers to
 
 name: vicious-circle-beta
