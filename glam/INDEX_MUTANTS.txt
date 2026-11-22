@@ -101,3 +101,49 @@ a removal freeing the sibling it keeps, not the parent it drops
   Rm{P.free(P.wr(h, loc, sib), cur), loc, cur, False{}}
 +++
   Rm{P.free(P.wr(h, loc, sib), sib), loc, cur, False{}}
+
+=== ins_sides_swapped insert_tree
+an insert putting the cursor on the side its key's bit does not give,
+the tree it splits on the other
+--- index.bend
+    (b + 2 : U32), ix.pick(ix.side(k, c), cur, x)),
++++
+    (b + 2 : U32), ix.pick(ix.side(k, c), x, cur)),
+
+=== ins_place_flipped insert_tree
+the placement going on below branches of a higher bit, not a lower
+--- index.bend
+  pl.k(ix.branch(hd) && Nat.is_lt(ix.bitof(hd), c), h, loc, cur, ix.bitof(hd), k)
++++
+  pl.k(ix.branch(hd) && Nat.is_lt(c, ix.bitof(hd)), h, loc, cur, ix.bitof(hd), k)
+
+=== ins_no_home insert_tree
+an insert into a tree leaving the cursor's word 3 without its situating
+node
+--- index.bend
+    loc, b), (x + 3 : U32), s)
++++
+    loc, b), (x + 3 : U32), x)
+
+=== ins_loc_stale insert_tree
+the placement not moving the word that holds the pointer down with it,
+so that the new branch lands in a word above its place
+--- index.bend
+      pl.c(P.rd(h, ix.kid(ix.side(k, i), cur)), ix.kid(ix.side(k, i), cur))
++++
+      pl.c(P.rd(h, ix.kid(ix.side(k, i), cur)), loc)
+
+=== ins_empty_no_root insert_tree
+an insert into an empty index leaving its situating node pointing at
+itself
+--- index.bend
+      P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s)
++++
+      P.wr(h, (x + 3 : U32), s)
+
+=== ins_wrong_bit insert_tree
+the new branch testing the bit above the one the keys differ at
+--- index.bend
+      ix.put.b(P.node(h, ix.hd(c), ix.pick(ix.side(k, c), x, cur)), loc, cur, c, k, x, s)
++++
+      ix.put.b(P.node(h, ix.hd(1n+c), ix.pick(ix.side(k, c), x, cur)), loc, cur, c, k, x, s)
