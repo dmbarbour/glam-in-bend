@@ -1885,6 +1885,104 @@ def pla(T: IM.Tr, f: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32
             pla(l, q, t0, a, d, s, k, c, (b + 2 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), 1n+i, hft, hd32, and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg),
             pla(r, q, t0, a, d, s, k, c, (b + 3 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), 1n+i, hft, hd32, and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg))
 
+# Where the placement's word lands: the word given, or a branch's
+# below it
+
+def plc2.k(+lt: Bool, +sd: Bool, +b: U32, +i: Nat, +c: Nat, +k: U32, +loc: U32, +l: IM.Tr, +r: IM.Tr, +d: Nat, +j: U32,
+  +hj: {Nat.is_eq(AD.slot(j, d), AD.slot(loc, d)) == False{} : Bool},
+  +ihl: {Nat.is_eq(AD.slot(j, d), AD.slot(plc.lo(IM.tr.plc(l, c, k, (b + 2 : U32))), d)) == False{} : Bool},
+  +ihr: {Nat.is_eq(AD.slot(j, d), AD.slot(plc.lo(IM.tr.plc(r, c, k, (b + 3 : U32))), d)) == False{} : Bool}) ->
+  {Nat.is_eq(AD.slot(j, d), AD.slot(plc.lo(IM.plc.k(lt, sd, b, loc, IM.tr.plc(l, c, k, (b + 2 : U32)), IM.tr.plc(r, c, k, (b + 3 : U32)))), d)) == False{} : Bool}:
+  match lt:
+    case False{}:
+      hj
+    case True{}:
+      match sd:
+        case True{}:
+          ihr
+        case False{}:
+          ihl
+
+def plc2(T: IM.Tr, +c: Nat, +k: U32, +loc: U32, +d: Nat, +j: U32, +ho: {IM.tr.off(T, d, j) == True{} : Bool}, +hj: {Nat.is_eq(AD.slot(j, d), AD.slot(loc, d)) == False{} : Bool}) ->
+  {Nat.is_eq(AD.slot(j, d), AD.slot(plc.lo(IM.tr.plc(T, c, k, loc)), d)) == False{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      hj
+    case IM.Br{+b, +i, +l, +r}:
+      +hb = and_l(KMd.off.words(KMd.nw(b), d, j), IM.tr.off(l, d, j) && IM.tr.off(r, d, j), ho)
+      +hlr = and_r(KMd.off.words(KMd.nw(b), d, j), IM.tr.off(l, d, j) && IM.tr.off(r, d, j), ho)
+      plc2.k(Nat.is_lt(i, c), X.ix.side(k, i), b, i, c, k, loc, l, r, d, j, hj,
+        plc2(l, c, k, (b + 2 : U32), d, j, and_l(IM.tr.off(l, d, j), IM.tr.off(r, d, j), hlr), off2(b, d, j, hb)),
+        plc2(r, c, k, (b + 3 : U32), d, j, and_r(IM.tr.off(l, d, j), IM.tr.off(r, d, j), hlr), off3(b, d, j, hb)))
+
+def plc34.k(+lt: Bool, +sd: Bool, +U: IM.Tr, +b: U32, +i: Nat, +c: Nat, +k: U32, +loc: U32, +l: IM.Tr, +r: IM.Tr, +d: Nat,
+  +hU: {IM.tr.off(U, d, loc) == True{} : Bool},
+  +ihl: {IM.tr.off(U, d, plc.lo(IM.tr.plc(l, c, k, (b + 2 : U32)))) == True{} : Bool},
+  +ihr: {IM.tr.off(U, d, plc.lo(IM.tr.plc(r, c, k, (b + 3 : U32)))) == True{} : Bool}) ->
+  {IM.tr.off(U, d, plc.lo(IM.plc.k(lt, sd, b, loc, IM.tr.plc(l, c, k, (b + 2 : U32)), IM.tr.plc(r, c, k, (b + 3 : U32))))) == True{} : Bool}:
+  match lt:
+    case False{}:
+      hU
+    case True{}:
+      match sd:
+        case True{}:
+          ihr
+        case False{}:
+          ihl
+
+def plc34(T: IM.Tr, +U: IM.Tr, +c: Nat, +k: U32, +loc: U32, +d: Nat, +hU: {IM.tr.off(U, d, loc) == True{} : Bool}, +ha: {IM.tr.apart(U, T, d) == True{} : Bool}) ->
+  {IM.tr.off(U, d, plc.lo(IM.tr.plc(T, c, k, loc))) == True{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      hU
+    case IM.Br{+b, +i, +l, +r}:
+      +hab = ap_b(U, d, b, i, l, r, ha)
+      +hb = onw(U, d, b, and_l(IM.tr.offn(U, d, b), IM.tr.apart(U, l, d) && IM.tr.apart(U, r, d), hab))
+      +hlr = and_r(IM.tr.offn(U, d, b), IM.tr.apart(U, l, d) && IM.tr.apart(U, r, d), hab)
+      +h2 = and_r(IM.tr.off(U, d, (b + 1 : U32)), IM.tr.off(U, d, (b + 2 : U32)) && IM.tr.off(U, d, (b + 3 : U32)), and_r(IM.tr.off(U, d, b), IM.tr.off(U, d, (b + 1 : U32)) && (IM.tr.off(U, d, (b + 2 : U32)) && IM.tr.off(U, d, (b + 3 : U32))), hb))
+      plc34.k(Nat.is_lt(i, c), X.ix.side(k, i), U, b, i, c, k, loc, l, r, d, hU,
+        plc34(l, U, c, k, (b + 2 : U32), d, and_l(IM.tr.off(U, d, (b + 2 : U32)), IM.tr.off(U, d, (b + 3 : U32)), h2), and_l(IM.tr.apart(U, l, d), IM.tr.apart(U, r, d), hlr)),
+        plc34(r, U, c, k, (b + 3 : U32), d, and_r(IM.tr.off(U, d, (b + 2 : U32)), IM.tr.off(U, d, (b + 3 : U32)), h2), and_r(IM.tr.apart(U, l, d), IM.tr.apart(U, r, d), hlr)))
+
+# a word written into a view that holds one there reads the value, as a
+# set preserves which slots hold one
+def some_map(+m: Maybe<&2, U32>, +v: U32) -> {is_some(Maybe.map(&2, U32, U32, y => v, m)) == is_some(m) : Bool}:
+  match m:
+    case Some{+q}:
+      {==}
+    case None{}:
+      {==}
+
+def some_set.k(+xs: List<&2, U32>, +i: Nat, +j: Nat, +v: U32, +e: Bool, +he: {Nat.is_eq(i, j) == e : Bool}) ->
+  {is_some(List.get(&2, U32, List.set(&2, U32, xs, i, v), j)) == is_some(List.get(&2, U32, xs, j)) : Bool}:
+  match e:
+    case False{}:
+      %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, xs, i, v), j), List.get(&2, U32, xs, j), LAB.get_set_ne(U32, xs, i, j, v, he)) :
+        {is_some(_) == is_some(List.get(&2, U32, xs, j)) : Bool}
+      {==}
+    case True{}:
+      ME.subst(Nat, z => {is_some(List.get(&2, U32, List.set(&2, U32, xs, z, v), j)) == is_some(List.get(&2, U32, xs, j)) : Bool}, j, i, Equal.sym(Nat, i, j, MN.eq_of_is_eq(i, j, he)),
+        Equal.trans(Bool, is_some(List.get(&2, U32, List.set(&2, U32, xs, j, v), j)), is_some(Maybe.map(&2, U32, U32, y => v, List.get(&2, U32, xs, j))), is_some(List.get(&2, U32, xs, j)),
+          Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), List.get(&2, U32, List.set(&2, U32, xs, j, v), j), Maybe.map(&2, U32, U32, y => v, List.get(&2, U32, xs, j)), ML.get_set_self(&2, U32, xs, j, v)),
+          some_map(List.get(&2, U32, xs, j), v)))
+
+def some_set(+xs: List<&2, U32>, +i: Nat, +j: Nat, +v: U32, +h: {is_some(List.get(&2, U32, xs, j)) == True{} : Bool}) ->
+  {is_some(List.get(&2, U32, List.set(&2, U32, xs, i, v), j)) == True{} : Bool}:
+  Equal.trans(Bool, is_some(List.get(&2, U32, List.set(&2, U32, xs, i, v), j)), is_some(List.get(&2, U32, xs, j)), True{}, some_set.k(xs, i, j, v, Nat.is_eq(i, j), {==}), h)
+
+def wl_eq2.k(+m: Maybe<&2, U32>, +val: U32, +h: {is_some(m) == True{} : Bool}) -> {KMd.word.m(Maybe.map(&2, U32, U32, y => val, m)) == val : U32}:
+  match m:
+    case Some{+q}:
+      {==}
+    case None{}:
+      Empty.absurd({KMd.word.m(Maybe.map(&2, U32, U32, y => val, None{})) == val : U32}, MB.false_ne_true()(h))
+
+def wl_eq2(+v: List<&2, U32>, +d: Nat, +j: U32, +val: U32, +h: {is_some(List.get(&2, U32, v, AD.slot(j, d))) == True{} : Bool}) ->
+  {KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, j) == val : U32}:
+  %Equal.sym(Maybe<&2, U32>, List.get(&2, U32, List.set(&2, U32, v, AD.slot(j, d), val), AD.slot(j, d)), Maybe.map(&2, U32, U32, y => val, List.get(&2, U32, v, AD.slot(j, d))), ML.get_set_self(&2, U32, v, AD.slot(j, d), val)) :
+    {KMd.word.m(_) == val : U32}
+  wl_eq2.k(List.get(&2, U32, v, AD.slot(j, d)), val, h)
+
 # Lookups
 # =======
 
