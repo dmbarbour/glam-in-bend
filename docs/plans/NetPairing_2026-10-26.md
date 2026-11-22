@@ -386,11 +386,49 @@ one, is tried at `bridge-recursion`.
        the word in the data table first, its map's summary beside it.
        Three to five days, the reviewer's guess;
      - a safety criterion licensing the old fusion on such a stack, the
-       cheapest if one exists: Asperti and Chroboczek's tag, by the
-       reviewer's recall, is lost by every copy made for a lambda's
-       variable, which every control here descends from; to settle by
-       reading their rule against one control's lineage in the trace,
-       an hour or two;
+       cheapest if one exists. Settled 2026-11-22, the maintainer's ask,
+       and the reviewer's recall wrong in its conclusion. The paper is
+       behind its publisher and the author's copy gone, so the rule is
+       read in BOHM 1.1 (github.com/asperti/BOHM1.1, by its authors among
+       others): every operator is made safe, a copy taking its parent's
+       flag; a control or fan crossing a lambda whose variable is used
+       becomes unsafe, and both copies with it (`reducer.c`, `f1->num_safe
+       = false` before the copy; a lambda with an unused variable leaves
+       it safe); along the main spine, a control merges into the control
+       or fan it is in series with when that one, the absorber, is safe
+       and the first's index lies in its range, raise or drop, both safe
+       for a drop (`lo_redex`); a safe control of offset 0 vanishes. Our
+       series pair maps onto it with the control crossed first as the
+       absorber, the old fusion's window n1 ≤ n2 ≤ n1 + b1 with a safety
+       bit. Every control of the stack that travels a cell has crossed
+       the cell's lambda and is unsafe (the reviewer's expectation, and
+       the trace's lineage of the `3+2`, `dnw_16.txt` lines 265 to 431),
+       but a measurement build (a lambda's crossing marked in a spare
+       header bit, fusion keeping the absorber's; the patch at
+       `results/measure/safeops/apply.py`, out of git) finds a few
+       refused pairs a seam whose absorber is safe: 8, 12 and 16 at 16,
+       32 and 64 elements, of 101, 381 and 1,453 in the window. Merging
+       those (the same build, `merge`) makes the walk linear: the
+       library's `scott-walk` 1,479, 2,852 and 5,553 on demand, about 85
+       an element, its merges 4, 6 and 8; glam's named walk of a list
+       built by exponentiation 600, 1,172, 2,304 and 4,556 at 16 to 128
+       (it was 783 to 20,357), its fixpoint walk about 86 an element.
+       No value changed: the library, the ladder, and 5,400 random terms
+       in every strategy (store run 338 against 330, demand cheaper in 27
+       terms, dearer in none). But the evidence for soundness is thin.
+       The one-wire model cannot hold the rule: a wire has no lambda, so
+       every control stays safe and the rule is the old shapes 1 and 2,
+       which it refutes; soundness is a property of the nets a
+       translation reaches, the paper's theorem for BOHM's, not ours.
+       And the corpus does not tell safe from unsafe merging by value:
+       with no safety check (store run 339) no value changed either,
+       though demand then did more than the full reduction in 31 terms,
+       none with the check. Building it is small (the bit set where a
+       Lift crosses an Fn, in the generated rewrites, the interpreted
+       table and the interpreter; kept by copies and fusion, the copied
+       mark's form bit apart; `compose` admitting the window under a
+       safe absorber); trusting it wants the paper's proof checked
+       against glam's translation, or a model of nets with lambdas;
      - stratified lowering of the builder (`pairing-overhead.stratify`):
        an elementary term's cells box nothing, so no stack forms, but
        the walk's recursion is not elementary: a mixed regime, research.
