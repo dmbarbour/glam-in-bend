@@ -15,10 +15,12 @@ every one, so a walk of n costs 6n² + 15n + 9 interactions
 `cells-recursion.depth`). The agent asked whether drop runs should be
 allowed to fuse, the model checked first and the laws brought at merge.
 
-**Decision.** The maintainer (2026-11-21): "Yes, let's work on this."
+**Decision.** Two drops at one index fuse into one dropping by their
+sum, b unit drops at n: the maintainer (2026-11-21), asked whether drop
+runs should be allowed to fuse now that a workload shows them piling up,
+"Yes, let's work on this." How a run then meets a facing control is the
+agent's, within that ruling, each choice one the model checks:
 
-- Two drops at one index fuse into one dropping by their sum: b unit
-  drops at n.
 - A drop run facing a control it does not equal gives up one unit to
   meet it, the rest staying at its index, as the model found: a control
   crossing a run's units one at a time can reach the run's index
@@ -28,7 +30,10 @@ allowed to fuse, the model checked first and the laws brought at merge.
   never sits at the run's index before the last unit, so it crosses each
   unit where it crossed the first, and each unit leaves alike.
 - Two drop runs facing each other each give up a unit, both sides peeled
-  against each other as they were.
+  against each other as they were. A drop run is never crossed whole by
+  another, though in the one library net that tries it at a distance
+  (`drop-runs-far`) crossing whole kept the logical interactions: a
+  conservative choice, peeling never wrong.
 
 **Consequences.**
 - The one-wire model with the rule (`spike/tools/ctlwire.py --peel

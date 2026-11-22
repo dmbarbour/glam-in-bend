@@ -292,8 +292,11 @@ one, is tried at `bridge-recursion`.
        quadratic on demand where glam's walk lost it: about 0.8n² + 85n
        interactions with levels, 5.8n² + 88n before drop runs, labels
        linear in both, and about 21n² unfused (25n² before). Its live
-       nodes stay 28 at every size, so nothing piles up as the drops did.
-       To trace at lengths 1 to 4 before any theory; one candidate to
+       nodes end at 28 at every size, but demand's heap doubles with the
+       size (128, 256 and 512 nodes with levels, 512 to 2,048 unfused,
+       labels 128 to 256), so what is live at its peak grows, faster with
+       controls than without: a lead, the end state no evidence. To
+       trace at lengths 1 to 4 before any theory; one candidate to
        try in the model first, a unit raise at a run's own index, which
        swaps with every unit without either index moving yet is peeled a
        unit at a time.
