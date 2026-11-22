@@ -1782,6 +1782,109 @@ def near_ne(T: IM.Tr, +k: U32, +ha: {IM.tr.look(T, k) == None{} : Maybe<&2, U32>
     case IM.Br{+b, +i, +l, +r}:
       nn.k(X.ix.side(k, i), k, i, l, r, {==}, ha, hl => near_ne(l, k, hl), hr => near_ne(r, k, hr))
 
+def plc.lo(q: IM.Plc) -> U32:
+  match q:
+    case IM.Plc{+loc, +cur}:
+      loc
+
+def plc.cu(q: IM.Plc) -> U32:
+  match q:
+    case IM.Plc{+loc, +cur}:
+      cur
+
+def pl_stays(+f: Nat, -h: P.H, +loc: U32, +cur: U32, +c: Nat, +k: U32) -> {X.pl.run(f, X.Pl{h, loc, cur, False{}}, c, k) == X.Pl{h, loc, cur, False{}} : X.Pl}:
+  match f:
+    case 0n:
+      {==}
+    case 1n+(+q):
+      {==}
+
+# a branch at bit i on the placement's way: below c, the walk goes on to
+# the child k's bit gives; else it stops at the branch
+def pla.k(+lt: Bool, +sd: Bool, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +b: U32, +i: Nat, +c: Nat, +k: U32, +q: Nat, +loc: U32, +l: IM.Tr, +r: IM.Tr,
+  +hlt: {Nat.is_lt(i, c) == lt : Bool}, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +ihl: {X.pl.run(q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(l, c, k, (b + 2 : U32))), plc.cu(IM.tr.plc(l, c, k, (b + 2 : U32))), False{}} : X.Pl},
+  +ihr: {X.pl.run(q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(r, c, k, (b + 3 : U32))), plc.cu(IM.tr.plc(r, c, k, (b + 3 : U32))), False{}} : X.Pl}) ->
+  {X.pl.run(q, X.pl.k(Nat.is_lt(i, c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, i, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(Nat.is_lt(i, c), X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(Nat.is_lt(i, c), X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}:
+  match lt:
+    case False{}:
+      %Equal.sym(Bool, Nat.is_lt(i, c), False{}, hlt) :
+        {X.pl.run(q, X.pl.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, i, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}
+      pl_stays(q, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, c, k)
+    case True{}:
+      match sd:
+        case True{}:
+          %Equal.sym(Bool, Nat.is_lt(i, c), True{}, hlt) :
+            {X.pl.run(q, X.pl.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, i, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}
+          %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) :
+            {X.pl.run(q, X.pl.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b)), X.ix.kid(_, b)), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(True{}, _, b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(True{}, _, b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 3 : U32)))), rd_eq(t0, a, (b + 3 : U32))) :
+            {X.pl.run(q, X.pl.c(_, (b + 3 : U32)), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(r, c, k, (b + 3 : U32))), plc.cu(IM.tr.plc(r, c, k, (b + 3 : U32))), False{}} : X.Pl}
+          %wd(t0, d, (b + 3 : U32), hft, hd32) : {X.pl.run(q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 3 : U32), _, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(r, c, k, (b + 3 : U32))), plc.cu(IM.tr.plc(r, c, k, (b + 3 : U32))), False{}} : X.Pl}
+          ihr
+        case False{}:
+          %Equal.sym(Bool, Nat.is_lt(i, c), True{}, hlt) :
+            {X.pl.run(q, X.pl.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, i, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(_, X.ix.side(k, i), b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}
+          %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) :
+            {X.pl.run(q, X.pl.c(P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, X.ix.kid(_, b)), X.ix.kid(_, b)), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.plc.k(True{}, _, b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), plc.cu(IM.plc.k(True{}, _, b, loc, IM.tr.plc(l, c, k, X.ix.kid(False{}, b)), IM.tr.plc(r, c, k, X.ix.kid(True{}, b)))), False{}} : X.Pl}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (b + 2 : U32)))), rd_eq(t0, a, (b + 2 : U32))) :
+            {X.pl.run(q, X.pl.c(_, (b + 2 : U32)), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(l, c, k, (b + 2 : U32))), plc.cu(IM.tr.plc(l, c, k, (b + 2 : U32))), False{}} : X.Pl}
+          %wd(t0, d, (b + 2 : U32), hft, hd32) : {X.pl.run(q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (b + 2 : U32), _, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(l, c, k, (b + 2 : U32))), plc.cu(IM.tr.plc(l, c, k, (b + 2 : U32))), False{}} : X.Pl}
+          ihl
+
+# the placement walk from the pointer p held at loc stops where the
+# model's placement says, the heap as it was
+def pla(T: IM.Tr, f: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +k: U32, +c: Nat, +loc: U32, +p: U32, +lo: Nat,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, p, s) == True{} : Bool}, +hok: {IM.tr.ok(T, lo) == True{} : Bool},
+  +hfu: {Nat.is_le(33n, Nat.add(f, lo)) == True{} : Bool}) ->
+  {X.pl.run(f, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(T, c, k, loc)), plc.cu(IM.tr.plc(T, c, k, loc)), False{}} : X.Pl}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      match f:
+        case 0n:
+          Empty.absurd({X.pl.run(0n, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Lf{y, ky}, c, k, loc)), plc.cu(IM.tr.plc(IM.Lf{y, ky}, c, k, loc)), False{}} : X.Pl}, MB.false_ne_true()(le_trans_b(33n, lo, 32n, hfu, hok)))
+        case 1n+(+q):
+          +h1 = and_r(U32.is_eq(p, y), Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))) && (U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s)), hre)
+          +hpy = MS.u32_eq_of_is_eq(p, y, and_l(U32.is_eq(p, y), Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))) && (U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s)), hre))
+          +hnb = not_true(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), and_l(Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s), h1))
+          %Equal.sym(U32, p, y, hpy) : {X.pl.run(1n+q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, _, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.Plc{loc, y}), plc.cu(IM.Plc{loc, y}), False{}} : X.Pl}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, y), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), y))), rd_eq(t0, a, y)) :
+            {X.pl.run(q, X.pl.hd(_, loc, y, c, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.Plc{loc, y}), plc.cu(IM.Plc{loc, y}), False{}} : X.Pl}
+          %wd(t0, d, y, hft, hd32) : {X.pl.run(q, X.pl.k(X.ix.branch(_) && Nat.is_lt(X.ix.bitof(_), c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, y, X.ix.bitof(_), k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.Plc{loc, y}), plc.cu(IM.Plc{loc, y}), False{}} : X.Pl}
+          %Equal.sym(Bool, X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), False{}, hnb) :
+            {X.pl.run(q, X.pl.k(_ && Nat.is_lt(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, y, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y)), k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.Plc{loc, y}), plc.cu(IM.Plc{loc, y}), False{}} : X.Pl}
+          pl_stays(q, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, y, c, k)
+    case IM.Br{+b, +i, +l, +r}:
+      match f:
+        case 0n:
+          Empty.absurd({X.pl.run(0n, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, p, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl},
+            MB.false_ne_true()(le_trans_b(33n, 1n+i, 32n, le_trans_b(33n, lo, 1n+i, hfu, le_trans_b(lo, i, 1n+i,
+              and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok), le_succ_b(i))),
+              lt_le(i, 32n, and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok))))))
+        case 1n+(+q):
+          +r1 = and_r(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre)
+          +r2 = and_r(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +r3 = and_r(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2)
+          +o1 = and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok)
+          +o4 = and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i))), o1)))
+          +hpb = MS.u32_eq_of_is_eq(p, b, and_l(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre))
+          +hbr = and_l(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), r1)
+          +hbi = MN.eq_of_is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, and_l(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r2))
+          +hfg = fuel_down(q, lo, i, hfu, and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hok))
+          %Equal.sym(U32, p, b, hpb) : {X.pl.run(1n+q, X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, _, True{}}, c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl}
+          %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, b), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), b))), rd_eq(t0, a, b)) :
+            {X.pl.run(q, X.pl.hd(_, loc, b, c, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl}
+          %wd(t0, d, b, hft, hd32) : {X.pl.run(q, X.pl.k(X.ix.branch(_) && Nat.is_lt(X.ix.bitof(_), c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, X.ix.bitof(_), k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl}
+          %Equal.sym(Bool, X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), True{}, hbr) :
+            {X.pl.run(q, X.pl.k(_ && Nat.is_lt(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl}
+          %Equal.sym(Nat, X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i, hbi) :
+            {X.pl.run(q, X.pl.k(True{} && Nat.is_lt(_, c), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, loc, b, _, k), c, k) == X.Pl{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, plc.lo(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), plc.cu(IM.tr.plc(IM.Br{b, i, l, r}, c, k, loc)), False{}} : X.Pl}
+          pla.k(Nat.is_lt(i, c), X.ix.side(k, i), t0, a, d, b, i, c, k, q, loc, l, r, {==}, {==}, hft, hd32,
+            pla(l, q, t0, a, d, s, k, c, (b + 2 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), 1n+i, hft, hd32, and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg),
+            pla(r, q, t0, a, d, s, k, c, (b + 3 : U32), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), 1n+i, hft, hd32, and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), r3), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), o4), hfg))
+
 # Lookups
 # =======
 
