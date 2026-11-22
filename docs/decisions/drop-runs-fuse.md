@@ -1,6 +1,6 @@
 # Drops at one index fuse into a run, peeled at any index or crossed whole
 
-`drop-runs-fuse` · maintainer · rev eb04e99
+`drop-runs-fuse` · maintainer · rev 5fe60b4
 
 **Context.** Only raises fused (`fuse-control-runs`). A drop by more than
 one was defined by `drops-stop-at-index`, b unit drops at n, and the
@@ -58,8 +58,10 @@ agent's, within that ruling, each choice one the model checks:
   the default build on the leveled workload, peeling entered only at one
   index or for a drop run.
 - A walk of a Scott numeral by a fixpoint (`scott-walk-*` in the
-  library) keeps a quadratic: demand about 0.8n² where it was 5.8n², not
-  yet traced (`pairing-fusion.drops.fixpoint`).
+  library) keeps a quadratic, demand about 0.8n² where it was 5.8n²: not
+  drops but raises, the numeral built by exponentiation leaving a stack
+  of n/4 at mixed indices that every step's beta carries
+  (`pairing-fusion.drops.fixpoint`, `pairing-overhead.stacks`).
 
 **Rule lives in:** `spike/val.bend` (`V.compose`), `spike/kprim.bend`
 ("Fusing controls", `compose`; "Peeling", `peel.amt`, `cross_whole`),
