@@ -7,6 +7,10 @@ it alone taught. Add to this file what a new proof teaches.
 
 ## What to claim
 
+- **Prove what is important, and what is easy** (the maintainer,
+  2026-11-22: "prove what's important (whether for correctness or
+  performance) and prove what's easy"): a law earns its place by what
+  it protects or by what little it costs.
 - **The guarantees a user sees first**: what is emitted, kept or refused.
 - **A weaker law, and its missing pieces.** A full claim can cost far more
   than it buys. It is often enough to prove that each step keeps some
