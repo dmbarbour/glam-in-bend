@@ -196,6 +196,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   freeze review); a whole freeze of a static root, positioned demand off
   the interface and freeze's count to fix; the collector's count to
   measure.
+- [`RingIndex_2026-11-22.md`](RingIndex_2026-11-22.md): a copy's cursors
+  indexed, the designs for the maintainer's discussion: what a serve
+  walks (three walks, not one), the designs compared, where the agent and
+  the second reviewer agree (replace the ring, word 3 naming the
+  situating node, measure first) and differ (the index in the heap's
+  nodes or a value in the data table); option B not low-hanging.
+- [`RingIndexFable_2026-11-22.md`](RingIndexFable_2026-11-22.md): the
+  second reviewer's brainstorm of index designs, kept as written.
+- [`DeadCursorsFable_2026-11-22.md`](DeadCursorsFable_2026-11-22.md): the
+  second reviewer's scouting of forgetting dead cursors (option B), kept
+  as written: not low-hanging.
 - [`Cost_2026-11-22.md`](Cost_2026-11-22.md): instructions against what
   they buy (`ladder-measure.roi`), first findings on the cursor
   workload: the machinery around the kernel is the cost, half of it
