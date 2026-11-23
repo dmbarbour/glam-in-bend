@@ -72,12 +72,16 @@ def ix_two(+pos: U32) -> Array<U32>:
 # Two cursors in the index: s at 8, its word 3 the branch 28 (testing bit
 # 1), its left child the cursor 16 (key ky, facing node 52's port 0), its
 # right the cursor 12 (key 7, facing node 40's port 1, or with ix_pair_st
-# the static f12); the free list's head 10
+# the static f12; with ix_pair_g, the cursors facing f12 and f16); the
+# free list's head 10
 def ix_branch28(h: P.H) -> Array<U32>:
   RG.words(P.wr(P.wr(P.wr(h, 28, P.hd2(18, 3, 1)), 30, 16), 31, 12))
 
+def ix_pair_g(+f12: U32, +f16: U32, +ky: U32) -> Array<U32>:
+  ix_branch28(leaf(leaf(situ(empty(10), 8, 99, 28), 16, ky, 8, f16), 12, 7, 8, f12))
+
 def ix_pair_k(+ky: U32) -> Array<U32>:
-  ix_branch28(leaf(leaf(situ(empty(10), 8, 99, 28), 16, ky, 8, KMd.ref(52, 0)), 12, 7, 8, KMd.ref(40, 1)))
+  ix_pair_g(KMd.ref(40, 1), KMd.ref(52, 0), ky)
 
 def ix_pair() -> Array<U32>:
   ix_pair_k(9)
