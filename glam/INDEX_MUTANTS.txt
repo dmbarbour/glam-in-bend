@@ -272,7 +272,7 @@ the ring's layout no longer keeping a node's words off the nodes after it
 +++
       apartw(nw(a), d) && (off(nw(a), d, P.at_fh()) && (True{} && layout(t, d)))
 
-=== join_other_leaf put_sub put_flsep
+=== join_other_leaf put_sub put_flsep put_lsub
 the model's new branch holding a leaf at a node next to the cursor's, not
 the cursor
 --- index_model.bend
