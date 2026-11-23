@@ -211,6 +211,10 @@ where the shared lazy state that Bend cannot hold goes.
   ring and its order replaced, for performance (no walk grows with the
   copy; nothing allocated or counted by Bend); dead cursors kept; one
   cursor a position a law.
+- [`copy-links-two-way`](decisions/copy-links-two-way.md): the nodes a
+  serve tracks that face one another face one another both ways, a
+  premise of the serve's laws, so that nothing faces a node a join
+  frees.
 - [`finished-sources-freeze`](decisions/finished-sources-freeze.md): a
   wholly finished source's cell reduces to a frozen template, its uses
   splices; the source's release waits on the tactic for cursors.
