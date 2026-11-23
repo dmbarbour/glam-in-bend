@@ -622,32 +622,41 @@ law leave_exact:
   for hc: {RG.has(t, c) == True{} : Bool}
   for hp: {RG.port.ok(Con{s, t}, d, p) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, RG.without(t, c)) == True{} : Bool}
-# LAW: a cursor c of a ring exact with its nodes leaving it, the port it
-# faced linked to a port p faceable by the ring's members, leaves every
-# word as it was but the ring's links (the word 3 its predecessor gets),
-# c's own node, the free list's head, and the two ports' link words, p's
-# and the one c faced, a static having none (cells-freeze.nested.host.serve, the frame law
-# leave lacked: .host.witness.audit).
+# LAW: a cursor c the index finds at k leaving (R.leave), a port p linked
+# in its place, on leave_pend's premises, leaves every word as it was but
+# the tracked nodes' (N: the live nodes, the index's, the free list's),
+# the free list's head, and the two ports' link words, p's and the one c
+# faced, a static having none: the leave's frame
+# (cells-freeze.sharing.cursors.index.ring.leave; the frame law leave
+# lacked: .host.witness.audit).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
 law leave_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +p: U32
   for +c: U32
+  for +k: U32
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
-  for hc: {RG.has(t, c) == True{} : Bool}
-  for hp: {RG.port.ok(Con{s, t}, d, p) == True{} : Bool}
-  for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
-  for hjc: {RG.off.node(d, c, j) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
+  for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
+  for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
+  for hj: {RG.off.nodes(N, d, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hjp: {KMd.off.port(d, p, j) == True{} : Bool}
-  for hjw: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (c + 1 : U32))), j) == True{} : Bool}
+  for hjw: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (c + 1 : U32)), j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
