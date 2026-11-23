@@ -125,9 +125,10 @@ type Sv is Type:
   # finished: its whole template t, which the source's cell takes, later
   # uses splicing it (finished-sources-freeze)
   SvWhole{s: P.H, h: P.H, +n: U32, +m: U32, t: T.Tpl}
-  # corruption a well-formed source and ring never reach: a climb that
-  # found no position of the ring; the core stops with an error, since
-  # the cursor left unserved would be served again without end
+  # corruption a well-formed source and index never reach: a climb that
+  # found no position of the index, or a frontier facing the served
+  # cursor's own position; the core stops with an error, since the cursor
+  # left unserved would be served again without end
   SvBad{s: P.H, h: P.H, +n: U32}
 
 # a climb from a finished node of the source toward the root of its tree,
@@ -193,13 +194,25 @@ def sv.climb.f(r: P.H & P.HS, h: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32, +n
     case P.HS{+itrs, +errs, +cap}:
       sv.climbed(cl.go(U32.to_nat((cap + 1 : U32)), Cl{s, h, P.base(q), False{}}, situ), situ, k, nc, n)
 
-# the frontier at port q: a cursor of the ring there, joined to nc; else
+# the frontier's cursor c joined to nc; nc itself, a port facing its own
+# position, which a well-formed source never holds, is corruption,
+# reported and nothing joined: a join of a cursor with itself frees one
+# node twice (corruption-reported-when-cheap; one compare a serve, until
+# a law of freeze shows it unreached, cells-freeze.nested.host.join.self)
+def sv.front.c(+same: Bool, s: P.H, h: P.H, +nc: U32, +c: U32, +n: U32) -> Sv:
+  match same:
+    case True{}:
+      SvBad{s, h, n}
+    case False{}:
+      SvOk{s, R.join(h, nc, c), n, 1}
+
+# the frontier at port q: a cursor of the index there, joined to nc; else
 # the tree holding q climbed to and materialized
 def sv.front.m(r: P.H & Maybe<&2, U32>, s: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv:
   (h, m) = r
   match m:
     case Some{+c}:
-      SvOk{s, R.join(h, nc, c), n, 1}
+      sv.front.c(U32.is_eq(c, nc), s, h, nc, c, n)
     case None{}:
       sv.climb.f(P.stats(s), h, situ, k, nc, q, n)
 
@@ -340,11 +353,19 @@ def sv1.climb.f(r: P.H & P.HS, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) 
     case P.HS{+itrs, +errs, +cap}:
       sv1.climbed(cl1.go(U32.to_nat((cap + 1 : U32)), Cl1{h, P.base(q), False{}}, situ), situ, k, nc, n)
 
+# as sv.front.c, on the one-net path
+def sv1.front.c(+same: Bool, h: P.H, +nc: U32, +c: U32, +n: U32) -> Sv1:
+  match same:
+    case True{}:
+      S1Bad{h, n}
+    case False{}:
+      S1Ok{R.join(h, nc, c), n, 1}
+
 def sv1.front.m(r: P.H & Maybe<&2, U32>, +situ: U32, +k: U32, +nc: U32, +q: U32, +n: U32) -> Sv1:
   (h, m) = r
   match m:
     case Some{+c}:
-      S1Ok{R.join(h, nc, c), n, 1}
+      sv1.front.c(U32.is_eq(c, nc), h, nc, c, n)
     case None{}:
       sv1.climb.f(P.stats(h), situ, k, nc, q, n)
 

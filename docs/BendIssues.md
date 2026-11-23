@@ -135,8 +135,9 @@ of 2026-10-26, Bend 2.0.39.
   and division against `Nat`, exact or wrapping; with it the spike proves
   the kernel's own `U32` raise equal to its `Nat` model (law
   `lift_raise`, 2026-10-29), Bend caching the package under
-  `~/.bend/lib` by its hash. Neither covers `.&.`, `.|.` or shifts, so
-  the kernel decodes a header's field and an offset's amount by division
+  `~/.bend/lib` by its hash. Neither covers `.&.`, `.|.` or shifts
+  (lawful-words, `hub-laws-reused`, does since: masks, bits, shifts;
+  the alignment lemmas of `glam/PROOF.bend` use it), so the kernel decodes a header's field and an offset's amount by division
   and remainder instead, at no cost in instructions (store runs 58 and
   59: each of 20 counts, 3 to 13 x 10^8, within 37 of the shifts' and
   masks'). The file #1850 points to proved division and was vendored
@@ -178,7 +179,12 @@ of 2026-10-26, Bend 2.0.39.
   conversion overflows the stack; a closed comparison of 2^31 with the
   marker 2^32 - 1, stated over their `Nat` values, exhausts memory; and
   every mutation of the code those laws follow crashes the checker
-  rather than failing a goal.
+  rather than failing a goal. The alignment lemmas (2026-11-23) met it
+  twice more, each a stack overflow with no place named: lawful-words'
+  `to_nat_add` and `nat_mod_mod_pow`, stating `Nat.pow(2n, 32n)`, used
+  through a motive written with `4n` where the law has `Nat.pow(2n, 2n)`;
+  and a bit of `P.base`'s mask, `WD.bit(4294967292, k)`, read through
+  the literal's `U32.to_nat`.
 - **Workaround:** the one #1291 suggests: each lemma reasons under a
   variable bound and is applied at the power where both forms match
   exactly; a goal holding a power changes only by rewrites under a hole,
@@ -188,7 +194,10 @@ of 2026-10-26, Bend 2.0.39.
   bit set (`spike/PROOF.bend`, "Field bounds"). Blend's lemmas take the
   bound `N` with `{N == Nat.pow(2n, 32n)}`, converting to the power only
   against a symbolic count, and a helper generic in `N` turns the law's
-  form into the lemma's (`blend/PROOF.bend`, "Lines").
+  form into the lemma's (`blend/PROOF.bend`, "Lines"). The alignment
+  lemmas abstract 2^32 the same way (`add_mod4.k`), write each motive in
+  its law's own syntax, and write a mask whose bits are read as
+  `U32.not(3)` (`glam/PROOF.bend`, "Alignment").
 - **Revisit:** when #957 or #1832 lands.
 
 ### Run-time code generation

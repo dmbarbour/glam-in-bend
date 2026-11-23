@@ -239,6 +239,12 @@ it alone taught. Add to this file what a new proof teaches.
   `spike/PROOF.bend`). An erased array named in a proof's terms without
   its mirror fails with an error naming the definition and nothing more
   (`cr_map` in `glam/SERVE_PROOF.bend`, 2026-11-20).
+- **Lessons learned on the ring's proofs keep their names.** The
+  ring's laws and proofs retired with it (2026-11-23,
+  `cells-freeze.sharing.cursors.index.ring.retire`); lemmas the lessons
+  below name from them (`crs.go`, `crfi.go`, `crl_keeps.m`,
+  `serve_exact.m`, `cursor_keeps.m`, `join_keeps.go`, `join_exact.m`)
+  are in git before ebc5887.
 - **A fold's twin is derived from its text.** Where a new conclusion
   follows the same recursion as a proved fold, the generator reads the
   fold from its proof file, swaps the goal (a call matched by its
@@ -319,6 +325,100 @@ it alone taught. Add to this file what a new proof teaches.
   `mod_add_r`) and `add_assoc`, then `u32_to_nat_inj`; the modulus a
   variable `m` with the equation `Nat.pow(2n, 32n) == m`, so that 2^32
   is never computed. Hub candidates, all three.
+- **A tree in the heap is proved against a tree as a value**
+  (glam/INDEX_PROOF.bend): the model a data type passed as the law's
+  parameter, its realization a recursion on the model reading the words'
+  view, its layout stated on the model too, so that a split of its nodes
+  is a computation; a step's walk proved to write exactly what a model
+  function names, then the realization after those writes, both by
+  induction along the model; the bit facts proved on the U32's Word,
+  generic in its width, the free list's round trip too (a node freed is
+  the next taken, for every word, by its bits: no 2^32 enters, which the
+  checker would unfold in unary). Its header lists what it cost to find
+  out.
+- **A heap is not Data**: a lemma over any heap `h` may use it once, so
+  one that needs its words and values too (a free's frame on whatever
+  heap a removal leaves) is written as text at each call site on the
+  heap's term, taking its parts by an eta lemma (`heta3`), not as a
+  lemma over `h`. To chain laws over heaps the code computes, prove the
+  fold over any words and values and rebuild the heap from its parts at
+  each step; no lemma that the value table is kept is then needed.
+- **A law needing a fact only an earlier proof reaches**: when the next
+  law needs something only an intermediate heap's facts give (the words
+  full after a join, which the index's laws take there), widen that
+  proof's goal by a conjunct and have its law project, rather than
+  derive the intermediate facts a second time.
+- **`one_law` cuts by every name a definition's text mentions**, its
+  trailing comments too: a comment naming a retired lemma pulls that
+  lemma, and its failure, into the cut.
+- **A new section is checked in seconds** against the cut proof file of
+  a law that already passes, its long chains left out and the few
+  helpers it needs copied in (`results/index_bits/kp/harness.py`), not
+  through the whole file.
+- **A propositional case analysis is searched out, not written**
+  (glam/JOIN_PROOF.bend): where a law's cases reduce to Bool atoms (here,
+  which port's link word lies in which node's word 1), state each as a
+  lemma whose parameters are the atoms and whose premises are the facts
+  among them, and let an authoring aid check it by every assignment and
+  write the case tree: split on the next atom in parameter order (Bend
+  matches binders in the order bound) until the goal computes or a
+  premise computes false. A dependent premise (`@z: U32 -> ...`) is used
+  once, so a fact for every member is an induction of its own instead.
+- **A lemma over any heap's parts mirrors both.** `jnk2`
+  (`glam/PROOF.bend`, the join's frame below its first removal) takes the
+  words and the value table erased, each with its mirror: an erased
+  value table passed to a law whose table is relevant
+  (`XL.remove_keeps`) is refused, its mirror's `LAT.fromT(V.Val, ta2)`
+  is not. A parameter a lemma's terms use twice takes `+`; the checker
+  points at the parameter alone (`jnk2`'s index `J`).
+- **A frame read at the word it wrote gives the write's value.**
+  `cursor_head` is the cursor's frame chain (`cfr_case`) with `j` the
+  cursor's own word 0: the insert's frame law keeps it, the array's
+  `get_set_same` closes the chain (`ch.*` in `glam/PROOF.bend`).
+- **A witness checks without its proof file.** one_law's witness file
+  imports the code and the models, never a proof, so a law's premises
+  are shown met together (each by `{==}`) while its proof file fails:
+  `results/index_bits/retire/wcheck.py` runs a mutants file's witnesses
+  unmutated and mutated so, and showed the serve's four laws
+  non-vacuous before the ring's proofs were retired.
+- **A survey by name reads words in comments.** Reachability collected
+  from definitions' text counts a word in a comment as a use (`ring`,
+  `chain` in `glam/ring_model.bend`'s comments kept their defs alive);
+  strip comment lines first (`results/index_bits/retire/retire.py`).
+- **Retire laws by disposition, mutants first.** Before deleting a law,
+  classify each mutant naming it by whether its mutated code is reachable
+  from the code's callers and which surviving law catches it
+  (`results/index_bits/retire/live.py`): a live mutant left with no law
+  marks a law to restate (`cursor_head`, `join_keeps` over the index),
+  a dead one goes with its code, naming its counterpart if any.
+- **A lone call in parentheses parses as an annotation.** A goal
+  `{(f(x)) && b == True{} : Bool}` fails, "expected ':'": Bend reads
+  `(` then a term as `(term : Type)`. A conjunction in parentheses
+  parses (`(a && b) && c`), so a generator that widens a goal
+  parenthesizes a conjunction alone
+  (`results/index_bits/review/gen_compose.py`).
+- **A bit fact goes through lawful-words.** A low mask is a remainder
+  (`to_nat_and_mask`: `r & 3` is `r mod 4`); a high one is shown bit by
+  bit (`bit_and`, `bit_not`, `bit_ext`: `(y & ~3) & 3` is 0, a Bool
+  lemma closing each bit). A slot of a heap of depth 2 or more keeps a
+  word's residue modulo 4 (`nat_mod_mod_pow`), and a residue moves
+  through a sum by `nat_div_mod`, `nat_add_assoc` and `nat_mul_mod`:
+  `st_off`, `glam/PROOF.bend`'s "Alignment". `Nat.cmp` matches both
+  arguments, so an absurd case `1n+p < 1n` matches `p` down to a
+  constructor before the comparison computes.
+- **Prototype a family of lemmas in a file of its own.** A lemma checked
+  in `results/index_bits/align/ALIGN.bend`, importing what the proof
+  files import, costs seconds where the proof file costs a minute, and
+  `results/index_bits/align/bisect.py` checks growing prefixes, naming
+  the lemma whose prefix fails: Bend reports a stack overflow with no
+  place (docs/BendIssues.md, Big constants in proofs).
+- **Laws compose as functions.** A law of an imported laws file is
+  called like a definition (`GL.crossings_pend` in `glam/SERVE_PROOF.bend`'s
+  `sp.go`, `Laws.copy_pend` in its own file). Once each law concludes
+  what the next one's premises ask (the words and the map full, the
+  layout and bases of the nodes after), a caller chains them with
+  nothing from the proof files but the heap's eta (`SPP.heta`) and the
+  arrays' mirrors, a linear array read twice taking one.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

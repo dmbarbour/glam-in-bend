@@ -1,0 +1,19 @@
+Mutations of the kernel's link and of the facing a join relies on, each
+naming the laws of glam/JOIN_LAWS.bend it should fail (docs/Proving.md;
+the gate runs scripts/one_law.py --mutants on this file).
+
+=== link_self link_live link_leave
+a link writing the second port's own reference into its link word, so
+that what faced y faces itself
+--- ../spike/kprim.bend
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
++++
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, z)
+
+=== link_one_way link_live link_leave
+a link writing the first port's link word alone, so that what y faced
+still faces y
+--- ../spike/kprim.bend
+  link.to(is_static(z), link.to(is_static(y), h, y, z), z, y)
++++
+  link.to(True{}, link.to(is_static(y), h, y, z), z, y)

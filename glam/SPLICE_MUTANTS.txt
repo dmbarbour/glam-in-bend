@@ -2,7 +2,7 @@
 # of glam/SPLICE_LAWS.bend it should fail (docs/Proving.md; the gate runs
 # scripts/one_law.py --mutants on this file).
 
-=== node_in_place nodes_keeps
+=== node_in_place nodes_keeps splice_free
 each template node made in place at slot 0, not taken from the free
 list: the header's words 0 and 3 written, word 3 outside the list (one
 node, a lift, its payload word not 0, so that no later node writes word 3
@@ -21,8 +21,19 @@ i = 0
 by = 0
 ns = [36]
 j = 3
+>>> witness splice_free
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}]
+ls = Nil{}
+by = 0
+ns = [36]
+F = [40]
 
-=== eraser_takes_node nodes_keeps splice_keeps
+=== eraser_takes_node nodes_keeps splice_keeps splice_free
 an eraser made a node, as before the splice made erasers static in one
 pass (cells-freeze.nested.host.splice.single): the free list's head
 taken, node 36's header written, outside the fresh nodes, none for a
@@ -52,8 +63,19 @@ ls = Nil{}
 by = 0
 ns = Nil{}
 j = 36
+>>> witness splice_free
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KEraP{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = Nil{}
+F = [36, 40]
 
-=== link_next_node links_keeps
+=== link_next_node links_keeps splice_free
 a link written at the next node's port: node 36's port 0 linked as
 port 0 of node 40, its link word 41 outside the fresh nodes
 --- splice_copy.bend
@@ -69,8 +91,19 @@ dm = 1n
 ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
 ns = [36]
 j = 41
+>>> witness splice_free
+w = Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11), 41, 12)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
+by = 0
+ns = [36]
+F = [40, 44]
 
-=== link_static_plain links_keeps links_words
+=== link_static_plain links_keeps links_words splice_free
 a link written without the static test: an eraser's end, mapped to the
 static, has its "link word" written, static + 1, word 0 of the header
 --- splice_copy.bend
@@ -94,6 +127,17 @@ d = 6n
 dm = 1n
 ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
 j = 0
+>>> witness splice_free
+w = Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 37, 11)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{R.KLift{}, V.PLift{0, True{}, 3}}, T.TN{R.KEraP{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36]
+F = [40]
 
 === eraser_maps_zero nodes_maps
 an eraser's map entry left 0, not the static: the links pass would

@@ -1,13 +1,16 @@
 # Mutations of the code the serve's laws follow (glam/splice.bend), each
 # naming the laws of glam/SERVE_LAWS.bend it should fail (docs/Proving.md;
 # the gate runs scripts/one_law.py --mutants on this file). A witness is
-# the law's instance, its premises the template's and the allocator's:
-# here the ring a situating node 8 alone (its word 3 itself, its face the
-# static), the fresh nodes 36 then 40 (the head 10, node 36's word 1 11),
-# a template of a function and a hole linked port 0 to port 0, the hole a
-# crossing's.
+# the law's instance, its premises the template's and the allocator's,
+# each proved by computation (scripts/one_law.py), so that a witness
+# shows its law's premises met together: here an empty index, a situating
+# node 8 alone (its word 3 itself, its face the static), the fresh nodes
+# 36 then 40 (the head 10, node 36's word 1 11), a template of a function
+# and a hole linked port 0 to port 0, the hole a crossing's. The serve's
+# exact and frame laws: two cursors in the index, 16 (key 9) and the
+# served 12 (key 7) under the branch 28 (WB.ix_pair).
 
-=== hole_unlinked copy_pend
+=== hole_unlinked copy_pend serve_pend
 a link writing its first end's link word alone: the hole, the link's
 second end, keeps in its word 1 what the free list's pop left there,
 port 10, whose link word is the situating node's word 3
@@ -28,8 +31,27 @@ ns = [36, 40]
 s = 8
 t = Nil{}
 cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
+>>> witness serve_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
 
-=== hole_in_place copy_pend
+=== hole_in_place copy_pend serve_pend
 each template node made in place at slot 0, not taken from the free
 list: the hole's map entry 0, node 0, whose words hold the free list's
 head, so that the holes and the ring are not laid out apart
@@ -50,6 +72,25 @@ ns = [36, 40]
 s = 8
 t = Nil{}
 cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
+>>> witness serve_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
 
 === serve_in_place serve_keeps
 each template node made in place at slot 0: the copy writes the header's
@@ -73,14 +114,17 @@ ns = [36, 40]
 s = 8
 t = Nil{}
 cs = [R.FzC{0, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
 j = 3
 
 === serve_map_unwritten serve_ring_exact serve_root_keeps
 the copy's map left as it was, no node's reference put at its index:
 the root, read through it, then a stale entry, here word 18, so that the
-leave links the cursor's partner into the next member's word 3 and the
-ring loses its way back to s; the template one function node, no links
-nor holes, the ring s with the cursors 12 (leaving) and 16. Against
+leave links the cursor's partner into 16's word 3, its home, and the
+index is no longer real; the template one function node, no links nor
+holes, the index s with the cursors 12 (leaving) and 16. Against
 serve_root_keeps the stale entry 44, the leave then writing word 45, off
 every node and every faced port
 --- splice_copy.bend
@@ -88,7 +132,7 @@ every node and every faced port
 +++
   Sp{h, map}
 >>> witness serve_ring_exact
-w = RG.words(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)))
+w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, [0 : U32^1n], 0, 18)
 d = 6n
@@ -100,11 +144,15 @@ ns = [36]
 s = 8
 t = Con{12, Con{16, Nil{}}}
 cs = Nil{}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 nc = 12
+k = 7
 rn = 0
 rp = 0
 >>> witness serve_root_keeps
-w = RG.words(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)))
+w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
 map = Array.set(U32, [0 : U32^1n], 0, 44)
 d = 6n
@@ -116,7 +164,11 @@ ns = [36]
 s = 8
 t = Con{12, Con{16, Nil{}}}
 cs = Nil{}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 nc = 12
+k = 7
 rn = 0
 rp = 0
 j = 45
@@ -125,20 +177,21 @@ j = 45
 the same fault at an instance with a crossing, its witness holding with
 the copy's hole, its link and a crossing all present: the template a
 function node and a hole, the hole's port 0 linked to the node's port 1,
-the root the node's port 0; the crossing's far end no member's
-position, so that the hole becomes a cursor of the ring; the ring s
-with the cursors 12 (leaving) and 16. Against serve_root_keeps the
-crossing a join instead: 12 and 16 facing each other, the crossing's far
-end 16's position, so that the join links the hole's partner to 12, the
-port the leave then reads; the stale entry 44 and the word 45, as above
+the root the node's port 0; the crossing's far end no cursor's key, so
+that the hole becomes a cursor of the index, the free node 44 its
+branch; the stale map right at the hole's index, wrong at the root's.
+Against serve_root_keeps the crossing a join instead: 12 and 16 facing
+each other, the crossing's far end 16's key, so that the join links the
+hole's partner to 12, the port the leave then reads; the stale entry 44
+and the word 45, as above
 --- splice_copy.bend
   Sp{h, Array.set(U32, map, i, ref)}
 +++
   Sp{h, map}
 >>> witness serve_ring_exact
-w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(48, 0)), 16, 9, 8, KMd.ref(52, 0)), 37, 11))
+w = Array.set(U32, Array.set(U32, WB.ix_pair_g(KMd.ref(48, 0), KMd.ref(52, 0), 9), 37, 11), 41, 12)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, [0 : U32^1n], 0, 18)
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 18), 1, 40)
 d = 6n
 dm = 1n
 ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
@@ -148,13 +201,17 @@ ns = [36, 40]
 s = 8
 t = Con{12, Con{16, Nil{}}}
 cs = [R.FzC{1, 5, True{}, 3}]
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Con{44, Nil{}}
+M = Con{8, Con{12, Con{16, Con{28, Con{44, Nil{}}}}}}
 nc = 12
+k = 7
 rn = 0
 rp = 0
 >>> witness serve_root_keeps
-w = RG.words(P.wr(WB.cursor(WB.cursor(WB.situ(WB.empty(10), 8, 99, 12), 12, 7, 16, 16), 16, 9, 8, 12), 37, 11))
+w = Array.set(U32, WB.ix_pair_g(KMd.ref(16, 0), KMd.ref(12, 0), 9), 37, 11)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, [0 : U32^1n], 0, 44)
+map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 44), 1, 40)
 d = 6n
 dm = 1n
 ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
@@ -164,7 +221,11 @@ ns = [36, 40]
 s = 8
 t = Con{12, Con{16, Nil{}}}
 cs = [R.FzC{1, 5, True{}, 9}]
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 nc = 12
+k = 7
 rn = 0
 rp = 0
 j = 45

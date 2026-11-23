@@ -4,12 +4,15 @@ import ../spike/kmem_grow.bend as KM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import ./ring.bend as R
 import ../spike/kmodel.bend as KMd
+import ./index_model.bend as IM
 
-# Rings, modelled for glam's laws (glam/LAWS.bend; the Cells plan's
-# cells-freeze.nested.host.ring): no code of the materializer calls these.
-# A ring is stated on the heap's words read as a list (lawful-arrays'
-# view, AD.view), data that copies freely, by its members' node bases xs,
-# the situating node and the cursors alike, each one's word 3 the next.
+# A copy's cursors, modelled for glam's laws (glam/LAWS.bend; the Cells
+# plan's cells-freeze.nested.host.ring, then .sharing.cursors.index): no
+# code of the materializer calls these. Stated on the heap's words read as
+# a list (lawful-arrays' view, AD.view), data that copies freely, by node
+# bases: the situating node, the cursors (the leaves of a copy's index,
+# glam/index_model.bend), the placeholders pending, the free list's first
+# nodes. The names (ring_model, RG) are the ring's the index replaced.
 
 # whether x is among xs
 def has(xs: List<&2, U32>, +x: U32) -> Bool:
@@ -18,30 +21,6 @@ def has(xs: List<&2, U32>, +x: U32) -> Bool:
       False{}
     case Con{+h, t}:
       U32.is_eq(h, x) || has(t, x)
-
-def link.in.m(m: Maybe<&2, U32>, +xs: List<&2, U32>) -> Bool:
-  match m:
-    case Some{+l}:
-      has(xs, l)
-    case None{}:
-      False{}
-
-# member m's word 3, among words v (the view of a perfect tree of depth
-# d), holds a member of xs
-def link.in(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, +m: U32) -> Bool:
-  link.in.m(List.get(&2, U32, v, AD.slot((m + 3 : U32), d)), xs)
-
-def closed.go(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>, ys: List<&2, U32>) -> Bool:
-  match ys:
-    case Nil{}:
-      True{}
-    case Con{+y, t}:
-      link.in(v, d, xs, y) && closed.go(v, d, xs, t)
-
-# the ring xs closed on words v: every member's word 3 holds a member, so
-# that a walk round it from a member meets members alone
-def closed(+v: List<&2, U32>, +d: Nat, +xs: List<&2, U32>) -> Bool:
-  closed.go(v, d, xs, xs)
 
 # members of ys all members of M
 def sub(ys: List<&2, U32>, +M: List<&2, U32>) -> Bool:
@@ -76,7 +55,7 @@ def words(h: P.H) -> Array<U32>:
           x
 
 # x's word 3 is no member's word 3, slot by slot: a node apart from the
-# ring xs, as a cursor new to it is
+# nodes xs
 def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
   match ys:
     case Nil{}:
@@ -84,43 +63,18 @@ def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
     case Con{+y, t}:
       Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot((y + 3 : U32), d))) && apart(t, d, x)
 
-
 # word j's slot none of node m's four words' slots
 def off.node(+d: Nat, +m: U32, +j: U32) -> Bool:
   Bool.not(Nat.is_eq(AD.slot(m, d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)))))
 
-# word i's slot no member's word 3: a write there leaves the ring's
-# links, and a word so placed is none a join writes in the ring
+# word i's slot no member's word 3: a write there leaves the cursors'
+# homes, and a word so placed is none a join writes in a cursor
 def off.links(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
   match ys:
     case Nil{}:
       True{}
     case Con{+y, t}:
       Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 3 : U32), d))) && off.links(t, d, i)
-
-# The ring exact (cells-freeze.nested.host.ring.exact): its members
-# listed in walk order, so that a cycle holds by computation and a
-# member taken out leaves the list
-
-# member m's word 3, among words v, holds n
-def link.is.m(m: Maybe<&2, U32>, +n: U32) -> Bool:
-  match m:
-    case Some{+l}:
-      U32.is_eq(l, n)
-    case None{}:
-      False{}
-
-def link.is(+v: List<&2, U32>, +d: Nat, +m: U32, +n: U32) -> Bool:
-  link.is.m(List.get(&2, U32, v, AD.slot((m + 3 : U32), d)), n)
-
-# through ys in order from a to b: a's word 3 the first of ys (or b),
-# each one's the next, the last's b
-def chain(+v: List<&2, U32>, +d: Nat, ys: List<&2, U32>, +a: U32, +b: U32) -> Bool:
-  match ys:
-    case Nil{}:
-      link.is(v, d, a, b)
-    case Con{+y, t}:
-      link.is(v, d, a, y) && chain(v, d, t, y, b)
 
 # no two members' word 3 in one slot
 def apart.all(ys: List<&2, U32>, +d: Nat) -> Bool:
@@ -130,21 +84,8 @@ def apart.all(ys: List<&2, U32>, +d: Nat) -> Bool:
     case Con{+y, +t}:
       apart(t, d, y) && apart.all(t, d)
 
-# the ring exact: the situating node s, then its cursors t in walk
-# order, the last's word 3 s again; no two word 3 in one slot
-def ring(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
-  chain(v, d, t, s, s) && apart.all(Con{s, t}, d)
-
-# the last of ys, or a where ys is empty
-def last(ys: List<&2, U32>, +a: U32) -> U32:
-  match ys:
-    case Nil{}:
-      a
-    case Con{+y, t}:
-      last(t, y)
-
-# a list with x taken out, and the member listed before x, for the exact
-# ring's laws stated by membership (JoinExact review, F1)
+# a list with x taken out, for laws stated by membership (JoinExact
+# review, F1)
 def keep(+b: Bool, +y: U32) -> List<&2, U32>:
   match b:
     case True{}:
@@ -159,25 +100,6 @@ def without(ys: List<&2, U32>, +x: U32) -> List<&2, U32>:
       Nil{}
     case Con{+y, t}:
       List.append(&2, U32, keep(U32.is_eq(y, x), y), without(t, x))
-
-def pick(+b: Bool, +a: U32, +r: U32) -> U32:
-  match b:
-    case True{}:
-      a
-    case False{}:
-      r
-
-# the member listed before x in ys, a first: the last before x
-def before(ys: List<&2, U32>, +a: U32, +x: U32) -> U32:
-  match ys:
-    case Nil{}:
-      a
-    case Con{+y, t}:
-      pick(U32.is_eq(y, x), a, before(t, y, x))
-
-# The ring's nodes laid out (JoinExact review, F3; the second reviewer's
-# F2, F4): facts of the members' words, stated on the list alone, so that
-# taking members out keeps them by computation
 
 # A find's model (cells-freeze.nested.host.serve): a member's word 2, its
 # position, among words v, is far
@@ -205,6 +127,10 @@ def first(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32) -> Maybe<&2,
       None{}
     case Con{+y, r}:
       first.k(pos.is(v, d, y, far), y, first(r, v, d, far))
+
+# The nodes laid out (JoinExact review, F3; the second reviewer's F2,
+# F4): facts of the nodes' words, stated on the list alone, so that
+# taking nodes out keeps them by computation
 
 # a node's four words
 def nw(+a: U32) -> List<&2, U32>:
@@ -265,8 +191,8 @@ def off.pos(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
       Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 2 : U32), d))) && off.pos(t, d, i)
 
 # a port r faceable by M's members: its link word, r + 1, in no member's
-# word 3 nor word 2, so that linking it leaves the ring's links and
-# positions (ring-ports-faced-off-positions); a member's word 1 may be
+# word 3 nor word 2, so that linking it leaves the cursors' homes and
+# keys (ring-ports-faced-off-positions); a member's word 1 may be
 # faced, two cursors facing each other. A static has no link word, and
 # r + 1 holds of every static by alignment, not by its value: r ends in
 # 11, so r + 1 in 00, a node's word 0, while a member is a node's base
@@ -291,79 +217,6 @@ def faces(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +M: List<&2, U32>) -> B
     case Con{+m, t}:
       faces.m(List.get(&2, U32, v, AD.slot((m + 1 : U32), d)), d, M) && faces(t, v, d, M)
 
-# the ring exact, its nodes laid out apart, each member a base, each
-# facing a port faceable by them, its link word no member's word 2 or 3
-def ring.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>) -> Bool:
-  ring(v, d, s, t) && (layout(Con{s, t}, d) && (bases(Con{s, t}) && faces(Con{s, t}, v, d, Con{s, t})))
-
-# a node x apart from the ring M, as a placeholder joined to it is: none
-# of its words in a slot of a member's, its own base, facing a port
-# faceable by the ring's members (the serve's to show, from the
-# allocator and the splice)
-def node.ok(+v: List<&2, U32>, +d: Nat, +M: List<&2, U32>, +x: U32) -> Bool:
-  cross(M, d, x) && (U32.is_eq(P.base(x), x) && faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, M))
-
-# a node x ready to enter the ring Con{s, t} after s, as a cursor new to
-# it is: what node.ok asks and more, x becoming a member: its own words
-# in four slots, none the head's, none a member's, its own base, facing
-# a port faceable by the members and x, and no member facing a port whose
-# link word is x's word 2 or 3 (the serve's to show: the allocator gives x's
-# words and that nothing faces into x, the splice x's port)
-def enter.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +x: U32) -> Bool:
-  apartw(nw(x), d) && (off(nw(x), d, P.at_fh()) && (cross(Con{s, t}, d, x) && (U32.is_eq(P.base(x), x) && (faces.m(List.get(&2, U32, v, AD.slot((x + 1 : U32), d)), d, Con{s, Con{x, t}}) && faces(Con{s, t}, v, d, Con{x, Nil{}})))))
-
-# The serve's pending placeholders (cells-freeze.nested.host.serve): the
-# ring s, t exact; the placeholders ps not yet joined nor made cursors,
-# none of the ring's and none listed twice; every node of either in the
-# list L, laid out apart, each its own base, each facing a port faceable
-# by all of L. L is carried, not computed from the others: a join takes
-# its placeholder and its cursor out of it, a cursor made moves a
-# placeholder from ps to t and leaves L as it was
-def pend.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +t: List<&2, U32>, +ps: List<&2, U32>, +L: List<&2, U32>) -> Bool:
-  ring(v, d, s, t) && (sub(Con{s, t}, L) && (sub(ps, L) && (none.in(ps, Con{s, t}) && (distinct(ps) && (layout(L, d) && (bases(L) && faces(L, v, d, L)))))))
-
-# a crossing's ring after it (R.cross): the cursor m found at its far
-# position out, the placeholder x joined to it; else x made a cursor
-def cross.t(m: Maybe<&2, U32>, +x: U32, +t: List<&2, U32>) -> List<&2, U32>:
-  match m:
-    case Some{+y}:
-      without(t, y)
-    case None{}:
-      Con{x, t}
-
-# and the nodes' list after it: both out, or as it was
-def cross.L(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>) -> List<&2, U32>:
-  match m:
-    case Some{+y}:
-      without(without(L, x), y)
-    case None{}:
-      L
-
-# A copy's crossings, modelled (R.crossings): two words read alike
-def meq(m: Maybe<&2, U32>, +n: Maybe<&2, U32>) -> Bool:
-  match m:
-    case Some{+x}:
-      match n:
-        case Some{+y}:
-          U32.is_eq(x, y)
-        case None{}:
-          False{}
-    case None{}:
-      match n:
-        case Some{+y}:
-          False{}
-        case None{}:
-          True{}
-
-# every member of ys holding at its word 2, its position, the same in v1
-# as in v2: the heap and a view of the positions agreeing
-def agree(ys: List<&2, U32>, +v1: List<&2, U32>, +v2: List<&2, U32>, +d: Nat) -> Bool:
-  match ys:
-    case Nil{}:
-      True{}
-    case Con{+m, r}:
-      meq(List.get(&2, U32, v1, AD.slot((m + 2 : U32), d)), List.get(&2, U32, v2, AD.slot((m + 2 : U32), d))) && agree(r, v1, v2, d)
-
 def pl.of(m: Maybe<&2, U32>) -> U32:
   match m:
     case Some{+q}:
@@ -383,30 +236,6 @@ def pls(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat) -> List<&2, U32>:
         case R.FzC{+at, +src, neg, +far}:
           Con{pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), pls(r, vm, dm)}
 
-# the view of the positions after a crossing: a cursor made, its word 2
-# its position src
-def cr.pv(m: Maybe<&2, U32>, +x: U32, +src: U32, +pv: List<&2, U32>, +d: Nat) -> List<&2, U32>:
-  match m:
-    case Some{+y}:
-      pv
-    case None{}:
-      List.set(&2, U32, pv, AD.slot((x + 2 : U32), d), src)
-
-# the ring and the nodes' list after a copy's crossings: each crossing's
-# find modelled over the view of the positions pv (RG.first), the ring
-# and list stepped by cross.t and cross.L, so that the model shares none
-# of the code's finds
-def cr(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +pv: List<&2, U32>, +d: Nat, +t: List<&2, U32>, +L: List<&2, U32>) -> List<&2, U32> & List<&2, U32>:
-  match cs:
-    case Nil{}:
-      (t, L)
-    case Con{c, r}:
-      match c:
-        case R.FzC{+at, +src, neg, +far}:
-          cr(r, vm, dm, cr.pv(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, pv, d), d,
-            cross.t(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), t),
-            cross.L(first(t, pv, d, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L))
-
 # The crossings' writes by region (crossings_keeps): the ports the nodes
 # of ys face, by their words 1 among v
 def faced(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> List<&2, U32>:
@@ -415,6 +244,21 @@ def faced(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> List<&2, U32>:
       Nil{}
     case Con{+m, r}:
       Con{pl.of(List.get(&2, U32, v, AD.slot((m + 1 : U32), d))), faced(r, v, d)}
+
+# the members of xs not among ys
+def minus.k(+b: Bool, +x: U32, r: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      r
+    case False{}:
+      Con{x, r}
+
+def minus(xs: List<&2, U32>, +ys: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, r}:
+      minus.k(has(ys, x), x, minus(r, ys))
 
 # word j in no node of ys
 def off.nodes(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
@@ -433,13 +277,216 @@ def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
     case Con{+f, r}:
       KMd.off.port(d, f, j) && off.ports(r, d, j)
 
-# no crossing of cs looks for c's position in v, as the find reads it
-# (pos.is): the served cursor, which no crossing then joins (serve_exact)
-def unfound(cs: List<&2, R.FzC>, +v: List<&2, U32>, +d: Nat, +c: U32) -> Bool:
+# The pending placeholders over the index
+# =======================================
+#
+# cells-freeze.sharing.cursors.index.ring.inv: the serve's invariant with a
+# copy's cursors in a tree of the net's nodes (cursors-indexed). N lists
+# every node a serve touches, laid out apart once (layout, bases); each
+# holds one role in it: the situating node s; the index I's leaves, the
+# cursors, and its branches; the pending placeholders ps; the free list's
+# first nodes F, which an insert takes its branch from and a join gives
+# its nodes to. L, carried as before, lists the live ones: s, the cursors
+# and the pending, no branch nor free node among them. A live node faces a
+# port faceable by L (faces); that port's link word, which a join writes,
+# is off every word of a tracked node that is not live and off the word 0
+# of one that is, and off the free list's head (po.all, KMd.off.port: a
+# static has none); and live nodes
+# facing one another face one another both ways, none itself
+# (copy-links-two-way), so that a join leaves no live node facing the
+# nodes it frees.
+
+# port r's link word off node n's words, all four where n is not live
+def po.n(+r: U32, +L: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
+  KMd.off.port(d, r, n) && Bool.or(has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && KMd.off.port(d, r, (n + 3 : U32))))
+
+# and off the free list's head, which the list's chain reads
+def po.all(+r: U32, +L: List<&2, U32>, +d: Nat, N: List<&2, U32>) -> Bool:
+  match N:
+    case Nil{}:
+      KMd.off.port(d, r, P.at_fh())
+    case Con{+n, t}:
+      po.n(r, L, d, n) && po.all(r, L, d, t)
+
+# the port each of ys faces (its word 1) so, over the tracked nodes N
+def px.off(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>, +N: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+z, t}:
+      po.all(KMd.word(v, d, (z + 1 : U32)), L, d, N) && px.off(t, v, d, L, N)
+
+# z, facing port r, faced back by each node of Q whose word 1 r's link
+# word is: that node's faced port's link word z's word 1, by slots, as a
+# link's writes land
+def tw.q(Q: List<&2, U32>, +r: U32, +z: U32, +v: List<&2, U32>, +d: Nat) -> Bool:
+  match Q:
+    case Nil{}:
+      True{}
+    case Con{+q, t}:
+      Bool.or(KMd.off.port(d, r, (q + 1 : U32)), Bool.not(KMd.off.port(d, KMd.word(v, d, (q + 1 : U32)), (z + 1 : U32)))) && tw.q(t, r, z, v, d)
+
+# each of ys facing not itself (its faced port's link word off its own
+# word 1), and faced back by the live node it faces
+def px.tw(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+z, t}:
+      KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)) && (tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && px.tw(t, v, d, L))
+
+# the invariant: the index realized, on its invariant, laid out; s and the
+# cursors live, the pending live and of no role else, listed once; no
+# branch live; the free list's first nodes F listed once, of no role
+# else; the live, the free and the index's nodes all tracked; the live
+# facing as above
+def px.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>) -> Bool:
+  IM.ix.real(v, d, s, I) && (IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (sub(Con{s, IM.ix.leaves(I)}, L) && (sub(ps, L) && (none.in(ps, Con{s, IM.ix.nodes(I)}) && (distinct(ps) && (none.in(L, IM.ix.branches(I)) && (KMd.chain(F, v, d, KMd.word(v, d, P.at_fh())) && (distinct(F) && (none.in(F, Con{s, IM.ix.nodes(I)}) && (none.in(F, L) && (sub(L, N) && (sub(F, N) && (sub(IM.ix.nodes(I), N) && (faces(L, v, d, L) && (px.off(L, v, d, L, N) && px.tw(L, v, d, L)))))))))))))))))
+
+def isnone(m: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+y}:
+      False{}
+    case None{}:
+      True{}
+
+# A crossing over the index (R.cross): the find at its far end m, the
+# placeholder x joined to the cursor found (the index without it, the
+# live nodes without both, the free list's first nodes y, x, the parent
+# freed, then the list before), else made a cursor at its position src
+# (put, the branch b the list's first node in a tree)
+def cx.I(m: Maybe<&2, U32>, +I: IM.Ix, +x: U32, +src: U32, +b: U32, +far: U32) -> IM.Ix:
+  match m:
+    case Some{+y}:
+      IM.ix.del(I, y, far)
+    case None{}:
+      IM.ix.put(I, x, src, b)
+
+def cx.L(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      without(without(L, x), y)
+    case None{}:
+      L
+
+# the free list's first nodes before: as they are for a join, the branch b
+# first for an insert into a tree
+def cx.F0(m: Maybe<&2, U32>, +I: IM.Ix, +b: U32, +F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      F
+    case None{}:
+      IM.ix.take(I, b, F)
+
+def cx.F1(m: Maybe<&2, U32>, +I: IM.Ix, +x: U32, +far: U32, +F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, far), F)}}
+    case None{}:
+      F
+
+# the crossing's own position absent from the index where it makes a
+# cursor (one cursor a position; serve-premises-over-index)
+def cx.ab(m: Maybe<&2, U32>, +I: IM.Ix, +src: U32) -> Bool:
+  match m:
+    case Some{+y}:
+      True{}
+    case None{}:
+      isnone(IM.ix.look(I, src))
+
+# no crossing of cs looks for key k at its far end: the served cursor's
+# key, which no crossing then joins (serve_ring_exact)
+def far.off(cs: List<&2, R.FzC>, +k: U32) -> Bool:
   match cs:
     case Nil{}:
       True{}
     case Con{f, r}:
       match f:
         case R.FzC{+at, +src, neg, +far}:
-          Bool.not(pos.is(v, d, c, far)) && unfound(r, v, d, c)
+          Bool.not(U32.is_eq(far, k)) && far.off(r, k)
+
+# A copy's crossings over the index (R.crossings; crossings_pend): each
+# crossing's placeholder the node map holds at its index (pls), its find
+# the index's lookup, so that the model shares none of the code's finds;
+# one making a cursor in a tree takes its branch from the free list's
+# first node, the list after it the rest
+def cx.hd(F: List<&2, U32>) -> U32:
+  match F:
+    case Nil{}:
+      0
+    case Con{+b, r}:
+      b
+
+def cx.tl(m: Maybe<&2, U32>, +I: IM.Ix, F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      F
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          F
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              Nil{}
+            case Con{+b, r}:
+              r
+
+# room for the branch a cursor made in a tree takes
+def cx.room(m: Maybe<&2, U32>, +I: IM.Ix, +F: List<&2, U32>) -> Bool:
+  match m:
+    case Some{+y}:
+      True{}
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          True{}
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              False{}
+            case Con{+b, r}:
+              True{}
+
+# the index, the live nodes and the free list's first nodes after
+type Cxs is Data:
+  Cxs{I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>}
+
+def cxs.I(S: Cxs) -> IM.Ix:
+  match S:
+    case Cxs{I, +L, +F}:
+      I
+
+def cxs.L(S: Cxs) -> List<&2, U32>:
+  match S:
+    case Cxs{I, +L, +F}:
+      L
+
+def cxs.F(S: Cxs) -> List<&2, U32>:
+  match S:
+    case Cxs{I, +L, +F}:
+      F
+
+def cxs(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>) -> Cxs:
+  match cs:
+    case Nil{}:
+      Cxs{I, L, F}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          cxs(r, vm, dm, cx.I(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, cx.hd(F), far),
+            cx.L(IM.ix.look(I, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L),
+            cx.F1(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, cx.tl(IM.ix.look(I, far), I, F)))
+
+# each crossing's premises in turn: its position absent where it makes a
+# cursor, room for the branch it takes
+def cxs.ok(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +F: List<&2, U32>) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          (cx.ab(IM.ix.look(I, far), I, src) && cx.room(IM.ix.look(I, far), I, F)) &&
+            cxs.ok(r, vm, dm, cx.I(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, cx.hd(F), far),
+              cx.F1(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, cx.tl(IM.ix.look(I, far), I, F)))
