@@ -292,7 +292,9 @@ law leave_pend:
 # keeps the pending placeholders' invariant over the index and the words
 # full, as leave_pend has it: a static has no link word, so that the
 # port's premise holds of the eraser by computation (po_static;
-# IndexPremises P3).
+# IndexPremises P3). Not claimed: the leave's frame, leave_keeps': a
+# static written a "link word" (the mutant leave_links_static) leaves
+# this invariant whole.
 # Record: copy-reduced-function-nets
 # Record: cursors-indexed
 # Record: static-links-count-as-nodes
