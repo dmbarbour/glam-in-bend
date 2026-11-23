@@ -126,18 +126,24 @@ law serve_keeps:
 
 # LAW: a serve at the source's root, its copy, its crossings and then the
 # served cursor nc leaving, the copy's root port (read through the map as
-# the materializer reads it, mz.root) joined in its place, leaves the ring
-# exact with its nodes, nc out of it (serve_exact on copy_pend): the
-# premises copy_pend's, nc in the ring, no crossing looking for its
-# position (RG.unfound), and the root a node no hole at a port below 3
-# (SV.root.ok) (cells-freeze.nested.host.serve.exact). Not claimed: the
-# frame of the leave at the root (.serve.root); that freeze builds such
+# the materializer reads it, mz.root) linked in its place, keeps the
+# pending placeholders' invariant over the index: nc out of the index and
+# of the live nodes the crossings leave, the free list's first nodes nc
+# and the removal's parent, then the crossings' (leave_pend on
+# crossings_pend on copy_pend). Premises: copy_pend's, the crossings'
+# (RG.cxs.ok), nc found at k in the index the crossings leave (over the
+# model: no law yet gives a find after a removal or an insert), and the
+# root a node no hole at a port below 3 (SV.root.ok)
+# (cells-freeze.sharing.cursors.index.ring.leave). Not claimed: the frame
+# of the leave at the root (serve_root_keeps); that freeze builds such
 # roots; the net's links two-way after the leave, which overwrites the
 # root port's link word: a template linking the root's port would leave
-# its partner facing the root alone, the ring exact still (freeze links
-# no root port, fz.peer.k, an obligation for its review).
+# its partner facing the root alone, the invariant still (freeze links no
+# root port, fz.peer.k, an obligation for its review).
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law serve_ring_exact:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -151,28 +157,32 @@ law serve_ring_exact:
   for +s: U32
   for +t: List<&2, U32>
   for +cs: List<&2, R.FzC>
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for +M: List<&2, U32>
   for +nc: U32
+  for +k: U32
   for +rn: U32
   for +rp: U32
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
-  for +hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
-  for +hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for +hN: {RG.layout(List.append(&2, U32, M, ns), d) == True{} : Bool}
+  for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
-  for +hbs: {RG.bases(ns) == True{} : Bool}
   for +hdy: {SV.dyn(ns) == True{} : Bool}
-  for +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
+  for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
+  for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
-  for +hnc: {RG.has(t, nc) == True{} : Bool}
-  for +hu: {RG.unfound(cs, AD.view(U32, w), d, nc) == True{} : Bool}
+  for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
+  for +hc: {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), k) == Some{nc} : Maybe<&2, U32>}
   for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
-  {RG.ring.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc))), d, s, RG.without(Pair.fst(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, t, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)))), nc)) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc))), d, s, IM.ix.del(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), Nil{}, RG.without(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc), Con{nc, IM.mb.cons(IM.ix.par(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
 
 # LAW: a serve's writes at the source's root, its copy, its crossings and
 # the served cursor's leave (serve_keeps's, then the leave's): no word
