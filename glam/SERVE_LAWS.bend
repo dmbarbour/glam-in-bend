@@ -185,16 +185,20 @@ law serve_ring_exact:
   {RG.px.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc))), d, s, IM.ix.del(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), Nil{}, RG.without(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc), Con{nc, IM.mb.cons(IM.ix.par(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
 
 # LAW: a serve's writes at the source's root, its copy, its crossings and
-# the served cursor's leave (serve_keeps's, then the leave's): no word
-# but the fresh nodes', the ring's nodes', the header's a value or an
-# error writes, and the link words of the ports the ring's members faced;
-# under serve_ring_exact's premises (cells-freeze.nested.host.serve.root).
-# The leave writes the link word of the port the cursor faces after the
-# crossings, which a join may have changed: each node of the ring and the
-# holes faces, through the crossings, a port one of them faced after the
-# copy, so that the bound holds. Not claimed: as serve_ring_exact.
+# the served cursor's leave (serve_keeps's, then leave_keeps's): no word
+# but the fresh nodes', the tracked nodes' (M: the live nodes, the
+# index's, the free list's), the header's a value or an error writes, and
+# the link words of the ports the live nodes faced; under
+# serve_ring_exact's premises
+# (cells-freeze.sharing.cursors.index.ring.leave). The leave writes the
+# link word of the port the served cursor faces after the crossings, which
+# a join may have changed: each live node faces, through the crossings, a
+# port a live node or a hole faced after the copy (cfi.go), so that the
+# bound holds. Not claimed: as serve_ring_exact.
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law serve_root_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -208,7 +212,11 @@ law serve_root_keeps:
   for +s: U32
   for +t: List<&2, U32>
   for +cs: List<&2, R.FzC>
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for +M: List<&2, U32>
   for +nc: U32
+  for +k: U32
   for +rn: U32
   for +rp: U32
   for +j: U32
@@ -216,22 +224,22 @@ law serve_root_keeps:
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
-  for +hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
-  for +hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for +hN: {RG.layout(List.append(&2, U32, M, ns), d) == True{} : Bool}
+  for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
-  for +hbs: {RG.bases(ns) == True{} : Bool}
   for +hdy: {SV.dyn(ns) == True{} : Bool}
-  for +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
+  for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
+  for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
-  for +hnc: {RG.has(t, nc) == True{} : Bool}
-  for +hu: {RG.unfound(cs, AD.view(U32, w), d, nc) == True{} : Bool}
+  for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
+  for +hc: {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), k) == Some{nc} : Maybe<&2, U32>}
   for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
   for +hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
-  for +hjr: {RG.off.nodes(Con{s, t}, d, j) == True{} : Bool}
+  for +hjM: {RG.off.nodes(M, d, j) == True{} : Bool}
   for +hjh: {KMd.off.words(KMd.hdr_all(), d, j) == True{} : Bool}
   for +hjf: {RG.off.ports(RG.faced(Con{s, t}, AD.view(U32, w), d), d, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
