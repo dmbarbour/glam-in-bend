@@ -171,3 +171,22 @@ an insert into an empty index also clearing the situating node's word
       P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s)
 +++
       P.wr(P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s), (s + 2 : U32), 0)
+
+=== place_same_bit put_inv
+the model's placement going on below a branch of the new branch's own
+bit, so that a branch and its child test one bit
+--- index_model.bend
+      tr.place.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, tr.place(l, x, k, b, c), tr.place(r, x, k, b, c), x, k, b, c)
++++
+      tr.place.k(Nat.is_le(i, c), X.ix.side(k, i), b2, i, l, r, tr.place(l, x, k, b, c), tr.place(r, x, k, b, c), x, k, b, c)
+
+=== join_wrong_side put_inv insert_tree
+the model's new leaf on the side its key's bit does not give
+--- index_model.bend
+      Br{b, c, cur, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, cur}
++++
+      Br{b, c, Lf{x, k}, cur}
+    case False{}:
+      Br{b, c, cur, Lf{x, k}}

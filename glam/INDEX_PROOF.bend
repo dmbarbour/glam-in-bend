@@ -2971,6 +2971,108 @@ def ok_lo.br(+b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +lo: Nat, +lo2: Nat, +h: {I
   and_intro(Nat.is_le(lo2, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hle,
     and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), h))
 
+def not_false(+b: Bool, +h: {Bool.not(b) == False{} : Bool}) -> {b == True{} : Bool}:
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, MB.true_ne_false()(h))
+
+def na.k(+sd: Bool, +k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +ihl: {IM.tr.agree(IM.tr.near(l, k), p, i) == True{} : Bool}, +ihr: {IM.tr.agree(IM.tr.near(r, k), p, i) == True{} : Bool}) -> {IM.tr.agree(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), p, i) == True{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) : {IM.tr.agree(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), p, i) == True{} : Bool}
+      ihr
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) : {IM.tr.agree(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), p, i) == True{} : Bool}
+      ihl
+
+# the key a branch's descent meets alike with what every key below it is
+def near_agree(+k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +hl: {IM.tr.all(l, p, i, False{}) == True{} : Bool}, +hr: {IM.tr.all(r, p, i, True{}) == True{} : Bool}) -> {IM.tr.agree(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), p, i) == True{} : Bool}:
+  na.k(X.ix.side(k, i), k, i, l, r, p, {==},
+    and_l(IM.tr.agree(IM.tr.near(l, k), p, i), X.ix.same(X.ix.side(IM.tr.near(l, k), i), False{}), all_near(l, k, p, i, False{}, hl)),
+    and_l(IM.tr.agree(IM.tr.near(r, k), p, i), X.ix.same(X.ix.side(IM.tr.near(r, k), i), True{}), all_near(r, k, p, i, True{}, hr)))
+
+# the new branch at bit c above the node U the placement stops at: k's
+# leaf on k's side, U's keys on the other, all alike below c
+def ok_join(+sdc: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +lo: Nat, +n: U32, +hsdc: {X.ix.side(k, c) == sdc : Bool},
+  +hlo: {Nat.is_le(lo, c) == True{} : Bool}, +hc32: {Nat.is_lt(c, 32n) == True{} : Bool},
+  +hS1: {IM.tr.all(U, n, c, X.ix.side(n, c)) == True{} : Bool}, +hag: {IM.tr.agree(k, n, c) == True{} : Bool}, +hne: {X.ix.same(X.ix.side(k, c), X.ix.side(n, c)) == False{} : Bool},
+  +hokU: {IM.tr.ok(U, 1n+c) == True{} : Bool}) -> {IM.tr.ok(IM.tr.join(X.ix.side(k, c), U, x, k, b, c), lo) == True{} : Bool}:
+  match sdc:
+    case True{}:
+      +hn = ME.subst(Bool, z => {X.ix.same(z, X.ix.side(n, c)) == False{} : Bool}, X.ix.side(k, c), True{}, hsdc, hne)
+      +hU0 = ME.subst(Bool, z => {IM.tr.all(U, n, c, z) == True{} : Bool}, X.ix.side(n, c), False{}, hn, hS1)
+      +hfn = agree_sym(IM.tr.first(U), n, c, all_first(U, n, c, False{}, hU0))
+      %Equal.sym(Bool, X.ix.side(k, c), True{}, hsdc) : {IM.tr.ok(IM.tr.join(_, U, x, k, b, c), lo) == True{} : Bool}
+      and_intro(Nat.is_le(lo, c), Nat.is_lt(c, 32n) && (IM.tr.all(U, IM.tr.first(U), c, False{}) && (IM.tr.all(IM.Lf{x, k}, IM.tr.first(U), c, True{}) && (IM.tr.ok(U, 1n+c) && IM.tr.ok(IM.Lf{x, k}, 1n+c)))), hlo, and_intro(Nat.is_lt(c, 32n), IM.tr.all(U, IM.tr.first(U), c, False{}) && (IM.tr.all(IM.Lf{x, k}, IM.tr.first(U), c, True{}) && (IM.tr.ok(U, 1n+c) && IM.tr.ok(IM.Lf{x, k}, 1n+c))), hc32, and_intro(IM.tr.all(U, IM.tr.first(U), c, False{}), IM.tr.all(IM.Lf{x, k}, IM.tr.first(U), c, True{}) && (IM.tr.ok(U, 1n+c) && IM.tr.ok(IM.Lf{x, k}, 1n+c)), all_rep(U, n, IM.tr.first(U), c, False{}, hU0, hfn), and_intro(IM.tr.all(IM.Lf{x, k}, IM.tr.first(U), c, True{}), IM.tr.ok(U, 1n+c) && IM.tr.ok(IM.Lf{x, k}, 1n+c), and_intro(IM.tr.agree(k, IM.tr.first(U), c), X.ix.same(X.ix.side(k, c), True{}), agree_trans(k, n, IM.tr.first(U), c, hag, hfn), ME.subst(Bool, z => {X.ix.same(z, True{}) == True{} : Bool}, True{}, X.ix.side(k, c), Equal.sym(Bool, X.ix.side(k, c), True{}, hsdc), {==})), and_intro(IM.tr.ok(U, 1n+c), IM.tr.ok(IM.Lf{x, k}, 1n+c), hokU, lt_le(c, 32n, hc32))))))
+    case False{}:
+      +hn = not_false(X.ix.side(n, c), ME.subst(Bool, z => {X.ix.same(z, X.ix.side(n, c)) == False{} : Bool}, X.ix.side(k, c), False{}, hsdc, hne))
+      +hU1 = ME.subst(Bool, z => {IM.tr.all(U, n, c, z) == True{} : Bool}, X.ix.side(n, c), True{}, hn, hS1)
+      %Equal.sym(Bool, X.ix.side(k, c), False{}, hsdc) : {IM.tr.ok(IM.tr.join(_, U, x, k, b, c), lo) == True{} : Bool}
+      and_intro(Nat.is_le(lo, c), Nat.is_lt(c, 32n) && (IM.tr.all(IM.Lf{x, k}, k, c, False{}) && (IM.tr.all(U, k, c, True{}) && (IM.tr.ok(IM.Lf{x, k}, 1n+c) && IM.tr.ok(U, 1n+c)))), hlo, and_intro(Nat.is_lt(c, 32n), IM.tr.all(IM.Lf{x, k}, k, c, False{}) && (IM.tr.all(U, k, c, True{}) && (IM.tr.ok(IM.Lf{x, k}, 1n+c) && IM.tr.ok(U, 1n+c))), hc32, and_intro(IM.tr.all(IM.Lf{x, k}, k, c, False{}), IM.tr.all(U, k, c, True{}) && (IM.tr.ok(IM.Lf{x, k}, 1n+c) && IM.tr.ok(U, 1n+c)), and_intro(IM.tr.agree(k, k, c), X.ix.same(X.ix.side(k, c), False{}), agree_refl(k, c), ME.subst(Bool, z => {X.ix.same(z, False{}) == True{} : Bool}, False{}, X.ix.side(k, c), Equal.sym(Bool, X.ix.side(k, c), False{}, hsdc), {==})), and_intro(IM.tr.all(U, k, c, True{}), IM.tr.ok(IM.Lf{x, k}, 1n+c) && IM.tr.ok(U, 1n+c), all_rep(U, n, k, c, True{}, hU1, agree_sym(k, n, c, hag)), and_intro(IM.tr.ok(IM.Lf{x, k}, 1n+c), IM.tr.ok(U, 1n+c), lt_le(c, 32n, hc32), hokU)))))
+
+def pok.k(+lt: Bool, +sd: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +lo: Nat,
+  +hlt: {Nat.is_lt(i, c) == lt : Bool}, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hok: {IM.tr.ok(IM.Br{b2, i, l, r}, lo) == True{} : Bool}, +hlo: {Nat.is_le(lo, c) == True{} : Bool}, +hc32: {Nat.is_lt(c, 32n) == True{} : Bool},
+  +hag: {IM.tr.agree(k, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c) == True{} : Bool}, +hne: {X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)) == False{} : Bool},
+  ihl: {IM.tr.agree(k, IM.tr.near(l, k), c) == True{} : Bool} -> {X.ix.same(X.ix.side(k, c), X.ix.side(IM.tr.near(l, k), c)) == False{} : Bool} -> {Nat.is_le(1n+i, c) == True{} : Bool} -> {IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i) == True{} : Bool},
+  ihr: {IM.tr.agree(k, IM.tr.near(r, k), c) == True{} : Bool} -> {X.ix.same(X.ix.side(k, c), X.ix.side(IM.tr.near(r, k), c)) == False{} : Bool} -> {Nat.is_le(1n+i, c) == True{} : Bool} -> {IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i) == True{} : Bool}) ->
+  {IM.tr.ok(IM.tr.place.k(lt, sd, b2, i, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c), lo) == True{} : Bool}:
+  match lt:
+    case False{}:
+      +hal = and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)))
+      +har = and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))
+      +hci = stop_bit(k, i, c, l, r, IM.tr.first(l), hlt, hal, har, hne)
+      +hNp = agree_le(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), IM.tr.first(l), 1n+c, i, lt_le(c, i, hci), near_agree(k, i, l, r, IM.tr.first(l), hal, har))
+      ok_join(X.ix.side(k, c), IM.Br{b2, i, l, r}, x, k, b, c, lo, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), {==}, hlo, hc32,
+        and_intro(IM.tr.all(l, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c, X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)), IM.tr.all(r, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c, X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)), all_down(l, IM.tr.first(l), X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i, c, False{}, hal, lt_le(c, i, hci), hNp),
+          all_down(r, IM.tr.first(l), X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i, c, True{}, har, lt_le(c, i, hci), hNp)),
+        hag, hne, ok_lo.br(b2, i, l, r, lo, 1n+c, hok, lt_le(c, i, hci)))
+    case True{}:
+      match sd:
+        case True{}:
+          +hal = and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)))
+          +har = and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))
+          +hka = agree_trans(k, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), IM.tr.first(l), i, agree_le(k, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i, c, le_trans_b(i, 1n+i, c, le_succ_b(i), lt_le(i, c, hlt)), hag), near_agree(k, i, l, r, IM.tr.first(l), hal, har))
+          and_intro(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(IM.tr.place(r, x, k, b, c), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i)))), and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), and_intro(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(IM.tr.place(r, x, k, b, c), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i))), and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)), and_intro(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(IM.tr.place(r, x, k, b, c), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i)), hal, and_intro(IM.tr.all(IM.tr.place(r, x, k, b, c), IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i), place_all(r, x, k, b, c, IM.tr.first(l), i, True{}, har, and_intro(IM.tr.agree(k, IM.tr.first(l), i), X.ix.same(X.ix.side(k, i), True{}), hka, ME.subst(Bool, z => {X.ix.same(z, True{}) == True{} : Bool}, True{}, X.ix.side(k, i), Equal.sym(Bool, X.ix.side(k, i), True{}, hsd), {==}))), and_intro(IM.tr.ok(l, 1n+i), IM.tr.ok(IM.tr.place(r, x, k, b, c), 1n+i), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), ihr(ME.subst(Bool, z => {IM.tr.agree(k, X.ix.pick(z, IM.tr.near(r, k), IM.tr.near(l, k)), c) == True{} : Bool}, X.ix.side(k, i), True{}, hsd, hag))(ME.subst(Bool, z => {X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(z, IM.tr.near(r, k), IM.tr.near(l, k)), c)) == False{} : Bool}, X.ix.side(k, i), True{}, hsd, hne))(lt_le(i, c, hlt)))))))
+        case False{}:
+          +hal = and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)))
+          +har = and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))
+          +hka = agree_trans(k, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), IM.tr.first(l), i, agree_le(k, X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i, c, le_trans_b(i, 1n+i, c, le_succ_b(i), lt_le(i, c, hlt)), hag), near_agree(k, i, l, r, IM.tr.first(l), hal, har))
+          +hpl = place_all(l, x, k, b, c, IM.tr.first(l), i, False{}, hal, and_intro(IM.tr.agree(k, IM.tr.first(l), i), X.ix.same(X.ix.side(k, i), False{}), hka, ME.subst(Bool, z => {X.ix.same(z, False{}) == True{} : Bool}, False{}, X.ix.side(k, i), Equal.sym(Bool, X.ix.side(k, i), False{}, hsd), {==})))
+          +hfl = agree_sym(IM.tr.first(IM.tr.place(l, x, k, b, c)), IM.tr.first(l), i, all_first(IM.tr.place(l, x, k, b, c), IM.tr.first(l), i, False{}, hpl))
+          and_intro(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(IM.tr.place(l, x, k, b, c), IM.tr.first(IM.tr.place(l, x, k, b, c)), i, False{}) && (IM.tr.all(r, IM.tr.first(IM.tr.place(l, x, k, b, c)), i, True{}) && (IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i) && IM.tr.ok(r, 1n+i)))), and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), and_intro(Nat.is_lt(i, 32n), IM.tr.all(IM.tr.place(l, x, k, b, c), IM.tr.first(IM.tr.place(l, x, k, b, c)), i, False{}) && (IM.tr.all(r, IM.tr.first(IM.tr.place(l, x, k, b, c)), i, True{}) && (IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i) && IM.tr.ok(r, 1n+i))), and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)), and_intro(IM.tr.all(IM.tr.place(l, x, k, b, c), IM.tr.first(IM.tr.place(l, x, k, b, c)), i, False{}), IM.tr.all(r, IM.tr.first(IM.tr.place(l, x, k, b, c)), i, True{}) && (IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i) && IM.tr.ok(r, 1n+i)), all_rep(IM.tr.place(l, x, k, b, c), IM.tr.first(l), IM.tr.first(IM.tr.place(l, x, k, b, c)), i, False{}, hpl, hfl), and_intro(IM.tr.all(r, IM.tr.first(IM.tr.place(l, x, k, b, c)), i, True{}), IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i) && IM.tr.ok(r, 1n+i), all_rep(r, IM.tr.first(l), IM.tr.first(IM.tr.place(l, x, k, b, c)), i, True{}, har, hfl), and_intro(IM.tr.ok(IM.tr.place(l, x, k, b, c), 1n+i), IM.tr.ok(r, 1n+i), ihl(ME.subst(Bool, z => {IM.tr.agree(k, X.ix.pick(z, IM.tr.near(r, k), IM.tr.near(l, k)), c) == True{} : Bool}, X.ix.side(k, i), False{}, hsd, hag))(ME.subst(Bool, z => {X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(z, IM.tr.near(r, k), IM.tr.near(l, k)), c)) == False{} : Bool}, X.ix.side(k, i), False{}, hsd, hne))(lt_le(i, c, hlt)), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))))))))
+
+# a put keeps the invariant, along the placement's way
+def pok(T: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +lo: Nat, +hok: {IM.tr.ok(T, lo) == True{} : Bool}, +hlo: {Nat.is_le(lo, c) == True{} : Bool},
+  +hc32: {Nat.is_lt(c, 32n) == True{} : Bool}, +hag: {IM.tr.agree(k, IM.tr.near(T, k), c) == True{} : Bool}, +hne: {X.ix.same(X.ix.side(k, c), X.ix.side(IM.tr.near(T, k), c)) == False{} : Bool}) ->
+  {IM.tr.ok(IM.tr.place(T, x, k, b, c), lo) == True{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      ok_join(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, lo, ky, {==}, hlo, hc32,
+        and_intro(IM.tr.agree(ky, ky, c), X.ix.same(X.ix.side(ky, c), X.ix.side(ky, c)), agree_refl(ky, c), same_refl(X.ix.side(ky, c))), hag, hne, lt_le(c, 32n, hc32))
+    case IM.Br{+b2, +i, +l, +r}:
+      pok.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, x, k, b, c, lo, {==}, {==}, hok, hlo, hc32, hag, hne,
+        hal => hnl => hll => pok(l, x, k, b, c, 1n+i, and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), hll, hc32, hal, hnl),
+        har => hnr => hlr => pok(r, x, k, b, c, 1n+i, and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), hlr, hc32, har, hnr))
+
+def put_inv.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +hi: {IM.ix.inv(I) == True{} : Bool}, +ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}) ->
+  {IM.ix.inv(IM.ix.put(I, x, k, b)) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      +hgo = ne_found(k, IM.tr.near(t, k), Equal.trans(Bool, U32.is_eq(k, IM.tr.near(t, k)), U32.is_eq(IM.tr.near(t, k), k), False{}, ueq_comm(k, IM.tr.near(t, k)), near_ne(t, k, ha)))
+      +hca = crit_ag(32n, 0n, k, IM.tr.near(t, k), X.ix.same(X.ix.side(k, 0n), X.ix.side(IM.tr.near(t, k), 0n)), {==}, {==}, hgo)
+      pok(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), 0n, hi, zero_le_b(IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), diff_lt(k, IM.tr.near(t, k), hgo),
+        and_l(IM.tr.agree(k, IM.tr.near(t, k), IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), Bool.not(X.ix.same(X.ix.side(k, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), X.ix.side(IM.tr.near(t, k), IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))))), hca),
+        not_true(X.ix.same(X.ix.side(k, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), X.ix.side(IM.tr.near(t, k), IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))))), and_r(IM.tr.agree(k, IM.tr.near(t, k), IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), Bool.not(X.ix.same(X.ix.side(k, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), X.ix.side(IM.tr.near(t, k), IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))))), hca)))
+
+def Laws.put_inv(I, x, k, b, hi, ha):
+  put_inv.k(I, x, k, b, hi, ha)
+
 # Lookups
 # =======
 

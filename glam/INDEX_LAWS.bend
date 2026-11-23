@@ -175,3 +175,19 @@ law insert_keeps:
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hjx: {Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d)) == False{} : Bool}
   {Pair.snd(P.H, U32, P.rd(X.ix.insert(P.H{KM.MG{w}, a}, s, x), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: a put of a key absent from an index on its invariant leaves the
+# invariant: the new branch's bit, the lowest the key and the key its
+# descent meets differ at, below 32 and between its parent's and the
+# bit of the node it goes above; every key below each branch alike below
+# its bit and on its child's side at it, the new key with them (the
+# crit-bit argument). So an insert's tree may take the next operation.
+# Record: cursors-indexed
+law put_inv:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
+  {IM.ix.inv(IM.ix.put(I, x, k, b)) == True{} : Bool}
