@@ -15,25 +15,29 @@ import ./ring_model.bend as RG
 import ./splice_copy.bend as S
 import ./splice_model.bend as SM
 import ./serve_model.bend as SV
+import ./index_model.bend as IM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
-# LAW: the copy leaves the pending placeholders' invariant
-# (RG.pend.ok): after the splice's two passes, the ring as it was, the
-# copy's holes pending (RG.pls, through the map the node pass leaves),
-# the ring's nodes and the holes the list L. Premises: the ring exact
-# with its nodes; the fresh nodes ns the free list's first ones, as many
-# as the template makes, laid out apart from the ring's and each other
-# (RG.layout), their own bases, none static (SV.dyn), past the header's
-# written words, the ring's too, and no port a member faces linked into
-# them (RG.faces against ns); the template's (SM.tpl.ok) and the
-# crossings' (SV.copy.ok: each hole a node's index, apart, its port 0
-# alone linked, to a node no hole) (cells-freeze.nested.host.serve.pend).
-# Not claimed:
-# growth; that ns are free (the allocator's prefix law); that freeze
-# builds such templates (.splice.freeze, after freeze's design).
+# LAW: the copy leaves the pending placeholders' invariant over the index
+# (RG.px.ok): before it none pending, the live nodes Con{s, t}, the free
+# list's first nodes the fresh nodes ns then F, the tracked nodes M then
+# ns; after the splice's two passes, the copy's holes pending (RG.pls,
+# through the map the node pass leaves) and live, F the free list's first
+# nodes, the tracked nodes M then the holes alone (a hole faces a port of
+# a copy node that is no hole, which no tracked node but a live one may
+# hold the link word of). Premises besides: the tracked nodes laid out
+# apart, their own bases, past the header's words; ns as many as the
+# template makes, none static (SV.dyn); no port a live node faces linked
+# into ns (RG.faces against ns); the live nodes distinct; the template's
+# (SM.tpl.ok) and the
+# crossings' (SV.copy.ok) (cells-freeze.sharing.cursors.index.ring.copy).
+# Not claimed: growth; that ns are free; that freeze builds such
+# templates.
 # Record: copy-reduced-function-nets
 # Record: splice-frame-premises
 # Record: serve-write-sets-hybrid
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law copy_pend:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -47,22 +51,25 @@ law copy_pend:
   for +s: U32
   for +t: List<&2, U32>
   for +cs: List<&2, R.FzC>
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for +M: List<&2, U32>
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
-  for +hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
-  for +hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for +hN: {RG.layout(List.append(&2, U32, M, ns), d) == True{} : Bool}
+  for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
-  for +hbs: {RG.bases(ns) == True{} : Bool}
   for +hdy: {SV.dyn(ns) == True{} : Bool}
-  for +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}
+  for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
+  for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
-  {RG.pend.ok(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, s, t, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm), List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, s, I, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm), List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
 
 # LAW: a serve's writes, its copy then its crossings (R.crossings, the
 # holes joined to the ring's cursors or made cursors), as the materializer
