@@ -519,6 +519,15 @@ def mb.cons(m: Maybe<&2, U32>, ns: List<&2, U32>) -> List<&2, U32>:
     case None{}:
       ns
 
+# word j off every word of the index's nodes and its situating node's
+# word 3: a write there leaves the realization
+def ix.offall(I: Ix, +s: U32, +d: Nat, +j: U32) -> Bool:
+  match I:
+    case Ept{}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)))
+    case Has{t}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))) && tr.off(t, d, j)
+
 # The words an operation leaves: a removal and an insert write no
 # cursor's words but the new cursor's home; the region they write is the
 # situating node's word 3, the branches' words, the free list's head and,

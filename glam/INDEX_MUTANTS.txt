@@ -283,3 +283,24 @@ the cursor
       Br{b, c, cur, Lf{(x + 4 : U32), k}}
     case False{}:
       Br{b, c, Lf{(x + 4 : U32), k}, cur}
+
+=== off_short real_kept
+a leaf's words, as a write is kept off them, missing its word 3, which
+the realization reads
+--- index_model.bend
+    case Lf{+x, +k}:
+      KMd.off.words(KMd.nw(x), d, j)
++++
+    case Lf{+x, +k}:
+      KMd.off.words([x, (x + 1 : U32), (x + 2 : U32)], d, j)
+
+=== join_other_branch put_bsub put_sub
+the model's new branch at a node next to the one the free list gives
+--- index_model.bend
+      Br{b, c, cur, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, cur}
++++
+      Br{(b + 4 : U32), c, cur, Lf{x, k}}
+    case False{}:
+      Br{(b + 4 : U32), c, Lf{x, k}, cur}

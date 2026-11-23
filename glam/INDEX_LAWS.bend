@@ -533,3 +533,42 @@ law remove_full:
   for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
   for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
   {AD.full(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x)), d) == True{} : Bool}
+
+# LAW: a write off the index's words (IM.ix.offall) leaves it realized.
+# Record: cursors-indexed
+law real_kept:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +j: U32
+  for +val: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hj: {IM.ix.offall(I, s, d, j) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, s, I) == True{} : Bool}
+
+# LAW: an index's branches all of a list N, and a put's branch of it:
+# the branches after the put all of N.
+# Record: cursors-indexed
+law put_bsub:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +N: List<&2, U32>
+  for h: {RG.sub(IM.ix.branches(I), N) == True{} : Bool}
+  for hb: {RG.has(N, b) == True{} : Bool}
+  {RG.sub(IM.ix.branches(IM.ix.put(I, x, k, b)), N) == True{} : Bool}
+
+# LAW: and after a removal.
+# Record: cursors-indexed
+law del_bsub:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +N: List<&2, U32>
+  for h: {RG.sub(IM.ix.branches(I), N) == True{} : Bool}
+  {RG.sub(IM.ix.branches(IM.ix.del(I, x, k)), N) == True{} : Bool}

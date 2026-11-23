@@ -4971,3 +4971,134 @@ def rfl.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: U32
 
 def Laws.remove_full(w, a, d, s, I, x, k, hf, hd32, hr, hi, hl, hx):
   rfl.m(w, a, d, s, I, x, k, hf, hd32, hr, hi, hl, hx, LAT.mirror(U32, w))
+
+# A realization kept by a write off it
+# ====================================
+
+def rk2.k(I: IM.Ix, +v: List<&2, U32>, +d: Nat, +s: U32, +j: U32, +val: U32, +hj: {IM.ix.offall(I, s, d, j) == True{} : Bool}, +hr: {IM.ix.real(v, d, s, I) == True{} : Bool}) ->
+  {IM.ix.real(List.set(&2, U32, v, AD.slot(j, d), val), d, s, I) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      %wl_ne(v, d, j, (s + 3 : U32), val, neq_comm(AD.slot((s + 3 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)), hj))) : {U32.is_eq(_, s) == True{} : Bool}
+      hr
+    case IM.Has{+t}:
+      +h3 = neq_comm(AD.slot((s + 3 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)), and_l(Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))), IM.tr.off(t, d, j), hj)))
+      %wl_ne(v, d, j, (s + 3 : U32), val, h3) : {Bool.not(U32.is_eq(_, s)) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, t, _, s) == True{} : Bool}
+      %real_set(t, v, d, j, val, KMd.word(v, d, (s + 3 : U32)), s, and_r(Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))), IM.tr.off(t, d, j), hj)) :
+        {Bool.not(U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)) && _ == True{} : Bool}
+      hr
+
+def rk2.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +j: U32, +val: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hj: {IM.ix.offall(I, s, d, j) == True{} : Bool}, hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}, m: LAT.Mirror(U32, w)) ->
+  {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, s, I) == True{} : Bool}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  %e : {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{_}, a}, j, val))), d, s, I) == True{} : Bool}
+  %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t0), j, val)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot(j, d), val), LA.set_view(U32, LAT.fromT(U32, t0), d, j, val, hft, hd32)) : {IM.ix.real(_, d, s, I) == True{} : Bool}
+  rk2.k(I, AD.view(U32, LAT.fromT(U32, t0)), d, s, j, val, hj, LAB.subst(Array<U32>, q => {IM.ix.real(AD.view(U32, q), d, s, I) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hr))
+
+def Laws.real_kept(w, a, d, s, I, j, val, hf, hd32, hj, hr):
+  rk2.m(w, a, d, s, I, j, val, hf, hd32, hj, hr, LAT.mirror(U32, w))
+
+# The branches in a list after a put and a removal
+# ================================================
+
+def join_bsub(+sd: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +hU: {RG.sub(IM.tr.branches(U), N) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) ->
+  {RG.sub(IM.tr.branches(IM.tr.join(sd, U, x, k, b, c)), N) == True{} : Bool}:
+  match sd:
+    case True{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.branches(U), []), N), hb, sub_app(IM.tr.branches(U), [], N, hU, {==}))
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, [], IM.tr.branches(U)), N), hb, hU)
+
+def pbs.k(+lt: Bool, +sd: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>,
+  +h: {RG.sub(IM.tr.branches(IM.Br{b2, i, l, r}), N) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool},
+  +ihl: {RG.sub(IM.tr.branches(IM.tr.place(l, x, k, b, c)), N) == True{} : Bool}, +ihr: {RG.sub(IM.tr.branches(IM.tr.place(r, x, k, b, c)), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.branches(IM.tr.place.k(lt, sd, b2, i, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c)), N) == True{} : Bool}:
+  match lt:
+    case False{}:
+      join_bsub(X.ix.side(k, c), IM.Br{b2, i, l, r}, x, k, b, c, N, h, hb)
+    case True{}:
+      match sd:
+        case True{}:
+          +hb2 = and_l(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+          +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+          and_intro(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(IM.tr.place(r, x, k, b, c))), N), hb2, sub_app(IM.tr.branches(l), IM.tr.branches(IM.tr.place(r, x, k, b, c)), N, sub_app_l(IM.tr.branches(l), IM.tr.branches(r), N, hlr), ihr))
+        case False{}:
+          +hb2 = and_l(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+          +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+          and_intro(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(IM.tr.place(l, x, k, b, c)), IM.tr.branches(r)), N), hb2, sub_app(IM.tr.branches(IM.tr.place(l, x, k, b, c)), IM.tr.branches(r), N, ihl, sub_app_r(IM.tr.branches(l), IM.tr.branches(r), N, hlr)))
+
+def place_bsub(t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +h: {RG.sub(IM.tr.branches(t), N) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) -> {RG.sub(IM.tr.branches(IM.tr.place(t, x, k, b, c)), N) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      join_bsub(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, N, h, hb)
+    case IM.Br{+b2, +i, +l, +r}:
+      +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+      pbs.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, x, k, b, c, N, h, hb,
+        place_bsub(l, x, k, b, c, N, sub_app_l(IM.tr.branches(l), IM.tr.branches(r), N, hlr), hb), place_bsub(r, x, k, b, c, N, sub_app_r(IM.tr.branches(l), IM.tr.branches(r), N, hlr), hb))
+
+def put_bsub.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +N: List<&2, U32>, +h: {RG.sub(IM.ix.branches(I), N) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) ->
+  {RG.sub(IM.ix.branches(IM.ix.put(I, x, k, b)), N) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      place_bsub(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), N, h, hb)
+
+def cbs.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +cr: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool}, +hl: {RG.sub(IM.tr.branches(l), N) == True{} : Bool}, +hcr: {RG.sub(IM.tr.branches(cr), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.branches(IM.tr.cut.r(hit, b, i, l, cr)), N) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hl
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(cr)), N), hb, sub_app(IM.tr.branches(l), IM.tr.branches(cr), N, hl, hcr))
+
+def cbs.l(+hit: Bool, +b: U32, +i: Nat, +r: IM.Tr, +cl: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool}, +hr: {RG.sub(IM.tr.branches(r), N) == True{} : Bool}, +hcl: {RG.sub(IM.tr.branches(cl), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.branches(IM.tr.cut.l(hit, b, i, r, cl)), N) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hr
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.branches(cl), IM.tr.branches(r)), N), hb, sub_app(IM.tr.branches(cl), IM.tr.branches(r), N, hcl, hr))
+
+def cbs.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +cl: IM.Tr, +cr: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool},
+  +hl: {RG.sub(IM.tr.branches(l), N) == True{} : Bool}, +hr: {RG.sub(IM.tr.branches(r), N) == True{} : Bool}, +hcl: {RG.sub(IM.tr.branches(cl), N) == True{} : Bool}, +hcr: {RG.sub(IM.tr.branches(cr), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.branches(IM.tr.cut.k(sd, b, i, l, r, x, cl, cr)), N) == True{} : Bool}:
+  match sd:
+    case True{}:
+      cbs.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, cr, N, hb, hl, hcr)
+    case False{}:
+      cbs.l(U32.is_eq(IM.tr.addr(l), x), b, i, r, cl, N, hb, hr, hcl)
+
+def cut_bsub(t: IM.Tr, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.tr.branches(t), N) == True{} : Bool}) -> {RG.sub(IM.tr.branches(IM.tr.cut(t, x, k)), N) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      h
+    case IM.Br{+b, +i, +l, +r}:
+      +hlr = and_r(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h)
+      +hl = sub_app_l(IM.tr.branches(l), IM.tr.branches(r), N, hlr)
+      +hr = sub_app_r(IM.tr.branches(l), IM.tr.branches(r), N, hlr)
+      cbs.k(X.ix.side(k, i), b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k), N, and_l(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), N), h), hl, hr,
+        cut_bsub(l, x, k, N, hl), cut_bsub(r, x, k, N, hr))
+
+def del_bsub.h(+only: Bool, +t: IM.Tr, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.tr.branches(t), N) == True{} : Bool}) -> {RG.sub(IM.ix.branches(IM.ix.del.k(only, t, x, k)), N) == True{} : Bool}:
+  match only:
+    case True{}:
+      {==}
+    case False{}:
+      cut_bsub(t, x, k, N, h)
+
+def del_bsub.k(I: IM.Ix, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.ix.branches(I), N) == True{} : Bool}) -> {RG.sub(IM.ix.branches(IM.ix.del(I, x, k)), N) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      del_bsub.h(U32.is_eq(IM.tr.addr(t), x), t, x, k, N, h)
+
+def Laws.put_bsub(I, x, k, b, N, h, hb):
+  put_bsub.k(I, x, k, b, N, h, hb)
+
+def Laws.del_bsub(I, x, k, N, h):
+  del_bsub.k(I, x, k, N, h)
