@@ -45,3 +45,15 @@ def pending(+f24: U32) -> Array<U32>:
   RG.words(placeholder(placeholder(
     cursor(cursor(situ(empty(10), 8, 99, 12), 12, 7, 16, KMd.ref(40, 1)), 16, 9, 8, KMd.ref(52, 0)),
     20, KMd.ref(44, 0), 5), 24, f24, 3))
+
+# A copy's cursors in an index of the net's nodes (cursors-indexed): a
+# cursor at x, negative, its key k (word 2), its home s (word 3), facing
+# port f
+def leaf(h: P.H, +x: U32, +k: U32, +s: U32, +f: U32) -> P.H:
+  P.link(member(h, x, P.hd2(18, 0, 0), k, s), x, f)
+
+# The pending index: s at 8, its word 3 its one leaf, the cursor 16 (key
+# 9, facing node 52's port 0); a placeholder 20 (position pos, facing node
+# 44's); the free list's head 10, node 36 its last
+def ix_one(+pos: U32) -> Array<U32>:
+  RG.words(placeholder(leaf(situ(empty(10), 8, 99, 16), 16, 9, 8, KMd.ref(52, 0)), 20, KMd.ref(44, 0), pos))

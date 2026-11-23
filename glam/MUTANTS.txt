@@ -211,6 +211,19 @@ t = Con{12, Con{16, Nil{}}}
 L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
 j = 29
+>>> witness join1_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+y = 16
+k = 9
 
 # A crossing (cross_pend): each mutation joins where it should make a
 # cursor, or finds by the wrong position. Its witnesses: the pending
@@ -225,6 +238,21 @@ the placeholder made a cursor even where its far end's cursor was found
 +++
     case Some{+y}:
       cursor(h, situ, pl, src, neg)
+>>> witness cross_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+src = 5
+neg = False{}
+far = 9
+b = 36
 
 === cross_find_by_src cross_pend serve_exact
 the cursor looked for at the placeholder's own position, not its far end's
@@ -244,6 +272,21 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{0, 7, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
 r = KMd.ref(32, 0)
 nc = 12
+>>> witness cross_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+src = 5
+neg = False{}
+far = 9
+b = 36
 
 # A copy's crossings (crossings_pend): each mutation skips a crossing or
 # reads the map at the wrong index. Its witness: the pending ring, the map
@@ -381,6 +424,20 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 src = 10
 neg = True{}
+>>> witness cursor_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
+x = 20
+src = 5
+neg = False{}
+b = 36
 
 === cursor_pos_in_word3 cursor_pos
 the position written to the cursor's word 3, which the insert overwrites
@@ -422,6 +479,20 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 src = 7
 neg = False{}
+>>> witness cursor_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
+x = 20
+src = 5
+neg = False{}
+b = 36
 
 === cursor_form_flipped cursor_head
 a negative cursor given the positive form
@@ -537,6 +608,19 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 x = 20
 y = 16
+>>> witness join1_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+y = 16
+k = 9
 
 === join1_frees_faced join1_keeps
 the port the placeholder faced freed, not the placeholder: a node outside
@@ -679,6 +763,19 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 x = 20
 y = 16
+>>> witness join1_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+y = 16
+k = 9
 
 === leave_skips_unlink leave_exact serve_exact
 the cursor leaving freed without being unlinked: it stays in the ring
@@ -892,6 +989,20 @@ situating node's
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), pl, pl)
+>>> witness cursor_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
+x = 20
+src = 5
+neg = False{}
+b = 36
 
 === join1_free_order join1_pend
 the join freeing the cursor before the placeholder, so that the free
@@ -900,3 +1011,16 @@ list's first nodes are x, y, not y, x
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), y), x)
+>>> witness join1_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+y = 16
+k = 9
