@@ -1,5 +1,10 @@
 # glam's proofs of glam/LAWS.bend.
 #
+# Written by authoring aids kept out of git: results/index_bits/regen.sh
+# rebuilds this file from a snapshot through its generator stages, the
+# last a cut to what the laws reach (docs/reviews/IndexHolistic_2026-11-23.md,
+# F1, where they are to live awaits the maintainer's ruling).
+#
 # Lessons, beside docs/Proving.md's. Those of this paragraph were learned
 # on the ring's proofs, retired with it (the Cells plan's
 # cells-freeze.sharing.cursors.index.ring.retire); git before ebc5887

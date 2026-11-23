@@ -1,4 +1,4 @@
-# Mutations of the code the serve's laws follow (glam/splice.bend), each
+# Mutations of the code the serve's laws follow (glam/splice_copy.bend), each
 # naming the laws of glam/SERVE_LAWS.bend it should fail (docs/Proving.md;
 # the gate runs scripts/one_law.py --mutants on this file). A witness is
 # the law's instance, its premises the template's and the allocator's,

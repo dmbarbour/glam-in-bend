@@ -765,9 +765,11 @@ def frame.push(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc
   frame.hs(host.of(who, KD.D{h, path, top, depth, n, 2}, k, ss, c, b), k, nc, pos, b)
 
 # A use of a live source: the leaf a host's demand stopped needing becomes
-# a negative cursor at the source's interface, in a ring of its own whose
-# situating node holds the source's entry and the applying node's level
-# (the splice's, sp.by), laid out as glam/test_materialize.bend's ring;
+# a negative cursor at the source's interface, the one cursor of an
+# index of its own, whose situating node holds the source's entry and the
+# applying node's level (the splice's, sp.by), laid out as
+# glam/test_materialize.bend's index_one (a tree of one leaf: the
+# situating node and the cursor naming each other);
 # the leaf's data entry dropped, as a splice drops it. A frame then serves
 # the cursor, the first copy a serve like any other.
 
@@ -818,7 +820,7 @@ def frame.at.p(r: P.H & U32, +x: U32, path: KM.M, +top: U32, +depth: U32, +n: U3
 # forced on a task of its own above this one, in a segment of its own, a
 # a live source's use: its template spliced once the source was found
 # wholly finished (finished-sources-freeze), as a template entry's is; else
-# a ring served from the source
+# a copy served from the source
 def needed.src(+whole: Bool, +t: T.Tpl, d: KD.D, +k: U32, +cell: U32, low: Lo, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match whole:
     case True{}:
@@ -906,7 +908,7 @@ def frame.wait(cx: Cx, d: KD.D, +depth: U32, +h2: U32, +t: T.Tpl, +name2: List<&
       frame.wait.r(seal(fs, ss, c, b), d, depth, h2, t, name2, i, k, nc, pos, cd, cell, waits, low, b)
 
 # a frame's walk needing a live source: its template spliced once the
-# source was found wholly finished, else a ring served from it
+# source was found wholly finished, else a copy served from it
 def frame.need.src(+whole: Bool, +t: T.Tpl, d: KD.D, +h2: U32, +i2: U32, cx: Cx, +i: U32, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match whole:
     case True{}:

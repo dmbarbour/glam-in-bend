@@ -64,9 +64,9 @@ law find_tree:
 # invariant and its nodes laid out apart (IM.ix.lay), leaves the words
 # realizing the model without x (IM.ix.del): x's parent, if any, given
 # up for x's sibling, the pointer to it rewritten and the parent freed
-# (IM.tr.cutat); where x was the tree, the index empty. Not claimed: that
-# the parent is freed (the free list's head after), which the
-# realization does not read; the serve's laws over the free list will.
+# (IM.tr.cutat); where x was the tree, the index empty. That the parent
+# is freed (the free list's head after), which the realization does not
+# read, is remove_free's.
 # Record: cursors-indexed
 # Record: hub-laws-reused
 law remove_tree:

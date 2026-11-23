@@ -14,9 +14,10 @@ import ./ring.bend as R
 # from its live source, the newly finished nodes copied into the host
 # and every wire leaving them joined.
 #
-# A copy's cursors form a ring in the host's heap through word 3, with
-# one situating node holding the source's handle (word 2) and the copy's
-# level offset (its field); form 2 of the cursor kind. A cursor holds its
+# A copy's cursors live in its index (glam/index.bend; cursors-indexed),
+# a crit-bit tree of the host's nodes keyed by position, its root in word
+# 3 of one situating node, which holds the source's handle (word 2) and
+# the copy's level offset (its field); form 2 of the cursor kind. A cursor holds its
 # position in the source in word 2: form 0 negative, standing for a
 # value; form 1 positive, receiving one. A use of a live template is a
 # negative cursor at the source's interface, so the first copy is a serve
@@ -26,13 +27,13 @@ import ./ring.bend as R
 # (`glam/position.bend`), then:
 # - a value: the finished tree under it is frozen (`F.freeze_tree`),
 #   spliced at the offset, and each wire leaving it joined: its far end
-#   looked up in the ring, a cursor there replaced by the wire, the
+#   looked up in the index, a cursor there replaced by the wire, the
 #   served cursor among them; otherwise a new cursor of the port's
-#   polarity, put in the ring;
-# - the frontier: a cursor of the ring at the port reached is joined to
+#   polarity, put in the index;
+# - the frontier: a cursor of the index at the port reached is joined to
 #   the served one directly, nothing copied (the identity's case); else
 #   the finished tree holding that port is found by climbing its
-#   principal links to a position of the ring, and materialized;
+#   principal links to a position the index holds, and materialized;
 # - a static: the served cursor's peer gets it;
 # - a cursor of the source, a copy it holds of another live source: left
 #   to the core, which serves that one into this source first, then this
@@ -43,7 +44,7 @@ import ./ring.bend as R
 # scratch the size of the source in each freeze.
 
 # the copy's root, where the tree faced the source's interface (a first
-# copy): joined to the served cursor nc, which leaves its ring
+# copy): joined to the served cursor nc, which leaves the index
 def mz.root.e(r: Array<U32> & U32, h: P.H, +p: U32, +nc: U32) -> P.H:
   (map, +n) = r
   R.leave(h, (n + p : U32), nc)
@@ -103,7 +104,7 @@ def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) 
       mz.fz.t(at_root && mz.none(curs), s, t, curs, m, h, situ, k, nc, at_root)
 
 # the finished tree at node base v of source s copied into host h at
-# offset k, its wires joined in situ's ring; at_root where it is the
+# offset k, its wires joined through situ's index; at_root where it is the
 # source's root, faced by the interface, served by cursor nc
 def materialize(s: P.H, h: P.H, +situ: U32, +v: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   mz.fz(F.freeze_tree(s, v), h, situ, k, nc, at_root)
@@ -132,7 +133,7 @@ type Sv is Type:
   SvBad{s: P.H, h: P.H, +n: U32}
 
 # a climb from a finished node of the source toward the root of its tree,
-# a node whose principal faces a position the ring holds
+# a node whose principal faces a position the index holds
 type Cl is Type:
   Cl{s: P.H, h: P.H, +x: U32, done: Bool}
 
@@ -171,8 +172,8 @@ def sv.pair(r: Mz, +n: U32) -> Sv:
     case MzW{s, h, +m, t}:
       SvWhole{s, h, n, m, t}
 
-# a climb that found no position of the ring: corruption, which a
-# well-formed source and ring never reach (each tree a copy takes hangs
+# a climb that found no position of the index: corruption, which a
+# well-formed source and index never reach (each tree a copy takes hangs
 # from a node it holds), reported and nothing copied
 # (corruption-reported-when-cheap; docs/reviews/Freeze_2026-11-21.md, B4)
 def sv.climbed.k(+done: Bool, s: P.H, h: P.H, +x: U32, +situ: U32, +k: U32, +nc: U32, +n: U32) -> Sv:

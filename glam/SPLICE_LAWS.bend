@@ -1,6 +1,6 @@
 # The splice's laws (cells-freeze.nested.host.splice): a frame over an
 # exact list of words (serve-write-sets-hybrid; splice-frame-premises).
-# Apart from glam/LAWS.bend, the ring's, so that the ring's laws keep
+# Apart from glam/LAWS.bend, the cursors', so that the cursors' laws keep
 # their imports to the heap's primitives: the splice's reach the kernel's
 # loader (knet.bend), and every change to the kernel reruns these.
 

@@ -255,6 +255,17 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   checks it: the laws do not compose as stated (no conclusion returns the
   words full or the layout), nothing establishes the invariant, the wire
   a join makes is stated by no law, three premises implied by others.
+- [`IndexHolistic_2026-11-23.md`](IndexHolistic_2026-11-23.md): the
+  index's merge reviewed whole after it, against `cursors-indexed`: the
+  proofs' generators outside git, one cursor a position not yet a law,
+  a template freeze builds outside the serve's laws, the ring's wording
+  left in the code, the frontier check untested, the materializer no
+  law's subject; the costs holding (run 340); then, with the second
+  reviewer's H1 to H12 checked, seven questions. Drafted by the agent.
+- [`IndexHolisticFable_2026-11-23.md`](IndexHolisticFable_2026-11-23.md):
+  the second reviewer's holistic review of the same merge, by a Fable
+  sub-agent, written apart and kept as written beside
+  `IndexHolistic_2026-11-23.md`.
 
 ## Retired
 

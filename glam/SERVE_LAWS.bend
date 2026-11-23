@@ -1,7 +1,7 @@
 # The serve's laws (cells-freeze.nested.host.serve): the splice's copy
-# (glam/SPLICE_LAWS.bend) joined to the ring's crossings (glam/LAWS.bend).
-# Apart from both, so that the ring's laws keep their imports to the
-# heap's primitives and the splice's theirs; importing both, a verdict
+# (glam/SPLICE_LAWS.bend) joined to the crossings over the index
+# (glam/LAWS.bend). Apart from both, so that the cursors' laws keep their
+# imports to the heap's primitives and the splice's theirs; importing both, a verdict
 # here costs about the splice's (the Cells plan's .host.witness.verdicts).
 
 import Base

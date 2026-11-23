@@ -1,7 +1,9 @@
 # The serve's proofs (glam/SERVE_LAWS.bend; cells-freeze.nested.host.serve).
-# The splice's laws and the ring's cited through their law files, their
-# lemmas through their proof files; written by a generator kept out of
-# git (results/proofgen/gen_serve.py).
+# The splice's laws and the cursors' cited through their law files, their
+# lemmas through their proof files. Written by authoring aids kept out of
+# git: results/proofgen/gen_serve.py, then the sections over the index
+# spliced in from results/index_bits/sv/gen_cpi.py's parts (sv/NOTES.md;
+# docs/reviews/IndexHolistic_2026-11-23.md, F1).
 
 import Base
 import ./SERVE_LAWS.bend as Laws

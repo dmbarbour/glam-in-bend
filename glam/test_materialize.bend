@@ -11,10 +11,10 @@ import ./materialize.bend as M
 
 # Live templates end to end (the Cells plan's
 # cells-freeze.cursors.materialize): a host applies a copy of a live
-# source, a negative cursor at the source's interface in a ring of its
-# own, to arguments, and is demanded; each time demand stops at a cursor,
-# it is served from the source, and demand runs again. The value must be
-# what applying the function gives:
+# source, a negative cursor at the source's interface, the one cursor
+# of an index of its own, to arguments, and is demanded; each time
+# demand stops at a cursor, it is served from the source, and demand runs
+# again. The value must be what applying the function gives:
 # - `\x -> (\y -> y) x` applied to 7: the zero-node serve, the result
 #   joined to the variable's cursor, so 7;
 # - `\x -> (\y -> \z -> y) x` applied to 7 then 8: a value materialized
@@ -71,9 +71,9 @@ def host2(+a: U32, +b: U32) -> T.Tpl:
   T.Tpl{[cur(), cur(), era(), ap(), num(a), ap(), num(b)],
     [ln(1, 0, 2, 0), ln(3, 0, 0, 0), ln(3, 1, 4, 0), ln(5, 0, 3, 2), ln(5, 1, 6, 0)], T.TE{5, 2}, 7}
 
-# the ring made: the situating node at offset 0 for source 0, the
-# cursor at position 28
-def ring(h: P.H) -> P.H:
+# the index made, a tree of one leaf: the situating node at offset 0 for
+# source 0, the cursor at position 28, each naming the other
+def index_one(h: P.H) -> P.H:
   P.wr(P.wr(P.wr(P.wr(P.wr(h, 36, P.hd2(18, 2, 0)), 38, 0), 39, 32), 34, 28), 35, 36)
 
 # the loop: the source, the host, what it ended in, whether it has
@@ -137,7 +137,7 @@ def rn.sv(v: M.Sv) -> Rn:
     case M.SvCur{s, h, +x, +n}:
       Rn{s, h, "a cursor of the source at " ++ U32.show(x), True{}}
     case M.SvBad{s, h, +n}:
-      Rn{s, h, "a climb met no position of the ring", True{}}
+      Rn{s, h, "a climb met no position of the index", True{}}
     case M.SvWhole{s, h, +n, +m, t}:
       Rn{s, h, "", False{}}
 
@@ -181,7 +181,7 @@ def rn.out(r: Rn) -> String:
       out
 
 def applied.h(s: P.H, host: T.Tpl) -> String:
-  rn.out(rn.go(16n, Rn{s, ring(KN.load(host)), "", False{}}))
+  rn.out(rn.go(16n, Rn{s, index_one(KN.load(host)), "", False{}}))
 
 def applied(src: T.Tpl, host: T.Tpl) -> String:
   applied.h(KN.load(src), host)
@@ -237,7 +237,7 @@ def report.k(+none: Bool, s: String) -> String:
 def report(+s: String) -> String:
   report.k(String.eq(s, ""), s)
 
-# A climb that found no position of the ring, which only corruption
+# A climb that found no position of the index, which only corruption
 # reaches: reported, nothing copied, the core stopping with an error
 # rather than serving the cursor again (docs/reviews/Freeze_2026-11-21.md,
 # B4)
@@ -257,6 +257,23 @@ def climb_err.v(v: M.Sv) -> String:
 def climb_err(+t: T.Tpl) -> String:
   climb_err.v(M.sv.climbed(M.Cl{KN.load(t), KN.load(t), 32, False{}}, 0, 0, 0, 0))
 
+# A frontier whose index finds the served cursor itself, which only
+# corruption reaches: reported, nothing joined, on the serve's path and on
+# the one net's (corruption-reported-when-cheap; the IndexPremises
+# review's rulings, `.host.join.self`)
+def front_self(+t: T.Tpl) -> String:
+  climb_err.v(M.sv.front.m((KN.load(t), Some{36}), KN.load(t), 0, 0, 36, 0, 0))
+
+def front1_self.v(v: M.Sv1) -> String:
+  match v:
+    case M.S1Bad{h, +n}:
+      "bad"
+    case _:
+      "not reported"
+
+def front1_self(+t: T.Tpl) -> String:
+  front1_self.v(M.sv1.front.m((KN.load(t), Some{36}), 0, 0, 36, 0, 0))
+
 # A source served at its root: wholly finished, every node its interface
 # reaches finished and copied, no crossing (the identity, its result
 # wired to its variable), the whole template returned; a redex left in
@@ -265,11 +282,13 @@ def id_bare() -> T.Tpl:
   T.Tpl{[fn()], [ln(0, 1, 0, 2)], T.TE{0, 0}, 1}
 
 def served_as(src: T.Tpl, host: T.Tpl) -> String:
-  climb_err.v(M.serve(KN.load(src), ring(KN.load(host)), 32, 16n, 1000n))
+  climb_err.v(M.serve(KN.load(src), index_one(KN.load(host)), 32, 16n, 1000n))
 
 def main() -> String:
   report(
     check(climb_err(id_redex()), "bad", "a failed climb") ++
+    check(front_self(id_redex()), "bad", "a frontier finding the served cursor") ++
+    check(front1_self(id_redex()), "bad", "a frontier finding the served cursor, one net") ++
     check(served_as(id_bare(), host1(7)), "whole", "a whole source at its root") ++
     check(served_as(const_redex(), host1(7)), "ok, 1 copied", "a source with a redex at its root") ++
     check(applied(id_bare(), host1(7)), "7", "id_bare 7") ++

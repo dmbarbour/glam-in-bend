@@ -331,7 +331,7 @@ def fz.node.c(+c: U32, h: P.H, +hd: U32, +b: U32) -> P.H & T.TNode:
 # Writing the template
 # ====================
 
-# a cursor, as a crossing of the ring the copy joins (RN.FzC, in
+# a cursor, as a crossing the copy makes (RN.FzC, in
 # glam/ring.bend, whose laws take it)
 
 # a freeze of the finished part: the template and its cursors, the first
