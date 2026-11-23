@@ -324,26 +324,36 @@ law cursor_pend:
   for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
   {RG.px.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, IM.ix.put(I, x, src, b), ps, L, F, N) == True{} : Bool}
 
-# LAW: the serve's first pending placeholder x joined to a cursor y of
-# the ring keeps the pending placeholders' invariant (RG.pend.ok), y out
-# of the ring and both out of L (cells-freeze.nested.host.serve).
+# LAW: the serve's first pending placeholder x joined to the cursor y a
+# find at key k gives (R.join1: the ports they faced linked, y taken out
+# of the index, both freed) keeps the pending placeholders' invariant
+# over the index (RG.px.ok): the index without y, the live nodes without
+# x and y, the free list's first nodes y, x, the parent the removal frees
+# if any, then the nodes before (cells-freeze.sharing.cursors.index.ring.inv).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
+# Record: copy-links-two-way
 law join1_pend:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
   for +ps: List<&2, U32>
   for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +x: U32
   for +y: U32
+  for +k: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
-  for hy: {RG.has(t, y) == True{} : Bool}
-  {RG.pend.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, RG.without(t, y), ps, RG.without(RG.without(L, x), y)) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, F, N) == True{} : Bool}
+  for hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}
+  {RG.px.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(I, y, k), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, k), F)}}, N) == True{} : Bool}
 
 # LAW: a crossing of the serve (R.cross), its placeholder x the first
 # pending, keeps the pending placeholders' invariant: x joined to the

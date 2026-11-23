@@ -191,16 +191,6 @@ the node after the placeholder freed, not the placeholder
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), (x + 4 : U32)), y)
->>> witness join1_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-y = 16
 >>> witness join1_keeps
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
@@ -554,16 +544,6 @@ the placeholder unlinked, not the ring's cursor
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), x), x), y)
->>> witness join1_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-y = 16
 >>> witness join1_keeps
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
@@ -715,16 +695,6 @@ the ring's cursor freed without being unlinked: it stays in the ring
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(P.link_xx(h, u, w), x), y)
->>> witness join1_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-y = 16
 >>> witness join1_exact
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
@@ -946,3 +916,11 @@ situating node's
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), pl, pl)
+
+=== join1_free_order join1_pend
+the join freeing the cursor before the placeholder, so that the free
+list's first nodes are x, y, not y, x
+--- ring.bend
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
++++
+  P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), y), x)
