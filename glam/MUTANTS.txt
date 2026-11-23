@@ -225,18 +225,6 @@ the placeholder made a cursor even where its far end's cursor was found
 +++
     case Some{+y}:
       cursor(h, situ, pl, src, neg)
->>> witness cross_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-src = 7
-neg = True{}
-far = 9
 
 === cross_find_by_src cross_pend serve_exact
 the cursor looked for at the placeholder's own position, not its far end's
@@ -244,18 +232,6 @@ the cursor looked for at the placeholder's own position, not its far end's
   cross.k(rg.find(h, situ, far), situ, pl, src, neg)
 +++
   cross.k(rg.find(h, situ, src), situ, pl, src, neg)
->>> witness cross_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-src = 7
-neg = True{}
-far = 9
 >>> witness serve_exact
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]

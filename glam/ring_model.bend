@@ -510,3 +510,54 @@ def px.tw(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>) -> B
 # facing as above
 def px.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>) -> Bool:
   IM.ix.real(v, d, s, I) && (IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (sub(Con{s, IM.ix.leaves(I)}, L) && (sub(ps, L) && (none.in(ps, Con{s, IM.ix.nodes(I)}) && (distinct(ps) && (none.in(L, IM.ix.branches(I)) && (KMd.chain(F, v, d, KMd.word(v, d, P.at_fh())) && (distinct(F) && (none.in(F, Con{s, IM.ix.nodes(I)}) && (none.in(F, L) && (sub(L, N) && (sub(F, N) && (sub(IM.ix.nodes(I), N) && (faces(L, v, d, L) && (px.off(L, v, d, L, N) && px.tw(L, v, d, L)))))))))))))))))
+
+def isnone(m: Maybe<&2, U32>) -> Bool:
+  match m:
+    case Some{+y}:
+      False{}
+    case None{}:
+      True{}
+
+# A crossing over the index (R.cross): the find at its far end m, the
+# placeholder x joined to the cursor found (the index without it, the
+# live nodes without both, the free list's first nodes y, x, the parent
+# freed, then the list before), else made a cursor at its position src
+# (put, the branch b the list's first node in a tree)
+def cx.I(m: Maybe<&2, U32>, +I: IM.Ix, +x: U32, +src: U32, +b: U32, +far: U32) -> IM.Ix:
+  match m:
+    case Some{+y}:
+      IM.ix.del(I, y, far)
+    case None{}:
+      IM.ix.put(I, x, src, b)
+
+def cx.L(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      without(without(L, x), y)
+    case None{}:
+      L
+
+# the free list's first nodes before: as they are for a join, the branch b
+# first for an insert into a tree
+def cx.F0(m: Maybe<&2, U32>, +I: IM.Ix, +b: U32, +F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      F
+    case None{}:
+      IM.ix.take(I, b, F)
+
+def cx.F1(m: Maybe<&2, U32>, +I: IM.Ix, +x: U32, +far: U32, +F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, far), F)}}
+    case None{}:
+      F
+
+# the crossing's own position absent from the index where it makes a
+# cursor (one cursor a position; serve-premises-over-index)
+def cx.ab(m: Maybe<&2, U32>, +I: IM.Ix, +src: U32) -> Bool:
+  match m:
+    case Some{+y}:
+      True{}
+    case None{}:
+      isnone(IM.ix.look(I, src))

@@ -3329,9 +3329,6 @@ def cross_pend.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +cs: List<&
     {RG.pend.ok(AD.view(U32, RG.words(R.cross.k(_, s, x, src, neg))), d, s, RG.cross.t(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, cs), ps, RG.cross.L(RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), x, L)) == True{} : Bool}
   cross_step(LAT.fromT(U32, t), LAT.fromT(V.Val, ta), d, s, cs, ps, L, x, src, neg, far, RG.first(cs, AD.view(U32, LAT.fromT(U32, t)), d, far), {==}, hft, hd32, hpt, LAT.mirror(U32, LAT.fromT(U32, t)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)))
 
-def Laws.cross_pend(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp):
-  cross_pend.m(w, a, d, s, t, ps, L, x, src, neg, far, hf, hd32, hp, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
-
 # A copy's crossings: the find on agreeing views
 
 # two words read alike give a position test alike
@@ -5672,3 +5669,42 @@ def jpx.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: Li
 
 def Laws.join1_pend(w, a, d, s, I, ps, L, F, N, x, y, k, hf, hd32, hN, hB, hp, hy):
   jpx.m(w, a, d, s, I, ps, L, F, N, x, y, k, hf, hd32, hN, hB, hp, hy, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# A crossing over the index
+# =========================
+
+def isnone_eq(m: Maybe<&2, U32>, +h: {RG.isnone(m) == True{} : Bool}) -> {m == None{} : Maybe<&2, U32>}:
+  match m:
+    case Some{+y}:
+      Empty.absurd({Some{y} == None{} : Maybe<&2, U32>}, MB.false_ne_true()(h))
+    case None{}:
+      {==}
+
+def cxp.k(+m: Maybe<&2, U32>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32, +b: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool}, +he: {IM.ix.look(I, far) == m : Maybe<&2, U32>}, +hp: {RG.px.ok(AD.view(U32, LAT.fromT(U32, t0)), d, s, I, Con{x, ps}, L, RG.cx.F0(m, I, b, F), N) == True{} : Bool}, +ha: {RG.cx.ab(m, I, src) == True{} : Bool}) ->
+  {RG.px.ok(AD.view(U32, RG.words(R.cross.k((P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, m), s, x, src, neg))), d, s, RG.cx.I(m, I, x, src, b, far), ps, RG.cx.L(m, x, L), RG.cx.F1(m, I, x, far, F), N) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      Laws.join1_pend(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, s, I, ps, L, F, N, x, y, far, hft, hd32, hN, hB, hp, he)
+    case None{}:
+      Laws.cursor_pend(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, s, I, ps, L, F, N, x, src, neg, b, hft, hd32, hN, hB, hp, isnone_eq(IM.ix.look(I, src), ha))
+
+def cxp.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>, +x: U32, +src: U32, +neg: Bool, +far: U32, +b: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool},
+  hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, RG.cx.F0(IM.ix.look(I, far), I, b, F), N) == True{} : Bool}, +ha: {RG.cx.ab(IM.ix.look(I, far), I, src) == True{} : Bool}, m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}:
+  (+t0, +e) = m
+  (+ta, +ea) = ma
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  +hpT = LAB.subst(Array<U32>, qq => {RG.px.ok(AD.view(U32, qq), d, s, I, Con{x, ps}, L, RG.cx.F0(IM.ix.look(I, far), I, b, F), N) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hp)
+  +hre = and_l(IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I), IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(Con{x, ps}, L) && (RG.none.in(Con{x, ps}, Con{s, IM.ix.nodes(I)}) && (RG.distinct(Con{x, ps}) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(RG.cx.F0(IM.ix.look(I, far), I, b, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(RG.cx.F0(IM.ix.look(I, far), I, b, F)) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), Con{s, IM.ix.nodes(I)}) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), L) && (RG.sub(L, N) && (RG.sub(RG.cx.F0(IM.ix.look(I, far), I, b, F), N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))))), hpT)
+  +hiv = and_l(IM.ix.inv(I), IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(Con{x, ps}, L) && (RG.none.in(Con{x, ps}, Con{s, IM.ix.nodes(I)}) && (RG.distinct(Con{x, ps}) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(RG.cx.F0(IM.ix.look(I, far), I, b, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(RG.cx.F0(IM.ix.look(I, far), I, b, F)) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), Con{s, IM.ix.nodes(I)}) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), L) && (RG.sub(L, N) && (RG.sub(RG.cx.F0(IM.ix.look(I, far), I, b, F), N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))))))), and_r(IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I), IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(Con{x, ps}, L) && (RG.none.in(Con{x, ps}, Con{s, IM.ix.nodes(I)}) && (RG.distinct(Con{x, ps}) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(RG.cx.F0(IM.ix.look(I, far), I, b, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(RG.cx.F0(IM.ix.look(I, far), I, b, F)) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), Con{s, IM.ix.nodes(I)}) && (RG.none.in(RG.cx.F0(IM.ix.look(I, far), I, b, F), L) && (RG.sub(L, N) && (RG.sub(RG.cx.F0(IM.ix.look(I, far), I, b, F), N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))))), hpT))
+  %e : {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{_}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}
+  %ea : {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}
+  %Equal.sym(P.H & Maybe<&2, U32>, X.ix.find(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, s, far), (P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, IM.ix.look(I, far)), XL.find_tree(LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), d, s, I, far, hft, hd32, hre, hiv)) :
+    {RG.px.ok(AD.view(U32, RG.words(R.cross.k(_, s, x, src, neg))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}
+  cxp.k(IM.ix.look(I, far), t0, ta, d, s, I, ps, L, F, N, x, src, neg, far, b, hft, hd32, hN, hB, {==}, hpT, ha)
+
+def Laws.cross_pend(w, a, d, s, I, ps, L, F, N, x, src, neg, far, b, hf, hd32, hN, hB, hp, ha):
+  cxp.m(w, a, d, s, I, ps, L, F, N, x, src, neg, far, b, hf, hd32, hN, hB, hp, ha, LAT.mirror(U32, w), LAT.mirror(V.Val, a))

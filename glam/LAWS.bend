@@ -356,28 +356,37 @@ law join1_pend:
   {RG.px.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(I, y, k), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, k), F)}}, N) == True{} : Bool}
 
 # LAW: a crossing of the serve (R.cross), its placeholder x the first
-# pending, keeps the pending placeholders' invariant: x joined to the
-# cursor found at its far position, if any, both then out of the ring and
-# of L; else x made a cursor (RG.cross.t, RG.cross.L, by the find's model,
-# RG.first) (cells-freeze.nested.host.serve).
+# pending, keeps the pending placeholders' invariant over the index
+# (RG.px.ok): x joined to the cursor a find at its far end gives, if
+# any, else made a cursor at its position src, absent from the index
+# (RG.cx.I, RG.cx.L, RG.cx.F0, RG.cx.F1, RG.cx.ab, by the index's
+# lookup) (cells-freeze.sharing.cursors.index.ring.inv).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law cross_pend:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
   for +ps: List<&2, U32>
   for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +x: U32
   for +src: U32
   for +neg: Bool
   for +far: U32
+  for +b: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
-  {RG.pend.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cross.t(RG.first(t, AD.view(U32, w), d, far), x, t), ps, RG.cross.L(RG.first(t, AD.view(U32, w), d, far), x, L)) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, RG.cx.F0(IM.ix.look(I, far), I, b, F), N) == True{} : Bool}
+  for ha: {RG.cx.ab(IM.ix.look(I, far), I, src) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}
 
 # LAW: a copy's crossings (R.crossings, each placeholder found through
 # map), their placeholders the pending ones (RG.pls), keep the pending
