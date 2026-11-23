@@ -79,7 +79,8 @@ HELLO = b"Hello, World!"
 TESTS = [os.path.join(ROOT, "glam", "test_freeze.bend"), os.path.join(ROOT, "glam", "test_cursor.bend"),
          os.path.join(ROOT, "glam", "test_position.bend"),
          os.path.join(ROOT, "glam", "test_materialize.bend"), os.path.join(ROOT, "glam", "test_mark.bend"),
-         os.path.join(ROOT, "glam", "test_index.bend"), os.path.join(ROOT, "glam", "test_index_model.bend")]
+         os.path.join(ROOT, "glam", "test_index.bend"), os.path.join(ROOT, "glam", "test_index_model.bend"),
+         os.path.join(ROOT, "glam", "test_serve_end.bend")]
 # tests too slow for Bend's interpreter, built and run as native programs
 NATIVE = {os.path.join(ROOT, "glam", "test_index_model.bend")}
 

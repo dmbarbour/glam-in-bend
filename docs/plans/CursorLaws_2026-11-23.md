@@ -78,18 +78,23 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `scripts/check_generated.sh` runs `glam/proofgen/regen.sh
       --check`, a generator kind `check`; the run takes about 2 s, so
       no kept pass is needed.
-  - `cursor-laws.stop` — planned — implementation errors stop the run
-    (`implementation-errors-stop`; H7). S.
-    - The serve's end reads the kernel's error count (`P.stats`, as the
-      climb reads the capacity). A count risen stops the run with its
-      diagnostic, before the core reads a cursor's words.
-    - `cursor` orders its writes so that a refused insert leaves the
-      placeholder a placeholder. The order is weighed against
-      `insert_tree`'s premise, which would move to the caller.
-    - Measured with the change (H4): the six- and eight-head families
-      at n, 2n, 4n beside run 340; `spike/tools/sharing.py compare`
-      over the merge (`ds.run` has two callers); run 340 cited in
-      `cursors-indexed` and the Cells plan's `.index` step.
+  - `cursor-laws.stop` — built 2026-11-23 — implementation errors stop
+    the run (`implementation-errors-stop`; H7).
+    - A serve's completed ends read both nets' error counts
+      (`frame.ok`, `frame.ok1` in `glam/core.bend`, as `cell.done`
+      reads the host's), and a count above 0 stops the run with "the
+      kernel reported errors serving a copy" before the core reads
+      either net again. The continuation is built only in the clean
+      arm. `glam/test_serve_end.bend`, in the ladder's tests, checks
+      the host's count and the source's on the serve's path; the one
+      net's path has no test, wanting a frame's context.
+    - `cursor`'s writes left in their order: once the run stops at the
+      serve's end, nothing reads the placeholder a refused insert
+      leaves, and moving the header after the insert would move
+      `insert_tree`'s premise to every caller.
+    - Measured: 52 instructions a serve, +0.05% on `seq` and `deep` at
+      every size from 100 to 1,600 (store run 341 against run 340, the
+      merged code's, now cited in `cursors-indexed`).
   - `cursor-laws.dup` — planned — one cursor a position as a law (F2,
     H3; P9, P8), investigated first, backed off if impractical. M.
     - `insert_dup`: an insert meeting its own key counts one error and
@@ -135,6 +140,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     disposition, as `.retire`'s were (H6, H9, H12). M.
     - Each law gets the downstream proof that uses it, or the reason it
       stands alone.
+    - Left from H4: the six- and eight-head families measured again (their
+      workload's source is to be found), and a check that `ds.run`'s second
+      caller costs no segment in glam's build (`spike/tools/sharing.py`
+      emits the kernel alone, so it would need extending).
     - `at_first` and `RG.first` retired with approval.
     - A mutant, or a stated reason, for each law no mutant names.
     - The redundant error arm of the insert commented.

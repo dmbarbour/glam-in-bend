@@ -49,7 +49,9 @@ Why the net's nodes, for performance:
   element (the spike, against main): `deep` 204K at 100 elements and
   193K at 1,600 (the ring 209K and 323K), cells of six heads 476K and
   467K at 100 and 400 (538K and 734K), of eight 586K and 575K (685K and
-  1,009K); `seq` unchanged, about 190K.
+  1,009K); `seq` unchanged, about 190K. Measured again on the merged
+  code (store run 340, 2026-11-23): `deep` 204K and 193K at 1,600,
+  `seq` 202K and 190K; the six- and eight-head figures are the spike's.
 - The tree is read and written as words, nothing allocated or counted
   by Bend. A persistent value in the data table, the other home weighed,
   would allocate and count references on every change, and reference

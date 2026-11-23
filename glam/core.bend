@@ -1062,12 +1062,35 @@ def src.whole(m: Maybe<&2, Ent>, +k: U32, t: T.Tpl, +b: List<&2, Ent>) -> List<&
     case None{}:
       b
 
+# a serve's end (implementation-errors-stop): the host's and the
+# source's error counts read, any error the kernel counted, in the serve
+# or before it, stopping the run before the core reads either net again
+# (a refused insert, a descent out of fuel); the host going on otherwise
+def frame.ok.k(+clean: Bool, ho: Hb, h: P.H, ss: Srcs, b: List<&2, Ent>, c: Cn) -> Run:
+  match clean:
+    case True{}:
+      host.go(ho, h, ss, b, c)
+    case False{}:
+      err("the kernel reported errors serving a copy")
+
+def frame.ok.q(q: P.H & P.HS, +clean: Bool, ho: Hb, h: P.H, +i: U32, ss: Srcs, b: List<&2, Ent>, c: Cn) -> Run:
+  (hs, sq) = q
+  match sq:
+    case P.HS{+itrs, +errs, +cap}:
+      frame.ok.k(clean && U32.is_eq(errs, 0), ho, h, srcs.put(ss, i, hs), b, c)
+
+def frame.ok(r: P.H & P.HS, q: P.H & P.HS, ho: Hb, +i: U32, ss: Srcs, b: List<&2, Ent>, c: Cn) -> Run:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      frame.ok.q(q, U32.is_eq(errs, 0), ho, h, i, ss, b, c)
+
 def frame.sv(v: M.Sv, ho: Hb, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match v:
     case M.SvOk{hs, h, +n, +m}:
-      host.go(ho, h, srcs.put(ss, i, hs), b, cn.copy(cn.serve(cn.add(c, n)), m))
+      frame.ok(P.stats(h), P.stats(hs), ho, i, ss, b, cn.copy(cn.serve(cn.add(c, n)), m))
     case M.SvWhole{hs, h, +n, +m, t}:
-      host.go(ho, h, srcs.put(ss, i, hs), src.whole(book_get(b, k), k, t, b), cn.copy(cn.serve(cn.add(c, n)), m))
+      frame.ok(P.stats(h), P.stats(hs), ho, i, ss, src.whole(book_get(b, k), k, t, b), cn.copy(cn.serve(cn.add(c, n)), m))
     case M.SvStop{d, h, +n}:
       frame.back(host.back(ho, h, ss), d, i, name, k, nc, pos, b, cn.add(c, n))
     case M.SvCur{hs, h, +x, +n}:
@@ -1128,10 +1151,25 @@ def frame.ho(m: Maybe<&2, Ent>, fd: Fd, +k1: U32, +nc1: U32, +pos1: U32, cx: Cx,
 # A self copy's frame: its host the frame below it, without a walk and
 # with the same source, which is served into itself (M.serve1)
 
+# a self copy's serve's end: its one net's error count read, as a serve's
+# (frame.ok)
+def frame.ok1.k(+clean: Bool, h: P.H, +i: U32, +k: U32, +nc1: U32, +pos1: U32, cx: Cx, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  match clean:
+    case True{}:
+      run.fr(FrN{k, nc1, pos1}, cx, b, c, srcs.put(ss, i, h))
+    case False{}:
+      err("the kernel reported errors serving a copy")
+
+def frame.ok1(r: P.H & P.HS, +i: U32, +k: U32, +nc1: U32, +pos1: U32, cx: Cx, b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
+  (h, st) = r
+  match st:
+    case P.HS{+itrs, +errs, +cap}:
+      frame.ok1.k(U32.is_eq(errs, 0), h, i, k, nc1, pos1, cx, b, c, ss)
+
 def frame.sv1(v: M.Sv1, +i: U32, +name: List<&2, U32>, +nc1: U32, +pos1: U32, cx: Cx, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   match v:
     case M.S1Ok{h, +n, +m}:
-      run.fr(FrN{k, nc1, pos1}, cx, b, cn.copy(cn.serve(cn.add(c, n)), m), srcs.put(ss, i, h))
+      frame.ok1(P.stats(h), i, k, nc1, pos1, cx, b, cn.copy(cn.serve(cn.add(c, n)), m), ss)
     case M.S1Stop{d, +n}:
       frame.stop(d, cx.push(FrN{k, nc1, pos1}, cx), i, name, k, nc, pos, b, cn.add(c, n), ss)
     case M.S1Cur{h, +x, +n}:
