@@ -50,6 +50,7 @@ import ../spike/val.bend as V
 import ../spike/kmodel.bend as KMd
 import ./index.bend as X
 import ./index_model.bend as IM
+import ./ring_model.bend as RG
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
@@ -3319,6 +3320,77 @@ def del_lay.k(I: IM.Ix, +s: U32, +x: U32, +k: U32, +d: Nat, +hl: {IM.ix.lay(I, s
 
 def Laws.del_lay(I, s, x, k, d, hl):
   del_lay.k(I, s, x, k, d, hl)
+
+# The ring's lists
+# ================
+
+def fa.k(+e: Bool, +y: U32, +r1: Maybe<&2, U32>, +r2: Maybe<&2, U32>) -> {RG.first.k(e, y, IM.mb.or(r1, r2)) == IM.mb.or(RG.first.k(e, y, r1), r2) : Maybe<&2, U32>}:
+  match e:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# a first match over two lists: the first's, else the second's
+def first_app(xs: List<&2, U32>, +ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +k: U32) ->
+  {RG.first(List.append(&2, U32, xs, ys), v, d, k) == IM.mb.or(RG.first(xs, v, d, k), RG.first(ys, v, d, k)) : Maybe<&2, U32>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      %Equal.sym(Maybe<&2, U32>, RG.first(List.append(&2, U32, t, ys), v, d, k), IM.mb.or(RG.first(t, v, d, k), RG.first(ys, v, d, k)), first_app(t, ys, v, d, k)) :
+        {RG.first.k(RG.pos.is(v, d, y, k), y, _) == IM.mb.or(RG.first.k(RG.pos.is(v, d, y, k), y, RG.first(t, v, d, k)), RG.first(ys, v, d, k)) : Maybe<&2, U32>}
+      fa.k(RG.pos.is(v, d, y, k), y, RG.first(t, v, d, k), RG.first(ys, v, d, k))
+
+def hit_fk(+e: Bool, +y: U32) -> {IM.mb.hit(e, y) == RG.first.k(e, y, None{}) : Maybe<&2, U32>}:
+  match e:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def at_first.t(T: IM.Tr, +t0: LAT.Tree<U32>, +d: Nat, +p: U32, +s: U32, +k: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, p, s) == True{} : Bool}) -> {IM.tr.at(T, k) == RG.first(IM.tr.leaves(T), AD.view(U32, LAT.fromT(U32, t0)), d, k) : Maybe<&2, U32>}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      +hk2 = MS.u32_eq_of_is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky, and_l(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s),
+        and_r(Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))), U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s),
+          and_r(U32.is_eq(p, y), Bool.not(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, y))) && (U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky) && U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 3 : U32)), s)), hre))))
+      %LA.get_view(U32, LAT.fromT(U32, t0), d, (y + 2 : U32), hft, hd32) : {IM.mb.hit(U32.is_eq(ky, k), y) == RG.first.k(RG.pos.is.m(_, k), y, None{}) : Maybe<&2, U32>}
+      %wd(t0, d, (y + 2 : U32), hft, hd32) :
+        {IM.mb.hit(U32.is_eq(ky, k), y) == RG.first.k(U32.is_eq(_, k), y, None{}) : Maybe<&2, U32>}
+      %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (y + 2 : U32)), ky, hk2) : {IM.mb.hit(U32.is_eq(ky, k), y) == RG.first.k(U32.is_eq(_, k), y, None{}) : Maybe<&2, U32>}
+      hit_fk(U32.is_eq(ky, k), y)
+    case IM.Br{+b, +i, +l, +r}:
+      +hr3 = and_r(Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s)), and_r(U32.is_eq(p, b), X.ix.branch(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, b)), i) && (IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s) && IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s))), hre)))
+      %Equal.sym(Maybe<&2, U32>, RG.first(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), AD.view(U32, LAT.fromT(U32, t0)), d, k), IM.mb.or(RG.first(IM.tr.leaves(l), AD.view(U32, LAT.fromT(U32, t0)), d, k), RG.first(IM.tr.leaves(r), AD.view(U32, LAT.fromT(U32, t0)), d, k)),
+        first_app(IM.tr.leaves(l), IM.tr.leaves(r), AD.view(U32, LAT.fromT(U32, t0)), d, k)) : {IM.mb.or(IM.tr.at(l, k), IM.tr.at(r, k)) == _ : Maybe<&2, U32>}
+      %Equal.sym(Maybe<&2, U32>, IM.tr.at(l, k), RG.first(IM.tr.leaves(l), AD.view(U32, LAT.fromT(U32, t0)), d, k), at_first.t(l, t0, d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s, k, hft, hd32, and_l(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), hr3))) :
+        {IM.mb.or(_, IM.tr.at(r, k)) == IM.mb.or(RG.first(IM.tr.leaves(l), AD.view(U32, LAT.fromT(U32, t0)), d, k), RG.first(IM.tr.leaves(r), AD.view(U32, LAT.fromT(U32, t0)), d, k)) : Maybe<&2, U32>}
+      %Equal.sym(Maybe<&2, U32>, IM.tr.at(r, k), RG.first(IM.tr.leaves(r), AD.view(U32, LAT.fromT(U32, t0)), d, k), at_first.t(r, t0, d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s, k, hft, hd32, and_r(IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, l, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 2 : U32)), s), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, r, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (b + 3 : U32)), s), hr3))) :
+        {IM.mb.or(RG.first(IM.tr.leaves(l), AD.view(U32, LAT.fromT(U32, t0)), d, k), _) == IM.mb.or(RG.first(IM.tr.leaves(l), AD.view(U32, LAT.fromT(U32, t0)), d, k), RG.first(IM.tr.leaves(r), AD.view(U32, LAT.fromT(U32, t0)), d, k)) : Maybe<&2, U32>}
+      {==}
+
+def at_first.k(I: IM.Ix, +t0: LAT.Tree<U32>, +d: Nat, +s: U32, +k: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I) == True{} : Bool}) -> {IM.ix.at(I, k) == RG.first(IM.ix.leaves(I), AD.view(U32, LAT.fromT(U32, t0)), d, k) : Maybe<&2, U32>}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      at_first.t(t, t0, d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s, k, hft, hd32,
+        and_r(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s)), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, t, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s), hre))
+
+def at_first.m(-w: Array<U32>, +d: Nat, +s: U32, +I: IM.Ix, +k: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}, m: LAT.Mirror(U32, w)) -> {IM.ix.at(I, k) == RG.first(IM.ix.leaves(I), AD.view(U32, w), d, k) : Maybe<&2, U32>}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  %e : {IM.ix.at(I, k) == RG.first(IM.ix.leaves(I), AD.view(U32, _), d, k) : Maybe<&2, U32>}
+  at_first.k(I, t0, d, s, k, hft, hd32, LAB.subst(Array<U32>, q => {IM.ix.real(AD.view(U32, q), d, s, I) == True{} : Bool}, w, LAT.fromT(U32, t0), Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e), hr))
+
+def Laws.at_first(w, d, s, I, k, hf, hd32, hr):
+  at_first.m(w, d, s, I, k, hf, hd32, hr, LAT.mirror(U32, w))
 
 # Lookups
 # =======

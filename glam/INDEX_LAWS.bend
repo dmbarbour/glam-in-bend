@@ -13,6 +13,7 @@ import ../spike/val.bend as V
 import ../spike/kmodel.bend as KMd
 import ./index.bend as X
 import ./index_model.bend as IM
+import ./ring_model.bend as RG
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: two keys unequal, the scan of their 32 bits from the lowest
@@ -231,3 +232,21 @@ law del_lay:
   for +d: Nat
   for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
   {IM.ix.lay(IM.ix.del(I, x, k), s, d) == True{} : Bool}
+
+# LAW: the leftmost cursor at key k (IM.ix.at, which a find gives by
+# look_at and find_tree) is the ring's first match over the tree's
+# leaves (RG.first, its keys read from the words), so that a find on
+# the index gives what the ring's find_exact gave, the members the
+# leaves.
+# Record: cursors-indexed
+# Record: hub-laws-reused
+law at_first:
+  for w: Array<U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +k: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  {IM.ix.at(I, k) == RG.first(IM.ix.leaves(I), AD.view(U32, w), d, k) : Maybe<&2, U32>}
