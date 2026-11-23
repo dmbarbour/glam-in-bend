@@ -458,7 +458,8 @@ def unfound(cs: List<&2, R.FzC>, +v: List<&2, U32>, +d: Nat, +c: U32) -> Bool:
 # and the pending, no branch nor free node among them. A live node faces a
 # port faceable by L (faces); that port's link word, which a join writes,
 # is off every word of a tracked node that is not live and off the word 0
-# of one that is (po.all, KMd.off.port: a static has none); and live nodes
+# of one that is, and off the free list's head (po.all, KMd.off.port: a
+# static has none); and live nodes
 # facing one another face one another both ways, none itself
 # (copy-links-two-way), so that a join leaves no live node facing the
 # nodes it frees.
@@ -467,10 +468,11 @@ def unfound(cs: List<&2, R.FzC>, +v: List<&2, U32>, +d: Nat, +c: U32) -> Bool:
 def po.n(+r: U32, +L: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
   KMd.off.port(d, r, n) && Bool.or(has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && KMd.off.port(d, r, (n + 3 : U32))))
 
+# and off the free list's head, which the list's chain reads
 def po.all(+r: U32, +L: List<&2, U32>, +d: Nat, N: List<&2, U32>) -> Bool:
   match N:
     case Nil{}:
-      True{}
+      KMd.off.port(d, r, P.at_fh())
     case Con{+n, t}:
       po.n(r, L, d, n) && po.all(r, L, d, t)
 
