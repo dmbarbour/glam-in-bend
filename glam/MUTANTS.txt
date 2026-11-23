@@ -519,9 +519,12 @@ src = 7
 neg = True{}
 
 # A join (join_keeps): each mutation writes a word outside the ring's
-# members, the free list's head and the faced ports' link words.
+# members, the free list's head and the faced ports' link words. Over the
+# index (join_pend), those that leave a cursor in it or free the wrong
+# node: two cursors under the branch 28 (WB.ix_pair), 12 at key 7 and 16
+# at key 9; a port linked wrong is the frame law's alone.
 
-=== join_unlink_faced join_keeps join_exact
+=== join_unlink_faced join_keeps join_exact join_pend
 the port x faced unlinked, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
@@ -544,6 +547,20 @@ s = 8
 t = Con{12, Con{16, Con{20, Nil{}}}}
 x = 12
 y = 20
+>>> witness join_pend
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9
 
 === join_link_next_port join_keeps
 the port y faced linked one word on
@@ -561,7 +578,7 @@ x = 12
 y = 20
 j = 50
 
-=== join_frees_next_node join_keeps
+=== join_frees_next_node join_keeps join_pend
 the node after x freed, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
@@ -576,6 +593,20 @@ t = Con{12, Con{16, Con{20, Nil{}}}}
 x = 12
 y = 20
 j = 16
+>>> witness join_pend
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9
 
 === join_port_by_position join_keeps
 y's word 2, its position, read as the port it faced
@@ -734,7 +765,7 @@ s = 8
 t = Con{12, Con{16, Nil{}}}
 x = 12
 
-=== join_unlinks_x_twice join_exact
+=== join_unlinks_x_twice join_exact join_pend
 x unlinked twice and y never: y left in the ring (its witness's walk
 out of fuel, too long for the checker at a million steps,
 docs/reviews/JoinLaws_2026-11-14.md, now checked, the fuel the heap's
@@ -751,6 +782,20 @@ s = 8
 t = Con{12, Con{16, Con{20, Nil{}}}}
 x = 12
 y = 20
+>>> witness join_pend
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9
 
 # A placeholder joined, a cursor leaving (join1_exact, leave_exact): each
 # mutation leaves the ring other than the list without the cursor. The
@@ -1067,3 +1112,25 @@ N = Con{8, Con{16, Con{20, Nil{}}}}
 x = 20
 y = 16
 k = 9
+
+=== join_free_order join_pend
+the join freeing y before x, so that the free list's first nodes are x,
+y, not y, x
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), y), x)
+>>> witness join_pend
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9

@@ -494,6 +494,40 @@ law leave_pend:
   for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) == True{} : Bool}
 
+# LAW: two cursors x and y of the index joined (R.join: the ports they
+# faced linked, x then y taken out of the index, both freed), x found at
+# kx and y at ky in the index without x, keep the pending placeholders'
+# invariant over the index: the index without x and y, the live nodes
+# without x and y, the free list's first nodes y, x, the parents the
+# removals free if any, then the nodes before
+# (cells-freeze.sharing.cursors.index.ring.leave).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+# Record: copy-links-two-way
+# Record: serve-premises-over-index
+law join_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +x: U32
+  for +y: U32
+  for +kx: U32
+  for +ky: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(IM.ix.del(I, x, kx), ky) == Some{y} : Maybe<&2, U32>}
+  {RG.px.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(IM.ix.del(I, x, kx), y, ky), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(IM.ix.del(I, x, kx), y, ky), IM.mb.cons(IM.ix.par(I, x, kx), F))}}, N) == True{} : Bool}
+
 # LAW: a serve's end, its crossings and then its root's leave (the
 # copy's root port r joined to the served cursor nc), keeps the ring
 # exact with its nodes, nc out of the ring the crossings leave, on the
