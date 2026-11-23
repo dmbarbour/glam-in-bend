@@ -83,8 +83,8 @@ law cursor_head:
   {Pair.snd(P.H, U32, P.rd(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg), x)) == P.hd2(18, R.cur.form(neg), 0) : U32}
 
 # LAW: the serve's first pending placeholder x made a cursor keeps the
-# pending placeholders' invariant over the index (RG.px.ok): x put in the
-# index at its position src, absent from it (one cursor a position), the
+# pending placeholders' invariant over the index (RG.px.ok) and the words
+# full, what the next step asks (IndexPremises P1): x put in the index at its position src, absent from it (one cursor a position), the
 # put's branch, in a tree, the free list's first node b (the list's first
 # nodes IM.ix.take(I, b, F) before, F after); every node a serve touches
 # in N, laid out apart, each its own base
@@ -113,12 +113,12 @@ law cursor_pend:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, IM.ix.take(I, b, F), N) == True{} : Bool}
   for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
-  {RG.px.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, IM.ix.put(I, x, src, b), ps, L, F, N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, IM.ix.put(I, x, src, b), ps, L, F, N) && AD.full(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), d) == True{} : Bool}
 
 # LAW: the serve's first pending placeholder x joined to the cursor y a
 # find at key k gives (R.join1: the ports they faced linked, y taken out
 # of the index, both freed) keeps the pending placeholders' invariant
-# over the index (RG.px.ok): the index without y, the live nodes without
+# over the index (RG.px.ok) and the words full: the index without y, the live nodes without
 # x and y, the free list's first nodes y, x, the parent the removal frees
 # if any, then the nodes before (cells-freeze.sharing.cursors.index.ring.inv).
 # Record: copy-reduced-function-nets
@@ -144,11 +144,11 @@ law join1_pend:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, F, N) == True{} : Bool}
   for hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}
-  {RG.px.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(I, y, k), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, k), F)}}, N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(I, y, k), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(I, y, k), F)}}, N) && AD.full(U32, RG.words(R.join1(P.H{KM.MG{w}, a}, x, y)), d) == True{} : Bool}
 
 # LAW: a crossing of the serve (R.cross), its placeholder x the first
 # pending, keeps the pending placeholders' invariant over the index
-# (RG.px.ok): x joined to the cursor a find at its far end gives, if
+# (RG.px.ok) and the words full: x joined to the cursor a find at its far end gives, if
 # any, else made a cursor at its position src, absent from the index
 # (RG.cx.I, RG.cx.L, RG.cx.F0, RG.cx.F1, RG.cx.ab, by the index's
 # lookup) (cells-freeze.sharing.cursors.index.ring.inv).
@@ -177,11 +177,12 @@ law cross_pend:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, RG.cx.F0(IM.ix.look(I, far), I, b, F), N) == True{} : Bool}
   for ha: {RG.cx.ab(IM.ix.look(I, far), I, src) == True{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) && AD.full(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far)), d) == True{} : Bool}
 
 # LAW: a copy's crossings (R.crossings, each placeholder found through
 # map), their placeholders the pending ones (RG.pls), keep the pending
-# placeholders' invariant over the index (RG.px.ok), none pending after:
+# placeholders' invariant over the index (RG.px.ok) and the words full,
+# none pending after:
 # the index, the live nodes and the free list's first nodes as the model
 # gives them (RG.cxs: each find the index's lookup, a cursor made in a
 # tree taking the list's first node), on each crossing's premises in
@@ -211,7 +212,7 @@ law crossings_pend:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, RG.pls(cs, AD.view(U32, map), dm), L, F, N) == True{} : Bool}
   for hok: {RG.cxs.ok(cs, AD.view(U32, map), dm, I, F) == True{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), N) && AD.full(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s))), d) == True{} : Bool}
 
 # LAW: and a copy's crossings, on crossings_pend's premises, leave every
 # word as it was but the tracked nodes' words (N: the live nodes, the
@@ -255,7 +256,7 @@ law crossings_keeps:
 # its place (its link word off every tracked node's words and the free
 # list's head, RG.po.all over no live node, and faceable by the live
 # nodes: the copy's root port, or the eraser), keeps the pending
-# placeholders' invariant over the index: c out of the index and of the
+# placeholders' invariant over the index and the words full: c out of the index and of the
 # live nodes, the free list's first nodes c and the parent the removal
 # frees (cells-freeze.sharing.cursors.index.ring.leave).
 # Record: copy-reduced-function-nets
@@ -283,12 +284,12 @@ law leave_pend:
   for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
   for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
   for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c)), d) == True{} : Bool}
 
 # LAW: two cursors x and y of the index joined (R.join: the ports they
 # faced linked, x then y taken out of the index, both freed), two cursors
 # apart found at kx and ky, keep the pending placeholders'
-# invariant over the index: the index without x and y, the live nodes
+# invariant over the index and the words full: the index without x and y, the live nodes
 # without x and y, the free list's first nodes y, x, the parents the
 # removals free if any, then the nodes before
 # (cells-freeze.sharing.cursors.index.ring.leave).
@@ -318,7 +319,7 @@ law join_pend:
   for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
   for hy: {IM.ix.look(I, ky) == Some{y} : Maybe<&2, U32>}
   for hxy: {U32.is_eq(x, y) == False{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(IM.ix.del(I, x, kx), y, ky), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(IM.ix.del(I, x, kx), y, ky), IM.mb.cons(IM.ix.par(I, x, kx), F))}}, N) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(IM.ix.del(I, x, kx), y, ky), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(IM.ix.del(I, x, kx), y, ky), IM.mb.cons(IM.ix.par(I, x, kx), F))}}, N) && AD.full(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y)), d) == True{} : Bool}
 
 # LAW: a cursor c the index finds at k leaving (R.leave), a port p linked
 # in its place, on leave_pend's premises, leaves every word as it was but

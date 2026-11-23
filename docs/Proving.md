@@ -391,6 +391,19 @@ it alone taught. Add to this file what a new proof teaches.
   (`results/index_bits/retire/live.py`): a live mutant left with no law
   marks a law to restate (`cursor_head`, `join_keeps` over the index),
   a dead one goes with its code, naming its counterpart if any.
+- **A lone call in parentheses parses as an annotation.** A goal
+  `{(f(x)) && b == True{} : Bool}` fails, "expected ':'": Bend reads
+  `(` then a term as `(term : Type)`. A conjunction in parentheses
+  parses (`(a && b) && c`), so a generator that widens a goal
+  parenthesizes a conjunction alone
+  (`results/index_bits/review/gen_compose.py`).
+- **Laws compose as functions.** A law of an imported laws file is
+  called like a definition (`GL.crossings_pend` in `glam/SERVE_PROOF.bend`'s
+  `sp.go`, `Laws.copy_pend` in its own file). Once each law concludes
+  what the next one's premises ask (the words and the map full, the
+  layout and bases of the nodes after), a caller chains them with
+  nothing from the proof files but the heap's eta (`SPP.heta`) and the
+  arrays' mirrors, a linear array read twice taking one.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

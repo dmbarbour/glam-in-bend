@@ -10,7 +10,7 @@
 # exact and frame laws: two cursors in the index, 16 (key 9) and the
 # served 12 (key 7) under the branch 28 (WB.ix_pair).
 
-=== hole_unlinked copy_pend
+=== hole_unlinked copy_pend serve_pend
 a link writing its first end's link word alone: the hole, the link's
 second end, keeps in its word 1 what the free list's pop left there,
 port 10, whose link word is the situating node's word 3
@@ -34,8 +34,24 @@ cs = [R.FzC{1, 7, True{}, 9}]
 I = IM.Ept{}
 F = Nil{}
 M = Con{8, Nil{}}
+>>> witness serve_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
 
-=== hole_in_place copy_pend
+=== hole_in_place copy_pend serve_pend
 each template node made in place at slot 0, not taken from the free
 list: the hole's map entry 0, node 0, whose words hold the free list's
 head, so that the holes and the ring are not laid out apart
@@ -44,6 +60,22 @@ head, so that the holes and the ring are not laid out apart
 +++
           sp.put(sp.node(False{}, h, 0, t, by), map, i)
 >>> witness copy_pend
+w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
+a = [V.VUnit{} : V.Val^1n]
+map = [0 : U32^1n]
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}, T.TN{RU.KCur{}, V.PNone{}}]
+ls = [T.TL{T.TE{0, 0}, T.TE{1, 0}}]
+by = 0
+ns = [36, 40]
+s = 8
+t = Nil{}
+cs = [R.FzC{1, 7, True{}, 9}]
+I = IM.Ept{}
+F = Nil{}
+M = Con{8, Nil{}}
+>>> witness serve_pend
 w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 9, P.era()), 11, 8), 37, 11), 41, 10)
 a = [V.VUnit{} : V.Val^1n]
 map = [0 : U32^1n]
