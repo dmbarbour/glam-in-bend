@@ -81,6 +81,9 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import 0x8ae61ec3a6615abd35f196c07232ad28/list.bend as ML
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
+import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
+import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WP
+import 0x96ab58f86121cb4f3fb48b3c8a045989/defs.bend as WD
 
 # A read of a heap made the read of its words (as spike/PROOF.bend's)
 def rd_get(w: Array<U32>, -a: Array<V.Val>, +j: U32) ->
@@ -289,10 +292,6 @@ def pos_sub(L: List<&2, U32>, +M: List<&2, U32>, +d: Nat, +i: U32, +hs: {RG.sub(
       {==}
     case Con{+m, +r}:
       MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((m + 2 : U32), d))), RG.off.pos(r, d, i), pos_at(M, d, i, m, h, MB.eq_true_of_and_left(RG.has(M, m), RG.sub(r, M), hs)), pos_sub(r, M, d, i, MB.eq_true_of_and_right(RG.has(M, m), RG.sub(r, M), hs), h))
-
-# a port faceable by a list, by any of its parts
-def port_sub(+L: List<&2, U32>, +M: List<&2, U32>, +d: Nat, +r: U32, +hs: {RG.sub(L, M) == True{} : Bool}, +h: {RG.port.ok(M, d, r) == True{} : Bool}) -> {RG.port.ok(L, d, r) == True{} : Bool}:
-  MB.and_eq_true(RG.off.links(L, d, (r + 1 : U32)), RG.off.pos(L, d, (r + 1 : U32)), links_sub(L, M, d, (r + 1 : U32), hs, MB.eq_true_of_and_left(RG.off.links(M, d, (r + 1 : U32)), RG.off.pos(M, d, (r + 1 : U32)), h)), pos_sub(L, M, d, (r + 1 : U32), hs, MB.eq_true_of_and_right(RG.off.links(M, d, (r + 1 : U32)), RG.off.pos(M, d, (r + 1 : U32)), h)))
 
 def bases_at(K: List<&2, U32>, +m: U32, +h: {RG.bases(K) == True{} : Bool}, hm: {RG.has(K, m) == True{} : Bool}) -> {U32.is_eq(P.base(m), m) == True{} : Bool}:
   match K:
@@ -2446,6 +2445,345 @@ def crossings_keeps.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Na
 def Laws.crossings_keeps(w, a, map, d, dm, s, I, L, F, N, cs, j, hf, hd32, hfm, hdm, hN, hB, hp, hok, hj, hjh, hjf):
   crossings_keeps.m(w, a, map, d, dm, s, I, L, F, N, cs, j, hf, hd32, hfm, hdm, hN, hB, hp, hok, hj, hjh, hjf, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
 
+# Alignment (cells-freeze.sharing.cursors.index.ring.premises.implied,
+# IndexPremises P3): a static port's link word, r + 1 with r ending in
+# 11, ends in 00, and a base's words 2 and 3 in 10 and 11; a slot of a
+# heap of depth 2 or more keeps a word's low two bits, and a node's four
+# words apart give the depth (d2). Bit facts through lawful-words
+# (hub-laws-reused): 2^32 abstracted as m where a law states it, the
+# mask ~3 written U32.not(3) where a bit of it is read, as the checker
+# expands either in unary. port_of_po, faces_fresh and po_static fold
+# them over the tracked nodes: what leave_pend's and the copy's
+# premises hpk, hfr and the eraser's hpo asked, implied.
+
+# a static's word modulo 4 is 3
+def st_mod4(+r: U32, +h: {P.is_static(r) == True{} : Bool}) -> {Nat.mod(U32.to_nat(r), 4n) == 3n : Nat}:
+  Equal.trans(Nat, Nat.mod(U32.to_nat(r), 4n), U32.to_nat(U32.and(r, 3)), 3n,
+    Equal.sym(Nat, U32.to_nat(U32.and(r, 3)), Nat.mod(U32.to_nat(r), 4n), WL.to_nat_and_mask(r, 3, 2n, {==})),
+    Equal.cong(U32, Nat, z => U32.to_nat(z), U32.and(r, 3), 3, MS.u32_eq_of_is_eq(U32.and(r, 3), 3, h)))
+
+def and_not_and(+p: Bool, +q: Bool, +b: Bool) -> {((p && (q && Bool.not(b))) && b) == False{} : Bool}:
+  match p:
+    case True{}:
+      match q:
+        case True{}:
+          match b:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          {==}
+    case False{}:
+      {==}
+
+def bit_zero(+k: Nat) -> {WD.bit(0, k) == False{} : Bool}:
+  %Equal.sym(Nat, Nat.div(0n, Nat.pow(2n, k)), 0n, WL.nat_div_small(0n, Nat.pow(2n, k), MN.pow_pos(k, 1n))) : {Nat.is_eq(Nat.mod(_, 2n), 1n) == False{} : Bool}
+  {==}
+
+# a base's low two bits clear: (y & ~3) & 3 is 0, bit by bit (the mask
+# written U32.not(3): a bit of the literal expands it in unary)
+def base_and3.b(+y: U32, +k: Nat) -> {WD.bit(U32.and(U32.and(y, U32.not(3)), 3), k) == WD.bit(0, k) : Bool}:
+  +e1 = WL.bit_and(U32.and(y, U32.not(3)), 3, k)
+  +e2 = Equal.cong(Bool, Bool, z => (z && WD.bit(3, k)), WD.bit(U32.and(y, U32.not(3)), k), (WD.bit(y, k) && WD.bit(U32.not(3), k)), WL.bit_and(y, U32.not(3), k))
+  +e3 = Equal.cong(Bool, Bool, z => ((WD.bit(y, k) && z) && WD.bit(3, k)), WD.bit(U32.not(3), k), (Nat.is_lt(k, 32n) && Bool.not(WD.bit(3, k))), WL.bit_not(3, k))
+  +e4 = and_not_and(WD.bit(y, k), Nat.is_lt(k, 32n), WD.bit(3, k))
+  Equal.trans(Bool, WD.bit(U32.and(U32.and(y, U32.not(3)), 3), k), (WD.bit(U32.and(y, U32.not(3)), k) && WD.bit(3, k)), WD.bit(0, k), e1,
+    Equal.trans(Bool, (WD.bit(U32.and(y, U32.not(3)), k) && WD.bit(3, k)), ((WD.bit(y, k) && WD.bit(U32.not(3), k)) && WD.bit(3, k)), WD.bit(0, k), e2,
+      Equal.trans(Bool, ((WD.bit(y, k) && WD.bit(U32.not(3), k)) && WD.bit(3, k)), ((WD.bit(y, k) && (Nat.is_lt(k, 32n) && Bool.not(WD.bit(3, k)))) && WD.bit(3, k)), WD.bit(0, k), e3,
+        Equal.trans(Bool, ((WD.bit(y, k) && (Nat.is_lt(k, 32n) && Bool.not(WD.bit(3, k)))) && WD.bit(3, k)), False{}, WD.bit(0, k), e4, Equal.sym(Bool, WD.bit(0, k), False{}, bit_zero(k))))))
+
+def base_and3(+y: U32) -> {U32.and(U32.and(y, U32.not(3)), 3) == 0 : U32}:
+  WL.bit_ext(U32.and(U32.and(y, U32.not(3)), 3), 0, k => base_and3.b(y, k))
+
+# a base's word and 3 is 0
+def base_lo(+y: U32, +h: {U32.is_eq(P.base(y), y) == True{} : Bool}) -> {U32.and(y, 3) == 0 : U32}:
+  Equal.trans(U32, U32.and(y, 3), U32.and(P.base(y), 3), 0,
+    Equal.cong(U32, U32, z => U32.and(z, 3), y, P.base(y), Equal.sym(U32, P.base(y), y, MS.u32_eq_of_is_eq(P.base(y), y, h))), base_and3(y))
+
+# a base is no static
+def dyn_one(+y: U32, +h: {U32.is_eq(P.base(y), y) == True{} : Bool}) -> {P.is_static(y) == False{} : Bool}:
+  Equal.cong(U32, Bool, z => U32.is_eq(z, 3), U32.and(y, 3), 0, base_lo(y, h))
+
+# a base's word modulo 4 is 0
+def base_mod4(+y: U32, +h: {U32.is_eq(P.base(y), y) == True{} : Bool}) -> {Nat.mod(U32.to_nat(y), 4n) == 0n : Nat}:
+  Equal.trans(Nat, Nat.mod(U32.to_nat(y), 4n), U32.to_nat(U32.and(y, 3)), 0n,
+    Equal.sym(Nat, U32.to_nat(U32.and(y, 3)), Nat.mod(U32.to_nat(y), 4n), WL.to_nat_and_mask(y, 3, 2n, {==})),
+    Equal.cong(U32, Nat, z => U32.to_nat(z), U32.and(y, 3), 0, base_lo(y, h)))
+
+# a slot at a depth of 2 or more keeps a word modulo 4
+def slot_mod4(+i: U32, +d: Nat, +h2: {Nat.is_le(2n, d) == True{} : Bool}) -> {Nat.mod(AD.slot(i, d), 4n) == Nat.mod(U32.to_nat(i), 4n) : Nat}:
+  WL.nat_mod_mod_pow(U32.to_nat(i), 2n, d, h2)
+
+# a sum of words modulo 4 (2^32 abstracted as m, as lawful-words does:
+# the checker would expand it in unary; each motive in its law's syntax)
+def add_mod4.k(-m: Nat, +e: {Nat.pow(2n, 32n) == m : Nat}, +r: U32, +j: U32) -> {Nat.mod(U32.to_nat(U32.add(r, j)), Nat.pow(2n, 2n)) == Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), Nat.pow(2n, 2n)) : Nat}:
+  +e1 = ME.subst(Nat, w => {U32.to_nat(U32.add(r, j)) == Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), w) : Nat}, Nat.pow(2n, 32n), m, e, WL.to_nat_add(r, j))
+  +e2 = ME.subst(Nat, w => {Nat.mod(Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), w), Nat.pow(2n, 2n)) == Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), Nat.pow(2n, 2n)) : Nat}, Nat.pow(2n, 32n), m, e, WL.nat_mod_mod_pow(Nat.add(U32.to_nat(r), U32.to_nat(j)), 2n, 32n, {==}))
+  Equal.trans(Nat, Nat.mod(U32.to_nat(U32.add(r, j)), Nat.pow(2n, 2n)), Nat.mod(Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), m), Nat.pow(2n, 2n)), Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), Nat.pow(2n, 2n)),
+    Equal.cong(Nat, Nat, z => Nat.mod(z, Nat.pow(2n, 2n)), U32.to_nat(U32.add(r, j)), Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), m), e1), e2)
+
+def add_mod4(+r: U32, +j: U32) -> {Nat.mod(U32.to_nat((r + j : U32)), 4n) == Nat.mod(Nat.add(U32.to_nat(r), U32.to_nat(j)), 4n) : Nat}:
+  add_mod4.k(Nat.pow(2n, 32n), {==}, r, j)
+
+# a of residue m modulo 4, j added: a's quotient's multiple, m + j added
+def mod4_shift(+a: Nat, +m: Nat, +j: Nat, +hm: {Nat.mod(a, 4n) == m : Nat}) ->
+  {Nat.mod(Nat.add(a, j), 4n) == Nat.mod(Nat.add(Nat.mul(Nat.div(a, 4n), 4n), Nat.add(m, j)), 4n) : Nat}:
+  +q = Nat.mul(Nat.div(a, 4n), 4n)
+  +ea = Equal.trans(Nat, Nat.add(q, m), Nat.add(q, Nat.mod(a, 4n)), a, Equal.cong(Nat, Nat, z => Nat.add(q, z), m, Nat.mod(a, 4n), Equal.sym(Nat, Nat.mod(a, 4n), m, hm)), WL.nat_div_mod(a, 4n))
+  Equal.trans(Nat, Nat.mod(Nat.add(a, j), 4n), Nat.mod(Nat.add(Nat.add(q, m), j), 4n), Nat.mod(Nat.add(q, Nat.add(m, j)), 4n),
+    Equal.cong(Nat, Nat, z => Nat.mod(Nat.add(z, j), 4n), a, Nat.add(q, m), Equal.sym(Nat, Nat.add(q, m), a, ea)),
+    Equal.cong(Nat, Nat, z => Nat.mod(z, 4n), Nat.add(Nat.add(q, m), j), Nat.add(q, Nat.add(m, j)), WL.nat_add_assoc(q, m, j)))
+
+# a static's link word's slot modulo 4 is 0
+def slot_st1(+r: U32, +d: Nat, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hs: {P.is_static(r) == True{} : Bool}) -> {Nat.mod(AD.slot((r + 1 : U32), d), 4n) == 0n : Nat}:
+  +a = U32.to_nat(r)
+  +q = Nat.mul(Nat.div(a, 4n), 4n)
+  Equal.trans(Nat, Nat.mod(AD.slot((r + 1 : U32), d), 4n), Nat.mod(U32.to_nat((r + 1 : U32)), 4n), 0n, slot_mod4((r + 1 : U32), d, h2),
+    Equal.trans(Nat, Nat.mod(U32.to_nat((r + 1 : U32)), 4n), Nat.mod(Nat.add(a, 1n), 4n), 0n, add_mod4(r, 1),
+      Equal.trans(Nat, Nat.mod(Nat.add(a, 1n), 4n), Nat.mod(Nat.add(q, 4n), 4n), 0n, mod4_shift(a, 3n, 1n, st_mod4(r, hs)),
+        Equal.trans(Nat, Nat.mod(Nat.add(q, 4n), 4n), Nat.mod(Nat.add(4n, q), 4n), 0n, Equal.cong(Nat, Nat, z => Nat.mod(z, 4n), Nat.add(q, 4n), Nat.add(4n, q), WL.nat_add_comm(q, 4n)),
+          WL.nat_mul_mod(1n+Nat.div(a, 4n), 4n)))))
+
+# a base's word j's slot modulo 4 is j, for j below 4
+def slot_base(+y: U32, +d: Nat, +j: U32, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hb: {U32.is_eq(P.base(y), y) == True{} : Bool}, +hj: {Nat.is_lt(U32.to_nat(j), 4n) == True{} : Bool}) ->
+  {Nat.mod(AD.slot((y + j : U32), d), 4n) == U32.to_nat(j) : Nat}:
+  +a = U32.to_nat(y)
+  Equal.trans(Nat, Nat.mod(AD.slot((y + j : U32), d), 4n), Nat.mod(U32.to_nat((y + j : U32)), 4n), U32.to_nat(j), slot_mod4((y + j : U32), d, h2),
+    Equal.trans(Nat, Nat.mod(U32.to_nat((y + j : U32)), 4n), Nat.mod(Nat.add(a, U32.to_nat(j)), 4n), U32.to_nat(j), add_mod4(y, j),
+      Equal.trans(Nat, Nat.mod(Nat.add(a, U32.to_nat(j)), 4n), Nat.mod(Nat.add(Nat.mul(Nat.div(a, 4n), 4n), U32.to_nat(j)), 4n), U32.to_nat(j), mod4_shift(a, 0n, U32.to_nat(j), base_mod4(y, hb)),
+        WL.nat_mod_mul_add(Nat.div(a, 4n), 4n, U32.to_nat(j), hj))))
+
+# two numbers of residues apart are apart
+def ne_mod4.k(+e: Bool, +x: Nat, +z: Nat, +mx: Nat, +mz: Nat, +he: {Nat.is_eq(x, z) == e : Bool}, +hx: {Nat.mod(x, 4n) == mx : Nat}, +hz: {Nat.mod(z, 4n) == mz : Nat},
+  +hne: {Nat.is_eq(mx, mz) == False{} : Bool}) -> {Bool.not(e) == True{} : Bool}:
+  match e:
+    case True{}:
+      +emm = Equal.trans(Nat, mx, Nat.mod(x, 4n), mz, Equal.sym(Nat, Nat.mod(x, 4n), mx, hx),
+        Equal.trans(Nat, Nat.mod(x, 4n), Nat.mod(z, 4n), mz, Equal.cong(Nat, Nat, w => Nat.mod(w, 4n), x, z, MN.eq_of_is_eq(x, z, he)), hz))
+      +ht = ME.subst(Nat, w => {Nat.is_eq(mx, w) == True{} : Bool}, mx, mz, emm, MN.is_eq_refl(mx))
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, MB.false_ne_true()(Equal.trans(Bool, False{}, Nat.is_eq(mx, mz), True{}, Equal.sym(Bool, Nat.is_eq(mx, mz), False{}, hne), ht)))
+    case False{}:
+      {==}
+
+def ne_mod4(+x: Nat, +z: Nat, +mx: Nat, +mz: Nat, +hx: {Nat.mod(x, 4n) == mx : Nat}, +hz: {Nat.mod(z, 4n) == mz : Nat}, +hne: {Nat.is_eq(mx, mz) == False{} : Bool}) ->
+  {Bool.not(Nat.is_eq(x, z)) == True{} : Bool}:
+  ne_mod4.k(Nat.is_eq(x, z), x, z, mx, mz, {==}, hx, hz, hne)
+
+# a static port's link word off a base's word j (2 or 3)
+def st_off(+r: U32, +y: U32, +d: Nat, +j: U32, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hs: {P.is_static(r) == True{} : Bool}, +hb: {U32.is_eq(P.base(y), y) == True{} : Bool},
+  +hj: {Nat.is_lt(U32.to_nat(j), 4n) == True{} : Bool}, +hj0: {Nat.is_eq(0n, U32.to_nat(j)) == False{} : Bool}) -> {Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + j : U32), d))) == True{} : Bool}:
+  ne_mod4(AD.slot((r + 1 : U32), d), AD.slot((y + j : U32), d), 0n, U32.to_nat(j), slot_st1(r, d, h2, hs), slot_base(y, d, j, h2, hb, hj), hj0)
+
+def mod1_zero.k(x: Nat, +h: {Nat.is_lt(x, 1n) == True{} : Bool}) -> {x == 0n : Nat}:
+  match x:
+    case 0n:
+      {==}
+    case 1n+p:
+      match p:
+        case 0n:
+          Empty.absurd({1n == 0n : Nat}, MB.false_ne_true()(h))
+        case 1n+q:
+          Empty.absurd({2n+q == 0n : Nat}, MB.false_ne_true()(h))
+
+def mod1_zero(+n: Nat) -> {Nat.mod(n, 1n) == 0n : Nat}:
+  mod1_zero.k(Nat.mod(n, 1n), WL.nat_mod_lt(n, 1n, {==}))
+
+# three numbers below 2 are not pairwise apart
+def pig(x: Nat, y: Nat, z: Nat, +hx: {Nat.is_lt(x, 2n) == True{} : Bool}, +hy: {Nat.is_lt(y, 2n) == True{} : Bool}, +hz: {Nat.is_lt(z, 2n) == True{} : Bool},
+  +h10: {Bool.not(Nat.is_eq(y, x)) == True{} : Bool}, +h20: {Bool.not(Nat.is_eq(z, x)) == True{} : Bool}, +h21: {Bool.not(Nat.is_eq(z, y)) == True{} : Bool}) -> Empty:
+  match x:
+    case 0n:
+      match y:
+        case 0n:
+          match z:
+            case 0n:
+              MB.false_ne_true()(h10)
+            case 1n+pz:
+              match pz:
+                case 0n:
+                  MB.false_ne_true()(h10)
+                case 1n+qz:
+                  match qz:
+                    case 0n:
+                      MB.false_ne_true()(hz)
+                    case 1n+rz:
+                      MB.false_ne_true()(hz)
+        case 1n+py:
+          match py:
+            case 0n:
+              match z:
+                case 0n:
+                  MB.false_ne_true()(h20)
+                case 1n+pz:
+                  match pz:
+                    case 0n:
+                      MB.false_ne_true()(h21)
+                    case 1n+qz:
+                      match qz:
+                        case 0n:
+                          MB.false_ne_true()(hz)
+                        case 1n+rz:
+                          MB.false_ne_true()(hz)
+            case 1n+qy:
+              match qy:
+                case 0n:
+                  MB.false_ne_true()(hy)
+                case 1n+ry:
+                  MB.false_ne_true()(hy)
+    case 1n+px:
+      match px:
+        case 0n:
+          match y:
+            case 0n:
+              match z:
+                case 0n:
+                  MB.false_ne_true()(h21)
+                case 1n+pz:
+                  match pz:
+                    case 0n:
+                      MB.false_ne_true()(h20)
+                    case 1n+qz:
+                      match qz:
+                        case 0n:
+                          MB.false_ne_true()(hz)
+                        case 1n+rz:
+                          MB.false_ne_true()(hz)
+            case 1n+py:
+              match py:
+                case 0n:
+                  match z:
+                    case 0n:
+                      MB.false_ne_true()(h10)
+                    case 1n+pz:
+                      match pz:
+                        case 0n:
+                          MB.false_ne_true()(h10)
+                        case 1n+qz:
+                          match qz:
+                            case 0n:
+                              MB.false_ne_true()(hz)
+                            case 1n+rz:
+                              MB.false_ne_true()(hz)
+                case 1n+qy:
+                  match qy:
+                    case 0n:
+                      MB.false_ne_true()(hy)
+                    case 1n+ry:
+                      MB.false_ne_true()(hy)
+        case 1n+qx:
+          match qx:
+            case 0n:
+              MB.false_ne_true()(hx)
+            case 1n+rx:
+              MB.false_ne_true()(hx)
+
+# a node's words apart: the depth 2 or more
+def d2(d: Nat, +a: U32, +h: {RG.apartw(RG.nw(a), d) == True{} : Bool}) -> {Nat.is_le(2n, d) == True{} : Bool}:
+  match d:
+    case 0n:
+      +h10 = MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), 0n), AD.slot(a, 0n))), RG.off([(a + 2 : U32), (a + 3 : U32)], 0n, a), MB.eq_true_of_and_left(RG.off([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 0n, a), RG.apartw([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 0n), h))
+      +g1 = ME.subst(Nat, w => {Bool.not(Nat.is_eq(w, AD.slot(a, 0n))) == True{} : Bool}, AD.slot((a + 1 : U32), 0n), 0n, mod1_zero(U32.to_nat((a + 1 : U32))), h10)
+      +g2 = ME.subst(Nat, w => {Bool.not(Nat.is_eq(0n, w)) == True{} : Bool}, AD.slot(a, 0n), 0n, mod1_zero(U32.to_nat(a)), g1)
+      Empty.absurd({Nat.is_le(2n, 0n) == True{} : Bool}, MB.false_ne_true()(g2))
+    case 1n+p:
+      match p:
+        case 0n:
+          Empty.absurd({Nat.is_le(2n, 1n) == True{} : Bool}, pig(AD.slot(a, 1n), AD.slot((a + 1 : U32), 1n), AD.slot((a + 2 : U32), 1n), WL.nat_mod_lt(U32.to_nat(a), 2n, {==}), WL.nat_mod_lt(U32.to_nat((a + 1 : U32)), 2n, {==}), WL.nat_mod_lt(U32.to_nat((a + 2 : U32)), 2n, {==}), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), 1n), AD.slot(a, 1n))), RG.off([(a + 2 : U32), (a + 3 : U32)], 1n, a), MB.eq_true_of_and_left(RG.off([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n, a), RG.apartw([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n), h)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), 1n), AD.slot(a, 1n))), RG.off([(a + 3 : U32)], 1n, a), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), 1n), AD.slot(a, 1n))), RG.off([(a + 2 : U32), (a + 3 : U32)], 1n, a), MB.eq_true_of_and_left(RG.off([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n, a), RG.apartw([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n), h))), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), 1n), AD.slot((a + 1 : U32), 1n))), RG.off([(a + 3 : U32)], 1n, (a + 1 : U32)), MB.eq_true_of_and_left(RG.off([(a + 2 : U32), (a + 3 : U32)], 1n, (a + 1 : U32)), RG.apartw([(a + 2 : U32), (a + 3 : U32)], 1n), MB.eq_true_of_and_right(RG.off([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n, a), RG.apartw([(a + 1 : U32), (a + 2 : U32), (a + 3 : U32)], 1n), h)))))
+        case 1n+q:
+          match q:
+            case 0n:
+              {==}
+            case 1n+r:
+              {==}
+
+# a member's words apart, its own base
+def lay_at.k(+e: Bool, +m: U32, +t: List<&2, U32>, +d: Nat, +n: U32, +he: {U32.is_eq(m, n) == e : Bool}, +h: {RG.layout(Con{m, t}, d) == True{} : Bool},
+  +hn: {Bool.or(U32.is_eq(m, n), RG.has(t, n)) == True{} : Bool}, ih: {RG.has(t, n) == True{} : Bool} -> {RG.apartw(RG.nw(n), d) == True{} : Bool}) -> {RG.apartw(RG.nw(n), d) == True{} : Bool}:
+  match e:
+    case True{}:
+      %MS.u32_eq_of_is_eq(m, n, he) : {RG.apartw(RG.nw(_), d) == True{} : Bool}
+      MB.eq_true_of_and_left(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), h)
+    case False{}:
+      ih(XP.ort_r(U32.is_eq(m, n), RG.has(t, n), he, hn))
+
+def lay_at(N: List<&2, U32>, +d: Nat, +n: U32, +h: {RG.layout(N, d) == True{} : Bool}, +hn: {RG.has(N, n) == True{} : Bool}) -> {RG.apartw(RG.nw(n), d) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      Empty.absurd({RG.apartw(RG.nw(n), d) == True{} : Bool}, MB.false_ne_true()(hn))
+    case Con{+m, +t}:
+      lay_at.k(U32.is_eq(m, n), m, t, d, n, {==}, h, hn, hnt => lay_at(t, d, n, MB.eq_true_of_and_right(RG.cross(t, d, m), RG.layout(t, d), MB.eq_true_of_and_right(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), MB.eq_true_of_and_right(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), h))), hnt))
+
+# port r's link word off word j, r no static
+def offp_ns(+r: U32, +d: Nat, +j: U32, +hst: {P.is_static(r) == False{} : Bool}, +h: {KMd.off.port(d, r, j) == True{} : Bool}) -> {Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot(j, d))) == True{} : Bool}:
+  ME.subst(Bool, b => {KMd.off.lw(KMd.lw.k(b, r), d, j) == True{} : Bool}, P.is_static(r), False{}, hst, h)
+
+# port r faceable by one member y of N not live: its link word off y's
+# words 3 and 2, a static's by alignment, another's by po.all
+def port_one.k(+st: Bool, +y: U32, +r: U32, +L: List<&2, U32>, +d: Nat, +N: List<&2, U32>, +hst: {P.is_static(r) == st : Bool}, +hpo: {RG.po.all(r, L, d, N) == True{} : Bool},
+  +hy: {RG.has(N, y) == True{} : Bool}, +hny: {RG.has(L, y) == False{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool}) -> {Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))) && Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))) == True{} : Bool}:
+  match st:
+    case True{}:
+      +hb = bases_at(N, y, hB, hy)
+      +h2 = d2(d, y, lay_at(N, d, y, hN, hy))
+      MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))), st_off(r, y, d, 3, h2, hst, hb, {==}, {==}), st_off(r, y, d, 2, h2, hst, hb, {==}, {==}))
+    case False{}:
+      +pn = po_at(N, r, L, d, y, hpo, hy)
+      +hor = MB.eq_true_of_and_right(KMd.off.port(d, r, y), Bool.or(RG.has(L, y), KMd.off.port(d, r, (y + 1 : U32)) && (KMd.off.port(d, r, (y + 2 : U32)) && KMd.off.port(d, r, (y + 3 : U32)))), pn)
+      +hx = XP.ort_r(RG.has(L, y), KMd.off.port(d, r, (y + 1 : U32)) && (KMd.off.port(d, r, (y + 2 : U32)) && KMd.off.port(d, r, (y + 3 : U32))), hny, hor)
+      +h23 = MB.eq_true_of_and_right(KMd.off.port(d, r, (y + 1 : U32)), KMd.off.port(d, r, (y + 2 : U32)) && KMd.off.port(d, r, (y + 3 : U32)), hx)
+      MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))), offp_ns(r, d, (y + 3 : U32), hst, MB.eq_true_of_and_right(KMd.off.port(d, r, (y + 2 : U32)), KMd.off.port(d, r, (y + 3 : U32)), h23)), offp_ns(r, d, (y + 2 : U32), hst, MB.eq_true_of_and_left(KMd.off.port(d, r, (y + 2 : U32)), KMd.off.port(d, r, (y + 3 : U32)), h23)))
+
+# port r faceable by members xs of N none live (RG.port.ok): its link
+# word off every tracked node's words where not live (RG.po.all), the
+# nodes laid out apart and their own bases (IndexPremises P3)
+def port_of_po(xs: List<&2, U32>, +r: U32, +L: List<&2, U32>, +d: Nat, +N: List<&2, U32>, +hpo: {RG.po.all(r, L, d, N) == True{} : Bool}, +hs: {RG.sub(xs, N) == True{} : Bool},
+  +hn: {RG.none.in(xs, L) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool}) -> {RG.port.ok(xs, d, r) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      +hy = MB.eq_true_of_and_left(RG.has(N, y), RG.sub(t, N), hs)
+      +hst = MB.eq_true_of_and_right(RG.has(N, y), RG.sub(t, N), hs)
+      +hny = MB.eq_false_of_not_eq_true(RG.has(L, y), MB.eq_true_of_and_left(Bool.not(RG.has(L, y)), RG.none.in(t, L), hn))
+      +hnt = MB.eq_true_of_and_right(Bool.not(RG.has(L, y)), RG.none.in(t, L), hn)
+      +pe = port_one.k(P.is_static(r), y, r, L, d, N, {==}, hpo, hy, hny, hN, hB)
+      +ih = port_of_po(t, r, L, d, N, hpo, hst, hnt, hN, hB)
+      MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))) && RG.off.links(t, d, (r + 1 : U32)), Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))) && RG.off.pos(t, d, (r + 1 : U32)), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))), RG.off.links(t, d, (r + 1 : U32)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))), pe), MB.eq_true_of_and_left(RG.off.links(t, d, (r + 1 : U32)), RG.off.pos(t, d, (r + 1 : U32)), ih)), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))), RG.off.pos(t, d, (r + 1 : U32)), MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((r + 1 : U32), d), AD.slot((y + 2 : U32), d))), pe), MB.eq_true_of_and_right(RG.off.links(t, d, (r + 1 : U32)), RG.off.pos(t, d, (r + 1 : U32)), ih)))
+
+def or_true(+b: Bool) -> {Bool.or(b, True{}) == True{} : Bool}:
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# the eraser's link word off everything: a static has none
+def po_static(+L: List<&2, U32>, +d: Nat, N: List<&2, U32>) -> {RG.po.all(P.era(), L, d, N) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      {==}
+    case Con{+n, t}:
+      MB.and_eq_true(RG.po.n(P.era(), L, d, n), RG.po.all(P.era(), L, d, t), or_true(RG.has(L, n)), po_static(L, d, t))
+
+# the fresh nodes no statics: each its own base
+# the live nodes ys face ports faceable by the fresh nodes xs
+# (RG.faces), from the invariant's link words off them (RG.px.off): xs
+# tracked and none live, laid out apart, their own bases (IndexPremises
+# P3)
+def faces_fresh(ys: List<&2, U32>, +t0: LAT.Tree<U32>, +d: Nat, +L: List<&2, U32>, +N: List<&2, U32>, +xs: List<&2, U32>, +hf: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool},
+  +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hpx: {RG.px.off(ys, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) == True{} : Bool}, +hs: {RG.sub(xs, N) == True{} : Bool}, +hn: {RG.none.in(xs, L) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool},
+  +hB: {RG.bases(N) == True{} : Bool}) -> {RG.faces(ys, AD.view(U32, LAT.fromT(U32, t0)), d, xs) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+m, t}:
+      +g = LA.get_view(U32, LAT.fromT(U32, t0), d, (m + 1 : U32), hf, hd32)
+      +hpo = MB.eq_true_of_and_left(RG.po.all(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (m + 1 : U32)), L, d, N), RG.px.off(t, AD.view(U32, LAT.fromT(U32, t0)), d, L, N), hpx)
+      +hpo2 = ME.subst(Maybe<&2, U32>, q => {RG.po.all(KMd.word.m(q), L, d, N) == True{} : Bool}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 1 : U32), d)), Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (m + 1 : U32)))}, Equal.sym(Maybe<&2, U32>, Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (m + 1 : U32)))}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 1 : U32), d)), g), hpo)
+      +fm = ME.subst(Maybe<&2, U32>, q => {RG.faces.m(q, d, xs) == True{} : Bool}, Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (m + 1 : U32)))}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 1 : U32), d)), g, port_of_po(xs, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (m + 1 : U32))), L, d, N, hpo2, hs, hn, hN, hB))
+      MB.and_eq_true(RG.faces.m(List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 1 : U32), d)), d, xs), RG.faces(t, AD.view(U32, LAT.fromT(U32, t0)), d, xs), fm, faces_fresh(t, t0, d, L, N, xs, hf, hd32, MB.eq_true_of_and_right(RG.po.all(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (m + 1 : U32)), L, d, N), RG.px.off(t, AD.view(U32, LAT.fromT(U32, t0)), d, L, N), hpx), hs, hn, hN, hB))
+
 # The pending placeholders over the index: a leave
 # ================================================
 #
@@ -2661,17 +2999,19 @@ def lpx.k(I: IM.Ix, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +s: U32, 
 
 def lpx.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>, +p: U32, +y: U32, +k: U32,
   hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool},
-  hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}, +hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}, +hpo: {RG.po.all(p, [], d, N) == True{} : Bool}, +hpk: {RG.port.ok(L, d, p) == True{} : Bool}, m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) -> {(IM.ix.real(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, s, IM.ix.del(I, y, k)) && (IM.ix.inv(IM.ix.del(I, y, k)) && (IM.ix.lay(IM.ix.del(I, y, k), s, d) && (RG.sub(Con{s, IM.ix.leaves(IM.ix.del(I, y, k))}, RG.without(L, y)) && (RG.sub(ps, RG.without(L, y)) && (RG.none.in(ps, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.distinct(ps) && (RG.none.in(RG.without(L, y), IM.ix.branches(IM.ix.del(I, y, k))) && (KMd.chain(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, KMd.word(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, P.at_fh())) && (RG.distinct(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, RG.without(L, y)) && (RG.sub(RG.without(L, y), N) && (RG.sub(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, N) && (RG.sub(IM.ix.nodes(IM.ix.del(I, y, k)), N) && (RG.faces(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y)) && (RG.px.off(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y), N) && RG.px.tw(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y))))))))))))))))))) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y)), d) == True{} : Bool}:
+  hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}, +hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}, +hpo: {RG.po.all(p, [], d, N) == True{} : Bool}, m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) -> {(IM.ix.real(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, s, IM.ix.del(I, y, k)) && (IM.ix.inv(IM.ix.del(I, y, k)) && (IM.ix.lay(IM.ix.del(I, y, k), s, d) && (RG.sub(Con{s, IM.ix.leaves(IM.ix.del(I, y, k))}, RG.without(L, y)) && (RG.sub(ps, RG.without(L, y)) && (RG.none.in(ps, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.distinct(ps) && (RG.none.in(RG.without(L, y), IM.ix.branches(IM.ix.del(I, y, k))) && (KMd.chain(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, KMd.word(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, P.at_fh())) && (RG.distinct(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, RG.without(L, y)) && (RG.sub(RG.without(L, y), N) && (RG.sub(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, N) && (RG.sub(IM.ix.nodes(IM.ix.del(I, y, k)), N) && (RG.faces(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y)) && (RG.px.off(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y), N) && RG.px.tw(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y))), d, RG.without(L, y))))))))))))))))))) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, y)), d) == True{} : Bool}:
   (+t0, +e) = m
   (+ta, +ea) = ma
   +hft = LAP.full_t(U32, w, t0, d, e, hf)
   +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  +hpT = LAB.subst(Array<U32>, qq => {RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hp)
+  +hpk = port_of_po(L, p, [], d, N, hpo, and_l(RG.sub(L, N), RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))), and_r(RG.none.in(F, L), RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))), and_r(RG.none.in(F, Con{s, IM.ix.nodes(I)}), RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))), and_r(RG.distinct(F), RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))), and_r(KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))), and_r(RG.none.in(L, IM.ix.branches(I)), KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))), and_r(RG.distinct(ps), RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))), and_r(RG.none.in(ps, Con{s, IM.ix.nodes(I)}), RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))), and_r(RG.sub(ps, L), RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))), and_r(RG.sub(Con{s, IM.ix.leaves(I)}, L), RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))))), and_r(IM.ix.lay(I, s, d), RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))), and_r(IM.ix.inv(I), IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))))))), and_r(IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I), IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))))), hpT))))))))))))), none_nil(L), hN, hB)
   %e : {(IM.ix.real(AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, s, IM.ix.del(I, y, k)) && (IM.ix.inv(IM.ix.del(I, y, k)) && (IM.ix.lay(IM.ix.del(I, y, k), s, d) && (RG.sub(Con{s, IM.ix.leaves(IM.ix.del(I, y, k))}, RG.without(L, y)) && (RG.sub(ps, RG.without(L, y)) && (RG.none.in(ps, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.distinct(ps) && (RG.none.in(RG.without(L, y), IM.ix.branches(IM.ix.del(I, y, k))) && (KMd.chain(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, KMd.word(AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, P.at_fh())) && (RG.distinct(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, RG.without(L, y)) && (RG.sub(RG.without(L, y), N) && (RG.sub(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, N) && (RG.sub(IM.ix.nodes(IM.ix.del(I, y, k)), N) && (RG.faces(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, RG.without(L, y)) && (RG.px.off(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, RG.without(L, y), N) && RG.px.tw(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y))), d, RG.without(L, y))))))))))))))))))) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{_}, a}, p, y)), d) == True{} : Bool}
   %ea : {(IM.ix.real(AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, s, IM.ix.del(I, y, k)) && (IM.ix.inv(IM.ix.del(I, y, k)) && (IM.ix.lay(IM.ix.del(I, y, k), s, d) && (RG.sub(Con{s, IM.ix.leaves(IM.ix.del(I, y, k))}, RG.without(L, y)) && (RG.sub(ps, RG.without(L, y)) && (RG.none.in(ps, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.distinct(ps) && (RG.none.in(RG.without(L, y), IM.ix.branches(IM.ix.del(I, y, k))) && (KMd.chain(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, KMd.word(AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, P.at_fh())) && (RG.distinct(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, Con{s, IM.ix.nodes(IM.ix.del(I, y, k))}) && (RG.none.in(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, RG.without(L, y)) && (RG.sub(RG.without(L, y), N) && (RG.sub(Con{y, IM.mb.cons(IM.ix.par(I, y, k), F)}, N) && (RG.sub(IM.ix.nodes(IM.ix.del(I, y, k)), N) && (RG.faces(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, RG.without(L, y)) && (RG.px.off(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, RG.without(L, y), N) && RG.px.tw(RG.without(L, y), AD.view(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y))), d, RG.without(L, y))))))))))))))))))) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, y)), d) == True{} : Bool}
-  lpx.k(I, t0, ta, d, s, ps, L, F, N, p, y, k, hft, hd32, hN, hB, LAB.subst(Array<U32>, qq => {RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hp), hy, hpo, hpk)
+  lpx.k(I, t0, ta, d, s, ps, L, F, N, p, y, k, hft, hd32, hN, hB, hpT, hy, hpo, hpk)
 
-def Laws.leave_pend(w, a, d, s, I, ps, L, F, N, p, c, k, hf, hd32, hN, hB, hp, hc, hpo, hpk):
-  lpx.m(w, a, d, s, I, ps, L, F, N, p, c, k, hf, hd32, hN, hB, hp, hc, hpo, hpk, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+def Laws.leave_pend(w, a, d, s, I, ps, L, F, N, p, c, k, hf, hd32, hN, hB, hp, hc, hpo):
+  lpx.m(w, a, d, s, I, ps, L, F, N, p, c, k, hf, hd32, hN, hB, hp, hc, hpo, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
 
 # The pending placeholders over the index: a join of two cursors
 # ==============================================================
@@ -3080,20 +3420,22 @@ def lvk.k(I: IM.Ix, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +d: Nat, +s: U32, 
 
 def lvk.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>, +p: U32, +c: U32, +k: U32, +j: U32,
   hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool},
-  hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}, +hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}, +hpo: {RG.po.all(p, [], d, N) == True{} : Bool}, +hpk: {RG.port.ok(L, d, p) == True{} : Bool},
+  hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}, +hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}, +hpo: {RG.po.all(p, [], d, N) == True{} : Bool},
   +hj: {RG.off.nodes(N, d, j) == True{} : Bool}, +hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}, +hjp: {KMd.off.port(d, p, j) == True{} : Bool}, hjw: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (c + 1 : U32)), j) == True{} : Bool},
   m: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) -> {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}:
   (+t0, +e) = m
   (+ta, +ea) = ma
   +hft = LAP.full_t(U32, w, t0, d, e, hf)
   +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  +hpT = LAB.subst(Array<U32>, qq => {RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hp)
+  +hpk = port_of_po(L, p, [], d, N, hpo, and_l(RG.sub(L, N), RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))), and_r(RG.none.in(F, L), RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))), and_r(RG.none.in(F, Con{s, IM.ix.nodes(I)}), RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))), and_r(RG.distinct(F), RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))), and_r(KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))), and_r(RG.none.in(L, IM.ix.branches(I)), KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))), and_r(RG.distinct(ps), RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))), and_r(RG.none.in(ps, Con{s, IM.ix.nodes(I)}), RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))), and_r(RG.sub(ps, L), RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))), and_r(RG.sub(Con{s, IM.ix.leaves(I)}, L), RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))))), and_r(IM.ix.lay(I, s, d), RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))), and_r(IM.ix.inv(I), IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L))))))))))))))), and_r(IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I), IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (RG.sub(Con{s, IM.ix.leaves(I)}, L) && (RG.sub(ps, L) && (RG.none.in(ps, Con{s, IM.ix.nodes(I)}) && (RG.distinct(ps) && (RG.none.in(L, IM.ix.branches(I)) && (KMd.chain(F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) && (RG.distinct(F) && (RG.none.in(F, Con{s, IM.ix.nodes(I)}) && (RG.none.in(F, L) && (RG.sub(L, N) && (RG.sub(F, N) && (RG.sub(IM.ix.nodes(I), N) && (RG.faces(L, AD.view(U32, LAT.fromT(U32, t0)), d, L) && (RG.px.off(L, AD.view(U32, LAT.fromT(U32, t0)), d, L, N) && RG.px.tw(L, AD.view(U32, LAT.fromT(U32, t0)), d, L)))))))))))))))), hpT))))))))))))), none_nil(L), hN, hB)
   %e : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{_}, a}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{_}, a}, j)) : U32}
   %ea : {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, p, c), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, _}, j)) : U32}
-  lvk.k(I, t0, ta, d, s, ps, L, F, N, p, c, k, hft, hd32, hN, hB, LAB.subst(Array<U32>, qq => {RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hp), hc, hpo, hpk,
+  lvk.k(I, t0, ta, d, s, ps, L, F, N, p, c, k, hft, hd32, hN, hB, hpT, hc, hpo, hpk,
     j, hj, hjh, hjp, LAB.subst(Array<U32>, qq => {KMd.off.port(d, KMd.word(AD.view(U32, qq), d, (c + 1 : U32)), j) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hjw))
 
-def Laws.leave_keeps(w, a, d, s, I, ps, L, F, N, p, c, k, j, hf, hd32, hN, hB, hp, hc, hpo, hpk, hj, hjh, hjp, hjw):
-  lvk.m(w, a, d, s, I, ps, L, F, N, p, c, k, j, hf, hd32, hN, hB, hp, hc, hpo, hpk, hj, hjh, hjp, hjw, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+def Laws.leave_keeps(w, a, d, s, I, ps, L, F, N, p, c, k, j, hf, hd32, hN, hB, hp, hc, hpo, hj, hjh, hjp, hjw):
+  lvk.m(w, a, d, s, I, ps, L, F, N, p, c, k, j, hf, hd32, hN, hB, hp, hc, hpo, hj, hjh, hjp, hjw, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
 
 # A cursor's header over the index (cursor_head;
 # cells-freeze.sharing.cursors.index.ring.retire): a node apart from n,
@@ -3470,3 +3812,8 @@ def cxl.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hoT = LAB.subst(Array<U32>, qq => {RG.cxs.ok(cs, AD.view(U32, qq), dm, I, F) == True{} : Bool}, map, LAT.fromT(U32, tm), Equal.sym(Array<U32>, LAT.fromT(U32, tm), map, em), hok)
   %em : {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, _), dm, I, L, F)), k) == Some{nc} : Maybe<&2, U32>}
   cxl.go(cs, LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), LAT.fromT(U32, tm), d, dm, s, I, L, F, N, hft, hd32, hfmt, hdm, hN, hB, hpb, hoT, k, nc, hk, hu, LAT.mirror(U32, LAT.fromT(U32, tw)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)), LAT.mirror(U32, LAT.fromT(U32, tm)))
+
+# the eraser's leave: leave_pend, the eraser's link words off by
+# computation (po_static)
+def Laws.leave_era_pend(w, a, d, s, I, ps, L, F, N, c, k, hf, hd32, hN, hB, hp, hc):
+  Laws.leave_pend(w, a, d, s, I, ps, L, F, N, P.era(), c, k, hf, hd32, hN, hB, hp, hc, po_static([], d, N))

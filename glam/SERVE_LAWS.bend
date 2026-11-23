@@ -29,10 +29,12 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 # (crossings_pend; IndexPremises P1): the words and the map full, the
 # tracked nodes after laid out apart, each its own base. Premises
 # besides: the tracked nodes laid out apart, their own bases, past the
-# header's words; ns as many as the template makes, none static
-# (SV.dyn); no port a live node faces linked into ns (RG.faces against
-# ns); the live nodes distinct; the template's (SM.tpl.ok) and the
-# crossings' (SV.copy.ok) (cells-freeze.sharing.cursors.index.ring.copy).
+# header's words; ns as many as the template makes; the live nodes
+# distinct; the template's (SM.tpl.ok) and the crossings' (SV.copy.ok)
+# (cells-freeze.sharing.cursors.index.ring.copy). That ns are no statics
+# (SV.dyn) and that no port a live node faces is linked into them
+# (RG.faces against ns) follow, from their bases and the invariant's
+# link words (dyn_of_bases, faces_fresh; IndexPremises P3).
 # Not claimed: growth; that ns are free; that freeze builds such
 # templates.
 # Record: copy-reduced-function-nets
@@ -64,10 +66,8 @@ law copy_pend:
   for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hdy: {SV.dyn(ns) == True{} : Bool}
   for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
-  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
   for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
@@ -109,10 +109,8 @@ law serve_pend:
   for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hdy: {SV.dyn(ns) == True{} : Bool}
   for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
-  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
   for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
@@ -158,10 +156,8 @@ law serve_keeps:
   for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hdy: {SV.dyn(ns) == True{} : Bool}
   for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
-  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
   for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
@@ -222,10 +218,8 @@ law serve_ring_exact:
   for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hdy: {SV.dyn(ns) == True{} : Bool}
   for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
-  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
   for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
@@ -279,10 +273,8 @@ law serve_root_keeps:
   for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
   for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
-  for +hdy: {SV.dyn(ns) == True{} : Bool}
   for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
-  for +hfr: {RG.faces(Con{s, t}, AD.view(U32, w), d, ns) == True{} : Bool}
   for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}

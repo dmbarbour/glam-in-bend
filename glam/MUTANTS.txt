@@ -453,7 +453,7 @@ x = 20
 y = 16
 k = 9
 
-=== leave_skips_unlink leave_pend
+=== leave_skips_unlink leave_pend leave_era_pend
 the cursor leaving freed without being unlinked: it stays in the index
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
@@ -472,8 +472,20 @@ N = Con{8, Con{16, Con{20, Nil{}}}}
 p = KMd.ref(40, 0)
 c = 16
 k = 9
+>>> witness leave_era_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+c = 16
+k = 9
 
-=== leave_frees_port leave_keeps leave_pend
+=== leave_frees_port leave_keeps leave_pend leave_era_pend
 the port's node freed, not the cursor leaving (leave_pend refutes it at
 the free list's head, an untracked node's port freed; leave_keeps at the
 freed node's word 1, the old head written there)
@@ -506,6 +518,18 @@ L = Con{8, Con{16, Con{20, Nil{}}}}
 F = Nil{}
 N = Con{8, Con{16, Con{20, Nil{}}}}
 p = KMd.ref(40, 0)
+c = 16
+k = 9
+>>> witness leave_era_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
 c = 16
 k = 9
 

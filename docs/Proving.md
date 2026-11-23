@@ -397,6 +397,21 @@ it alone taught. Add to this file what a new proof teaches.
   parses (`(a && b) && c`), so a generator that widens a goal
   parenthesizes a conjunction alone
   (`results/index_bits/review/gen_compose.py`).
+- **A bit fact goes through lawful-words.** A low mask is a remainder
+  (`to_nat_and_mask`: `r & 3` is `r mod 4`); a high one is shown bit by
+  bit (`bit_and`, `bit_not`, `bit_ext`: `(y & ~3) & 3` is 0, a Bool
+  lemma closing each bit). A slot of a heap of depth 2 or more keeps a
+  word's residue modulo 4 (`nat_mod_mod_pow`), and a residue moves
+  through a sum by `nat_div_mod`, `nat_add_assoc` and `nat_mul_mod`:
+  `st_off`, `glam/PROOF.bend`'s "Alignment". `Nat.cmp` matches both
+  arguments, so an absurd case `1n+p < 1n` matches `p` down to a
+  constructor before the comparison computes.
+- **Prototype a family of lemmas in a file of its own.** A lemma checked
+  in `results/index_bits/align/ALIGN.bend`, importing what the proof
+  files import, costs seconds where the proof file costs a minute, and
+  `results/index_bits/align/bisect.py` checks growing prefixes, naming
+  the lemma whose prefix fails: Bend reports a stack overflow with no
+  place (docs/BendIssues.md, Big constants in proofs).
 - **Laws compose as functions.** A law of an imported laws file is
   called like a definition (`GL.crossings_pend` in `glam/SERVE_PROOF.bend`'s
   `sp.go`, `Laws.copy_pend` in its own file). Once each law concludes

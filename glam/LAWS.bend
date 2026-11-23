@@ -254,11 +254,13 @@ law crossings_keeps:
 
 # LAW: a cursor c the index finds at k leaving (R.leave), a port p linked in
 # its place (its link word off every tracked node's words and the free
-# list's head, RG.po.all over no live node, and faceable by the live
-# nodes: the copy's root port, or the eraser), keeps the pending
-# placeholders' invariant over the index and the words full: c out of the index and of the
-# live nodes, the free list's first nodes c and the parent the removal
-# frees (cells-freeze.sharing.cursors.index.ring.leave).
+# list's head, RG.po.all over no live node: the copy's root port, or the
+# eraser, leave_era_pend), keeps the pending placeholders' invariant over
+# the index and the words full: c out of the index and of the live
+# nodes, the free list's first nodes c and the parent the removal frees
+# (cells-freeze.sharing.cursors.index.ring.leave). That the live nodes
+# may face p (RG.port.ok) follows, the nodes laid out apart and their own
+# bases (port_of_po; IndexPremises P3).
 # Record: copy-reduced-function-nets
 # Record: cursors-indexed
 # Record: copy-links-two-way
@@ -283,8 +285,36 @@ law leave_pend:
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
   for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
   for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
-  for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c)), d) == True{} : Bool}
+
+# LAW: a cursor c the index finds at k leaving with the eraser linked in
+# its place (R.leave(h, P.era(), c): the materializer's erasing site)
+# keeps the pending placeholders' invariant over the index and the words
+# full, as leave_pend has it: a static has no link word, so that the
+# port's premise holds of the eraser by computation (po_static;
+# IndexPremises P3).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+# Record: static-links-count-as-nodes
+law leave_era_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +c: U32
+  for +k: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
+  {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, P.era(), c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) && AD.full(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, P.era(), c)), d) == True{} : Bool}
 
 # LAW: two cursors x and y of the index joined (R.join: the ports they
 # faced linked, x then y taken out of the index, both freed), two cursors
@@ -352,7 +382,6 @@ law leave_keeps:
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
   for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
   for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
-  for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
   for hj: {RG.off.nodes(N, d, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hjp: {KMd.off.port(d, p, j) == True{} : Bool}
