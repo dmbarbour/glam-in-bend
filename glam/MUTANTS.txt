@@ -1,174 +1,20 @@
 # Mutations of glam's code, each a fault a law of glam/LAWS.bend named
 # should catch (scripts/one_law.py; docs/Proving.md, What to claim):
 #   python3 -I scripts/one_law.py glam/PROOF.bend LAW --mutants glam/MUTANTS.txt
-#
-# Unlinking a cursor from its ring (unlink_exact): each mutation leaves
-# the ring other than the list without the cursor.
 
-=== unlink_word2 unlink_exact
-the predecessor's word 2, its position, given the cursor's next
---- ring.bend
-  P.wr(h, (p + 3 : U32), nx)
-+++
-  P.wr(h, (p + 2 : U32), nx)
->>> witness unlink_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 12
-
-# The ring's walk (pred_in_ring): each mutation lets the node found leave
-# the ring.
-
-=== pred_next_node pred_in_ring pred_exact
-the node found reported as the one after it in the heap
---- ring.bend
-    case Rw{h, +n, +p, found, done}:
-      (P.err_if(Bool.not(done), h), p)
-+++
-    case Rw{h, +n, +p, found, done}:
-      (P.err_if(Bool.not(done), h), (p + 4 : U32))
->>> witness pred_in_ring
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-x = 8
-xs = Con{8, Con{12, Con{16, Nil{}}}}
->>> witness pred_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 16
-
-=== walk_by_position pred_in_ring pred_exact unlink_exact
-the walk follows each cursor's word 2, its position, not its word 3
---- ring.bend
-def rg.next(h: P.H, +x: U32) -> P.H & U32:
-  P.rd(h, (x + 3 : U32))
-+++
-def rg.next(h: P.H, +x: U32) -> P.H & U32:
-  P.rd(h, (x + 2 : U32))
->>> witness pred_in_ring
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-x = 12
-xs = Con{8, Con{12, Con{16, Nil{}}}}
->>> witness pred_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 12
->>> witness unlink_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 12
-
-# The ring closed (insert_closed, and the exact laws): each mutation
-# leaves a link out of the ring's members.
-
-=== unlink_to_self unlink_exact
-the predecessor given the cursor unlinked, not the cursor's next
---- ring.bend
-  rg.unlink.set(rg.next(h, x), p)
-+++
-  rg.unlink.set((h, x), p)
->>> witness unlink_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 12
-
-=== insert_word2 insert_closed insert_exact insert_ok
-the cursor inserted given its next in its word 2, its position
---- ring.bend
-  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
-+++
-  P.wr(P.wr(h, (x + 2 : U32), n), (situ + 3 : U32), x)
->>> witness insert_closed
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-situ = 8
-x = 20
-xs = Con{8, Con{12, Con{16, Nil{}}}}
->>> witness insert_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
->>> witness insert_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-
-=== insert_next_by_position insert_closed insert_exact insert_ok
-the cursor inserted given situ's word 2, its position, as its next
---- ring.bend
-  rg.insert.r(rg.next(h, situ), situ, x)
-+++
-  rg.insert.r(P.rd(h, (situ + 2 : U32)), situ, x)
->>> witness insert_closed
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-situ = 8
-x = 20
-xs = Con{8, Con{12, Con{16, Nil{}}}}
->>> witness insert_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
->>> witness insert_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-
-# A port's link word off the members' positions (leave_exact, the faces
+# A port's link word off the live nodes' positions (the faces
 # strengthened: ring-ports-faced-off-positions): the mutation links one
-# word past the port given, so that a member faces a port whose link
-# word is another's position, and writes that position. Its witness is a
-# ring of three, s at 8, cursors 12, 16 and 20, 12 and 16 facing each
-# other; 12 leaves, the port it faced linked to 20's principal. Over the
-# index (leave_keeps), the cursor 16 at key 9 leaves, node 40's port
-# linked one word past, its port 1's link word 42 written.
+# word past the port given, so that a node faces a port whose link word
+# is another's, and writes that word. Its witness (leave_keeps): the
+# pending index, the cursor 16 at key 9 leaving, node 40's port linked
+# one word past, its port 1's link word 42 written.
 
-=== leave_links_past_port leave_exact leave_keeps
+=== leave_links_past_port leave_keeps
 the port given linked one word past it, a member's position written
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
 +++
   P.free(rg.unlink(P.link_xx(h, (p + 1 : U32), w), c), c)
->>> witness leave_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 16), 14, 7), 15, 16), 16, 18), 17, 12), 18, 9), 19, 20), 20, 18), 21, 41), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-p = 20
-c = 12
 >>> witness leave_keeps
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -184,29 +30,19 @@ c = 16
 k = 9
 j = 42
 
-# The pending placeholders (cursor_pend, join1_pend): a mutation the
-# ring's own law cannot see (join1_exact survives it, its witness held),
-# a join freeing the node after the placeholder, a placeholder still
-# pending, whose word 1 the free gives the free list's head, 10, a port
-# whose link word is s's word 3: the invariant refutes it as the ring's
-# shape, the frame law word by word. Its witnesses: s at 8, cursors 12
-# and 16, placeholders 20 and 24 pending.
+# The pending placeholders (cursor_pend, join1_pend): a join freeing the
+# node after the placeholder, a placeholder still pending, whose word 1
+# the free gives the free list's head: the invariant refutes it at the
+# free list, the crossings' frame law word by word. Its witnesses: the
+# pending index (WB.ix_one, ix_two), s at 8, the cursor 16 at key 9,
+# placeholders 20 and 24 pending.
 
-=== join1_frees_next join1_pend join1_keeps crossings_keeps
+=== join1_frees_next join1_pend crossings_keeps
 the node after the placeholder freed, not the placeholder
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), (x + 4 : U32)), y)
->>> witness join1_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
-j = 25
 >>> witness crossings_keeps
 w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
@@ -236,8 +72,8 @@ k = 9
 
 # A crossing (cross_pend): each mutation joins where it should make a
 # cursor, or finds by the wrong position. Its witnesses: the pending
-# ring, the crossing's placeholder 20 standing at 7 (12's position) and
-# looking for 9 (16's).
+# index (WB.ix_one), the crossing's placeholder 20 standing at 7 and
+# looking for 9, the cursor 16's key.
 
 === cross_cursor_always cross_pend
 the placeholder made a cursor even where its far end's cursor was found
@@ -263,24 +99,12 @@ neg = False{}
 far = 9
 b = 36
 
-=== cross_find_by_src cross_pend serve_exact
+=== cross_find_by_src cross_pend
 the cursor looked for at the placeholder's own position, not its far end's
 --- ring.bend
   cross.k(rg.find(h, situ, far), situ, pl, src, neg)
 +++
   cross.k(rg.find(h, situ, src), situ, pl, src, neg)
->>> witness serve_exact
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
-d = 6n
-dm = 1n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{0, 7, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
-r = KMd.ref(32, 0)
-nc = 12
 >>> witness cross_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -343,102 +167,18 @@ F = Con{36, Nil{}}
 N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
 cs = Con{R.FzC{0, 11, False{}, 3}, Con{R.FzC{1, 5, True{}, 9}, Nil{}}}
 
-# A find (find_exact): each mutation finds another member, or none, or
-# raises the error. Each witness is the inserts' ring, s at 8 holding 99
-# at word 2, 12 at position 7 and 16 at position 9.
+# A placeholder made a cursor (cursor_pend, cursor_head): each mutation
+# writes the cursor's header or position to the wrong word, or the wrong
+# header. Each witness: the pending index (WB.ix_one), s at 8 and the
+# cursor 16 at key 9, the placeholder 20 made a cursor at position 5, its
+# branch the free node 36.
 
-=== find_by_link find_exact
-each member's word 3, its next, compared with far, not its word 2
---- ring.bend
-      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
-+++
-      rw.find.p(P.rd(h, (x + 3 : U32)), x, far)
->>> witness find_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-far = 16
-
-=== find_hit_dropped find_exact
-a member found reported as none
---- ring.bend
-      Rw{h, x, x, Some{x}, True{}}
-+++
-      Rw{h, x, x, None{}, True{}}
->>> witness find_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-far = 9
-
-=== find_from_situ find_exact
-the walk begun at the situating node, not its next
---- ring.bend
-  rg.found(rg.find.go(f, rw.on(rg.next(h, situ), situ), situ, far))
-+++
-  rg.found(rg.find.go(f, Rw{h, situ, situ, None{}, False{}}, situ, far))
->>> witness find_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-far = 9
-
-=== find_never_home find_exact
-the walk not stopped at the situating node, running out its fuel
---- ring.bend
-    case True{}:
-      Rw{h, x, x, None{}, True{}}
-    case False{}:
-      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
-+++
-    case True{}:
-      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
-    case False{}:
-      rw.find.p(P.rd(h, (x + 2 : U32)), x, far)
->>> witness find_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-far = 3
-
-# A placeholder made a cursor (cursor_ok, cursor_head, cursor_pos): each
-# mutation writes the cursor's header or position to the wrong word, or
-# the wrong header. Each witness is the inserts' ring, s at 8 and cursors
-# at 12 and 16, x at 20; word 22, x's word 2, holds 5 and word 20 holds
-# 18 before.
-
-=== cursor_pos_in_word1 cursor_ok cursor_pos cursor_pend
+=== cursor_pos_in_word1 cursor_pend
 the position written to the cursor's word 1, the port it faces
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 1 : U32), src), situ, pl)
->>> witness cursor_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-src = 10
-neg = True{}
->>> witness cursor_pos
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-src = 10
-neg = True{}
 >>> witness cursor_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -454,21 +194,12 @@ src = 5
 neg = False{}
 b = 36
 
-=== cursor_pos_in_word3 cursor_pos cursor_pend
+=== cursor_pos_in_word3 cursor_pend
 the position written to the cursor's word 3, which the insert overwrites
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 3 : U32), src), situ, pl)
->>> witness cursor_pos
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-src = 7
-neg = True{}
 >>> witness cursor_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -484,21 +215,12 @@ src = 5
 neg = False{}
 b = 36
 
-=== cursor_head_in_word1 cursor_ok cursor_head cursor_pend
+=== cursor_head_in_word1 cursor_head cursor_pend
 the header written to the cursor's word 1
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, (pl + 1 : U32), P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
->>> witness cursor_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-src = 7
-neg = False{}
 >>> witness cursor_head
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -549,26 +271,18 @@ src = 5
 neg = False{}
 b = 36
 
-# A join (join_keeps): each mutation writes a word outside the ring's
-# members, the free list's head and the faced ports' link words. Over the
+# A join (join_keeps): each mutation writes a word outside the tracked
+# nodes, the free list's head and the faced ports' link words. Over the
 # index (join_pend), those that leave a cursor in it or free the wrong
 # node: two cursors under the branch 28 (WB.ix_pair), 12 at key 7 and 16
 # at key 9; a port linked wrong is the frame law's alone.
 
-=== join_unlink_faced join_exact join_pend
+=== join_unlink_faced join_pend
 the port x faced unlinked, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), u), y), x), y)
->>> witness join_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
 >>> witness join_pend
 w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
@@ -649,29 +363,12 @@ kx = 7
 ky = 61
 j = 62
 
-=== join1_unlinks_placeholder join1_keeps join1_exact join1_pend
-the placeholder unlinked, not the ring's cursor
+=== join1_unlinks_placeholder join1_pend
+the placeholder unlinked, not the index's cursor
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), x), x), y)
->>> witness join1_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
-j = 1
->>> witness join1_exact
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
 >>> witness join1_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -686,23 +383,13 @@ x = 20
 y = 16
 k = 9
 
-=== join1_frees_faced join1_keeps join1_pend
-the port the placeholder faced freed, not the placeholder: a node outside
-the ring written, which the frame law refuses; the ring itself is left
-exact, join1_exact surviving (its proof alone breaks, its witness held)
+=== join1_frees_faced join1_pend
+the port the placeholder faced freed, not the placeholder: the free
+list's first nodes then not y, x
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), u), y)
->>> witness join1_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 21, 44), 22, 5), 24, 18), 25, 48), 26, 3), 44, 77)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
-j = 44
 >>> witness join1_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -717,100 +404,15 @@ x = 20
 y = 16
 k = 9
 
-=== unlink_clears_pred_position join1_keeps
-the predecessor's word 2, its position, cleared as its word 3 is given
---- ring.bend
-  P.wr(h, (p + 3 : U32), nx)
-+++
-  P.wr(P.wr(h, (p + 3 : U32), nx), (p + 2 : U32), 0)
->>> witness join1_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
-j = 14
+# A join over the index (join_pend): a cursor left in it. Its witness:
+# two cursors under the branch 28 (WB.ix_pair).
 
-# The ring exact (pred_exact, unlink_exact, insert_exact): each mutation
-# leaves every link a member's, so that the closed laws allow it, but
-# breaks the ring's order. Each witness is a ring of three, s at 8 and
-# cursors at 12 and 16, x at 20 inserted.
-
-=== insert_self_loop insert_exact insert_ok
-the cursor inserted given itself as its next
---- ring.bend
-  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
-+++
-  P.wr(P.wr(h, (x + 3 : U32), x), (situ + 3 : U32), x)
->>> witness insert_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
->>> witness insert_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-
-=== insert_skips_situ insert_exact insert_ok
-the situating node's word 3 left as it was, the cursor unreachable
---- ring.bend
-  P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
-+++
-  P.wr(h, (x + 3 : U32), n)
->>> witness insert_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
->>> witness insert_ok
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-
-=== unlink_pred_to_self unlink_exact
-the predecessor given itself as its next
---- ring.bend
-  P.wr(h, (p + 3 : U32), nx)
-+++
-  P.wr(h, (p + 3 : U32), p)
->>> witness unlink_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 12
-
-=== join_unlinks_x_twice join_exact join_pend
-x unlinked twice and y never: y left in the ring (its witness's walk
-out of fuel, too long for the checker at a million steps,
-docs/reviews/JoinLaws_2026-11-14.md, now checked, the fuel the heap's
-size)
+=== join_unlinks_x_twice join_pend
+x unlinked twice and y never: y left in the index
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), x), x), y)
->>> witness join_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
 >>> witness join_pend
 w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
@@ -826,27 +428,17 @@ y = 16
 kx = 7
 ky = 9
 
-# A placeholder joined, a cursor leaving (join1_exact, leave_exact): each
-# mutation leaves the ring other than the list without the cursor. The
-# witness, a ring of three meeting ring.ok (checked by hand, as is the
-# witness both ways), s at 8 and cursors at 12 and 16, the first leaving.
-# Over the index (join1_pend, leave_pend): s at 8, the cursor 16 at key 9
-# leaving, the port of an untracked node at 40 linked in its place.
+# A placeholder joined, a cursor leaving (join1_pend, leave_pend): each
+# mutation leaves the cursor in the index or frees the wrong node. The
+# witness: the pending index, s at 8, the cursor 16 at key 9 leaving, the
+# port of an untracked node at 40 linked in its place.
 
-=== join1_skips_unlink join1_exact join1_pend
-the ring's cursor freed without being unlinked: it stays in the ring
+=== join1_skips_unlink join1_pend
+the index's cursor freed without being unlinked: it stays in the index
 --- ring.bend
   P.free(P.free(rg.unlink(P.link_xx(h, u, w), y), x), y)
 +++
   P.free(P.free(P.link_xx(h, u, w), x), y)
->>> witness join1_exact
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
 >>> witness join1_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -861,32 +453,12 @@ x = 20
 y = 16
 k = 9
 
-=== leave_skips_unlink leave_exact serve_exact leave_pend
-the cursor leaving freed without being unlinked: it stays in the ring
+=== leave_skips_unlink leave_pend
+the cursor leaving freed without being unlinked: it stays in the index
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
 +++
   P.free(P.link_xx(h, p, w), c)
->>> witness leave_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-p = 61
-c = 12
->>> witness serve_exact
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
-d = 6n
-dm = 1n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{0, 0, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
-r = KMd.ref(32, 0)
-nc = 12
 >>> witness leave_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -901,26 +473,14 @@ p = KMd.ref(40, 0)
 c = 16
 k = 9
 
-=== leave_frees_port leave_exact leave_keeps leave_pend
-the port's node freed, not the cursor leaving
-(refuted where the port is a member's, its word 1 then the free list's
-head, a port whose link word is a member's word 3; a copied node's port
-freed leaves the ring exact, leave_exact surviving: leave_keeps, the
-frame law, refutes it at the freed node's word 1, over the index the old
-head written there; leave_pend at the free list's head, an untracked
-node's port freed)
+=== leave_frees_port leave_keeps leave_pend
+the port's node freed, not the cursor leaving (leave_pend refutes it at
+the free list's head, an untracked node's port freed; leave_keeps at the
+freed node's word 1, the old head written there)
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
 +++
   P.free(rg.unlink(P.link_xx(h, p, w), c), p)
->>> witness leave_exact
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 0, 10), 8, 146), 9, 4294967295), 10, 99), 11, 12), 12, 18), 13, 16), 14, 7), 15, 16), 16, 18), 17, 12), 18, 9), 19, 20), 20, 18), 21, 41), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-p = 20
-c = 12
 >>> witness leave_keeps
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -949,30 +509,12 @@ p = KMd.ref(40, 0)
 c = 16
 k = 9
 
-# The frame laws over the exact ring (join_keeps, join1_keeps) allow no
-# error: a walk round an exact ring finishes. The witness, the ring of four
-# above at the error count's word, meets ring.ok and every premise on j
-# (checked by hand, as is the witness both ways).
+# The frame laws (crossings_keeps, cursor_head, join_keeps, leave_keeps):
+# each mutation writes a word outside what its law allows, or the wrong
+# header; a static linked as a node's port writes its "link word". Their
+# witnesses over the pending index.
 
-=== walk_raises_always join1_keeps
-the walk raises the kernel's error even where it found the cursor
---- ring.bend
-    case Rw{h, +n, +p, found, done}:
-      (P.err_if(Bool.not(done), h), p)
-+++
-    case Rw{h, +n, +p, found, done}:
-      (P.err_if(True{}, h), p)
->>> witness join1_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 20
-y = 16
-j = 1
-
-=== join1_links_past_port crossings_keeps join1_keeps
+=== join1_links_past_port crossings_keeps
 the placeholder's port linked one word past the cursor's: the word after
 the cursor's link word written, outside the region
 --- ring.bend
@@ -992,31 +534,13 @@ F = Nil{}
 N = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
 cs = Con{R.FzC{0, 3, True{}, 9}, Nil{}}
 j = 54
->>> witness join1_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 24
-y = 16
-j = 54
 
-=== cursor_header_past_node cursor_keeps crossings_keeps cursor_head
+=== cursor_header_past_node crossings_keeps cursor_head
 a cursor's header written past its node, on the next node's word 0
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
 +++
   rg.insert(P.wr(P.wr(h, (pl + 4 : U32), P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
->>> witness cursor_keeps
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-x = 24
-src = 0
-neg = False{}
-j = 28
 >>> witness crossings_keeps
 w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
@@ -1045,7 +569,7 @@ src = 5
 neg = False{}
 b = 36
 
-=== join1_links_static crossings_keeps join1_keeps
+=== join1_links_static crossings_keeps
 the placeholder's static port linked as a node's: word 28, the "link
 word" of the static 27 placeholder 24 faces, written, which the region
 leaves out only for ports that are not static
@@ -1066,19 +590,10 @@ F = Nil{}
 N = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
 cs = Con{R.FzC{0, 3, True{}, 9}, Nil{}}
 j = 28
->>> witness join1_keeps
-w = WB.pending(27)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-x = 24
-y = 16
-j = 28
 
 === join_links_static join_keeps
-the port x faced, the static 27, linked as a node's port: its "link
-word" 28 written, which a static does not have
+the port x faced, a static (47 in the witness), linked as a node's port:
+its "link word" (48) written, which a static does not have
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++

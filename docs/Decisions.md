@@ -188,9 +188,6 @@ where the shared lazy state that Bend cannot hold goes.
   splice makes a template's erasers static as it links, no node made
   and freed for them; two erasers linked to each other, a pair demand
   never reaches, write nothing.
-- [`ring-walks-fueled-by-heap`](decisions/ring-walks-fueled-by-heap.md):
-  a walk round a ring takes as fuel the size of the heap's words array,
-  so that no law names a fuel.
 - [`corruption-reported-when-cheap`](decisions/corruption-reported-when-cheap.md):
   correctness proved, not guarded; but a state only corruption reaches,
   detected for free (a walk out of fuel), raises the kernel's error.

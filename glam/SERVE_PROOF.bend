@@ -135,13 +135,6 @@ def sub_app2(X: List<&2, U32>, +Y: List<&2, U32>, +M: List<&2, U32>, +hx: {RG.su
 def sub_app_mono(+A: List<&2, U32>, +B: List<&2, U32>, +C: List<&2, U32>, +hs: {RG.sub(B, C) == True{} : Bool}) -> {RG.sub(List.append(&2, U32, A, B), List.append(&2, U32, A, C)) == True{} : Bool}:
   sub_app2(A, B, List.append(&2, U32, A, C), sub_app_l(A, C), GP.sub_trans(B, C, List.append(&2, U32, A, C), hs, sub_app_r(A, C)))
 
-def bases_app(A: List<&2, U32>, +B: List<&2, U32>, +ha: {RG.bases(A) == True{} : Bool}, +hb: {RG.bases(B) == True{} : Bool}) -> {RG.bases(List.append(&2, U32, A, B)) == True{} : Bool}:
-  match A:
-    case Nil{}:
-      hb
-    case Con{+m, +r}:
-      MB.and_eq_true(U32.is_eq(P.base(m), m), RG.bases(List.append(&2, U32, r, B)), MB.eq_true_of_and_left(U32.is_eq(P.base(m), m), RG.bases(r), ha), bases_app(r, B, MB.eq_true_of_and_right(U32.is_eq(P.base(m), m), RG.bases(r), ha), hb))
-
 def ol_app(A: List<&2, U32>, +B: List<&2, U32>, +d: Nat, +i: U32, +ha: {RG.off.links(A, d, i) == True{} : Bool}, +hb: {RG.off.links(B, d, i) == True{} : Bool}) -> {RG.off.links(List.append(&2, U32, A, B), d, i) == True{} : Bool}:
   match A:
     case Nil{}:
@@ -371,24 +364,6 @@ def noff1(X: List<&2, U32>, +M: List<&2, U32>, +d: Nat, +m: U32, +hl: {RG.layout
     case Con{+n, +r}:
       MB.and_eq_true(KMd.off.words(KMd.nw(n), d, (m + 1 : U32)), KMd.nodes.off(r, d, (m + 1 : U32)), offw(RG.nw(n), d, (m + 1 : U32), MB.eq_true_of_and_left(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32))), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, m), Bool.and(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32)))), GP.lay_pair(M, d, m, n, hl, hm, MB.eq_true_of_and_left(RG.has(M, n), RG.sub(r, M), hx), GP.ueq_ne(n, m, orf_l(U32.is_eq(n, m), RG.has(r, m), hn)))))), noff1(r, M, d, m, hl, hm, MB.eq_true_of_and_right(RG.has(M, n), RG.sub(r, M), hx), orf_r(U32.is_eq(n, m), RG.has(r, m), hn)))
 
-# word k of a node m of M none of X's, X in M, laid out (k = 2)
-def noff2(X: List<&2, U32>, +M: List<&2, U32>, +d: Nat, +m: U32, +hl: {RG.layout(M, d) == True{} : Bool}, +hm: {RG.has(M, m) == True{} : Bool}, +hx: {RG.sub(X, M) == True{} : Bool}, +hn: {RG.has(X, m) == False{} : Bool}) ->
-    {KMd.nodes.off(X, d, (m + 2 : U32)) == True{} : Bool}:
-  match X:
-    case Nil{}:
-      {==}
-    case Con{+n, +r}:
-      MB.and_eq_true(KMd.off.words(KMd.nw(n), d, (m + 2 : U32)), KMd.nodes.off(r, d, (m + 2 : U32)), offw(RG.nw(n), d, (m + 2 : U32), MB.eq_true_of_and_left(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32)), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32))), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, m), Bool.and(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32)))), GP.lay_pair(M, d, m, n, hl, hm, MB.eq_true_of_and_left(RG.has(M, n), RG.sub(r, M), hx), GP.ueq_ne(n, m, orf_l(U32.is_eq(n, m), RG.has(r, m), hn))))))), noff2(r, M, d, m, hl, hm, MB.eq_true_of_and_right(RG.has(M, n), RG.sub(r, M), hx), orf_r(U32.is_eq(n, m), RG.has(r, m), hn)))
-
-# word k of a node m of M none of X's, X in M, laid out (k = 3)
-def noff3(X: List<&2, U32>, +M: List<&2, U32>, +d: Nat, +m: U32, +hl: {RG.layout(M, d) == True{} : Bool}, +hm: {RG.has(M, m) == True{} : Bool}, +hx: {RG.sub(X, M) == True{} : Bool}, +hn: {RG.has(X, m) == False{} : Bool}) ->
-    {KMd.nodes.off(X, d, (m + 3 : U32)) == True{} : Bool}:
-  match X:
-    case Nil{}:
-      {==}
-    case Con{+n, +r}:
-      MB.and_eq_true(KMd.off.words(KMd.nw(n), d, (m + 3 : U32)), KMd.nodes.off(r, d, (m + 3 : U32)), offw(RG.nw(n), d, (m + 3 : U32), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32)), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32))), MB.eq_true_of_and_right(RG.off(RG.nw(n), d, m), Bool.and(RG.off(RG.nw(n), d, (m + 1 : U32)), Bool.and(RG.off(RG.nw(n), d, (m + 2 : U32)), RG.off(RG.nw(n), d, (m + 3 : U32)))), GP.lay_pair(M, d, m, n, hl, hm, MB.eq_true_of_and_left(RG.has(M, n), RG.sub(r, M), hx), GP.ueq_ne(n, m, orf_l(U32.is_eq(n, m), RG.has(r, m), hn))))))), noff3(r, M, d, m, hl, hm, MB.eq_true_of_and_right(RG.has(M, n), RG.sub(r, M), hx), orf_r(U32.is_eq(n, m), RG.has(r, m), hn)))
-
 # the words after the copy full
 def copy_full(+ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
     +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
@@ -420,49 +395,6 @@ def agree1(+ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +
   agree_at(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, (m + 1 : U32),
     noff1(ns, List.append(&2, U32, Con{s, t}, ns), d, m, hlay, has_app_l(Con{s, t}, ns, m, hm), sub_app_r(Con{s, t}, ns), none_has(ns, Con{s, t}, m, none_of(ns, Con{s, t}, ns, lay_dist(List.append(&2, U32, Con{s, t}, ns), d, hlay), GP.sub_refl(ns)), hm)),
     MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (m + 1 : U32)), KMd.ws.off(Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, m), KMd.ws.off(Con{(m + 1 : U32), Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), past_at(Con{s, t}, d, m, past_prefix(Con{s, t}, ns, d, hpa), hm))))
-
-# a ring member's word 2 reads alike after the copy
-def agree2(+ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
-    +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
-    +hct: {KMd.chain(ns, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat},
-    +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hbs: {RG.bases(ns) == True{} : Bool}, +hdy: {SV.dyn(ns) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool},
-    +hfr: {RG.faces(Con{s, t}, AD.view(U32, LAT.fromT(U32, t0)), d, ns) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}, +m: U32, +hm: {RG.has(Con{s, t}, m) == True{} : Bool}) ->
-    {List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((m + 2 : U32), d)) == List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 2 : U32), d)) : Maybe<&2, U32>}:
-  agree_at(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, (m + 2 : U32),
-    noff2(ns, List.append(&2, U32, Con{s, t}, ns), d, m, hlay, has_app_l(Con{s, t}, ns, m, hm), sub_app_r(Con{s, t}, ns), none_has(ns, Con{s, t}, m, none_of(ns, Con{s, t}, ns, lay_dist(List.append(&2, U32, Con{s, t}, ns), d, hlay), GP.sub_refl(ns)), hm)),
-    MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (m + 2 : U32)), KMd.ws.off(Con{(m + 3 : U32), Nil{}}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (m + 1 : U32)), KMd.ws.off(Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, m), KMd.ws.off(Con{(m + 1 : U32), Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), past_at(Con{s, t}, d, m, past_prefix(Con{s, t}, ns, d, hpa), hm)))))
-
-# a ring member's word 3 reads alike after the copy
-def agree3(+ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
-    +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
-    +hct: {KMd.chain(ns, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat},
-    +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hbs: {RG.bases(ns) == True{} : Bool}, +hdy: {SV.dyn(ns) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool},
-    +hfr: {RG.faces(Con{s, t}, AD.view(U32, LAT.fromT(U32, t0)), d, ns) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}, +m: U32, +hm: {RG.has(Con{s, t}, m) == True{} : Bool}) ->
-    {List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((m + 3 : U32), d)) == List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((m + 3 : U32), d)) : Maybe<&2, U32>}:
-  agree_at(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, (m + 3 : U32),
-    noff3(ns, List.append(&2, U32, Con{s, t}, ns), d, m, hlay, has_app_l(Con{s, t}, ns, m, hm), sub_app_r(Con{s, t}, ns), none_has(ns, Con{s, t}, m, none_of(ns, Con{s, t}, ns, lay_dist(List.append(&2, U32, Con{s, t}, ns), d, hlay), GP.sub_refl(ns)), hm)),
-    MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (m + 3 : U32)), KMd.ws.off(Nil{}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (m + 2 : U32)), KMd.ws.off(Con{(m + 3 : U32), Nil{}}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (m + 1 : U32)), KMd.ws.off(Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}, KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, m), KMd.ws.off(Con{(m + 1 : U32), Con{(m + 2 : U32), Con{(m + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), past_at(Con{s, t}, d, m, past_prefix(Con{s, t}, ns, d, hpa), hm))))))
-
-# the ring's chain and faces read alike after the copy
-def li_agree(+ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
-    +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
-    +hct: {KMd.chain(ns, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat},
-    +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hbs: {RG.bases(ns) == True{} : Bool}, +hdy: {SV.dyn(ns) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool},
-    +hfr: {RG.faces(Con{s, t}, AD.view(U32, LAT.fromT(U32, t0)), d, ns) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}, +a: U32, +n: U32, +ha: {RG.has(Con{s, t}, a) == True{} : Bool}, +h0: {RG.link.is(AD.view(U32, LAT.fromT(U32, t0)), d, a, n) == True{} : Bool}) -> {RG.link.is(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d, a, n) == True{} : Bool}:
-  ME.subst(Maybe<&2, U32>, z => {RG.link.is.m(z, n) == True{} : Bool}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((a + 3 : U32), d)), List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((a + 3 : U32), d)),
-    Equal.sym(Maybe<&2, U32>, List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((a + 3 : U32), d)), List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot((a + 3 : U32), d)), agree3(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, a, ha)), h0)
-
-def chain_agree(ys: List<&2, U32>, +a: U32, +b: U32, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
-    +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
-    +hct: {KMd.chain(ns, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat},
-    +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hbs: {RG.bases(ns) == True{} : Bool}, +hdy: {SV.dyn(ns) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool},
-    +hfr: {RG.faces(Con{s, t}, AD.view(U32, LAT.fromT(U32, t0)), d, ns) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}, +hch: {RG.chain(AD.view(U32, LAT.fromT(U32, t0)), d, ys, a, b) == True{} : Bool}, +hs: {RG.sub(Con{a, ys}, Con{s, t}) == True{} : Bool}) ->
-    {RG.chain(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d, ys, a, b) == True{} : Bool}:
-  match ys:
-    case Nil{}:
-      li_agree(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, a, b, MB.eq_true_of_and_left(RG.has(Con{s, t}, a), RG.sub(Nil{}, Con{s, t}), hs), hch)
-    case Con{+y, +yr}:
-      MB.and_eq_true(RG.link.is(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d, a, y), RG.chain(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d, yr, y, b), li_agree(ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, a, y, MB.eq_true_of_and_left(RG.has(Con{s, t}, a), RG.sub(Con{y, yr}, Con{s, t}), hs), MB.eq_true_of_and_left(RG.link.is(AD.view(U32, LAT.fromT(U32, t0)), d, a, y), RG.chain(AD.view(U32, LAT.fromT(U32, t0)), d, yr, y, b), hch)), chain_agree(yr, y, b, ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, MB.eq_true_of_and_right(RG.link.is(AD.view(U32, LAT.fromT(U32, t0)), d, a, y), RG.chain(AD.view(U32, LAT.fromT(U32, t0)), d, yr, y, b), hch), MB.eq_true_of_and_right(RG.has(Con{s, t}, a), RG.sub(Con{y, yr}, Con{s, t}), hs)))
 
 def faces_agree(ys: List<&2, U32>, +M: List<&2, U32>, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
     +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
@@ -1117,17 +1049,6 @@ def cr_map(cs: List<&2, R.FzC>, -mp: Array<U32>, -h: P.H, +s: U32, mm: LAT.Mirro
           %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, tm), at), (LAT.fromT(U32, tm), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), at))), LA.get_pair(U32, LAT.fromT(U32, tm), at)) :
             {Pair.fst(Array<U32>, P.H, R.crossings(rest, R.crossing.pl(_, h, s, src, neg, far), s)) == LAT.fromT(U32, tm) : Array<U32>}
           cr_map(rest, LAT.fromT(U32, tm), R.cross(h, s, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), at)), src, neg, far), s, LAT.mirror(U32, LAT.fromT(U32, tm)))
-
-# no crossing finds c's position in a view that reads c's word 2 alike
-def unf_agree(cs: List<&2, R.FzC>, +v1: List<&2, U32>, +v0: List<&2, U32>, +d: Nat, +c: U32,
-    +he: {List.get(&2, U32, v1, AD.slot((c + 2 : U32), d)) == List.get(&2, U32, v0, AD.slot((c + 2 : U32), d)) : Maybe<&2, U32>}, +h: {RG.unfound(cs, v0, d, c) == True{} : Bool}) -> {RG.unfound(cs, v1, d, c) == True{} : Bool}:
-  match cs:
-    case Nil{}:
-      {==}
-    case Con{f, +r}:
-      match f:
-        case R.FzC{+at, +src, +neg, +far}:
-          MB.and_eq_true(Bool.not(RG.pos.is(v1, d, c, far)), RG.unfound(r, v1, d, c), ME.subst(Maybe<&2, U32>, z => {Bool.not(RG.pos.is.m(z, far)) == True{} : Bool}, List.get(&2, U32, v0, AD.slot((c + 2 : U32), d)), List.get(&2, U32, v1, AD.slot((c + 2 : U32), d)), Equal.sym(Maybe<&2, U32>, List.get(&2, U32, v1, AD.slot((c + 2 : U32), d)), List.get(&2, U32, v0, AD.slot((c + 2 : U32), d)), he), MB.eq_true_of_and_left(Bool.not(RG.pos.is(v0, d, c, far)), RG.unfound(r, v0, d, c), h)), unf_agree(r, v1, v0, d, c, he, MB.eq_true_of_and_right(Bool.not(RG.pos.is(v0, d, c, far)), RG.unfound(r, v0, d, c), h)))
 
 # A word off every copy node that is no hole: a hole's faced port's link
 # word off it (the copy's hand-off over the index: the holes' own words)
