@@ -338,3 +338,17 @@ def tr.leaves(t: Tr) -> List<&2, U32>:
   match t:
     case Lf{+x, +k}:
       []
+
+=== free_word3 free_real
+the old head written to a freed node's word 3, not its word 1
+--- ../spike/kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 3 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+
+=== real_home_unread look_home
+the realization no longer reading a cursor's home at its word 3
+--- index_model.bend
+      U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)))
++++
+      U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && True{}))

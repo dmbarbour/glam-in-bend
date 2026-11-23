@@ -635,3 +635,36 @@ law del_absent:
   for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
   for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
   {RG.none.in(IM.mb.cons(IM.ix.par(I, x, k), [x]), IM.ix.nodes(IM.ix.del(I, x, k))) == True{} : Bool}
+
+# LAW: the cursor a find gives holds the situating node at its word 3, its
+# home, as a removal reads it.
+# Record: cursors-indexed
+law look_home:
+  for w: Array<U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +k: U32
+  for +y: U32
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}
+  {KMd.word(AD.view(U32, w), d, (y + 3 : U32)) == s : U32}
+
+# LAW: a free of a node whose words 0 and 1 and the free list's head are
+# off the words the realization reads (IM.ix.offr) leaves the index
+# realized.
+# Record: cursors-indexed
+law free_real:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +r: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for h0: {IM.ix.offr(I, s, d, P.base(r)) == True{} : Bool}
+  for h1: {IM.ix.offr(I, s, d, (P.base(r) + 1 : U32)) == True{} : Bool}
+  for hh: {IM.ix.offr(I, s, d, P.at_fh()) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  {IM.ix.real(AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, s, I) == True{} : Bool}
