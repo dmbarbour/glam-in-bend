@@ -8,6 +8,7 @@ import ./splice_copy.bend as S
 import ./freeze.bend as F
 import ./position.bend as Q
 import ./ring.bend as R
+import ./serve.bend as SC
 
 # Materializing (the Cells plan's cells-freeze.cursors.materialize, the
 # design in docs/reviews/Joins_2026-11-11.md): a copy's cursor served
@@ -43,30 +44,6 @@ import ./ring.bend as R
 # source must run no events, fusion or collection near copied nodes;
 # scratch the size of the source in each freeze.
 
-# the copy's root, where the tree faced the source's interface (a first
-# copy): joined to the served cursor nc, which leaves the index
-def mz.root.e(r: Array<U32> & U32, h: P.H, +p: U32, +nc: U32) -> P.H:
-  (map, +n) = r
-  R.leave(h, (n + p : U32), nc)
-
-def mz.root(+at_root: Bool, map: Array<U32>, h: P.H, root: T.TEnd, +nc: U32) -> P.H:
-  match at_root:
-    case True{}:
-      match root:
-        case T.TE{+n, +p}:
-          mz.root.e(Array.get(U32, map, n), h, p, nc)
-    case False{}:
-      h
-
-def mz.sp.r(q: Array<U32> & P.H, root: T.TEnd, +nc: U32, +at_root: Bool) -> P.H:
-  (map, h) = q
-  mz.root(at_root, map, h, root, nc)
-
-def mz.sp(s: S.Sp, curs: List<&2, R.FzC>, root: T.TEnd, +situ: U32, +nc: U32, +at_root: Bool) -> P.H:
-  match s:
-    case S.Sp{h, map}:
-      mz.sp.r(R.crossings(curs, (map, h), situ), root, nc, at_root)
-
 # a materialization's end: the source, the host, and the nodes copied,
 # each a cursor interaction: the cursor replaced by a node, new cursors
 # behind it (the maintainer, 2026-11-13)
@@ -95,7 +72,7 @@ def mz.end(+whole: Bool, s: P.H, h: P.H, +m: U32, +t: T.Tpl) -> Mz:
 def mz.fz.t(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   match t:
     case T.Tpl{nodes, links, root, +size}:
-      mz.end(whole, s, mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m, t)
+      mz.end(whole, s, SC.serve(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m, t)
 
 def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   (s, f) = r
@@ -293,7 +270,7 @@ def mz1.fz(r: P.H & F.Fz, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H 
     case F.Fz{t, curs, +m}:
       match t:
         case T.Tpl{nodes, links, root, +size}:
-          (mz.sp(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m)
+          (SC.serve(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m)
 
 # the finished tree at node base v of net h copied into h itself at
 # offset k, as materialize does between two nets

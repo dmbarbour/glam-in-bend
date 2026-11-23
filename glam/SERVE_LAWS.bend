@@ -170,10 +170,10 @@ law serve_keeps:
 
 # LAW: a serve at the source's root, its copy, its crossings and then the
 # served cursor nc leaving, the copy's root port (read through the map as
-# the materializer reads it, mz.root) linked in its place, keeps the
-# pending placeholders' invariant over the index and the words full
-# (IndexPremises P1): nc out of the index and
-# of the live nodes the crossings leave, the free list's first nodes nc
+# the materializer reads it, glam/serve.bend's rt) linked in its place,
+# keeps the pending placeholders' invariant over the index and the words
+# full (IndexPremises P1): nc out of the index and of the live nodes the
+# crossings leave, the free list's first nodes nc
 # and the removal's parent, then the crossings' (leave_pend on
 # crossings_pend on copy_pend). Premises: copy_pend's, the crossings'
 # (RG.cxs.ok), nc found at k in the index before them and no crossing
