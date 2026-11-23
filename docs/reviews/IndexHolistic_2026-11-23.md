@@ -37,6 +37,9 @@ written apart and kept as written. Drafted by the agent.
   one by the means it was made. A line of 60,000 characters will not be
   edited by hand, so the next change to a serve law needs these
   generators, which live only in this container's working tree.
+- **Addressed** after the ruling (`generated-outputs-checked-in`):
+  `cursor-laws.sources` moved the generators into `glam/proofgen/` and
+  the check into the gate.
 - **Proposal.** A ruling, as a design question (below). One way is to
   commit the generators beside the proofs, e.g. `tools/proofs/`, with
   `regen.sh` and its snapshot, and list the proof files in

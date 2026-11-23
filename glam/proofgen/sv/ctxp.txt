@@ -1,0 +1,5 @@
++ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +d: Nat, +dm: Nat, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>,
+    +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
+    +hct: {KMd.chain(ns, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat},
+    +hlay: {RG.layout(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hbs: {RG.bases(ns) == True{} : Bool}, +hdy: {SV.dyn(ns) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, Con{s, t}, ns), d) == True{} : Bool}, +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool},
+    +hfr: {RG.faces(Con{s, t}, AD.view(U32, LAT.fromT(U32, t0)), d, ns) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}

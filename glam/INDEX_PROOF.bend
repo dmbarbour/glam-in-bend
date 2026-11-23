@@ -50,8 +50,10 @@
 #   ones leaves a word as it was. No 2^32 enters, whose unary unfolding
 #   the checker cannot afford.
 # - About half of this file was written by authoring aids under
-#   results/index_bits/ (gen_*.py, out of git): text written once,
-#   kept by hand since; not generated sources.
+#   results/index_bits/ (gen_*.py, out of git), the lookups after a
+#   removal and an insert (look_del_other, look_put_other) last: text
+#   written once, kept by hand since. Not a generated file: no program
+#   writes any part of it now (generated-outputs-checked-in).
 
 import Base
 import ./INDEX_LAWS.bend as Laws

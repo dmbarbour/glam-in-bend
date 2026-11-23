@@ -400,7 +400,7 @@ it alone taught. Add to this file what a new proof teaches.
   `(` then a term as `(term : Type)`. A conjunction in parentheses
   parses (`(a && b) && c`), so a generator that widens a goal
   parenthesizes a conjunction alone
-  (`results/index_bits/review/gen_compose.py`).
+  (`glam/proofgen/gen_compose.py`).
 - **A bit fact goes through lawful-words.** A low mask is a remainder
   (`to_nat_and_mask`: `r & 3` is `r mod 4`); a high one is shown bit by
   bit (`bit_and`, `bit_not`, `bit_ext`: `(y & ~3) & 3` is 0, a Bool
@@ -411,9 +411,9 @@ it alone taught. Add to this file what a new proof teaches.
   arguments, so an absurd case `1n+p < 1n` matches `p` down to a
   constructor before the comparison computes.
 - **Prototype a family of lemmas in a file of its own.** A lemma checked
-  in `results/index_bits/align/ALIGN.bend`, importing what the proof
+  in `glam/proofgen/align/ALIGN.bend`, importing what the proof
   files import, costs seconds where the proof file costs a minute, and
-  `results/index_bits/align/bisect.py` checks growing prefixes, naming
+  `glam/proofgen/align/bisect.py` checks growing prefixes, naming
   the lemma whose prefix fails: Bend reports a stack overflow with no
   place (docs/BendIssues.md, Big constants in proofs).
 - **Laws compose as functions.** A law of an imported laws file is

@@ -4,8 +4,10 @@
 # where x faced z, else as before (word_lk); each clause after then
 # follows, case by case, from the two-way and none-itself facts before
 # and from no port's link word lying in two tracked nodes' words 1 (no2),
-# by four propositional lemmas whose case trees the authoring aid wrote
-# (results/index_bits/gen_link.py, gen_link2.py).
+# by four propositional lemmas whose case trees an authoring aid writes.
+# Generated: glam/proofgen/regen.sh writes this file, link_live's proof
+# by gen_link.py and gen_link2.py, link_leave's by gen_lvlink.py
+# (generated-outputs-checked-in; glam/proofgen/README.md).
 
 import Base
 import ./JOIN_LAWS.bend as Laws

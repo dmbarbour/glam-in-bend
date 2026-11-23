@@ -39,7 +39,9 @@ BEND=$BEND "$blend_dir/build.sh" >/dev/null || { echo "blend: the build at $blen
 
 # one line each: the generator's kind and the directory it runs in; for
 # `bend`, a Bend program printing a file, the file and its arguments; for
-# `blend`, the module whose tree Blend writes
+# `blend`, the module whose tree Blend writes; for `check`, a program that
+# checks the files it writes itself (generated-outputs-checked-in: the
+# proofs' Python aids, glam/proofgen/regen.sh --check, about 2 s)
 while read -r kind dir rest; do
   [ -n "$kind" ] || continue
   case $kind in
@@ -60,10 +62,14 @@ while read -r kind dir rest; do
         echo "$dir/$rest's tree differs from what blend writes: regenerate it (cd $dir && blend emit --force $rest)"
         status=1
       fi ;;
+    check)
+      # shellcheck disable=SC2086 # the arguments split as written
+      (cd "$dir" && $rest) || status=1 ;;
     *) echo "$dir: no generator of kind $kind"; status=1 ;;
   esac
 done <<'EOF'
 bend spike krules.bend tools/gen_krules.bend
 blend spike kdemand.blend
+check . glam/proofgen/regen.sh --check
 EOF
 exit "$status"

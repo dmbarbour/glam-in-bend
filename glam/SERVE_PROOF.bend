@@ -1,9 +1,11 @@
 # The serve's proofs (glam/SERVE_LAWS.bend; cells-freeze.nested.host.serve).
 # The splice's laws and the cursors' cited through their law files, their
-# lemmas through their proof files. Written by authoring aids kept out of
-# git: results/proofgen/gen_serve.py, then the sections over the index
-# spliced in from results/index_bits/sv/gen_cpi.py's parts (sv/NOTES.md;
-# docs/reviews/IndexHolistic_2026-11-23.md, F1).
+# lemmas through their proof files. Generated: glam/proofgen/regen.sh
+# writes this file from its hand-kept part, glam/proofgen/SERVE_PROOF.bend.in
+# (edit there, not here; first written by an aid not kept), then the
+# copy's sections over the index, glam/proofgen/sv/gen_cpi.py's, then a
+# cut to what the laws reach (generated-outputs-checked-in;
+# glam/proofgen/README.md).
 
 import Base
 import ./SERVE_LAWS.bend as Laws
@@ -1800,7 +1802,6 @@ def sk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
 
 def Laws.serve_keeps(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf):
   sk.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
-
 def nmk2(+e: Bool, +x: U32, +r: List<&2, U32>, +ys: List<&2, U32>, +N: List<&2, U32>, +d: Nat, +q: U32, +he: {RG.has(ys, x) == e : Bool}, +hN: {RG.layout(N, d) == True{} : Bool}, +hxN: {RG.has(N, x) == True{} : Bool},
   +hqN: {RG.has(N, q) == True{} : Bool}, +hq: {RG.has(ys, q) == True{} : Bool}, +hih: {KMd.nodes.off(RG.minus(r, ys), d, (q + 2 : U32)) == True{} : Bool}) -> {KMd.nodes.off(RG.minus.k(e, x, RG.minus(r, ys)), d, (q + 2 : U32)) == True{} : Bool}:
   match e:

@@ -46,26 +46,38 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
 ## Steps
 
 - `cursor-laws` — planned — the steps below.
-  - `cursor-laws.sources` — planned — the proofs' generators in git
-    (F1, H1). M.
-    - `cursor-laws.sources.commit` — planned — the live generators
-      move under `results/index_bits/` and `results/proofgen/` into a
-      tracked directory with `regen.sh` and the snapshot it starts from.
-      These are the stages `regen.sh` runs, `sv/gen_cpi.py`, `gen_serve.py`,
-      the alignment prototype and the index's appending aid. Their paths
-      become the repository's own, not this container's. Backups and
-      one-off aids stay out, listed.
-    - `cursor-laws.sources.reproduce` — planned — each proof file
-      regenerated whole from its generators: `glam/SERVE_PROOF.bend`,
-      spliced from parts today, and `glam/INDEX_PROOF.bend`, kept by
-      hand since half of it was written. Either generated whole or
-      declared hand-written, with the sections a program still writes
-      named. Each file's header says it is generated and by what.
-    - `cursor-laws.sources.check` — planned —
-      `scripts/check_generated.sh` regenerates each into scratch and
-      compares, the gate running it. Its cost is measured, to be
-      kept within the generated-code section's few seconds or kept as
-      a pass while the inputs are unchanged.
+  - `cursor-laws.sources` — built 2026-11-23 — the proofs' generators
+    in git (F1, H1), `glam/proofgen/` (its README).
+    - `cursor-laws.sources.commit` — built 2026-11-23 — 26 Python
+      stages moved from `results/index_bits/` with `regen.sh`, now
+      `glam/proofgen/regen.sh`, its paths made the repository's own by
+      one uniform substitution (every `exec` marker still found in its
+      target). Also moved: the hand-kept inputs `PROOF.bend.in` and
+      `SERVE_PROOF.bend.in` (named so that the gate's Bend sweep skips
+      them), `align/ALIGN.bend` (checked as itself) with `bisect.py`,
+      `sv/ctxp.txt`, `wsel.txt`. The reachability cut was extracted
+      from `retire.py`, whose other parts delete laws. Not kept, being
+      no stage of the run: `gen_serve.py` (which first wrote the serve
+      file's hand-kept part), `gen_ldo.py`, `gen_sfree.py`,
+      `split_heap.py`, the retirement's aids, backups.
+    - `cursor-laws.sources.reproduce` — built 2026-11-23 — every stage
+      runs in a scratch copy of `glam/` under `results/proofgen_run/`,
+      the generated files alone copied back, and a stage that would
+      change a hand-kept file fails the run. The run reproduces
+      `glam/PROOF.bend` byte for byte. `glam/SERVE_PROOF.bend` comes
+      out but for one blank line, an artifact of a splice by hand, now
+      the generator's. `glam/JOIN_PROOF.bend` turned out generated too
+      (`gen_link.py`, `gen_link2.py`, then `gen_lvlink.py`'s section
+      appended) and is reproduced. Each generated file's header says
+      how it is made. Kept by hand: `glam/INDEX_PROOF.bend`, whose
+      header now says aids once wrote half of it;
+      `glam/SPLICE_PROOF.bend`, whose `splice_free` section an aid
+      wrote once (`gen_sfree.py`); `spike/HEAP_PROOF.bend`, moved there
+      by a one-off script (`split_heap.py`).
+    - `cursor-laws.sources.check` — built 2026-11-23 —
+      `scripts/check_generated.sh` runs `glam/proofgen/regen.sh
+      --check`, a generator kind `check`; the run takes about 2 s, so
+      no kept pass is needed.
   - `cursor-laws.stop` — planned — implementation errors stop the run
     (`implementation-errors-stop`; H7). S.
     - The serve's end reads the kernel's error count (`P.stats`, as the
