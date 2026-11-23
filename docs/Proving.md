@@ -11,6 +11,10 @@ it alone taught. Add to this file what a new proof teaches.
   2026-11-22: "prove what's important (whether for correctness or
   performance) and prove what's easy"): a law earns its place by what
   it protects or by what little it costs.
+- **A law rather than a test** for such a property (`laws-over-tests`,
+  the maintainer, 2026-11-23): a test stays where no law can yet say it,
+  and for what it measures; a run-time check added meanwhile names the
+  law meant to replace it.
 - **The guarantees a user sees first**: what is emitted, kept or refused.
 - **A weaker law, and its missing pieces.** A full claim can cost far more
   than it buys. It is often enough to prove that each step keeps some

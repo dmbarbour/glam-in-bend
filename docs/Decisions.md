@@ -63,6 +63,10 @@ IO shell.
   generated into files of its own, by Bend programs, and checked current;
   no external macro processor (one of our own, in Bend, may come), no
   script editing sources.
+- [`generated-outputs-checked-in`](decisions/generated-outputs-checked-in.md):
+  generated files, proofs among them, are committed with their
+  generators (Python, Blend or Bend), marked generated and checked
+  reproduced, so that building wants Bend alone.
 - [`vendored-sources`](decisions/vendored-sources.md): third-party code
   not on the hub is copied under `vendor/`, a subdirectory per source with
   its license and origin, indexed.
@@ -78,6 +82,9 @@ IO shell.
 - [`step-laws-conclude-next-premises`](decisions/step-laws-conclude-next-premises.md):
   a step law's conclusion carries what the next step's premises ask,
   so that laws compose as laws.
+- [`laws-over-tests`](decisions/laws-over-tests.md): a property that
+  matters for correctness or cost, or is easy to state, is a law rather
+  than a test.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its
@@ -197,6 +204,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`corruption-reported-when-cheap`](decisions/corruption-reported-when-cheap.md):
   correctness proved, not guarded; but a state only corruption reaches,
   detected for free (a walk out of fuel), raises the kernel's error.
+- [`implementation-errors-stop`](decisions/implementation-errors-stop.md):
+  glam's own implementation errors stop the run where first read, unlike
+  user errors, which are diagnostics.
 - [`ring-ports-faced-off-positions`](decisions/ring-ports-faced-off-positions.md):
   a port a live node of a copy's index faces has its link word in no
   live node's key (word 2) nor home (word 3), so that a join or a leave

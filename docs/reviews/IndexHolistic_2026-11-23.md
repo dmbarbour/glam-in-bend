@@ -306,3 +306,32 @@ headers (H1), and run 340 recorded (H4).
 7. Size (the second reviewer's question 2). Is there a size or check
    time past which a law is to be restated, so that its invariant holds
    by computation, rather than proved as it stands?
+
+## The maintainer's answers
+
+The maintainer, 2026-11-23, to the questions above:
+
+1. Proofs as sources: "Yes. Users should be able to build with just
+   Bend. Thus, generated sources via Python or even Blend should be
+   checked in. Ideally, such sources include a comment that they're
+   generated." Recorded: `generated-outputs-checked-in`
+   (`cursor-laws.sources`).
+2. One cursor a position: "Let's investigate making it a law first. We
+   can back off if it's impractical." (`cursor-laws.dup`).
+3. and 4. The materializer and the nothing-finished template: "we
+   should favor laws over tests for any property important (for
+   correctness or performance) or easy to express and enforce
+   lawfully." The general decision the maintainer recalled is
+   `docs/Proving.md`'s "Prove what is important, and what is easy",
+   which no record held. Recorded: `laws-over-tests`
+   (`cursor-laws.materializer`).
+5. Corruption, once reported: "Yes. We won't push through glam
+   implementation errors. This is different from user errors such as
+   syntax issues." Recorded: `implementation-errors-stop`
+   (`cursor-laws.stop`).
+6. Order: "Ordering is up to you. Prepare a rough plan. Partition,
+   merge, reorder tasks where it makes sense."
+   (`docs/plans/CursorLaws_2026-11-23.md`).
+7. Size: "I don't have any specific thresholds in mind ... Best we can
+   do is watch the growth and occasionally take action to improve
+   iteration speed." (`cursor-laws.watch`).

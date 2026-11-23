@@ -32,4 +32,6 @@ free, as a walk's fuel running out, the kernel's error is raised.
   investigating a law to replace it to the docket";
   `cells-freeze.nested.host.join.self`).
 
+- Once reported, the error stops the run (`implementation-errors-stop`).
+
 **Rule lives in:** `glam/index.bend`, the descents' ends.

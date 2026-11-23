@@ -67,6 +67,12 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   generation and specialization: how Bend compiles our code, an audit of
   the kernel's sharing, what must be specialized and by which vehicle.
   Drafted for the maintainer's review.
+- [`CursorLaws_2026-11-23.md`](CursorLaws_2026-11-23.md): `cursor-laws`
+  steps after the index's merge, ordered by the maintainer's answers to
+  its holistic review: the proofs' generators into git, implementation
+  errors stopping the run, one cursor a position as a law, the
+  materializer under laws, the invariant's loop closed, the index's laws
+  by disposition. A rough plan, drafted at the maintainer's request.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
   sharing and fixpoints, parallelism, fast paths), ending in a
