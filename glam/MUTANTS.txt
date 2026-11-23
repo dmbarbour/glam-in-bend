@@ -415,17 +415,6 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 src = 10
 neg = True{}
->>> witness cursor_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-src = 10
-neg = True{}
 
 === cursor_pos_in_word3 cursor_pos
 the position written to the cursor's word 3, which the insert overwrites
@@ -464,17 +453,6 @@ a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
 t = Con{12, Con{16, Nil{}}}
-x = 20
-src = 7
-neg = False{}
->>> witness cursor_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 x = 20
 src = 7
 neg = False{}
@@ -652,7 +630,7 @@ j = 14
 # breaks the ring's order. Each witness is a ring of three, s at 8 and
 # cursors at 12 and 16, x at 20 inserted.
 
-=== insert_self_loop insert_exact insert_ok cursor_pend
+=== insert_self_loop insert_exact insert_ok
 the cursor inserted given itself as its next
 --- ring.bend
   P.wr(P.wr(h, (x + 3 : U32), n), (situ + 3 : U32), x)
@@ -672,17 +650,6 @@ d = 6n
 s = 8
 t = Con{12, Con{16, Nil{}}}
 x = 20
->>> witness cursor_pend
-w = WB.pending(KMd.ref(48, 0))
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Nil{}}}
-ps = Con{24, Nil{}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-x = 20
-src = 7
-neg = True{}
 
 === insert_skips_situ insert_exact insert_ok
 the situating node's word 3 left as it was, the cursor unreachable
@@ -971,3 +938,11 @@ t = Con{12, Con{16, Con{20, Nil{}}}}
 p = 27
 c = 12
 j = 28
+
+=== cursor_own_index cursor_pend
+the placeholder made a cursor inserted into an index of its own, not its
+situating node's
+--- ring.bend
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
++++
+  rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), pl, pl)

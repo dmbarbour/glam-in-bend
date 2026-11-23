@@ -572,3 +572,16 @@ law del_bsub:
   for +N: List<&2, U32>
   for h: {RG.sub(IM.ix.branches(I), N) == True{} : Bool}
   {RG.sub(IM.ix.branches(IM.ix.del(I, x, k)), N) == True{} : Bool}
+
+# LAW: an index's leaves all of a list, and a put's cursor of it: the
+# leaves after the put all of it.
+# Record: cursors-indexed
+law put_lsub:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +N: List<&2, U32>
+  for h: {RG.sub(IM.ix.leaves(I), N) == True{} : Bool}
+  for hx: {RG.has(N, x) == True{} : Bool}
+  {RG.sub(IM.ix.leaves(IM.ix.put(I, x, k, b)), N) == True{} : Bool}

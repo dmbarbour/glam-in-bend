@@ -11,6 +11,7 @@ import ../spike/val.bend as V
 import ./ring.bend as R
 import ./ring_model.bend as RG
 import ../spike/kmodel.bend as KMd
+import ./index_model.bend as IM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the node the ring's walk finds before a member x, the one whose
@@ -291,27 +292,37 @@ law cursor_keeps:
   {Pair.snd(P.H, U32, P.rd(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: the serve's first pending placeholder x made a cursor keeps the
-# pending placeholders' invariant (RG.pend.ok: the ring exact, the rest
-# pending outside it and none twice, every node of either in L, laid out
-# apart, its own base, facing a port faceable by all of L), x now the
-# ring's first cursor, L as it was (cells-freeze.nested.host.serve).
+# pending placeholders' invariant over the index (RG.px.ok): x put in the
+# index at its position src, absent from it (one cursor a position), the
+# put's branch, in a tree, the free list's first node b (the list's first
+# nodes IM.ix.take(I, b, F) before, F after); every node a serve touches
+# in N, laid out apart, each its own base
+# (cells-freeze.sharing.cursors.index.ring.inv).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
+# Record: copy-links-two-way
 law cursor_pend:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
   for +ps: List<&2, U32>
   for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +x: U32
   for +src: U32
   for +neg: Bool
+  for +b: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, Con{x, ps}, L) == True{} : Bool}
-  {RG.pend.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, Con{x, t}, ps, L) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, IM.ix.take(I, b, F), N) == True{} : Bool}
+  for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
+  {RG.px.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, IM.ix.put(I, x, src, b), ps, L, F, N) == True{} : Bool}
 
 # LAW: the serve's first pending placeholder x joined to a cursor y of
 # the ring keeps the pending placeholders' invariant (RG.pend.ok), y out

@@ -4,6 +4,7 @@ import ../spike/kmem_grow.bend as KM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import ./ring.bend as R
 import ../spike/kmodel.bend as KMd
+import ./index_model.bend as IM
 
 # Rings, modelled for glam's laws (glam/LAWS.bend; the Cells plan's
 # cells-freeze.nested.host.ring): no code of the materializer calls these.
@@ -443,3 +444,64 @@ def unfound(cs: List<&2, R.FzC>, +v: List<&2, U32>, +d: Nat, +c: U32) -> Bool:
       match f:
         case R.FzC{+at, +src, neg, +far}:
           Bool.not(pos.is(v, d, c, far)) && unfound(r, v, d, c)
+
+# The pending placeholders over the index
+# =======================================
+#
+# cells-freeze.sharing.cursors.index.ring.inv: the serve's invariant with a
+# copy's cursors in a tree of the net's nodes (cursors-indexed). N lists
+# every node a serve touches, laid out apart once (layout, bases); each
+# holds one role in it: the situating node s; the index I's leaves, the
+# cursors, and its branches; the pending placeholders ps; the free list's
+# first nodes F, which an insert takes its branch from and a join gives
+# its nodes to. L, carried as before, lists the live ones: s, the cursors
+# and the pending, no branch nor free node among them. A live node faces a
+# port faceable by L (faces); that port's link word, which a join writes,
+# is off every word of a tracked node that is not live and off the word 0
+# of one that is (po.all, KMd.off.port: a static has none); and live nodes
+# facing one another face one another both ways, none itself
+# (copy-links-two-way), so that a join leaves no live node facing the
+# nodes it frees.
+
+# port r's link word off node n's words, all four where n is not live
+def po.n(+r: U32, +L: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
+  KMd.off.port(d, r, n) && Bool.or(has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && KMd.off.port(d, r, (n + 3 : U32))))
+
+def po.all(+r: U32, +L: List<&2, U32>, +d: Nat, N: List<&2, U32>) -> Bool:
+  match N:
+    case Nil{}:
+      True{}
+    case Con{+n, t}:
+      po.n(r, L, d, n) && po.all(r, L, d, t)
+
+# the port each of ys faces (its word 1) so, over the tracked nodes N
+def px.off(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>, +N: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+z, t}:
+      po.all(KMd.word(v, d, (z + 1 : U32)), L, d, N) && px.off(t, v, d, L, N)
+
+# z, facing port r, faced back by each node of Q that r names
+def tw.q(Q: List<&2, U32>, +r: U32, +z: U32, +v: List<&2, U32>, +d: Nat) -> Bool:
+  match Q:
+    case Nil{}:
+      True{}
+    case Con{+q, t}:
+      Bool.or(Bool.not(U32.is_eq(r, q)), U32.is_eq(KMd.word(v, d, (q + 1 : U32)), z)) && tw.q(t, r, z, v, d)
+
+# each of ys facing not itself, and faced back by the live node it faces
+def px.tw(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+z, t}:
+      Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)) && (tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && px.tw(t, v, d, L))
+
+# the invariant: the index realized, on its invariant, laid out; s and the
+# cursors live, the pending live and of no role else, listed once; no
+# branch live; the free list's first nodes F listed once, of no role
+# else; the live, the free and the index's nodes all tracked; the live
+# facing as above
+def px.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +I: IM.Ix, +ps: List<&2, U32>, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>) -> Bool:
+  IM.ix.real(v, d, s, I) && (IM.ix.inv(I) && (IM.ix.lay(I, s, d) && (sub(Con{s, IM.ix.leaves(I)}, L) && (sub(ps, L) && (none.in(ps, Con{s, IM.ix.nodes(I)}) && (distinct(ps) && (none.in(L, IM.ix.branches(I)) && (KMd.chain(F, v, d, KMd.word(v, d, P.at_fh())) && (distinct(F) && (none.in(F, Con{s, IM.ix.nodes(I)}) && (none.in(F, L) && (sub(L, N) && (sub(F, N) && (sub(IM.ix.nodes(I), N) && (faces(L, v, d, L) && (px.off(L, v, d, L, N) && px.tw(L, v, d, L)))))))))))))))))

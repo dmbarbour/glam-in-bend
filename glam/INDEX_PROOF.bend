@@ -5102,3 +5102,50 @@ def Laws.put_bsub(I, x, k, b, N, h, hb):
 
 def Laws.del_bsub(I, x, k, N, h):
   del_bsub.k(I, x, k, N, h)
+
+# A put's leaves in a list
+# ========================
+
+def join_lsub(+sd: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +hU: {RG.sub(IM.tr.leaves(U), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}) ->
+  {RG.sub(IM.tr.leaves(IM.tr.join(sd, U, x, k, b, c)), N) == True{} : Bool}:
+  match sd:
+    case True{}:
+      sub_app(IM.tr.leaves(U), [x], N, hU, and_intro(RG.has(N, x), True{}, hx, {==}))
+    case False{}:
+      sub_app([x], IM.tr.leaves(U), N, and_intro(RG.has(N, x), True{}, hx, {==}), hU)
+
+def pls.k(+lt: Bool, +sd: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>,
+  +h: {RG.sub(IM.tr.leaves(IM.Br{b2, i, l, r}), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool},
+  +ihl: {RG.sub(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), N) == True{} : Bool}, +ihr: {RG.sub(IM.tr.leaves(IM.tr.place(r, x, k, b, c)), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.leaves(IM.tr.place.k(lt, sd, b2, i, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c)), N) == True{} : Bool}:
+  match lt:
+    case False{}:
+      join_lsub(X.ix.side(k, c), IM.Br{b2, i, l, r}, x, k, b, c, N, h, hx)
+    case True{}:
+      match sd:
+        case True{}:
+          +hlr = h
+          sub_app(IM.tr.leaves(l), IM.tr.leaves(IM.tr.place(r, x, k, b, c)), N, sub_app_l(IM.tr.leaves(l), IM.tr.leaves(r), N, hlr), ihr)
+        case False{}:
+          +hlr = h
+          sub_app(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), IM.tr.leaves(r), N, ihl, sub_app_r(IM.tr.leaves(l), IM.tr.leaves(r), N, hlr))
+
+def place_lsub(t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +h: {RG.sub(IM.tr.leaves(t), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}) -> {RG.sub(IM.tr.leaves(IM.tr.place(t, x, k, b, c)), N) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      join_lsub(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, N, h, hx)
+    case IM.Br{+b2, +i, +l, +r}:
+      +hlr = h
+      pls.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, x, k, b, c, N, h, hx,
+        place_lsub(l, x, k, b, c, N, sub_app_l(IM.tr.leaves(l), IM.tr.leaves(r), N, hlr), hx), place_lsub(r, x, k, b, c, N, sub_app_r(IM.tr.leaves(l), IM.tr.leaves(r), N, hlr), hx))
+
+def put_lsub.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +N: List<&2, U32>, +h: {RG.sub(IM.ix.leaves(I), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}) ->
+  {RG.sub(IM.ix.leaves(IM.ix.put(I, x, k, b)), N) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      and_intro(RG.has(N, x), True{}, hx, {==})
+    case IM.Has{+t}:
+      place_lsub(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), N, h, hx)
+
+def Laws.put_lsub(I, x, k, b, N, h, hx):
+  put_lsub.k(I, x, k, b, N, h, hx)
