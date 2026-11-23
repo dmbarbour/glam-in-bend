@@ -72,6 +72,9 @@ IO shell.
 - [`cost-as-low-as-feasible`](decisions/cost-as-low-as-feasible.md): no
   cost targets; performance cycles squeeze cost down, and regressions
   between them are resisted.
+- [`laws-files-all-checked`](decisions/laws-files-all-checked.md): a
+  commit on main names every law it changes in any laws file
+  (`LAWS.bend` or `X_LAWS.bend`), which the law check reads.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its
@@ -192,8 +195,9 @@ where the shared lazy state that Bend cannot hold goes.
   correctness proved, not guarded; but a state only corruption reaches,
   detected for free (a walk out of fuel), raises the kernel's error.
 - [`ring-ports-faced-off-positions`](decisions/ring-ports-faced-off-positions.md):
-  a port a ring's member faces has its link word in no member's
-  position (word 2) nor link (word 3), so that a join keeps both.
+  a port a live node of a copy's index faces has its link word in no
+  live node's key (word 2) nor home (word 3), so that a join or a leave
+  keeps both.
 - [`laws-name-link-words`](decisions/laws-name-link-words.md): laws name
   a port's link word through a heap model (`KMd.lw`, none for a static),
   not as the reference plus one.

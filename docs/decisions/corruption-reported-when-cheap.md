@@ -1,6 +1,6 @@
 # Corruption is detected and reported where the check costs nothing
 
-`corruption-reported-when-cheap` · maintainer · rev 268f30d
+`corruption-reported-when-cheap` · maintainer · rev b6c82c8
 
 **Context.** A walk round a ring that runs out of fuel returned whatever
 node it had reached, and an unlink wrote that node's word 3: a corrupt
@@ -25,7 +25,11 @@ free, as a walk's fuel running out, the kernel's error is raised.
   invariant over the index), so that no descent runs out and their frames
   allow no error.
 - A check that costs on the normal path is not added for corruption:
-  what the laws prove is not checked again (a join of a cursor with
-  itself is excluded by proof, `cells-freeze.nested.host.join.self`).
+  what the laws prove is not checked again. A join of a cursor with
+  itself, which no law yet excludes at the materializer's frontier, is
+  tested there, one compare a serve, and reported (the maintainer,
+  2026-11-23: "we can start with a check and tentatively add
+  investigating a law to replace it to the docket";
+  `cells-freeze.nested.host.join.self`).
 
 **Rule lives in:** `glam/index.bend`, the descents' ends.

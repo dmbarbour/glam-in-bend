@@ -1,6 +1,8 @@
 """Law checks: every law changed on main is named in its commit.
 
-A law is a `law <name>:` block in a file named LAWS.bend: the `law` line at
+A law is a `law <name>:` block in a file named LAWS.bend or
+*_LAWS.bend (every laws file, the maintainer, 2026-11-23,
+`laws-files-all-checked`): the `law` line at
 column 0 and the indented lines after it. A Blend module's law members are
 laws too (blend/README.md): in a `.blend` file, a `law <name>:` line at any
 indentation and the lines indented deeper after it, named by the objects
@@ -65,7 +67,7 @@ def normalized(body):
 
 
 def laws(text):
-    """{name: normalized text} of the law blocks in one LAWS.bend."""
+    """{name: normalized text} of the law blocks in one laws file."""
     found, name, body = {}, None, []
     for line in text.splitlines() + ["<end>"]:
         start = LAW.match(line)
@@ -117,8 +119,15 @@ def sample(path):
     return invalid(path) or "samples" in pathlib.PurePosixPath(path).parts[:-1]
 
 
+def laws_file(path):
+    """Whether a path is a laws file: LAWS.bend, or X_LAWS.bend beside
+    X_PROOF.bend."""
+    name = pathlib.PurePosixPath(path).name
+    return name == "LAWS.bend" or name.endswith("_LAWS.bend")
+
+
 def tree_laws(tree):
-    """{(path, name): text} for every LAWS.bend and .blend file at a
+    """{(path, name): text} for every laws file and .blend file at a
     tree-ish, or the index (":")."""
     if tree == ":":
         paths = git("ls-files").stdout.split()
@@ -128,7 +137,7 @@ def tree_laws(tree):
         paths = git("ls-tree", "-r", "--name-only", tree).stdout.split()
     found = {}
     for path in paths:
-        read = (None if sample(path) else laws if path == "LAWS.bend" or path.endswith("/LAWS.bend")
+        read = (None if sample(path) else laws if laws_file(path)
                 else blend_laws if path.endswith(".blend") else None)
         if read:
             # the path relative to here, as git lists it
@@ -153,7 +162,7 @@ def check_named(where, names, message):
 def check_history():
     if git("rev-parse", "--verify", "-q", "main").returncode != 0:
         return
-    log = git("log", "--first-parent", "--format=%H", "main", "--", ":(glob)**/LAWS.bend", ":(glob)**/*.blend")
+    log = git("log", "--first-parent", "--format=%H", "main", "--", ":(glob)**/*LAWS.bend", ":(glob)**/*.blend")
     for commit in log.stdout.split():
         parent = commit + "^1"
         has_parent = git("rev-parse", "--verify", "-q", parent).returncode == 0
@@ -172,7 +181,7 @@ def check_citations():
     # this repository's files, tracked or not but not ignored, as git lists
     # them: a submodule's are its own repository's
     listed = git("ls-files", "--cached", "--others", "--exclude-standard", "--",
-                 ":(glob)**/LAWS.bend", ":(glob)**/*.blend").stdout.split()
+                 ":(glob)**/*LAWS.bend", ":(glob)**/*.blend").stdout.split()
     for path in [pathlib.Path(p) for p in listed if pathlib.Path(p).exists()]:
         if invalid(path.as_posix()):
             continue

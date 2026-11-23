@@ -1071,7 +1071,7 @@ def frame.sv(v: M.Sv, ho: Hb, +i: U32, +name: List<&2, U32>, +k: U32, +nc: U32, 
     case M.SvCur{hs, h, +x, +n}:
       frame.cur(host.back(ho, h, ss), hs, x, i, name, k, nc, pos, b, cn.add(c, n))
     case M.SvBad{hs, h, +n}:
-      err("a copy's climb met no position of its ring")
+      err("a copy's serve met corruption: a climb with no position of its index, or a frontier facing its own position")
 
 # the frame itself: new, its source to be taken out; or going on with its
 # walk d, its source held in it
@@ -1135,7 +1135,7 @@ def frame.sv1(v: M.Sv1, +i: U32, +name: List<&2, U32>, +nc1: U32, +pos1: U32, cx
     case M.S1Cur{h, +x, +n}:
       frame.cur.h(P.rd(h, x), x, cx.push(FrN{k, nc1, pos1}, cx), i, name, k, nc, pos, b, cn.add(c, n), ss)
     case M.S1Bad{h, +n}:
-      err("a copy's climb met no position of its ring")
+      err("a copy's serve met corruption: a climb with no position of its index, or a frontier facing its own position")
 
 def frame.one.t(r: SrT, +i: U32, +name: List<&2, U32>, +nc1: U32, +pos1: U32, cx: Cx, +k: U32, +nc: U32, +pos: U32, +b: List<&2, Ent>, c: Cn) -> Run:
   match r:
