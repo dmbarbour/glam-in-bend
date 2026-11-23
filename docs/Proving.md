@@ -330,6 +330,25 @@ it alone taught. Add to this file what a new proof teaches.
   the next taken, for every word, by its bits: no 2^32 enters, which the
   checker would unfold in unary). Its header lists what it cost to find
   out.
+- **A heap is not Data**: a lemma over any heap `h` may use it once, so
+  one that needs its words and values too (a free's frame on whatever
+  heap a removal leaves) is written as text at each call site on the
+  heap's term, taking its parts by an eta lemma (`heta3`), not as a
+  lemma over `h`. To chain laws over heaps the code computes, prove the
+  fold over any words and values and rebuild the heap from its parts at
+  each step; no lemma that the value table is kept is then needed.
+- **A law needing a fact only an earlier proof reaches**: when the next
+  law needs something only an intermediate heap's facts give (the words
+  full after a join, which the index's laws take there), widen that
+  proof's goal by a conjunct and have its law project, rather than
+  derive the intermediate facts a second time.
+- **`one_law` cuts by every name a definition's text mentions**, its
+  trailing comments too: a comment naming a retired lemma pulls that
+  lemma, and its failure, into the cut.
+- **A new section is checked in seconds** against the cut proof file of
+  a law that already passes, its long chains left out and the few
+  helpers it needs copied in (`results/index_bits/kp/harness.py`), not
+  through the whole file.
 - **A propositional case analysis is searched out, not written**
   (glam/JOIN_PROOF.bend): where a law's cases reduce to Bool atoms (here,
   which port's link word lies in which node's word 1), state each as a
