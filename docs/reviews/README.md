@@ -246,7 +246,15 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   stated over the index after a step (F1, F2), the live nodes' distinctness
   (F3), the frames' regions widened to the tracked nodes (F6), the law
   check reading `LAWS.bend` alone, 71 laws at the merge (F8); and what
-  the branch did without approval. Drafted by the agent.
+  the branch did without approval; then, with the second reviewer,
+  eleven proposals ranked (P1 to P11), four proposed before merge.
+  Drafted by the agent.
+- [`IndexPremisesFable_2026-11-23.md`](IndexPremisesFable_2026-11-23.md):
+  the second reviewer's review of the same premises, by a Fable
+  sub-agent, kept as written beside `IndexPremises_2026-11-23.md`, which
+  checks it: the laws do not compose as stated (no conclusion returns the
+  words full or the layout), nothing establishes the invariant, the wire
+  a join makes is stated by no law, three premises implied by others.
 
 ## Retired
 

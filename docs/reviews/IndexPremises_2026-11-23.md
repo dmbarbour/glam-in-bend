@@ -1,5 +1,9 @@
 # The laws over the index: their premises, before merge
 
+Part 1 is the agent's inventory; Part 2 the tightening proposed with the
+second reviewer, whose review is kept as written beside this one
+(`IndexPremisesFable_2026-11-23.md`, A1 to A14, B1 to B16).
+
 The agent's inventory of the premises the laws over a copy's index take
 (`cells-freeze.sharing.cursors.index`, side branch `cursor-index-spike`),
 for the review the maintainer asked before merge (2026-11-23: "We'll do
@@ -99,7 +103,7 @@ not have. `hf`, `hd32` (and `hfm`, `hdm`) are as before throughout.
 | `cursor_pend` | `cursor_ok`, `cursor_pos` | `hN`, `hB`, `hp: px.ok(..., Con{x, ps}, L, take(I, b, F), N)`, `ha: look(I, src) == None` |
 | `cursor_head` | `cursor_head` (`enter.ok`) | as `cursor_pend` |
 | `join1_pend` | `join1_exact` | `hN`, `hB`, `hp`, `hy: look(I, k) == Some{y}` |
-| `cross_pend` | — | `hp` (free list per `cx.F0`), `ha: cx.ab` |
+| `cross_pend` | `cross_pend` (over the ring, on main) | `hp` (free list per `cx.F0`), `ha: cx.ab` |
 | `crossings_pend`, `crossings_keeps` | `serve_exact`'s first half, `cursor_keeps`, `join1_keeps` | `hp`, `hok` (F5); the frame `hj: off.nodes(N)` (F6), `hjh`, `hjf` |
 | `leave_pend` | `leave_exact` | `hp`, `hc: look(I, k) == Some{c}`, `hpo` (F4), `hpk` |
 | `leave_keeps` | `leave_keeps` | as `leave_pend`; `hj: off.nodes(N)` (F6), `hjh`, `hjp`, `hjw` |
@@ -141,3 +145,83 @@ On the branch, by the plan's step `.retire` and the maintainer's
 
 - The materializer's and the core's comments still say ring.
 - F1 and F2's lemmas, F3's conjunct.
+
+## Part 2: what to tighten, with the second reviewer
+
+The second reviewer judged every premise from the laws and the code
+before reading Part 1, then checked Part 1 against the source. Its
+corrections, each checked here against the source:
+
+- **B3 (F3)**: the copy adds to the live nodes (`Con{s, t} ++ pls`), so
+  a `distinct(L)` conjunct needs the holes distinct and apart from
+  `Con{s, t}` there; both in hand. Accepted.
+- **B4 (F4)**: the eraser's call site (`R.leave(h, P.era(), nc)`,
+  `glam/materialize.bend:221`) is argued, not proved: `po.all` of a
+  static wants an induction over `N` (`po_static`), and `port.ok` of a
+  static by alignment a bit lemma no proof has. And `hpk` looks implied
+  by `hpo`, `sub(L, N)`, `layout`, `bases` (A6). Accepted: F4's "no
+  change" withdrawn.
+- **B5 (F5)**: the additions beyond `serve-premises-over-index` are
+  four, `hpo` among them. Accepted.
+- **B7, A12 (F7)**: the inventory compared each law with its ring-era
+  self and missed what holds *between* laws: no conclusion returns the
+  words full, the layout or the bases; the shapes a conclusion leaves are
+  not the next copy's; no law gives the invariant after a serve away from
+  the root (the common serve). Accepted: the largest gap found.
+- **B9**: `cross_pend` existed on main (the table fixed); `cursor_head`'s
+  ring-era premise was `enter.ok` (checked: `git show main:glam/LAWS.bend`).
+- **B15**: `glam/ring.bend`'s comment on `join` ("or a placeholder x,
+  not in it") is now wrong, not stale (`join1` is that case);
+  `glam/ring_model.bend` keeps ring wording; and
+  `ring-ports-faced-off-positions`, which `cursors-indexed` said would be
+  restated for the tree, was not: its consequences name retired laws. A
+  maintainer record: asked.
+- **A7**: `sv.front.m` joins `nc` with the cursor found at the frontier
+  without testing that they differ (`glam/materialize.bend:200-202`,
+  checked); a port facing its own position would free one node twice.
+
+Checked here as well: `look_member` (`glam/INDEX_LAWS.bend`) gives
+`look(I, word(y + 2)) == Some{y}` of a leaf of a real index, so a
+lookup premise over `I` is membership at the call site (A6); `SV.dyn`
+is "none static" (`glam/serve_model.bend:97`), which `bases` implies by
+alignment (A9).
+
+**Prototyped since** (a scratch copy, `results/index_bits/review/
+gen_ldo.py`): the lookup after a removal at another key
+(`look_del_other.k`, about 100 lines) and after an insert at another key
+(`look_put_other.k`, about 60), both through `look_at` (a lookup is the
+leftmost leaf at its key under the invariant; a removal's cut and an
+insert's place keep the other leaves' order), check against
+`glam/INDEX_PROOF.bend`. A5's two lemmas are small, not medium.
+
+### Proposals, ranked
+
+Cost: **S** a lemma or a law projecting a proof already written; **M** a
+new law with a fold; **L** an invariant change touching every pending
+law. "Before" is proposed before merge.
+
+| # | Proposal | From | Cost | When |
+|---|---|---|---|---|
+| P1 | The laws compose as laws: `_full` for each step, `copy_lay` (layout and bases of `M ++ pls`), `serve_pend` (the invariant after a serve away from the root) | A1, A10 | S | before |
+| P2 | `look_del_other`, `look_put_other` (prototyped), then `join_pend`'s and `join_keeps`' `hy` over `I` with `x != y`, and the serve's `hc` as `nc` a leaf at the start (`look_member`) and no crossing's far end at its key, through the crossings' fold | F1, F2, A5, A7, A10 | S + M | before |
+| P3 | Three premises implied by the others, each checked by Bend before it goes: `hpk` from `hpo` (`port_of_po`), `hfr` from `px.off` (`faces_fresh`), `hdy` from `bases` (`dyn_of_bases`), on one alignment lemma; with `po_static`, a `leave_era_pend` for the eraser's site | A6, A9, B4 | S each | before |
+| P4 | Stale text: `ring.bend`'s `join` comment, `ring_model.bend`'s ring wording | B15 | S | before |
+| P5 | `distinct(L)` a conjunct of the invariant, for a second serve | F3, A12 | L | after |
+| P6 | `situate_pend`: the first index's writes (`glam/core.bend:774-784`) give the invariant, the base case | A13 | M | after |
+| P7 | `join_links`, `leave_links`: the wire a join or leave makes between untracked peers, with dropped-link mutants | A8 | M | after |
+| P8 | `cxs_ab`, `cxs_room`: the crossings' stepwise premise from a start condition (positions absent and distinct, a count of free nodes) | A5 | M | after |
+| P9 | `insert_dup`: an insert meeting its own key is a counted error, the words otherwise kept | A2 | S/M | after |
+| P10 | `layout`, `bases`, `past` folded into the invariant; or the live nodes computed (`Con{s, leaves(I) ++ ps}`) | A1, A11 | L | after, with P5 |
+| P11 | `px_sub` (the invariant over a sub-list of tracked nodes), `px_grow` (across a heap's growth) | A12 | M, M-L | after |
+
+### Asked of the maintainer
+
+1. Which of P1 to P4 before merge (recommended: all four; P2's core is
+   built).
+2. A7: test `c != nc` in `sv.front.m`, one compare on a path taken once
+   a serve, by `corruption-reported-when-cheap`, or owe it to the
+   source's wiring as a law of freeze?
+3. F8: should the law check read every `*LAWS.bend` (main's history then
+   rechecked against them too)?
+4. B15: restate `ring-ports-faced-off-positions` for the index's live
+   nodes, as `cursors-indexed` said it would be?
