@@ -179,6 +179,28 @@ law cross_pend:
   for ha: {RG.cx.ab(IM.ix.look(I, far), I, src) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far))), d, s, RG.cx.I(IM.ix.look(I, far), I, x, src, b, far), ps, RG.cx.L(IM.ix.look(I, far), x, L), RG.cx.F1(IM.ix.look(I, far), I, x, far, F), N) && AD.full(U32, RG.words(R.cross(P.H{KM.MG{w}, a}, s, x, src, neg, far)), d) == True{} : Bool}
 
+# LAW: a serve's crossings at its start, their positions distinct
+# (RG.srcs) and none a key of the index (RG.lacks.all: no leaf holds it),
+# a node of the free list for each (RG.enough), meet crossings_pend's
+# premises at every step (RG.cxs.ok): each crossing that makes a cursor
+# finds its position absent and a node for its branch, keys leaving only
+# through a join's removal and entering only at an earlier crossing's
+# position (cxs_ab and cxs_room of the IndexPremises review, P8; the
+# CursorLaws plan's cursor-laws.dup). Over the model alone: whether
+# freeze's crossings are such is not claimed.
+# Record: cursors-indexed
+# Record: serve-premises-over-index
+law cxs_start:
+  for +cs: List<&2, R.FzC>
+  for +vm: List<&2, U32>
+  for +dm: Nat
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for hd: {RG.distinct(RG.srcs(cs)) == True{} : Bool}
+  for ha: {RG.lacks.all(RG.srcs(cs), I) == True{} : Bool}
+  for hr: {RG.enough(cs, F) == True{} : Bool}
+  {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}
+
 # LAW: a copy's crossings (R.crossings, each placeholder found through
 # map), their placeholders the pending ones (RG.pls), keep the pending
 # placeholders' invariant over the index (RG.px.ok) and the words full,

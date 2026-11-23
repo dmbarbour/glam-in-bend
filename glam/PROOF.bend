@@ -622,6 +622,207 @@ def faced_init(K: List<&2, U32>, +L: List<&2, U32>, +t: LAT.Tree<U32>, +d: Nat, 
     case Con{+m, +r}:
       MB.and_eq_true(fin.m(List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t)), AD.slot((m + 1 : U32), d)), d, RG.faced(L, AD.view(U32, LAT.fromT(U32, t)), d)), faced.in(r, AD.view(U32, LAT.fromT(U32, t)), d, RG.faced(L, AD.view(U32, LAT.fromT(U32, t)), d)), fi_one(m, L, t, d, hft, hd32, MB.eq_true_of_and_left(RG.has(L, m), RG.sub(r, L), hs)), faced_init(r, L, t, d, hft, hd32, MB.eq_true_of_and_right(RG.has(L, m), RG.sub(r, L), hs)))
 
+# Absence read off the tree (cxs_start): an absent key looks up to
+# nothing, and stays absent through a removal and through an insert at
+# another key, by the model's shape alone
+def pick_none(+s: Bool, a: Maybe<&2, U32>, b: Maybe<&2, U32>, +ha: {a == None{} : Maybe<&2, U32>}, +hb: {b == None{} : Maybe<&2, U32>}) -> {IM.mb.pick(s, a, b) == None{} : Maybe<&2, U32>}:
+  match s:
+    case True{}:
+      ha
+    case False{}:
+      hb
+
+def look_lacks.t(T: IM.Tr, +k: U32, +h: {RG.lacks.t(T, k) == True{} : Bool}) -> {IM.tr.look(T, k) == None{} : Maybe<&2, U32>}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      %Equal.sym(Bool, U32.is_eq(ky, k), False{}, MB.eq_false_of_not_eq_true(U32.is_eq(ky, k), h)) : {IM.mb.hit(_, y) == None{} : Maybe<&2, U32>}
+      {==}
+    case IM.Br{+b, +i, +l, +r}:
+      pick_none(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k), look_lacks.t(r, k, MB.eq_true_of_and_right(RG.lacks.t(l, k), RG.lacks.t(r, k), h)), look_lacks.t(l, k, MB.eq_true_of_and_left(RG.lacks.t(l, k), RG.lacks.t(r, k), h)))
+
+def cutr_lacks(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, cr: IM.Tr, +k: U32, +hl: {RG.lacks.t(l, k) == True{} : Bool}, +hcr: {RG.lacks.t(cr, k) == True{} : Bool}) -> {RG.lacks.t(IM.tr.cut.r(hit, b, i, l, cr), k) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hl
+    case False{}:
+      MB.and_eq_true(RG.lacks.t(l, k), RG.lacks.t(cr, k), hl, hcr)
+
+def cutl_lacks(+hit: Bool, +b: U32, +i: Nat, +r: IM.Tr, cl: IM.Tr, +k: U32, +hr: {RG.lacks.t(r, k) == True{} : Bool}, +hcl: {RG.lacks.t(cl, k) == True{} : Bool}) -> {RG.lacks.t(IM.tr.cut.l(hit, b, i, r, cl), k) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hr
+    case False{}:
+      MB.and_eq_true(RG.lacks.t(cl, k), RG.lacks.t(r, k), hcl, hr)
+
+def cutk_lacks(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, cl: IM.Tr, cr: IM.Tr, +k: U32,
+  +hl: {RG.lacks.t(l, k) == True{} : Bool}, +hr: {RG.lacks.t(r, k) == True{} : Bool}, +hcl: {RG.lacks.t(cl, k) == True{} : Bool}, +hcr: {RG.lacks.t(cr, k) == True{} : Bool}) -> {RG.lacks.t(IM.tr.cut.k(sd, b, i, l, r, x, cl, cr), k) == True{} : Bool}:
+  match sd:
+    case True{}:
+      cutr_lacks(U32.is_eq(IM.tr.addr(r), x), b, i, l, cr, k, hl, hcr)
+    case False{}:
+      cutl_lacks(U32.is_eq(IM.tr.addr(l), x), b, i, r, cl, k, hr, hcl)
+
+def cut_lacks(t: IM.Tr, +x: U32, +kc: U32, +k: U32, +h: {RG.lacks.t(t, k) == True{} : Bool}) -> {RG.lacks.t(IM.tr.cut(t, x, kc), k) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      h
+    case IM.Br{+b, +i, +l, +r}:
+      +hl = MB.eq_true_of_and_left(RG.lacks.t(l, k), RG.lacks.t(r, k), h)
+      +hr = MB.eq_true_of_and_right(RG.lacks.t(l, k), RG.lacks.t(r, k), h)
+      cutk_lacks(X.ix.side(kc, i), b, i, l, r, x, IM.tr.cut(l, x, kc), IM.tr.cut(r, x, kc), k, hl, hr, cut_lacks(l, x, kc, k, hl), cut_lacks(r, x, kc, k, hr))
+
+def delk_lacks(+only: Bool, t: IM.Tr, +x: U32, +kc: U32, +k: U32, +h: {RG.lacks.t(t, k) == True{} : Bool}) -> {RG.lacks(IM.ix.del.k(only, t, x, kc), k) == True{} : Bool}:
+  match only:
+    case True{}:
+      {==}
+    case False{}:
+      cut_lacks(t, x, kc, k, h)
+
+def del_lacks(I: IM.Ix, +x: U32, +kc: U32, +k: U32, +h: {RG.lacks(I, k) == True{} : Bool}) -> {RG.lacks(IM.ix.del(I, x, kc), k) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      delk_lacks(U32.is_eq(IM.tr.addr(t), x), t, x, kc, k, h)
+
+def join_lacks(+s: Bool, cur: IM.Tr, +x: U32, +src: U32, +b: U32, +c: Nat, +k: U32, +hc: {RG.lacks.t(cur, k) == True{} : Bool}, +hn: {RG.lacks.t(IM.Lf{x, src}, k) == True{} : Bool}) ->
+  {RG.lacks.t(IM.tr.join(s, cur, x, src, b, c), k) == True{} : Bool}:
+  match s:
+    case True{}:
+      MB.and_eq_true(RG.lacks.t(cur, k), RG.lacks.t(IM.Lf{x, src}, k), hc, hn)
+    case False{}:
+      MB.and_eq_true(RG.lacks.t(IM.Lf{x, src}, k), RG.lacks.t(cur, k), hn, hc)
+
+def placek_lacks(+lt: Bool, +sd: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, pl: IM.Tr, pr: IM.Tr, +x: U32, +src: U32, +b: U32, +c: Nat, +k: U32,
+  +hl: {RG.lacks.t(l, k) == True{} : Bool}, +hr: {RG.lacks.t(r, k) == True{} : Bool}, +hpl: {RG.lacks.t(pl, k) == True{} : Bool}, +hpr: {RG.lacks.t(pr, k) == True{} : Bool}, +hn: {RG.lacks.t(IM.Lf{x, src}, k) == True{} : Bool}) ->
+  {RG.lacks.t(IM.tr.place.k(lt, sd, b2, i, l, r, pl, pr, x, src, b, c), k) == True{} : Bool}:
+  match lt:
+    case True{}:
+      match sd:
+        case True{}:
+          MB.and_eq_true(RG.lacks.t(l, k), RG.lacks.t(pr, k), hl, hpr)
+        case False{}:
+          MB.and_eq_true(RG.lacks.t(pl, k), RG.lacks.t(r, k), hpl, hr)
+    case False{}:
+      join_lacks(X.ix.side(src, c), IM.Br{b2, i, l, r}, x, src, b, c, k, MB.and_eq_true(RG.lacks.t(l, k), RG.lacks.t(r, k), hl, hr), hn)
+
+def place_lacks(t: IM.Tr, +x: U32, +src: U32, +b: U32, +c: Nat, +k: U32, +h: {RG.lacks.t(t, k) == True{} : Bool}, +hn: {RG.lacks.t(IM.Lf{x, src}, k) == True{} : Bool}) ->
+  {RG.lacks.t(IM.tr.place(t, x, src, b, c), k) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      join_lacks(X.ix.side(src, c), IM.Lf{y, ky}, x, src, b, c, k, h, hn)
+    case IM.Br{+b2, +i, +l, +r}:
+      +hl = MB.eq_true_of_and_left(RG.lacks.t(l, k), RG.lacks.t(r, k), h)
+      +hr = MB.eq_true_of_and_right(RG.lacks.t(l, k), RG.lacks.t(r, k), h)
+      placek_lacks(Nat.is_lt(i, c), X.ix.side(src, i), b2, i, l, r, IM.tr.place(l, x, src, b, c), IM.tr.place(r, x, src, b, c), x, src, b, c, k, hl, hr,
+        place_lacks(l, x, src, b, c, k, hl, hn), place_lacks(r, x, src, b, c, k, hr, hn), hn)
+
+def put_lacks(I: IM.Ix, +x: U32, +src: U32, +b: U32, +k: U32, +h: {RG.lacks(I, k) == True{} : Bool}, +hn: {RG.lacks.t(IM.Lf{x, src}, k) == True{} : Bool}) ->
+  {RG.lacks(IM.ix.put(I, x, src, b), k) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      hn
+    case IM.Has{+t}:
+      place_lacks(t, x, src, b, IM.cr.i(X.ix.diff(src, IM.tr.near(t, src))), k, h, hn)
+
+def nor_l(+a: Bool, +b: Bool, +h: {Bool.not(a || b) == True{} : Bool}) -> {a == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(h))
+    case False{}:
+      {==}
+
+def nor_r(+a: Bool, +b: Bool, +h: {Bool.not(a || b) == True{} : Bool}) -> {Bool.not(b) == True{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({Bool.not(b) == True{} : Bool}, MB.false_ne_true()(h))
+    case False{}:
+      h
+
+def lf_lacks(+x: U32, +src: U32, +k: U32, +h: {U32.is_eq(k, src) == False{} : Bool}) -> {RG.lacks.t(IM.Lf{x, src}, k) == True{} : Bool}:
+  ME.subst(Bool, z => {Bool.not(z) == True{} : Bool}, False{}, U32.is_eq(src, k), Equal.trans(Bool, False{}, U32.is_eq(k, src), U32.is_eq(src, k), Equal.sym(Bool, U32.is_eq(k, src), False{}, h), XP.ueq_comm(k, src)), {==})
+
+def putall_lacks(ks: List<&2, U32>, +I: IM.Ix, +x: U32, +src: U32, +b: U32, +h: {RG.lacks.all(ks, I) == True{} : Bool}, +hn: {Bool.not(RG.has(ks, src)) == True{} : Bool}) ->
+  {RG.lacks.all(ks, IM.ix.put(I, x, src, b)) == True{} : Bool}:
+  match ks:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      MB.and_eq_true(RG.lacks(IM.ix.put(I, x, src, b), k), RG.lacks.all(t, IM.ix.put(I, x, src, b)), put_lacks(I, x, src, b, k, MB.eq_true_of_and_left(RG.lacks(I, k), RG.lacks.all(t, I), h), lf_lacks(x, src, k, nor_l(U32.is_eq(k, src), RG.has(t, src), hn))), putall_lacks(t, I, x, src, b, MB.eq_true_of_and_right(RG.lacks(I, k), RG.lacks.all(t, I), h), nor_r(U32.is_eq(k, src), RG.has(t, src), hn)))
+
+def delall_lacks(ks: List<&2, U32>, +I: IM.Ix, +x: U32, +kc: U32, +h: {RG.lacks.all(ks, I) == True{} : Bool}) -> {RG.lacks.all(ks, IM.ix.del(I, x, kc)) == True{} : Bool}:
+  match ks:
+    case Nil{}:
+      {==}
+    case Con{+k, +t}:
+      MB.and_eq_true(RG.lacks(IM.ix.del(I, x, kc), k), RG.lacks.all(t, IM.ix.del(I, x, kc)), del_lacks(I, x, kc, k, MB.eq_true_of_and_left(RG.lacks(I, k), RG.lacks.all(t, I), h)), delall_lacks(t, I, x, kc, MB.eq_true_of_and_right(RG.lacks(I, k), RG.lacks.all(t, I), h)))
+
+# the free list long enough, kept so by a longer list
+def en_cons(cs: List<&2, R.FzC>, +z: U32, F: List<&2, U32>, +h: {RG.enough(cs, F) == True{} : Bool}) -> {RG.enough(cs, Con{z, F}) == True{} : Bool}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{c, +r}:
+      match F:
+        case Nil{}:
+          Empty.absurd({RG.enough(Con{c, r}, Con{z, Nil{}}) == True{} : Bool}, MB.false_ne_true()(h))
+        case Con{+b, +t}:
+          en_cons(r, b, t, h)
+
+def en_mb(+cs: List<&2, R.FzC>, m: Maybe<&2, U32>, +F: List<&2, U32>, +h: {RG.enough(cs, F) == True{} : Bool}) -> {RG.enough(cs, IM.mb.cons(m, F)) == True{} : Bool}:
+  match m:
+    case Some{+p}:
+      en_cons(cs, p, F, h)
+    case None{}:
+      h
+
+# one crossing, whichever its far end's find: the step's premises, and
+# the next steps' from the start's (the rest's ih, at what the step leaves)
+def cxs.step(+m: Maybe<&2, U32>, +at: U32, +src: U32, +far: U32, +r: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +b: U32, +t: List<&2, U32>,
+  +hsrc: {RG.lacks(I, src) == True{} : Bool}, +hrest: {RG.lacks.all(RG.srcs(r), I) == True{} : Bool}, +hnin: {Bool.not(RG.has(RG.srcs(r), src)) == True{} : Bool}, +hen: {RG.enough(r, t) == True{} : Bool},
+  ih: @J: IM.Ix -> @G: List<&2, U32> -> {RG.lacks.all(RG.srcs(r), J) == True{} : Bool} -> {RG.enough(r, G) == True{} : Bool} -> {RG.cxs.ok(r, vm, dm, J, G) == True{} : Bool}) ->
+  {(RG.cx.ab(m, I, src) && RG.cx.room(m, I, Con{b, t})) && RG.cxs.ok(r, vm, dm, RG.cx.I(m, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(Con{b, t}), far), RG.cx.F1(m, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(m, I, Con{b, t}))) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      MB.and_eq_true(RG.cx.ab(Some{y}, I, src) && RG.cx.room(Some{y}, I, Con{b, t}), RG.cxs.ok(r, vm, dm, IM.ix.del(I, y, far), Con{y, Con{RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), IM.mb.cons(IM.ix.par(I, y, far), Con{b, t})}}), {==}, ih(IM.ix.del(I, y, far), Con{y, Con{RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), IM.mb.cons(IM.ix.par(I, y, far), Con{b, t})}}, delall_lacks(RG.srcs(r), I, y, far, hrest), en_cons(r, y, Con{RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), IM.mb.cons(IM.ix.par(I, y, far), Con{b, t})}, en_cons(r, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), IM.mb.cons(IM.ix.par(I, y, far), Con{b, t}), en_mb(r, IM.ix.par(I, y, far), Con{b, t}, en_cons(r, b, t, hen))))))
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          MB.and_eq_true(RG.cx.ab(None{}, IM.Ept{}, src) && RG.cx.room(None{}, IM.Ept{}, Con{b, t}), RG.cxs.ok(r, vm, dm, IM.ix.put(IM.Ept{}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b), Con{b, t}), {==}, ih(IM.ix.put(IM.Ept{}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b), Con{b, t}, putall_lacks(RG.srcs(r), IM.Ept{}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b, hrest, hnin), en_cons(r, b, t, hen)))
+        case IM.Has{+u}:
+          +hab = ME.subst(Maybe<&2, U32>, q => {RG.isnone(q) == True{} : Bool}, None{}, IM.tr.look(u, src), Equal.sym(Maybe<&2, U32>, IM.tr.look(u, src), None{}, look_lacks.t(u, src, hsrc)), {==})
+          MB.and_eq_true(RG.cx.ab(None{}, IM.Has{u}, src) && RG.cx.room(None{}, IM.Has{u}, Con{b, t}), RG.cxs.ok(r, vm, dm, IM.ix.put(IM.Has{u}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b), t), MB.and_eq_true(RG.cx.ab(None{}, IM.Has{u}, src), RG.cx.room(None{}, IM.Has{u}, Con{b, t}), hab, {==}), ih(IM.ix.put(IM.Has{u}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b), t, putall_lacks(RG.srcs(r), IM.Has{u}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, b, hrest, hnin), hen))
+
+# a serve's crossings at its start: their positions distinct and absent
+# from the index, a node of the free list for each, give RG.cxs.ok's
+# premises at every step
+def cxs_start(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +F: List<&2, U32>,
+  +hd: {RG.distinct(RG.srcs(cs)) == True{} : Bool}, +ha: {RG.lacks.all(RG.srcs(cs), I) == True{} : Bool}, +hr: {RG.enough(cs, F) == True{} : Bool}) -> {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{c, +r}:
+      match c:
+        case R.FzC{+at, +src, +neg, +far}:
+          match F:
+            case Nil{}:
+              Empty.absurd({RG.cxs.ok(Con{R.FzC{at, src, neg, far}, r}, vm, dm, I, Nil{}) == True{} : Bool}, MB.false_ne_true()(hr))
+            case Con{+b, +t}:
+              +hdr = MB.eq_true_of_and_right(Bool.not(RG.has(RG.srcs(r), src)), RG.distinct(RG.srcs(r)), hd)
+              cxs.step(IM.ix.look(I, far), at, src, far, r, vm, dm, I, b, t, MB.eq_true_of_and_left(RG.lacks(I, src), RG.lacks.all(RG.srcs(r), I), ha), MB.eq_true_of_and_right(RG.lacks(I, src), RG.lacks.all(RG.srcs(r), I), ha),
+                MB.eq_true_of_and_left(Bool.not(RG.has(RG.srcs(r), src)), RG.distinct(RG.srcs(r)), hd), hr,
+                J => G => hJ => hG => cxs_start(r, vm, dm, J, G, hdr, hJ, hG))
+
+def Laws.cxs_start(cs, vm, dm, I, F, hd, ha, hr):
+  cxs_start(cs, vm, dm, I, F, hd, ha, hr)
+
+# The pending placeholders over the index
+# =======================================
+#
+# cells-freeze.sharing.cursors.index.ring.inv: the invariant RG.px.ok,
+# every node a serve touches in one list N laid out once, apartness
+# taken from it (XL.layout_ok, XL.layout_sep), roles by membership.
+
 def and_intro(+p: Bool, +q: Bool, +hp: {p == True{} : Bool}, +hq: {q == True{} : Bool}) -> {Bool.and(p, q) == True{} : Bool}:
   XP.and_intro(p, q, hp, hq)
 
