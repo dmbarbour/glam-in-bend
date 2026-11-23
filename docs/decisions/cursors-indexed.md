@@ -39,7 +39,8 @@ given."
 - Every dead cursor is kept, its memory accepted, until a removal
   criterion or coarser copies are understood.
 - One cursor a position in a copy: an insert meeting its own key is a
-  kernel error, the tree unchanged, and a law.
+  kernel error, the tree unchanged, and a law (`insert_dup`, which
+  states it of the whole heap).
 
 Why the net's nodes, for performance:
 - Nothing walks the cursors any more: a lookup descends at most 33

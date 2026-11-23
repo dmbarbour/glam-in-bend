@@ -95,10 +95,24 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - Measured: 52 instructions a serve, +0.05% on `seq` and `deep` at
       every size from 100 to 1,600 (store run 341 against run 340, the
       merged code's, now cited in `cursors-indexed`).
-  - `cursor-laws.dup` — planned — one cursor a position as a law (F2,
-    H3; P9, P8), investigated first, backed off if impractical. M.
-    - `insert_dup`: an insert meeting its own key counts one error and
-      writes nothing else. With `.stop`, the run then stops.
+  - `cursor-laws.dup` — active — one cursor a position as a law (F2,
+    H3; P9, P8), investigated first, backed off if impractical. M. On
+    the side branch `cursor-laws-dup`, for approval at its merge.
+    - `insert_dup`, built 2026-11-23: an insert meeting its own key
+      equals the heap with one error counted
+      (`X.ix.insert(H, s, x) == P.err_if(True{}, H)`), on the find's
+      premises, x's word 2 the key and the key found. The proof is
+      `insert_tree`'s reads down to the descent (`dsn`), then `near_eq`,
+      the dual of `near_ne`: the leaf reached holds the key. Three
+      mutants refute it on a two-leaf witness (`WB.ix_pair_pl(7)`):
+      `dup_uncounted`, `dup_key_unread` and the existing
+      `descent_wrong_side`. Most single-site mutants of the path are
+      equivalent, the scan's refusal (`ix.put.c`) following only equal
+      keys, as the law's comment says. With `.stop`, the run then
+      stops. `glam/INDEX_PROOF.bend` now imports `glam/witness.bend`,
+      as the other proof files do, for its witnesses. Not stated yet: the
+      serve-level corollary, `R.cursor` at a position the index holds,
+      one application where `cursor_pend`'s proof has `hr` and `hk`.
     - `cxs_ab`: the crossings' positions distinct and absent from the
       index at the serve's start give `RG.cxs.ok`'s stepwise absence.
       `cxs_room` beside it, the free list's nodes enough.

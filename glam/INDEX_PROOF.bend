@@ -64,6 +64,7 @@ import ../spike/kmodel.bend as KMd
 import ./index.bend as X
 import ./index_model.bend as IM
 import ./ring_model.bend as RG
+import ./witness.bend as WB
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
@@ -2435,6 +2436,74 @@ def insert.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: 
 
 def Laws.insert_tree(w, a, d, s, I, x, k, b, hf, hd32, hr, hi, hl, hfr, hm, hk, hb, ha):
   insert.m(w, a, d, s, I, x, k, b, hf, hd32, hr, hi, hl, hfr, hm, hk, hb, ha, LAT.mirror(U32, w))
+
+# An insert meeting its own key (insert_dup; cursor-laws.dup): the
+# descent's leaf has the key (near_eq, near_ne's dual), so that the put
+# refuses it, the error counted and nothing else written
+def ne.k(+sd: Bool, +k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +z: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hy: {IM.mb.pick(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k)) == Some{z} : Maybe<&2, U32>},
+  ihl: {IM.tr.look(l, k) == Some{z} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.near(l, k), k) == True{} : Bool},
+  ihr: {IM.tr.look(r, k) == Some{z} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.near(r, k), k) == True{} : Bool}) ->
+  {U32.is_eq(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), k) == True{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) : {U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k) == True{} : Bool}
+      ihr(ME.subst(Bool, q => {IM.mb.pick(q, IM.tr.look(r, k), IM.tr.look(l, k)) == Some{z} : Maybe<&2, U32>}, X.ix.side(k, i), True{}, hsd, hy))
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) : {U32.is_eq(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), k) == True{} : Bool}
+      ihl(ME.subst(Bool, q => {IM.mb.pick(q, IM.tr.look(r, k), IM.tr.look(l, k)) == Some{z} : Maybe<&2, U32>}, X.ix.side(k, i), False{}, hsd, hy))
+
+def near_eq(T: IM.Tr, +k: U32, +z: U32, +hy: {IM.tr.look(T, k) == Some{z} : Maybe<&2, U32>}) -> {U32.is_eq(IM.tr.near(T, k), k) == True{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      hit_true(U32.is_eq(ky, k), y, z, hy)
+    case IM.Br{+b, +i, +l, +r}:
+      ne.k(X.ix.side(k, i), k, i, l, r, z, {==}, hy, hl => near_eq(l, k, z, hl), hr => near_eq(r, k, z, hr))
+
+# a tree: insert.has's reads to the descent, then put.n's test true
+def dup.has(+T: IM.Tr, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +x: U32, +k: U32, +z: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, IM.Has{T}) == True{} : Bool}, +hi: {IM.tr.ok(T, 0n) == True{} : Bool},
+  +hk: {KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (x + 2 : U32)) == k : U32}, +hy: {IM.tr.look(T, k) == Some{z} : Maybe<&2, U32>}) ->
+  {X.ix.insert(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}:
+  +hne_s = not_true(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s), and_l(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s)), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s), hre))
+  +hreT = and_r(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s)), IM.tr.real(AD.view(U32, LAT.fromT(U32, t0)), d, T, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s), hre)
+  %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (x + 2 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (x + 2 : U32)))), rd_eq(t0, a, (x + 2 : U32))) : {X.ix.put.x(_, s, x) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, (s + 3 : U32)), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (s + 3 : U32)))), rd_eq(t0, a, (s + 3 : U32))) : {X.ix.put.r(_, s, x, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (x + 2 : U32)))) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %wd(t0, d, (x + 2 : U32), hft, hd32) : {X.ix.put.k(U32.is_eq(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (s + 3 : U32))), s), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (s + 3 : U32))), _, x, s) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (x + 2 : U32)), k, hk) : {X.ix.put.k(U32.is_eq(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (s + 3 : U32))), s), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (s + 3 : U32))), _, x, s) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %wd(t0, d, (s + 3 : U32), hft, hd32) : {X.ix.put.k(U32.is_eq(_, s), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, _, k, x, s) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %Equal.sym(Bool, U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), s), False{}, hne_s) : {X.ix.put.k(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), k, x, s) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %Equal.sym(P.H, X.ix.put.d(X.ds.run(33n, X.Ds{P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), True{}}, k), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), k, x, s), X.ix.put.n(U32.is_eq(IM.tr.near(T, k), k), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(T, k), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), k, x, s),
+    dsn(T, 33n, t0, a, d, s, k, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), 0n, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), x, hft, hd32, hreT, hi, {==})) : {_ == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  %Equal.sym(Bool, U32.is_eq(IM.tr.near(T, k), k), True{}, near_eq(T, k, z, hy)) : {X.ix.put.n(_, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, IM.tr.near(T, k), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (s + 3 : U32)), k, x, s) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}
+  {==}
+
+def dup.k(I: IM.Ix, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +x: U32, +k: U32, +z: U32,
+  +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hre: {IM.ix.real(AD.view(U32, LAT.fromT(U32, t0)), d, s, I) == True{} : Bool}, +hi: {IM.ix.inv(I) == True{} : Bool},
+  +hk: {KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (x + 2 : U32)) == k : U32}, +hy: {IM.ix.look(I, k) == Some{z} : Maybe<&2, U32>}) ->
+  {X.ix.insert(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}:
+  match I:
+    case IM.Ept{}:
+      Empty.absurd({X.ix.insert(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) : P.H}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{z}, hy)))
+    case IM.Has{+t}:
+      dup.has(t, t0, a, d, s, x, k, z, hft, hd32, hre, hi, hk, hy)
+
+def dup.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: U32, +k: U32, +z: U32,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}, hi: {IM.ix.inv(I) == True{} : Bool},
+  hk: {KMd.word(AD.view(U32, w), d, (x + 2 : U32)) == k : U32}, hy: {IM.ix.look(I, k) == Some{z} : Maybe<&2, U32>}, m: LAT.Mirror(U32, w)) ->
+  {X.ix.insert(P.H{KM.MG{w}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{w}, a}) : P.H}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  %e : {X.ix.insert(P.H{KM.MG{_}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{_}, a}) : P.H}
+  dup.k(I, t0, a, d, s, x, k, z, hft, hd32,
+    LAB.subst(Array<U32>, q => {IM.ix.real(AD.view(U32, q), d, s, I) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hr), hi,
+    LAB.subst(Array<U32>, q => {KMd.word(AD.view(U32, q), d, (x + 2 : U32)) == k : U32}, w, LAT.fromT(U32, t0), ew, hk), hy)
+
+def Laws.insert_dup(w, a, d, s, I, x, k, y, hf, hd32, hr, hi, hk, hy):
+  dup.m(w, a, d, s, I, x, k, y, hf, hd32, hr, hi, hk, hy, LAT.mirror(U32, w))
 
 # Frames
 # ======

@@ -22,7 +22,7 @@ import ../spike/kprim.bend as P
 #   within 33 steps is a corrupt tree, reported
 #   (corruption-reported-when-cheap).
 # - Keys are distinct: an insert meeting its own key is an error, the
-#   tree unchanged (one cursor a position in a copy, a law to come).
+#   tree unchanged (one cursor a position in a copy: insert_dup).
 # - The tests are Bools and their choices made by helpers matching them
 #   (ix.kid, ix.pick), and a branch's bit is a Nat below 32, so that the
 #   laws follow a descent by cases, without arithmetic on bits
