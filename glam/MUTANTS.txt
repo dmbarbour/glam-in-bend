@@ -454,7 +454,7 @@ src = 5
 neg = False{}
 b = 36
 
-=== cursor_pos_in_word3 cursor_pos
+=== cursor_pos_in_word3 cursor_pos cursor_pend
 the position written to the cursor's word 3, which the insert overwrites
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
@@ -469,6 +469,20 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 src = 7
 neg = True{}
+>>> witness cursor_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
+x = 20
+src = 5
+neg = False{}
+b = 36
 
 === cursor_head_in_word1 cursor_ok cursor_head cursor_pend
 the header written to the cursor's word 1
@@ -486,14 +500,19 @@ x = 20
 src = 7
 neg = False{}
 >>> witness cursor_head
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
-t = Con{12, Con{16, Nil{}}}
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
 x = 20
-src = 7
+src = 5
 neg = False{}
+b = 36
 >>> witness cursor_pend
 w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
@@ -516,14 +535,19 @@ a negative cursor given the positive form
 +++
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(Bool.not(neg)), 0)), (pl + 2 : U32), src), situ, pl)
 >>> witness cursor_head
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 52), 18, 9), 19, 8), 20, 18), 22, 5)
+w = WB.ix_one(3)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
-t = Con{12, Con{16, Nil{}}}
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
 x = 20
-src = 7
-neg = True{}
+src = 5
+neg = False{}
+b = 36
 
 # A join (join_keeps): each mutation writes a word outside the ring's
 # members, the free list's head and the faced ports' link words. Over the
@@ -668,7 +692,7 @@ x = 20
 y = 16
 k = 9
 
-=== join1_frees_faced join1_keeps
+=== join1_frees_faced join1_keeps join1_pend
 the port the placeholder faced freed, not the placeholder: a node outside
 the ring written, which the frame law refuses; the ring itself is left
 exact, join1_exact surviving (its proof alone breaks, its witness held)
@@ -685,6 +709,19 @@ t = Con{12, Con{16, Nil{}}}
 x = 20
 y = 16
 j = 44
+>>> witness join1_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+x = 20
+y = 16
+k = 9
 
 === unlink_clears_pred_position join_keeps join1_keeps
 the predecessor's word 2, its position, cleared as its word 3 is given
@@ -989,7 +1026,7 @@ x = 24
 y = 16
 j = 54
 
-=== cursor_header_past_node cursor_keeps crossings_keeps
+=== cursor_header_past_node cursor_keeps crossings_keeps cursor_head
 a cursor's header written past its node, on the next node's word 0
 --- ring.bend
   rg.insert(P.wr(P.wr(h, pl, P.hd2(18, cur.form(neg), 0)), (pl + 2 : U32), src), situ, pl)
@@ -1017,6 +1054,20 @@ F = Con{36, Nil{}}
 N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
 cs = Con{R.FzC{0, 11, False{}, 3}, Nil{}}
 j = 28
+>>> witness cursor_head
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{36, Nil{}}}}}
+x = 20
+src = 5
+neg = False{}
+b = 36
 
 === join1_links_static crossings_keeps join1_keeps
 the placeholder's static port linked as a node's: word 28, the "link

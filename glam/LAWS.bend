@@ -235,23 +235,35 @@ law cursor_ok:
   for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
   {RG.ring.ok(AD.view(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg))), d, s, Con{x, t}) == True{} : Bool}
 
-# LAW: a placeholder x made a cursor, x ready to enter the ring, holds
-# its header, a cursor's kind (18) and form (0 negative, 1 positive), at word 0 (cells-freeze.nested.host.serve).
+# LAW: a placeholder x made a cursor (R.cursor), on cursor_pend's
+# premises, holds its header, a cursor's kind (18) and form (0 negative,
+# 1 positive), at word 0 after the insert into the index
+# (cells-freeze.sharing.cursors.index.ring.retire: no other law sees a
+# cursor's form).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
 law cursor_head:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +x: U32
   for +src: U32
   for +neg: Bool
+  for +b: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hx: {RG.enter.ok(AD.view(U32, w), d, s, t, x) == True{} : Bool}
-  {Pair.snd(Array<U32>, U32, Array.get(U32, RG.words(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg)), x)) == P.hd2(18, R.cur.form(neg), 0) : U32}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, Con{x, ps}, L, IM.ix.take(I, b, F), N) == True{} : Bool}
+  for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
+  {Pair.snd(P.H, U32, P.rd(R.cursor(P.H{KM.MG{w}, a}, s, x, src, neg), x)) == P.hd2(18, R.cur.form(neg), 0) : U32}
 
 # LAW: a placeholder x made a cursor, x ready to enter the ring, holds
 # its position src at word 2, where a find reads it (cells-freeze.nested.host.serve).
