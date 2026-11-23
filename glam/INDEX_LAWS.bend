@@ -236,7 +236,7 @@ law del_lay:
 # LAW: the leftmost cursor at key k (IM.ix.at, which a find gives by
 # look_at and find_tree) is the ring's first match over the tree's
 # leaves (RG.first, its keys read from the words), so that a find on
-# the index gives what the ring's find_exact gave, the members the
+# the index gives what the ring's find gave, the members the
 # leaves.
 # Record: cursors-indexed
 # Record: hub-laws-reused

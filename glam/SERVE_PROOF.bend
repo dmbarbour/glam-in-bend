@@ -1034,7 +1034,6 @@ def faced_agree(ys: List<&2, U32>, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink
         ME.subst(List<&2, U32>, z => {Con{RG.pl.of(List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((m + 1 : U32), d))), RG.faced(r, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d)} == Con{RG.pl.of(List.get(&2, U32, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), AD.slot((m + 1 : U32), d))), z} : List<&2, U32>},
           RG.faced(r, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))), d), RG.faced(r, AD.view(U32, LAT.fromT(U32, t0)), d), faced_agree(r, ts, ls, t0, ta, tm, d, dm, by, ns, s, t, hft, hd32, hfmt, hdm, hct, hl, hlay, hbs, hdy, hpa, hhd, hfr, ht, MB.eq_true_of_and_right(RG.has(Con{s, t}, m), RG.sub(r, Con{s, t}), hs)), {==}))
 
-# the copy, then the crossings, their premise the copy's pend.ok
 # The served cursor leaving at the source's root (serve_ring_exact). The
 # crossings keep the map they read
 def cr_map(cs: List<&2, R.FzC>, -mp: Array<U32>, -h: P.H, +s: U32, mm: LAT.Mirror(U32, mp)) -> {Pair.fst(Array<U32>, P.H, R.crossings(cs, (mp, h), s)) == mp : Array<U32>}:

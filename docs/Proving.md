@@ -239,6 +239,12 @@ it alone taught. Add to this file what a new proof teaches.
   `spike/PROOF.bend`). An erased array named in a proof's terms without
   its mirror fails with an error naming the definition and nothing more
   (`cr_map` in `glam/SERVE_PROOF.bend`, 2026-11-20).
+- **Lessons learned on the ring's proofs keep their names.** The
+  ring's laws and proofs retired with it (2026-11-23,
+  `cells-freeze.sharing.cursors.index.ring.retire`); lemmas the lessons
+  below name from them (`crs.go`, `crfi.go`, `crl_keeps.m`,
+  `serve_exact.m`, `cursor_keeps.m`, `join_keeps.go`, `join_exact.m`)
+  are in git before ebc5887.
 - **A fold's twin is derived from its text.** Where a new conclusion
   follows the same recursion as a proved fold, the generator reads the
   fold from its proof file, swaps the goal (a call matched by its
@@ -358,6 +364,33 @@ it alone taught. Add to this file what a new proof teaches.
   matches binders in the order bound) until the goal computes or a
   premise computes false. A dependent premise (`@z: U32 -> ...`) is used
   once, so a fact for every member is an induction of its own instead.
+- **A lemma over any heap's parts mirrors both.** `jnk2`
+  (`glam/PROOF.bend`, the join's frame below its first removal) takes the
+  words and the value table erased, each with its mirror: an erased
+  value table passed to a law whose table is relevant
+  (`XL.remove_keeps`) is refused, its mirror's `LAT.fromT(V.Val, ta2)`
+  is not. A parameter a lemma's terms use twice takes `+`; the checker
+  points at the parameter alone (`jnk2`'s index `J`).
+- **A frame read at the word it wrote gives the write's value.**
+  `cursor_head` is the cursor's frame chain (`cfr_case`) with `j` the
+  cursor's own word 0: the insert's frame law keeps it, the array's
+  `get_set_same` closes the chain (`ch.*` in `glam/PROOF.bend`).
+- **A witness checks without its proof file.** one_law's witness file
+  imports the code and the models, never a proof, so a law's premises
+  are shown met together (each by `{==}`) while its proof file fails:
+  `results/index_bits/retire/wcheck.py` runs a mutants file's witnesses
+  unmutated and mutated so, and showed the serve's four laws
+  non-vacuous before the ring's proofs were retired.
+- **A survey by name reads words in comments.** Reachability collected
+  from definitions' text counts a word in a comment as a use (`ring`,
+  `chain` in `glam/ring_model.bend`'s comments kept their defs alive);
+  strip comment lines first (`results/index_bits/retire/retire.py`).
+- **Retire laws by disposition, mutants first.** Before deleting a law,
+  classify each mutant naming it by whether its mutated code is reachable
+  from the code's callers and which surviving law catches it
+  (`results/index_bits/retire/live.py`): a live mutant left with no law
+  marks a law to restate (`cursor_head`, `join_keeps` over the index),
+  a dead one goes with its code, naming its counterpart if any.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).

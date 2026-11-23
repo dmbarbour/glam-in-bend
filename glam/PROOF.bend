@@ -1,6 +1,9 @@
 # glam's proofs of glam/LAWS.bend.
 #
-# Lessons, beside docs/Proving.md's: a walk that only reads (the ring's,
+# Lessons, beside docs/Proving.md's. Those of this paragraph were learned
+# on the ring's proofs, retired with it (the Cells plan's
+# cells-freeze.sharing.cursors.index.ring.retire); git before ebc5887
+# keeps the lemmas they name. A walk that only reads (the ring's,
 # R.rg.pred.go) keeps its heap by induction on its fuel, each step's two
 # cases split by a step lemma taking the test's Bool and its equation, the
 # induction hypotheses for both cases passed in (go_pair, go_step); a
@@ -27,13 +30,13 @@
 # branch (ch_keep). Laws stated by membership are proved through their
 # split (lpre, lpost, split_of_has), the split forms kept as lemmas; a
 # definition cannot match a computed Bool, so a list taken apart by a test
-# selects with a helper matching its Bool parameter (RG.keep, RG.pick,
-# pick_l). The hub's Bool lemmas take their Bools relevantly: a fact
-# about the view of an erased array is first moved onto its mirror's
-# array, the value table's too where a heap after a step is named
-# (join_exact.m). A rewrite may not stand inside a lambda: there,
-# ME.subst. A lambda's parameter is used once: a case split needing it
-# twice is a step lemma over Bools and their equations, the induction
+# selects with a helper matching its Bool parameter (RG.keep). The hub's
+# Bool lemmas take their Bools relevantly: a fact about the view of an
+# erased array is first moved onto its mirror's array, the value table's
+# too where a heap after a step is named. A rewrite may not stand inside
+# a lambda: there, ME.subst. A lambda's parameter is used once: a case
+# split needing it twice is a step lemma over Bools and their equations,
+# the induction
 # hypothesis passed in as a function (lp_step). An invariant kept through
 # a write is easier stated so that the write's value keeps it wherever it
 # lands (faces_write) than by locating every member the write may hit. A
