@@ -74,5 +74,11 @@ def ix_pair_k(+ky: U32) -> Array<U32>:
 def ix_pair() -> Array<U32>:
   ix_pair_k(9)
 
+# and a placeholder 20 at position pos, facing node 44's port 0: at a
+# key the index holds (9 or 7), an insert meeting its own key
+# (insert_dup)
+def ix_pair_pl(+pos: U32) -> Array<U32>:
+  ix_branch28(placeholder(leaf(leaf(situ(empty(10), 8, 99, 28), 16, 9, 8, KMd.ref(52, 0)), 12, 7, 8, KMd.ref(40, 1)), 20, KMd.ref(44, 0), pos))
+
 def ix_pair_st(+f12: U32) -> Array<U32>:
   ix_branch28(P.put_st(member(leaf(situ(empty(10), 8, 99, 28), 16, 9, 8, KMd.ref(52, 0)), 12, P.hd2(18, 0, 0), 7, 8), 12, f12))

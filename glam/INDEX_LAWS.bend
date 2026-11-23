@@ -117,6 +117,34 @@ law insert_tree:
   for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
   {IM.ix.real(AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, s, IM.ix.put(I, x, k, b)) == True{} : Bool}
 
+# LAW: one cursor a position (cursors-indexed): an insert meeting its own
+# key, a cursor x whose position k the index already holds (y found
+# there), puts nothing; it counts one kernel error and writes no other
+# word, the heap otherwise as it was (P.err_if, whose frame is
+# spike/HEAP_LAWS.bend's), so that the run stops at the serve's end
+# (implementation-errors-stop). Of the insert's two refusals the leaf's
+# key compared equal (ix.put.n) is this one; the scan finding no
+# differing bit (ix.put.c) follows only equal keys (ne_found), and is
+# not reached past it.
+# Record: cursors-indexed
+# Record: implementation-errors-stop
+law insert_dup:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +y: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hk: {KMd.word(AD.view(U32, w), d, (x + 2 : U32)) == k : U32}
+  for hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}
+  {X.ix.insert(P.H{KM.MG{w}, a}, s, x) == P.err_if(True{}, P.H{KM.MG{w}, a}) : P.H}
+
 # LAW: and a removal, on remove_tree's premises, writes no word but the
 # situating node's word 3, the branches' words and the free list's head
 # (the pointer to the parent rewritten, the parent freed): every other

@@ -18,12 +18,21 @@ a scan that stops where the keys agree
 +++
   cr.k(Bool.not(ix.same(ix.side(a, i), ix.side(b, i))), i)
 
-=== descent_wrong_side find_tree
+=== descent_wrong_side find_tree insert_dup
 a descent taking the child the key's bit does not give
 --- index.bend
       ds.c(P.rd(h, ix.kid(ix.side(k, i), x)))
 +++
       ds.c(P.rd(h, ix.kid(Bool.not(ix.side(k, i)), x)))
+>>> witness insert_dup
+w = WB.ix_pair_pl(7)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+x = 20
+k = 7
+y = 12
 
 === descent_fuel_32 find_tree
 a descent one step short, so that a tree of 32 bits on its way ends
@@ -378,3 +387,43 @@ the realization no longer reading a cursor's home at its word 3
       U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)))
 +++
       U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && True{}))
+
+=== dup_uncounted insert_dup
+an insert meeting its own key refused without counting the error: the
+heap as it was, the duplicate unreported
+--- index.bend
+    case True{}:
+      P.err_if(True{}, h)
+    case False{}:
+      ix.put.c(ix.diff(k, nk), h, root, k, x, s)
++++
+    case True{}:
+      h
+    case False{}:
+      ix.put.c(ix.diff(k, nk), h, root, k, x, s)
+>>> witness insert_dup
+w = WB.ix_pair_pl(7)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+x = 20
+k = 7
+y = 12
+
+=== dup_key_unread insert_dup
+the leaf the descent ends at compared by its word 3, its home, not its
+key: a duplicate goes on to be put, a branch taken from the free list
+--- index.bend
+      ix.put.l(P.rd(h, (l + 2 : U32)), root, k, x, s)
++++
+      ix.put.l(P.rd(h, (l + 3 : U32)), root, k, x, s)
+>>> witness insert_dup
+w = WB.ix_pair_pl(7)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+x = 20
+k = 7
+y = 12
