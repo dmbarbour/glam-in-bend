@@ -2821,6 +2821,156 @@ def crit_ag(+f: Nat, +i: Nat, +a: U32, +b: U32, +eq: Bool, +heq: {X.ix.same(X.ix
           %Equal.sym(Bool, X.ix.same(X.ix.side(a, i), X.ix.side(b, i)), False{}, heq) : {Bool.and(IM.tr.agree(a, b, i), Bool.not(_)) == True{} : Bool}
           and_intro(IM.tr.agree(a, b, i), True{}, hag, {==})
 
+# Keys below a branch
+# ===================
+
+# every key alike with p alike with q, p and q alike
+def all_rep(t: IM.Tr, +p: U32, +q: U32, +i: Nat, +sd: Bool, +h: {IM.tr.all(t, p, i, sd) == True{} : Bool}, +hpq: {IM.tr.agree(p, q, i) == True{} : Bool}) -> {IM.tr.all(t, q, i, sd) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      and_intro(IM.tr.agree(k, q, i), X.ix.same(X.ix.side(k, i), sd), agree_trans(k, p, q, i, and_l(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd), h), hpq), and_r(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd), h))
+    case IM.Br{+b, +j, +l, +r}:
+      and_intro(IM.tr.all(l, q, i, sd), IM.tr.all(r, q, i, sd), all_rep(l, p, q, i, sd, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hpq),
+        all_rep(r, p, q, i, sd, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hpq))
+
+# the leftmost key among them
+def all_first(t: IM.Tr, +p: U32, +i: Nat, +sd: Bool, +h: {IM.tr.all(t, p, i, sd) == True{} : Bool}) -> {IM.tr.agree(IM.tr.first(t), p, i) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      and_l(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd), h)
+    case IM.Br{+b, +j, +l, +r}:
+      all_first(l, p, i, sd, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h))
+
+# and the key k's descent meets
+def an.k(+sd: Bool, +k: U32, +j: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +i: Nat, +s2: Bool, +hsd: {X.ix.side(k, j) == sd : Bool},
+  +ihl: {Bool.and(IM.tr.agree(IM.tr.near(l, k), p, i), X.ix.same(X.ix.side(IM.tr.near(l, k), i), s2)) == True{} : Bool},
+  +ihr: {Bool.and(IM.tr.agree(IM.tr.near(r, k), p, i), X.ix.same(X.ix.side(IM.tr.near(r, k), i), s2)) == True{} : Bool}) ->
+  {Bool.and(IM.tr.agree(X.ix.pick(X.ix.side(k, j), IM.tr.near(r, k), IM.tr.near(l, k)), p, i), X.ix.same(X.ix.side(X.ix.pick(X.ix.side(k, j), IM.tr.near(r, k), IM.tr.near(l, k)), i), s2)) == True{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, j), True{}, hsd) : {Bool.and(IM.tr.agree(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), p, i), X.ix.same(X.ix.side(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), i), s2)) == True{} : Bool}
+      ihr
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, j), False{}, hsd) : {Bool.and(IM.tr.agree(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), p, i), X.ix.same(X.ix.side(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), i), s2)) == True{} : Bool}
+      ihl
+
+def all_near(t: IM.Tr, +k: U32, +p: U32, +i: Nat, +sd: Bool, +h: {IM.tr.all(t, p, i, sd) == True{} : Bool}) ->
+  {Bool.and(IM.tr.agree(IM.tr.near(t, k), p, i), X.ix.same(X.ix.side(IM.tr.near(t, k), i), sd)) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +kk}:
+      h
+    case IM.Br{+b, +j, +l, +r}:
+      an.k(X.ix.side(k, j), k, j, l, r, p, i, sd, {==},
+        all_near(l, k, p, i, sd, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h)),
+        all_near(r, k, p, i, sd, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h)))
+
+# a put adds its key alone: what every key holds, the tree after holds,
+# its key holding it too
+def pall.join(+sdc: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +p: U32, +i: Nat, +sd: Bool,
+  +hU: {IM.tr.all(U, p, i, sd) == True{} : Bool}, +hk: {Bool.and(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd)) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.join(sdc, U, x, k, b, c), p, i, sd) == True{} : Bool}:
+  match sdc:
+    case True{}:
+      and_intro(IM.tr.all(U, p, i, sd), IM.tr.all(IM.Lf{x, k}, p, i, sd), hU, hk)
+    case False{}:
+      and_intro(IM.tr.all(IM.Lf{x, k}, p, i, sd), IM.tr.all(U, p, i, sd), hk, hU)
+
+def pall.k(+lt: Bool, +sdi: Bool, +b2: U32, +j: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +p: U32, +i: Nat, +sd: Bool,
+  +h: {IM.tr.all(IM.Br{b2, j, l, r}, p, i, sd) == True{} : Bool}, +hk: {Bool.and(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd)) == True{} : Bool},
+  +ihl: {IM.tr.all(IM.tr.place(l, x, k, b, c), p, i, sd) == True{} : Bool}, +ihr: {IM.tr.all(IM.tr.place(r, x, k, b, c), p, i, sd) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.place.k(lt, sdi, b2, j, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c), p, i, sd) == True{} : Bool}:
+  match lt:
+    case False{}:
+      pall.join(X.ix.side(k, c), IM.Br{b2, j, l, r}, x, k, b, c, p, i, sd, h, hk)
+    case True{}:
+      match sdi:
+        case True{}:
+          and_intro(IM.tr.all(l, p, i, sd), IM.tr.all(IM.tr.place(r, x, k, b, c), p, i, sd), and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), ihr)
+        case False{}:
+          and_intro(IM.tr.all(IM.tr.place(l, x, k, b, c), p, i, sd), IM.tr.all(r, p, i, sd), ihl, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h))
+
+def place_all(t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +p: U32, +i: Nat, +sd: Bool,
+  +h: {IM.tr.all(t, p, i, sd) == True{} : Bool}, +hk: {Bool.and(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd)) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.place(t, x, k, b, c), p, i, sd) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      pall.join(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, p, i, sd, h, hk)
+    case IM.Br{+b2, +j, +l, +r}:
+      pall.k(Nat.is_lt(j, c), X.ix.side(k, j), b2, j, l, r, x, k, b, c, p, i, sd, h, hk,
+        place_all(l, x, k, b, c, p, i, sd, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hk),
+        place_all(r, x, k, b, c, p, i, sd, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hk))
+
+# a branch's keys on their sides: the key k's descent meets lies on k's
+def ns.k(+sd: Bool, +k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hl: {IM.tr.all(l, p, i, False{}) == True{} : Bool}, +hr: {IM.tr.all(r, p, i, True{}) == True{} : Bool}) ->
+  {X.ix.same(X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i), X.ix.side(k, i)) == True{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) : {X.ix.same(X.ix.side(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), i), _) == True{} : Bool}
+      and_r(IM.tr.agree(IM.tr.near(r, k), p, i), X.ix.same(X.ix.side(IM.tr.near(r, k), i), True{}), all_near(r, k, p, i, True{}, hr))
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) : {X.ix.same(X.ix.side(X.ix.pick(_, IM.tr.near(r, k), IM.tr.near(l, k)), i), _) == True{} : Bool}
+      and_r(IM.tr.agree(IM.tr.near(l, k), p, i), X.ix.same(X.ix.side(IM.tr.near(l, k), i), False{}), all_near(l, k, p, i, False{}, hl))
+
+def near_side(+k: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +hl: {IM.tr.all(l, p, i, False{}) == True{} : Bool}, +hr: {IM.tr.all(r, p, i, True{}) == True{} : Bool}) ->
+  {X.ix.same(X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i), X.ix.side(k, i)) == True{} : Bool}:
+  ns.k(X.ix.side(k, i), k, i, l, r, p, {==}, hl, hr)
+
+# i not below c and not c: c below i
+def lt_of_nlt(+i: Nat, +c: Nat, +h1: {Nat.is_lt(i, c) == False{} : Bool}, +h2: {Nat.is_eq(i, c) == False{} : Bool}) -> {Nat.is_lt(c, i) == True{} : Bool}:
+  match i:
+    case 0n:
+      match c:
+        case 0n:
+          Empty.absurd({Nat.is_lt(0n, 0n) == True{} : Bool}, MB.true_ne_false()(h2))
+        case 1n+(+q):
+          Empty.absurd({Nat.is_lt(1n+q, 0n) == True{} : Bool}, MB.true_ne_false()(h1))
+    case 1n+(+j):
+      match c:
+        case 0n:
+          {==}
+        case 1n+(+q):
+          lt_of_nlt(j, q, h1, h2)
+
+# where the placement stops at a branch, its bit is above c: at c, the
+# key k's descent meets would lie on k's side, where k and it differ
+def sb.k(+e: Bool, +k: U32, +i: Nat, +c: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +he: {Nat.is_eq(i, c) == e : Bool},
+  +hlt: {Nat.is_lt(i, c) == False{} : Bool}, +hl: {IM.tr.all(l, p, i, False{}) == True{} : Bool}, +hr: {IM.tr.all(r, p, i, True{}) == True{} : Bool},
+  +hne: {X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)) == False{} : Bool}) -> {Nat.is_lt(c, i) == True{} : Bool}:
+  match e:
+    case False{}:
+      lt_of_nlt(i, c, hlt, he)
+    case True{}:
+      Empty.absurd({Nat.is_lt(c, i) == True{} : Bool}, MB.true_ne_false()(Equal.trans(Bool, True{}, X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)), False{},
+        ME.subst(Nat, z => {True{} == X.ix.same(X.ix.side(k, z), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), z)) : Bool}, i, c, MN.eq_of_is_eq(i, c, he),
+          Equal.sym(Bool, X.ix.same(X.ix.side(k, i), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i)), True{},
+            Equal.trans(Bool, X.ix.same(X.ix.side(k, i), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i)), X.ix.same(X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i), X.ix.side(k, i)), True{},
+              same_sym(X.ix.side(k, i), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), i)), near_side(k, i, l, r, p, hl, hr)))),
+        hne)))
+
+def stop_bit(+k: U32, +i: Nat, +c: Nat, +l: IM.Tr, +r: IM.Tr, +p: U32, +hlt: {Nat.is_lt(i, c) == False{} : Bool},
+  +hl: {IM.tr.all(l, p, i, False{}) == True{} : Bool}, +hr: {IM.tr.all(r, p, i, True{}) == True{} : Bool},
+  +hne: {X.ix.same(X.ix.side(k, c), X.ix.side(X.ix.pick(X.ix.side(k, i), IM.tr.near(r, k), IM.tr.near(l, k)), c)) == False{} : Bool}) -> {Nat.is_lt(c, i) == True{} : Bool}:
+  sb.k(Nat.is_eq(i, c), k, i, c, l, r, p, {==}, hlt, hl, hr, hne)
+
+# keys alike with p below a bit i above c, the key n alike with p below
+# c + 1: each alike with n below c, and at c
+def all_down(t: IM.Tr, +p: U32, +n: U32, +i: Nat, +c: Nat, +sd: Bool, +h: {IM.tr.all(t, p, i, sd) == True{} : Bool}, +hci: {Nat.is_le(1n+c, i) == True{} : Bool},
+  +hn: {IM.tr.agree(n, p, 1n+c) == True{} : Bool}) -> {IM.tr.all(t, n, c, X.ix.side(n, c)) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      +hkn = agree_trans(k, p, n, 1n+c, agree_le(k, p, 1n+c, i, hci, and_l(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd), h)), agree_sym(n, p, 1n+c, hn))
+      and_intro(IM.tr.agree(k, n, c), X.ix.same(X.ix.side(k, c), X.ix.side(n, c)), and_r(X.ix.same(X.ix.side(k, c), X.ix.side(n, c)), IM.tr.agree(k, n, c), hkn), and_l(X.ix.same(X.ix.side(k, c), X.ix.side(n, c)), IM.tr.agree(k, n, c), hkn))
+    case IM.Br{+b, +j, +l, +r}:
+      and_intro(IM.tr.all(l, n, c, X.ix.side(n, c)), IM.tr.all(r, n, c, X.ix.side(n, c)), all_down(l, p, n, i, c, sd, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hci, hn),
+        all_down(r, p, n, i, c, sd, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), h), hci, hn))
+
+# a tree's invariant from a lower bit: a leaf's below 32, a branch's below its own
+def ok_lo.br(+b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +lo: Nat, +lo2: Nat, +h: {IM.tr.ok(IM.Br{b, i, l, r}, lo) == True{} : Bool}, +hle: {Nat.is_le(lo2, i) == True{} : Bool}) ->
+  {IM.tr.ok(IM.Br{b, i, l, r}, lo2) == True{} : Bool}:
+  and_intro(Nat.is_le(lo2, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), hle,
+    and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(r, 1n+i)))), h))
+
 # Lookups
 # =======
 
