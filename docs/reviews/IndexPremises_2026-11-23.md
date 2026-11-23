@@ -74,6 +74,21 @@ through a serve (`RG.cxs` computes them after the crossings). Their
 premises (`layout`, `bases`, `past` over `M ++ ns`) replace
 `layout(Con{s, t} ++ ns)` and the ring. No change proposed.
 
+**F8. The law check reads `LAWS.bend` alone** (`scripts/check_laws.py`:
+"A law is a `law <name>:` block in a file named LAWS.bend"). A trial
+merge onto main (staged, checked with `--commit-msg`, aborted) asks
+trailers for `glam/LAWS.bend`'s 25 changes only, while the merge adds,
+removes or changes 71 laws: `glam/LAWS.bend` 25 (`join_pend`,
+`leave_pend` added; the 15 ring-era laws removed; `cross_pend`,
+`crossings_keeps`, `crossings_pend`, `cursor_head`, `cursor_pend`,
+`join1_pend`, `join_keeps`, `leave_keeps` changed),
+`glam/INDEX_LAWS.bend` 39 added, `glam/JOIN_LAWS.bend` 2 added
+(`link_live`, `link_leave`), `glam/SERVE_LAWS.bend` 4 changed (the
+serve's four), `glam/SPLICE_LAWS.bend` 1 added (`splice_free`); the
+list is `results/index_bits/retire/merge_laws.txt`. The merge commit
+names all 71. Asked: should the check read every `*LAWS.bend` (main's
+history would then be rechecked against those files too)?
+
 ## Per law
 
 The ring-era counterpart, then the premises over the index that it did
