@@ -75,6 +75,9 @@ IO shell.
 - [`laws-files-all-checked`](decisions/laws-files-all-checked.md): a
   commit on main names every law it changes in any laws file
   (`LAWS.bend` or `X_LAWS.bend`), which the law check reads.
+- [`step-laws-conclude-next-premises`](decisions/step-laws-conclude-next-premises.md):
+  a step law's conclusion carries what the next step's premises ask,
+  so that laws compose as laws.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its
