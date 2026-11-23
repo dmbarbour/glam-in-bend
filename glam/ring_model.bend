@@ -478,6 +478,52 @@ def cxs(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +L: List<&
             cx.L(IM.ix.look(I, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L),
             cx.F1(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, cx.tl(IM.ix.look(I, far), I, F)))
 
+# A serve's crossings at its start (cxs_start; the CursorLaws plan's
+# cursor-laws.dup): their positions, src
+def srcs(cs: List<&2, R.FzC>) -> List<&2, U32>:
+  match cs:
+    case Nil{}:
+      Nil{}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          Con{src, srcs(r)}
+
+# no cursor of the index at key k: no leaf holds it, read off the tree
+# alone, so that a removal keeps it and an insert at another key
+def lacks.t(t: IM.Tr, +k: U32) -> Bool:
+  match t:
+    case IM.Lf{+y, +ky}:
+      Bool.not(U32.is_eq(ky, k))
+    case IM.Br{+b, +i, l, r}:
+      lacks.t(l, k) && lacks.t(r, k)
+
+def lacks(I: IM.Ix, +k: U32) -> Bool:
+  match I:
+    case IM.Ept{}:
+      True{}
+    case IM.Has{t}:
+      lacks.t(t, k)
+
+def lacks.all(ks: List<&2, U32>, +I: IM.Ix) -> Bool:
+  match ks:
+    case Nil{}:
+      True{}
+    case Con{+k, r}:
+      lacks(I, k) && lacks.all(r, I)
+
+# a node of the free list for each crossing, an insert taking at most one
+def enough(cs: List<&2, R.FzC>, F: List<&2, U32>) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{c, r}:
+      match F:
+        case Nil{}:
+          False{}
+        case Con{+b, t}:
+          enough(r, t)
+
 # each crossing's premises in turn: its position absent where it makes a
 # cursor, room for the branch it takes
 def cxs.ok(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +F: List<&2, U32>) -> Bool:

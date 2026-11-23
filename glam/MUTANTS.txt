@@ -724,3 +724,40 @@ x = 12
 y = 16
 kx = 7
 ky = 9
+
+=== cxs_tail_all cxs_start
+a crossing that makes a cursor in a tree taking every node of the free
+list, not its first alone: two such crossings, two nodes, the second
+finds none for its branch
+--- ring_model.bend
+            case Con{+b, r}:
+              r
++++
+            case Con{+b, r}:
+              Nil{}
+>>> witness cxs_start
+cs = [R.FzC{0, 5, True{}, 3}, R.FzC{1, 6, True{}, 4}]
+vm = [20, 24]
+dm = 1n
+I = IM.Has{IM.Lf{16, 9}}
+F = [36, 40]
+
+=== put_key_shifted cxs_start
+the model's insert putting the new leaf at the key one past its position:
+the next crossing, at that key, finds its position held
+--- index_model.bend
+    case True{}:
+      Br{b, c, cur, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, cur}
++++
+    case True{}:
+      Br{b, c, cur, Lf{x, (k + 1 : U32)}}
+    case False{}:
+      Br{b, c, Lf{x, (k + 1 : U32)}, cur}
+>>> witness cxs_start
+cs = [R.FzC{0, 5, True{}, 3}, R.FzC{1, 6, True{}, 4}]
+vm = [20, 24]
+dm = 1n
+I = IM.Has{IM.Lf{16, 9}}
+F = [36, 40]

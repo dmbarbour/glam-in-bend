@@ -95,9 +95,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - Measured: 52 instructions a serve, +0.05% on `seq` and `deep` at
       every size from 100 to 1,600 (store run 341 against run 340, the
       merged code's, now cited in `cursors-indexed`).
-  - `cursor-laws.dup` — active — one cursor a position as a law (F2,
-    H3; P9, P8), investigated first, backed off if impractical. M. On
-    the side branch `cursor-laws-dup`, for approval at its merge.
+  - `cursor-laws.dup` — built 2026-11-23 — one cursor a position as a
+    law (F2, H3; P9, P8), investigated first, backed off if impractical.
+    `insert_dup` merged (9f00bcd, approved); `cxs_start` on the side
+    branch `cursor-laws-cxs`, for approval at its merge.
     - `insert_dup`, built 2026-11-23: an insert meeting its own key
       equals the heap with one error counted
       (`X.ix.insert(H, s, x) == P.err_if(True{}, H)`), on the find's
@@ -113,12 +114,25 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       as the other proof files do, for its witnesses. Not stated yet: the
       serve-level corollary, `R.cursor` at a position the index holds,
       one application where `cursor_pend`'s proof has `hr` and `hk`.
-    - `cxs_ab`: the crossings' positions distinct and absent from the
-      index at the serve's start give `RG.cxs.ok`'s stepwise absence.
-      `cxs_room` beside it, the free list's nodes enough.
-    - Whether freeze's crossings are distinct by a law of freeze: the
-      claim that makes the error unreachable. Investigated, and
-      reported as a question if large.
+    - `cxs_start`, built 2026-11-23: the crossings' positions distinct
+      (`RG.srcs`), none a key of the index (`RG.lacks.all`, read off the
+      tree: no leaf holds it), and a node of the free list for each
+      (`RG.enough`) give `RG.cxs.ok` at every step. It joins P8's two,
+      `cxs_ab` and `cxs_room`, into one law over the model. Absence
+      read off the tree needs no invariant: an absent key looks up to
+      nothing, and stays absent through a removal and through an
+      insert at another key. Two mutants of the model refute it on one
+      witness: an insert taking the whole free list, and the new leaf
+      at the wrong key.
+    - Whether freeze's crossings meet it splits in two. Within one
+      template, the positions distinct is freeze's own fact: its
+      premise `SV.copy.ok` keeps the holes in distinct slots, and their
+      positions are distinct ports. That is a law of freeze, carried to
+      `.materializer` with the template it builds. Absent from the
+      index at a serve's start depends on every serve before. It is the
+      invariant across serves, carried to `.loop`: the index's keys the
+      positions of copied trees' boundaries not yet joined, so that no
+      serve meets its own.
   - `cursor-laws.materializer` — planned — the materializer's
     composition under laws (`laws-over-tests`; F6, H2, F3). M to L.
     - `mz.sp`, `mz.sp.r`, `mz.root` and `mz.root.e` move into a module
@@ -142,7 +156,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       situating node is an empty index, and `cursor_pend` the base case.
       S to M, measured on the sharing families.
     - `cursor-laws.loop.shape` — planned — one change of the
-      invariant, every law restated once. L.
+      invariant, every law restated once. L. With it, the index's keys
+      across serves: those of copied trees' boundaries not yet joined,
+      so that a serve's crossings start absent (`cxs_start`'s premise,
+      from `.dup`).
       - The live nodes distinct (P5).
       - Layout, bases and past folded in (P10): four premises off
         every law.
