@@ -213,7 +213,7 @@ the model's removal keeping a subtree twice where it drops the parent
 +++
       Br{b, i, l, l}
 
-=== cut_keeps_leaf del_leaves remove_tree
+=== cut_keeps_leaf del_leaves remove_tree del_drop
 the model's removal keeping the cursor where it should give its parent up
 --- index_model.bend
     case True{}:
@@ -256,3 +256,30 @@ never uses
       P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s)
 +++
       P.wr(P.wr(Pair.fst(P.H, U32, P.alloc(h)), (s + 3 : U32), x), (x + 3 : U32), s)
+
+=== free_no_link free_push
+a free not linking the old head of the free list from the node it frees,
+so that the list ends at it
+--- ../spike/kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), 0), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+
+=== layout_no_cross layout_sep
+the ring's layout no longer keeping a node's words off the nodes after it
+--- ring_model.bend
+      apartw(nw(a), d) && (off(nw(a), d, P.at_fh()) && (cross(t, d, a) && layout(t, d)))
++++
+      apartw(nw(a), d) && (off(nw(a), d, P.at_fh()) && (True{} && layout(t, d)))
+
+=== join_other_leaf put_sub put_flsep
+the model's new branch holding a leaf at a node next to the cursor's, not
+the cursor
+--- index_model.bend
+      Br{b, c, cur, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, cur}
++++
+      Br{b, c, cur, Lf{(x + 4 : U32), k}}
+    case False{}:
+      Br{b, c, Lf{(x + 4 : U32), k}, cur}

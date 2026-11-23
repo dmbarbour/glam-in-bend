@@ -447,3 +447,89 @@ law del_drop:
   for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
   for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
   {IM.ix.flsep(IM.ix.del(I, x, k), s, d, IM.mb.cons(IM.ix.par(I, x, k), [x])) == True{} : Bool}
+
+# LAW: a write off the free list's first nodes (KMd.nodes.off) and its
+# head keeps them its first nodes.
+# Record: cursors-indexed
+law chain_kept:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +j: U32
+  for +val: U32
+  for +ns: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hjh: {Nat.is_eq(AD.slot(j, d), AD.slot(P.at_fh(), d)) == False{} : Bool}
+  for hn: {KMd.nodes.off(ns, d, j) == True{} : Bool}
+  for hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  {KMd.chain(ns, AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, KMd.word(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, P.at_fh())) == True{} : Bool}
+
+# LAW: a node r freed, its own and apart from the free list's first nodes
+# ns, each their own: r, then ns, the list's first nodes after (P.free).
+# Record: cursors-indexed
+law free_push:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +r: U32
+  for +ns: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hok: {IM.nd.ok(r, d) == True{} : Bool}
+  for hno: {IM.fl.ok(ns, d) == True{} : Bool}
+  for hsep: {IM.fl.sep(ns, d, r) == True{} : Bool}
+  for hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  {KMd.chain(Con{r, ns}, AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, KMd.word(AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, P.at_fh())) == True{} : Bool}
+
+# LAW: a free leaves the heap's words full at their depth.
+# Record: cursors-indexed
+law free_full:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +r: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  {AD.full(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r)), d) == True{} : Bool}
+
+# LAW: and an insert, on insert_tree's premises, its branch taken from
+# the free list, the store not grown.
+# Record: cursors-indexed
+law insert_full:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hfr: {IM.ix.fresh(I, s, x, b, d) == True{} : Bool}
+  for hm: {IM.ix.room(I, AD.view(U32, w), d, b) == True{} : Bool}
+  for hk: {KMd.word(AD.view(U32, w), d, (x + 2 : U32)) == k : U32}
+  for hb: {X.ix.branch(KMd.word(AD.view(U32, w), d, x)) == False{} : Bool}
+  for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
+  {AD.full(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x)), d) == True{} : Bool}
+
+# LAW: and a removal, on remove_tree's premises.
+# Record: cursors-indexed
+law remove_full:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {AD.full(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x)), d) == True{} : Bool}
