@@ -215,6 +215,10 @@ where the shared lazy state that Bend cannot hold goes.
   serve tracks that face one another face one another both ways, a
   premise of the serve's laws, so that nothing faces a node a join
   frees.
+- [`serve-premises-over-index`](decisions/serve-premises-over-index.md):
+  the serve's laws over the index take four premises (positions absent,
+  faced ports sane, none facing itself, the free list holding the
+  crossings' nodes), to be reviewed later for what can become laws.
 - [`finished-sources-freeze`](decisions/finished-sources-freeze.md): a
   wholly finished source's cell reduces to a frozen template, its uses
   splices; the source's release waits on the tactic for cursors.
