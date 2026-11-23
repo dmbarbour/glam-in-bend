@@ -330,6 +330,15 @@ it alone taught. Add to this file what a new proof teaches.
   the next taken, for every word, by its bits: no 2^32 enters, which the
   checker would unfold in unary). Its header lists what it cost to find
   out.
+- **A propositional case analysis is searched out, not written**
+  (glam/JOIN_PROOF.bend): where a law's cases reduce to Bool atoms (here,
+  which port's link word lies in which node's word 1), state each as a
+  lemma whose parameters are the atoms and whose premises are the facts
+  among them, and let an authoring aid check it by every assignment and
+  write the case tree: split on the next atom in parameter order (Bend
+  matches binders in the order bound) until the goal computes or a
+  premise computes false. A dependent premise (`@z: U32 -> ...`) is used
+  once, so a fact for every member is an induction of its own instead.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).
