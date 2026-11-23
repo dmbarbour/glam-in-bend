@@ -275,3 +275,62 @@ law put_leaves:
   for +b: U32
   for +z: U32
   {RG.has(IM.ix.leaves(IM.ix.put(I, x, k, b)), z) == Bool.or(U32.is_eq(x, z), RG.has(IM.ix.leaves(I), z)) : Bool}
+
+# LAW: a removal, on remove_tree's premises, gives the branch it frees
+# (IM.ix.par: x's parent, none where x is the tree's only cursor) to the
+# free list: ns the list's first nodes before (KMd.chain), each its own
+# and apart from the index's nodes and the situating node, the list after
+# begins with that branch, then ns (P.free). With insert_free, the free
+# list threaded through a serve's crossings.
+# Record: cursors-indexed
+law remove_free:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +ns: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  for hno: {IM.fl.ok(ns, d) == True{} : Bool}
+  for hns: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}
+  for hc: {KMd.chain(ns, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  {KMd.chain(IM.mb.cons(IM.ix.par(I, x, k), ns), AD.view(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x))), d, KMd.word(AD.view(U32, KMd.words(X.ix.remove(P.H{KM.MG{w}, a}, s, x))), d, P.at_fh())) == True{} : Bool}
+
+# LAW: an insert, on insert_tree's premises but its free list's, the
+# list's first nodes the branch b where the index is a tree, then ns
+# (IM.ix.take), each of ns its own and apart from the index's nodes, the
+# situating node, x and b, leaves the list's first nodes ns: the insert
+# takes b and no other node.
+# Record: cursors-indexed
+law insert_free:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +ns: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hfr: {IM.ix.fresh(I, s, x, b, d) == True{} : Bool}
+  for hk: {KMd.word(AD.view(U32, w), d, (x + 2 : U32)) == k : U32}
+  for hb: {X.ix.branch(KMd.word(AD.view(U32, w), d, x)) == False{} : Bool}
+  for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
+  for hno: {IM.fl.ok(ns, d) == True{} : Bool}
+  for hns: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}
+  for hnx: {IM.fl.sep(ns, d, x) == True{} : Bool}
+  for hnb: {IM.fl.sep(ns, d, b) == True{} : Bool}
+  for hc: {KMd.chain(IM.ix.take(I, b, ns), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  {KMd.chain(ns, AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, KMd.word(AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, P.at_fh())) == True{} : Bool}

@@ -95,7 +95,7 @@ a removal's walk taking the child the key's bit does not give
 +++
       rm.c(P.rd(h, ix.kid(Bool.not(ix.side(k, i)), cur)), loc, cur, Bool.not(ix.side(k, i)), x)
 
-=== rm_frees_sibling remove_tree
+=== rm_frees_sibling remove_tree remove_free
 a removal freeing the sibling it keeps, not the parent it drops
 --- index.bend
   Rm{P.free(P.wr(h, loc, sib), cur), loc, cur, False{}}
@@ -240,3 +240,19 @@ leftmost the ring's first match takes
       mb.or(tr.at(l, k), tr.at(r, k))
 +++
       mb.or(tr.at(r, k), tr.at(l, k))
+
+=== rm_leaks_parent remove_free
+a removal not giving the parent it drops back to the free list: no
+word the realization or the frame reads
+--- index.bend
+  Rm{P.free(P.wr(h, loc, sib), cur), loc, cur, False{}}
++++
+  Rm{P.wr(h, loc, sib), loc, cur, False{}}
+
+=== ins_empty_takes insert_free
+an insert into an empty index taking a node from the free list that it
+never uses
+--- index.bend
+      P.wr(P.wr(h, (s + 3 : U32), x), (x + 3 : U32), s)
++++
+      P.wr(P.wr(Pair.fst(P.H, U32, P.alloc(h)), (s + 3 : U32), x), (x + 3 : U32), s)

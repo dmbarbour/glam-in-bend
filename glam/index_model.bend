@@ -467,6 +467,58 @@ def ix.room(I: Ix, +v: List<&2, U32>, +d: Nat, +b: U32) -> Bool:
     case Has{t}:
       KMd.chain([b], v, d, KMd.word(v, d, P.at_fh()))
 
+# The free list (P.alloc, P.free): an insert into a tree takes its
+# branch from it, a removal gives the cursor's parent back. ns the
+# list's first nodes, each its own (nd.ok)
+def fl.ok(ns: List<&2, U32>, +d: Nat) -> Bool:
+  match ns:
+    case Nil{}:
+      True{}
+    case Con{+n, r}:
+      nd.ok(n, d) && fl.ok(r, d)
+
+# node a apart from each of ns
+def fl.sep(ns: List<&2, U32>, +d: Nat, +a: U32) -> Bool:
+  match ns:
+    case Nil{}:
+      True{}
+    case Con{+n, r}:
+      nd.sep(d, a, n) && fl.sep(r, d, a)
+
+# the tree t apart from each of ns
+def fl.offt(ns: List<&2, U32>, +t: Tr, +d: Nat) -> Bool:
+  match ns:
+    case Nil{}:
+      True{}
+    case Con{+n, r}:
+      tr.offn(t, d, n) && fl.offt(r, t, d)
+
+# the index's nodes and its situating node apart from each of ns
+def ix.flsep(I: Ix, +s: U32, +d: Nat, +ns: List<&2, U32>) -> Bool:
+  match I:
+    case Ept{}:
+      fl.sep(ns, d, s)
+    case Has{+t}:
+      fl.sep(ns, d, s) && fl.offt(ns, t, d)
+
+# the free list's first nodes as an insert into I wants them: ns, after
+# the branch b where I is a tree
+def ix.take(I: Ix, +b: U32, ns: List<&2, U32>) -> List<&2, U32>:
+  match I:
+    case Ept{}:
+      ns
+    case Has{t}:
+      Con{b, ns}
+
+# ns after the node m names, if any: the free list after a removal, the
+# parent it frees (ix.par) first
+def mb.cons(m: Maybe<&2, U32>, ns: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+b}:
+      Con{b, ns}
+    case None{}:
+      ns
+
 # The words an operation leaves: a removal and an insert write no
 # cursor's words but the new cursor's home; the region they write is the
 # situating node's word 3, the branches' words, the free list's head and,

@@ -326,7 +326,10 @@ it alone taught. Add to this file what a new proof teaches.
   is a computation; a step's walk proved to write exactly what a model
   function names, then the realization after those writes, both by
   induction along the model; the bit facts proved on the U32's Word,
-  generic in its width. Its header lists what it cost to find out.
+  generic in its width, the free list's round trip too (a node freed is
+  the next taken, for every word, by its bits: no 2^32 enters, which the
+  checker would unfold in unary). Its header lists what it cost to find
+  out.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).
