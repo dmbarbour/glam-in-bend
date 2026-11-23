@@ -350,3 +350,100 @@ law look_member:
   for hi: {IM.ix.inv(I) == True{} : Bool}
   for hy: {RG.has(IM.ix.leaves(I), y) == True{} : Bool}
   {IM.ix.look(I, KMd.word(AD.view(U32, w), d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}
+
+# The serve's side: what its invariant asks of the index's laws
+# =============================================================
+
+# LAW: a node of a list laid out apart, each its own base (the ring's
+# RG.layout and RG.bases, which a serve states of every node it touches),
+# is its own as the index's laws ask (IM.nd.ok).
+# Record: cursors-indexed
+law layout_ok:
+  for +N: List<&2, U32>
+  for +d: Nat
+  for +a: U32
+  for hl: {RG.layout(N, d) == True{} : Bool}
+  for hb: {RG.bases(N) == True{} : Bool}
+  for ha: {RG.has(N, a) == True{} : Bool}
+  {IM.nd.ok(a, d) == True{} : Bool}
+
+# LAW: and two distinct nodes of it apart (IM.nd.sep).
+# Record: cursors-indexed
+law layout_sep:
+  for +N: List<&2, U32>
+  for +d: Nat
+  for +a: U32
+  for +b: U32
+  for hl: {RG.layout(N, d) == True{} : Bool}
+  for ha: {RG.has(N, a) == True{} : Bool}
+  for hb: {RG.has(N, b) == True{} : Bool}
+  for hab: {U32.is_eq(a, b) == False{} : Bool}
+  {IM.nd.sep(d, a, b) == True{} : Bool}
+
+# LAW: nodes apart from an index and its situating node (IM.ix.flsep),
+# and from a put's cursor x and branch b, are apart from the index after
+# the put.
+# Record: cursors-indexed
+law put_flsep:
+  for +I: IM.Ix
+  for +s: U32
+  for +d: Nat
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +ns: List<&2, U32>
+  for h: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}
+  for hx: {IM.fl.sep(ns, d, x) == True{} : Bool}
+  for hb: {IM.fl.sep(ns, d, b) == True{} : Bool}
+  {IM.ix.flsep(IM.ix.put(I, x, k, b), s, d, ns) == True{} : Bool}
+
+# LAW: and from the index after a removal, which adds no node.
+# Record: cursors-indexed
+law del_flsep:
+  for +I: IM.Ix
+  for +s: U32
+  for +d: Nat
+  for +x: U32
+  for +k: U32
+  for +ns: List<&2, U32>
+  for h: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}
+  {IM.ix.flsep(IM.ix.del(I, x, k), s, d, ns) == True{} : Bool}
+
+# LAW: an index's nodes all of a list N (RG.sub), and a put's cursor and
+# branch of it: the index's nodes after the put all of N.
+# Record: cursors-indexed
+law put_sub:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +N: List<&2, U32>
+  for h: {RG.sub(IM.ix.nodes(I), N) == True{} : Bool}
+  for hx: {RG.has(N, x) == True{} : Bool}
+  for hb: {RG.has(N, b) == True{} : Bool}
+  {RG.sub(IM.ix.nodes(IM.ix.put(I, x, k, b)), N) == True{} : Bool}
+
+# LAW: and after a removal.
+# Record: cursors-indexed
+law del_sub:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +N: List<&2, U32>
+  for h: {RG.sub(IM.ix.nodes(I), N) == True{} : Bool}
+  {RG.sub(IM.ix.nodes(IM.ix.del(I, x, k)), N) == True{} : Bool}
+
+# LAW: what a removal drops, the cursor x and the parent it frees
+# (IM.ix.par), is apart from the index that remains and its situating
+# node, the index laid out apart: so that the nodes a join frees join the
+# free list's nodes apart from the index.
+# Record: cursors-indexed
+law del_drop:
+  for +I: IM.Ix
+  for +s: U32
+  for +d: Nat
+  for +x: U32
+  for +k: U32
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {IM.ix.flsep(IM.ix.del(I, x, k), s, d, IM.mb.cons(IM.ix.par(I, x, k), [x])) == True{} : Bool}

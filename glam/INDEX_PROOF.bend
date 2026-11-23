@@ -4408,3 +4408,269 @@ def look_member.k(I: IM.Ix, +v: List<&2, U32>, +d: Nat, +s: U32, +y: U32, +hr: {
 
 def Laws.look_member(w, d, s, I, y, hr, hi, hy):
   look_member.k(I, AD.view(U32, w), d, s, y, hr, hi, hy)
+
+# The serve's side
+# ================
+
+# node a's words off b's, read the other way
+def disj_flip(+d: Nat, +a: U32, +b: U32, +h: {IM.nd.disj(d, a, b) == True{} : Bool}) -> {IM.nd.disj(d, b, a) == True{} : Bool}:
+  and_intro(KMd.off.words(KMd.nw(a), d, b), KMd.off.words(KMd.nw(a), d, (b + 1 : U32)) && (KMd.off.words(KMd.nw(a), d, (b + 2 : U32)) && KMd.off.words(KMd.nw(a), d, (b + 3 : U32))), and_intro(Bool.not(Nat.is_eq(AD.slot(a, d), AD.slot(b, d))), Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot(b, d))) && (Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(b, d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(b, d))) && True{})), nf(Nat.is_eq(AD.slot(a, d), AD.slot(b, d)), neq_comm(AD.slot(b, d), AD.slot(a, d), not_true(Nat.is_eq(AD.slot(b, d), AD.slot(a, d)), and_l(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot(b, d))), Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(b, d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(b, d))) && True{}), nf(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot(b, d)), neq_comm(AD.slot(b, d), AD.slot((a + 1 : U32), d), not_true(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(b, d))), Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(b, d))) && True{}, nf(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(b, d)), neq_comm(AD.slot(b, d), AD.slot((a + 2 : U32), d), not_true(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(b, d))), True{}, nf(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(b, d)), neq_comm(AD.slot(b, d), AD.slot((a + 3 : U32), d), not_true(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{})), and_r(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))), {==})))), and_intro(KMd.off.words(KMd.nw(a), d, (b + 1 : U32)), KMd.off.words(KMd.nw(a), d, (b + 2 : U32)) && KMd.off.words(KMd.nw(a), d, (b + 3 : U32)), and_intro(Bool.not(Nat.is_eq(AD.slot(a, d), AD.slot((b + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 1 : U32), d))) && True{})), nf(Nat.is_eq(AD.slot(a, d), AD.slot((b + 1 : U32), d)), neq_comm(AD.slot((b + 1 : U32), d), AD.slot(a, d), not_true(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 1 : U32), d))) && True{}), nf(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 1 : U32), d)), neq_comm(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d), not_true(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 1 : U32), d))) && True{}, nf(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 1 : U32), d)), neq_comm(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d), not_true(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 1 : U32), d))), True{}, nf(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 1 : U32), d)), neq_comm(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d), not_true(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{})), and_r(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))), {==})))), and_intro(KMd.off.words(KMd.nw(a), d, (b + 2 : U32)), KMd.off.words(KMd.nw(a), d, (b + 3 : U32)), and_intro(Bool.not(Nat.is_eq(AD.slot(a, d), AD.slot((b + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 2 : U32), d))) && True{})), nf(Nat.is_eq(AD.slot(a, d), AD.slot((b + 2 : U32), d)), neq_comm(AD.slot((b + 2 : U32), d), AD.slot(a, d), not_true(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 2 : U32), d))) && True{}), nf(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 2 : U32), d)), neq_comm(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d), not_true(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 2 : U32), d))) && True{}, nf(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 2 : U32), d)), neq_comm(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d), not_true(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 2 : U32), d))), True{}, nf(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 2 : U32), d)), neq_comm(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d), not_true(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{})), and_r(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))))), {==})))), and_intro(Bool.not(Nat.is_eq(AD.slot(a, d), AD.slot((b + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 3 : U32), d))) && True{})), nf(Nat.is_eq(AD.slot(a, d), AD.slot((b + 3 : U32), d)), neq_comm(AD.slot((b + 3 : U32), d), AD.slot(a, d), not_true(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))), True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 3 : U32), d))) && True{}), nf(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot((b + 3 : U32), d)), neq_comm(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d), not_true(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))), True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h))))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 3 : U32), d))) && True{}, nf(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((b + 3 : U32), d)), neq_comm(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d), not_true(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))), True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))) && True{})), and_l(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))))), and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 3 : U32), d))), True{}, nf(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((b + 3 : U32), d)), neq_comm(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d), not_true(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))), True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{}), and_r(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d))), Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))) && (Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) && True{})), and_r(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), h)))))))))), {==})))))))
+
+def lay_ok.k(+e: Bool, +m: U32, +t: List<&2, U32>, +d: Nat, +a: U32, +he: {U32.is_eq(m, a) == e : Bool},
+  +hl: {RG.layout(Con{m, t}, d) == True{} : Bool}, +hb: {RG.bases(Con{m, t}) == True{} : Bool}, +ha: {Bool.or(U32.is_eq(m, a), RG.has(t, a)) == True{} : Bool},
+  ih: {RG.has(t, a) == True{} : Bool} -> {IM.nd.ok(a, d) == True{} : Bool}) -> {IM.nd.ok(a, d) == True{} : Bool}:
+  match e:
+    case True{}:
+      %MS.u32_eq_of_is_eq(m, a, he) : {IM.nd.ok(_, d) == True{} : Bool}
+      and_intro(U32.is_eq(P.base(m), m), IM.ws.apart(KMd.nw(m), d) && KMd.off.words(KMd.nw(m), d, P.at_fh()), and_l(U32.is_eq(P.base(m), m), RG.bases(t), hb),
+        and_intro(IM.ws.apart(KMd.nw(m), d), KMd.off.words(KMd.nw(m), d, P.at_fh()), and_l(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl),
+          and_l(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), and_r(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl))))
+    case False{}:
+      ih(ort_r(U32.is_eq(m, a), RG.has(t, a), he, ha))
+
+def lay_ok(N: List<&2, U32>, +d: Nat, +a: U32, +hl: {RG.layout(N, d) == True{} : Bool}, +hb: {RG.bases(N) == True{} : Bool}, +ha: {RG.has(N, a) == True{} : Bool}) -> {IM.nd.ok(a, d) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      Empty.absurd({IM.nd.ok(a, d) == True{} : Bool}, MB.false_ne_true()(ha))
+    case Con{+m, +t}:
+      lay_ok.k(U32.is_eq(m, a), m, t, d, a, {==}, hl, hb, ha, hta => lay_ok(t, d, a, and_r(RG.cross(t, d, m), RG.layout(t, d), and_r(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), and_r(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl))), and_r(U32.is_eq(P.base(m), m), RG.bases(t), hb), hta))
+
+def Laws.layout_ok(N, d, a, hl, hb, ha):
+  lay_ok(N, d, a, hl, hb, ha)
+
+# a node of ys, a apart from every node of ys: a apart from it
+def cross_has.k(+e: Bool, +y: U32, +r: List<&2, U32>, +d: Nat, +m: U32, +b: U32, +he: {U32.is_eq(y, b) == e : Bool},
+  +hc: {RG.cross(Con{y, r}, d, m) == True{} : Bool}, +hb: {Bool.or(U32.is_eq(y, b), RG.has(r, b)) == True{} : Bool}, ih: {RG.has(r, b) == True{} : Bool} -> {RG.disj4(d, m, b) == True{} : Bool}) -> {RG.disj4(d, m, b) == True{} : Bool}:
+  match e:
+    case True{}:
+      %MS.u32_eq_of_is_eq(y, b, he) : {RG.disj4(d, m, _) == True{} : Bool}
+      and_l(RG.disj4(d, m, y), RG.cross(r, d, m), hc)
+    case False{}:
+      ih(ort_r(U32.is_eq(y, b), RG.has(r, b), he, hb))
+
+def cross_has(ys: List<&2, U32>, +d: Nat, +m: U32, +b: U32, +hc: {RG.cross(ys, d, m) == True{} : Bool}, +hb: {RG.has(ys, b) == True{} : Bool}) -> {RG.disj4(d, m, b) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      Empty.absurd({RG.disj4(d, m, b) == True{} : Bool}, MB.false_ne_true()(hb))
+    case Con{+y, +r}:
+      cross_has.k(U32.is_eq(y, b), y, r, d, m, b, {==}, hc, hb, hrb => cross_has(r, d, m, b, and_r(RG.disj4(d, m, y), RG.cross(r, d, m), hc), hrb))
+
+def ne_absurd(-A: Type, +m: U32, +a: U32, +b: U32, +ha: {m == a : U32}, +hb: {m == b : U32}, +hab: {U32.is_eq(a, b) == False{} : Bool}) -> A:
+  Empty.absurd(A, MB.false_ne_true()(Equal.trans(Bool, False{}, U32.is_eq(a, b), True{}, Equal.sym(Bool, U32.is_eq(a, b), False{}, hab),
+    ME.subst(U32, z => {U32.is_eq(z, b) == True{} : Bool}, m, a, ha, ME.subst(U32, z => {U32.is_eq(m, z) == True{} : Bool}, m, b, hb, is_eq_self(m))))))
+
+def lay_sep.b(+eb: Bool, +m: U32, +t: List<&2, U32>, +d: Nat, +a: U32, +b: U32, +ham: {m == a : U32}, +heb: {U32.is_eq(m, b) == eb : Bool},
+  +hc: {RG.cross(t, d, m) == True{} : Bool}, +hb: {Bool.or(U32.is_eq(m, b), RG.has(t, b)) == True{} : Bool}, +hab: {U32.is_eq(a, b) == False{} : Bool}) -> {IM.nd.sep(d, a, b) == True{} : Bool}:
+  match eb:
+    case True{}:
+      ne_absurd({IM.nd.sep(d, a, b) == True{} : Bool}, m, a, b, ham, MS.u32_eq_of_is_eq(m, b, heb), hab)
+    case False{}:
+      +D = cross_has(t, d, m, b, hc, ort_r(U32.is_eq(m, b), RG.has(t, b), heb, hb))
+      %ham : {IM.nd.sep(d, _, b) == True{} : Bool}
+      and_intro(IM.nd.disj(d, m, b), IM.nd.disj(d, b, m), D, disj_flip(d, m, b, D))
+
+def lay_sep.a(+eb: Bool, +m: U32, +t: List<&2, U32>, +d: Nat, +a: U32, +b: U32, +hea: {U32.is_eq(m, a) == False{} : Bool}, +heb: {U32.is_eq(m, b) == eb : Bool},
+  +hc: {RG.cross(t, d, m) == True{} : Bool}, +ha: {Bool.or(U32.is_eq(m, a), RG.has(t, a)) == True{} : Bool}, +hb: {Bool.or(U32.is_eq(m, b), RG.has(t, b)) == True{} : Bool},
+  ih: {RG.has(t, a) == True{} : Bool} -> {RG.has(t, b) == True{} : Bool} -> {IM.nd.sep(d, a, b) == True{} : Bool}) -> {IM.nd.sep(d, a, b) == True{} : Bool}:
+  match eb:
+    case True{}:
+      +D = cross_has(t, d, m, a, hc, ort_r(U32.is_eq(m, a), RG.has(t, a), hea, ha))
+      %MS.u32_eq_of_is_eq(m, b, heb) : {IM.nd.sep(d, a, _) == True{} : Bool}
+      and_intro(IM.nd.disj(d, a, m), IM.nd.disj(d, m, a), disj_flip(d, m, a, D), D)
+    case False{}:
+      ih(ort_r(U32.is_eq(m, a), RG.has(t, a), hea, ha))(ort_r(U32.is_eq(m, b), RG.has(t, b), heb, hb))
+
+def lay_sep.k(+ea: Bool, +m: U32, +t: List<&2, U32>, +d: Nat, +a: U32, +b: U32, +hea: {U32.is_eq(m, a) == ea : Bool},
+  +hl: {RG.layout(Con{m, t}, d) == True{} : Bool}, +ha: {Bool.or(U32.is_eq(m, a), RG.has(t, a)) == True{} : Bool}, +hb: {Bool.or(U32.is_eq(m, b), RG.has(t, b)) == True{} : Bool}, +hab: {U32.is_eq(a, b) == False{} : Bool},
+  ih: {RG.has(t, a) == True{} : Bool} -> {RG.has(t, b) == True{} : Bool} -> {IM.nd.sep(d, a, b) == True{} : Bool}) -> {IM.nd.sep(d, a, b) == True{} : Bool}:
+  match ea:
+    case True{}:
+      lay_sep.b(U32.is_eq(m, b), m, t, d, a, b, MS.u32_eq_of_is_eq(m, a, hea), {==}, and_l(RG.cross(t, d, m), RG.layout(t, d), and_r(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), and_r(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl))), hb, hab)
+    case False{}:
+      lay_sep.a(U32.is_eq(m, b), m, t, d, a, b, hea, {==}, and_l(RG.cross(t, d, m), RG.layout(t, d), and_r(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), and_r(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl))), ha, hb, ih)
+
+def lay_sep(N: List<&2, U32>, +d: Nat, +a: U32, +b: U32, +hl: {RG.layout(N, d) == True{} : Bool}, +ha: {RG.has(N, a) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool},
+  +hab: {U32.is_eq(a, b) == False{} : Bool}) -> {IM.nd.sep(d, a, b) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      Empty.absurd({IM.nd.sep(d, a, b) == True{} : Bool}, MB.false_ne_true()(ha))
+    case Con{+m, +t}:
+      lay_sep.k(U32.is_eq(m, a), m, t, d, a, b, {==}, hl, ha, hb, hab, hta => htb => lay_sep(t, d, a, b, and_r(RG.cross(t, d, m), RG.layout(t, d), and_r(RG.off(RG.nw(m), d, P.at_fh()), RG.cross(t, d, m) && RG.layout(t, d), and_r(RG.apartw(RG.nw(m), d), RG.off(RG.nw(m), d, P.at_fh()) && (RG.cross(t, d, m) && RG.layout(t, d)), hl))), hta, htb, hab))
+
+def Laws.layout_sep(N, d, a, b, hl, ha, hb, hab):
+  lay_sep(N, d, a, b, hl, ha, hb, hab)
+
+# each of ns apart from a leaf, as from its cursor
+def offt_lf(ns: List<&2, U32>, +x: U32, +k: U32, +d: Nat, +h: {IM.fl.sep(ns, d, x) == True{} : Bool}) -> {IM.fl.offt(ns, IM.Lf{x, k}, d) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      and_intro(IM.nd.sep(d, x, n), IM.fl.offt(r, IM.Lf{x, k}, d), and_l(IM.nd.sep(d, x, n), IM.fl.sep(r, d, x), h), offt_lf(r, x, k, d, and_r(IM.nd.sep(d, x, n), IM.fl.sep(r, d, x), h)))
+
+def offt_place(ns: List<&2, U32>, +t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +d: Nat, +ht: {IM.fl.offt(ns, t, d) == True{} : Bool}, +hx: {IM.fl.sep(ns, d, x) == True{} : Bool}, +hb: {IM.fl.sep(ns, d, b) == True{} : Bool}) -> {IM.fl.offt(ns, IM.tr.place(t, x, k, b, c), d) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      and_intro(IM.tr.offn(IM.tr.place(t, x, k, b, c), d, n), IM.fl.offt(r, IM.tr.place(t, x, k, b, c), d),
+        place_offn(t, x, k, b, c, d, n, and_l(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), ht), and_l(IM.nd.sep(d, x, n), IM.fl.sep(r, d, x), hx), and_l(IM.nd.sep(d, b, n), IM.fl.sep(r, d, b), hb)),
+        offt_place(r, t, x, k, b, c, d, and_r(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), ht), and_r(IM.nd.sep(d, x, n), IM.fl.sep(r, d, x), hx), and_r(IM.nd.sep(d, b, n), IM.fl.sep(r, d, b), hb)))
+
+def put_flsep.k(I: IM.Ix, +s: U32, +d: Nat, +x: U32, +k: U32, +b: U32, +ns: List<&2, U32>, +h: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}, +hx: {IM.fl.sep(ns, d, x) == True{} : Bool}, +hb: {IM.fl.sep(ns, d, b) == True{} : Bool}) ->
+  {IM.ix.flsep(IM.ix.put(I, x, k, b), s, d, ns) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      and_intro(IM.fl.sep(ns, d, s), IM.fl.offt(ns, IM.Lf{x, k}, d), h, offt_lf(ns, x, k, d, hx))
+    case IM.Has{+t}:
+      and_intro(IM.fl.sep(ns, d, s), IM.fl.offt(ns, IM.tr.place(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), d), and_l(IM.fl.sep(ns, d, s), IM.fl.offt(ns, t, d), h),
+        offt_place(ns, t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), d, and_r(IM.fl.sep(ns, d, s), IM.fl.offt(ns, t, d), h), hx, hb))
+
+def Laws.put_flsep(I, s, d, x, k, b, ns, h, hx, hb):
+  put_flsep.k(I, s, d, x, k, b, ns, h, hx, hb)
+
+def offt_cut(ns: List<&2, U32>, +t: IM.Tr, +x: U32, +k: U32, +d: Nat, +ht: {IM.fl.offt(ns, t, d) == True{} : Bool}) -> {IM.fl.offt(ns, IM.tr.cut(t, x, k), d) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      and_intro(IM.tr.offn(IM.tr.cut(t, x, k), d, n), IM.fl.offt(r, IM.tr.cut(t, x, k), d), cut_offn(t, x, k, d, n, and_l(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), ht)),
+        offt_cut(r, t, x, k, d, and_r(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), ht)))
+
+def del_flsep.h(+only: Bool, +t: IM.Tr, +s: U32, +d: Nat, +x: U32, +k: U32, +ns: List<&2, U32>, +h: {IM.ix.flsep(IM.Has{t}, s, d, ns) == True{} : Bool}) ->
+  {IM.ix.flsep(IM.ix.del.k(only, t, x, k), s, d, ns) == True{} : Bool}:
+  match only:
+    case True{}:
+      and_l(IM.fl.sep(ns, d, s), IM.fl.offt(ns, t, d), h)
+    case False{}:
+      and_intro(IM.fl.sep(ns, d, s), IM.fl.offt(ns, IM.tr.cut(t, x, k), d), and_l(IM.fl.sep(ns, d, s), IM.fl.offt(ns, t, d), h), offt_cut(ns, t, x, k, d, and_r(IM.fl.sep(ns, d, s), IM.fl.offt(ns, t, d), h)))
+
+def del_flsep.k(I: IM.Ix, +s: U32, +d: Nat, +x: U32, +k: U32, +ns: List<&2, U32>, +h: {IM.ix.flsep(I, s, d, ns) == True{} : Bool}) -> {IM.ix.flsep(IM.ix.del(I, x, k), s, d, ns) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      h
+    case IM.Has{+t}:
+      del_flsep.h(U32.is_eq(IM.tr.addr(t), x), t, s, d, x, k, ns, h)
+
+def Laws.del_flsep(I, s, d, x, k, ns, h):
+  del_flsep.k(I, s, d, x, k, ns, h)
+
+def sub_app(xs: List<&2, U32>, +ys: List<&2, U32>, +N: List<&2, U32>, +hx: {RG.sub(xs, N) == True{} : Bool}, +hy: {RG.sub(ys, N) == True{} : Bool}) -> {RG.sub(List.append(&2, U32, xs, ys), N) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      hy
+    case Con{+z, +r}:
+      and_intro(RG.has(N, z), RG.sub(List.append(&2, U32, r, ys), N), and_l(RG.has(N, z), RG.sub(r, N), hx), sub_app(r, ys, N, and_r(RG.has(N, z), RG.sub(r, N), hx), hy))
+
+def sub_app_l(xs: List<&2, U32>, +ys: List<&2, U32>, +N: List<&2, U32>, +h: {RG.sub(List.append(&2, U32, xs, ys), N) == True{} : Bool}) -> {RG.sub(xs, N) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+z, +r}:
+      and_intro(RG.has(N, z), RG.sub(r, N), and_l(RG.has(N, z), RG.sub(List.append(&2, U32, r, ys), N), h), sub_app_l(r, ys, N, and_r(RG.has(N, z), RG.sub(List.append(&2, U32, r, ys), N), h)))
+
+def sub_app_r(xs: List<&2, U32>, +ys: List<&2, U32>, +N: List<&2, U32>, +h: {RG.sub(List.append(&2, U32, xs, ys), N) == True{} : Bool}) -> {RG.sub(ys, N) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      h
+    case Con{+z, +r}:
+      sub_app_r(r, ys, N, and_r(RG.has(N, z), RG.sub(List.append(&2, U32, r, ys), N), h))
+
+def join_sub(+sd: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +hU: {RG.sub(IM.tr.nodes(U), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) ->
+  {RG.sub(IM.tr.nodes(IM.tr.join(sd, U, x, k, b, c)), N) == True{} : Bool}:
+  match sd:
+    case True{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.nodes(U), [x]), N), hb, sub_app(IM.tr.nodes(U), [x], N, hU, and_intro(RG.has(N, x), True{}, hx, {==})))
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, [x], IM.tr.nodes(U)), N), hb, sub_app([x], IM.tr.nodes(U), N, and_intro(RG.has(N, x), True{}, hx, {==}), hU))
+
+def ps.k(+lt: Bool, +sd: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>,
+  +h: {RG.sub(IM.tr.nodes(IM.Br{b2, i, l, r}), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool},
+  +ihl: {RG.sub(IM.tr.nodes(IM.tr.place(l, x, k, b, c)), N) == True{} : Bool}, +ihr: {RG.sub(IM.tr.nodes(IM.tr.place(r, x, k, b, c)), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.nodes(IM.tr.place.k(lt, sd, b2, i, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c)), N) == True{} : Bool}:
+  match lt:
+    case False{}:
+      join_sub(X.ix.side(k, c), IM.Br{b2, i, l, r}, x, k, b, c, N, h, hx, hb)
+    case True{}:
+      match sd:
+        case True{}:
+          +hb2 = and_l(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+          +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+          and_intro(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(IM.tr.place(r, x, k, b, c))), N), hb2, sub_app(IM.tr.nodes(l), IM.tr.nodes(IM.tr.place(r, x, k, b, c)), N, sub_app_l(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr), ihr))
+        case False{}:
+          +hb2 = and_l(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+          +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+          and_intro(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(IM.tr.place(l, x, k, b, c)), IM.tr.nodes(r)), N), hb2, sub_app(IM.tr.nodes(IM.tr.place(l, x, k, b, c)), IM.tr.nodes(r), N, ihl, sub_app_r(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr)))
+
+def place_sub(t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +N: List<&2, U32>, +h: {RG.sub(IM.tr.nodes(t), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) -> {RG.sub(IM.tr.nodes(IM.tr.place(t, x, k, b, c)), N) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      join_sub(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, N, h, hx, hb)
+    case IM.Br{+b2, +i, +l, +r}:
+      +hlr = and_r(RG.has(N, b2), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+      ps.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, x, k, b, c, N, h, hx, hb,
+        place_sub(l, x, k, b, c, N, sub_app_l(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr), hx, hb), place_sub(r, x, k, b, c, N, sub_app_r(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr), hx, hb))
+
+def put_sub.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +N: List<&2, U32>, +h: {RG.sub(IM.ix.nodes(I), N) == True{} : Bool}, +hx: {RG.has(N, x) == True{} : Bool}, +hb: {RG.has(N, b) == True{} : Bool}) ->
+  {RG.sub(IM.ix.nodes(IM.ix.put(I, x, k, b)), N) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      and_intro(RG.has(N, x), True{}, hx, {==})
+    case IM.Has{+t}:
+      place_sub(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), N, h, hx, hb)
+
+def Laws.put_sub(I, x, k, b, N, h, hx, hb):
+  put_sub.k(I, x, k, b, N, h, hx, hb)
+
+def cs.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +cr: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool}, +hl: {RG.sub(IM.tr.nodes(l), N) == True{} : Bool}, +hcr: {RG.sub(IM.tr.nodes(cr), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.nodes(IM.tr.cut.r(hit, b, i, l, cr)), N) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hl
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(cr)), N), hb, sub_app(IM.tr.nodes(l), IM.tr.nodes(cr), N, hl, hcr))
+
+def cs.l(+hit: Bool, +b: U32, +i: Nat, +r: IM.Tr, +cl: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool}, +hr: {RG.sub(IM.tr.nodes(r), N) == True{} : Bool}, +hcl: {RG.sub(IM.tr.nodes(cl), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.nodes(IM.tr.cut.l(hit, b, i, r, cl)), N) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hr
+    case False{}:
+      and_intro(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.nodes(cl), IM.tr.nodes(r)), N), hb, sub_app(IM.tr.nodes(cl), IM.tr.nodes(r), N, hcl, hr))
+
+def cs.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +cl: IM.Tr, +cr: IM.Tr, +N: List<&2, U32>, +hb: {RG.has(N, b) == True{} : Bool},
+  +hl: {RG.sub(IM.tr.nodes(l), N) == True{} : Bool}, +hr: {RG.sub(IM.tr.nodes(r), N) == True{} : Bool}, +hcl: {RG.sub(IM.tr.nodes(cl), N) == True{} : Bool}, +hcr: {RG.sub(IM.tr.nodes(cr), N) == True{} : Bool}) ->
+  {RG.sub(IM.tr.nodes(IM.tr.cut.k(sd, b, i, l, r, x, cl, cr)), N) == True{} : Bool}:
+  match sd:
+    case True{}:
+      cs.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, cr, N, hb, hl, hcr)
+    case False{}:
+      cs.l(U32.is_eq(IM.tr.addr(l), x), b, i, r, cl, N, hb, hr, hcl)
+
+def cut_sub(t: IM.Tr, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.tr.nodes(t), N) == True{} : Bool}) -> {RG.sub(IM.tr.nodes(IM.tr.cut(t, x, k)), N) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      h
+    case IM.Br{+b, +i, +l, +r}:
+      +hlr = and_r(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h)
+      +hl = sub_app_l(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr)
+      +hr = sub_app_r(IM.tr.nodes(l), IM.tr.nodes(r), N, hlr)
+      cs.k(X.ix.side(k, i), b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k), N, and_l(RG.has(N, b), RG.sub(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), N), h), hl, hr,
+        cut_sub(l, x, k, N, hl), cut_sub(r, x, k, N, hr))
+
+def del_sub.h(+only: Bool, +t: IM.Tr, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.tr.nodes(t), N) == True{} : Bool}) -> {RG.sub(IM.ix.nodes(IM.ix.del.k(only, t, x, k)), N) == True{} : Bool}:
+  match only:
+    case True{}:
+      {==}
+    case False{}:
+      cut_sub(t, x, k, N, h)
+
+def del_sub.k(I: IM.Ix, +x: U32, +k: U32, +N: List<&2, U32>, +h: {RG.sub(IM.ix.nodes(I), N) == True{} : Bool}) -> {RG.sub(IM.ix.nodes(IM.ix.del(I, x, k)), N) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      del_sub.h(U32.is_eq(IM.tr.addr(t), x), t, x, k, N, h)
+
+def Laws.del_sub(I, x, k, N, h):
+  del_sub.k(I, x, k, N, h)
