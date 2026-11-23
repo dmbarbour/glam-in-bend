@@ -422,13 +422,18 @@ law crossings_pend:
   for hok: {RG.cxs.ok(cs, AD.view(U32, map), dm, I, F) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), N) == True{} : Bool}
 
-# LAW: and a copy's crossings leave every word as it was but the words
-# of the nodes of L, the free list's head, and the link word of each port
-# a node of L faced at the start (RG.faced), static ports having none:
-# the crossings' writes by region, what the demand's walk resumed reads
-# (cells-freeze.nested.host.serve).
+# LAW: and a copy's crossings, on crossings_pend's premises, leave every
+# word as it was but the tracked nodes' words (N: the live nodes, the
+# index's, the free list's first nodes), the free list's head, and the
+# link word of each port a node of L faced at the start (RG.faced),
+# static ports having none: the crossings' writes by region, what the
+# demand's walk resumed reads; a join moving a faced port from one node
+# to another, the ports the live nodes face kept among the first ones
+# (cells-freeze.sharing.cursors.index.ring.fold).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law crossings_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -436,16 +441,21 @@ law crossings_keeps:
   for +d: Nat
   for +dm: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
   for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +cs: List<&2, R.FzC>
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
-  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, RG.pls(cs, AD.view(U32, map), dm), L) == True{} : Bool}
-  for hj: {RG.off.nodes(L, d, j) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, RG.pls(cs, AD.view(U32, map), dm), L, F, N) == True{} : Bool}
+  for hok: {RG.cxs.ok(cs, AD.view(U32, map), dm, I, F) == True{} : Bool}
+  for hj: {RG.off.nodes(N, d, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hjf: {RG.off.ports(RG.faced(L, AD.view(U32, w), d), d, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}

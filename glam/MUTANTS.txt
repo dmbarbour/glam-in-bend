@@ -201,15 +201,17 @@ x = 20
 y = 16
 j = 25
 >>> witness crossings_keeps
-w = WB.pending(KMd.ref(48, 0))
+w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+map = Array.set(U32, [0 : U32^1n], 0, 24)
 d = 6n
 dm = 1n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+cs = Con{R.FzC{0, 3, True{}, 9}, Nil{}}
 j = 29
 >>> witness join1_pend
 w = WB.ix_one(3)
@@ -878,15 +880,17 @@ the cursor's link word written, outside the region
 +++
   P.free(P.free(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), y), x), y)
 >>> witness crossings_keeps
-w = WB.pending(KMd.ref(48, 0))
+w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+map = Array.set(U32, [0 : U32^1n], 0, 24)
 d = 6n
 dm = 1n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+cs = Con{R.FzC{0, 3, True{}, 9}, Nil{}}
 j = 54
 >>> witness join1_keeps
 w = WB.pending(KMd.ref(48, 0))
@@ -914,15 +918,17 @@ src = 0
 neg = False{}
 j = 28
 >>> witness crossings_keeps
-w = WB.pending(KMd.ref(48, 0))
+w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+map = Array.set(U32, [0 : U32^1n], 0, 24)
 d = 6n
 dm = 1n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{1, 0, False{}, 3}, Nil{}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Con{36, Nil{}}
+N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
+cs = Con{R.FzC{0, 11, False{}, 3}, Nil{}}
 j = 28
 
 === join1_links_static crossings_keeps join1_keeps
@@ -934,15 +940,17 @@ leaves out only for ports that are not static
 +++
   P.free(P.free(rg.unlink(P.link(h, u, w), y), x), y)
 >>> witness crossings_keeps
-w = WB.pending(27)
+w = WB.ix_two_f(5, 27)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^1n], 0, 20), 1, 24)
+map = Array.set(U32, [0 : U32^1n], 0, 24)
 d = 6n
 dm = 1n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{1, 0, False{}, 9}, Nil{}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+cs = Con{R.FzC{0, 3, True{}, 9}, Nil{}}
 j = 28
 >>> witness join1_keeps
 w = WB.pending(27)

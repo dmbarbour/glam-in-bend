@@ -61,6 +61,10 @@ def ix_heap(+pos: U32) -> P.H:
 def ix_one(+pos: U32) -> Array<U32>:
   RG.words(ix_heap(pos))
 
-# and a second placeholder, 24, facing node 48's port 0
+# and a second placeholder, 24, facing port f24 (node 48's port 0, or a
+# static)
+def ix_two_f(+pos: U32, +f24: U32) -> Array<U32>:
+  RG.words(placeholder(ix_heap(pos), 24, f24, 3))
+
 def ix_two(+pos: U32) -> Array<U32>:
-  RG.words(placeholder(ix_heap(pos), 24, KMd.ref(48, 0), 3))
+  ix_two_f(pos, KMd.ref(48, 0))
