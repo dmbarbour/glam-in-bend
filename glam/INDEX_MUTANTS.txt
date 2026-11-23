@@ -212,3 +212,31 @@ the model's removal keeping a subtree twice where it drops the parent
       Br{b, i, l, cr}
 +++
       Br{b, i, l, l}
+
+=== cut_keeps_leaf del_leaves remove_tree
+the model's removal keeping the cursor where it should give its parent up
+--- index_model.bend
+    case True{}:
+      l
+    case False{}:
+      Br{b, i, l, cr}
++++
+    case True{}:
+      Br{b, i, l, cr}
+    case False{}:
+      Br{b, i, l, cr}
+
+=== join_drops put_leaves
+the model's new branch dropping the tree it goes above, its leaf twice
+--- index_model.bend
+      Br{b, c, cur, Lf{x, k}}
++++
+      Br{b, c, Lf{x, k}, Lf{x, k}}
+
+=== at_rightmost at_first
+the model's search for a key's cursor taking the rightmost, not the
+leftmost the ring's first match takes
+--- index_model.bend
+      mb.or(tr.at(l, k), tr.at(r, k))
++++
+      mb.or(tr.at(r, k), tr.at(l, k))

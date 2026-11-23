@@ -250,3 +250,28 @@ law at_first:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
   {IM.ix.at(I, k) == RG.first(IM.ix.leaves(I), AD.view(U32, w), d, k) : Maybe<&2, U32>}
+
+# LAW: a removal's leaves, the tree laid out apart and x the cursor at
+# key k, are the leaves before without x (RG.without, the ring's unlink),
+# in order: x a leaf once, every other leaf apart from it.
+# Record: cursors-indexed
+law del_leaves:
+  for +I: IM.Ix
+  for +s: U32
+  for +x: U32
+  for +k: U32
+  for +d: Nat
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {IM.ix.leaves(IM.ix.del(I, x, k)) == RG.without(IM.ix.leaves(I), x) : List<&2, U32>}
+
+# LAW: a put's leaves are the leaves before and the new cursor, as the
+# ring's members after an insert are (RG.has; the order is the tree's).
+# Record: cursors-indexed
+law put_leaves:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +z: U32
+  {RG.has(IM.ix.leaves(IM.ix.put(I, x, k, b)), z) == Bool.or(U32.is_eq(x, z), RG.has(IM.ix.leaves(I), z)) : Bool}
