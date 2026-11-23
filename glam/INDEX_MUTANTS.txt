@@ -213,7 +213,7 @@ the model's removal keeping a subtree twice where it drops the parent
 +++
       Br{b, i, l, l}
 
-=== cut_keeps_leaf del_leaves remove_tree del_drop
+=== cut_keeps_leaf del_leaves remove_tree del_drop del_absent
 the model's removal keeping the cursor where it should give its parent up
 --- index_model.bend
     case True{}:
@@ -304,3 +304,37 @@ the model's new branch at a node next to the one the free list gives
       Br{(b + 4 : U32), c, cur, Lf{x, k}}
     case False{}:
       Br{(b + 4 : U32), c, Lf{x, k}, cur}
+
+=== offr_short real_kept1
+a leaf's realized words, as a link's write is kept off them, missing its
+word 3
+--- index_model.bend
+      KMd.off.words([x, (x + 2 : U32), (x + 3 : U32)], d, j)
++++
+      KMd.off.words([x, (x + 2 : U32)], d, j)
+
+=== par_leaf par_branch
+the model naming a leaf the parent a removal frees
+--- index_model.bend
+def tr.par(t: Tr, +x: U32, +k: U32) -> Maybe<&2, U32>:
+  match t:
+    case Lf{+y, +ky}:
+      None{}
++++
+def tr.par(t: Tr, +x: U32, +k: U32) -> Maybe<&2, U32>:
+  match t:
+    case Lf{+y, +ky}:
+      Some{y}
+
+=== leaves_lose_leaf look_leaf
+the model's leaves leaving a leaf out
+--- index_model.bend
+def tr.leaves(t: Tr) -> List<&2, U32>:
+  match t:
+    case Lf{+x, +k}:
+      [x]
++++
+def tr.leaves(t: Tr) -> List<&2, U32>:
+  match t:
+    case Lf{+x, +k}:
+      []

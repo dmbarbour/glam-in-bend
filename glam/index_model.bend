@@ -528,6 +528,23 @@ def ix.offall(I: Ix, +s: U32, +d: Nat, +j: U32) -> Bool:
     case Has{t}:
       Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))) && tr.off(t, d, j)
 
+# word j off the words the realization reads: a leaf's 0, 2 and 3 (its
+# word 1, the port it faces, a link may write), every word of a branch,
+# the situating node's word 3
+def tr.offr(t: Tr, +d: Nat, +j: U32) -> Bool:
+  match t:
+    case Lf{+x, +k}:
+      KMd.off.words([x, (x + 2 : U32), (x + 3 : U32)], d, j)
+    case Br{+b, +i, l, r}:
+      KMd.off.words(KMd.nw(b), d, j) && (tr.offr(l, d, j) && tr.offr(r, d, j))
+
+def ix.offr(I: Ix, +s: U32, +d: Nat, +j: U32) -> Bool:
+  match I:
+    case Ept{}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)))
+    case Has{t}:
+      Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))) && tr.offr(t, d, j)
+
 # The words an operation leaves: a removal and an insert write no
 # cursor's words but the new cursor's home; the region they write is the
 # situating node's word 3, the branches' words, the free list's head and,

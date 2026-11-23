@@ -5149,3 +5149,225 @@ def put_lsub.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +N: List<&2, U32>, +h: {RG.s
 
 def Laws.put_lsub(I, x, k, b, N, h, hx):
   put_lsub.k(I, x, k, b, N, h, hx)
+
+# A realization kept by a write a cursor's word 1 may take
+# =======================================================
+
+def offr0(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words([x, (x + 2 : U32), (x + 3 : U32)], d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot(x, d)) == False{} : Bool}:
+  neq_comm(AD.slot(x, d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot(x, d), AD.slot(j, d)), and_l(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))) && True{}), h)))
+
+def offr2(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words([x, (x + 2 : U32), (x + 3 : U32)], d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot((x + 2 : U32), d)) == False{} : Bool}:
+  neq_comm(AD.slot((x + 2 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d)), and_l(Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))) && True{}), h))))
+
+def offr3(+x: U32, +d: Nat, +j: U32, +h: {KMd.off.words([x, (x + 2 : U32), (x + 3 : U32)], d, j) == True{} : Bool}) -> {Nat.is_eq(AD.slot(j, d), AD.slot((x + 3 : U32), d)) == False{} : Bool}:
+  neq_comm(AD.slot((x + 3 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d)), and_l(Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))), True{}, and_r(Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))) && True{}, and_r(Bool.not(Nat.is_eq(AD.slot(x, d), AD.slot(j, d))), Bool.not(Nat.is_eq(AD.slot((x + 2 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((x + 3 : U32), d), AD.slot(j, d))) && True{}), h)))))
+
+def real_set1(T: IM.Tr, +v: List<&2, U32>, +d: Nat, +j: U32, +val: U32, +p: U32, +s: U32, +ho: {IM.tr.offr(T, d, j) == True{} : Bool}) ->
+  {IM.tr.real(v, d, T, p, s) == IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, T, p, s) : Bool}:
+  match T:
+    case IM.Lf{+x, +kk}:
+      %wl_ne(v, d, j, x, val, offr0(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(_)) && (U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 2 : U32)), kk) && U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 3 : U32)), s)))) : Bool}
+      %wl_ne(v, d, j, (x + 2 : U32), val, offr2(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(_, kk) && U32.is_eq(KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (x + 3 : U32)), s)))) : Bool}
+      %wl_ne(v, d, j, (x + 3 : U32), val, offr3(x, d, j, ho)) :
+        {IM.tr.real(v, d, IM.Lf{x, kk}, p, s) == (U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk) && U32.is_eq(_, s)))) : Bool}
+      {==}
+    case IM.Br{+b, +i, +l, +r}:
+      +hb = and_l(KMd.off.words(KMd.nw(b), d, j), IM.tr.offr(l, d, j) && IM.tr.offr(r, d, j), ho)
+      +hlr = and_r(KMd.off.words(KMd.nw(b), d, j), IM.tr.offr(l, d, j) && IM.tr.offr(r, d, j), ho)
+      %wl_ne(v, d, j, b, val, off0(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(_) && (Nat.is_eq(X.ix.bitof(_), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 2 : U32)), s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 3 : U32)), s))))) : Bool}
+      %wl_ne(v, d, j, (b + 2 : U32), val, off2(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, _, s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(List.set(&2, U32, v, AD.slot(j, d), val), d, (b + 3 : U32)), s))))) : Bool}
+      %wl_ne(v, d, j, (b + 3 : U32), val, off3(b, d, j, hb)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, _, s))))) : Bool}
+      %real_set1(l, v, d, j, val, KMd.word(v, d, (b + 2 : U32)), s, and_l(IM.tr.offr(l, d, j), IM.tr.offr(r, d, j), hlr)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (_ && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, r, KMd.word(v, d, (b + 3 : U32)), s))))) : Bool}
+      %real_set1(r, v, d, j, val, KMd.word(v, d, (b + 3 : U32)), s, and_r(IM.tr.offr(l, d, j), IM.tr.offr(r, d, j), hlr)) :
+        {IM.tr.real(v, d, IM.Br{b, i, l, r}, p, s) == (U32.is_eq(p, b) && (X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && _)))) : Bool}
+      {==}
+
+# Removal
+# =======
+
+def rk3.k(I: IM.Ix, +v: List<&2, U32>, +d: Nat, +s: U32, +j: U32, +val: U32, +hj: {IM.ix.offr(I, s, d, j) == True{} : Bool}, +hr: {IM.ix.real(v, d, s, I) == True{} : Bool}) ->
+  {IM.ix.real(List.set(&2, U32, v, AD.slot(j, d), val), d, s, I) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      %wl_ne(v, d, j, (s + 3 : U32), val, neq_comm(AD.slot((s + 3 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)), hj))) : {U32.is_eq(_, s) == True{} : Bool}
+      hr
+    case IM.Has{+t}:
+      +h3 = neq_comm(AD.slot((s + 3 : U32), d), AD.slot(j, d), not_true(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d)), and_l(Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))), IM.tr.offr(t, d, j), hj)))
+      %wl_ne(v, d, j, (s + 3 : U32), val, h3) : {Bool.not(U32.is_eq(_, s)) && IM.tr.real(List.set(&2, U32, v, AD.slot(j, d), val), d, t, _, s) == True{} : Bool}
+      %real_set1(t, v, d, j, val, KMd.word(v, d, (s + 3 : U32)), s, and_r(Bool.not(Nat.is_eq(AD.slot((s + 3 : U32), d), AD.slot(j, d))), IM.tr.offr(t, d, j), hj)) :
+        {Bool.not(U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)) && _ == True{} : Bool}
+      hr
+
+def rk3.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +j: U32, +val: U32, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +hj: {IM.ix.offr(I, s, d, j) == True{} : Bool}, hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}, m: LAT.Mirror(U32, w)) ->
+  {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, s, I) == True{} : Bool}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  +ew = Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e)
+  %e : {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{_}, a}, j, val))), d, s, I) == True{} : Bool}
+  %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, t0), j, val)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot(j, d), val), LA.set_view(U32, LAT.fromT(U32, t0), d, j, val, hft, hd32)) : {IM.ix.real(_, d, s, I) == True{} : Bool}
+  rk3.k(I, AD.view(U32, LAT.fromT(U32, t0)), d, s, j, val, hj, LAB.subst(Array<U32>, q => {IM.ix.real(AD.view(U32, q), d, s, I) == True{} : Bool}, w, LAT.fromT(U32, t0), ew, hr))
+
+def Laws.real_kept1(w, a, d, s, I, j, val, hf, hd32, hj, hr):
+  rk3.m(w, a, d, s, I, j, val, hf, hd32, hj, hr, LAT.mirror(U32, w))
+
+# The roles of what a removal finds and frees
+# ===========================================
+
+def or_t_l(+a: Bool, +b: Bool, +h: {a == True{} : Bool}) -> {Bool.or(a, b) == True{} : Bool}:
+  %Equal.sym(Bool, a, True{}, h) : {Bool.or(_, b) == True{} : Bool}
+  {==}
+
+def or_t_r(+a: Bool, +b: Bool, +h: {b == True{} : Bool}) -> {Bool.or(a, b) == True{} : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      h
+
+def has_app_l(+xs: List<&2, U32>, +ys: List<&2, U32>, +z: U32, +h: {RG.has(xs, z) == True{} : Bool}) -> {RG.has(List.append(&2, U32, xs, ys), z) == True{} : Bool}:
+  %Equal.sym(Bool, RG.has(List.append(&2, U32, xs, ys), z), Bool.or(RG.has(xs, z), RG.has(ys, z)), has_app(xs, ys, z)) : {_ == True{} : Bool}
+  or_t_l(RG.has(xs, z), RG.has(ys, z), h)
+
+def has_app_r(+xs: List<&2, U32>, +ys: List<&2, U32>, +z: U32, +h: {RG.has(ys, z) == True{} : Bool}) -> {RG.has(List.append(&2, U32, xs, ys), z) == True{} : Bool}:
+  %Equal.sym(Bool, RG.has(List.append(&2, U32, xs, ys), z), Bool.or(RG.has(xs, z), RG.has(ys, z)), has_app(xs, ys, z)) : {_ == True{} : Bool}
+  or_t_r(RG.has(xs, z), RG.has(ys, z), h)
+
+def ll.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +k: U32, +y: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hy: {IM.mb.pick(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k)) == Some{y} : Maybe<&2, U32>},
+  ihl: {IM.tr.look(l, k) == Some{y} : Maybe<&2, U32>} -> {RG.has(IM.tr.leaves(l), y) == True{} : Bool}, ihr: {IM.tr.look(r, k) == Some{y} : Maybe<&2, U32>} -> {RG.has(IM.tr.leaves(r), y) == True{} : Bool}) ->
+  {RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), y) == True{} : Bool}:
+  match sd:
+    case True{}:
+      has_app_r(IM.tr.leaves(l), IM.tr.leaves(r), y, ihr(hx_side(True{}, k, i, l, r, y, hsd, hy)))
+    case False{}:
+      has_app_l(IM.tr.leaves(l), IM.tr.leaves(r), y, ihl(hx_side(False{}, k, i, l, r, y, hsd, hy)))
+
+def look_leaf.t(t: IM.Tr, +k: U32, +y: U32, +hy: {IM.tr.look(t, k) == Some{y} : Maybe<&2, U32>}) -> {RG.has(IM.tr.leaves(t), y) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +kk}:
+      %Equal.sym(U32, x, y, hit_some(U32.is_eq(kk, k), x, y, hy)) : {RG.has([_], y) == True{} : Bool}
+      or_t_l(U32.is_eq(y, y), RG.has([], y), is_eq_self(y))
+    case IM.Br{+b, +i, +l, +r}:
+      ll.k(X.ix.side(k, i), b, i, l, r, k, y, {==}, hy, hyl => look_leaf.t(l, k, y, hyl), hyr => look_leaf.t(r, k, y, hyr))
+
+def look_leaf.k(I: IM.Ix, +k: U32, +y: U32, +hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}) -> {RG.has(IM.ix.leaves(I), y) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      Empty.absurd({RG.has(IM.ix.leaves(IM.Ept{}), y) == True{} : Bool}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{y}, hy)))
+    case IM.Has{+t}:
+      look_leaf.t(t, k, y, hy)
+
+def Laws.look_leaf(I, k, y, hy):
+  look_leaf.k(I, k, y, hy)
+
+def mb.val(m: Maybe<&2, U32>, +a: U32) -> U32:
+  match m:
+    case Some{+x}:
+      x
+    case None{}:
+      a
+
+def mb_some(+a: U32, +b: U32, +h: {Some{a} == Some{b} : Maybe<&2, U32>}) -> {a == b : U32}:
+  Equal.cong(Maybe<&2, U32>, U32, m => mb.val(m, a), Some{a}, Some{b}, h)
+
+
+def pb.hr(+hit: Bool, +b: U32, +hl: Bool, +l: IM.Tr, +r: IM.Tr, +p: U32, pl: Maybe<&2, U32>, pr: Maybe<&2, U32>,
+  +hp: {IM.tr.par.k(True{}, b, hl, hit, pl, pr) == Some{p} : Maybe<&2, U32>},
+  ih: {pr == Some{p} : Maybe<&2, U32>} -> {RG.has(IM.tr.branches(r), p) == True{} : Bool}) -> {RG.has(Con{b, List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r))}, p) == True{} : Bool}:
+  match hit:
+    case True{}:
+      %mb_some(b, p, hp) : {RG.has(Con{b, List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r))}, _) == True{} : Bool}
+      or_t_l(U32.is_eq(b, b), RG.has(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), b), is_eq_self(b))
+    case False{}:
+      or_t_r(U32.is_eq(b, p), RG.has(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), p), has_app_r(IM.tr.branches(l), IM.tr.branches(r), p, ih(hp)))
+
+def pb.hl(+hit: Bool, +b: U32, +hr: Bool, +l: IM.Tr, +r: IM.Tr, +p: U32, pl: Maybe<&2, U32>, pr: Maybe<&2, U32>,
+  +hp: {IM.tr.par.k(False{}, b, hit, hr, pl, pr) == Some{p} : Maybe<&2, U32>},
+  ih: {pl == Some{p} : Maybe<&2, U32>} -> {RG.has(IM.tr.branches(l), p) == True{} : Bool}) -> {RG.has(Con{b, List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r))}, p) == True{} : Bool}:
+  match hit:
+    case True{}:
+      %mb_some(b, p, hp) : {RG.has(Con{b, List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r))}, _) == True{} : Bool}
+      or_t_l(U32.is_eq(b, b), RG.has(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), b), is_eq_self(b))
+    case False{}:
+      or_t_r(U32.is_eq(b, p), RG.has(List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r)), p), has_app_l(IM.tr.branches(l), IM.tr.branches(r), p, ih(hp)))
+
+def pb.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +p: U32, +hsd: {X.ix.side(k, i) == sd : Bool},
+  +hp: {IM.tr.par.k(X.ix.side(k, i), b, U32.is_eq(IM.tr.addr(l), x), U32.is_eq(IM.tr.addr(r), x), IM.tr.par(l, x, k), IM.tr.par(r, x, k)) == Some{p} : Maybe<&2, U32>},
+  ihl: {IM.tr.par(l, x, k) == Some{p} : Maybe<&2, U32>} -> {RG.has(IM.tr.branches(l), p) == True{} : Bool}, ihr: {IM.tr.par(r, x, k) == Some{p} : Maybe<&2, U32>} -> {RG.has(IM.tr.branches(r), p) == True{} : Bool}) ->
+  {RG.has(Con{b, List.append(&2, U32, IM.tr.branches(l), IM.tr.branches(r))}, p) == True{} : Bool}:
+  match sd:
+    case True{}:
+      pb.hr(U32.is_eq(IM.tr.addr(r), x), b, U32.is_eq(IM.tr.addr(l), x), l, r, p, IM.tr.par(l, x, k), IM.tr.par(r, x, k),
+        ME.subst(Bool, z => {IM.tr.par.k(z, b, U32.is_eq(IM.tr.addr(l), x), U32.is_eq(IM.tr.addr(r), x), IM.tr.par(l, x, k), IM.tr.par(r, x, k)) == Some{p} : Maybe<&2, U32>}, X.ix.side(k, i), True{}, hsd, hp), ihr)
+    case False{}:
+      pb.hl(U32.is_eq(IM.tr.addr(l), x), b, U32.is_eq(IM.tr.addr(r), x), l, r, p, IM.tr.par(l, x, k), IM.tr.par(r, x, k),
+        ME.subst(Bool, z => {IM.tr.par.k(z, b, U32.is_eq(IM.tr.addr(l), x), U32.is_eq(IM.tr.addr(r), x), IM.tr.par(l, x, k), IM.tr.par(r, x, k)) == Some{p} : Maybe<&2, U32>}, X.ix.side(k, i), False{}, hsd, hp), ihl)
+
+def par_branch.t(t: IM.Tr, +x: U32, +k: U32, +p: U32, +hp: {IM.tr.par(t, x, k) == Some{p} : Maybe<&2, U32>}) -> {RG.has(IM.tr.branches(t), p) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      Empty.absurd({RG.has(IM.tr.branches(IM.Lf{y, ky}), p) == True{} : Bool}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{p}, hp)))
+    case IM.Br{+b, +i, +l, +r}:
+      pb.k(X.ix.side(k, i), b, i, l, r, x, k, p, {==}, hp, hpl => par_branch.t(l, x, k, p, hpl), hpr => par_branch.t(r, x, k, p, hpr))
+
+def par_branch.k(I: IM.Ix, +x: U32, +k: U32, +p: U32, +hp: {IM.ix.par(I, x, k) == Some{p} : Maybe<&2, U32>}) -> {RG.has(IM.ix.branches(I), p) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      Empty.absurd({RG.has(IM.ix.branches(IM.Ept{}), p) == True{} : Bool}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{p}, hp)))
+    case IM.Has{+t}:
+      par_branch.t(t, x, k, p, hp)
+
+def Laws.par_branch(I, x, k, p, hp):
+  par_branch.k(I, x, k, p, hp)
+
+def or_ff2(+a: Bool, +b: Bool, +ha: {a == False{} : Bool}, +hb: {b == False{} : Bool}) -> {Bool.or(a, b) == False{} : Bool}:
+  %Equal.sym(Bool, a, False{}, ha) : {Bool.or(_, b) == False{} : Bool}
+  hb
+
+def ueq_comm_f(+a: U32, +b: U32, +h: {U32.is_eq(a, b) == False{} : Bool}) -> {U32.is_eq(b, a) == False{} : Bool}:
+  %ueq_comm(a, b) : {_ == False{} : Bool}
+  h
+
+# a node apart from a tree is none of its nodes
+def absent_nodes(t: IM.Tr, +d: Nat, +n: U32, +h: {IM.tr.offn(t, d, n) == True{} : Bool}) -> {RG.has(IM.tr.nodes(t), n) == False{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      or_ff2(U32.is_eq(y, n), RG.has([], n), ueq_comm_f(n, y, sep_ne(d, y, n, h)), {==})
+    case IM.Br{+b, +i, +l, +r}:
+      +hlr = and_r(IM.nd.sep(d, b, n), IM.tr.offn(l, d, n) && IM.tr.offn(r, d, n), h)
+      %Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.nodes(l), IM.tr.nodes(r)), n), Bool.or(RG.has(IM.tr.nodes(l), n), RG.has(IM.tr.nodes(r), n)), has_app(IM.tr.nodes(l), IM.tr.nodes(r), n)) : {Bool.or(U32.is_eq(b, n), _) == False{} : Bool}
+      or_ff2(U32.is_eq(b, n), Bool.or(RG.has(IM.tr.nodes(l), n), RG.has(IM.tr.nodes(r), n)), ueq_comm_f(n, b, sep_ne(d, b, n, and_l(IM.nd.sep(d, b, n), IM.tr.offn(l, d, n) && IM.tr.offn(r, d, n), h))),
+        or_ff2(RG.has(IM.tr.nodes(l), n), RG.has(IM.tr.nodes(r), n), absent_nodes(l, d, n, and_l(IM.tr.offn(l, d, n), IM.tr.offn(r, d, n), hlr)), absent_nodes(r, d, n, and_r(IM.tr.offn(l, d, n), IM.tr.offn(r, d, n), hlr))))
+
+# each of ns apart from the tree: none of its nodes
+def none_offt(ns: List<&2, U32>, +t: IM.Tr, +d: Nat, +h: {IM.fl.offt(ns, t, d) == True{} : Bool}) -> {RG.none.in(ns, IM.tr.nodes(t)) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      and_intro(Bool.not(RG.has(IM.tr.nodes(t), n)), RG.none.in(r, IM.tr.nodes(t)), nf(RG.has(IM.tr.nodes(t), n), absent_nodes(t, d, n, and_l(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), h))),
+        none_offt(r, t, d, and_r(IM.tr.offn(t, d, n), IM.fl.offt(r, t, d), h)))
+
+def none_nil2(ns: List<&2, U32>) -> {RG.none.in(ns, []) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      and_intro(Bool.not(RG.has([], n)), RG.none.in(r, []), {==}, none_nil2(r))
+
+def da.k(J: IM.Ix, +s: U32, +d: Nat, +ys: List<&2, U32>, +h: {IM.ix.flsep(J, s, d, ys) == True{} : Bool}) -> {RG.none.in(ys, IM.ix.nodes(J)) == True{} : Bool}:
+  match J:
+    case IM.Ept{}:
+      none_nil2(ys)
+    case IM.Has{+t}:
+      none_offt(ys, t, d, and_r(IM.fl.sep(ys, d, s), IM.fl.offt(ys, t, d), h))
+
+def Laws.del_absent(I, s, d, x, k, hl, hx):
+  da.k(IM.ix.del(I, x, k), s, d, IM.mb.cons(IM.ix.par(I, x, k), [x]), dd.k(I, s, d, x, k, hl, hx))

@@ -585,3 +585,53 @@ law put_lsub:
   for h: {RG.sub(IM.ix.leaves(I), N) == True{} : Bool}
   for hx: {RG.has(N, x) == True{} : Bool}
   {RG.sub(IM.ix.leaves(IM.ix.put(I, x, k, b)), N) == True{} : Bool}
+
+# LAW: a write off the words the realization reads (IM.ix.offr: a
+# cursor's word 1, which a join's link may write, not among them) leaves
+# the index realized.
+# Record: cursors-indexed
+law real_kept1:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +j: U32
+  for +val: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hj: {IM.ix.offr(I, s, d, j) == True{} : Bool}
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  {IM.ix.real(AD.view(U32, KMd.words(P.wr(P.H{KM.MG{w}, a}, j, val))), d, s, I) == True{} : Bool}
+
+# LAW: the cursor a find gives is one of the index's leaves.
+# Record: cursors-indexed
+law look_leaf:
+  for +I: IM.Ix
+  for +k: U32
+  for +y: U32
+  for hy: {IM.ix.look(I, k) == Some{y} : Maybe<&2, U32>}
+  {RG.has(IM.ix.leaves(I), y) == True{} : Bool}
+
+# LAW: the parent a removal frees is one of the index's branches.
+# Record: cursors-indexed
+law par_branch:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for +p: U32
+  for hp: {IM.ix.par(I, x, k) == Some{p} : Maybe<&2, U32>}
+  {RG.has(IM.ix.branches(I), p) == True{} : Bool}
+
+# LAW: what a removal drops, the cursor and the parent it frees, is none
+# of the nodes of the index that remains, the index laid out apart.
+# Record: cursors-indexed
+law del_absent:
+  for +I: IM.Ix
+  for +s: U32
+  for +d: Nat
+  for +x: U32
+  for +k: U32
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {RG.none.in(IM.mb.cons(IM.ix.par(I, x, k), [x]), IM.ix.nodes(IM.ix.del(I, x, k))) == True{} : Bool}
