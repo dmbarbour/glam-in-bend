@@ -4872,10 +4872,10 @@ def tw_q_keep(Q: List<&2, U32>, +r0: U32, +z: U32, +v: List<&2, U32>, +d: Nat, +
     case Nil{}:
       {==}
     case Con{+q, +t}:
-      %XP.wl_ne(v, d, j, (q + 1 : U32), val, not_true(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d))), ones(t, d, j), ho))) : {Bool.or(Bool.not(U32.is_eq(r0, q)), U32.is_eq(_, z)) && RG.tw.q(t, r0, z, List.set(&2, U32, v, AD.slot(j, d), val), d) == True{} : Bool}
-      and_intro(Bool.or(Bool.not(U32.is_eq(r0, q)), U32.is_eq(KMd.word(v, d, (q + 1 : U32)), z)), RG.tw.q(t, r0, z, List.set(&2, U32, v, AD.slot(j, d), val), d),
-        and_l(Bool.or(Bool.not(U32.is_eq(r0, q)), U32.is_eq(KMd.word(v, d, (q + 1 : U32)), z)), RG.tw.q(t, r0, z, v, d), h),
-        tw_q_keep(t, r0, z, v, d, j, val, and_r(Bool.or(Bool.not(U32.is_eq(r0, q)), U32.is_eq(KMd.word(v, d, (q + 1 : U32)), z)), RG.tw.q(t, r0, z, v, d), h), and_r(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d))), ones(t, d, j), ho)))
+      %XP.wl_ne(v, d, j, (q + 1 : U32), val, not_true(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d))), ones(t, d, j), ho))) : {Bool.or(KMd.off.port(d, r0, (q + 1 : U32)), Bool.not(KMd.off.port(d, _, (z + 1 : U32)))) && RG.tw.q(t, r0, z, List.set(&2, U32, v, AD.slot(j, d), val), d) == True{} : Bool}
+      and_intro(Bool.or(KMd.off.port(d, r0, (q + 1 : U32)), Bool.not(KMd.off.port(d, KMd.word(v, d, (q + 1 : U32)), (z + 1 : U32)))), RG.tw.q(t, r0, z, List.set(&2, U32, v, AD.slot(j, d), val), d),
+        and_l(Bool.or(KMd.off.port(d, r0, (q + 1 : U32)), Bool.not(KMd.off.port(d, KMd.word(v, d, (q + 1 : U32)), (z + 1 : U32)))), RG.tw.q(t, r0, z, v, d), h),
+        tw_q_keep(t, r0, z, v, d, j, val, and_r(Bool.or(KMd.off.port(d, r0, (q + 1 : U32)), Bool.not(KMd.off.port(d, KMd.word(v, d, (q + 1 : U32)), (z + 1 : U32)))), RG.tw.q(t, r0, z, v, d), h), and_r(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((q + 1 : U32), d))), ones(t, d, j), ho)))
 
 def px_tw_keep(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>, +j: U32, +val: U32,
   +h: {RG.px.tw(ys, v, d, L) == True{} : Bool}, +ho: {ones(ys, d, j) == True{} : Bool}, +hoL: {ones(L, d, j) == True{} : Bool}) -> {RG.px.tw(ys, List.set(&2, U32, v, AD.slot(j, d), val), d, L) == True{} : Bool}:
@@ -4883,11 +4883,11 @@ def px_tw_keep(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>,
     case Nil{}:
       {==}
     case Con{+z, +r}:
-      %XP.wl_ne(v, d, j, (z + 1 : U32), val, not_true(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d))), ones(r, d, j), ho))) : {Bool.not(U32.is_eq(_, z)) && (RG.tw.q(L, _, z, List.set(&2, U32, v, AD.slot(j, d), val), d) && RG.px.tw(r, List.set(&2, U32, v, AD.slot(j, d), val), d, L)) == True{} : Bool}
-      and_intro(Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, List.set(&2, U32, v, AD.slot(j, d), val), d) && RG.px.tw(r, List.set(&2, U32, v, AD.slot(j, d), val), d, L), and_l(Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h),
+      %XP.wl_ne(v, d, j, (z + 1 : U32), val, not_true(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d)), and_l(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d))), ones(r, d, j), ho))) : {KMd.off.port(d, _, (z + 1 : U32)) && (RG.tw.q(L, _, z, List.set(&2, U32, v, AD.slot(j, d), val), d) && RG.px.tw(r, List.set(&2, U32, v, AD.slot(j, d), val), d, L)) == True{} : Bool}
+      and_intro(KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, List.set(&2, U32, v, AD.slot(j, d), val), d) && RG.px.tw(r, List.set(&2, U32, v, AD.slot(j, d), val), d, L), and_l(KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h),
         and_intro(RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, List.set(&2, U32, v, AD.slot(j, d), val), d), RG.px.tw(r, List.set(&2, U32, v, AD.slot(j, d), val), d, L),
-          tw_q_keep(L, KMd.word(v, d, (z + 1 : U32)), z, v, d, j, val, and_l(RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d), RG.px.tw(r, v, d, L), and_r(Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h)), hoL),
-          px_tw_keep(r, v, d, L, j, val, and_r(RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d), RG.px.tw(r, v, d, L), and_r(Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h)), and_r(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d))), ones(r, d, j), ho), hoL)))
+          tw_q_keep(L, KMd.word(v, d, (z + 1 : U32)), z, v, d, j, val, and_l(RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d), RG.px.tw(r, v, d, L), and_r(KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h)), hoL),
+          px_tw_keep(r, v, d, L, j, val, and_r(RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d), RG.px.tw(r, v, d, L), and_r(KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)), RG.tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && RG.px.tw(r, v, d, L), h)), and_r(Bool.not(Nat.is_eq(AD.slot(j, d), AD.slot((z + 1 : U32), d))), ones(r, d, j), ho), hoL)))
 
 # the three facing clauses kept by such a write
 def fr3(+L: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +N: List<&2, U32>, +j: U32, +val: U32, +h: {RG.faces(L, v, d, L) && (RG.px.off(L, v, d, L, N) && RG.px.tw(L, v, d, L)) == True{} : Bool}, +ho: {ones(L, d, j) == True{} : Bool}) -> {RG.faces(L, List.set(&2, U32, v, AD.slot(j, d), val), d, L) && (RG.px.off(L, List.set(&2, U32, v, AD.slot(j, d), val), d, L, N) && RG.px.tw(L, List.set(&2, U32, v, AD.slot(j, d), val), d, L)) == True{} : Bool}:

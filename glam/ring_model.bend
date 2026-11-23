@@ -484,21 +484,24 @@ def px.off(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>, +N:
     case Con{+z, t}:
       po.all(KMd.word(v, d, (z + 1 : U32)), L, d, N) && px.off(t, v, d, L, N)
 
-# z, facing port r, faced back by each node of Q that r names
+# z, facing port r, faced back by each node of Q whose word 1 r's link
+# word is: that node's faced port's link word z's word 1, by slots, as a
+# link's writes land
 def tw.q(Q: List<&2, U32>, +r: U32, +z: U32, +v: List<&2, U32>, +d: Nat) -> Bool:
   match Q:
     case Nil{}:
       True{}
     case Con{+q, t}:
-      Bool.or(Bool.not(U32.is_eq(r, q)), U32.is_eq(KMd.word(v, d, (q + 1 : U32)), z)) && tw.q(t, r, z, v, d)
+      Bool.or(KMd.off.port(d, r, (q + 1 : U32)), Bool.not(KMd.off.port(d, KMd.word(v, d, (q + 1 : U32)), (z + 1 : U32)))) && tw.q(t, r, z, v, d)
 
-# each of ys facing not itself, and faced back by the live node it faces
+# each of ys facing not itself (its faced port's link word off its own
+# word 1), and faced back by the live node it faces
 def px.tw(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +L: List<&2, U32>) -> Bool:
   match ys:
     case Nil{}:
       True{}
     case Con{+z, t}:
-      Bool.not(U32.is_eq(KMd.word(v, d, (z + 1 : U32)), z)) && (tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && px.tw(t, v, d, L))
+      KMd.off.port(d, KMd.word(v, d, (z + 1 : U32)), (z + 1 : U32)) && (tw.q(L, KMd.word(v, d, (z + 1 : U32)), z, v, d) && px.tw(t, v, d, L))
 
 # the invariant: the index realized, on its invariant, laid out; s and the
 # cursors live, the pending live and of no role else, listed once; no
