@@ -3178,6 +3178,148 @@ def del_inv.k(I: IM.Ix, +x: U32, +k: U32, +hi: {IM.ix.inv(I) == True{} : Bool}, 
 def Laws.del_inv(I, x, k, hi, hx):
   del_inv.k(I, x, k, hi, hx)
 
+# Layouts kept
+# ============
+
+# a tree whose nodes are apart from node x apart from x's leaf
+def offn_apart(U: IM.Tr, +d: Nat, +x: U32, +k: U32, +h: {IM.tr.offn(U, d, x) == True{} : Bool}) -> {IM.tr.apart(U, IM.Lf{x, k}, d) == True{} : Bool}:
+  match U:
+    case IM.Lf{+y, +ky}:
+      sep_sym(d, y, x, h)
+    case IM.Br{+u, +j, +ul, +ur}:
+      and_intro(IM.tr.offn(IM.Lf{x, k}, d, u), IM.tr.apart(ul, IM.Lf{x, k}, d) && IM.tr.apart(ur, IM.Lf{x, k}, d), sep_sym(d, u, x, and_l(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), h)),
+        and_intro(IM.tr.apart(ul, IM.Lf{x, k}, d), IM.tr.apart(ur, IM.Lf{x, k}, d), offn_apart(ul, d, x, k, and_l(IM.tr.offn(ul, d, x), IM.tr.offn(ur, d, x), and_r(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), h))), offn_apart(ur, d, x, k, and_r(IM.tr.offn(ul, d, x), IM.tr.offn(ur, d, x), and_r(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), h)))))
+
+# a tree apart from r and from the new nodes x and b, apart from r after a put
+def apart_place(l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +d: Nat,
+  +hap: {IM.tr.apart(l, r, d) == True{} : Bool}, +hlx: {IM.tr.offn(l, d, x) == True{} : Bool}, +hlb: {IM.tr.offn(l, d, b) == True{} : Bool}) -> {IM.tr.apart(l, IM.tr.place(r, x, k, b, c), d) == True{} : Bool}:
+  match l:
+    case IM.Lf{+y, +ky}:
+      place_offn(r, x, k, b, c, d, y, hap, sep_sym(d, y, x, hlx), sep_sym(d, y, b, hlb))
+    case IM.Br{+u, +j, +ul, +ur}:
+      +hs = and_r(IM.tr.offn(r, d, u), IM.tr.apart(ul, r, d) && IM.tr.apart(ur, r, d), hap)
+      and_intro(IM.tr.offn(IM.tr.place(r, x, k, b, c), d, u), IM.tr.apart(ul, IM.tr.place(r, x, k, b, c), d) && IM.tr.apart(ur, IM.tr.place(r, x, k, b, c), d),
+        place_offn(r, x, k, b, c, d, u, and_l(IM.tr.offn(r, d, u), IM.tr.apart(ul, r, d) && IM.tr.apart(ur, r, d), hap), sep_sym(d, u, x, and_l(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), hlx)), sep_sym(d, u, b, and_l(IM.nd.sep(d, u, b), IM.tr.offn(ul, d, b) && IM.tr.offn(ur, d, b), hlb))),
+        and_intro(IM.tr.apart(ul, IM.tr.place(r, x, k, b, c), d), IM.tr.apart(ur, IM.tr.place(r, x, k, b, c), d),
+          apart_place(ul, r, x, k, b, c, d, and_l(IM.tr.apart(ul, r, d), IM.tr.apart(ur, r, d), hs), and_l(IM.tr.offn(ul, d, x), IM.tr.offn(ur, d, x), and_r(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), hlx)), and_l(IM.tr.offn(ul, d, b), IM.tr.offn(ur, d, b), and_r(IM.nd.sep(d, u, b), IM.tr.offn(ul, d, b) && IM.tr.offn(ur, d, b), hlb))),
+          apart_place(ur, r, x, k, b, c, d, and_r(IM.tr.apart(ul, r, d), IM.tr.apart(ur, r, d), hs), and_r(IM.tr.offn(ul, d, x), IM.tr.offn(ur, d, x), and_r(IM.nd.sep(d, u, x), IM.tr.offn(ul, d, x) && IM.tr.offn(ur, d, x), hlx)), and_r(IM.tr.offn(ul, d, b), IM.tr.offn(ur, d, b), and_r(IM.nd.sep(d, u, b), IM.tr.offn(ul, d, b) && IM.tr.offn(ur, d, b), hlb)))))
+
+def lay_join(+sd: Bool, +U: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +d: Nat, +hU: {IM.tr.lay(U, d) == True{} : Bool}, +hokx: {IM.nd.ok(x, d) == True{} : Bool}, +hokb: {IM.nd.ok(b, d) == True{} : Bool},
+  +hsxb: {IM.nd.sep(d, x, b) == True{} : Bool}, +hUx: {IM.tr.offn(U, d, x) == True{} : Bool}, +hUb: {IM.tr.offn(U, d, b) == True{} : Bool}) -> {IM.tr.lay(IM.tr.join(sd, U, x, k, b, c), d) == True{} : Bool}:
+  match sd:
+    case True{}:
+      and_intro(IM.nd.ok(b, d), IM.tr.offn(U, d, b) && (IM.tr.offn(IM.Lf{x, k}, d, b) && (IM.tr.apart(U, IM.Lf{x, k}, d) && (IM.tr.lay(U, d) && IM.tr.lay(IM.Lf{x, k}, d)))), hokb, and_intro(IM.tr.offn(U, d, b), IM.tr.offn(IM.Lf{x, k}, d, b) && (IM.tr.apart(U, IM.Lf{x, k}, d) && (IM.tr.lay(U, d) && IM.tr.lay(IM.Lf{x, k}, d))), hUb, and_intro(IM.tr.offn(IM.Lf{x, k}, d, b), IM.tr.apart(U, IM.Lf{x, k}, d) && (IM.tr.lay(U, d) && IM.tr.lay(IM.Lf{x, k}, d)), hsxb, and_intro(IM.tr.apart(U, IM.Lf{x, k}, d), IM.tr.lay(U, d) && IM.tr.lay(IM.Lf{x, k}, d), offn_apart(U, d, x, k, hUx), and_intro(IM.tr.lay(U, d), IM.tr.lay(IM.Lf{x, k}, d), hU, hokx)))))
+    case False{}:
+      and_intro(IM.nd.ok(b, d), IM.tr.offn(IM.Lf{x, k}, d, b) && (IM.tr.offn(U, d, b) && (IM.tr.apart(IM.Lf{x, k}, U, d) && (IM.tr.lay(IM.Lf{x, k}, d) && IM.tr.lay(U, d)))), hokb, and_intro(IM.tr.offn(IM.Lf{x, k}, d, b), IM.tr.offn(U, d, b) && (IM.tr.apart(IM.Lf{x, k}, U, d) && (IM.tr.lay(IM.Lf{x, k}, d) && IM.tr.lay(U, d))), hsxb, and_intro(IM.tr.offn(U, d, b), IM.tr.apart(IM.Lf{x, k}, U, d) && (IM.tr.lay(IM.Lf{x, k}, d) && IM.tr.lay(U, d)), hUb, and_intro(IM.tr.apart(IM.Lf{x, k}, U, d), IM.tr.lay(IM.Lf{x, k}, d) && IM.tr.lay(U, d), hUx, and_intro(IM.tr.lay(IM.Lf{x, k}, d), IM.tr.lay(U, d), hokx, hU)))))
+
+def lay.k(+lt: Bool, +sdi: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +d: Nat,
+  +hl: {IM.tr.lay(IM.Br{b2, i, l, r}, d) == True{} : Bool}, +hokx: {IM.nd.ok(x, d) == True{} : Bool}, +hokb: {IM.nd.ok(b, d) == True{} : Bool}, +hsxb: {IM.nd.sep(d, x, b) == True{} : Bool},
+  +hTx: {IM.tr.offn(IM.Br{b2, i, l, r}, d, x) == True{} : Bool}, +hTb: {IM.tr.offn(IM.Br{b2, i, l, r}, d, b) == True{} : Bool},
+  +ihl: {IM.tr.lay(IM.tr.place(l, x, k, b, c), d) == True{} : Bool}, +ihr: {IM.tr.lay(IM.tr.place(r, x, k, b, c), d) == True{} : Bool}) ->
+  {IM.tr.lay(IM.tr.place.k(lt, sdi, b2, i, l, r, IM.tr.place(l, x, k, b, c), IM.tr.place(r, x, k, b, c), x, k, b, c), d) == True{} : Bool}:
+  match lt:
+    case False{}:
+      lay_join(X.ix.side(k, c), IM.Br{b2, i, l, r}, x, k, b, c, d, hl, hokx, hokb, hsxb, hTx, hTb)
+    case True{}:
+      match sdi:
+        case True{}:
+          and_intro(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(IM.tr.place(r, x, k, b, c), d, b2) && (IM.tr.apart(l, IM.tr.place(r, x, k, b, c), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.place(r, x, k, b, c), d)))), and_l(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl), and_intro(IM.tr.offn(l, d, b2), IM.tr.offn(IM.tr.place(r, x, k, b, c), d, b2) && (IM.tr.apart(l, IM.tr.place(r, x, k, b, c), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.place(r, x, k, b, c), d))), and_l(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)), and_intro(IM.tr.offn(IM.tr.place(r, x, k, b, c), d, b2), IM.tr.apart(l, IM.tr.place(r, x, k, b, c), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.place(r, x, k, b, c), d)), place_offn(r, x, k, b, c, d, b2, and_l(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))), sep_sym(d, b2, x, and_l(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), sep_sym(d, b2, b, and_l(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb))), and_intro(IM.tr.apart(l, IM.tr.place(r, x, k, b, c), d), IM.tr.lay(l, d) && IM.tr.lay(IM.tr.place(r, x, k, b, c), d), apart_place(l, r, x, k, b, c, d, and_l(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))), and_l(IM.tr.offn(l, d, x), IM.tr.offn(r, d, x), and_r(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), and_l(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b), and_r(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb))), and_intro(IM.tr.lay(l, d), IM.tr.lay(IM.tr.place(r, x, k, b, c), d), and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), ihr)))))
+        case False{}:
+          and_intro(IM.nd.ok(b2, d), IM.tr.offn(IM.tr.place(l, x, k, b, c), d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(IM.tr.place(l, x, k, b, c), r, d) && (IM.tr.lay(IM.tr.place(l, x, k, b, c), d) && IM.tr.lay(r, d)))), and_l(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl), and_intro(IM.tr.offn(IM.tr.place(l, x, k, b, c), d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(IM.tr.place(l, x, k, b, c), r, d) && (IM.tr.lay(IM.tr.place(l, x, k, b, c), d) && IM.tr.lay(r, d))), place_offn(l, x, k, b, c, d, b2, and_l(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)), sep_sym(d, b2, x, and_l(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), sep_sym(d, b2, b, and_l(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb))), and_intro(IM.tr.offn(r, d, b2), IM.tr.apart(IM.tr.place(l, x, k, b, c), r, d) && (IM.tr.lay(IM.tr.place(l, x, k, b, c), d) && IM.tr.lay(r, d)), and_l(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))), and_intro(IM.tr.apart(IM.tr.place(l, x, k, b, c), r, d), IM.tr.lay(IM.tr.place(l, x, k, b, c), d) && IM.tr.lay(r, d), apart_sym(IM.tr.place(l, x, k, b, c), r, d, apart_place(r, l, x, k, b, c, d, apart_sym(r, l, d, and_l(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), and_r(IM.tr.offn(l, d, x), IM.tr.offn(r, d, x), and_r(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b), and_r(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb)))), and_intro(IM.tr.lay(IM.tr.place(l, x, k, b, c), d), IM.tr.lay(r, d), ihl, and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))))))))
+
+def place_lay(T: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +d: Nat, +hl: {IM.tr.lay(T, d) == True{} : Bool}, +hokx: {IM.nd.ok(x, d) == True{} : Bool}, +hokb: {IM.nd.ok(b, d) == True{} : Bool}, +hsxb: {IM.nd.sep(d, x, b) == True{} : Bool},
+  +hTx: {IM.tr.offn(T, d, x) == True{} : Bool}, +hTb: {IM.tr.offn(T, d, b) == True{} : Bool}) -> {IM.tr.lay(IM.tr.place(T, x, k, b, c), d) == True{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      lay_join(X.ix.side(k, c), IM.Lf{y, ky}, x, k, b, c, d, hl, hokx, hokb, hsxb, hTx, hTb)
+    case IM.Br{+b2, +i, +l, +r}:
+      lay.k(Nat.is_lt(i, c), X.ix.side(k, i), b2, i, l, r, x, k, b, c, d, hl, hokx, hokb, hsxb, hTx, hTb,
+        place_lay(l, x, k, b, c, d, and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), hokx, hokb, hsxb, and_l(IM.tr.offn(l, d, x), IM.tr.offn(r, d, x), and_r(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), and_l(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b), and_r(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb))),
+        place_lay(r, x, k, b, c, d, and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b2), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b2), IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b2, d), IM.tr.offn(l, d, b2) && (IM.tr.offn(r, d, b2) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), hokx, hokb, hsxb, and_r(IM.tr.offn(l, d, x), IM.tr.offn(r, d, x), and_r(IM.nd.sep(d, b2, x), IM.tr.offn(l, d, x) && IM.tr.offn(r, d, x), hTx)), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b), and_r(IM.nd.sep(d, b2, b), IM.tr.offn(l, d, b) && IM.tr.offn(r, d, b), hTb))))
+
+def put_lay.k(I: IM.Ix, +s: U32, +x: U32, +k: U32, +b: U32, +d: Nat, +hl: {IM.ix.lay(I, s, d) == True{} : Bool}, +hfr: {IM.ix.fresh(I, s, x, b, d) == True{} : Bool}) ->
+  {IM.ix.lay(IM.ix.put(I, x, k, b), s, d) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      and_intro(IM.nd.ok(s, d), IM.tr.offn(IM.Lf{x, k}, d, s) && IM.tr.lay(IM.Lf{x, k}, d), hl,
+        and_intro(IM.tr.offn(IM.Lf{x, k}, d, s), IM.tr.lay(IM.Lf{x, k}, d), and_r(IM.nd.ok(x, d), IM.nd.sep(d, x, s), hfr), and_l(IM.nd.ok(x, d), IM.nd.sep(d, x, s), hfr)))
+    case IM.Has{+t}:
+      +f0 = and_l(IM.nd.ok(x, d), IM.nd.ok(b, d) && (IM.nd.sep(d, x, b) && (IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b))))), hfr)
+      +f1 = and_r(IM.nd.ok(x, d), IM.nd.ok(b, d) && (IM.nd.sep(d, x, b) && (IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b))))), hfr)
+      +f2 = and_r(IM.nd.ok(b, d), IM.nd.sep(d, x, b) && (IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b)))), f1)
+      +f3 = and_r(IM.nd.sep(d, x, b), IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b))), f2)
+      +f4 = and_r(IM.nd.sep(d, x, s), IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b)), f3)
+      +f5 = and_r(IM.nd.sep(d, b, s), IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b), f4)
+      +h1 = and_r(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && IM.tr.lay(t, d), hl)
+      and_intro(IM.nd.ok(s, d), IM.tr.offn(IM.tr.place(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), d, s) && IM.tr.lay(IM.tr.place(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), d), and_l(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && IM.tr.lay(t, d), hl),
+        and_intro(IM.tr.offn(IM.tr.place(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), d, s), IM.tr.lay(IM.tr.place(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k)))), d),
+          place_offn(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), d, s, and_l(IM.tr.offn(t, d, s), IM.tr.lay(t, d), h1), and_l(IM.nd.sep(d, x, s), IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b)), f3), and_l(IM.nd.sep(d, b, s), IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b), f4)),
+          place_lay(t, x, k, b, IM.cr.i(X.ix.diff(k, IM.tr.near(t, k))), d, and_r(IM.tr.offn(t, d, s), IM.tr.lay(t, d), h1), f0, and_l(IM.nd.ok(b, d), IM.nd.sep(d, x, b) && (IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b)))), f1),
+            and_l(IM.nd.sep(d, x, b), IM.nd.sep(d, x, s) && (IM.nd.sep(d, b, s) && (IM.tr.offn(t, d, x) && IM.tr.offn(t, d, b))), f2), and_l(IM.tr.offn(t, d, x), IM.tr.offn(t, d, b), f5), and_r(IM.tr.offn(t, d, x), IM.tr.offn(t, d, b), f5))))
+
+def Laws.put_lay(I, s, x, k, b, d, hl, hfr):
+  put_lay.k(I, s, x, k, b, d, hl, hfr)
+
+# a removal's tree: its nodes among the tree's
+def apart_cut(l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +d: Nat, +h: {IM.tr.apart(l, r, d) == True{} : Bool}) -> {IM.tr.apart(l, IM.tr.cut(r, x, k), d) == True{} : Bool}:
+  match l:
+    case IM.Lf{+y, +ky}:
+      cut_offn(r, x, k, d, y, h)
+    case IM.Br{+u, +j, +ul, +ur}:
+      +hs = and_r(IM.tr.offn(r, d, u), IM.tr.apart(ul, r, d) && IM.tr.apart(ur, r, d), h)
+      and_intro(IM.tr.offn(IM.tr.cut(r, x, k), d, u), IM.tr.apart(ul, IM.tr.cut(r, x, k), d) && IM.tr.apart(ur, IM.tr.cut(r, x, k), d), cut_offn(r, x, k, d, u, and_l(IM.tr.offn(r, d, u), IM.tr.apart(ul, r, d) && IM.tr.apart(ur, r, d), h)),
+        and_intro(IM.tr.apart(ul, IM.tr.cut(r, x, k), d), IM.tr.apart(ur, IM.tr.cut(r, x, k), d), apart_cut(ul, r, x, k, d, and_l(IM.tr.apart(ul, r, d), IM.tr.apart(ur, r, d), hs)), apart_cut(ur, r, x, k, d, and_r(IM.tr.apart(ul, r, d), IM.tr.apart(ur, r, d), hs))))
+
+def cl.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +d: Nat, +hl: {IM.tr.lay(IM.Br{b, i, l, r}, d) == True{} : Bool}, +ih: {IM.tr.lay(IM.tr.cut(r, x, k), d) == True{} : Bool}) ->
+  {IM.tr.lay(IM.tr.cut.r(hit, b, i, l, IM.tr.cut(r, x, k)), d) == True{} : Bool}:
+  match hit:
+    case True{}:
+      and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))))
+    case False{}:
+      and_intro(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(IM.tr.cut(r, x, k), d, b) && (IM.tr.apart(l, IM.tr.cut(r, x, k), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.cut(r, x, k), d)))), and_l(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl), and_intro(IM.tr.offn(l, d, b), IM.tr.offn(IM.tr.cut(r, x, k), d, b) && (IM.tr.apart(l, IM.tr.cut(r, x, k), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.cut(r, x, k), d))), and_l(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)), and_intro(IM.tr.offn(IM.tr.cut(r, x, k), d, b), IM.tr.apart(l, IM.tr.cut(r, x, k), d) && (IM.tr.lay(l, d) && IM.tr.lay(IM.tr.cut(r, x, k), d)), cut_offn(r, x, k, d, b, and_l(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))), and_intro(IM.tr.apart(l, IM.tr.cut(r, x, k), d), IM.tr.lay(l, d) && IM.tr.lay(IM.tr.cut(r, x, k), d), apart_cut(l, r, x, k, d, and_l(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), and_intro(IM.tr.lay(l, d), IM.tr.lay(IM.tr.cut(r, x, k), d), and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))), ih)))))
+
+def cl.l(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +d: Nat, +hl: {IM.tr.lay(IM.Br{b, i, l, r}, d) == True{} : Bool}, +ih: {IM.tr.lay(IM.tr.cut(l, x, k), d) == True{} : Bool}) ->
+  {IM.tr.lay(IM.tr.cut.l(hit, b, i, r, IM.tr.cut(l, x, k)), d) == True{} : Bool}:
+  match hit:
+    case True{}:
+      and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))))
+    case False{}:
+      and_intro(IM.nd.ok(b, d), IM.tr.offn(IM.tr.cut(l, x, k), d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(IM.tr.cut(l, x, k), r, d) && (IM.tr.lay(IM.tr.cut(l, x, k), d) && IM.tr.lay(r, d)))), and_l(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl), and_intro(IM.tr.offn(IM.tr.cut(l, x, k), d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(IM.tr.cut(l, x, k), r, d) && (IM.tr.lay(IM.tr.cut(l, x, k), d) && IM.tr.lay(r, d))), cut_offn(l, x, k, d, b, and_l(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))), and_intro(IM.tr.offn(r, d, b), IM.tr.apart(IM.tr.cut(l, x, k), r, d) && (IM.tr.lay(IM.tr.cut(l, x, k), d) && IM.tr.lay(r, d)), and_l(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))), and_intro(IM.tr.apart(IM.tr.cut(l, x, k), r, d), IM.tr.lay(IM.tr.cut(l, x, k), d) && IM.tr.lay(r, d), apart_sym(IM.tr.cut(l, x, k), r, d, apart_cut(r, l, x, k, d, apart_sym(r, l, d, and_l(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))))), and_intro(IM.tr.lay(IM.tr.cut(l, x, k), d), IM.tr.lay(r, d), ih, and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl))))))))))
+
+def cl.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +d: Nat, +hl: {IM.tr.lay(IM.Br{b, i, l, r}, d) == True{} : Bool}, +ihl: {IM.tr.lay(IM.tr.cut(l, x, k), d) == True{} : Bool}, +ihr: {IM.tr.lay(IM.tr.cut(r, x, k), d) == True{} : Bool}) ->
+  {IM.tr.lay(IM.tr.cut.k(sd, b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k)), d) == True{} : Bool}:
+  match sd:
+    case True{}:
+      cl.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, r, x, k, d, hl, ihr)
+    case False{}:
+      cl.l(U32.is_eq(IM.tr.addr(l), x), b, i, l, r, x, k, d, hl, ihl)
+
+def cut_lay(T: IM.Tr, +x: U32, +k: U32, +d: Nat, +hl: {IM.tr.lay(T, d) == True{} : Bool}) -> {IM.tr.lay(IM.tr.cut(T, x, k), d) == True{} : Bool}:
+  match T:
+    case IM.Lf{+y, +ky}:
+      hl
+    case IM.Br{+b, +i, +l, +r}:
+      cl.k(X.ix.side(k, i), b, i, l, r, x, k, d, hl, cut_lay(l, x, k, d, and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))))), cut_lay(r, x, k, d, and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), hl)))))))
+
+def del_lay.h(+only: Bool, +t: IM.Tr, +s: U32, +x: U32, +k: U32, +d: Nat, +hl: {IM.ix.lay(IM.Has{t}, s, d) == True{} : Bool}) -> {IM.ix.lay(IM.ix.del.k(only, t, x, k), s, d) == True{} : Bool}:
+  match only:
+    case True{}:
+      and_l(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && IM.tr.lay(t, d), hl)
+    case False{}:
+      +h1 = and_r(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && IM.tr.lay(t, d), hl)
+      and_intro(IM.nd.ok(s, d), IM.tr.offn(IM.tr.cut(t, x, k), d, s) && IM.tr.lay(IM.tr.cut(t, x, k), d), and_l(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && IM.tr.lay(t, d), hl),
+        and_intro(IM.tr.offn(IM.tr.cut(t, x, k), d, s), IM.tr.lay(IM.tr.cut(t, x, k), d), cut_offn(t, x, k, d, s, and_l(IM.tr.offn(t, d, s), IM.tr.lay(t, d), h1)), cut_lay(t, x, k, d, and_r(IM.tr.offn(t, d, s), IM.tr.lay(t, d), h1))))
+
+def del_lay.k(I: IM.Ix, +s: U32, +x: U32, +k: U32, +d: Nat, +hl: {IM.ix.lay(I, s, d) == True{} : Bool}) -> {IM.ix.lay(IM.ix.del(I, x, k), s, d) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      hl
+    case IM.Has{+t}:
+      del_lay.h(U32.is_eq(IM.tr.addr(t), x), t, s, x, k, d, hl)
+
+def Laws.del_lay(I, s, x, k, d, hl):
+  del_lay.k(I, s, x, k, d, hl)
+
 # Lookups
 # =======
 

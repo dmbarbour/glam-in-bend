@@ -190,3 +190,25 @@ the model's new leaf on the side its key's bit does not give
       Br{b, c, Lf{x, k}, cur}
     case False{}:
       Br{b, c, cur, Lf{x, k}}
+
+=== cut_swapped del_inv remove_tree
+the model's removal swapping a branch's children on the way down, so
+that keys sit on the wrong sides
+--- index_model.bend
+      Br{b, i, l, cr}
++++
+      Br{b, i, cr, l}
+
+=== join_at_branch put_lay
+the model's new leaf at the new branch's node, one node twice
+--- index_model.bend
+      Br{b, c, cur, Lf{x, k}}
++++
+      Br{b, c, cur, Lf{b, k}}
+
+=== cut_twice del_lay
+the model's removal keeping a subtree twice where it drops the parent
+--- index_model.bend
+      Br{b, i, l, cr}
++++
+      Br{b, i, l, l}

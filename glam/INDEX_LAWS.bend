@@ -204,3 +204,30 @@ law del_inv:
   for hi: {IM.ix.inv(I) == True{} : Bool}
   for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
   {IM.ix.inv(IM.ix.del(I, x, k)) == True{} : Bool}
+
+# LAW: a put of fresh nodes into an index laid out apart leaves it laid
+# out apart: the new leaf and branch apart from the tree's nodes, the
+# situating node and each other.
+# Record: cursors-indexed
+law put_lay:
+  for +I: IM.Ix
+  for +s: U32
+  for +x: U32
+  for +k: U32
+  for +b: U32
+  for +d: Nat
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hfr: {IM.ix.fresh(I, s, x, b, d) == True{} : Bool}
+  {IM.ix.lay(IM.ix.put(I, x, k, b), s, d) == True{} : Bool}
+
+# LAW: and a removal leaves it so: the tree after a removal has no node
+# the tree before had not.
+# Record: cursors-indexed
+law del_lay:
+  for +I: IM.Ix
+  for +s: U32
+  for +x: U32
+  for +k: U32
+  for +d: Nat
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  {IM.ix.lay(IM.ix.del(I, x, k), s, d) == True{} : Bool}
