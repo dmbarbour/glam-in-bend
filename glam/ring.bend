@@ -63,8 +63,8 @@ def jn.u(r: P.H & U32, +x: U32, +y: U32) -> P.H:
   (h, +u) = r
   jn.w(P.rd(h, (y + 1 : U32)), u, x, y)
 
-# two cursors x and y of one index (or a placeholder x, not in it, and a
-# cursor y) replaced by one wire between what each faced
+# two cursors x and y of one index, both taken out of it, replaced by one
+# wire between what each faced (a placeholder and a cursor: join1)
 def join(h: P.H, +x: U32, +y: U32) -> P.H:
   jn.u(P.rd(h, (x + 1 : U32)), x, y)
 

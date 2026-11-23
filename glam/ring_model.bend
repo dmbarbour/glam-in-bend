@@ -55,7 +55,7 @@ def words(h: P.H) -> Array<U32>:
           x
 
 # x's word 3 is no member's word 3, slot by slot: a node apart from the
-# ring xs, as a cursor new to it is
+# nodes xs
 def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
   match ys:
     case Nil{}:
@@ -67,8 +67,8 @@ def apart(ys: List<&2, U32>, +d: Nat, +x: U32) -> Bool:
 def off.node(+d: Nat, +m: U32, +j: U32) -> Bool:
   Bool.not(Nat.is_eq(AD.slot(m, d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 1 : U32), d), AD.slot(j, d))) && (Bool.not(Nat.is_eq(AD.slot((m + 2 : U32), d), AD.slot(j, d))) && Bool.not(Nat.is_eq(AD.slot((m + 3 : U32), d), AD.slot(j, d)))))
 
-# word i's slot no member's word 3: a write there leaves the ring's
-# links, and a word so placed is none a join writes in the ring
+# word i's slot no member's word 3: a write there leaves the cursors'
+# homes, and a word so placed is none a join writes in a cursor
 def off.links(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
   match ys:
     case Nil{}:
@@ -84,8 +84,8 @@ def apart.all(ys: List<&2, U32>, +d: Nat) -> Bool:
     case Con{+y, +t}:
       apart(t, d, y) && apart.all(t, d)
 
-# a list with x taken out, and the member listed before x, for the exact
-# ring's laws stated by membership (JoinExact review, F1)
+# a list with x taken out, for laws stated by membership (JoinExact
+# review, F1)
 def keep(+b: Bool, +y: U32) -> List<&2, U32>:
   match b:
     case True{}:
@@ -187,8 +187,8 @@ def off.pos(ys: List<&2, U32>, +d: Nat, +i: U32) -> Bool:
       Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot((y + 2 : U32), d))) && off.pos(t, d, i)
 
 # a port r faceable by M's members: its link word, r + 1, in no member's
-# word 3 nor word 2, so that linking it leaves the ring's links and
-# positions (ring-ports-faced-off-positions); a member's word 1 may be
+# word 3 nor word 2, so that linking it leaves the cursors' homes and
+# keys (ring-ports-faced-off-positions); a member's word 1 may be
 # faced, two cursors facing each other. A static has no link word, and
 # r + 1 holds of every static by alignment, not by its value: r ends in
 # 11, so r + 1 in 00, a node's word 0, while a member is a node's base
