@@ -180,7 +180,7 @@ bit, so that a branch and its child test one bit
 +++
       tr.place.k(Nat.is_le(i, c), X.ix.side(k, i), b2, i, l, r, tr.place(l, x, k, b, c), tr.place(r, x, k, b, c), x, k, b, c)
 
-=== join_wrong_side put_inv insert_tree
+=== join_wrong_side put_inv insert_tree look_put_other
 the model's new leaf on the side its key's bit does not give
 --- index_model.bend
       Br{b, c, cur, Lf{x, k}}
@@ -190,14 +190,27 @@ the model's new leaf on the side its key's bit does not give
       Br{b, c, Lf{x, k}, cur}
     case False{}:
       Br{b, c, cur, Lf{x, k}}
+>>> witness look_put_other
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+x = 20
+src = 5
+b = 36
+k = 9
 
-=== cut_swapped del_inv remove_tree
+=== cut_swapped del_inv remove_tree look_del_other
 the model's removal swapping a branch's children on the way down, so
 that keys sit on the wrong sides
 --- index_model.bend
       Br{b, i, l, cr}
 +++
       Br{b, i, cr, l}
+>>> witness look_del_other
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Br{32, 2n, IM.Lf{12, 3}, IM.Lf{20, 7}}}}
+s = 8
+x = 20
+kx = 7
+k = 9
+d = 6n
 
 === join_at_branch put_lay
 the model's new leaf at the new branch's node, one node twice
@@ -206,12 +219,19 @@ the model's new leaf at the new branch's node, one node twice
 +++
       Br{b, c, cur, Lf{b, k}}
 
-=== cut_twice del_lay
+=== cut_twice del_lay look_del_other
 the model's removal keeping a subtree twice where it drops the parent
 --- index_model.bend
       Br{b, i, l, cr}
 +++
       Br{b, i, l, l}
+>>> witness look_del_other
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Br{32, 2n, IM.Lf{12, 3}, IM.Lf{20, 7}}}}
+s = 8
+x = 20
+kx = 7
+k = 3
+d = 6n
 
 === cut_keeps_leaf del_leaves remove_tree del_drop del_absent
 the model's removal keeping the cursor where it should give its parent up
@@ -226,12 +246,18 @@ the model's removal keeping the cursor where it should give its parent up
     case False{}:
       Br{b, i, l, cr}
 
-=== join_drops put_leaves
+=== join_drops put_leaves look_put_other
 the model's new branch dropping the tree it goes above, its leaf twice
 --- index_model.bend
       Br{b, c, cur, Lf{x, k}}
 +++
       Br{b, c, Lf{x, k}, Lf{x, k}}
+>>> witness look_put_other
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+x = 20
+src = 5
+b = 36
+k = 9
 
 === at_rightmost at_first
 the model's search for a key's cursor taking the rightmost, not the

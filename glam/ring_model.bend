@@ -128,6 +128,10 @@ def first(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +far: U32) -> Maybe<&2,
     case Con{+y, r}:
       first.k(pos.is(v, d, y, far), y, first(r, v, d, far))
 
+# The nodes laid out (JoinExact review, F3; the second reviewer's F2,
+# F4): facts of the nodes' words, stated on the list alone, so that
+# taking nodes out keeps them by computation
+
 # a node's four words
 def nw(+a: U32) -> List<&2, U32>:
   Con{a, Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}}
@@ -273,6 +277,25 @@ def off.ports(fs: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
     case Con{+f, r}:
       KMd.off.port(d, f, j) && off.ports(r, d, j)
 
+# The pending placeholders over the index
+# =======================================
+#
+# cells-freeze.sharing.cursors.index.ring.inv: the serve's invariant with a
+# copy's cursors in a tree of the net's nodes (cursors-indexed). N lists
+# every node a serve touches, laid out apart once (layout, bases); each
+# holds one role in it: the situating node s; the index I's leaves, the
+# cursors, and its branches; the pending placeholders ps; the free list's
+# first nodes F, which an insert takes its branch from and a join gives
+# its nodes to. L, carried as before, lists the live ones: s, the cursors
+# and the pending, no branch nor free node among them. A live node faces a
+# port faceable by L (faces); that port's link word, which a join writes,
+# is off every word of a tracked node that is not live and off the word 0
+# of one that is, and off the free list's head (po.all, KMd.off.port: a
+# static has none); and live nodes
+# facing one another face one another both ways, none itself
+# (copy-links-two-way), so that a join leaves no live node facing the
+# nodes it frees.
+
 # port r's link word off node n's words, all four where n is not live
 def po.n(+r: U32, +L: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
   KMd.off.port(d, r, n) && Bool.or(has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && KMd.off.port(d, r, (n + 3 : U32))))
@@ -370,6 +393,17 @@ def cx.ab(m: Maybe<&2, U32>, +I: IM.Ix, +src: U32) -> Bool:
       True{}
     case None{}:
       isnone(IM.ix.look(I, src))
+
+# no crossing of cs looks for key k at its far end: the served cursor's
+# key, which no crossing then joins (serve_ring_exact)
+def far.off(cs: List<&2, R.FzC>, +k: U32) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{f, r}:
+      match f:
+        case R.FzC{+at, +src, neg, +far}:
+          Bool.not(U32.is_eq(far, k)) && far.off(r, k)
 
 # A copy's crossings over the index (R.crossings; crossings_pend): each
 # crossing's placeholder the node map holds at its index (pls), its find

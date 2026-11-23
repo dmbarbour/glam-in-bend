@@ -131,9 +131,10 @@ law serve_keeps:
 # of the live nodes the crossings leave, the free list's first nodes nc
 # and the removal's parent, then the crossings' (leave_pend on
 # crossings_pend on copy_pend). Premises: copy_pend's, the crossings'
-# (RG.cxs.ok), nc found at k in the index the crossings leave (over the
-# model: no law yet gives a find after a removal or an insert), and the
-# root a node no hole at a port below 3 (SV.root.ok)
+# (RG.cxs.ok), nc found at k in the index before them and no crossing
+# looking for k at its far end (RG.far.off: nc kept through the
+# crossings, look_del_other, look_put_other), and the root a node no
+# hole at a port below 3 (SV.root.ok)
 # (cells-freeze.sharing.cursors.index.ring.leave). Not claimed: the frame
 # of the leave at the root (serve_root_keeps); that freeze builds such
 # roots; the net's links two-way after the leave, which overwrites the
@@ -180,7 +181,8 @@ law serve_ring_exact:
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
-  for +hc: {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), k) == Some{nc} : Maybe<&2, U32>}
+  for +hc: {IM.ix.look(I, k) == Some{nc} : Maybe<&2, U32>}
+  for +hu: {RG.far.off(cs, k) == True{} : Bool}
   for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc))), d, s, IM.ix.del(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), Nil{}, RG.without(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc), Con{nc, IM.mb.cons(IM.ix.par(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
 
@@ -236,7 +238,8 @@ law serve_root_keeps:
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
-  for +hc: {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), k) == Some{nc} : Maybe<&2, U32>}
+  for +hc: {IM.ix.look(I, k) == Some{nc} : Maybe<&2, U32>}
+  for +hu: {RG.far.off(cs, k) == True{} : Bool}
   for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
   for +hj: {KMd.nodes.off(ns, d, j) == True{} : Bool}
   for +hjM: {RG.off.nodes(M, d, j) == True{} : Bool}

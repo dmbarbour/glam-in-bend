@@ -668,3 +668,37 @@ law free_real:
   for hh: {IM.ix.offr(I, s, d, P.at_fh()) == True{} : Bool}
   for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
   {IM.ix.real(AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, s, I) == True{} : Bool}
+
+# LAW: a lookup at key k after a removal at another key kx (IM.ix.del, x
+# found at kx) gives what it gave before: the removal's cut keeps the
+# leftmost leaf at k (look_at). So a cursor stays found through another's
+# removal (cells-freeze.sharing.cursors.index.ring.premises.lookups).
+# Record: cursors-indexed
+law look_del_other:
+  for +I: IM.Ix
+  for +s: U32
+  for +x: U32
+  for +kx: U32
+  for +k: U32
+  for +d: Nat
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hl: {IM.ix.lay(I, s, d) == True{} : Bool}
+  for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
+  for hne: {U32.is_eq(kx, k) == False{} : Bool}
+  {IM.ix.look(IM.ix.del(I, x, kx), k) == IM.ix.look(I, k) : Maybe<&2, U32>}
+
+# LAW: a lookup at key k after an insert at another key src (IM.ix.put, src
+# absent) gives what it gave before: the insert keeps the other leaves'
+# order and adds one keyed src (look_at)
+# (cells-freeze.sharing.cursors.index.ring.premises.lookups).
+# Record: cursors-indexed
+law look_put_other:
+  for +I: IM.Ix
+  for +x: U32
+  for +src: U32
+  for +b: U32
+  for +k: U32
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
+  for hne: {U32.is_eq(src, k) == False{} : Bool}
+  {IM.ix.look(IM.ix.put(I, x, src, b), k) == IM.ix.look(I, k) : Maybe<&2, U32>}

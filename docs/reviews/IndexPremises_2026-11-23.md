@@ -203,9 +203,9 @@ law. "Before" is proposed before merge.
 | # | Proposal | From | Cost | When |
 |---|---|---|---|---|
 | P1 | The laws compose as laws: `_full` for each step, `copy_lay` (layout and bases of `M ++ pls`), `serve_pend` (the invariant after a serve away from the root) | A1, A10 | S | before |
-| P2 | `look_del_other`, `look_put_other` (prototyped), then `join_pend`'s and `join_keeps`' `hy` over `I` with `x != y`, and the serve's `hc` as `nc` a leaf at the start (`look_member`) and no crossing's far end at its key, through the crossings' fold | F1, F2, A5, A7, A10 | S + M | before |
+| P2 | Built 2026-11-23: `look_del_other`, `look_put_other`, then `join_pend`'s and `join_keeps`' `hy` over `I` with `x != y`, and the serve's `hc` as `nc` a leaf at the start (`look_member`) and no crossing's far end at its key, through the crossings' fold | F1, F2, A5, A7, A10 | S + M | before |
 | P3 | Three premises implied by the others, each checked by Bend before it goes: `hpk` from `hpo` (`port_of_po`), `hfr` from `px.off` (`faces_fresh`), `hdy` from `bases` (`dyn_of_bases`), on one alignment lemma; with `po_static`, a `leave_era_pend` for the eraser's site | A6, A9, B4 | S each | before |
-| P4 | Stale text: `ring.bend`'s `join` comment, `ring_model.bend`'s ring wording | B15 | S | before |
+| P4 | Built 2026-11-23: stale text, `ring.bend`'s `join` comment, `ring_model.bend`'s ring wording | B15 | S | before |
 | P5 | `distinct(L)` a conjunct of the invariant, for a second serve | F3, A12 | L | after |
 | P6 | `situate_pend`: the first index's writes (`glam/core.bend:774-784`) give the invariant, the base case | A13 | M | after |
 | P7 | `join_links`, `leave_links`: the wire a join or leave makes between untracked peers, with dropped-link mutants | A8 | M | after |

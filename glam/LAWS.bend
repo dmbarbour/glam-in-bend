@@ -44,7 +44,8 @@ law join_keeps:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
   for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
-  for hy: {IM.ix.look(IM.ix.del(I, x, kx), ky) == Some{y} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(I, ky) == Some{y} : Maybe<&2, U32>}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
   for hj: {RG.off.nodes(N, d, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
   for hju: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (x + 1 : U32)), j) == True{} : Bool}
@@ -285,8 +286,8 @@ law leave_pend:
   {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) == True{} : Bool}
 
 # LAW: two cursors x and y of the index joined (R.join: the ports they
-# faced linked, x then y taken out of the index, both freed), x found at
-# kx and y at ky in the index without x, keep the pending placeholders'
+# faced linked, x then y taken out of the index, both freed), two cursors
+# apart found at kx and ky, keep the pending placeholders'
 # invariant over the index: the index without x and y, the live nodes
 # without x and y, the free list's first nodes y, x, the parents the
 # removals free if any, then the nodes before
@@ -315,7 +316,8 @@ law join_pend:
   for hB: {RG.bases(N) == True{} : Bool}
   for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
   for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
-  for hy: {IM.ix.look(IM.ix.del(I, x, kx), ky) == Some{y} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(I, ky) == Some{y} : Maybe<&2, U32>}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(R.join(P.H{KM.MG{w}, a}, x, y))), d, s, IM.ix.del(IM.ix.del(I, x, kx), y, ky), ps, RG.without(RG.without(L, x), y), Con{y, Con{x, IM.mb.cons(IM.ix.par(IM.ix.del(I, x, kx), y, ky), IM.mb.cons(IM.ix.par(I, x, kx), F))}}, N) == True{} : Bool}
 
 # LAW: a cursor c the index finds at k leaving (R.leave), a port p linked
