@@ -555,21 +555,12 @@ b = 36
 # node: two cursors under the branch 28 (WB.ix_pair), 12 at key 7 and 16
 # at key 9; a port linked wrong is the frame law's alone.
 
-=== join_unlink_faced join_keeps join_exact join_pend
+=== join_unlink_faced join_exact join_pend
 the port x faced unlinked, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), u), y), x), y)
->>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
-j = 1
 >>> witness join_exact
 w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
 a = [V.VUnit{} : V.Val^1n]
@@ -600,30 +591,27 @@ the port y faced linked one word on
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), x), y), x), y)
 >>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 x = 12
-y = 20
-j = 50
+y = 16
+kx = 7
+ky = 9
+j = 54
 
-=== join_frees_next_node join_keeps join_pend
+=== join_frees_next_node join_pend
 the node after x freed, not x
 --- ring.bend
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), (x + 4 : U32)), y)
->>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
-j = 16
 >>> witness join_pend
 w = WB.ix_pair()
 a = [V.VUnit{} : V.Val^1n]
@@ -646,14 +634,20 @@ y's word 2, its position, read as the port it faced
 +++
   jn.w(P.rd(h, (y + 2 : U32)), u, x, y)
 >>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+w = WB.ix_pair_k(61)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 61}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 x = 12
-y = 20
-j = 6
+y = 16
+kx = 7
+ky = 61
+j = 62
 
 === join1_unlinks_placeholder join1_keeps join1_exact join1_pend
 the placeholder unlinked, not the ring's cursor
@@ -723,21 +717,12 @@ x = 20
 y = 16
 k = 9
 
-=== unlink_clears_pred_position join_keeps join1_keeps
+=== unlink_clears_pred_position join1_keeps
 the predecessor's word 2, its position, cleared as its word 3 is given
 --- ring.bend
   P.wr(h, (p + 3 : U32), nx)
 +++
   P.wr(P.wr(h, (p + 3 : U32), nx), (p + 2 : U32), 0)
->>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
-j = 18
 >>> witness join1_keeps
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
@@ -969,7 +954,7 @@ k = 9
 # above at the error count's word, meets ring.ok and every premise on j
 # (checked by hand, as is the witness both ways).
 
-=== walk_raises_always join_keeps join1_keeps
+=== walk_raises_always join1_keeps
 the walk raises the kernel's error even where it found the cursor
 --- ring.bend
     case Rw{h, +n, +p, found, done}:
@@ -977,15 +962,6 @@ the walk raises the kernel's error even where it found the cursor
 +++
     case Rw{h, +n, +p, found, done}:
       (P.err_if(True{}, h), p)
->>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 41), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
-a = [V.VUnit{} : V.Val^1n]
-d = 6n
-s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
-x = 12
-y = 20
-j = 1
 >>> witness join1_keeps
 w = WB.pending(KMd.ref(48, 0))
 a = [V.VUnit{} : V.Val^1n]
@@ -1108,14 +1084,20 @@ word" 28 written, which a static does not have
 +++
   P.free(P.free(rg.unlink(rg.unlink(P.link(h, u, w), x), y), x), y)
 >>> witness join_keeps
-w = Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^6n], 8, 146), 10, 99), 11, 12), 12, 18), 13, 27), 14, 7), 15, 16), 16, 18), 17, 33), 18, 9), 19, 20), 20, 82), 21, 48), 22, 5), 23, 8)
+w = WB.ix_pair_st(47)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 s = 8
-t = Con{12, Con{16, Con{20, Nil{}}}}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
 x = 12
-y = 20
-j = 28
+y = 16
+kx = 7
+ky = 9
+j = 48
 
 === leave_links_static leave_keeps
 the port given, the static 27, linked as a node's port: its "link word"

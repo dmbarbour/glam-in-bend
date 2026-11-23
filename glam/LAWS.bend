@@ -52,39 +52,41 @@ law insert_closed:
   {RG.closed(AD.view(U32, RG.words(R.rg.insert(P.H{KM.MG{w}, a}, situ, x))), d, Con{x, xs}) == True{} : Bool}
 
 
-# LAW: a join of two distinct cursors x and y of a ring exact with its
-# nodes (RG.ring.ok) writes no word but the members' word 3, x's and y's
-# own four words, the free list's head and the link words of the two
-# ports x and y faced (each one's word 1 holds the port it faces; a
-# static has none, KMd.off.port): every
-# other word reads as before, the other members' words 0 to 2 among them,
-# which the serve's next finds and joins read, and the kernel's error
-# count, which no walk round an exact ring raises
-# (cells-freeze.nested.host.join; docs/reviews/JoinLaws_2026-11-14.md,
-# F1).
+# LAW: two cursors x and y of the index joined (R.join), on join_pend's
+# premises, leave every word as it was but the tracked nodes' (N: the
+# live nodes, the index's, the free list's), the free list's head, and
+# the link words of the two ports x and y faced, a static having none:
+# the join's frame, for the materializer's frontier, which joins two
+# cursors directly (cells-freeze.sharing.cursors.index.ring.retire).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
 law join_keeps:
   for w: Array<U32>
   for a: Array<V.Val>
   for +d: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +x: U32
   for +y: U32
+  for +kx: U32
+  for +ky: U32
   for +j: U32
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
-  for hr: {RG.ring.ok(AD.view(U32, w), d, s, t) == True{} : Bool}
-  for hx: {RG.has(t, x) == True{} : Bool}
-  for hy: {RG.has(t, y) == True{} : Bool}
-  for hxy: {U32.is_eq(x, y) == False{} : Bool}
-  for hj: {RG.off.links(Con{s, t}, d, j) == True{} : Bool}
-  for hjx: {RG.off.node(d, x, j) == True{} : Bool}
-  for hjy: {RG.off.node(d, y, j) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(IM.ix.del(I, x, kx), ky) == Some{y} : Maybe<&2, U32>}
+  for hj: {RG.off.nodes(N, d, j) == True{} : Bool}
   for hjh: {Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)) == False{} : Bool}
-  for hju: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (x + 1 : U32))), j) == True{} : Bool}
-  for hjw: {KMd.off.port(d, Pair.snd(Array<U32>, U32, Array.get(U32, w, (y + 1 : U32))), j) == True{} : Bool}
+  for hju: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (x + 1 : U32)), j) == True{} : Bool}
+  for hjw: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (y + 1 : U32)), j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: and a join of a placeholder x, a node apart from the ring
