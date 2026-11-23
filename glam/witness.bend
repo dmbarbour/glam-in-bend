@@ -55,5 +55,12 @@ def leaf(h: P.H, +x: U32, +k: U32, +s: U32, +f: U32) -> P.H:
 # The pending index: s at 8, its word 3 its one leaf, the cursor 16 (key
 # 9, facing node 52's port 0); a placeholder 20 (position pos, facing node
 # 44's); the free list's head 10, node 36 its last
+def ix_heap(+pos: U32) -> P.H:
+  placeholder(leaf(situ(empty(10), 8, 99, 16), 16, 9, 8, KMd.ref(52, 0)), 20, KMd.ref(44, 0), pos)
+
 def ix_one(+pos: U32) -> Array<U32>:
-  RG.words(placeholder(leaf(situ(empty(10), 8, 99, 16), 16, 9, 8, KMd.ref(52, 0)), 20, KMd.ref(44, 0), pos))
+  RG.words(ix_heap(pos))
+
+# and a second placeholder, 24, facing node 48's port 0
+def ix_two(+pos: U32) -> Array<U32>:
+  RG.words(placeholder(ix_heap(pos), 24, KMd.ref(48, 0), 3))

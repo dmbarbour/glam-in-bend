@@ -561,3 +561,89 @@ def cx.ab(m: Maybe<&2, U32>, +I: IM.Ix, +src: U32) -> Bool:
       True{}
     case None{}:
       isnone(IM.ix.look(I, src))
+
+# A copy's crossings over the index (R.crossings; crossings_pend): each
+# crossing's placeholder the node map holds at its index (pls), its find
+# the index's lookup, so that the model shares none of the code's finds;
+# one making a cursor in a tree takes its branch from the free list's
+# first node, the list after it the rest
+def cx.hd(F: List<&2, U32>) -> U32:
+  match F:
+    case Nil{}:
+      0
+    case Con{+b, r}:
+      b
+
+def cx.tl(m: Maybe<&2, U32>, +I: IM.Ix, F: List<&2, U32>) -> List<&2, U32>:
+  match m:
+    case Some{+y}:
+      F
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          F
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              Nil{}
+            case Con{+b, r}:
+              r
+
+# room for the branch a cursor made in a tree takes
+def cx.room(m: Maybe<&2, U32>, +I: IM.Ix, +F: List<&2, U32>) -> Bool:
+  match m:
+    case Some{+y}:
+      True{}
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          True{}
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              False{}
+            case Con{+b, r}:
+              True{}
+
+# the index, the live nodes and the free list's first nodes after
+type Cxs is Data:
+  Cxs{I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>}
+
+def cxs.I(S: Cxs) -> IM.Ix:
+  match S:
+    case Cxs{I, +L, +F}:
+      I
+
+def cxs.L(S: Cxs) -> List<&2, U32>:
+  match S:
+    case Cxs{I, +L, +F}:
+      L
+
+def cxs.F(S: Cxs) -> List<&2, U32>:
+  match S:
+    case Cxs{I, +L, +F}:
+      F
+
+def cxs(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>) -> Cxs:
+  match cs:
+    case Nil{}:
+      Cxs{I, L, F}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          cxs(r, vm, dm, cx.I(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, cx.hd(F), far),
+            cx.L(IM.ix.look(I, far), pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L),
+            cx.F1(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, cx.tl(IM.ix.look(I, far), I, F)))
+
+# each crossing's premises in turn: its position absent where it makes a
+# cursor, room for the branch it takes
+def cxs.ok(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +F: List<&2, U32>) -> Bool:
+  match cs:
+    case Nil{}:
+      True{}
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          (cx.ab(IM.ix.look(I, far), I, src) && cx.room(IM.ix.look(I, far), I, F)) &&
+            cxs.ok(r, vm, dm, cx.I(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, cx.hd(F), far),
+              cx.F1(IM.ix.look(I, far), I, pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, cx.tl(IM.ix.look(I, far), I, F)))

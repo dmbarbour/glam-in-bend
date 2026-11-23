@@ -289,10 +289,12 @@ far = 9
 b = 36
 
 # A copy's crossings (crossings_pend): each mutation skips a crossing or
-# reads the map at the wrong index. Its witness: the pending ring, the map
-# giving placeholders 20 and 24 at the template's indices 0 and 1; 20
-# looking for 9 joins cursor 16, 24 looking for 3 finds none and is made
-# a cursor, so that the model's two steps both run.
+# reads the map at the wrong index. Its witness: the pending index
+# (WB.ix_two), the map giving placeholders 24 and 20 at the template's
+# indices 0 and 1; 24 looking for 3 finds none and is made a cursor at
+# 11, its branch the free node 36; 20 looking for 9 joins cursor 16, the
+# branch freed again, so that the model's two steps and the free list's
+# both ways run.
 
 === crossings_skips crossings_pend
 a crossing skipped, its placeholder neither joined nor made a cursor
@@ -301,15 +303,17 @@ a crossing skipped, its placeholder neither joined nor made a cursor
 +++
       crossings(rest, q, situ)
 >>> witness crossings_pend
-w = WB.pending(KMd.ref(48, 0))
+w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 20), 1, 24)
+map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 24), 1, 20)
 d = 6n
 dm = 2n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{0, 5, True{}, 9}, Con{R.FzC{1, 11, False{}, 3}, Nil{}}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Con{36, Nil{}}
+N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
+cs = Con{R.FzC{0, 11, False{}, 3}, Con{R.FzC{1, 5, True{}, 9}, Nil{}}}
 
 === crossing_map_next crossings_pend
 each placeholder read at the next index of the map
@@ -318,15 +322,17 @@ each placeholder read at the next index of the map
 +++
       crossing.pl(Array.get(U32, map, (at + 1 : U32)), h, situ, src, neg, far)
 >>> witness crossings_pend
-w = WB.pending(KMd.ref(48, 0))
+w = WB.ix_two(5)
 a = [V.VUnit{} : V.Val^1n]
-map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 20), 1, 24)
+map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 24), 1, 20)
 d = 6n
 dm = 2n
 s = 8
-t = Con{12, Con{16, Nil{}}}
-L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
-cs = Con{R.FzC{0, 5, True{}, 9}, Con{R.FzC{1, 11, False{}, 3}, Nil{}}}
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Con{36, Nil{}}
+N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
+cs = Con{R.FzC{0, 11, False{}, 3}, Con{R.FzC{1, 5, True{}, 9}, Nil{}}}
 
 # A find (find_exact): each mutation finds another member, or none, or
 # raises the error. Each witness is the inserts' ring, s at 8 holding 99

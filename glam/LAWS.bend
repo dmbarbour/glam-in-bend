@@ -390,12 +390,16 @@ law cross_pend:
 
 # LAW: a copy's crossings (R.crossings, each placeholder found through
 # map), their placeholders the pending ones (RG.pls), keep the pending
-# placeholders' invariant, none pending after: the ring and the nodes'
-# list as the model gives them (RG.cr), each find modelled over a view of
-# the positions, a new cursor's word 2 its position, so that the model
-# shares none of the code's finds (cells-freeze.nested.host.serve).
+# placeholders' invariant over the index (RG.px.ok), none pending after:
+# the index, the live nodes and the free list's first nodes as the model
+# gives them (RG.cxs: each find the index's lookup, a cursor made in a
+# tree taking the list's first node), on each crossing's premises in
+# turn (RG.cxs.ok: its position absent where it makes a cursor, room for
+# the branch it takes) (cells-freeze.sharing.cursors.index.ring.fold).
 # Record: copy-reduced-function-nets
 # Record: hub-laws-reused
+# Record: cursors-indexed
+# Record: serve-premises-over-index
 law crossings_pend:
   for w: Array<U32>
   for a: Array<V.Val>
@@ -403,15 +407,20 @@ law crossings_pend:
   for +d: Nat
   for +dm: Nat
   for +s: U32
-  for +t: List<&2, U32>
+  for +I: IM.Ix
   for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
   for +cs: List<&2, R.FzC>
   for hf: {AD.full(U32, w, d) == True{} : Bool}
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
-  for hp: {RG.pend.ok(AD.view(U32, w), d, s, t, RG.pls(cs, AD.view(U32, map), dm), L) == True{} : Bool}
-  {RG.pend.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, Pair.fst(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, map), dm, AD.view(U32, w), d, t, L)), Nil{}, Pair.snd(List<&2, U32>, List<&2, U32>, RG.cr(cs, AD.view(U32, map), dm, AD.view(U32, w), d, t, L))) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, RG.pls(cs, AD.view(U32, map), dm), L, F, N) == True{} : Bool}
+  for hok: {RG.cxs.ok(cs, AD.view(U32, map), dm, I, F) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), N) == True{} : Bool}
 
 # LAW: and a copy's crossings leave every word as it was but the words
 # of the nodes of L, the free list's head, and the link word of each port
