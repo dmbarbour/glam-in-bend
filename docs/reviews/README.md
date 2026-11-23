@@ -240,6 +240,12 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
 - [`FreezeFable_2026-11-21.md`](FreezeFable_2026-11-21.md): the second
   reviewer's review of freeze and templates, by a Fable sub-agent, kept
   as written beside `Freeze_2026-11-21.md`, which checks it.
+- [`IndexPremises_2026-11-23.md`](IndexPremises_2026-11-23.md): the
+  premises of the laws over a copy's index, against the ring-era laws
+  they replaced, for the review before the branch's merge: two lookups
+  stated over the index after a step (F1, F2), the live nodes' distinctness
+  (F3), the frames' regions widened to the tracked nodes (F6); and what
+  the branch did without approval. Drafted by the agent.
 
 ## Retired
 
