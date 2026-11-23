@@ -191,3 +191,16 @@ law put_inv:
   for hi: {IM.ix.inv(I) == True{} : Bool}
   for ha: {IM.ix.look(I, k) == None{} : Maybe<&2, U32>}
   {IM.ix.inv(IM.ix.put(I, x, k, b)) == True{} : Bool}
+
+# LAW: a removal of the cursor at key k from an index on its invariant
+# leaves the invariant: the sibling taken up from its parent's bound, the
+# keys below each branch fewer, the leftmost's change crossed. So a
+# removal's tree may take the next operation.
+# Record: cursors-indexed
+law del_inv:
+  for +I: IM.Ix
+  for +x: U32
+  for +k: U32
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}
+  {IM.ix.inv(IM.ix.del(I, x, k)) == True{} : Bool}

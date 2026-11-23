@@ -3073,6 +3073,111 @@ def put_inv.k(I: IM.Ix, +x: U32, +k: U32, +b: U32, +hi: {IM.ix.inv(I) == True{} 
 def Laws.put_inv(I, x, k, b, hi, ha):
   put_inv.k(I, x, k, b, hi, ha)
 
+# A removal's tree: its keys among the tree's; a subtree's invariant from
+# a lower bit
+def ok_lower(t: IM.Tr, +lo: Nat, +lo2: Nat, +h: {IM.tr.ok(t, lo) == True{} : Bool}, +hle: {Nat.is_le(lo2, lo) == True{} : Bool}) -> {IM.tr.ok(t, lo2) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      le_trans_b(lo2, lo, 32n, hle, h)
+    case IM.Br{+b, +i, +l, +r}:
+      ok_lo.br(b, i, l, r, lo, lo2, h, le_trans_b(lo2, lo, i, hle, and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), h)))
+
+def ca.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +cr: IM.Tr, +p: U32, +j: Nat, +sd: Bool, +hl: {IM.tr.all(l, p, j, sd) == True{} : Bool}, +hcr: {IM.tr.all(cr, p, j, sd) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.cut.r(hit, b, i, l, cr), p, j, sd) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hl
+    case False{}:
+      and_intro(IM.tr.all(l, p, j, sd), IM.tr.all(cr, p, j, sd), hl, hcr)
+
+def ca.l(+hit: Bool, +b: U32, +i: Nat, +r: IM.Tr, +cl: IM.Tr, +p: U32, +j: Nat, +sd: Bool, +hr: {IM.tr.all(r, p, j, sd) == True{} : Bool}, +hcl: {IM.tr.all(cl, p, j, sd) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.cut.l(hit, b, i, r, cl), p, j, sd) == True{} : Bool}:
+  match hit:
+    case True{}:
+      hr
+    case False{}:
+      and_intro(IM.tr.all(cl, p, j, sd), IM.tr.all(r, p, j, sd), hcl, hr)
+
+def ca.k(+sdk: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +cl: IM.Tr, +cr: IM.Tr, +p: U32, +j: Nat, +sd: Bool,
+  +hl: {IM.tr.all(l, p, j, sd) == True{} : Bool}, +hr: {IM.tr.all(r, p, j, sd) == True{} : Bool}, +hcl: {IM.tr.all(cl, p, j, sd) == True{} : Bool}, +hcr: {IM.tr.all(cr, p, j, sd) == True{} : Bool}) ->
+  {IM.tr.all(IM.tr.cut.k(sdk, b, i, l, r, x, cl, cr), p, j, sd) == True{} : Bool}:
+  match sdk:
+    case True{}:
+      ca.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, cr, p, j, sd, hl, hcr)
+    case False{}:
+      ca.l(U32.is_eq(IM.tr.addr(l), x), b, i, r, cl, p, j, sd, hr, hcl)
+
+def cut_all(t: IM.Tr, +x: U32, +k: U32, +p: U32, +j: Nat, +sd: Bool, +h: {IM.tr.all(t, p, j, sd) == True{} : Bool}) -> {IM.tr.all(IM.tr.cut(t, x, k), p, j, sd) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      h
+    case IM.Br{+b, +i, +l, +r}:
+      ca.k(X.ix.side(k, i), b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k), p, j, sd,
+        and_l(IM.tr.all(l, p, j, sd), IM.tr.all(r, p, j, sd), h), and_r(IM.tr.all(l, p, j, sd), IM.tr.all(r, p, j, sd), h),
+        cut_all(l, x, k, p, j, sd, and_l(IM.tr.all(l, p, j, sd), IM.tr.all(r, p, j, sd), h)), cut_all(r, x, k, p, j, sd, and_r(IM.tr.all(l, p, j, sd), IM.tr.all(r, p, j, sd), h)))
+
+# a removal keeps the invariant: its parent given up for the sibling, from
+# the parent's bound; else the cut below
+def cok.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +lo: Nat, +hok: {IM.tr.ok(IM.Br{b, i, l, r}, lo) == True{} : Bool},
+  ih: {hit == False{} : Bool} -> {IM.tr.ok(IM.tr.cut(r, x, k), 1n+i) == True{} : Bool}) -> {IM.tr.ok(IM.tr.cut.r(hit, b, i, l, IM.tr.cut(r, x, k)), lo) == True{} : Bool}:
+  match hit:
+    case True{}:
+      ok_lower(l, 1n+i, lo, and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), le_trans_b(lo, i, 1n+i, and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), le_succ_b(i)))
+    case False{}:
+      and_intro(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(IM.tr.cut(r, x, k), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.cut(r, x, k), 1n+i)))), and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), and_intro(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(IM.tr.cut(r, x, k), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.cut(r, x, k), 1n+i))), and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)), and_intro(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(IM.tr.cut(r, x, k), IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.cut(r, x, k), 1n+i)), and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))), and_intro(IM.tr.all(IM.tr.cut(r, x, k), IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && IM.tr.ok(IM.tr.cut(r, x, k), 1n+i), cut_all(r, x, k, IM.tr.first(l), i, True{}, and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), and_intro(IM.tr.ok(l, 1n+i), IM.tr.ok(IM.tr.cut(r, x, k), 1n+i), and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), ih({==}))))))
+
+def cok.l(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +lo: Nat, +hok: {IM.tr.ok(IM.Br{b, i, l, r}, lo) == True{} : Bool},
+  ih: {hit == False{} : Bool} -> {IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) == True{} : Bool}) -> {IM.tr.ok(IM.tr.cut.l(hit, b, i, r, IM.tr.cut(l, x, k)), lo) == True{} : Bool}:
+  match hit:
+    case True{}:
+      ok_lower(r, 1n+i, lo, and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), le_trans_b(lo, i, 1n+i, and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), le_succ_b(i)))
+    case False{}:
+      +hcl = cut_all(l, x, k, IM.tr.first(l), i, False{}, and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))
+      +hf = agree_sym(IM.tr.first(IM.tr.cut(l, x, k)), IM.tr.first(l), i, all_first(IM.tr.cut(l, x, k), IM.tr.first(l), i, False{}, hcl))
+      and_intro(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(IM.tr.cut(l, x, k), IM.tr.first(IM.tr.cut(l, x, k)), i, False{}) && (IM.tr.all(r, IM.tr.first(IM.tr.cut(l, x, k)), i, True{}) && (IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) && IM.tr.ok(r, 1n+i)))), and_l(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok), and_intro(Nat.is_lt(i, 32n), IM.tr.all(IM.tr.cut(l, x, k), IM.tr.first(IM.tr.cut(l, x, k)), i, False{}) && (IM.tr.all(r, IM.tr.first(IM.tr.cut(l, x, k)), i, True{}) && (IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) && IM.tr.ok(r, 1n+i))), and_l(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)), and_intro(IM.tr.all(IM.tr.cut(l, x, k), IM.tr.first(IM.tr.cut(l, x, k)), i, False{}), IM.tr.all(r, IM.tr.first(IM.tr.cut(l, x, k)), i, True{}) && (IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) && IM.tr.ok(r, 1n+i)), all_rep(IM.tr.cut(l, x, k), IM.tr.first(l), IM.tr.first(IM.tr.cut(l, x, k)), i, False{}, hcl, hf), and_intro(IM.tr.all(r, IM.tr.first(IM.tr.cut(l, x, k)), i, True{}), IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) && IM.tr.ok(r, 1n+i), all_rep(r, IM.tr.first(l), IM.tr.first(IM.tr.cut(l, x, k)), i, True{}, and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)))), hf), and_intro(IM.tr.ok(IM.tr.cut(l, x, k), 1n+i), IM.tr.ok(r, 1n+i), ih({==}), and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))))))))
+
+def cok.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +k: U32, +lo: Nat, +hsd: {X.ix.side(k, i) == sd : Bool}, +hok: {IM.tr.ok(IM.Br{b, i, l, r}, lo) == True{} : Bool},
+  +hx: {IM.mb.pick(X.ix.side(k, i), IM.tr.look(r, k), IM.tr.look(l, k)) == Some{x} : Maybe<&2, U32>},
+  ihl: {IM.tr.look(l, k) == Some{x} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.addr(l), x) == False{} : Bool} -> {IM.tr.ok(IM.tr.cut(l, x, k), 1n+i) == True{} : Bool},
+  ihr: {IM.tr.look(r, k) == Some{x} : Maybe<&2, U32>} -> {U32.is_eq(IM.tr.addr(r), x) == False{} : Bool} -> {IM.tr.ok(IM.tr.cut(r, x, k), 1n+i) == True{} : Bool}) ->
+  {IM.tr.ok(IM.tr.cut.k(X.ix.side(k, i), b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k)), lo) == True{} : Bool}:
+  match sd:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(k, i), True{}, hsd) : {IM.tr.ok(IM.tr.cut.k(_, b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k)), lo) == True{} : Bool}
+      cok.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, r, x, k, lo, hok, hn => ihr(hx_side(True{}, k, i, l, r, x, hsd, hx))(hn))
+    case False{}:
+      %Equal.sym(Bool, X.ix.side(k, i), False{}, hsd) : {IM.tr.ok(IM.tr.cut.k(_, b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k)), lo) == True{} : Bool}
+      cok.l(U32.is_eq(IM.tr.addr(l), x), b, i, l, r, x, k, lo, hok, hn => ihl(hx_side(False{}, k, i, l, r, x, hsd, hx))(hn))
+
+def cok(t: IM.Tr, +x: U32, +k: U32, +lo: Nat, +hok: {IM.tr.ok(t, lo) == True{} : Bool}, +hx: {IM.tr.look(t, k) == Some{x} : Maybe<&2, U32>},
+  +hne: {U32.is_eq(IM.tr.addr(t), x) == False{} : Bool}) -> {IM.tr.ok(IM.tr.cut(t, x, k), lo) == True{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      lf_absurd({IM.tr.ok(IM.tr.cut(IM.Lf{y, ky}, x, k), lo) == True{} : Bool}, y, ky, x, k, hx, hne)
+    case IM.Br{+b, +i, +l, +r}:
+      cok.k(X.ix.side(k, i), b, i, l, r, x, k, lo, {==}, hok, hx,
+        hxl => hnl => cok(l, x, k, 1n+i, and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), hxl, hnl),
+        hxr => hnr => cok(r, x, k, 1n+i, and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), hxr, hnr))
+
+def del_inv.h(+only: Bool, +t: IM.Tr, +x: U32, +k: U32, +he: {U32.is_eq(IM.tr.addr(t), x) == only : Bool}, +hi: {IM.tr.ok(t, 0n) == True{} : Bool},
+  +hx: {IM.tr.look(t, k) == Some{x} : Maybe<&2, U32>}) -> {IM.ix.inv(IM.ix.del.k(only, t, x, k)) == True{} : Bool}:
+  match only:
+    case True{}:
+      {==}
+    case False{}:
+      cok(t, x, k, 0n, hi, hx, he)
+
+def del_inv.k(I: IM.Ix, +x: U32, +k: U32, +hi: {IM.ix.inv(I) == True{} : Bool}, +hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}) ->
+  {IM.ix.inv(IM.ix.del(I, x, k)) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      del_inv.h(U32.is_eq(IM.tr.addr(t), x), t, x, k, {==}, hi, hx)
+
+def Laws.del_inv(I, x, k, hi, hx):
+  del_inv.k(I, x, k, hi, hx)
+
 # Lookups
 # =======
 
