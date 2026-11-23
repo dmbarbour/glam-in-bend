@@ -163,3 +163,35 @@ law splice_keeps:
   for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+
+# LAW: and the splice, its fresh nodes ns the free list's first ones and
+# the nodes F the next (KMd.chain over both), all apart and past the
+# header's words, leaves F the free list's first nodes: the node pass
+# takes ns, the head it leaves F's first, and neither pass writes F's
+# links (cells-freeze.sharing.cursors.index.ring.copy: the copy's hand-off,
+# a crossing's insert taking F's first for its branch). Not claimed:
+# growth, which the list's running out would take.
+# Record: splice-frame-premises
+# Record: cursors-indexed
+law splice_free:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ts: List<&2, T.TNode>
+  for +ls: List<&2, T.TLink>
+  for +by: U32
+  for +ns: List<&2, U32>
+  for +F: List<&2, U32>
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for hc: {KMd.chain(List.append(&2, U32, ns, F), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for hap: {KMd.apart(List.append(&2, U32, ns, F), d) == True{} : Bool}
+  for hpa: {KMd.past(List.append(&2, U32, ns, F), d) == True{} : Bool}
+  for hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  for ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
+  {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, P.at_fh())) == True{} : Bool}

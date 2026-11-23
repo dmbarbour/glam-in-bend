@@ -978,3 +978,226 @@ def links_words_go(ls: List<&2, T.TLink>, -w: Array<U32>, -a: Array<V.Val>, -map
 
 def Laws.links_words(w, a, map, d, dm, ls, j, hf, hd32, hfm, hdm):
   links_words_go(ls, w, a, map, d, dm, j, hf, hd32, hfm, hdm, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# The free list after the copy's nodes (splice_free): the node pass takes
+# ns, the chain of the nodes F after them left at the head it leaves; as
+# nodes_go, the chain carried ns's and F's together, each step's by sn and
+# ctr
+def nf_go(ts: List<&2, T.TNode>, +e: Bool, +he: {e == hd_era(ts) : Bool}, -w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +i: U32, +by: U32, ns: List<&2, U32>, +F: List<&2, U32>,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hc: {KMd.chain(List.append(&2, U32, ns, F), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool},
+  hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}, +hap: {KMd.apart(List.append(&2, U32, ns, F), d) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, ns, F), d) == True{} : Bool},
+  +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(ts, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, P.at_fh())) == True{} : Bool}:
+  match ts:
+    case Nil{}:
+      match ns:
+        case Nil{}:
+          hc
+        case Con{+n, +rn}:
+          Empty.absurd({KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes([], i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes([], i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, P.at_fh())) == True{} : Bool}, MB.false_ne_true()(ME.subst(Nat, q => {Nat.is_eq(0n, q) == True{} : Bool}, 0n, List.length(&2, U32, Con{n, rn}), hl, {==})))
+    case Con{+t, +rt}:
+      match e:
+        case True{}:
+          +hl2 = ME.subst(Bool, x => {SM.made.k(x, SM.made(rt)) == List.length(&2, U32, ns) : Nat}, S.sp.is_era(t), True{}, Equal.sym(Bool, True{}, S.sp.is_era(t), he), hl)
+          %he : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.sp.node_k(_, S.Sp{P.H{KM.MG{w}, a}, map}, t, i, by), by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.sp.node_k(_, S.Sp{P.H{KM.MG{w}, a}, map}, t, i, by), by)))), d, P.at_fh())) == True{} : Bool}
+          nf_go(rt, hd_era(rt), {==}, w, a, Array.set(U32, map, i, P.era()), d, (i + 1 : U32), by, ns, F, hf, hd32, hc, hl2, hap, hpa, hhd, mw, ma)
+        case False{}:
+          match ns:
+            case Nil{}:
+              Empty.absurd({KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d, P.at_fh())) == True{} : Bool}, MB.false_ne_true()(Equal.sym(Bool, True{}, False{}, ME.subst(Nat, q => {Nat.is_eq(q, 0n) == False{} : Bool}, SM.made.k(False{}, SM.made(rt)), 0n, ME.subst(Bool, x => {SM.made.k(x, SM.made(rt)) == 0n : Nat}, S.sp.is_era(t), False{}, Equal.sym(Bool, False{}, S.sp.is_era(t), he), hl), {==}))))
+            case Con{+n, +rn}:
+              (+t0, +ew) = mw
+              (+ta, +ea) = ma
+              +hft = LAP.full_t(U32, w, t0, d, ew, hf)
+              +hct = LAB.subst(Array<U32>, q => {KMd.chain(Con{n, List.append(&2, U32, rn, F)}, AD.view(U32, q), d, KMd.word(AD.view(U32, q), d, P.at_fh())) == True{} : Bool}, w, LAT.fromT(U32, t0), Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, ew), hc)
+              +hne = ME.subst(U32, x => {U32.is_eq(x, 0) == False{} : Bool}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_fh())), word_get(LAT.fromT(U32, t0), d, P.at_fh(), hft, hd32), MB.eq_false_of_not_eq_true(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), 0), MB.eq_true_of_and_left(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), 0)), Bool.and(U32.is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n), KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)))), hct)))
+              +hidx = ME.subst(U32, x => {KMd.at_idx(x) == n : U32}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), P.at_fh())), word_get(LAT.fromT(U32, t0), d, P.at_fh(), hft, hd32), MS.u32_eq_of_is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n, MB.eq_true_of_and_left(U32.is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n), KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), 0)), Bool.and(U32.is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n), KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)))), hct))))
+              %ew : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{_}, a}, map}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{_}, a}, map}, by)))), d, P.at_fh())) == True{} : Bool}
+              %ea : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(Con{t, rt}, i, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map}, by)))), d, P.at_fh())) == True{} : Bool}
+              %he : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.sp.node_k(_, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, map}, t, i, by), by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.sp.node_k(_, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, map}, t, i, by), by)))), d, P.at_fh())) == True{} : Bool}
+              %Equal.sym(S.Sp, S.sp.put(S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by), map, i), S.Sp{Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)), Array.set(U32, map, i, Pair.snd(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))}, spput(S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by), map, i)) :
+                {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), _, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), _, by)))), d, P.at_fh())) == True{} : Bool}
+              %heta(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))) :
+                {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.Sp{_, Array.set(U32, map, i, Pair.snd(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))}, by)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.nodes(rt, (i + 1 : U32), S.Sp{_, Array.set(U32, map, i, Pair.snd(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))}, by)))), d, P.at_fh())) == True{} : Bool}
+              nf_go(rt, hd_era(rt), {==}, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), KMd.vals(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), Array.set(U32, map, i, Pair.snd(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), d, (i + 1 : U32), by, rn, F, sfull(t, t0, ta, by, d, n, hft, hd32, hne, hidx, hhd), hd32,
+                ME.subst(U32, x => {KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))), d, x) == True{} : Bool}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)), KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))), d, P.at_fh()), ME.trans3(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (n + 1 : U32))), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), P.at_fh())), KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))), d, P.at_fh()), word_get(LAT.fromT(U32, t0), d, (n + 1 : U32), hft, hd32), Equal.sym(U32, Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), P.at_fh())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), (n + 1 : U32))), sn(t, t0, ta, by, d, n, hft, hd32, hne, hidx, hhd, MB.eq_true_of_and_left(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(List.append(&2, U32, rn, F), d), hpa))), Equal.sym(U32, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))), d, P.at_fh()), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), P.at_fh())), word_get(KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by))), d, P.at_fh(), sfull(t, t0, ta, by, d, n, hft, hd32, hne, hidx, hhd), hd32))), ctr(List.append(&2, U32, rn, F), t, t0, ta, by, d, n, hft, hd32, hne, hidx, hhd, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)), sfull(t, t0, ta, by, d, n, hft, hd32, hne, hidx, hhd), MB.eq_true_of_and_left(KMd.apart.n(n, List.append(&2, U32, rn, F), d), KMd.apart(List.append(&2, U32, rn, F), d), hap), MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(List.append(&2, U32, rn, F), d), hpa), MB.eq_true_of_and_right(U32.is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n), KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), 0)), Bool.and(U32.is_eq(KMd.at_idx(KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), n), KMd.chain(List.append(&2, U32, rn, F), AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (n + 1 : U32)))), hct)))),
+                npred_eq(SM.made(rt), List.length(&2, U32, rn), ME.subst(Bool, x => {SM.made.k(x, SM.made(rt)) == List.length(&2, U32, Con{n, rn}) : Nat}, S.sp.is_era(t), False{}, Equal.sym(Bool, False{}, S.sp.is_era(t), he), hl)),
+                MB.eq_true_of_and_right(KMd.apart.n(n, List.append(&2, U32, rn, F), d), KMd.apart(List.append(&2, U32, rn, F), d), hap), MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(List.append(&2, U32, rn, F), d), hpa), hhd,
+                LAT.mirror(U32, KMd.words(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))), LAT.mirror(V.Val, KMd.vals(Pair.fst(P.H, U32, S.sp.node(True{}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, 0, t, by)))))
+
+# a node of the list's members of ms apart from n, its words off n's
+def an_at(+n: U32, ms: List<&2, U32>, +d: Nat, +f: U32, +h: {KMd.apart.n(n, ms, d) == True{} : Bool}, hf: {KMd.has(ms, f) == True{} : Bool}) -> {KMd.ws.off(KMd.nw(f), KMd.nw(n), d) == True{} : Bool}:
+  match ms:
+    case Nil{}:
+      Empty.absurd({KMd.ws.off(KMd.nw(f), KMd.nw(n), d) == True{} : Bool}, MB.false_ne_true()(hf))
+    case Con{+m, +r}:
+      or_cases(U32.is_eq(m, f), KMd.has(r, f), KMd.ws.off(KMd.nw(f), KMd.nw(n), d), hf,
+        q => ME.subst(U32, z => {KMd.ws.off(KMd.nw(z), KMd.nw(n), d) == True{} : Bool}, m, f, MS.u32_eq_of_is_eq(m, f, q), MB.eq_true_of_and_left(KMd.ws.off(KMd.nw(m), KMd.nw(n), d), KMd.apart.n(n, r, d), h)),
+        q => an_at(n, r, d, f, MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(m), KMd.nw(n), d), KMd.apart.n(n, r, d), h), q))
+
+def kapp_r(A: List<&2, U32>, +B: List<&2, U32>, +x: U32, +h: {KMd.has(B, x) == True{} : Bool}) -> {KMd.has(List.append(&2, U32, A, B), x) == True{} : Bool}:
+  match A:
+    case Nil{}:
+      h
+    case Con{+y, +r}:
+      or_r(U32.is_eq(y, x), KMd.has(List.append(&2, U32, r, B), x), kapp_r(r, B, x, h))
+
+# a later node's word 1 off the fresh nodes ns, all apart
+def nsoff(ns: List<&2, U32>, +Fa: List<&2, U32>, +d: Nat, +f: U32, +hap: {KMd.apart(List.append(&2, U32, ns, Fa), d) == True{} : Bool}, +hf: {KMd.has(Fa, f) == True{} : Bool}) -> {KMd.nodes.off(ns, d, (f + 1 : U32)) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      MB.and_eq_true(KMd.off.words(KMd.nw(n), d, (f + 1 : U32)), KMd.nodes.off(r, d, (f + 1 : U32)),
+        MB.eq_true_of_and_left(KMd.off.words(KMd.nw(n), d, (f + 1 : U32)), KMd.ws.off([(f + 2 : U32), (f + 3 : U32)], KMd.nw(n), d), MB.eq_true_of_and_right(KMd.off.words(KMd.nw(n), d, f), KMd.ws.off([(f + 1 : U32), (f + 2 : U32), (f + 3 : U32)], KMd.nw(n), d),
+          an_at(n, List.append(&2, U32, r, Fa), d, f, MB.eq_true_of_and_left(KMd.apart.n(n, List.append(&2, U32, r, Fa), d), KMd.apart(List.append(&2, U32, r, Fa), d), hap), kapp_r(r, Fa, f, hf)))),
+        nsoff(r, Fa, d, f, MB.eq_true_of_and_right(KMd.apart.n(n, List.append(&2, U32, r, Fa), d), KMd.apart(List.append(&2, U32, r, Fa), d), hap), hf))
+
+# the head off the fresh nodes, past the header's words
+def flipn(+a: Nat, +b: Nat, +h: {Bool.not(Nat.is_eq(a, b)) == True{} : Bool}) -> {Bool.not(Nat.is_eq(b, a)) == True{} : Bool}:
+  ME.subst(Bool, q => {Bool.not(q) == True{} : Bool}, Nat.is_eq(a, b), Nat.is_eq(b, a), MN.is_eq_comm(a, b), h)
+
+def npast(ns: List<&2, U32>, +d: Nat, +hp: {KMd.past(ns, d) == True{} : Bool}) -> {KMd.nodes.off(ns, d, P.at_fh()) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      +hw = MB.eq_true_of_and_left(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(r, d), hp)
+      MB.and_eq_true(KMd.off.words(KMd.nw(n), d, P.at_fh()), KMd.nodes.off(r, d, P.at_fh()), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(n, d), AD.slot(P.at_fh(), d))), Bool.not(Nat.is_eq(AD.slot((n + 1 : U32), d), AD.slot(P.at_fh(), d))) && (Bool.not(Nat.is_eq(AD.slot((n + 2 : U32), d), AD.slot(P.at_fh(), d))) && (Bool.not(Nat.is_eq(AD.slot((n + 3 : U32), d), AD.slot(P.at_fh(), d))) && True{})), flipn(AD.slot(P.at_fh(), d), AD.slot(n, d), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(n, d))), KMd.off.words(KMd.hdr_words(), d, n), MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, n), KMd.ws.off([(n + 1 : U32), (n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), hw))), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((n + 1 : U32), d), AD.slot(P.at_fh(), d))), Bool.not(Nat.is_eq(AD.slot((n + 2 : U32), d), AD.slot(P.at_fh(), d))) && (Bool.not(Nat.is_eq(AD.slot((n + 3 : U32), d), AD.slot(P.at_fh(), d))) && True{}), flipn(AD.slot(P.at_fh(), d), AD.slot((n + 1 : U32), d), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((n + 1 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (n + 1 : U32)), MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (n + 1 : U32)), KMd.ws.off([(n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, n), KMd.ws.off([(n + 1 : U32), (n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), hw)))), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((n + 2 : U32), d), AD.slot(P.at_fh(), d))), Bool.not(Nat.is_eq(AD.slot((n + 3 : U32), d), AD.slot(P.at_fh(), d))) && True{}, flipn(AD.slot(P.at_fh(), d), AD.slot((n + 2 : U32), d), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((n + 2 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (n + 2 : U32)), MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (n + 2 : U32)), KMd.ws.off([(n + 3 : U32)], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (n + 1 : U32)), KMd.ws.off([(n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, n), KMd.ws.off([(n + 1 : U32), (n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), hw))))), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot((n + 3 : U32), d), AD.slot(P.at_fh(), d))), True{}, flipn(AD.slot(P.at_fh(), d), AD.slot((n + 3 : U32), d), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((n + 3 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (n + 3 : U32)), MB.eq_true_of_and_left(KMd.off.words(KMd.hdr_all(), d, (n + 3 : U32)), KMd.ws.off([], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (n + 2 : U32)), KMd.ws.off([(n + 3 : U32)], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, (n + 1 : U32)), KMd.ws.off([(n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), MB.eq_true_of_and_right(KMd.off.words(KMd.hdr_all(), d, n), KMd.ws.off([(n + 1 : U32), (n + 2 : U32), (n + 3 : U32)], KMd.hdr_all(), d), hw)))))), {==})))),
+        npast(r, d, MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(r, d), hp)))
+
+# the fresh nodes' facts from theirs and the later nodes' together
+def kchain_pre(A: List<&2, U32>, +B: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +h: U32, +hc: {KMd.chain(List.append(&2, U32, A, B), v, d, h) == True{} : Bool}) -> {KMd.chain(A, v, d, h) == True{} : Bool}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      MB.and_eq_true(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), n) && KMd.chain(r, v, d, KMd.word(v, d, (n + 1 : U32))),
+        MB.eq_true_of_and_left(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), n) && KMd.chain(List.append(&2, U32, r, B), v, d, KMd.word(v, d, (n + 1 : U32))), hc),
+        MB.and_eq_true(U32.is_eq(KMd.at_idx(h), n), KMd.chain(r, v, d, KMd.word(v, d, (n + 1 : U32))),
+          MB.eq_true_of_and_left(U32.is_eq(KMd.at_idx(h), n), KMd.chain(List.append(&2, U32, r, B), v, d, KMd.word(v, d, (n + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), n) && KMd.chain(List.append(&2, U32, r, B), v, d, KMd.word(v, d, (n + 1 : U32))), hc)),
+          kchain_pre(r, B, v, d, KMd.word(v, d, (n + 1 : U32)), MB.eq_true_of_and_right(U32.is_eq(KMd.at_idx(h), n), KMd.chain(List.append(&2, U32, r, B), v, d, KMd.word(v, d, (n + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), n) && KMd.chain(List.append(&2, U32, r, B), v, d, KMd.word(v, d, (n + 1 : U32))), hc)))))
+
+def apn_pre(+n: U32, ms: List<&2, U32>, +B: List<&2, U32>, +d: Nat, +h: {KMd.apart.n(n, List.append(&2, U32, ms, B), d) == True{} : Bool}) -> {KMd.apart.n(n, ms, d) == True{} : Bool}:
+  match ms:
+    case Nil{}:
+      {==}
+    case Con{+m, +r}:
+      MB.and_eq_true(KMd.ws.off(KMd.nw(m), KMd.nw(n), d), KMd.apart.n(n, r, d), MB.eq_true_of_and_left(KMd.ws.off(KMd.nw(m), KMd.nw(n), d), KMd.apart.n(n, List.append(&2, U32, r, B), d), h),
+        apn_pre(n, r, B, d, MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(m), KMd.nw(n), d), KMd.apart.n(n, List.append(&2, U32, r, B), d), h)))
+
+def kapart_pre(A: List<&2, U32>, +B: List<&2, U32>, +d: Nat, +h: {KMd.apart(List.append(&2, U32, A, B), d) == True{} : Bool}) -> {KMd.apart(A, d) == True{} : Bool}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      MB.and_eq_true(KMd.apart.n(n, r, d), KMd.apart(r, d), apn_pre(n, r, B, d, MB.eq_true_of_and_left(KMd.apart.n(n, List.append(&2, U32, r, B), d), KMd.apart(List.append(&2, U32, r, B), d), h)),
+        kapart_pre(r, B, d, MB.eq_true_of_and_right(KMd.apart.n(n, List.append(&2, U32, r, B), d), KMd.apart(List.append(&2, U32, r, B), d), h)))
+
+def kpast_pre(A: List<&2, U32>, +B: List<&2, U32>, +d: Nat, +h: {KMd.past(List.append(&2, U32, A, B), d) == True{} : Bool}) -> {KMd.past(A, d) == True{} : Bool}:
+  match A:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      MB.and_eq_true(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(r, d), MB.eq_true_of_and_left(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(List.append(&2, U32, r, B), d), h),
+        kpast_pre(r, B, d, MB.eq_true_of_and_right(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(List.append(&2, U32, r, B), d), h)))
+
+def lfull_k(ls: List<&2, T.TLink>, -w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) ->
+  {AD.full(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w}, a}, map}))), d) == True{} : Bool}:
+  match ls:
+    case Nil{}:
+      hf
+    case Con{l, +rest}:
+      match l:
+        case T.TL{e1, e2}:
+          match e1:
+            case T.TE{+n1, +p1}:
+              match e2:
+                case T.TE{+n2, +p2}:
+                  (+t0, +ew) = mw
+                  (+ta, +eav) = ma
+                  (+tm, +em) = mm
+                  +hft = LAP.full_t(U32, w, t0, d, ew, hf)
+                  %ew : {AD.full(U32, KMd.words(SM.heap(S.sp.links(Con{T.TL{T.TE{n1, p1}, T.TE{n2, p2}}, rest}, S.Sp{P.H{KM.MG{_}, a}, map}))), d) == True{} : Bool}
+                  %eav : {AD.full(U32, KMd.words(SM.heap(S.sp.links(Con{T.TL{T.TE{n1, p1}, T.TE{n2, p2}}, rest}, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map}))), d) == True{} : Bool}
+                  %em : {AD.full(U32, KMd.words(SM.heap(S.sp.links(Con{T.TL{T.TE{n1, p1}, T.TE{n2, p2}}, rest}, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, _}))), d) == True{} : Bool}
+                  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, tm), n1), (LAT.fromT(U32, tm), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1))), LA.get_pair(U32, LAT.fromT(U32, tm), n1)) :
+                    {AD.full(U32, KMd.words(SM.heap(S.sp.links(rest, S.sp.link1(S.sp.ref(_, p1), T.TE{n2, p2}, P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})))), d) == True{} : Bool}
+                  %Equal.sym(Array<U32> & U32, Array.get(U32, LAT.fromT(U32, tm), n2), (LAT.fromT(U32, tm), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2))), LA.get_pair(U32, LAT.fromT(U32, tm), n2)) :
+                    {AD.full(U32, KMd.words(SM.heap(S.sp.links(rest, S.sp.link2(S.sp.ref(_, p2), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)})))), d) == True{} : Bool}
+                  %heta(P.link_xx(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32))) :
+                    {AD.full(U32, KMd.words(SM.heap(S.sp.links(rest, S.Sp{_, LAT.fromT(U32, tm)}))), d) == True{} : Bool}
+                  lfull_k(rest, KMd.words(P.link_xx(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32))), KMd.vals(P.link_xx(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32))), LAT.fromT(U32, tm), d, lxf(P.is_static((Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32)), P.is_static((Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32)), t0, LAT.fromT(V.Val, ta), d, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32), hft), LAT.mirror(U32, KMd.words(P.link_xx(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32)))), LAT.mirror(V.Val, KMd.vals(P.link_xx(P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n1)) + p1 : U32), (Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tm), n2)) + p2 : U32)))), LAT.mirror(U32, LAT.fromT(U32, tm)))
+
+# the links pass: a word off the fresh nodes reads alike in the views
+def lfr(+t1: LAT.Tree<U32>, +ta1: LAT.Tree<V.Val>, +tm1: LAT.Tree<U32>, +ls: List<&2, T.TLink>, +d: Nat, +dm: Nat, +ns: List<&2, U32>, +i: U32, +hft1: {AD.full(U32, LAT.fromT(U32, t1), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt1: {AD.full(U32, LAT.fromT(U32, tm1), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
+  +he: {SM.ends.ok(ls, AD.view(U32, LAT.fromT(U32, tm1)), dm, ns) == True{} : Bool}, +hfW2: {AD.full(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), d) == True{} : Bool}, +hj: {KMd.nodes.off(ns, d, i) == True{} : Bool}) -> {KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, i) == KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i) : U32}:
+  Equal.trans(U32, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, i), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), i)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), word_get(KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), d, i, hfW2, hd32), Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), i)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, KMd.vals(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, i)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), Equal.sym(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, KMd.vals(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, i)), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), i)), SP.rd_get(KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), KMd.vals(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), i)), Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, KMd.vals(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, i)), Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})), i)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), Equal.cong(P.H, U32, hh => Pair.snd(P.H, U32, P.rd(hh, i)), P.H{KM.MG{KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, KMd.vals(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))}, SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})), heta(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), Equal.trans(U32, Pair.snd(P.H, U32, P.rd(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})), i)), Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, i)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), Laws.links_keeps(LAT.fromT(U32, t1), LAT.fromT(V.Val, ta1), LAT.fromT(U32, tm1), d, dm, ls, ns, i, hft1, hd32, hfmt1, hdm, he, hj), Equal.trans(U32, Pair.snd(P.H, U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, i)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t1), i)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), SP.rd_get(LAT.fromT(U32, t1), LAT.fromT(V.Val, ta1), i), Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, i), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t1), i)), word_get(LAT.fromT(U32, t1), d, i, hft1, hd32)))))))
+
+# and the chain of the later nodes, their words 1 so
+def lk_ch(K: List<&2, U32>, +Fa: List<&2, U32>, +t1: LAT.Tree<U32>, +ta1: LAT.Tree<V.Val>, +tm1: LAT.Tree<U32>, +ls: List<&2, T.TLink>, +d: Nat, +dm: Nat, +ns: List<&2, U32>, +hft1: {AD.full(U32, LAT.fromT(U32, t1), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, +hfmt1: {AD.full(U32, LAT.fromT(U32, tm1), dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
+  +he: {SM.ends.ok(ls, AD.view(U32, LAT.fromT(U32, tm1)), dm, ns) == True{} : Bool}, +hfW2: {AD.full(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)}))), d) == True{} : Bool},
+  +hK: {ksub(K, Fa) == True{} : Bool}, +hap: {KMd.apart(List.append(&2, U32, ns, Fa), d) == True{} : Bool}, +h: U32, +hc: {KMd.chain(K, AD.view(U32, LAT.fromT(U32, t1)), d, h) == True{} : Bool}) -> {KMd.chain(K, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, h) == True{} : Bool}:
+  match K:
+    case Nil{}:
+      {==}
+    case Con{+f, +r}:
+      +hfa = MB.eq_true_of_and_left(KMd.has(Fa, f), ksub(r, Fa), hK)
+      +heq = lfr(t1, ta1, tm1, ls, d, dm, ns, (f + 1 : U32), hft1, hd32, hfmt1, hdm, he, hfW2, nsoff(ns, Fa, d, f, hap, hfa))
+      +hc2 = MB.eq_true_of_and_right(U32.is_eq(KMd.at_idx(h), f), KMd.chain(r, AD.view(U32, LAT.fromT(U32, t1)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), f) && KMd.chain(r, AD.view(U32, LAT.fromT(U32, t1)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32))), hc))
+      +hr = lk_ch(r, Fa, t1, ta1, tm1, ls, d, dm, ns, hft1, hd32, hfmt1, hdm, he, hfW2, MB.eq_true_of_and_right(KMd.has(Fa, f), ksub(r, Fa), hK), hap, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32)), hc2)
+      MB.and_eq_true(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), f) && KMd.chain(r, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, (f + 1 : U32))),
+        MB.eq_true_of_and_left(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), f) && KMd.chain(r, AD.view(U32, LAT.fromT(U32, t1)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32))), hc),
+        MB.and_eq_true(U32.is_eq(KMd.at_idx(h), f), KMd.chain(r, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, (f + 1 : U32))),
+          MB.eq_true_of_and_left(U32.is_eq(KMd.at_idx(h), f), KMd.chain(r, AD.view(U32, LAT.fromT(U32, t1)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32))), MB.eq_true_of_and_right(Bool.not(U32.is_eq(h, 0)), U32.is_eq(KMd.at_idx(h), f) && KMd.chain(r, AD.view(U32, LAT.fromT(U32, t1)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32))), hc)),
+          ME.subst(U32, q => {KMd.chain(r, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, q) == True{} : Bool}, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32)), KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, (f + 1 : U32)), Equal.sym(U32, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, (f + 1 : U32)), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, (f + 1 : U32)), heq), hr)))
+
+def sf2(+ls: List<&2, T.TLink>, -w1: Array<U32>, -a1: Array<V.Val>, -map1: Array<U32>, +d: Nat, +dm: Nat, +ns: List<&2, U32>, +F: List<&2, U32>,
+  hf1: {AD.full(U32, w1, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hfm1: {AD.full(U32, map1, dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
+  he: {SM.ends.ok(ls, AD.view(U32, map1), dm, ns) == True{} : Bool}, +hap: {KMd.apart(List.append(&2, U32, ns, F), d) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, ns, F), d) == True{} : Bool},
+  hc1: {KMd.chain(F, AD.view(U32, w1), d, KMd.word(AD.view(U32, w1), d, P.at_fh())) == True{} : Bool}, m1: LAT.Mirror(U32, w1), ma1: LAT.Mirror(V.Val, a1), mm1: LAT.Mirror(U32, map1)) -> {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w1}, a1}, map1})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{w1}, a1}, map1})))), d, P.at_fh())) == True{} : Bool}:
+  (+t1, +e1) = m1
+  (+ta1, +ea1) = ma1
+  (+tm1, +em1) = mm1
+  +hft1 = LAP.full_t(U32, w1, t1, d, e1, hf1)
+  +hfmt1 = LAP.full_t(U32, map1, tm1, dm, em1, hfm1)
+  +hc1T = LAB.subst(Array<U32>, q => {KMd.chain(F, AD.view(U32, q), d, KMd.word(AD.view(U32, q), d, P.at_fh())) == True{} : Bool}, w1, LAT.fromT(U32, t1), Equal.sym(Array<U32>, LAT.fromT(U32, t1), w1, e1), hc1)
+  +heT = LAB.subst(Array<U32>, q => {SM.ends.ok(ls, AD.view(U32, q), dm, ns) == True{} : Bool}, map1, LAT.fromT(U32, tm1), Equal.sym(Array<U32>, LAT.fromT(U32, tm1), map1, em1), he)
+  %e1 : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{_}, a1}, map1})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{_}, a1}, map1})))), d, P.at_fh())) == True{} : Bool}
+  %ea1 : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, _}, map1})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, _}, map1})))), d, P.at_fh())) == True{} : Bool}
+  %em1 : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, _})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, _})))), d, P.at_fh())) == True{} : Bool}
+  +hfW2 = lfull_k(ls, LAT.fromT(U32, t1), LAT.fromT(V.Val, ta1), LAT.fromT(U32, tm1), d, hft1, LAT.mirror(U32, LAT.fromT(U32, t1)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta1)), LAT.mirror(U32, LAT.fromT(U32, tm1)))
+  +hfh = lfr(t1, ta1, tm1, ls, d, dm, ns, P.at_fh(), hft1, hd32, hfmt1, hdm, heT, hfW2, npast(ns, d, kpast_pre(ns, F, d, hpa)))
+  ME.subst(U32, q => {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, q) == True{} : Bool}, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, P.at_fh()), KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, P.at_fh()), Equal.sym(U32, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{P.H{KM.MG{LAT.fromT(U32, t1)}, LAT.fromT(V.Val, ta1)}, LAT.fromT(U32, tm1)})))), d, P.at_fh()), KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, P.at_fh()), hfh),
+    lk_ch(F, F, t1, ta1, tm1, ls, d, dm, ns, hft1, hd32, hfmt1, hdm, heT, hfW2, ksub_refl(F), hap, KMd.word(AD.view(U32, LAT.fromT(U32, t1)), d, P.at_fh()), hc1T))
+
+# the splice: the later nodes F the free list's first after it
+def sfree_go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +by: U32, +ns: List<&2, U32>, +F: List<&2, U32>,
+  hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, hfm: {AD.full(U32, map, dm) == True{} : Bool}, +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool},
+  hc: {KMd.chain(List.append(&2, U32, ns, F), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}, +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}, +hap: {KMd.apart(List.append(&2, U32, ns, F), d) == True{} : Bool}, +hpa: {KMd.past(List.append(&2, U32, ns, F), d) == True{} : Bool},
+  +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}, +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) ->
+  {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, P.at_fh())) == True{} : Bool}:
+  (+t0, +ew) = mw
+  (+ta, +ea) = ma
+  (+tm, +em) = mm
+  +hft = LAP.full_t(U32, w, t0, d, ew, hf)
+  +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
+  +hct = LAB.subst(Array<U32>, q => {KMd.chain(List.append(&2, U32, ns, F), AD.view(U32, q), d, KMd.word(AD.view(U32, q), d, P.at_fh())) == True{} : Bool}, w, LAT.fromT(U32, t0), Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, ew), hc)
+  +hcn = kchain_pre(ns, F, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), hct)
+  +hapn = kapart_pre(ns, F, d, hap)
+  +hpan = kpast_pre(ns, F, d, hpa)
+  %ew : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{_}, a}, map}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{_}, a}, map}, by))))), d, P.at_fh())) == True{} : Bool}
+  %ea : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map}, by))))), d, P.at_fh())) == True{} : Bool}
+  %em : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, _}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, _}, by))))), d, P.at_fh())) == True{} : Bool}
+  %speta(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by)) : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, _)))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, _)))), d, P.at_fh())) == True{} : Bool}
+  %heta(SM.heap(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))) : {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{_, SM.map(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))})))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.Sp{_, SM.map(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))})))), d, P.at_fh())) == True{} : Bool}
+  sf2(ls, KMd.words(SM.heap(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))), KMd.vals(SM.heap(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))), SM.map(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by)), d, dm, ns, F,
+    full_go(ts, hd_era(ts), {==}, LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), LAT.fromT(U32, tm), d, 0, by, ns, hft, hd32, hcn, hl, hapn, hpan, hhd, LAT.mirror(U32, LAT.fromT(U32, t0)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta))), hd32,
+    mfull_go(ts, hd_era(ts), {==}, LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), LAT.fromT(U32, tm), dm, 0, by, hfmt, LAT.mirror(U32, LAT.fromT(U32, t0)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)), LAT.mirror(U32, LAT.fromT(U32, tm))), hdm,
+    ends_go(ls, ts, t0, ta, tm, d, dm, by, ns, hft, hd32, hfmt, hdm, hcn, hl, hapn, hpan, hhd, ht), hap, hpa,
+    nf_go(ts, hd_era(ts), {==}, LAT.fromT(U32, t0), LAT.fromT(V.Val, ta), LAT.fromT(U32, tm), d, 0, by, ns, F, hft, hd32, hct, hl, hap, hpa, hhd, LAT.mirror(U32, LAT.fromT(U32, t0)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta))),
+    LAT.mirror(U32, KMd.words(SM.heap(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by)))), LAT.mirror(V.Val, KMd.vals(SM.heap(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by)))), LAT.mirror(U32, SM.map(S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, LAT.fromT(U32, tm)}, by))))
+
+def Laws.splice_free(w, a, map, d, dm, ts, ls, by, ns, F, hf, hd32, hfm, hdm, hc, hl, hap, hpa, hhd, ht):
+  sfree_go(w, a, map, d, dm, ts, ls, by, ns, F, hf, hd32, hfm, hdm, hc, hl, hap, hpa, hhd, ht, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
