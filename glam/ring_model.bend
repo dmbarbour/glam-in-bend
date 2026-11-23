@@ -417,6 +417,21 @@ def faced(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> List<&2, U32>:
     case Con{+m, r}:
       Con{pl.of(List.get(&2, U32, v, AD.slot((m + 1 : U32), d))), faced(r, v, d)}
 
+# the members of xs not among ys
+def minus.k(+b: Bool, +x: U32, r: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      r
+    case False{}:
+      Con{x, r}
+
+def minus(xs: List<&2, U32>, +ys: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, r}:
+      minus.k(has(ys, x), x, minus(r, ys))
+
 # word j in no node of ys
 def off.nodes(ys: List<&2, U32>, +d: Nat, +j: U32) -> Bool:
   match ys:
