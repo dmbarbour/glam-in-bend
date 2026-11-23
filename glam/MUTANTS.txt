@@ -756,6 +756,8 @@ y = 20
 # mutation leaves the ring other than the list without the cursor. The
 # witness, a ring of three meeting ring.ok (checked by hand, as is the
 # witness both ways), s at 8 and cursors at 12 and 16, the first leaving.
+# Over the index (join1_pend, leave_pend): s at 8, the cursor 16 at key 9
+# leaving, the port of an untracked node at 40 linked in its place.
 
 === join1_skips_unlink join1_exact join1_pend
 the ring's cursor freed without being unlinked: it stays in the ring
@@ -785,7 +787,7 @@ x = 20
 y = 16
 k = 9
 
-=== leave_skips_unlink leave_exact serve_exact
+=== leave_skips_unlink leave_exact serve_exact leave_pend
 the cursor leaving freed without being unlinked: it stays in the ring
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
@@ -811,13 +813,27 @@ L = Con{8, Con{12, Con{16, Con{20, Con{24, Nil{}}}}}}
 cs = Con{R.FzC{0, 0, False{}, 9}, Con{R.FzC{1, 0, False{}, 3}, Nil{}}}
 r = KMd.ref(32, 0)
 nc = 12
+>>> witness leave_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+p = KMd.ref(40, 0)
+c = 16
+k = 9
 
-=== leave_frees_port leave_exact leave_keeps
+=== leave_frees_port leave_exact leave_keeps leave_pend
 the port's node freed, not the cursor leaving
 (refuted where the port is a member's, its word 1 then the free list's
 head, a port whose link word is a member's word 3; a copied node's port
 freed leaves the ring exact, leave_exact surviving: leave_keeps, the
-frame law, refutes it at the freed node's header)
+frame law, refutes it at the freed node's header; leave_pend at the free
+list's head, an untracked node's port freed)
 --- ring.bend
   P.free(rg.unlink(P.link_xx(h, p, w), c), c)
 +++
@@ -839,6 +855,19 @@ t = Con{12, Con{16, Con{20, Nil{}}}}
 p = 41
 c = 12
 j = 40
+>>> witness leave_pend
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+p = KMd.ref(40, 0)
+c = 16
+k = 9
 
 # The frame laws over the exact ring (join_keeps, join1_keeps) allow no
 # error: a walk round an exact ring finishes. The witness, the ring of four

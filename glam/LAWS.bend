@@ -460,6 +460,40 @@ law crossings_keeps:
   for hjf: {RG.off.ports(RG.faced(L, AD.view(U32, w), d), d, j) == True{} : Bool}
   {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (map, P.H{KM.MG{w}, a}), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
+# LAW: a cursor c the index finds at k leaving (R.leave), a port p linked in
+# its place (its link word off every tracked node's words and the free
+# list's head, RG.po.all over no live node, and faceable by the live
+# nodes: the copy's root port, or the eraser), keeps the pending
+# placeholders' invariant over the index: c out of the index and of the
+# live nodes, the free list's first nodes c and the parent the removal
+# frees (cells-freeze.sharing.cursors.index.ring.leave).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+# Record: copy-links-two-way
+# Record: serve-premises-over-index
+law leave_pend:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +p: U32
+  for +c: U32
+  for +k: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
+  for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
+  for hpk: {RG.port.ok(L, d, p) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(R.leave(P.H{KM.MG{w}, a}, p, c))), d, s, IM.ix.del(I, c, k), ps, RG.without(L, c), Con{c, IM.mb.cons(IM.ix.par(I, c, k), F)}, N) == True{} : Bool}
+
 # LAW: a serve's end, its crossings and then its root's leave (the
 # copy's root port r joined to the served cursor nc), keeps the ring
 # exact with its nodes, nc out of the ring the crossings leave, on the
