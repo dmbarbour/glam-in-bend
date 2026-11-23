@@ -50,7 +50,7 @@ as though to a tree
 +++
   ix.find.k(False{}, h, root, k)
 
-=== look_wrong_side look_at find_tree
+=== look_wrong_side look_at find_tree look_member
 the model's lookup going to the other child, so that it misses the
 keys present
 --- index_model.bend
@@ -58,7 +58,7 @@ keys present
 +++
       mb.pick(X.ix.side(k, i), tr.look(l, k), tr.look(r, k))
 
-=== side_unchecked look_at
+=== side_unchecked look_at look_member
 the invariant no longer placing a branch's right keys on their side
 --- index_model.bend
 (tr.all(r, tr.first(l), i, True{}) && (tr.ok(l, 1n+i) && tr.ok(r, 1n+i)))))

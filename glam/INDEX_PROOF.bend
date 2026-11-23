@@ -4328,3 +4328,83 @@ def fi.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +x: U32,
 
 def Laws.insert_free(w, a, d, s, I, x, k, b, ns, hf, hd32, hr, hi, hl, hfr, hk, hb, ha, hno, hns, hnx, hnsb, hc):
   fi.m(w, a, d, s, I, x, k, b, ns, hf, hd32, hr, hi, hl, hfr, hk, hb, ha, hno, hns, hnx, hnsb, hc, LAT.mirror(U32, w))
+
+# A member found
+# ==============
+
+def ort_l(+e: Bool, +h: {Bool.or(e, False{}) == True{} : Bool}) -> {e == True{} : Bool}:
+  match e:
+    case True{}:
+      {==}
+    case False{}:
+      h
+
+def ort_r(+a: Bool, +b: Bool, +ha: {a == False{} : Bool}, +h: {Bool.or(a, b) == True{} : Bool}) -> {b == True{} : Bool}:
+  ME.subst(Bool, z => {Bool.or(z, b) == True{} : Bool}, a, False{}, ha, h)
+
+# a member of a tree all of whose keys sit on side sd of bit i: its key there
+def all_side.k(+hl: Bool, +l: IM.Tr, +r: IM.Tr, +v: List<&2, U32>, +d: Nat, +y: U32, +i: Nat, +sd: Bool, +hhl: {RG.has(IM.tr.leaves(l), y) == hl : Bool},
+  +hy: {Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)) == True{} : Bool},
+  ihl: {RG.has(IM.tr.leaves(l), y) == True{} : Bool} -> {X.ix.same(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), sd) == True{} : Bool}, ihr: {RG.has(IM.tr.leaves(r), y) == True{} : Bool} -> {X.ix.same(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), sd) == True{} : Bool}) -> {X.ix.same(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), sd) == True{} : Bool}:
+  match hl:
+    case True{}:
+      ihl(hhl)
+    case False{}:
+      ihr(ort_r(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y), hhl, hy))
+
+def all_side(t: IM.Tr, +p: U32, +i: Nat, +sd: Bool, +v: List<&2, U32>, +d: Nat, +q: U32, +s: U32, +y: U32,
+  +hall: {IM.tr.all(t, p, i, sd) == True{} : Bool}, +hre: {IM.tr.real(v, d, t, q, s) == True{} : Bool}, +hy: {RG.has(IM.tr.leaves(t), y) == True{} : Bool}) -> {X.ix.same(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), sd) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      +hxy = MS.u32_eq_of_is_eq(x, y, ort_l(U32.is_eq(x, y), hy))
+      +hk = MS.u32_eq_of_is_eq(KMd.word(v, d, (x + 2 : U32)), k, and_l(U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k), U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s), and_r(Bool.not(X.ix.branch(KMd.word(v, d, x))), U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s), and_r(U32.is_eq(q, x), Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)), hre))))
+      %hxy : {X.ix.same(X.ix.side(KMd.word(v, d, (_ + 2 : U32)), i), sd) == True{} : Bool}
+      %Equal.sym(U32, KMd.word(v, d, (x + 2 : U32)), k, hk) : {X.ix.same(X.ix.side(_, i), sd) == True{} : Bool}
+      and_r(IM.tr.agree(k, p, i), X.ix.same(X.ix.side(k, i), sd), hall)
+    case IM.Br{+b, +j, +l, +r}:
+      all_side.k(RG.has(IM.tr.leaves(l), y), l, r, v, d, y, i, sd, {==}, Equal.trans(Bool, Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)), RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), y), True{}, Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), y), Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)), has_app(IM.tr.leaves(l), IM.tr.leaves(r), y)), hy),
+        hyl => all_side(l, p, i, sd, v, d, KMd.word(v, d, (b + 2 : U32)), s, y, and_l(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), hall), and_l(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyl),
+        hyr => all_side(r, p, i, sd, v, d, KMd.word(v, d, (b + 3 : U32)), s, y, and_r(IM.tr.all(l, p, i, sd), IM.tr.all(r, p, i, sd), hall), and_r(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), j) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyr))
+
+# a member of a tree on its invariant found at its key
+def look_mem.k(+hl: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +v: List<&2, U32>, +d: Nat, +y: U32, +hhl: {RG.has(IM.tr.leaves(l), y) == hl : Bool},
+  +hy: {Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)) == True{} : Bool},
+  hsl: {RG.has(IM.tr.leaves(l), y) == True{} : Bool} -> {X.ix.side(KMd.word(v, d, (y + 2 : U32)), i) == False{} : Bool}, hsr: {RG.has(IM.tr.leaves(r), y) == True{} : Bool} -> {X.ix.side(KMd.word(v, d, (y + 2 : U32)), i) == True{} : Bool},
+  ihl: {RG.has(IM.tr.leaves(l), y) == True{} : Bool} -> {IM.tr.look(l, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}, ihr: {RG.has(IM.tr.leaves(r), y) == True{} : Bool} -> {IM.tr.look(r, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}) -> {IM.tr.look(IM.Br{b, i, l, r}, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}:
+  match hl:
+    case True{}:
+      %Equal.sym(Bool, X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), False{}, hsl(hhl)) : {IM.mb.pick(_, IM.tr.look(r, KMd.word(v, d, (y + 2 : U32))), IM.tr.look(l, KMd.word(v, d, (y + 2 : U32)))) == Some{y} : Maybe<&2, U32>}
+      ihl(hhl)
+    case False{}:
+      +hyr = ort_r(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y), hhl, hy)
+      %Equal.sym(Bool, X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), True{}, hsr(hyr)) : {IM.mb.pick(_, IM.tr.look(r, KMd.word(v, d, (y + 2 : U32))), IM.tr.look(l, KMd.word(v, d, (y + 2 : U32)))) == Some{y} : Maybe<&2, U32>}
+      ihr(hyr)
+
+def look_mem(t: IM.Tr, +v: List<&2, U32>, +d: Nat, +q: U32, +s: U32, +lo: Nat, +y: U32,
+  +hok: {IM.tr.ok(t, lo) == True{} : Bool}, +hre: {IM.tr.real(v, d, t, q, s) == True{} : Bool}, +hy: {RG.has(IM.tr.leaves(t), y) == True{} : Bool}) -> {IM.tr.look(t, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}:
+  match t:
+    case IM.Lf{+x, +kk}:
+      +hxy = MS.u32_eq_of_is_eq(x, y, ort_l(U32.is_eq(x, y), hy))
+      +hk = MS.u32_eq_of_is_eq(KMd.word(v, d, (x + 2 : U32)), kk, and_l(U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk), U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s), and_r(Bool.not(X.ix.branch(KMd.word(v, d, x))), U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s), and_r(U32.is_eq(q, x), Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), kk) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)), hre))))
+      %hxy : {IM.mb.hit(U32.is_eq(kk, KMd.word(v, d, (_ + 2 : U32))), x) == Some{_} : Maybe<&2, U32>}
+      %Equal.sym(U32, KMd.word(v, d, (x + 2 : U32)), kk, hk) : {IM.mb.hit(U32.is_eq(kk, _), x) == Some{x} : Maybe<&2, U32>}
+      %Equal.sym(Bool, U32.is_eq(kk, kk), True{}, is_eq_self(kk)) : {IM.mb.hit(_, x) == Some{x} : Maybe<&2, U32>}
+      {==}
+    case IM.Br{+b, +i, +l, +r}:
+      +hyo = Equal.trans(Bool, Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)), RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), y), True{}, Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), y), Bool.or(RG.has(IM.tr.leaves(l), y), RG.has(IM.tr.leaves(r), y)), has_app(IM.tr.leaves(l), IM.tr.leaves(r), y)), hy)
+      look_mem.k(RG.has(IM.tr.leaves(l), y), b, i, l, r, v, d, y, {==}, hyo,
+        hyl => same_eq(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), False{}, all_side(l, IM.tr.first(l), i, False{}, v, d, KMd.word(v, d, (b + 2 : U32)), s, y, and_l(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))), and_l(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyl)),
+        hyr => same_eq(X.ix.side(KMd.word(v, d, (y + 2 : U32)), i), True{}, all_side(r, IM.tr.first(l), i, True{}, v, d, KMd.word(v, d, (b + 3 : U32)), s, y, and_l(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok)))), and_r(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyr)),
+        hyl => look_mem(l, v, d, KMd.word(v, d, (b + 2 : U32)), s, 1n+i, y, and_l(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), and_l(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyl),
+        hyr => look_mem(r, v, d, KMd.word(v, d, (b + 3 : U32)), s, 1n+i, y, and_r(IM.tr.ok(l, 1n+i), IM.tr.ok(r, 1n+i), and_r(IM.tr.all(r, IM.tr.first(l), i, True{}), IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)), and_r(IM.tr.all(l, IM.tr.first(l), i, False{}), IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))), and_r(Nat.is_lt(i, 32n), IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i)))), and_r(Nat.is_le(lo, i), Nat.is_lt(i, 32n) && (IM.tr.all(l, IM.tr.first(l), i, False{}) && (IM.tr.all(r, IM.tr.first(l), i, True{}) && (IM.tr.ok(l, 1n+i) && (IM.tr.ok(r, 1n+i))))), hok))))), and_r(IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s), IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i), IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s), and_r(X.ix.branch(KMd.word(v, d, b)), Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s)), and_r(U32.is_eq(q, b), X.ix.branch(KMd.word(v, d, b)) && (Nat.is_eq(X.ix.bitof(KMd.word(v, d, b)), i) && (IM.tr.real(v, d, l, KMd.word(v, d, (b + 2 : U32)), s) && IM.tr.real(v, d, r, KMd.word(v, d, (b + 3 : U32)), s))), hre)))), hyr))
+
+def look_member.k(I: IM.Ix, +v: List<&2, U32>, +d: Nat, +s: U32, +y: U32, +hr: {IM.ix.real(v, d, s, I) == True{} : Bool}, +hi: {IM.ix.inv(I) == True{} : Bool},
+  +hy: {RG.has(IM.ix.leaves(I), y) == True{} : Bool}) -> {IM.ix.look(I, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}:
+  match I:
+    case IM.Ept{}:
+      Empty.absurd({IM.ix.look(IM.Ept{}, KMd.word(v, d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}, MB.false_ne_true()(hy))
+    case IM.Has{+t}:
+      look_mem(t, v, d, KMd.word(v, d, (s + 3 : U32)), s, 0n, y, hi, and_r(Bool.not(U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)), IM.tr.real(v, d, t, KMd.word(v, d, (s + 3 : U32)), s), hr), hy)
+
+def Laws.look_member(w, d, s, I, y, hr, hi, hy):
+  look_member.k(I, AD.view(U32, w), d, s, y, hr, hi, hy)

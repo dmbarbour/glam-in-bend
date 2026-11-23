@@ -334,3 +334,19 @@ law insert_free:
   for hnb: {IM.fl.sep(ns, d, b) == True{} : Bool}
   for hc: {KMd.chain(IM.ix.take(I, b, ns), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
   {KMd.chain(ns, AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, KMd.word(AD.view(U32, KMd.words(X.ix.insert(P.H{KM.MG{w}, a}, s, x))), d, P.at_fh())) == True{} : Bool}
+
+# LAW: a cursor of the index, on its invariant, is what a find at the
+# key its word 2 holds gives (one cursor a position): so that a join or
+# a leave, which knows its cursor only as a member, meets remove_tree's
+# premise.
+# Record: cursors-indexed
+law look_member:
+  for w: Array<U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +y: U32
+  for hr: {IM.ix.real(AD.view(U32, w), d, s, I) == True{} : Bool}
+  for hi: {IM.ix.inv(I) == True{} : Bool}
+  for hy: {RG.has(IM.ix.leaves(I), y) == True{} : Bool}
+  {IM.ix.look(I, KMd.word(AD.view(U32, w), d, (y + 2 : U32))) == Some{y} : Maybe<&2, U32>}
