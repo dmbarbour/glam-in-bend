@@ -217,10 +217,22 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       on two facts from outside the write phase: the walk's nodes
       distinct, and the map's depth leaving the indices in distinct
       slots.
-      - `cursor-laws.materializer.template.depth` — planned — a law of
-        `T.depth_for`: the depth below 32, the size at most `2^depth`
-        for a size up to `2^31`, the map `[0 : U32^depth]` full. Shared
-        with `.fresh`. S to M (2^32 abstracted, as `add_mod4.k` does).
+      - `cursor-laws.materializer.template.depth` — built 2026-11-24 —
+        on the side branch `cursor-laws-depth`. `map_depth`
+        (`glam/SPLICE_LAWS.bend`): the depth below 32, the size at most
+        `2^depth` for a size up to `2^31`, and the map
+        `[0 : U32^depth]` full at it (lawful-arrays' `new_full`: the
+        literal is `Array.new`). No closed big constant is ever
+        compared. The size premise is a `U32` literal compare, the
+        search's last power doubled on words (`dbl`, computed). The
+        fit's invariant is an upper bound, `to_nat(pw) <= 2^d`, so that
+        doubling needs no overflow argument (a remainder is at most
+        its argument). `2^32` appears only as the same subterm on
+        both sides. Not claimed: that the depth is the least, so a
+        mutant losing only minimality survives. One mutant refutes it:
+        the search starting a power too high. Shared with `.fresh`, for
+        which it gives the map's fullness and depth. The size at most
+        `2^31` becomes freeze's obligation, under `.compose`.
       - `cursor-laws.materializer.template.emit` — planned — laws of the
         write phase, on a list of distinct node bases: the holes at
         distinct indices from `n`, each named by its one link at its
@@ -228,13 +240,23 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         below 3; the crossings' positions distinct (distinct node and
         port pairs). Stated over indices, then over slots at the depth
         `.depth` gives. M.
-      - `cursor-laws.materializer.template.walk` — planned — the walk's
-        list of nodes distinct and each reached once, through the
-        table's invariants. L, the hardest of the four.
+      - `cursor-laws.materializer.template.walk` — planned — re-scoped
+        2026-11-24 on reading `fz.mark`: the finished part's walk
+        (`all` false) never consults the table. It marks each node it
+        meets, met once from the port its principal faces
+        (`glam/freeze.bend`, `fz.mark.set`), and its table is filled
+        after (`hm.fill`). So the list's distinctness is a property of
+        the source's net, a finished part reached as a tree through
+        two-way links, and joins `cursor-laws.noself`'s family. The
+        walk's own law follows it. The table law the write phase needs
+        is a lookup after `hm.fill`: each listed base found at its
+        index plus one, every other at 0. M, with the net's law L.
       - `cursor-laws.materializer.template.compose` — planned —
         `SM.tpl.ok`, `SV.copy.ok`, `SV.root.ok` and distinct positions
         for `freeze_tree`'s output, the three composed; the serve's
-        laws' "Not claimed" then narrowed. M.
+        laws' "Not claimed" then narrowed. Its premises include the
+        template's size at most `2^31` (`map_depth`'s), from the source's
+        capacity. M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
@@ -266,7 +288,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     check (`.materializer.frontier`'s reading;
     `cells-freeze.nested.host.join.self`). Taken at `.materializer`'s
     end, before `.loop` reshapes the invariant. Size unknown until the
-    kernel's rewrites are surveyed for it.
+    kernel's rewrites are surveyed for it. Scoped with its family: the
+    net's links two-way and none itself, so that a finished part is
+    reached as a tree, each node once (`.template.walk`).
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — planned — the first use made through

@@ -27,6 +27,8 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_base.bend as LAB
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
+import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
+import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WP
 
 # any heap in its parts
 def heta(h: P.H) -> {P.H{KM.MG{KMd.words(h)}, KMd.vals(h)} == h : P.H}:
@@ -1201,3 +1203,69 @@ def sfree_go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: N
 
 def Laws.splice_free(w, a, map, d, dm, ts, ls, by, ns, F, hf, hd32, hfm, hdm, hc, hl, hap, hpa, hhd, ht):
   sfree_go(w, a, map, d, dm, ts, ls, by, ns, F, hf, hd32, hfm, hdm, hc, hl, hap, hpa, hhd, ht, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# The map's depth (T.depth_for; cursor-laws.materializer.template.depth):
+# below 32, and the size at most 2^depth for a size up to 2^31. Not
+# claimed: that the depth is the least.
+
+# the search's bound: fuel f past depth d ends at most f + d
+def dgo_le(f: Nat, +fits: Bool, +n: U32, +d: Nat, +pw: U32, +t: Nat, +h: MN.le(Nat.add(f, d), t)) -> MN.le(T.depth_for.go(f, fits, n, d, pw), t):
+  match f:
+    case 0n:
+      h
+    case 1n+(+p):
+      match fits:
+        case True{}:
+          MN.le_trans(d, Nat.add(1n+p, d), t, MN.le_add_left(d, 1n+p), h)
+        case False{}:
+          dgo_le(p, U32.is_le(n, (pw * 2 : U32)), n, 1n+d, (pw * 2 : U32), t,
+            ME.subst(Nat, z => MN.le(z, t), Nat.add(1n+p, d), Nat.add(p, 1n+d), Equal.sym(Nat, Nat.add(p, 1n+d), 1n+Nat.add(p, d), MN.add_succ(p, d)), h))
+
+def depth_lt(+n: U32) -> {Nat.is_lt(T.depth_for(31n, n, 0n), 32n) == True{} : Bool}:
+  Equal.trans(Bool, Nat.is_lt(T.depth_for(31n, n, 0n), 32n), Nat.is_le(T.depth_for(31n, n, 0n), 31n), True{}, MN.lt_succ_iff(T.depth_for(31n, n, 0n), 31n),
+    dgo_le(31n, U32.is_le(n, U32.from_nat(Nat.pow(2n, 0n))), n, 0n, U32.from_nat(Nat.pow(2n, 0n)), 31n, {==}))
+
+# pw doubled f times, on words: the fuel's last power
+def dbl(f: Nat, +pw: U32) -> U32:
+  match f:
+    case 0n:
+      pw
+    case 1n+(+p):
+      dbl(p, (pw * 2 : U32))
+
+# a remainder at most its argument
+def mod_le(+x: Nat, +m: Nat) -> MN.le(Nat.mod(x, m), x):
+  ME.subst(Nat, z => MN.le(Nat.mod(x, m), z), Nat.add(Nat.mul(Nat.div(x, m), m), Nat.mod(x, m)), x, WL.nat_div_mod(x, m), MN.le_add_left(Nat.mod(x, m), Nat.mul(Nat.div(x, m), m)))
+
+# a doubled word at most twice its bound, whatever wraps
+def dbl_le(+pw: U32, +d: Nat, +hpw: MN.le(U32.to_nat(pw), Nat.pow(2n, d))) -> MN.le(U32.to_nat((pw * 2 : U32)), Nat.pow(2n, 1n+d)):
+  +X = Nat.mul(U32.to_nat(pw), U32.to_nat(2))
+  +h1 = ME.subst(Nat, z => MN.le(z, X), Nat.mod(X, Nat.pow(2n, 32n)), U32.to_nat((pw * 2 : U32)), Equal.sym(Nat, U32.to_nat((pw * 2 : U32)), Nat.mod(X, Nat.pow(2n, 32n)), WL.to_nat_mul(pw, 2)), mod_le(X, Nat.pow(2n, 32n)))
+  +h2 = MN.mul_le_mul_right(U32.to_nat(pw), Nat.pow(2n, d), U32.to_nat(2), hpw)
+  +h3 = ME.subst(Nat, z => MN.le(X, z), Nat.mul(Nat.pow(2n, d), U32.to_nat(2)), Nat.pow(2n, 1n+d), MN.mul_comm(Nat.pow(2n, d), 2n), h2)
+  MN.le_trans(U32.to_nat((pw * 2 : U32)), X, Nat.pow(2n, 1n+d), h1, h3)
+
+def fit_of_le(+n: U32, +pw: U32, +d: Nat, +h: {U32.is_le(n, pw) == True{} : Bool}, +hpw: MN.le(U32.to_nat(pw), Nat.pow(2n, d))) -> MN.le(U32.to_nat(n), Nat.pow(2n, d)):
+  MN.le_trans(U32.to_nat(n), U32.to_nat(pw), Nat.pow(2n, d),
+    Equal.trans(Bool, Nat.is_le(U32.to_nat(n), U32.to_nat(pw)), U32.is_le(n, pw), True{}, Equal.sym(Bool, U32.is_le(n, pw), Nat.is_le(U32.to_nat(n), U32.to_nat(pw)), MU.u32_is_le_to_nat(n, pw)), h), hpw)
+
+# the search's fit: n at most 2^d where it ends, the power pw bounding
+# 2^d at each step, n at most the fuel's last power
+def dgo_fit(f: Nat, +fits: Bool, +n: U32, +d: Nat, +pw: U32, +hfits: {fits == U32.is_le(n, pw) : Bool}, +hpw: MN.le(U32.to_nat(pw), Nat.pow(2n, d)),
+  +hn: {U32.is_le(n, dbl(f, pw)) == True{} : Bool}) -> MN.le(U32.to_nat(n), Nat.pow(2n, T.depth_for.go(f, fits, n, d, pw))):
+  match f:
+    case 0n:
+      fit_of_le(n, pw, d, hn, hpw)
+    case 1n+(+p):
+      match fits:
+        case True{}:
+          fit_of_le(n, pw, d, Equal.sym(Bool, True{}, U32.is_le(n, pw), hfits), hpw)
+        case False{}:
+          dgo_fit(p, U32.is_le(n, (pw * 2 : U32)), n, 1n+d, (pw * 2 : U32), {==}, dbl_le(pw, d, hpw), hn)
+
+def depth_fit(+n: U32, +hn: {U32.is_le(n, 2147483648) == True{} : Bool}) -> MN.le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))):
+  dgo_fit(31n, U32.is_le(n, U32.from_nat(Nat.pow(2n, 0n))), n, 0n, U32.from_nat(Nat.pow(2n, 0n)), {==}, {==}, hn)
+
+def Laws.map_depth(n, hn):
+  MB.and_eq_true(Nat.is_lt(T.depth_for(31n, n, 0n), 32n), Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))) && AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n)), depth_lt(n),
+    MB.and_eq_true(Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))), AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n)), depth_fit(n, hn), LA.new_full(U32, T.depth_for(31n, n, 0n), 0)))
