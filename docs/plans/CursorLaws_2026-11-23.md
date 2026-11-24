@@ -521,7 +521,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     A rewrite that wires two peers through (`link_xx`) is free of a
     self-link only if the peers' links are two-way, so the family is one
     invariant. Sliced:
-    - `cursor-laws.noself.model` — active — the wiring as a premise
+    - `cursor-laws.noself.model` — built 2026-11-24 — on the side
+      branch `cursor-laws-noself`, `wired_port`
+      (`spike/WIRED_LAWS.bend`): a net the audit passes has each live
+      node's port below its kind's arity pass the audit's check of one
+      port (`WR.port.ok`, `spike/wired_model.bend`): a static eraser, or
+      a live port, not itself, that links it back. The audit only reads,
+      so it bridges to a model over the words' tree as freeze's write
+      phase did, its verdict accumulated left to right as the code does.
+      The walk to node `j` and port `p` counts on words (`(a + 1 : U32)`
+      is `U32.inc`, 2^32 abstracted). Three mutants of the audit, each
+      dropping one check (not itself, links back, below the arity), are
+      caught by the proof failing on them: no witness can pass the
+      original audit and fail a port. As planned: the wiring as a premise
       (`wiring-premise-before-refinement`): `KN.wired_ok`'s verdict on the
       source heap, the audit the library runs, no second definition.
       With it, lemmas that extract per port: a live node's port below its
@@ -535,7 +547,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - `cursor-laws.noself.frontier` — planned — the frontier's law under
       the premise: the served position's port faces no port that is
       itself, so the cursor found there is never the served one. The
-      check stays until `kernel-refine.discharge`.
+      check stays until `kernel-refine.discharge`. Its parts:
+      - `PdFront`'s `q` is the served position's link word in its own
+        heap, the reads handing the heap back;
+      - `wired_port` on that heap, the position being a live node's
+        port below its arity;
+      - the index's cursor found at `q` keyed `q`, so that `nc`, keyed
+        at the position, is found there only if `q` is the position (the
+        index's laws).
 
     L or more. `.loop`'s reshaping waits on it only where it restates
     the invariant.
