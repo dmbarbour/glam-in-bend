@@ -253,14 +253,23 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           (`scripts/cursors.py`, 100 to 400, run 343), and the kernel's
           workloads 12.4K fewer, flat (run 342). The segments are
           unchanged.
-        - `cursor-laws.materializer.template.emit.counts` — active — the
-          bridge end to end (the probe, `fz.peer`, the node's read, an
-          error's write carried by lawful-arrays' `set_tree_eq`), the
-          mirrors at the law's def, and the first law. Each crossing's
-          placeholder is one of the nodes after the `n` read, in order,
-          and the template's next index counts them
-          (`glam/freeze_model.bend`'s `inv`). No heap or map premise
-          but the map's fullness.
+        - `cursor-laws.materializer.template.emit.counts` — built
+          2026-11-24 — on the side branch `cursor-laws-emit`.
+          `emits_counts` (`glam/FREEZE_LAWS.bend`): writing the nodes
+          reached keeps the template's next index just past the nodes
+          for statics and cursors, and each crossing at one of the
+          cursors' placeholders, in their order
+          (`glam/freeze_model.bend`'s `inv`). Any heap, the map full at
+          its depth. The bridge runs end to end: the probe, `fz.peer`,
+          the node's read, an error's write carried by lawful-arrays'
+          `set_tree_eq`, the emit, the emits. The mirrors are made at
+          the law's def. Three mutants are refuted by witness:
+          - the crossing made at the next index;
+          - a placeholder written as an eraser;
+          - a static uncounted.
+
+          The start's premise (`n == n` on words) is the consumer's,
+          `.compose`'s.
         - `cursor-laws.materializer.template.emit.links` — planned — each link
           either a placeholder's port 0 to a finished node, or between
           two indices below `n`, a finished-to-finished link ending at
