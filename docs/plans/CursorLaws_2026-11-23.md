@@ -133,22 +133,47 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       invariant across serves, carried to `.loop`: the index's keys the
       positions of copied trees' boundaries not yet joined, so that no
       serve meets its own.
-  - `cursor-laws.materializer` — planned — the materializer's
+  - `cursor-laws.materializer` — active — the materializer's
     composition under laws (`laws-over-tests`; F6, H2, F3). M to L.
-    - `mz.sp`, `mz.sp.r`, `mz.root` and `mz.root.e` move into a module
-      of their own beside `glam/ring.bend`. The serve's laws are stated
-      over its functions, not over a copy of their sequence, and its
-      mutants are added (the root port one past, `at_root` ignored, the
-      leave before the crossings).
-    - `crossings_look`: the served cursor found through the crossings,
-      a law. The root's laws are then `serve_pend`, it and
-      `leave_pend`, composed of laws alone.
-    - The frontier: a law that its join never meets the served cursor
+    - `cursor-laws.materializer.compose` — built 2026-11-24 — on the
+      side branch `cursor-laws-serve`. The copy, its crossings and the
+      root's leave moved unchanged into `glam/serve.bend` (`SC.serve`),
+      both callers repointed (the ladder's bytes unchanged, the cursor
+      families within 12 instructions of run 341). `serve_pend`,
+      `serve_keeps`, `serve_ring_exact` and `serve_root_keeps` are
+      stated over `SC.serve`; the first two gain binders for the root
+      and the served cursor, unread away from the root. Their proofs
+      rewrite it once to the form they had, by two unfold lemmas
+      generic in the splice's result (`serve_false`, `serve_true`,
+      in `SERVE_PROOF.bend.in`). Mutants of the composition, each tried
+      on a witness first:
+      - `root_never_left` refutes `serve_ring_exact`;
+      - `root_always_left` refutes `serve_pend`, on a witness whose
+        index holds the served cursor.
+
+      The root port one past refutes no law. The invariant does not
+      say which port a leave links, and the wrong port's link word lies
+      in a copy node the frames allow: evidence for
+      `cursor-laws.loop.wires`. Leaving before the crossings only fails
+      to typecheck (the map is read once) and is not kept.
+    - `cursor-laws.materializer.look` — planned — `crossings_look`:
+      the served cursor found through the crossings, a law, so that
+      the root's laws are `serve_pend`, it and `leave_pend`, composed of
+      laws alone.
+    - `cursor-laws.materializer.template` — planned — the template
+      freeze builds when nothing has finished (F3): how the
+      materializer serves it, and the laws widened to it where the
+      copy serves it. With it, a law of freeze: a template's crossings
+      at distinct positions (from `.dup`).
+    - `cursor-laws.materializer.frontier` — planned — a law that the
+      frontier's join never meets the served cursor
       (`cells-freeze.nested.host.join.self`), replacing the check if
-      practical; the call sites of `join` and the eraser's `leave`.
-    - The template freeze builds when nothing has finished (F3): find
-      how the materializer serves it, and bring it under the laws where
-      it is served by the copy.
+      practical, and the frontier's `join` and the eraser's `leave` as
+      call sites.
+    - `cursor-laws.materializer.fresh` — tentative — the fresh map
+      (`mz.fz.t` makes `[0 : U32^T.depth_for(31n, size, 0n)]` and passes
+      `k` as the offset) under the laws, which wants a law of
+      `T.depth_for`: the map full at a depth below 32.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — planned — the first use made through

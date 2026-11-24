@@ -416,6 +416,14 @@ it alone taught. Add to this file what a new proof teaches.
   `glam/proofgen/align/bisect.py` checks growing prefixes, naming
   the lemma whose prefix fails: Bend reports a stack overflow with no
   place (docs/BendIssues.md, Big constants in proofs).
+- **State a law over the code's own composition.** A law that copies
+  the code's sequence by hand misses a change to the code. Stated over
+  the code's function instead (`SC.serve`, `glam/serve.bend`), it is
+  proved by unfold lemmas generic in the values the function matches on
+  (`serve_false`, `serve_true`: the splice's result, then the pair the
+  crossings return, each matched in a helper, as `case (map, h):` does
+  for a pair), and each entry rewrites the function to the old form once
+  (`%Equal.sym(...)`), the old proof running on.
 - **Laws compose as functions.** A law of an imported laws file is
   called like a definition (`GL.crossings_pend` in `glam/SERVE_PROOF.bend`'s
   `sp.go`, `Laws.copy_pend` in its own file). Once each law concludes

@@ -605,6 +605,19 @@ def cpf.core({CORE_P}) ->
 # the entry, the heap's parts mirrored
 W='w'
 SPLw=lambda w,a,m: f'S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{{P.H{{KM.MG{{{w}}}, {a}}}, {m}}}, by))'
+
+# the materializer's composition (glam/serve.bend, SC.serve) and the
+# forms the proofs take of it (serve_false, serve_true): the serve's laws
+# state the one, each entry rewrites it to the other (cursor-laws.materializer)
+OLDF=lambda w,a,m: f'Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map({SPLw(w,a,m)}), SM.heap({SPLw(w,a,m)})), s))'
+NEWF=lambda w,a,m: f'SC.serve({SPLw(w,a,m)}, cs, T.TE{{rn, rp}}, s, nc, False{{}})'
+def OLDT(w,a,m):
+    crh=f'R.crossings(cs, (SM.map({SPLw(w,a,m)}), SM.heap({SPLw(w,a,m)})), s)'
+    return f'R.leave(Pair.snd(Array<U32>, P.H, {crh}), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, {crh}), rn)) + rp : U32), nc)'
+NEWT=lambda w,a,m: f'SC.serve({SPLw(w,a,m)}, cs, T.TE{{rn, rp}}, s, nc, True{{}})'
+def swap(goal, old, new):
+    assert old in goal, (old[:80], goal[:80])
+    return goal.replace(old, new)
 GOALw0=lambda w,a,m: f"RG.px.ok(AD.view(U32, KMd.words(SM.heap({SPLw(w,a,m)}))), d, s, I, RG.pls(cs, AD.view(U32, SM.map({SPLw(w,a,m)})), dm), {AP(L0, f'RG.pls(cs, AD.view(U32, SM.map({SPLw(w,a,m)})), dm)')}, F, {AP('M', f'RG.pls(cs, AD.view(U32, SM.map({SPLw(w,a,m)})), dm)')})"
 PLSw=lambda w,a,m: f'RG.pls(cs, AD.view(U32, SM.map({SPLw(w,a,m)})), dm)'
 CPFw=lambda w,a,m: [GOALw0(w,a,m), f'AD.full(U32, KMd.words(SM.heap({SPLw(w,a,m)})), d)', f'AD.full(U32, SM.map({SPLw(w,a,m)}), dm)', f"RG.layout({AP('M', PLSw(w,a,m))}, d)", f"RG.bases({AP('M', PLSw(w,a,m))})"]
@@ -648,11 +661,11 @@ sec4+=f"""
 # a serve away from the source's root, its copy then its crossings:
 # copy_pend, then crossings_pend on what it gives (IndexPremises P1)
 def sp.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>, +cs: List<&2, R.FzC>,
-  +I: IM.Ix, +F: List<&2, U32>, +M: List<&2, U32>, hf: {{AD.full(U32, w, d) == True{{}} : Bool}}, +hd32: {{Nat.is_lt(d, 32n) == True{{}} : Bool}}, hfm: {{AD.full(U32, map, dm) == True{{}} : Bool}}, +hdm: {{Nat.is_lt(dm, 32n) == True{{}} : Bool}},
+  +I: IM.Ix, +F: List<&2, U32>, +M: List<&2, U32>, +nc: U32, +rn: U32, +rp: U32, hf: {{AD.full(U32, w, d) == True{{}} : Bool}}, +hd32: {{Nat.is_lt(d, 32n) == True{{}} : Bool}}, hfm: {{AD.full(U32, map, dm) == True{{}} : Bool}}, +hdm: {{Nat.is_lt(dm, 32n) == True{{}} : Bool}},
   +hN: {T(f'RG.layout({MN}, d)')}, +hB: {T(f'RG.bases({MN})')}, hp: {HPw('w')}, +hl: {{SM.made(ts) == List.length(&2, U32, ns) : Nat}}, +hpa: {T(f'KMd.past({MN}, d)')},
   +hhd: {T('KMd.off.words(KMd.hdr_words(), d, P.at_fh())')}, +hLd: {T(f'RG.distinct({L0})')}, +ht: {T('SM.tpl.ok(ls, ts, dm)')}, +hcp: {T('SV.copy.ok(cs, ls, ts, dm)')},
   hok: {HOK('w','a','map')}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) ->
-  {SPG('w','a','map')}:
+  {swap(SPG('w','a','map'), OLDF('w','a','map'), NEWF('w','a','map'))}:
   (+t0, +ew) = mw
   (+ta, +ea) = ma
   (+tm, +em) = mm
@@ -662,16 +675,17 @@ def sp.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hok1 = LAB.subst(Array<U32>, qq => {HOK('qq','a','map')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {HOK(T0,'qq','map')}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
   +hok3 = LAB.subst(Array<U32>, qq => {HOK(T0,TA,'qq')}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok2)
-  %ew : {SPG('_','a','map')}
-  %ea : {SPG(T0,'_','map')}
-  %em : {SPG(T0,TA,'_')}
+  %ew : {swap(SPG('_','a','map'), OLDF('_','a','map'), NEWF('_','a','map'))}
+  %ea : {swap(SPG(T0,'_','map'), OLDF(T0,'_','map'), NEWF(T0,'_','map'))}
+  %em : {swap(SPG(T0,TA,'_'), OLDF(T0,TA,'_'), NEWF(T0,TA,'_'))}
+  %Equal.sym(P.H, {NEWF(T0,TA,TM)}, {OLDF(T0,TA,TM)}, serve_false({SPLt}, cs, T.TE{{rn, rp}}, s, nc)) : {swap(SPG(T0,TA,TM), OLDF(T0,TA,TM), '_')}
   +hc = Laws.copy_pend({T0}, {TA}, {TM}, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, hft, hd32, hfmt, hdm, hN, hB, hpT, hl, hpa, hhd, hLd, ht, hcp)
   %SPP.heta(SM.heap({SPLt})) : {SPG(T0,TA,TM,'_')}
   GL.crossings_pend(KMd.words(SM.heap({SPLt})), KMd.vals(SM.heap({SPLt})), SM.map({SPLt}), d, dm, s, I, {AP(L0, PLSw(T0,TA,TM))}, F, {AP('M', PLSw(T0,TA,TM))}, cs,
     {proj(CPt,1,'hc')}, hd32, {proj(CPt,2,'hc')}, hdm, {proj(CPt,3,'hc')}, {proj(CPt,4,'hc')}, {proj(CPt,0,'hc')}, hok3)
 
-def Laws.serve_pend(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok):
-  sp.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+def Laws.serve_pend(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok):
+  sp.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
 """
 sec+=sec4
 if os.environ.get('CPI_PART')=='4':
@@ -708,11 +722,11 @@ GOALk=lambda w,a,m: f"{{{RDj(f'Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map
 HOKw=lambda m: T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('w','a',m) if m=='map' else SPLw2(T0,TA,m)})), dm, I, F)")
 sec5+=f'''
 def sk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>, +cs: List<&2, R.FzC>,
-  +I: IM.Ix, +F: List<&2, U32>, +M: List<&2, U32>, +j: U32, hf: {{AD.full(U32, w, d) == True{{}} : Bool}}, +hd32: {{Nat.is_lt(d, 32n) == True{{}} : Bool}}, hfm: {{AD.full(U32, map, dm) == True{{}} : Bool}}, +hdm: {{Nat.is_lt(dm, 32n) == True{{}} : Bool}},
+  +I: IM.Ix, +F: List<&2, U32>, +M: List<&2, U32>, +nc: U32, +rn: U32, +rp: U32, +j: U32, hf: {{AD.full(U32, w, d) == True{{}} : Bool}}, +hd32: {{Nat.is_lt(d, 32n) == True{{}} : Bool}}, hfm: {{AD.full(U32, map, dm) == True{{}} : Bool}}, +hdm: {{Nat.is_lt(dm, 32n) == True{{}} : Bool}},
   +hN: {T(f'RG.layout({MN}, d)')}, +hB: {T(f'RG.bases({MN})')}, hp: {HPw('w')}, +hl: {{SM.made(ts) == List.length(&2, U32, ns) : Nat}}, +hpaMN: {T(f'KMd.past({MN}, d)')},
   +hhd: {T('KMd.off.words(KMd.hdr_words(), d, P.at_fh())')}, +hLd: {T(f'RG.distinct({L0})')}, +ht: {T('SM.tpl.ok(ls, ts, dm)')}, +hcp: {T('SV.copy.ok(cs, ls, ts, dm)')},
   hok: {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('w','a','map')})), dm, I, F)")}, +hj: {T('KMd.nodes.off(ns, d, j)')}, +hjM: {T('RG.off.nodes(M, d, j)')}, +hjh: {T('KMd.off.words(KMd.hdr_all(), d, j)')},
-  hjf: {T(f'RG.off.ports(RG.faced({L0}, AD.view(U32, w), d), d, j)')}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {GOALk('w','a','map')}:
+  hjf: {T(f'RG.off.ports(RG.faced({L0}, AD.view(U32, w), d), d, j)')}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {swap(GOALk('w','a','map'), OLDF('w','a','map'), NEWF('w','a','map'))}:
   (+t0, +ew) = mw
   (+ta, +ea) = ma
   (+tm, +em) = mm
@@ -725,13 +739,14 @@ def sk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
   +hok3 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,TA,'qq')})), dm, I, F)")}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok2)
-  %ew : {GOALk('_','a','map')}
-  %ea : {GOALk(T0,'_','map')}
-  %em : {GOALk(T0,TA,'_')}
+  %ew : {swap(GOALk('_','a','map'), OLDF('_','a','map'), NEWF('_','a','map'))}
+  %ea : {swap(GOALk(T0,'_','map'), OLDF(T0,'_','map'), NEWF(T0,'_','map'))}
+  %em : {swap(GOALk(T0,TA,'_'), OLDF(T0,TA,'_'), NEWF(T0,TA,'_'))}
+  %Equal.sym(P.H, {NEWF(T0,TA,TM)}, {OLDF(T0,TA,TM)}, serve_false({SPLt}, cs, T.TE{{rn, rp}}, s, nc)) : {swap(GOALk(T0,TA,TM), OLDF(T0,TA,TM), '_')}
   sk.core({CORE_A.replace('hp, hl','hpT, hl').replace('hfr, hLd','hfrT, hLd')}, hok3, j, hj, hjM, hjh, hjfT)
 
-def Laws.serve_keeps(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf):
-  sk.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+def Laws.serve_keeps(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf):
+  sk.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hj, hjM, hjh, hjf, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
 '''
 sec+=sec5
 if os.environ.get('CPI_PART')=='5':
@@ -871,7 +886,7 @@ def rx.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hN: {T(f'RG.layout({MN}, d)')}, +hB: {T(f'RG.bases({MN})')}, hp: {HPw('w')}, +hl: {{SM.made(ts) == List.length(&2, U32, ns) : Nat}}, +hpaMN: {T(f'KMd.past({MN}, d)')},
   +hhd: {T('KMd.off.words(KMd.hdr_words(), d, P.at_fh())')}, +hLd: {T(f'RG.distinct({L0})')}, +ht: {T('SM.tpl.ok(ls, ts, dm)')}, +hcp: {T('SV.copy.ok(cs, ls, ts, dm)')},
   hok: {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('w','a','map')})), dm, I, F)")}, +hc: {{IM.ix.look(I, k) == Some{{nc}} : Maybe<&2, U32>}}, +hu: {T('RG.far.off(cs, k)')}, +hro: {T('SV.root.ok(rn, rp, ts, dm, cs)')},
-  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {T(CONCw('w','a','map'))}:
+  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {T(swap(CONCw('w','a','map'), OLDT('w','a','map'), NEWT('w','a','map')))}:
   (+t0, +ew) = mw
   (+ta, +ea) = ma
   (+tm, +em) = mm
@@ -883,9 +898,10 @@ def rx.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
   +hok3 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,TA,'qq')})), dm, I, F)")}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok2)
-  %ew : {T(CONCw('_','a','map'))}
-  %ea : {T(CONCw(T0,'_','map'))}
-  %em : {T(CONCw(T0,TA,'_'))}
+  %ew : {T(swap(CONCw('_','a','map'), OLDT('_','a','map'), NEWT('_','a','map')))}
+  %ea : {T(swap(CONCw(T0,'_','map'), OLDT(T0,'_','map'), NEWT(T0,'_','map')))}
+  %em : {T(swap(CONCw(T0,TA,'_'), OLDT(T0,TA,'_'), NEWT(T0,TA,'_')))}
+  %Equal.sym(P.H, {NEWT(T0,TA,TM)}, {OLDT(T0,TA,TM)}, serve_true({SPLt}, cs, rn, rp, s, nc)) : {T(swap(CONCw(T0,TA,TM), OLDT(T0,TA,TM), '_'))}
   rx.core({CORE_A.replace('hp, hl','hpT, hl').replace('hfr, hLd','hfrT, hLd')}, hok3, nc, k, hc, hu, rn, rp, hro)
 
 def Laws.serve_ring_exact(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, k, rn, rp, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hc, hu, hro):
@@ -994,7 +1010,7 @@ def rk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hhd: {T('KMd.off.words(KMd.hdr_words(), d, P.at_fh())')}, +hLd: {T(f'RG.distinct({L0})')}, +ht: {T('SM.tpl.ok(ls, ts, dm)')}, +hcp: {T('SV.copy.ok(cs, ls, ts, dm)')},
   hok: {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('w','a','map')})), dm, I, F)")}, +hc: {{IM.ix.look(I, k) == Some{{nc}} : Maybe<&2, U32>}}, +hu: {T('RG.far.off(cs, k)')}, +hro: {T('SV.root.ok(rn, rp, ts, dm, cs)')},
   +hj: {T('KMd.nodes.off(ns, d, j)')}, +hjM: {T('RG.off.nodes(M, d, j)')}, +hjh: {T('KMd.off.words(KMd.hdr_all(), d, j)')}, hjf: {T(f'RG.off.ports(RG.faced({L0}, AD.view(U32, w), d), d, j)')},
-  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {GK7w('w','a','map')}:
+  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {swap(GK7w('w','a','map'), OLDT('w','a','map'), NEWT('w','a','map'))}:
   (+t0, +ew) = mw
   (+ta, +ea) = ma
   (+tm, +em) = mm
@@ -1007,9 +1023,10 @@ def rk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
   +hok3 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,TA,'qq')})), dm, I, F)")}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok2)
-  %ew : {GK7w('_','a','map')}
-  %ea : {GK7w(T0,'_','map')}
-  %em : {GK7w(T0,TA,'_')}
+  %ew : {swap(GK7w('_','a','map'), OLDT('_','a','map'), NEWT('_','a','map'))}
+  %ea : {swap(GK7w(T0,'_','map'), OLDT(T0,'_','map'), NEWT(T0,'_','map'))}
+  %em : {swap(GK7w(T0,TA,'_'), OLDT(T0,TA,'_'), NEWT(T0,TA,'_'))}
+  %Equal.sym(P.H, {NEWT(T0,TA,TM)}, {OLDT(T0,TA,TM)}, serve_true({SPLt}, cs, rn, rp, s, nc)) : {swap(GK7w(T0,TA,TM), OLDT(T0,TA,TM), '_')}
   rk.core({CORE_A.replace('hp, hl','hpT, hl').replace('hfr, hLd','hfrT, hLd')}, hok3, nc, k, hc, hu, rn, rp, hro, j, hj, hjM, hjh, hjfT)
 
 def Laws.serve_root_keeps(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, k, rn, rp, j, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hok, hc, hu, hro, hj, hjM, hjh, hjf):

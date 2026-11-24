@@ -101,7 +101,7 @@ def dyn(ns: List<&2, U32>) -> Bool:
     case Con{+n, r}:
       Bool.not(P.is_static(n)) && dyn(r)
 
-# the copy's root, at the source's root (the materializer's mz.root): a
+# the copy's root, at the source's root (glam/serve.bend's rt): a
 # node's index no hole shares a slot with, at a port below 3. So freeze
 # builds it there, read 2026-11-20: the materializer is at the root only
 # for a value at the interface (sv.pd's PdValue), its node neither a
