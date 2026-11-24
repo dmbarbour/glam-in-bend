@@ -9,6 +9,7 @@ import ./splice_copy.bend as S
 import ../spike/kprim.bend as P
 import ../spike/net.bend as N
 import ../spike/kmodel.bend as KMd
+import ./ring_model.bend as RG
 
 # What glam/FREEZE_LAWS.bend states of freeze's write phase (the
 # CursorLaws plan's cursor-laws.materializer.template.emit): no code of
@@ -240,3 +241,33 @@ def inv.n(z: F.FzE) -> Bool:
   match z:
     case F.FzE{h, map, +nodes, eras, +ne, ls, root, curs}:
       no_era(nodes)
+
+# The nodes read back (cursor-laws.materializer.template.emit.length)
+def nodes.of(z: F.FzE) -> List<&2, T.TNode>:
+  match z:
+    case F.FzE{h, map, nodes, eras, +ne, ls, root, curs}:
+      nodes
+
+# The crossings' positions (cursor-laws.materializer.template.emit.positions)
+
+# each base's three port positions, b + p for p below 3, in the list's
+# order: a crossing at port p of node b is made at b + p
+def ports(bs: List<&2, U32>) -> List<&2, U32>:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{+b, r}:
+      Con{(b + 0 : U32), Con{(b + 1 : U32), Con{(b + 2 : U32), ports(r)}}}
+
+# none of xs among ys
+def disj(xs: List<&2, U32>, +ys: List<&2, U32>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+x, r}:
+      Bool.not(RG.has(ys, x)) && disj(r, ys)
+
+def curs.of(z: F.FzE) -> List<&2, RN.FzC>:
+  match z:
+    case F.FzE{h, map, nodes, eras, +ne, ls, root, curs}:
+      curs

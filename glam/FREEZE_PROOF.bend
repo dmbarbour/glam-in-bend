@@ -51,6 +51,9 @@
 #   1 (et_keeps; an aligned base's slot is 0 mod 4, slot 1 is 1). A
 #   hypothesis crosses an equation by ME.subst where lets forbid a
 #   rewrite (ems_n). Eraser is tested by S.sp.is_era itself (nd_era).
+# - The template's invariant takes its argument at a type parameter (~X);
+#   the nodes' count (emits_len) is the template at ~Nat, entered at
+#   emt_T with the count one more, since the node's step changes it.
 
 import Base
 import ./FREEZE_LAWS.bend as Laws
@@ -78,6 +81,7 @@ import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
 import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WP
 import ./splice_model.bend as SM
 import ./splice_copy.bend as S
+import ./ring_model.bend as RG
 
 # --- the probe, modelled on a mirrored map
 
@@ -1134,8 +1138,10 @@ def Laws.put_keeps(a, b, v, e, n0, hf, hd32, hv, hvn):
 # root set (root), a cursor's placeholder pushed (hole), a link between
 # nodes read back (link), a node added (node). Each leaf gets the raw
 # facts of its branch; each law's I is the conjunction of what it rests
-# on, its leaves calling those of its parts. The node's list (ems) is
-# each law's own, as the links' count down.
+# on, its leaves calling those of its parts. I's argument is of the type
+# X, moved from port p to p + 1 by nx (the identity, for an invariant
+# that no port moves). The node's list (ems) is each law's own, as the
+# links' count down.
 
 def not_of(+b: Bool, +h: {b == False{} : Bool}) -> {Bool.not(b) == True{} : Bool}:
   %Equal.sym(Bool, b, False{}, h) : {Bool.not(_) == True{} : Bool}
@@ -1166,13 +1172,38 @@ def st.t(+s: ST) -> LAT.Tree<U32>:
     case ST{+t, +f}:
       t
 
-def pv_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +unf: Bool, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +hu: {U32.is_eq(mv(tm, dm, P.base(q)), 0) == unf : Bool}, +hst: {P.is_static(q) == False{} : Bool}, +h: {I(f, n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
-  {I(pe.v(unf, f, k, b, i, p, q, mv(tm, dm, P.base(q))), n0) == True{} : Bool}:
+# the ports a node's step has done, matched as pes matches its arity
+def pd(a: Nat) -> U32:
+  match a:
+    case 0n:
+      0
+    case 1n+j:
+      match j:
+        case 0n:
+          1
+        case 1n+x:
+          match x:
+            case 0n:
+              2
+            case 1n+y:
+              3
+
+# the identities, for an invariant no port moves
+def id32(+x: U32, +p: U32) -> U32:
+  x
+
+def idnat(+x: Nat, +p: U32) -> Nat:
+  x
+
+def pv_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +unf: Bool, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +hu: {U32.is_eq(mv(tm, dm, P.base(q)), 0) == unf : Bool}, +hst: {P.is_static(q) == False{} : Bool}, +h: {I(f, nx(n0, p)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
+  {I(pe.v(unf, f, k, b, i, p, q, mv(tm, dm, P.base(q))), nx(n0, (p + 1 : U32))) == True{} : Bool}:
   match unf:
     case True{}:
       match f:
@@ -1183,15 +1214,17 @@ def pv_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
         case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
           l_link(nodes, eras, ne, ls, root, curs, k, b, i, p, q, n0, tc, ta, tm, dm, h, hC, hp, hst, hu)
 
-def pk_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +st: Bool, +rt: Bool, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +hns: {(st || Bool.not(P.is_static(q))) == True{} : Bool}, +h: {I(f, n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
-  {I(pe.k(st, rt, f, tm, dm, k, b, i, p, q), n0) == True{} : Bool}:
+def pk_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +st: Bool, +rt: Bool, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +hns: {(st || Bool.not(P.is_static(q))) == True{} : Bool}, +h: {I(f, nx(n0, p)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
+  {I(pe.k(st, rt, f, tm, dm, k, b, i, p, q), nx(n0, (p + 1 : U32))) == True{} : Bool}:
   match st:
     case True{}:
       match f:
@@ -1204,87 +1237,97 @@ def pk_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
             case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
               l_root(nodes, eras, ne, ls, root, curs, k, b, i, p, n0, tc, ta, tm, dm, h, hC, hp)
         case False{}:
-          pv_T(~I, ~C, ~l_hole, ~l_link, U32.is_eq(mv(tm, dm, P.base(q)), 0), f, k, b, i, p, q, n0, tc, ta, tm, dm, {==}, nt_of(P.is_static(q), hns), h, hC, hp)
+          pv_T(~X, ~nx, ~I, ~C, ~l_hole, ~l_link, U32.is_eq(mv(tm, dm, P.base(q)), 0), f, k, b, i, p, q, n0, tc, ta, tm, dm, {==}, nt_of(P.is_static(q), hns), h, hC, hp)
 
-def ps_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +st: Bool, +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +hst: {P.is_static(q) == st : Bool}, +h: {I(f, n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
-  {I(pe.s(st, f, t0, tm, dm, k, b, i, p, q), n0) == True{} : Bool}:
+def ps_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +st: Bool, +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +hst: {P.is_static(q) == st : Bool}, +h: {I(f, nx(n0, p)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
+  {I(pe.s(st, f, t0, tm, dm, k, b, i, p, q), nx(n0, (p + 1 : U32))) == True{} : Bool}:
   match st:
     case True{}:
-      pk_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, True{}, False{}, f, k, b, i, p, q, n0, tc, ta, tm, dm, {==}, h, hC, hp)
+      pk_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, True{}, False{}, f, k, b, i, p, q, n0, tc, ta, tm, dm, {==}, h, hC, hp)
     case False{}:
-      pk_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, F.fz.is_era(hw(t0, P.base(q))), U32.is_eq(P.base(q), P.iface()), f, k, b, i, p, q, n0, tc, ta, tm, dm,
+      pk_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, F.fz.is_era(hw(t0, P.base(q))), U32.is_eq(P.base(q), P.iface()), f, k, b, i, p, q, n0, tc, ta, tm, dm,
         or_r(F.fz.is_era(hw(t0, P.base(q))), Bool.not(P.is_static(q)), not_of(P.is_static(q), hst)), h, hC, hp)
 
-def pe_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +h: {I(f, n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
-  {I(pe(f, t0, tm, dm, k, b, i, p), n0) == True{} : Bool}:
-  ps_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, P.is_static(hw(t0, (b + 1 + p : U32))), f, t0, k, b, i, p, hw(t0, (b + 1 + p : U32)), n0, tc, ta, tm, dm, {==}, h, hC, hp)
+def pe_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {I(f, nx(n0, p)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) ->
+  {I(pe(f, t0, tm, dm, k, b, i, p), nx(n0, (p + 1 : U32))) == True{} : Bool}:
+  ps_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, P.is_static(hw(t0, (b + 1 + p : U32))), f, t0, k, b, i, p, hw(t0, (b + 1 + p : U32)), n0, tc, ta, tm, dm, {==}, h, hC, hp)
 
-def pes_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, a: Nat, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +h: {I(f, n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}) ->
-  {I(pes(f, t0, tm, dm, k, b, i, a), n0) == True{} : Bool}:
+def pes_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +f: Fl, +t0: LAT.Tree<U32>, +k: R.NodeKind, +b: U32, +i: U32, a: Nat, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {I(f, nx(n0, 0)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}) ->
+  {I(pes(f, t0, tm, dm, k, b, i, a), nx(n0, pd(a))) == True{} : Bool}:
   match a:
     case 0n:
       h
     case 1n+j:
       match j:
         case 0n:
-          pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==})
+          pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==})
         case 1n+x:
           match x:
             case 0n:
-              pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(f, t0, tm, dm, k, b, i, 0), t0, k, b, i, 1, n0, tc, ta, tm, dm, pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==}), hC, {==})
+              pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(f, t0, tm, dm, k, b, i, 0), t0, k, b, i, 1, n0, tc, ta, tm, dm, pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==}), hC, {==})
             case 1n+y:
-              pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(pe(f, t0, tm, dm, k, b, i, 0), t0, tm, dm, k, b, i, 1), t0, k, b, i, 2, n0, tc, ta, tm, dm, pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(f, t0, tm, dm, k, b, i, 0), t0, k, b, i, 1, n0, tc, ta, tm, dm, pe_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==}), hC, {==}), hC, {==})
+              pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(pe(f, t0, tm, dm, k, b, i, 0), t0, tm, dm, k, b, i, 1), t0, k, b, i, 2, n0, tc, ta, tm, dm, pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, pe(f, t0, tm, dm, k, b, i, 0), t0, k, b, i, 1, n0, tc, ta, tm, dm, pe_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, f, t0, k, b, i, 0, n0, tc, ta, tm, dm, h, hC, {==}), hC, {==}), hC, {==})
 
-def emt_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  +r: NR, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
-  +hN: {I(na(r, f), n0) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}) ->
-  {I(st.f(em.t(r, f, tm, dm, k, b, i)), n0) == True{} : Bool}:
+def emt_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  +r: NR, +f: Fl, +k: R.NodeKind, +b: U32, +i: U32, +n0: X, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +hN: {I(na(r, f), nx(n0, 0)) == True{} : Bool}, +hC: {C(tc, ta, tm, dm, b, i, n0) == True{} : Bool}) ->
+  {I(st.f(em.t(r, f, tm, dm, k, b, i)), nx(n0, pd(R.arity(k)))) == True{} : Bool}:
   match r:
     case NR{+t, +n}:
       match f:
         case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
-          pes_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, Fl{Con{n, nodes}, eras, ne, ls, root, curs}, t, k, b, i, R.arity(k), n0, tc, ta, tm, dm, hN, hC)
+          pes_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, Fl{Con{n, nodes}, eras, ne, ls, root, curs}, t, k, b, i, R.arity(k), n0, tc, ta, tm, dm, hN, hC)
 
 # a node and its ports, any invariant its five leaves keep
-def em_T(~I: @+f:Fl -> @+n0:U32 -> Bool,
-  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:U32 -> Bool,
-  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool},
-  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool},
-  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool},
-  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool},
-  ~l_node: @+f:Fl -> @+n0:U32 -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+h:{I(f, n0) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> {I(na(nd(N.kof(P.rk(hw(tc, b))), tc, ta, hw(tc, b), b), f), n0) == True{} : Bool},
-  +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32,
-  +h: {I(st.f(s), n0) == True{} : Bool}, +hC: {C(st.t(s), ta, tm, dm, b, i, n0) == True{} : Bool}) ->
-  {I(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
+def em_T(~X: Data,
+  ~nx: @+x:X -> @+p:U32 -> X,
+  ~I: @+f:Fl -> @+n0:X -> Bool,
+  ~C: @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+n0:X -> Bool,
+  ~l_era: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_root: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_hole: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> {I(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_link: @+nodes:List<&2, T.TNode> -> @+eras:List<&2, T.TNode> -> @+ne:U32 -> @+ls:List<&2, T.TLink> -> @+root:T.TEnd -> @+curs:List<&2, RN.FzC> -> @+k:R.NodeKind -> @+b:U32 -> @+i:U32 -> @+p:U32 -> @+q:U32 -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+h:{I(Fl{nodes, eras, ne, ls, root, curs}, nx(n0, p)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> @+hp:{SM.port3(p) == True{} : Bool} -> @+hst:{P.is_static(q) == False{} : Bool} -> @+hu:{U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool} -> {I(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nx(n0, (p + 1 : U32))) == True{} : Bool},
+  ~l_node: @+f:Fl -> @+n0:X -> @+tc:LAT.Tree<U32> -> @+ta:LAT.Tree<V.Val> -> @+tm:LAT.Tree<U32> -> @+dm:Nat -> @+b:U32 -> @+i:U32 -> @+h:{I(f, nx(n0, 0)) == True{} : Bool} -> @+hC:{C(tc, ta, tm, dm, b, i, n0) == True{} : Bool} -> {I(na(nd(N.kof(P.rk(hw(tc, b))), tc, ta, hw(tc, b), b), f), nx(n0, 0)) == True{} : Bool},
+  +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: X,
+  +h: {I(st.f(s), nx(n0, 0)) == True{} : Bool}, +hC: {C(st.t(s), ta, tm, dm, b, i, n0) == True{} : Bool}) ->
+  {I(st.f(em(s, ta, tm, dm, b, i)), nx(n0, pd(R.arity(N.kof(P.rk(hw(st.t(s), b))))))) == True{} : Bool}:
   match s:
     case ST{+t, +f}:
-      emt_T(~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, nd(N.kof(P.rk(hw(t, b))), t, ta, hw(t, b), b), f, N.kof(P.rk(hw(t, b))), b, i, n0, t, ta, tm, dm,
+      emt_T(~X, ~nx, ~I, ~C, ~l_era, ~l_root, ~l_hole, ~l_link, nd(N.kof(P.rk(hw(t, b))), t, ta, hw(t, b), b), f, N.kof(P.rk(hw(t, b))), b, i, n0, t, ta, tm, dm,
         l_node(f, n0, t, ta, tm, dm, b, i, h, hC), hC)
 
 # --- the counts' instance
@@ -1322,7 +1365,7 @@ def c_node(+f: Fl, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.
 
 def em_c(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32, +h: {inv.fl(st.f(s), n0) == True{} : Bool}) ->
   {inv.fl(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
-  em_T(~inv.fl, ~c.true, ~c_era, ~c_root, ~c_hole, ~c_link, ~c_node, s, ta, tm, dm, b, i, n0, h, {==})
+  em_T(~U32, ~id32, ~inv.fl, ~c.true, ~c_era, ~c_root, ~c_hole, ~c_link, ~c_node, s, ta, tm, dm, b, i, n0, h, {==})
 
 def ems_c(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32, +n0: U32, +h: {inv.fl(st.f(s), n0) == True{} : Bool}) ->
   {inv.fl(st.f(ems(seen, s, ta, tm, dm, i)), n0) == True{} : Bool}:
@@ -1409,7 +1452,7 @@ def k_node(+f: Fl, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.
 
 def em_l(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32, +h: {ik(st.f(s), n0) == True{} : Bool}, +hi: {U32.is_lt(i, n0) == True{} : Bool}) ->
   {ik(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
-  em_T(~ik, ~c.lt, ~k_era, ~k_root, ~k_hole, ~k_link, ~k_node, s, ta, tm, dm, b, i, n0, h, hi)
+  em_T(~U32, ~id32, ~ik, ~c.lt, ~k_era, ~k_root, ~k_hole, ~k_link, ~k_node, s, ta, tm, dm, b, i, n0, h, hi)
 
 def ems_l(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32, +n0: U32,
   +h: {ik(st.f(s), n0) == True{} : Bool}, +hi: {U32.is_lt(i, n0) == True{} : Bool}, +hl: {Nat.is_le(List.length(&2, U32, seen), 1n+U32.to_nat(i)) == True{} : Bool}) ->
@@ -1507,7 +1550,7 @@ def j_node(+f: Fl, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.
 
 def em_f(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32, +h: {ij(st.f(s), n0) == True{} : Bool}, +hm: {AD.full(U32, LAT.fromT(U32, tm), dm) && (Nat.is_lt(dm, 32n) && (Nat.is_le(1n, dm) && FM.vals.le(AD.view(U32, LAT.fromT(U32, tm)), n0))) == True{} : Bool}) ->
   {ij(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
-  em_T(~ij, ~c.map, ~j_era, ~j_root, ~j_hole, ~j_link, ~j_node, s, ta, tm, dm, b, i, n0, h, hm)
+  em_T(~U32, ~id32, ~ij, ~c.map, ~j_era, ~j_root, ~j_hole, ~j_link, ~j_node, s, ta, tm, dm, b, i, n0, h, hm)
 
 def ems_f(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32, +n0: U32, +h: {ij(st.f(s), n0) == True{} : Bool}, +hm: {AD.full(U32, LAT.fromT(U32, tm), dm) && (Nat.is_lt(dm, 32n) && (Nat.is_le(1n, dm) && FM.vals.le(AD.view(U32, LAT.fromT(U32, tm)), n0))) == True{} : Bool}) ->
   {ij(st.f(ems(seen, s, ta, tm, dm, i)), n0) == True{} : Bool}:
@@ -1604,7 +1647,7 @@ def r_node(+f: Fl, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.
 
 def em_r(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32, +h: {ir(st.f(s), n0) == True{} : Bool}, +hi: {U32.is_lt(i, n0) == True{} : Bool}) ->
   {ir(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
-  em_T(~ir, ~c.lt, ~r_era, ~r_root, ~r_hole, ~r_link, ~r_node, s, ta, tm, dm, b, i, n0, h, hi)
+  em_T(~U32, ~id32, ~ir, ~c.lt, ~r_era, ~r_root, ~r_hole, ~r_link, ~r_node, s, ta, tm, dm, b, i, n0, h, hi)
 
 def ems_r(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32, +n0: U32,
   +h: {ir(st.f(s), n0) == True{} : Bool}, +hi: {U32.is_lt(i, n0) == True{} : Bool}, +hl: {Nat.is_le(List.length(&2, U32, seen), 1n+U32.to_nat(i)) == True{} : Bool}) ->
@@ -1772,7 +1815,7 @@ def n_node(+f: Fl, +n0: U32, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.
 
 def em_n(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: U32, +h: {in_(st.f(s), n0) == True{} : Bool}, +hC: {c.k(st.t(s), ta, tm, dm, b, i, n0) == True{} : Bool}) ->
   {in_(st.f(em(s, ta, tm, dm, b, i)), n0) == True{} : Bool}:
-  em_T(~in_, ~c.k, ~n_era, ~n_root, ~n_hole, ~n_link, ~n_node, s, ta, tm, dm, b, i, n0, h, hC)
+  em_T(~U32, ~id32, ~in_, ~c.k, ~n_era, ~n_root, ~n_hole, ~n_link, ~n_node, s, ta, tm, dm, b, i, n0, h, hC)
 
 # copied for the frame (INDEX_PROOF.bend's wl_ne and wd, proofgen/align's
 # slot_mod4 and ne_mod4; to be shared under cursor-laws.proofs)
@@ -1980,3 +2023,400 @@ def en.m(+seen: List<&2, U32>, -w: Array<U32>, -a: Array<V.Val>, -map: Array<U32
 
 def Laws.emits_nodes(seen, w, a, map, dm, hf, d, hfw, hd32, h2, hh, n0, i, nodes, eras, ne, ls, root, curs, hn):
   en.m(seen, w, a, map, dm, hf, d, hfw, hd32, h2, hh, n0, i, nodes, eras, ne, ls, root, curs, hn, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# --- the nodes' count (emits_len): the template at ~Nat, entered at the
+# node's step (emt_T) with the count one more
+
+def fl.nodes(+f: Fl) -> List<&2, T.TNode>:
+  match f:
+    case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+      nodes
+
+def il(+f: Fl, +m: Nat) -> Bool:
+  Nat.is_eq(List.length(&2, T.TNode, fl.nodes(f)), m)
+
+def c.tn(+tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +n0: Nat) -> Bool:
+  True{}
+
+def len_era(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: Nat, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {il(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool}, +hC: {c.tn(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {il(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, n0) == True{} : Bool}:
+  h
+
+def len_root(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: Nat, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {il(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool}, +hC: {c.tn(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {il(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, n0) == True{} : Bool}:
+  h
+
+def len_hole(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: Nat, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {il(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool}, +hC: {c.tn(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {il(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, n0) == True{} : Bool}:
+  h
+
+def len_link(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: Nat, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {il(Fl{nodes, eras, ne, ls, root, curs}, n0) == True{} : Bool}, +hC: {c.tn(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool},
+  +hst: {P.is_static(q) == False{} : Bool}, +hu: {U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool}) -> {il(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, n0) == True{} : Bool}:
+  h
+
+def len_na(+r: NR, +f: Fl) -> {il(na(r, f), 1n+List.length(&2, T.TNode, fl.nodes(f))) == True{} : Bool}:
+  match r:
+    case NR{+t, +n}:
+      match f:
+        case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+          MN.is_eq_refl(1n+List.length(&2, T.TNode, nodes))
+
+# a node's step adds one node
+def em_len(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32) -> {il(st.f(em(s, ta, tm, dm, b, i)), 1n+List.length(&2, T.TNode, fl.nodes(st.f(s)))) == True{} : Bool}:
+  match s:
+    case ST{+t, +f}:
+      emt_T(~Nat, ~idnat, ~il, ~c.tn, ~len_era, ~len_root, ~len_hole, ~len_link, nd(N.kof(P.rk(hw(t, b))), t, ta, hw(t, b), b), f, N.kof(P.rk(hw(t, b))), b, i,
+        1n+List.length(&2, T.TNode, fl.nodes(f)), t, ta, tm, dm, len_na(nd(N.kof(P.rk(hw(t, b))), t, ta, hw(t, b), b), f), {==})
+
+def ems_len(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32) ->
+  {List.length(&2, T.TNode, fl.nodes(st.f(ems(seen, s, ta, tm, dm, i)))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, fl.nodes(st.f(s)))) : Nat}:
+  match seen:
+    case Nil{}:
+      {==}
+    case Con{+b, +rest}:
+      +L = List.length(&2, T.TNode, fl.nodes(st.f(s)))
+      +E = List.length(&2, T.TNode, fl.nodes(st.f(em(s, ta, tm, dm, b, i))))
+      +he = MN.eq_of_is_eq(E, 1n+L, em_len(s, ta, tm, dm, b, i))
+      Equal.trans(Nat, List.length(&2, T.TNode, fl.nodes(st.f(ems(rest, em(s, ta, tm, dm, b, i), ta, tm, dm, (i - 1 : U32))))), Nat.add(List.length(&2, U32, rest), E), 1n+Nat.add(List.length(&2, U32, rest), L),
+        ems_len(rest, em(s, ta, tm, dm, b, i), ta, tm, dm, (i - 1 : U32)),
+        Equal.trans(Nat, Nat.add(List.length(&2, U32, rest), E), Nat.add(List.length(&2, U32, rest), 1n+L), 1n+Nat.add(List.length(&2, U32, rest), L),
+          Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, U32, rest), z), E, 1n+L, he), MN.add_succ(List.length(&2, U32, rest), L)))
+
+def nodes_mkS(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>) -> {FM.nodes.of(mkS(ta, LAT.fromT(U32, tm), s)) == fl.nodes(st.f(s)) : List<&2, T.TNode>}:
+  match s:
+    case ST{+t, +f}:
+      match f:
+        case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+          {==}
+
+def el.k(+seen: List<&2, U32>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +hf: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +i: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>) ->
+  {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{hp(t0, ta), LAT.fromT(U32, tm), nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}:
+  %Equal.sym(F.FzE, F.fz.emits(seen, mkS(ta, LAT.fromT(U32, tm), ST{t0, Fl{nodes, eras, ne, ls, root, curs}}), i), mkS(ta, LAT.fromT(U32, tm), ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)), emsb(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, hf, i)) :
+    {List.length(&2, T.TNode, FM.nodes.of(_)) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+  %Equal.sym(List<&2, T.TNode>, FM.nodes.of(mkS(ta, LAT.fromT(U32, tm), ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))), fl.nodes(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))), nodes_mkS(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i), ta, tm)) :
+    {List.length(&2, T.TNode, _) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+  ems_len(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)
+
+def el.m(+seen: List<&2, U32>, -A: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +dm: Nat, hf: {AD.full(U32, map, dm) == True{} : Bool}, +i: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>,
+  m0: LAT.Mirror(U32, A), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) ->
+  {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{A}, a}, map, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}:
+  (+t0, +e0) = m0
+  (+ta, +ea) = ma
+  (+tm, +em) = mm
+  +hft = LAP.full_t(U32, map, tm, dm, em, hf)
+  %e0 : {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{_}, a}, map, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+  %ea : {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+  %em : {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, _, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+  el.k(seen, t0, ta, tm, dm, hft, i, nodes, eras, ne, ls, root, curs)
+
+def Laws.emits_len(seen, h, map, dm, hf, i, nodes, eras, ne, ls, root, curs):
+  match h:
+    case P.H{w, a}:
+      match w:
+        case KM.MG{A}:
+          el.m(seen, A, a, map, dm, hf, i, nodes, eras, ne, ls, root, curs, LAT.mirror(U32, A), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# --- the crossings' positions (emits_pos): the template's argument the
+# positions not yet used, each port moving past its own
+
+# the positions after port p: the first p dropped
+# a drop matching its count first, so that dropping none is the list
+def dr(n: Nat, +X: List<&2, U32>) -> List<&2, U32>:
+  match n:
+    case 0n:
+      X
+    case 1n+m:
+      match X:
+        case Nil{}:
+          Nil{}
+        case Con{+x, +t}:
+          dr(m, t)
+
+def nxp(+X: List<&2, U32>, +p: U32) -> List<&2, U32>:
+  dr(U32.to_nat(p), X)
+
+def ip(+f: Fl, +X: List<&2, U32>) -> Bool:
+  match f:
+    case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+      RG.distinct(RG.srcs(curs)) && (RG.distinct(X) && FM.disj(RG.srcs(curs), X))
+
+# the node's own three positions first
+def c.p(+tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +X: List<&2, U32>) -> Bool:
+  match X:
+    case Nil{}:
+      False{}
+    case Con{+x0, r0}:
+      match r0:
+        case Nil{}:
+          False{}
+        case Con{+x1, r1}:
+          match r1:
+            case Nil{}:
+              False{}
+            case Con{+x2, R}:
+              U32.is_eq(x0, (b + 0 : U32)) && (U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)))
+
+def c3.k0(+x0: U32, +x1: U32, +x2: U32, +b: U32, +h: {(U32.is_eq(x0, (b + 0 : U32)) && (U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)))) == True{} : Bool}) -> {U32.is_eq(x0, (b + 0 : U32)) == True{} : Bool}:
+  MB.eq_true_of_and_left(U32.is_eq(x0, (b + 0 : U32)), U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)), h)
+
+def c3.k1(+x0: U32, +x1: U32, +x2: U32, +b: U32, +h: {(U32.is_eq(x0, (b + 0 : U32)) && (U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)))) == True{} : Bool}) -> {U32.is_eq(x1, (b + 1 : U32)) == True{} : Bool}:
+  MB.eq_true_of_and_left(U32.is_eq(x1, (b + 1 : U32)), U32.is_eq(x2, (b + 2 : U32)),
+    MB.eq_true_of_and_right(U32.is_eq(x0, (b + 0 : U32)), U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)), h))
+
+def c3.k2(+x0: U32, +x1: U32, +x2: U32, +b: U32, +h: {(U32.is_eq(x0, (b + 0 : U32)) && (U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)))) == True{} : Bool}) -> {U32.is_eq(x2, (b + 2 : U32)) == True{} : Bool}:
+  MB.eq_true_of_and_right(U32.is_eq(x1, (b + 1 : U32)), U32.is_eq(x2, (b + 2 : U32)),
+    MB.eq_true_of_and_right(U32.is_eq(x0, (b + 0 : U32)), U32.is_eq(x1, (b + 1 : U32)) && U32.is_eq(x2, (b + 2 : U32)), h))
+
+# a port below 3 is 0, 1 or 2: any family over it, at each
+def p3e.k(+z0: Bool, +z1: Bool, +z2: Bool, +p: U32, +h0: {U32.is_eq(p, 0) == z0 : Bool}, +h1: {U32.is_eq(p, 1) == z1 : Bool}, +h2: {U32.is_eq(p, 2) == z2 : Bool},
+  +hp: {(z0 || (z1 || z2)) == True{} : Bool}, -M: U32 -> Type, m0: M(0), m1: M(1), m2: M(2)) -> M(p):
+  match z0:
+    case True{}:
+      ME.subst(U32, M, 0, p, Equal.sym(U32, p, 0, u32_eq(p, 0, h0)), m0)
+    case False{}:
+      match z1:
+        case True{}:
+          ME.subst(U32, M, 1, p, Equal.sym(U32, p, 1, u32_eq(p, 1, h1)), m1)
+        case False{}:
+          match z2:
+            case True{}:
+              ME.subst(U32, M, 2, p, Equal.sym(U32, p, 2, u32_eq(p, 2, h2)), m2)
+            case False{}:
+              Empty.absurd(M(p), MB.false_ne_true()(hp))
+
+def p3e(+p: U32, +hp: {SM.port3(p) == True{} : Bool}, -M: U32 -> Type, m0: M(0), m1: M(1), m2: M(2)) -> M(p):
+  p3e.k(U32.is_eq(p, 0), U32.is_eq(p, 1), U32.is_eq(p, 2), p, {==}, {==}, {==}, hp, M, m0, m1, m2)
+
+# lists of positions
+def not_or_r(+a: Bool, +b: Bool, +h: {Bool.not(a || b) == True{} : Bool}) -> {Bool.not(b) == True{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({Bool.not(b) == True{} : Bool}, MB.false_ne_true()(h))
+    case False{}:
+      h
+
+def is_eq_comm32(+a: U32, +b: U32) -> {U32.is_eq(a, b) == U32.is_eq(b, a) : Bool}:
+  %Equal.sym(Bool, U32.is_eq(a, b), Nat.is_eq(U32.to_nat(a), U32.to_nat(b)), MU.u32_is_eq_to_nat(a, b)) : {_ == U32.is_eq(b, a) : Bool}
+  %Equal.sym(Bool, U32.is_eq(b, a), Nat.is_eq(U32.to_nat(b), U32.to_nat(a)), MU.u32_is_eq_to_nat(b, a)) : {Nat.is_eq(U32.to_nat(a), U32.to_nat(b)) == _ : Bool}
+  MN.is_eq_comm(U32.to_nat(a), U32.to_nat(b))
+
+def disj_tl(xs: List<&2, U32>, +y: U32, +Y: List<&2, U32>, +h: {FM.disj(xs, Con{y, Y}) == True{} : Bool}) -> {FM.disj(xs, Y) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      MB.and_eq_true(Bool.not(RG.has(Y, x)), FM.disj(r, Y),
+        not_or_r(U32.is_eq(y, x), RG.has(Y, x), MB.eq_true_of_and_left(Bool.not(U32.is_eq(y, x) || RG.has(Y, x)), FM.disj(r, Con{y, Y}), h)),
+        disj_tl(r, y, Y, MB.eq_true_of_and_right(Bool.not(U32.is_eq(y, x) || RG.has(Y, x)), FM.disj(r, Con{y, Y}), h)))
+
+def not_or(+a: Bool, +b: Bool, +ha: {Bool.not(a) == True{} : Bool}, +hb: {Bool.not(b) == True{} : Bool}) -> {Bool.not(a || b) == True{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({Bool.not(True{} || b) == True{} : Bool}, MB.false_ne_true()(ha))
+    case False{}:
+      hb
+
+def not_or_l(+a: Bool, +b: Bool, +h: {Bool.not(a || b) == True{} : Bool}) -> {Bool.not(a) == True{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, MB.false_ne_true()(h))
+    case False{}:
+      {==}
+
+# a list none of whose members is among Con{y, Y} does not hold y
+def disj_hd(xs: List<&2, U32>, +y: U32, +Y: List<&2, U32>, +h: {FM.disj(xs, Con{y, Y}) == True{} : Bool}) -> {Bool.not(RG.has(xs, y)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      +hx = not_or_l(U32.is_eq(y, x), RG.has(Y, x), MB.eq_true_of_and_left(Bool.not(U32.is_eq(y, x) || RG.has(Y, x)), FM.disj(r, Con{y, Y}), h))
+      not_or(U32.is_eq(x, y), RG.has(r, y), Equal.trans(Bool, Bool.not(U32.is_eq(x, y)), Bool.not(U32.is_eq(y, x)), True{}, Equal.cong(Bool, Bool, w => Bool.not(w), U32.is_eq(x, y), U32.is_eq(y, x), is_eq_comm32(x, y)), hx),
+        disj_hd(r, y, Y, MB.eq_true_of_and_right(Bool.not(U32.is_eq(y, x) || RG.has(Y, x)), FM.disj(r, Con{y, Y}), h)))
+
+def wk(+S: List<&2, U32>, +y: U32, +Y: List<&2, U32>, +h: {(RG.distinct(S) && (RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}))) == True{} : Bool}) ->
+  {(RG.distinct(S) && (RG.distinct(Y) && FM.disj(S, Y))) == True{} : Bool}:
+  +hS = MB.eq_true_of_and_left(RG.distinct(S), RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}), h)
+  +h2 = MB.eq_true_of_and_right(RG.distinct(S), RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}), h)
+  +hY = MB.eq_true_of_and_left(RG.distinct(Con{y, Y}), FM.disj(S, Con{y, Y}), h2)
+  +hJ = MB.eq_true_of_and_right(RG.distinct(Con{y, Y}), FM.disj(S, Con{y, Y}), h2)
+  MB.and_eq_true(RG.distinct(S), RG.distinct(Y) && FM.disj(S, Y), hS,
+    MB.and_eq_true(RG.distinct(Y), FM.disj(S, Y), MB.eq_true_of_and_right(Bool.not(RG.has(Y, y)), RG.distinct(Y), hY), disj_tl(S, y, Y, hJ)))
+
+# a crossing made at the first unused position, y, equal to its own
+def hole_p(+y: U32, +Y: List<&2, U32>, +S: List<&2, U32>, +s: U32, +he: {U32.is_eq(y, s) == True{} : Bool}, +h: {(RG.distinct(S) && (RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}))) == True{} : Bool}) ->
+  {(RG.distinct(Con{s, S}) && (RG.distinct(Y) && FM.disj(Con{s, S}, Y))) == True{} : Bool}:
+  +hS = MB.eq_true_of_and_left(RG.distinct(S), RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}), h)
+  +h2 = MB.eq_true_of_and_right(RG.distinct(S), RG.distinct(Con{y, Y}) && FM.disj(S, Con{y, Y}), h)
+  +hY = MB.eq_true_of_and_left(RG.distinct(Con{y, Y}), FM.disj(S, Con{y, Y}), h2)
+  +hJ = MB.eq_true_of_and_right(RG.distinct(Con{y, Y}), FM.disj(S, Con{y, Y}), h2)
+  +hyY = MB.eq_true_of_and_left(Bool.not(RG.has(Y, y)), RG.distinct(Y), hY)
+  %u32_eq(y, s, he) : {(RG.distinct(Con{_, S}) && (RG.distinct(Y) && FM.disj(Con{_, S}, Y))) == True{} : Bool}
+  MB.and_eq_true(RG.distinct(Con{y, S}), RG.distinct(Y) && FM.disj(Con{y, S}, Y),
+    MB.and_eq_true(Bool.not(RG.has(S, y)), RG.distinct(S), disj_hd(S, y, Y, hJ), hS),
+    MB.and_eq_true(RG.distinct(Y), FM.disj(Con{y, S}, Y), MB.eq_true_of_and_right(Bool.not(RG.has(Y, y)), RG.distinct(Y), hY),
+      MB.and_eq_true(Bool.not(RG.has(Y, y)), FM.disj(S, Y), hyY, disj_tl(S, y, Y, hJ))))
+
+def p_era(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: List<&2, U32>, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(n0, p)) == True{} : Bool}, +hC: {c.p(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {ip(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nxp(n0, (p + 1 : U32))) == True{} : Bool}:
+  match n0:
+    case Nil{}:
+      Empty.absurd({ip(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nxp(Nil{}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+    case Con{+x0, r0}:
+      match r0:
+        case Nil{}:
+          Empty.absurd({ip(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nxp(Con{x0, Nil{}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+        case Con{+x1, r1}:
+          match r1:
+            case Nil{}:
+              Empty.absurd({ip(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}, nxp(Con{x0, Con{x1, Nil{}}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+            case Con{+x2, +R}:
+              p3e(p, hp, z => ({ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, z)) == True{} : Bool} -> {ip(Fl{nodes, Con{F.fz.era(R.port_pol(k, U32.to_nat(z))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, z}, T.TE{ne, 0}}, ls}, root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, (z + 1 : U32))) == True{} : Bool}),
+                (hh => wk(RG.srcs(curs), x0, Con{x1, Con{x2, R}}, hh)), (hh => wk(RG.srcs(curs), x1, Con{x2, R}, hh)), (hh => wk(RG.srcs(curs), x2, R, hh)))(h)
+
+def p_root(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +n0: List<&2, U32>, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(n0, p)) == True{} : Bool}, +hC: {c.p(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {ip(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nxp(n0, (p + 1 : U32))) == True{} : Bool}:
+  match n0:
+    case Nil{}:
+      Empty.absurd({ip(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nxp(Nil{}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+    case Con{+x0, r0}:
+      match r0:
+        case Nil{}:
+          Empty.absurd({ip(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nxp(Con{x0, Nil{}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+        case Con{+x1, r1}:
+          match r1:
+            case Nil{}:
+              Empty.absurd({ip(Fl{nodes, eras, ne, ls, T.TE{i, p}, curs}, nxp(Con{x0, Con{x1, Nil{}}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+            case Con{+x2, +R}:
+              p3e(p, hp, z => ({ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, z)) == True{} : Bool} -> {ip(Fl{nodes, eras, ne, ls, T.TE{i, z}, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, (z + 1 : U32))) == True{} : Bool}),
+                (hh => wk(RG.srcs(curs), x0, Con{x1, Con{x2, R}}, hh)), (hh => wk(RG.srcs(curs), x1, Con{x2, R}, hh)), (hh => wk(RG.srcs(curs), x2, R, hh)))(h)
+
+def p_hole(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: List<&2, U32>, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(n0, p)) == True{} : Bool}, +hC: {c.p(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {ip(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nxp(n0, (p + 1 : U32))) == True{} : Bool}:
+  match n0:
+    case Nil{}:
+      Empty.absurd({ip(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nxp(Nil{}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+    case Con{+x0, r0}:
+      match r0:
+        case Nil{}:
+          Empty.absurd({ip(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nxp(Con{x0, Nil{}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+        case Con{+x1, r1}:
+          match r1:
+            case Nil{}:
+              Empty.absurd({ip(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), F.fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}, nxp(Con{x0, Con{x1, Nil{}}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+            case Con{+x2, +R}:
+              p3e(p, hp, z => ({ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, z)) == True{} : Bool} -> {ip(Fl{nodes, Con{F.fz.hole(R.port_pol(k, U32.to_nat(z))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, z}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + z : U32), F.fz.neg(R.port_pol(k, U32.to_nat(z))), q}, curs}}, nxp(Con{x0, Con{x1, Con{x2, R}}}, (z + 1 : U32))) == True{} : Bool}),
+                (hh => hole_p(x0, Con{x1, Con{x2, R}}, RG.srcs(curs), (b + 0 : U32), c3.k0(x0, x1, x2, b, hC), hh)), (hh => hole_p(x1, Con{x2, R}, RG.srcs(curs), (b + 1 : U32), c3.k1(x0, x1, x2, b, hC), hh)), (hh => hole_p(x2, R, RG.srcs(curs), (b + 2 : U32), c3.k2(x0, x1, x2, b, hC), hh)))(h)
+
+def p_link(+nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32, +p: U32, +q: U32, +n0: List<&2, U32>, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat,
+  +h: {ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(n0, p)) == True{} : Bool}, +hC: {c.p(tc, ta, tm, dm, b, i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool},
+  +hst: {P.is_static(q) == False{} : Bool}, +hu: {U32.is_eq(mv(tm, dm, P.base(q)), 0) == False{} : Bool}) -> {ip(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nxp(n0, (p + 1 : U32))) == True{} : Bool}:
+  match n0:
+    case Nil{}:
+      Empty.absurd({ip(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nxp(Nil{}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+    case Con{+x0, r0}:
+      match r0:
+        case Nil{}:
+          Empty.absurd({ip(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nxp(Con{x0, Nil{}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+        case Con{+x1, r1}:
+          match r1:
+            case Nil{}:
+              Empty.absurd({ip(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nxp(Con{x0, Con{x1, Nil{}}}, (p + 1 : U32))) == True{} : Bool}, MB.false_ne_true()(hC))
+            case Con{+x2, +R}:
+              p3e(p, hp, z => ({ip(Fl{nodes, eras, ne, ls, root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, z)) == True{} : Bool} -> {ip(Fl{nodes, eras, ne, F.fz.link.k(U32.is_lt(i, (mv(tm, dm, P.base(q)) - 1 : U32)) || (U32.is_eq(i, (mv(tm, dm, P.base(q)) - 1 : U32)) && U32.is_lt(z, (q .&. 3 : U32))), i, z, (mv(tm, dm, P.base(q)) - 1 : U32), (q .&. 3 : U32), ls), root, curs}, nxp(Con{x0, Con{x1, Con{x2, R}}}, (z + 1 : U32))) == True{} : Bool}),
+                (hh => wk(RG.srcs(curs), x0, Con{x1, Con{x2, R}}, hh)), (hh => wk(RG.srcs(curs), x1, Con{x2, R}, hh)), (hh => wk(RG.srcs(curs), x2, R, hh)))(h)
+
+def p_na(+r: NR, +f: Fl, +X: List<&2, U32>, +h: {ip(f, X) == True{} : Bool}) -> {ip(na(r, f), X) == True{} : Bool}:
+  match r:
+    case NR{+t, +n}:
+      match f:
+        case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+          h
+
+def p_node(+f: Fl, +n0: List<&2, U32>, +tc: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +h: {ip(f, nxp(n0, 0)) == True{} : Bool}, +hC: {c.p(tc, ta, tm, dm, b, i, n0) == True{} : Bool}) ->
+  {ip(na(nd(N.kof(P.rk(hw(tc, b))), tc, ta, hw(tc, b), b), f), nxp(n0, 0)) == True{} : Bool}:
+  p_na(nd(N.kof(P.rk(hw(tc, b))), tc, ta, hw(tc, b), b), f, nxp(n0, 0), h)
+
+def fl.curs(+f: Fl) -> List<&2, RN.FzC>:
+  match f:
+    case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+      curs
+
+def ip_cj(+f: Fl, +X: List<&2, U32>) -> {ip(f, X) == (RG.distinct(RG.srcs(fl.curs(f))) && (RG.distinct(X) && FM.disj(RG.srcs(fl.curs(f)), X))) : Bool}:
+  match f:
+    case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+      {==}
+
+# a node's step done, its unused positions dropped: the next node's first
+def en_p(a: Nat, +S: List<&2, U32>, +y0: U32, +y1: U32, +y2: U32, +R: List<&2, U32>, +h: {(RG.distinct(S) && (RG.distinct(nxp(Con{y0, Con{y1, Con{y2, R}}}, pd(a))) && FM.disj(S, nxp(Con{y0, Con{y1, Con{y2, R}}}, pd(a))))) == True{} : Bool}) -> {(RG.distinct(S) && (RG.distinct(R) && FM.disj(S, R))) == True{} : Bool}:
+  match a:
+    case 0n:
+      wk(S, y2, R, wk(S, y1, Con{y2, R}, wk(S, y0, Con{y1, Con{y2, R}}, h)))
+    case 1n+j:
+      match j:
+        case 0n:
+          wk(S, y2, R, wk(S, y1, Con{y2, R}, h))
+        case 1n+x:
+          match x:
+            case 0n:
+              wk(S, y2, R, h)
+            case 1n+y:
+              h
+
+def em_p(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +b: U32, +i: U32, +X: List<&2, U32>, +h: {ip(st.f(s), X) == True{} : Bool}, +hC: {c.p(st.t(s), ta, tm, dm, b, i, X) == True{} : Bool}) ->
+  {ip(st.f(em(s, ta, tm, dm, b, i)), nxp(X, pd(R.arity(N.kof(P.rk(hw(st.t(s), b))))))) == True{} : Bool}:
+  em_T(~List<&2, U32>, ~nxp, ~ip, ~c.p, ~p_era, ~p_root, ~p_hole, ~p_link, ~p_node, s, ta, tm, dm, b, i, X, h, hC)
+
+def ems_p(seen: List<&2, U32>, +s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +i: U32, +h: {ip(st.f(s), FM.ports(seen)) == True{} : Bool}) ->
+  {ip(st.f(ems(seen, s, ta, tm, dm, i)), Nil{}) == True{} : Bool}:
+  match seen:
+    case Nil{}:
+      h
+    case Con{+b, +rest}:
+      +X0 = FM.ports(Con{b, rest})
+      +A = R.arity(N.kof(P.rk(hw(st.t(s), b))))
+      +F1 = st.f(em(s, ta, tm, dm, b, i))
+      +e1 = em_p(s, ta, tm, dm, b, i, X0, h,
+        MB.and_eq_true(U32.is_eq((b + 0 : U32), (b + 0 : U32)), U32.is_eq((b + 1 : U32), (b + 1 : U32)) && U32.is_eq((b + 2 : U32), (b + 2 : U32)), u32_refl((b + 0 : U32)),
+          MB.and_eq_true(U32.is_eq((b + 1 : U32), (b + 1 : U32)), U32.is_eq((b + 2 : U32), (b + 2 : U32)), u32_refl((b + 1 : U32)), u32_refl((b + 2 : U32)))))
+      +e2 = ME.subst(Bool, z => {z == True{} : Bool}, ip(F1, nxp(X0, pd(A))), (RG.distinct(RG.srcs(fl.curs(F1))) && (RG.distinct(nxp(X0, pd(A))) && FM.disj(RG.srcs(fl.curs(F1)), nxp(X0, pd(A))))), ip_cj(F1, nxp(X0, pd(A))), e1)
+      +e3 = en_p(A, RG.srcs(fl.curs(F1)), (b + 0 : U32), (b + 1 : U32), (b + 2 : U32), FM.ports(rest), e2)
+      +e4 = ME.subst(Bool, z => {z == True{} : Bool}, (RG.distinct(RG.srcs(fl.curs(F1))) && (RG.distinct(FM.ports(rest)) && FM.disj(RG.srcs(fl.curs(F1)), FM.ports(rest)))), ip(F1, FM.ports(rest)), Equal.sym(Bool, ip(F1, FM.ports(rest)), (RG.distinct(RG.srcs(fl.curs(F1))) && (RG.distinct(FM.ports(rest)) && FM.disj(RG.srcs(fl.curs(F1)), FM.ports(rest)))), ip_cj(F1, FM.ports(rest))), e3)
+      ems_p(rest, em(s, ta, tm, dm, b, i), ta, tm, dm, (i - 1 : U32), e4)
+
+def curs_mkS(+s: ST, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>) -> {FM.curs.of(mkS(ta, LAT.fromT(U32, tm), s)) == fl.curs(st.f(s)) : List<&2, RN.FzC>}:
+  match s:
+    case ST{+t, +f}:
+      match f:
+        case Fl{+nodes, +eras, +ne, +ls, +root, +curs}:
+          {==}
+
+def ep.k(+seen: List<&2, U32>, +t0: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +tm: LAT.Tree<U32>, +dm: Nat, +hf: {AD.full(U32, LAT.fromT(U32, tm), dm) == True{} : Bool}, +i: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +hd: {RG.distinct(FM.ports(seen)) == True{} : Bool}, +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}, +hj: {FM.disj(RG.srcs(curs), FM.ports(seen)) == True{} : Bool}) ->
+  {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{hp(t0, ta), LAT.fromT(U32, tm), nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}:
+  %Equal.sym(F.FzE, F.fz.emits(seen, mkS(ta, LAT.fromT(U32, tm), ST{t0, Fl{nodes, eras, ne, ls, root, curs}}), i), mkS(ta, LAT.fromT(U32, tm), ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)), emsb(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, hf, i)) :
+    {RG.distinct(RG.srcs(FM.curs.of(_))) == True{} : Bool}
+  %Equal.sym(List<&2, RN.FzC>, FM.curs.of(mkS(ta, LAT.fromT(U32, tm), ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))), fl.curs(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))), curs_mkS(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i), ta, tm)) :
+    {RG.distinct(RG.srcs(_)) == True{} : Bool}
+  MB.eq_true_of_and_left(RG.distinct(RG.srcs(fl.curs(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))))), RG.distinct(Nil{}) && FM.disj(RG.srcs(fl.curs(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)))), Nil{}),
+    ME.subst(Bool, z => {z == True{} : Bool}, ip(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)), Nil{}), (RG.distinct(RG.srcs(fl.curs(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i))))) && (RG.distinct(Nil{}) && FM.disj(RG.srcs(fl.curs(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)))), Nil{}))), ip_cj(st.f(ems(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i)), Nil{}),
+      ems_p(seen, ST{t0, Fl{nodes, eras, ne, ls, root, curs}}, ta, tm, dm, i, MB.and_eq_true(RG.distinct(RG.srcs(curs)), RG.distinct(FM.ports(seen)) && FM.disj(RG.srcs(curs), FM.ports(seen)), hs,
+        MB.and_eq_true(RG.distinct(FM.ports(seen)), FM.disj(RG.srcs(curs), FM.ports(seen)), hd, hj)))))
+
+def ep.m(+seen: List<&2, U32>, -A: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +dm: Nat, hf: {AD.full(U32, map, dm) == True{} : Bool}, +i: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +ne: U32, +ls: List<&2, T.TLink>, +root: T.TEnd, +curs: List<&2, RN.FzC>, +hd: {RG.distinct(FM.ports(seen)) == True{} : Bool}, +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}, +hj: {FM.disj(RG.srcs(curs), FM.ports(seen)) == True{} : Bool},
+  m0: LAT.Mirror(U32, A), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) ->
+  {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{A}, a}, map, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}:
+  (+t0, +e0) = m0
+  (+ta, +ea) = ma
+  (+tm, +em) = mm
+  +hft = LAP.full_t(U32, map, tm, dm, em, hf)
+  %e0 : {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{_}, a}, map, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}
+  %ea : {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{LAT.fromT(U32, t0)}, _}, map, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}
+  %em : {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{P.H{KM.MG{LAT.fromT(U32, t0)}, LAT.fromT(V.Val, ta)}, _, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}
+  ep.k(seen, t0, ta, tm, dm, hft, i, nodes, eras, ne, ls, root, curs, hd, hs, hj)
+
+def Laws.emits_pos(seen, h, map, dm, hf, i, nodes, eras, ne, ls, root, curs, hd, hs, hj):
+  match h:
+    case P.H{w, a}:
+      match w:
+        case KM.MG{A}:
+          ep.m(seen, A, a, map, dm, hf, i, nodes, eras, ne, ls, root, curs, hd, hs, hj, LAT.mirror(U32, A), LAT.mirror(V.Val, a), LAT.mirror(U32, map))

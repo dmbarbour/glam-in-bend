@@ -244,7 +244,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           minimality, and `emits_far` and `put_keeps` want the hash
           map's depth, `1 + depth_for(n << 1)`, below 32, which this
           gives for `n` at most `2^29`. `.compose` uses it. S.
-      - `cursor-laws.materializer.template.emit` — active — laws of
+      - `cursor-laws.materializer.template.emit` — built 2026-11-24 — laws of
         the write phase. Re-sliced 2026-11-24 after a test of the form
         its proofs take. A record holding the heap and the map is named
         once in a proof's terms, so lemmas chained as implications over
@@ -372,14 +372,46 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             The walk's marks (`fz.copied`) set bit 6 on controls only,
             outside `rk`'s bits, and the write phase reads a control's
             field and offset, not its form.
-        - `cursor-laws.materializer.template.emit.length` — planned —
-          `nodes` is `n` long, in index order: the length after the
+        - `cursor-laws.materializer.template.emit.length` — built
+          2026-11-24 — on the side branch `cursor-laws-length`,
+          `emits_len` (`glam/FREEZE_LAWS.bend`): the length after is the
+          list's plus the length before, the template given a type
+          parameter for its invariant's argument (`~X`, `Nat` here, `U32`
+          for the others) and entered at `emt_T`. Two mutants refuted: a
+          node read but not kept, a base never written. Which node each
+          index holds is not claimed: each is no eraser (`emits_nodes`),
+          which is all the kinds want. The step as planned: `nodes` is
+          `n` long, in index order: the length after the
           write phase is the list's plus the length before. Only the
           ladder shows it, and every kind conclusion at an index below
           `n` rests on it. The count changes at the node's step, so it
           enters the template at `emt_T`, the count as the invariant's
           second argument. Taken before `.positions`.
-        - `cursor-laws.materializer.template.emit.positions` — planned — the
+        - `cursor-laws.materializer.template.emit.positions` — built
+          2026-11-24 — on the side branch `cursor-laws-length`,
+          `emits_pos` (`glam/FREEZE_LAWS.bend`): the crossings' positions
+          stay distinct (`RG.srcs`), what `cxs_start` asks. Its premise
+          is the listed nodes' port positions distinct as one list
+          (`FM.ports`: `b + 0`, `b + 1`, `b + 2` per base), so its proof
+          has no word arithmetic, and `b + p` stays out of its text. That
+          is the encoding's nearest point: the references review puts a
+          port's reference at `b + p + 1` under statics at `00`.
+          - The template's argument moves from port to port (`~nx`). No
+            invariant at one fixed argument can tell two ports' pushes
+            apart.
+          - A port below 3 is split by an eliminator over `port3`
+            (`p3e`).
+
+          Two mutants refuted: a crossing at its node's base, and
+          positions from the nodes' indices colliding across two nodes.
+          Owners of the rest:
+          - from distinct aligned bases to distinct port positions, a
+            lemma on words: `.walk`;
+          - distinctness after `fz.tpl`'s reversal: `.compose`;
+          - `RG.lacks.all`, `RG.enough` (`cxs_start`'s) and `RG.far.off`
+            (`crossings_look`'s, the served cursor's key): the serve's.
+
+          The step as planned: the
           crossings' positions distinct, over distinct aligned bases.
           Stated from its consumer: which crossings or serve law reads
           `FzC`'s `src` and `far`, and what it needs. `src` is `b + p` on
