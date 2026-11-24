@@ -74,6 +74,51 @@ law copy_pend:
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   {RG.px.ok(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, s, I, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm), List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && (AD.full(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), d) && (AD.full(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), dm) && (RG.layout(List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), d) && RG.bases(List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)))))) == True{} : Bool}
 
+# LAW: the copy's root port, its node no hole at a port below 3 (SV.root.ok),
+# read as the materializer reads it (glam/serve.bend's rt.e: through the
+# map the copy leaves), has its link word off every word of the tracked
+# nodes after the copy (M, then the holes) and off the free list's head
+# (RG.po.all over no live node): the root's leave's premise on its port
+# (leave_pend's hpo), so that the root's laws are the copy's, the
+# crossings' and the leave's laws composed (cursor-laws.materializer.rootport).
+# Premises: copy_pend's, and the root's.
+# Record: copy-reduced-function-nets
+# Record: serve-premises-over-index
+# Record: cursors-indexed
+law copy_root_off:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +ts: List<&2, T.TNode>
+  for +ls: List<&2, T.TLink>
+  for +by: U32
+  for +ns: List<&2, U32>
+  for +s: U32
+  for +t: List<&2, U32>
+  for +cs: List<&2, R.FzC>
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for +M: List<&2, U32>
+  for +rn: U32
+  for +rp: U32
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for +hN: {RG.layout(List.append(&2, U32, M, ns), d) == True{} : Bool}
+  for +hB: {RG.bases(List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hp: {RG.px.ok(AD.view(U32, w), d, s, I, Nil{}, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for +hpa: {KMd.past(List.append(&2, U32, M, ns), d) == True{} : Bool}
+  for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  for +hLd: {RG.distinct(Con{s, t}) == True{} : Bool}
+  for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
+  for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
+  for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
+  {RG.po.all((Pair.snd(Array<U32>, U32, Array.get(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), rn)) + rp : U32), Nil{}, d, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) == True{} : Bool}
+
 # LAW: a serve away from the source's root, its copy then its crossings
 # (R.crossings, the holes joined to the cursors the index finds or made
 # cursors), keeps the pending placeholders' invariant over the index and

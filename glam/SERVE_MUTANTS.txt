@@ -129,7 +129,7 @@ nc = 0
 rn = 0
 rp = 0
 
-=== serve_map_unwritten serve_ring_exact serve_root_keeps
+=== serve_map_unwritten serve_ring_exact serve_root_keeps copy_root_off
 the copy's map left as it was, no node's reference put at its index:
 the root, read through it, then a stale entry, here word 18, so that the
 leave links the cursor's partner into 16's word 3, its home, and the
@@ -182,6 +182,24 @@ k = 7
 rn = 0
 rp = 0
 j = 45
+>>> witness copy_root_off
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 18)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = [36]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = Nil{}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+rn = 0
+rp = 0
 
 === serve_map_unwritten_crossed serve_ring_exact serve_root_keeps
 the same fault at an instance with a crossing, its witness holding with
