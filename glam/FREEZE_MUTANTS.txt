@@ -12,7 +12,10 @@
 # interface (word 28, the root), a static and a cursor. The read nodes':
 # a function node at 32, its port 0's word 7 (an eraser's code); and a
 # data node at 32 whose value is a free table entry (an error counted,
-# word 1 from 6 to 7) before a function node at 36.
+# word 1 from 6 to 7) before a function node at 36. The positions': a
+# function node whose three ports face cursors; and two, 68 (index 1)
+# with a cursor at port 0, 32 (index 0) with one at port 1, statics
+# beside.
 
 === crossing_at_next emits_counts
 a cursor's crossing made at the index after its placeholder's
@@ -414,6 +417,44 @@ i = 0
 nodes = []
 eras = []
 ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== cross_at_base emits_pos
+a crossing recorded at its node's base, not its port's position
+--- freeze.bend
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
++++
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, b, fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+>>> witness emits_pos
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, [0 : U32^7n], 32, 1)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== cross_at_index emits_pos
+a crossing's position taken from its node's index, colliding across nodes
+--- freeze.bend
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
++++
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (i + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+>>> witness emits_pos
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 3), 35, 3), 68, 1), 70, 3), 71, 3)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+i = 1
+nodes = []
+eras = []
+ne = 2
 ls = []
 root = T.TE{0, 0}
 curs = []

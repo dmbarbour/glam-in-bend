@@ -10,6 +10,7 @@ import ../spike/tpl.bend as T
 import ./ring.bend as RN
 import ./freeze.bend as F
 import ./freeze_model.bend as FM
+import ./ring_model.bend as RG
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the write phase's count (cursor-laws.materializer.template.emit.counts):
@@ -219,3 +220,34 @@ law emits_len:
   for +root: T.TEnd
   for +curs: List<&2, RN.FzC>
   {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}
+
+# LAW: the crossings' positions (cursor-laws.materializer.template.emit.positions):
+# writing the nodes reached (F.fz.emits) keeps the crossings' positions
+# distinct (RG.srcs), what cxs_start asks of a serve's crossings, given
+# the listed nodes' port positions distinct (FM.ports: b + 0, b + 1,
+# b + 2 for each base, as one list) and the crossings' so at the start,
+# none of them among those. Any heap, the map full at its depth. Not
+# claimed: that distinct aligned bases give distinct port positions (a
+# lemma on words, .walk's); distinctness after fz.tpl's reversal
+# (.compose's); the index's premises (RG.lacks.all, RG.enough) and
+# RG.far.off, which are the serve's.
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+# Record: hub-laws-reused
+law emits_pos:
+  for +seen: List<&2, U32>
+  for h: P.H
+  for map: Array<U32>
+  for +dm: Nat
+  for hf: {AD.full(U32, map, dm) == True{} : Bool}
+  for +i: U32
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +hd: {RG.distinct(FM.ports(seen)) == True{} : Bool}
+  for +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}
+  for +hj: {FM.disj(RG.srcs(curs), FM.ports(seen)) == True{} : Bool}
+  {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}
