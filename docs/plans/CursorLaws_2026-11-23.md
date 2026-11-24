@@ -554,7 +554,13 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         port below its arity;
       - the index's cursor found at `q` keyed `q`, so that `nc`, keyed
         at the position, is found there only if `q` is the position (the
-        index's laws).
+        index's laws);
+      - the position as node `j`'s port `p` (`(j << 2) + p`, a lemma on
+        words), and the served position a live node's port below its
+        arity (the ring's premises on a cursor's position, `RG.px.ok`).
+
+      The premise was measured on the materializer's heaps before it was
+      built on: zero failed audits (store run 347).
 
     L or more. `.loop`'s reshaping waits on it only where it restates
     the invariant.

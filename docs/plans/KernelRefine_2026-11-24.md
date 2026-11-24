@@ -32,6 +32,10 @@ kernel's own state, which no law has yet been stated over
   - `kernel-refine.audit` — planned — `kernel_audits_exact`:
     `KN.wired_ok` holds exactly when `W.wired` holds of the heap's
     abstraction. It is read-only, so it is the first bridge to try.
+    Its bridge to a model over the words' tree exists already
+    (`spike/WIRED_PROOF.bend`'s `b.go` and `wired_back`, built for
+    `wired_port`); what remains is the abstraction `KA` and `W.wired`'s
+    side.
   - `kernel-refine.probe` — planned — one generated rewrite, the
     smallest rule's, bridged to the model's step before the rest are
     costed. If the kernel's hot path must be reshaped for proofs, that
