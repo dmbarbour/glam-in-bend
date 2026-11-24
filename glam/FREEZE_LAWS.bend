@@ -104,3 +104,25 @@ law emits_far:
   for +hz: {FM.inv.f(eras, ne, curs, n0) == True{} : Bool}
   for +hj: {FM.lks.far(ls, eras, n0) == True{} : Bool}
   {FM.inv.j(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i), n0) == True{} : Bool}
+
+# LAW: the table's put (F.hm.put) keeps the map full at its depth and its
+# values at most n0, for a value at most n0 (cursor-laws.materializer.template.walk.vals):
+# what emits_far asks of the map (FM.vals.le), kept by each put of
+# hm.fill. The key goes to the even word of the slot the probe stops at,
+# the value to the odd word after it, so the keys never meet the bound.
+# The map full at a depth of one or more and below 32 (the view's law).
+# Not claimed: that a lookup finds what was put; that hm.new's map
+# starts so (it computes for each size).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law put_keeps:
+  for a: Array<U32>
+  for +b: U32
+  for +v: U32
+  for +e: Nat
+  for +n0: U32
+  for hf: {AD.full(U32, a, 1n+e) == True{} : Bool}
+  for +hd32: {Nat.is_lt(1n+e, 32n) == True{} : Bool}
+  for hv: {FM.vals.le(AD.view(U32, a), n0) == True{} : Bool}
+  for +hvn: {U32.is_le(v, n0) == True{} : Bool}
+  {(AD.full(U32, F.hm.put(a, b, v), 1n+e) && FM.vals.le(AD.view(U32, F.hm.put(a, b, v)), n0)) == True{} : Bool}

@@ -209,3 +209,37 @@ ne = 2
 ls = []
 root = T.TE{0, 0}
 curs = []
+
+=== lookup_reads_key emits_far
+the table's lookup, on a hit, reading the base it holds as the value
+--- freeze.bend
+      hm.at.v(Array.get(U32, a, ((i << 1n : U32) + 1 : U32)), i)
++++
+      hm.at.v(Array.get(U32, a, (i << 1n : U32)), i)
+>>> witness emits_far
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 69), 34, 3), 35, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+e = T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== put_swapped put_keeps
+the table's put writing the base at the slot's odd word and the value
+at its even one
+--- freeze.bend
+      Array.set(U32, Array.set(U32, a, (i << 1n : U32), b), ((i << 1n : U32) + 1 : U32), v)
++++
+      Array.set(U32, Array.set(U32, a, ((i << 1n : U32) + 1 : U32), b), (i << 1n : U32), v)
+>>> witness put_keeps
+a = F.hm.new(2)
+b = 68
+v = 2
+e = T.depth_for(31n, 4, 0n)
+n0 = 2

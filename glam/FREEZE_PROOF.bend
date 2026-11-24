@@ -1424,3 +1424,75 @@ def Laws.emits_far(seen, h, map, e, hf, hd32, n0, hv, i, nodes, eras, ne, ls, ro
       match w:
         case KM.MG{A}:
           ej.m(seen, A, a, map, e, hf, hd32, n0, hv, i, nodes, eras, ne, ls, root, curs, hz, hj, LAT.mirror(U32, A), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# --- the table's put (put_keeps, cursor-laws.materializer.template.walk.vals)
+
+def p3.i(+p: P3) -> U32:
+  match p:
+    case P3{+i, +done, +v}:
+      i
+
+def even_hd(+x: U32, +h: {hd(x) == False{} : Bool}) -> {odd(U32.to_nat(x)) == False{} : Bool}:
+  match x:
+    case U32{w}:
+      match w:
+        case WCon{+b, +t}:
+          match b:
+            case True{}:
+              Empty.absurd({odd(U32.to_nat(U32{WCon{True{}, t}})) == False{} : Bool}, MB.true_ne_false()(h))
+            case False{}:
+              %Equal.sym(Nat, Nat.double(Word.to_nat(31n, t)), Nat.mul(2n, Word.to_nat(31n, t)), MN.double_eq_two_mul(Word.to_nat(31n, t))) : {Nat.is_eq(Nat.mod(_, 2n), 1n) == False{} : Bool}
+              %Equal.sym(Nat, Nat.mod(Nat.add(0n, Nat.mul(2n, Word.to_nat(31n, t))), 2n), Nat.mod(0n, 2n), MN.add_mul_mod_self_left(0n, 2n, Word.to_nat(31n, t))) : {Nat.is_eq(_, 1n) == False{} : Bool}
+              {==}
+
+def put_p_eq(+tm: LAT.Tree<U32>, +p: P3, +b: U32, +v: U32) ->
+  {F.hm.put.p(mk3(LAT.fromT(U32, tm), p), b, v) == Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(p) << 1n : U32), b), ((p3.i(p) << 1n : U32) + 1 : U32), v) : Array<U32>}:
+  match p:
+    case P3{+i, +done, +w}:
+      {==}
+
+# the put on a mirrored map: its two words written where the probe stops
+def put_eq(+tm: LAT.Tree<U32>, +e: Nat, +hf: {AD.full(U32, LAT.fromT(U32, tm), 1n+e) == True{} : Bool}, +b: U32, +v: U32) ->
+  {F.hm.put(LAT.fromT(U32, tm), b, v) == Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v) : Array<U32>}:
+  %Equal.sym(Array<U32> & U32, Array.size(U32, LAT.fromT(U32, tm)), (LAT.fromT(U32, tm), U32.shln(1, 1n+e)), LA.size_pair(U32, LAT.fromT(U32, tm), 1n+e, hf)) :
+    {F.hm.put.p(F.hm.at(F.hm.mask(_), b), b, v) == Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v) : Array<U32>}
+  %Equal.sym(F.Hp, F.hm.at.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), b, mask.d(1n+e), mk3(LAT.fromT(U32, tm), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})),
+      mk3(LAT.fromT(U32, tm), pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})), go_eq(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) :
+    {F.hm.put.p(_, b, v) == Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v) : Array<U32>}
+  put_p_eq(tm, pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0}), b, v)
+
+def put_vals.k(+tm: LAT.Tree<U32>, +e: Nat, +n0: U32, +b: U32, +v: U32, +i: U32, +hf: {AD.full(U32, LAT.fromT(U32, tm), 1n+e) == True{} : Bool}, +hd32: {Nat.is_lt(1n+e, 32n) == True{} : Bool},
+  +hv: {FM.vals.le(AD.view(U32, LAT.fromT(U32, tm)), n0) == True{} : Bool}, +hvn: {U32.is_le(v, n0) == True{} : Bool}) ->
+  {FM.vals.le(AD.view(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (i << 1n : U32), b), ((i << 1n : U32) + 1 : U32), v)), n0) == True{} : Bool}:
+  +hf1 = LA.set_full(U32, LAT.fromT(U32, tm), 1n+e, (i << 1n : U32), b, hf)
+  +hev = Equal.trans(Bool, odd(AD.slot((i << 1n : U32), 1n+e)), odd(U32.to_nat((i << 1n : U32))), False{}, odd_slot((i << 1n : U32), e), even_hd((i << 1n : U32), hd_key(i)))
+  %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (i << 1n : U32), b), ((i << 1n : U32) + 1 : U32), v)),
+      List.set(&2, U32, AD.view(U32, Array.set(U32, LAT.fromT(U32, tm), (i << 1n : U32), b)), AD.slot(((i << 1n : U32) + 1 : U32), 1n+e), v),
+      LA.set_view(U32, Array.set(U32, LAT.fromT(U32, tm), (i << 1n : U32), b), 1n+e, ((i << 1n : U32) + 1 : U32), v, hf1, hd32)) :
+    {FM.vals.le(_, n0) == True{} : Bool}
+  %Equal.sym(List<&2, U32>, AD.view(U32, Array.set(U32, LAT.fromT(U32, tm), (i << 1n : U32), b)), List.set(&2, U32, AD.view(U32, LAT.fromT(U32, tm)), AD.slot((i << 1n : U32), 1n+e), b),
+      LA.set_view(U32, LAT.fromT(U32, tm), 1n+e, (i << 1n : U32), b, hf, hd32)) :
+    {FM.vals.le(List.set(&2, U32, _, AD.slot(((i << 1n : U32) + 1 : U32), 1n+e), v), n0) == True{} : Bool}
+  set_val(List.set(&2, U32, AD.view(U32, LAT.fromT(U32, tm)), AD.slot((i << 1n : U32), 1n+e), b), AD.slot(((i << 1n : U32) + 1 : U32), 1n+e), v, n0,
+    set_even(AD.view(U32, LAT.fromT(U32, tm)), AD.slot((i << 1n : U32), 1n+e), b, n0, hv, hev), hvn)
+
+def put.k(+tm: LAT.Tree<U32>, +b: U32, +v: U32, +e: Nat, +n0: U32, +hf: {AD.full(U32, LAT.fromT(U32, tm), 1n+e) == True{} : Bool}, +hd32: {Nat.is_lt(1n+e, 32n) == True{} : Bool},
+  +hv: {FM.vals.le(AD.view(U32, LAT.fromT(U32, tm)), n0) == True{} : Bool}, +hvn: {U32.is_le(v, n0) == True{} : Bool}) ->
+  {(AD.full(U32, F.hm.put(LAT.fromT(U32, tm), b, v), 1n+e) && FM.vals.le(AD.view(U32, F.hm.put(LAT.fromT(U32, tm), b, v)), n0)) == True{} : Bool}:
+  %Equal.sym(Array<U32>, F.hm.put(LAT.fromT(U32, tm), b, v), Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v), put_eq(tm, e, hf, b, v)) :
+    {(AD.full(U32, _, 1n+e) && FM.vals.le(AD.view(U32, _), n0)) == True{} : Bool}
+  MB.and_eq_true(AD.full(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v), 1n+e), FM.vals.le(AD.view(U32, Array.set(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v)), n0),
+    LA.set_full(U32, Array.set(U32, LAT.fromT(U32, tm), (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b), 1n+e, ((p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32) + 1 : U32), v, LA.set_full(U32, LAT.fromT(U32, tm), 1n+e, (p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})) << 1n : U32), b, hf)),
+    put_vals.k(tm, e, n0, b, v, p3.i(pr.go(U32.to_nat((mask.d(1n+e) + 1 : U32)), tm, b, mask.d(1n+e), P3{(F.fz.at(b) .&. mask.d(1n+e) : U32), False{}, 0})), hf, hd32, hv, hvn))
+
+def put.m(-a: Array<U32>, +b: U32, +v: U32, +e: Nat, +n0: U32, hf: {AD.full(U32, a, 1n+e) == True{} : Bool}, +hd32: {Nat.is_lt(1n+e, 32n) == True{} : Bool},
+  hv: {FM.vals.le(AD.view(U32, a), n0) == True{} : Bool}, +hvn: {U32.is_le(v, n0) == True{} : Bool}, m: LAT.Mirror(U32, a)) ->
+  {(AD.full(U32, F.hm.put(a, b, v), 1n+e) && FM.vals.le(AD.view(U32, F.hm.put(a, b, v)), n0)) == True{} : Bool}:
+  (+tm, +em) = m
+  +hft = LAP.full_t(U32, a, tm, 1n+e, em, hf)
+  +hvt = LAB.subst(Array<U32>, x => {FM.vals.le(AD.view(U32, x), n0) == True{} : Bool}, a, LAT.fromT(U32, tm), Equal.sym(Array<U32>, LAT.fromT(U32, tm), a, em), hv)
+  %em : {(AD.full(U32, F.hm.put(_, b, v), 1n+e) && FM.vals.le(AD.view(U32, F.hm.put(_, b, v)), n0)) == True{} : Bool}
+  put.k(tm, b, v, e, n0, hft, hd32, hvt, hvn)
+
+def Laws.put_keeps(a, b, v, e, n0, hf, hd32, hv, hvn):
+  put.m(a, b, v, e, n0, hf, hd32, hv, hvn, LAT.mirror(U32, a))
