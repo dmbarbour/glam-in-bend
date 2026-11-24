@@ -560,7 +560,37 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         arity (the ring's premises on a cursor's position, `RG.px.ok`).
 
       The premise was measured on the materializer's heaps before it was
-      built on: zero failed audits (store run 347).
+      built on: zero failed audits (store run 347). Sliced 2026-11-24:
+      - `cursor-laws.noself.frontier.faces` — built 2026-11-24 — on the
+        side branch `cursor-laws-noself-front`, `front_faces`
+        (`glam/POSITION_LAWS.bend`). The loop's step walks `pd.q`'s
+        branches to each end and settles it there, the induction a
+        function of the next heap. `pd.ended.k` was reshaped to test the
+        walk's state, equal on every state tried, the serve family
+        unchanged (store run 348). Two mutants are refuted by
+        `two_lifts`, whose climb reaches the interface: the climb's
+        frontier read one word past, and one recorded at its node's
+        base. A mutant moving `pd.peer` itself survives, and rightly:
+        it moves every read of the position, so the witness never
+        reaches a frontier. As planned: positioned
+        demand's frontier faces the position: a `PdFront`'s port is the
+        position's link word in the frontier's own heap. It needs no
+        premise, as both of `PdFront`'s makers read it there (a climb
+        that hits, a walk ending in state 7). `pd.ended.k` matches the
+        walk's state on `U32` literals, stuck in a proof's default arm,
+        so it is reshaped to test the state, measured.
+      - `cursor-laws.noself.frontier.apart` — planned — with
+        `wired_port`, the frontier's port is not the position itself.
+        Its premises are on the frontier's heap: wired, and the position
+        a live node's port below its arity. The second is a premise of
+        its own: a finished node is untouched by the walks
+        (`copied-nodes-untouched`), which the kernel's refinement owes
+        too.
+      - `cursor-laws.noself.frontier.cursor` — planned — the index's
+        cursor found at the frontier's port is keyed there, so the
+        served cursor is found there only if that port is its
+        position. Then `sv.front.c`'s check never fires, under the
+        premises.
 
     L or more. `.loop`'s reshaping waits on it only where it restates
     the invariant.

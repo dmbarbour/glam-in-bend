@@ -1,0 +1,36 @@
+# Mutations of positioned demand (glam/position.bend), each naming the
+# laws of glam/POSITION_LAWS.bend it should fail (docs/Proving.md; the
+# gate runs scripts/one_law.py --mutants on this file). The witness:
+# `\x -> L1 (L2 x)` (test_position.bend's two_lifts), demanded at its
+# function's result (33), the climb reaching the interface, the frontier
+# at port 37, an auxiliary port, with no walk.
+
+=== frontier_read_past front_faces
+the climb's frontier read one word past the position's link word
+--- position.bend
+          PdEnd{pd.peer.r(pd.peer(h, pos), acc)}
++++
+          PdEnd{pd.peer.r(P.rd(h, (pos + 2 : U32)), acc)}
+>>> witness front_faces
+h = KN.load(T.Tpl{[T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KLift{}, V.PLift{1, True{}, 1}}, T.TN{R.KLift{}, V.PLift{5, True{}, 1}}],
+    [T.TL{T.TE{0, 1}, T.TE{1, 1}}, T.TL{T.TE{1, 0}, T.TE{2, 1}}, T.TL{T.TE{2, 0}, T.TE{0, 2}}], T.TE{0, 0}, 3})
+pos = 33
+g = 16n
+f = 0n
+
+=== frontier_at_base front_faces
+an auxiliary frontier recorded at its node's base, not its port
+--- position.bend
+      pd.f.c(P.rd(h, P.base(q)), q, n)
+    case False{}:
+      PdFront{h, q, n}
++++
+      pd.f.c(P.rd(h, P.base(q)), q, n)
+    case False{}:
+      PdFront{h, P.base(q), n}
+>>> witness front_faces
+h = KN.load(T.Tpl{[T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KLift{}, V.PLift{1, True{}, 1}}, T.TN{R.KLift{}, V.PLift{5, True{}, 1}}],
+    [T.TL{T.TE{0, 1}, T.TE{1, 1}}, T.TL{T.TE{1, 0}, T.TE{2, 1}}, T.TL{T.TE{2, 0}, T.TE{0, 2}}], T.TE{0, 0}, 3})
+pos = 33
+g = 16n
+f = 0n
