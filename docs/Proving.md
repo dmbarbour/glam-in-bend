@@ -410,6 +410,21 @@ it alone taught. Add to this file what a new proof teaches.
   `st_off`, `glam/PROOF.bend`'s "Alignment". `Nat.cmp` matches both
   arguments, so an absurd case `1n+p < 1n` matches `p` down to a
   constructor before the comparison computes.
+- **A record holding a heap is chained by equations, not
+  implications.** A step lemma `inv(z) -> inv(step(z))` over a record
+  with a heap or an array in it chains only by naming the record twice
+  (`step(z)` and the lemma's own `z`). That is refused three ways: as
+  "consumed more than once"; `+z` because its type is not `Data`; and
+  `-z` because an erased scrutinee "matches only in a dead region".
+  State each step as an equation instead, the heap and the map mirrored
+  (`P.H{KM.MG{fromT(t0)}, fromT(ta)}`, `fromT(tm)`, the trees `Data`):
+  `step(mk(H, M, f)) == mk(H', M, model(f, ...))`, the result in the
+  same form, so that steps chain by rewriting. Each read hands its
+  array back (`get_pair`, `size_pair` for a probe's size), and a write
+  keeps the mirror (`set_tree_eq`, lawful-arrays' `proof_index.bend`).
+  A law called from a proof needs its filling even so: "an unfilled law
+  is a dead claim" (`cursor-laws.materializer.template.emit`,
+  2026-11-24).
 - **Keep a big bound on words, and bound from above.** A premise
   `U32.is_le(n, 2147483648)` is computed on words, as is a power doubled
   thirty-one times (`dbl`), where `2^31` as a `Nat` would be expanded in

@@ -1,0 +1,66 @@
+# Mutations of freeze's write phase (glam/freeze.bend), each naming the
+# laws of glam/FREEZE_LAWS.bend it should fail (docs/Proving.md; the gate
+# runs scripts/one_law.py --mutants on this file). The witnesses: one
+# node of kind 1 (a function, three ports) at base 32, its ports' words
+# 0, so that each port faces a node not in the map, a cursor; with its
+# port 0's word 3, a static.
+
+=== crossing_at_next emits_counts
+a cursor's crossing made at the index after its placeholder's
+--- freeze.bend
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
++++
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{(ne + 1 : U32), (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+>>> witness emits_counts
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, [0 : U32^7n], 32, 1)}, [V.VNum{0} : V.Val^0n]}
+map = [0 : U32^1n]
+dm = 1n
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== hole_as_eraser emits_counts
+a cursor's placeholder written as a static's eraser
+--- freeze.bend
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
++++
+      FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+>>> witness emits_counts
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, [0 : U32^7n], 32, 1)}, [V.VNum{0} : V.Val^0n]}
+map = [0 : U32^1n]
+dm = 1n
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== static_uncounted emits_counts
+a static's eraser pushed without the next index moving
+--- freeze.bend
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}
++++
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, ne, Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}
+>>> witness emits_counts
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 3)}, [V.VNum{0} : V.Val^0n]}
+map = [0 : U32^1n]
+dm = 1n
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
