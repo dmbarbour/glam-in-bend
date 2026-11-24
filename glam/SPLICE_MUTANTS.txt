@@ -205,3 +205,13 @@ d = 6n
 dm = 1n
 ls = [T.TL{T.TE{0, 0}, T.TE{0, 1}}]
 j = 38
+
+=== depth_one_short map_depth
+the map's search starting from twice its first power: a depth one short
+of the size, three nodes at depth 1
+--- ../spike/tpl.bend
+  depth_for.go(f, U32.is_le(n, U32.from_nat(Nat.pow(2n, d))), n, d, U32.from_nat(Nat.pow(2n, d)))
++++
+  depth_for.go(f, U32.is_le(n, U32.from_nat(Nat.pow(2n, 1n+d))), n, d, U32.from_nat(Nat.pow(2n, 1n+d)))
+>>> witness map_depth
+n = 3

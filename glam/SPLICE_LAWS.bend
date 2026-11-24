@@ -195,3 +195,17 @@ law splice_free:
   for hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
   for ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   {KMd.chain(F, AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, KMd.word(AD.view(U32, KMd.words(SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))))), d, P.at_fh())) == True{} : Bool}
+
+# LAW: the map a splice and a freeze make for a template of n nodes
+# ([0 : U32^T.depth_for(31n, n, 0n)], glam/materialize.bend's mz.fz.t)
+# has a depth below 32, is full at it, and holds n indices apart, n at
+# most 2^depth, for n up to 2^31: what the serve's laws ask of the map
+# (hfm, hdm) and of a template's indices in its slots
+# (cursor-laws.materializer.template.depth). Not claimed: that the depth
+# is the least.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law map_depth:
+  for +n: U32
+  for hn: {U32.is_le(n, 2147483648) == True{} : Bool}
+  {Nat.is_lt(T.depth_for(31n, n, 0n), 32n) && (Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))) && AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n))) == True{} : Bool}
