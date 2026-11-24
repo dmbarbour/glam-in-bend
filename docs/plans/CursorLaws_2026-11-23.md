@@ -502,7 +502,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`mz.fz.t` makes `[0 : U32^T.depth_for(31n, size, 0n)]` and passes
       `k` as the offset) under the laws, which wants a law of
       `T.depth_for`: the map full at a depth below 32.
-  - `cursor-laws.noself` — planned — a kernel law: no port of a net
+  - `cursor-laws.noself` — built 2026-11-24 — its model and the
+    frontier's laws, its kernel half moved to `kernel-refine`. As
+    planned: a kernel law: no port of a net
     faces itself, kept by every rewrite (the maintainer, 2026-11-24).
     The rules' half is stated (`rules_no_self_links`, `spike/LAWS.bend`:
     no rule links two ports of one of its new nodes); the net's half is
@@ -544,7 +546,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `kernel-refine.rewrite`.
     - `cursor-laws.noself.copy` — dropped 2026-11-24 — to
       `kernel-refine.copy`.
-    - `cursor-laws.noself.frontier` — planned — the frontier's law under
+    - `cursor-laws.noself.frontier` — built 2026-11-24 — in three
+      slices, below. As planned: the frontier's law under
       the premise: the served position's port faces no port that is
       itself, so the cursor found there is never the served one. The
       check stays until `kernel-refine.discharge`. Its parts:
