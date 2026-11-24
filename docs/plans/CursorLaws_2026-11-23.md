@@ -207,6 +207,34 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `freeze_finished` builds the empty one, and only tests call it.
       The laws' "Not claimed: that freeze builds such templates" stays
       true; these laws would claim it.
+      Partitioned 2026-11-24, after reading freeze's two phases: a walk
+      (`fz.reach`, its map an open-addressed table, `hm.*`) collects
+      the nodes reached; a write phase (`fz.emits`, `fz.tpl`) gives the
+      finished nodes indices below `n`, each placeholder and eraser the
+      next index from `n` up, each crossing a link from its
+      placeholder's port 0 to the finished node's port, and the root a
+      finished node's port. So most obligations hold by construction,
+      on two facts from outside the write phase: the walk's nodes
+      distinct, and the map's depth leaving the indices in distinct
+      slots.
+      - `cursor-laws.materializer.template.depth` — planned — a law of
+        `T.depth_for`: the depth below 32, the size at most `2^depth`
+        for a size up to `2^31`, the map `[0 : U32^depth]` full. Shared
+        with `.fresh`. S to M (2^32 abstracted, as `add_mod4.k` does).
+      - `cursor-laws.materializer.template.emit` — planned — laws of the
+        write phase, on a list of distinct node bases: the holes at
+        distinct indices from `n`, each named by its one link at its
+        port 0 from a finished node; the root a finished node's port
+        below 3; the crossings' positions distinct (distinct node and
+        port pairs). Stated over indices, then over slots at the depth
+        `.depth` gives. M.
+      - `cursor-laws.materializer.template.walk` — planned — the walk's
+        list of nodes distinct and each reached once, through the
+        table's invariants. L, the hardest of the four.
+      - `cursor-laws.materializer.template.compose` — planned —
+        `SM.tpl.ok`, `SV.copy.ok`, `SV.root.ok` and distinct positions
+        for `freeze_tree`'s output, the three composed; the serve's
+        laws' "Not claimed" then narrowed. M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
