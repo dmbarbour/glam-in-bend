@@ -170,6 +170,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`rpom`, `rpop`). A law of the copy giving the latter, beside
       `copy_pend`, would leave the root's laws `serve_pend`,
       `crossings_look` and `leave_pend` alone.
+    - `cursor-laws.materializer.rootport` — planned — a law of the copy
+      beside `copy_pend`: the copy's root port, read through the map the
+      copy leaves, has its link word off every tracked node's words and
+      off the free list's head (`RG.po.all` over `M` and the holes),
+      where `SV.root.ok` holds. With it, the root's laws are proved from
+      `serve_pend`, `crossings_look` and `leave_pend` alone, the copy's
+      steps (`cpi.core`) and the port's lemmas (`rpom`, `rpop`) no
+      longer internal to them. To try; S to M.
     - `cursor-laws.materializer.template` — planned — freeze's
       obligations to the serve's laws, as laws of freeze: a
       materialization's template meets `SM.tpl.ok`, `SV.copy.ok` and
