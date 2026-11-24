@@ -170,11 +170,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`rpom`, `rpop`). A law of the copy giving the latter, beside
       `copy_pend`, would leave the root's laws `serve_pend`,
       `crossings_look` and `leave_pend` alone.
-    - `cursor-laws.materializer.template` — planned — the template
-      freeze builds when nothing has finished (F3): how the
-      materializer serves it, and the laws widened to it where the
-      copy serves it. With it, a law of freeze: a template's crossings
-      at distinct positions (from `.dup`).
+    - `cursor-laws.materializer.template` — planned — freeze's
+      obligations to the serve's laws, as laws of freeze: a
+      materialization's template meets `SM.tpl.ok`, `SV.copy.ok` and
+      `SV.root.ok`, its crossings at distinct positions (from `.dup`).
+      F3 was read out 2026-11-24, and needs no widening. The template
+      freeze builds when nothing has finished is never served by the
+      copy: the materializer freezes a tree only at a node positioned
+      demand found finished (`PdValue`) or a climb reached
+      (`glam/materialize.bend`, `materialize`'s two calls), so that a
+      materialization's template holds its root at least. Only
+      `freeze_finished` builds the empty one, and only tests call it.
+      The laws' "Not claimed: that freeze builds such templates" stays
+      true; these laws would claim it.
     - `cursor-laws.materializer.frontier` — planned — a law that the
       frontier's join never meets the served cursor
       (`cells-freeze.nested.host.join.self`), replacing the check if
