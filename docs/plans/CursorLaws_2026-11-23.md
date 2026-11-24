@@ -615,7 +615,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         - on the frontier's heap, the kernel's (`kernel-refine`): wired,
           and the position a live node's port below its arity, no
           static. The interface is node 7's port 0, so a serve at the
-          root is covered;
+          root is covered: on `two_lifts` its header is kind 8, of
+          arity 1, under a capacity of 128, and the audit passes, so the
+          premises hold together there
+          (`results/index_bits/apart/ROOT.bend`);
         - on the host: the index realized on its invariant, and the
           served cursor's word 2 the position, as the serve reads it.
         Owed: on the one-net path, the walks keeping the index and the
