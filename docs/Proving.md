@@ -438,7 +438,15 @@ it alone taught. Add to this file what a new proof teaches.
   parameter (`~X: Data`) lets an instance pick its invariant's argument
   (a `Nat` count for `emits_len`), and an invariant that changes at one
   step enters the template below it, at the level that step's lemma
-  feeds (`emt_T`, the count one more). A proof
+  feeds (`emt_T`, the count one more). An invariant kept as
+  `I(f, n0) -> I(step(f), n0)` at one fixed argument is closed under
+  repeating a step. So nothing such can say that two ports' pushes
+  differ (the crossings' positions): the argument has to move between
+  ports, by a parameter `~nx(n0, p)` that each port advances to
+  `p + 1`. The identity serves an invariant no port moves, its leaves
+  standing by conversion. A count of ports done is matched as the ladder
+  matches its arity (`pd`), since `U32.from_nat(a)` stays symbolic for a
+  "three or more" case. A proof
   file's plain check is far cheaper than its verdict, 3.6 s against
   35 s there: iterate with the plain check.
 - **Keep a frame on the state as it is, not against where it began.**
