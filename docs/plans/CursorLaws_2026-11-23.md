@@ -546,6 +546,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
 
     L or more. `.loop`'s reshaping waits on it only where it restates
     the invariant.
+
+    Found 2026-11-24, reading the consumers and what exists:
+    - **What the frontier needs.** `PdFront`'s `q` is the port the
+      served position faces (`position.bend`'s `pd.peer`). So the check
+      fires exactly when the served position's port faces itself: no
+      port facing itself in the source, kept through the walks there.
+    - **What the walk needs.** The finished walk enters a node only
+      through the one port facing its principal. With two-way links
+      only one port can face it, so its list is distinct.
+    - **The model's half exists.** `spike/wiring.bend`'s `W.wired`
+      (each live port referenced exactly once, so no self-link) is kept
+      by every rewrite of the rule table (`rewrite_wired`,
+      `rules_keep_wired_in`).
+    - **The heap's half is audited, not proved.** `KN.wired_ok` checks
+      two-way links and no self-link at run time, and the library runs
+      it at the end of every case.
+    - **The bridge is the HeapModel plan's draft refinement**
+      (`kernel_rewrite_refines`, `kernel_audits_exact`, through an
+      abstraction `KA`), which `heap-laws-align.statics` (tentative)
+      finds cannot hold as drafted. The model places an eraser as a node
+      where the kernel makes it static, and the reserve breaks `FL.ok`'s
+      one list.
+
+    So `noself`'s kernel half is that refinement, a question of scope
+    for the maintainer. `interaction_net`'s construction refusing a port
+    wired twice or never (the maintainer, 2026-11-24) is the base case
+    at loading.
   - `cursor-laws.proofs` — planned — the proofs reviewed and
     refactored, the laws unchanged (the maintainer, 2026-11-24). Taken
     after `.noself`, before `.loop`.
