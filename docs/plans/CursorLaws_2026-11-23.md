@@ -593,7 +593,31 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         its own: a finished node is untouched by the walks
         (`copied-nodes-untouched`), which the kernel's refinement owes
         too.
-      - `cursor-laws.noself.frontier.cursor` — planned — the index's
+      - `cursor-laws.noself.frontier.cursor` — built 2026-11-24 — on
+        the side branch `cursor-laws-noself-apart`, with `.apart`:
+        `found_apart` (`glam/INDEX_LAWS.bend`: the cursor a realized
+        index finds at a key is no cursor whose word 2 holds another),
+        and `front_joins`, `front_joins1` (`glam/MATERIALIZE_LAWS.bend`,
+        new): a serve whose positioned demand ends at the frontier, the
+        index finding a cursor at its port, joins it to the served one,
+        on the two-heap path and the one-net path. `front_faces`,
+        `front_apart`, `found_apart` and `find_tree` composed as laws.
+        The premises:
+        - on the frontier's heap, the kernel's (`kernel-refine`): wired,
+          and the position a live node's port below its arity, no
+          static. The interface is node 7's port 0, so a serve at the
+          root is covered;
+        - on the host: the index realized on its invariant, and the
+          served cursor's word 2 the position, as the serve reads it.
+        Owed: on the one-net path, the walks keeping the index and the
+        served cursor's word 2 (the host is the source there), for
+        `.loop`. Not claimed: the frontier's port holding no cursor (the
+        climb). The check stays, its comment pointing at the law, until
+        `kernel-refine.discharge`. Mutants: the find keyed at the
+        position, and the check comparing the found cursor with itself,
+        on each path; a leaf's key unread, for `found_apart`. All are
+        caught by the proofs failing; no witness, as a realized index in
+        a heap is costly to build. As planned: the index's
         cursor found at the frontier's port is keyed there, so the
         served cursor is found there only if that port is its
         position. Then `sv.front.c`'s check never fires, under the

@@ -5632,3 +5632,31 @@ def Laws.look_del_other(I, s, x, kx, k, d, hi, hl, hx, hne):
 
 def Laws.look_put_other(I, x, src, b, k, hi, ha, hne):
   look_put_other.k(I, x, src, b, k, hi, ha, hne)
+
+# The cursor found at a key is no cursor keyed elsewhere (found_apart;
+# cursor-laws.noself.frontier.cursor)
+
+# the cursor an index finds holds the key in its word 2
+def ix_look_key(I: IM.Ix, +v: List<&2, U32>, +d: Nat, +s: U32, +k: U32, +x: U32, +hr: {IM.ix.real(v, d, s, I) == True{} : Bool},
+  +hx: {IM.ix.look(I, k) == Some{x} : Maybe<&2, U32>}) -> {KMd.word(v, d, (x + 2 : U32)) == k : U32}:
+  match I:
+    case IM.Ept{}:
+      Empty.absurd({KMd.word(v, d, (x + 2 : U32)) == k : U32}, MB.false_ne_true()(Equal.cong(Maybe<&2, U32>, Bool, m => is_some(m), None{}, Some{x}, hx)))
+    case IM.Has{+t}:
+      look_key(t, v, d, KMd.word(v, d, (s + 3 : U32)), s, k, x,
+        and_r(Bool.not(U32.is_eq(KMd.word(v, d, (s + 3 : U32)), s)), IM.tr.real(v, d, t, KMd.word(v, d, (s + 3 : U32)), s), hr), hx)
+
+def fapart.k(+e: Bool, +c: U32, +nc: U32, +q: U32, +pos: U32, +v: List<&2, U32>, +d: Nat, +he: {U32.is_eq(c, nc) == e : Bool},
+  +hq: {KMd.word(v, d, (c + 2 : U32)) == q : U32}, +hn: {KMd.word(v, d, (nc + 2 : U32)) == pos : U32}, +hne: {U32.is_eq(q, pos) == False{} : Bool}) -> {e == False{} : Bool}:
+  match e:
+    case True{}:
+      +ec = MS.u32_eq_of_is_eq(c, nc, he)
+      +hq2 = ME.subst(U32, z => {KMd.word(v, d, (z + 2 : U32)) == q : U32}, c, nc, ec, hq)
+      +eqp = Equal.trans(U32, q, KMd.word(v, d, (nc + 2 : U32)), pos, Equal.sym(U32, KMd.word(v, d, (nc + 2 : U32)), q, hq2), hn)
+      +hpp = ME.subst(U32, z => {U32.is_eq(z, pos) == False{} : Bool}, q, pos, eqp, hne)
+      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(Equal.trans(Bool, False{}, U32.is_eq(pos, pos), True{}, Equal.sym(Bool, U32.is_eq(pos, pos), False{}, hpp), is_eq_self(pos))))
+    case False{}:
+      {==}
+
+def Laws.found_apart(v, d, s, I, q, pos, c, nc, hr, hq, hn, hne):
+  fapart.k(U32.is_eq(c, nc), c, nc, q, pos, v, d, {==}, ix_look_key(I, v, d, s, q, c, hr, hq), hn, hne)
