@@ -240,3 +240,9 @@ def inv.n(z: F.FzE) -> Bool:
   match z:
     case F.FzE{h, map, +nodes, eras, +ne, ls, root, curs}:
       no_era(nodes)
+
+# The nodes read back (cursor-laws.materializer.template.emit.length)
+def nodes.of(z: F.FzE) -> List<&2, T.TNode>:
+  match z:
+    case F.FzE{h, map, nodes, eras, +ne, ls, root, curs}:
+      nodes

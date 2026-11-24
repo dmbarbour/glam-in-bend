@@ -195,3 +195,27 @@ law emits_nodes:
   for +curs: List<&2, RN.FzC>
   for +hn: {FM.no_era(nodes) == True{} : Bool}
   {FM.inv.n(F.fz.emits(seen, F.FzE{P.H{KM.MG{w}, a}, map, nodes, eras, ne, ls, root, curs}, i)) == True{} : Bool}
+
+# LAW: the nodes read back (cursor-laws.materializer.template.emit.length):
+# writing the nodes reached (F.fz.emits) adds one node read back for each
+# base listed, so that starting from none, nodes is as long as the list:
+# n, the template's first n indices, when the walk lists n bases. Any
+# heap, the map full at its depth. Not claimed: that the walk lists n
+# bases (.walk's); which node each index holds (each is no eraser,
+# emits_nodes, which is what the kinds want).
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law emits_len:
+  for +seen: List<&2, U32>
+  for h: P.H
+  for map: Array<U32>
+  for +dm: Nat
+  for hf: {AD.full(U32, map, dm) == True{} : Bool}
+  for +i: U32
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  {List.length(&2, T.TNode, FM.nodes.of(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i))) == Nat.add(List.length(&2, U32, seen), List.length(&2, T.TNode, nodes)) : Nat}

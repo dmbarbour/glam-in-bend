@@ -372,8 +372,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             The walk's marks (`fz.copied`) set bit 6 on controls only,
             outside `rk`'s bits, and the write phase reads a control's
             field and offset, not its form.
-        - `cursor-laws.materializer.template.emit.length` — planned —
-          `nodes` is `n` long, in index order: the length after the
+        - `cursor-laws.materializer.template.emit.length` — built
+          2026-11-24 — on the side branch `cursor-laws-length`,
+          `emits_len` (`glam/FREEZE_LAWS.bend`): the length after is the
+          list's plus the length before, the template given a type
+          parameter for its invariant's argument (`~X`, `Nat` here, `U32`
+          for the others) and entered at `emt_T`. Two mutants refuted: a
+          node read but not kept, a base never written. Which node each
+          index holds is not claimed: each is no eraser (`emits_nodes`),
+          which is all the kinds want. The step as planned: `nodes` is
+          `n` long, in index order: the length after the
           write phase is the list's plus the length before. Only the
           ladder shows it, and every kind conclusion at an index below
           `n` rests on it. The count changes at the node's step, so it

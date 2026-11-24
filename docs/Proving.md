@@ -434,7 +434,11 @@ it alone taught. Add to this file what a new proof teaches.
     (`~l_root`, not `~root`, beside `Fl{..., +root, ...}`).
 
   `--verdict` accepts templates, and `scripts/one_law.py`'s cut
-  follows `~` references (`em_T`, `glam/FREEZE_PROOF.bend`). A proof
+  follows `~` references (`em_T`, `glam/FREEZE_PROOF.bend`). A type
+  parameter (`~X: Data`) lets an instance pick its invariant's argument
+  (a `Nat` count for `emits_len`), and an invariant that changes at one
+  step enters the template below it, at the level that step's lemma
+  feeds (`emt_T`, the count one more). A proof
   file's plain check is far cheaper than its verdict, 3.6 s against
   35 s there: iterate with the plain check.
 - **Keep a frame on the state as it is, not against where it began.**

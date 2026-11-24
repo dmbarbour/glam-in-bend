@@ -379,3 +379,41 @@ ne = 2
 ls = []
 root = T.TE{0, 0}
 curs = []
+
+=== node_dropped emits_len
+a node read back but not kept among the nodes
+--- freeze.bend
+  fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, k, b, i, R.arity(k))
++++
+  fz.peers(FzE{h, map, nodes, eras, ne, ls, root, curs}, k, b, i, R.arity(k))
+>>> witness emits_len
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, [0 : U32^7n], 32, 1)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== emit_skipped emits_len
+a base listed but its node never written
+--- freeze.bend
+      fz.emits(rest, fz.emit(z, b, i), (i - 1 : U32))
++++
+      fz.emits(rest, z, (i - 1 : U32))
+>>> witness emits_len
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, [0 : U32^7n], 32, 1)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
