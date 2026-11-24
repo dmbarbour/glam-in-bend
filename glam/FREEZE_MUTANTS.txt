@@ -8,7 +8,11 @@
 # them; 32's ports face 68's port 0, a static and a cursor, 68's face
 # 32's port 0 and two cursors. The far ends': the same, but 32's ports
 # face 68's port 1 and two statics, so that the last eraser is the last
-# index.
+# index. The root's: one function node at 32 whose ports face the
+# interface (word 28, the root), a static and a cursor. The read nodes':
+# a function node at 32, its port 0's word 7 (an eraser's code); and a
+# data node at 32 whose value is a free table entry (an error counted,
+# word 1 from 6 to 7) before a function node at 36.
 
 === crossing_at_next emits_counts
 a cursor's crossing made at the index after its placeholder's
@@ -243,3 +247,135 @@ b = 68
 v = 2
 e = T.depth_for(31n, 4, 0n)
 n0 = 2
+
+=== root_at_next emits_root
+the root set at the next index, not the node's
+--- freeze.bend
+              FzE{h, map, nodes, eras, ne, ls, T.TE{i, p}, curs}
++++
+              FzE{h, map, nodes, eras, ne, ls, T.TE{ne, p}, curs}
+>>> witness emits_root
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 28), 34, 3)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== static_as_function emits_root
+a static's eraser written as a function node
+--- freeze.bend
+    case R.Neg{}:
+      T.TN{R.KEraP{}, V.PNone{}}
+    case R.Pos{}:
+      T.TN{R.KEraN{}, V.PNone{}}
++++
+    case R.Neg{}:
+      T.TN{R.KFn{}, V.PNone{}}
+    case R.Pos{}:
+      T.TN{R.KFn{}, V.PNone{}}
+>>> witness emits_root
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 28), 34, 3)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== hole_as_function emits_root
+a cursor's placeholder written as a function node
+--- freeze.bend
+  T.TN{R.KCur{}, V.PNone{}}
++++
+  T.TN{R.KFn{}, V.PNone{}}
+>>> witness emits_root
+seen = [32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 28), 34, 3)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== fn_read_as_eraser emits_nodes
+a function node read back as an eraser
+--- freeze.bend
+      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KFn{}, P.fld(hd)))
++++
+      (h, T.TN{R.KEraP{}, V.PNone{}})
+>>> witness emits_nodes
+seen = [32]
+w = Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 7)
+a = [V.VNum{0} : V.Val^0n]
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+d = 7n
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== header_from_port emits_nodes
+a node's header read from its port 0's word
+--- freeze.bend
+      fz.emit.hd(P.rd(h, b), map, nodes, eras, ne, ls, root, curs, b, i)
++++
+      fz.emit.hd(P.rd(h, (b + 1 : U32)), map, nodes, eras, ne, ls, root, curs, b, i)
+>>> witness emits_nodes
+seen = [32]
+w = Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 7)
+a = [V.VNum{0} : V.Val^0n]
+map = F.hm.fill([32], F.hm.new(1), 1)
+dm = 1n+T.depth_for(31n, 2, 0n)
+d = 7n
+n0 = 1
+i = 0
+nodes = []
+eras = []
+ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== error_writes_header emits_nodes
+the kernel's error count written at a node's header, not word 1
+--- ../spike/kprim.bend
+  H{KM.m_set(w, at_errs(), (e + 1 : U32)), a}
++++
+  H{KM.m_set(w, 36, (e + 1 : U32)), a}
+>>> witness emits_nodes
+seen = [32, 36]
+w = Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 1, 6), 32, 5), 36, 1)
+a = [V.VFree{0} : V.Val^0n]
+map = F.hm.fill([32, 36], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+d = 7n
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []

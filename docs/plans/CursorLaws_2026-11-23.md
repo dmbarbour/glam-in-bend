@@ -334,32 +334,71 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           verdict takes 35.0 s against 35.4 s before; the file is 48
           lines longer, as the leaves take what the copies took. A new
           invariant now costs five leaves and its list.
-        - `cursor-laws.materializer.template.emit.kinds` — planned — first,
-          the step ladder written once. The ladder over the model
-          (`pe.v`, `pe.k`, `pe.s`, `pe`, `pes`, `em.t`, `em`, `ems`) has
-          three hand copies, one each for the counts, the links' ends
-          and the far ends (`_inv`, `_k`, `_j`). Before a fourth, it is
-          written as a template (`~` parameters) or as one ladder over
-          the conjunction with lemmas per leaf (`AGENTS.md`'s variants
-          rule); failing both, it goes on `cursor-laws.proofs`' list.
-          The word-1 frame lemma (`.emit`'s decision) lands here: the
-          links needed no heap premise, while the kinds read each listed
-          node's header from the current tree. Then the template
-          nodes' kinds and the root a finished node's port below 3.
+        - `cursor-laws.materializer.template.emit.kinds` — built
+          2026-11-24 — the template's nodes' kinds and the root, split
+          as the links were.
+          - `cursor-laws.materializer.template.emit.kinds.root` — built
+            2026-11-24 — on the side branch `cursor-laws-kinds`,
+            `emits_root` (`glam/FREEZE_LAWS.bend`), the template's
+            instance in five leaves and its list. Three mutants refuted:
+            the root at the next index, and a static's eraser or a
+            placeholder written as a function node. No heap premise. The root's index is below `n` at a port
+            below 3, and each element of eras is an eraser exactly when
+            it is no placeholder (what `SM.made` counts). The counts' and
+            links' countdown is reused, and the start's root is a
+            premise. Not claimed: that `nodes` is `n` long in index
+            order, and that the root is no placeholder's index (both
+            `.compose`'s); that the root faces the interface.
+          - `cursor-laws.materializer.template.emit.kinds.nodes` —
+            built 2026-11-24 — on the side branch `cursor-laws-kinds`,
+            `emits_nodes` (`glam/FREEZE_LAWS.bend`), well inside its time
+            box. The read node is an eraser exactly when its kind is
+            (`nd_era`, over the 19 kinds). Three mutants refuted:
+            - a function node read as an eraser;
+            - the header read from a port's word;
+            - the kernel's error count written at a header, not word 1
+              (the frame's own mutant, its witness a free table entry).
+
+            Its frame is kept on the current tree: the list's invariant
+            is the words full at `d` and each base left a non-eraser kind
+            in the current view, which an error's write keeps. It needs
+            each base aligned with `2 <= d`, not nonzero (nonzero only
+            for a law on port words). Relating the walk's test of the
+            code (`fz.is_era`) to the kind goes through `N.kof`'s
+            literals. Probed on one path (code 7, the tail any): the low
+            six bits matched and the tail zeroed by a lemma, `N.kof`
+            reduces and so does `fz.is_era`. So the 64 paths of `rk`'s
+            six bits are a case tree for an authoring aid (`.walk`'s).
+            The walk's marks (`fz.copied`) set bit 6 on controls only,
+            outside `rk`'s bits, and the write phase reads a control's
+            field and offset, not its form.
+        - `cursor-laws.materializer.template.emit.length` — planned —
+          `nodes` is `n` long, in index order: the length after the
+          write phase is the list's plus the length before. Only the
+          ladder shows it, and every kind conclusion at an index below
+          `n` rests on it. The count changes at the node's step, so it
+          enters the template at `emt_T`, the count as the invariant's
+          second argument. Taken before `.positions`.
         - `cursor-laws.materializer.template.emit.positions` — planned — the
           crossings' positions distinct, over distinct aligned bases.
+          Stated from its consumer: which crossings or serve law reads
+          `FzC`'s `src` and `far`, and what it needs. `src` is `b + p` on
+          words, so distinctness wants room against wrapping as well as
+          distinct aligned bases.
         The slices need of the walk's list: its length `n` (the index
         counted down on words from `n - 1`), each base's kind (as
         `N.kof` gives it; relating the walk's tests of the code,
         `fz.is_era`, to kinds is a literal match again, `.walk`'s to
-        do), the map's values, and distinct bases, each a nonzero
-        multiple of 4. Decided 2026-11-24: the walk's premises are about
+        do), the map's values, and distinct bases, each a multiple of 4
+        (nonzero only for a law on port words). Decided 2026-11-24: the walk's premises are about
         the heap before the write phase, while reads after an error's
         count (a free table entry, word 1 written) come from the updated
         tree. A frame lemma at word 1 carries them: the write phase reads
-        `b`, `b+1+p`, `b+2`, `b+3` and `base(q)`, none of them word 1
-        when `b` is a nonzero multiple of 4 (base 0 is the heap's header,
-        never a net node; `cursor-laws.noself`'s family). Not claimed: that the root is the port facing the
+        `b`, `b+1+p`, `b+2`, `b+3` and `base(q)`. A header read at `b`
+        is never word 1 when `b` is a multiple of 4 (`emits_nodes`); a
+        port word at `b+1+p` is word 1 only at base 0, the heap's header,
+        never a net node (`cursor-laws.noself`'s family), which a law on
+        port words would need. Not claimed: that the root is the port facing the
         interface (it starts as `T.TE{0, 0}`, which the root's check
         accepts once `n >= 1`). Stated over indices, then over slots at
         the depth `.depth` gives. M to L.
@@ -377,7 +416,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         (`emits_counts`' premise) with its values at most `n`
         (`emits_far`'s `FM.vals.le`). It also owes the write phase's
         premises on the list (`.emit`'s): its length, each base's kind,
-        each base a nonzero multiple of 4. The `all` path (`freeze`, a
+        each base a multiple of 4 (nonzero only for a law on port
+        words). The `all` path (`freeze`, a
         whole finished net) is outside `.compose`'s scope, as the
         materializer serves through `freeze_tree` with `all` false; its
         map, the walk's own, would owe the same. M, with the net's law
@@ -460,6 +500,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       instead of writing their own, and are regenerated.
     - The bridge from code to model (`glam/FREEZE_PROOF.bend`) reviewed
       for reuse: the materializer's other proofs may want the same form.
+      Its own duplicates so far:
+      - the mirror plumbing at each law's def, five copies (`ec.m`,
+        `ek.m`, `ej.m`, `er.m`, `en.m`), a template's candidate;
+      - copies of `wl_ne` and `wd` (as `wdv`) from `INDEX_PROOF.bend`;
+      - copies of `slot_mod4` and `ne_mod4` from
+        `proofgen/align/ALIGN.bend`.
     - What it buys measured: each proof file's check time before and
       after, and the gate's (`.watch`). A refactor that slows the gate
       is reverted or justified.
