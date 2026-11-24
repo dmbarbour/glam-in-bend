@@ -35,13 +35,18 @@ law first. We can back off if it's impractical."
    becomes a law (the maintainer, 2026-11-24: "Introducing a kernel law
    that no port faces itself is a good idea IMO. We can add it as
    planned at an appropriate step boundary.").
-6. `cursor-laws.loop`: the invariant established, reshaped once, and
+6. `cursor-laws.proofs`, after `.noself`: the proofs reviewed and
+   refactored, shared lemmas first (the maintainer, 2026-11-24: "Add a
+   step to review and refactor proofs, e.g. shared lemmas"). By then
+   the materializer's proofs have added their share of duplicates, and
+   `.loop`, which restates every law, starts from the shared lemmas.
+7. `cursor-laws.loop`: the invariant established, reshaped once, and
    the wires stated. It restates every law, so it comes after the steps
    that add laws, which it then simplifies. It is split in three so that
    the base case comes first.
-7. `cursor-laws.index`: the index's laws by disposition, last, as
+8. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
-8. `cursor-laws.watch`, throughout.
+9. `cursor-laws.watch`, throughout.
 
 Merged: `crossings_look` into `.materializer`; F3 into `.materializer`;
 the measurement (H4) into `.stop`. The premises review's P5 to P11
@@ -361,6 +366,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     kernel's rewrites are surveyed for it. Scoped with its family: the
     net's links two-way and none itself, so that a finished part is
     reached as a tree, each node once (`.template.walk`).
+  - `cursor-laws.proofs` — planned — the proofs reviewed and
+    refactored, the laws unchanged (the maintainer, 2026-11-24). Taken
+    after `.noself`, before `.loop`.
+    - Duplicates found by statement, not by name: a development aid
+      listing the defs whose types match across the proof files. Seen so
+      far:
+      - `not_true` in four files;
+      - `u32_refl` in three;
+      - `or_l` in two;
+      - a heap read handing its heap back in two (`rd_eq`, `rd_back`).
+
+      `u32_eq`, `inv`-style `and` splits and the doubling's word lemmas
+      are likely to join them.
+    - Shared lemmas in files of their own, beside the code they are
+      about: words and Bools, the heap's mirror (`hp`, the reads'
+      hand-backs, an error's write kept a tree), the probe. Each is
+      imported where it is used, so a change rechecks only its importers.
+      Lemmas general enough for the hub go to
+      `blend/docs/HubCandidates.md`.
+    - The proofs' generators (`glam/proofgen/`) call the shared lemmas
+      instead of writing their own, and are regenerated.
+    - The bridge from code to model (`glam/FREEZE_PROOF.bend`) reviewed
+      for reuse: the materializer's other proofs may want the same form.
+    - What it buys measured: each proof file's check time before and
+      after, and the gate's (`.watch`). A refactor that slows the gate
+      is reverted or justified.
+    - M.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — planned — the first use made through
