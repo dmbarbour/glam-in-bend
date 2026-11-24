@@ -30,13 +30,18 @@ law first. We can back off if it's impractical."
    root's laws composed of laws (`crossings_look`, carried here from the
    premises review) and the template freeze builds when nothing has
    finished.
-5. `cursor-laws.loop`: the invariant established, reshaped once, and
+5. `cursor-laws.noself`, at `.materializer`'s end: the kernel's law
+   that no port of a net faces itself, so that the frontier's check
+   becomes a law (the maintainer, 2026-11-24: "Introducing a kernel law
+   that no port faces itself is a good idea IMO. We can add it as
+   planned at an appropriate step boundary.").
+6. `cursor-laws.loop`: the invariant established, reshaped once, and
    the wires stated. It restates every law, so it comes after the steps
    that add laws, which it then simplifies. It is split in three so that
    the base case comes first.
-6. `cursor-laws.index`: the index's laws by disposition, last, as
+7. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
-7. `cursor-laws.watch`, throughout.
+8. `cursor-laws.watch`, throughout.
 
 Merged: `crossings_look` into `.materializer`; F3 into `.materializer`;
 the measurement (H4) into `.stop`. The premises review's P5 to P11
@@ -215,14 +220,25 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       rewrite, is not stated. Until it is, the check stays: one compare a serve
       (`corruption-reported-when-cheap`; its report now stops the run,
       `implementation-errors-stop`). The kernel's law is tentative,
-      beyond this plan (`cells-freeze.nested.host.join.self` keeps the
-      note). The frontier's `join` and the eraser's `leave` are call
+      beyond this plan when read out, planned since
+      (`cursor-laws.noself`). The frontier's `join` and the eraser's `leave` are call
       sites of laws already (`join_pend`, `leave_era_pend`), their
       premises the materializer's to meet.
     - `cursor-laws.materializer.fresh` — tentative — the fresh map
       (`mz.fz.t` makes `[0 : U32^T.depth_for(31n, size, 0n)]` and passes
       `k` as the offset) under the laws, which wants a law of
       `T.depth_for`: the map full at a depth below 32.
+  - `cursor-laws.noself` — planned — a kernel law: no port of a net
+    faces itself, kept by every rewrite (the maintainer, 2026-11-24).
+    The rules' half is stated (`rules_no_self_links`, `spike/LAWS.bend`:
+    no rule links two ports of one of its new nodes); the net's half is
+    over a heap, through the kernel's rewrites and the materializer's
+    writes. With it and the index's distinct keys, a law that the
+    frontier's join never meets the served cursor replaces `sv.front.c`'s
+    check (`.materializer.frontier`'s reading;
+    `cells-freeze.nested.host.join.self`). Taken at `.materializer`'s
+    end, before `.loop` reshapes the invariant. Size unknown until the
+    kernel's rewrites are surveyed for it.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — planned — the first use made through
