@@ -409,7 +409,13 @@ it alone taught. Add to this file what a new proof teaches.
   through a sum by `nat_div_mod`, `nat_add_assoc` and `nat_mul_mod`:
   `st_off`, `glam/PROOF.bend`'s "Alignment". `Nat.cmp` matches both
   arguments, so an absurd case `1n+p < 1n` matches `p` down to a
-  constructor before the comparison computes.
+  constructor before the comparison computes. `Nat.sub` does too:
+  `Nat.sub(1n+a, 1n)` stops at `Nat.sub(a, 0n)` for a symbolic `a`,
+  rewritten by a two-case lemma (`sub0`, `glam/FREEZE_PROOF.bend`).
+- **A let does not infer a constructor's type.** `+l = T.TL{...}` is
+  refused as "an annotated term (cannot infer)", and an ascription
+  `(T.TL{...} : T.TLink)` does not take: name the term inline where a
+  parameter's type checks it (`push_k`, `glam/FREEZE_PROOF.bend`).
 - **A record holding a heap is chained by equations, not
   implications.** A step lemma `inv(z) -> inv(step(z))` over a record
   with a heap or an array in it chains only by naming the record twice

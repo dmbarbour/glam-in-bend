@@ -286,11 +286,34 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             (`.compose`);
           - the map `hm.fill(seen, hm.new(n), n)` full (`.walk`, with
             the table's lookup law).
-        - `cursor-laws.materializer.template.emit.links` — planned — each link
-          either a placeholder's port 0 to a finished node, or between
-          two indices below `n`, a finished-to-finished link ending at
-          `v - 1` for the map's value `v`. Wants the table's lookup law
-          (`.walk`'s) and the read words.
+        - `cursor-laws.materializer.template.emit.links` — active — the
+          links, split so that what needs nothing of the map's values
+          comes first.
+          - `cursor-laws.materializer.template.emit.links.ends` — built
+            2026-11-24 — on the side branch `cursor-laws-links`,
+            `emits_links` (`glam/FREEZE_LAWS.bend`), four mutants
+            refuted by a witness of two nodes whose map `hm.fill` makes.
+            Every link's near end a node read back (below `n`), its
+            ports below 3, and every eraser's and placeholder's index
+            linked at its port 0 from a node read back (a member of the
+            eras' indices: membership, so no wrap premise). A far port
+            `q & 3` is below 3 off a static, by lawful-words'
+            `to_nat_and_mask`. The node's index counts down on words,
+            the last node split off. The counts carried as a premise.
+          - `cursor-laws.materializer.template.emit.links.far` —
+            planned — a finished-to-finished link's far end `v - 1`
+            below `n`, which wants the map's values at most `n`. The map
+            keeps values at odd words, `(i << 1) + 1`. So the bound is a
+            predicate on the view's odd positions, read through
+            `get_view`'s slot. `.walk` keeps it for `hm.put`, so its read
+            and its keeping are prototyped together, the hash map's depth
+            (`1 + depth_for(n << 1)`) checked against the view law's
+            bound on depth. Time-boxed. If it balloons, the alternative
+            is a code shape where the branch's own test is the bound
+            (`v - 1 < n` for `v == 0`). That changes what a corrupt map
+            value yields, so it would be a question for the maintainer.
+            The mutants' witness gets a finished-to-finished link, its
+            map made by `hm.fill`.
         - `cursor-laws.materializer.template.emit.kinds` — planned — the template
           nodes' kinds and the root a finished node's port below 3.
         - `cursor-laws.materializer.template.emit.positions` — planned — the

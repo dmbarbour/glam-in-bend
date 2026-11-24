@@ -39,3 +39,35 @@ law emits_counts:
   for +curs: List<&2, RN.FzC>
   for +hz: {FM.inv.f(eras, ne, curs, n0) == True{} : Bool}
   {FM.inv(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i), n0) == True{} : Bool}
+
+# LAW: the write phase's links (cursor-laws.materializer.template.emit.links.ends):
+# writing the nodes reached (F.fz.emits) keeps each link's near end a
+# node read back (below n0), its ports below 3, and each index of the
+# nodes standing for statics and cursors linked at its port 0 from a
+# node read back (FM.inv.k). Premises: the counts' (emits_counts), the
+# links' at the start, and the nodes' indices counting down from i below
+# n0, at most i + 1 of them. Not claimed: where a link between two nodes
+# read back ends (.emit.links.far); that a link names no index of eras
+# but at port 0, which wants that end below n0; the root (.kinds).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+# Record: hub-laws-reused
+law emits_links:
+  for +seen: List<&2, U32>
+  for h: P.H
+  for map: Array<U32>
+  for +dm: Nat
+  for hf: {AD.full(U32, map, dm) == True{} : Bool}
+  for +n0: U32
+  for +i: U32
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +hz: {FM.inv.f(eras, ne, curs, n0) == True{} : Bool}
+  for +hk: {FM.inv.k(ls, eras, n0) == True{} : Bool}
+  for +hi: {U32.is_lt(i, n0) == True{} : Bool}
+  for +hl: {Nat.is_le(List.length(&2, U32, seen), 1n+U32.to_nat(i)) == True{} : Bool}
+  {FM.inv.l(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i), n0) == True{} : Bool}

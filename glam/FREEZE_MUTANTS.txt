@@ -1,9 +1,12 @@
 # Mutations of freeze's write phase (glam/freeze.bend), each naming the
 # laws of glam/FREEZE_LAWS.bend it should fail (docs/Proving.md; the gate
-# runs scripts/one_law.py --mutants on this file). The witnesses: one
-# node of kind 1 (a function, three ports) at base 32, its ports' words
-# 0, so that each port faces a node not in the map, a cursor; with its
-# port 0's word 3, a static.
+# runs scripts/one_law.py --mutants on this file). The counts'
+# witnesses: one node of kind 1 (a function, three ports) at base 32, its
+# ports' words 0, so that each port faces a node not in the map, a
+# cursor; with its port 0's word 3, a static. The links': two such
+# nodes, at 32 (index 0) and 68 (index 1), the map hm.fill makes of
+# them; 32's ports face 68's port 0, a static and a cursor, 68's face
+# 32's port 0 and two cursors.
 
 === crossing_at_next emits_counts
 a cursor's crossing made at the index after its placeholder's
@@ -61,6 +64,86 @@ i = 0
 nodes = []
 eras = []
 ne = 1
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== static_port_one emits_links
+a static's eraser linked at its port 1
+--- freeze.bend
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}
++++
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 1}}, ls}, root, curs}
+>>> witness emits_links
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 68), 34, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== hole_link_swapped emits_links
+a cursor's placeholder linked with its ends swapped, the placeholder near
+--- freeze.bend
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
++++
+      FzE{h, map, nodes, Con{fz.hole(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{ne, 0}, T.TE{i, p}}, ls}, root, Con{RN.FzC{ne, (b + p : U32), fz.neg(R.port_pol(k, U32.to_nat(p))), q}, curs}}
+>>> witness emits_links
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 68), 34, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== far_port_wide emits_links
+a link between nodes read back ending at the peer's low three bits, not two
+--- freeze.bend
+      FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (v - 1 : U32), (q .&. 3 : U32), ls), root, curs}
++++
+      FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (v - 1 : U32), (q .&. 7 : U32), ls), root, curs}
+>>> witness emits_links
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 68), 34, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== near_index_next emits_links
+each node's ports linked from the index after its own
+--- freeze.bend
+  fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, k, b, i, R.arity(k))
++++
+  fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, k, b, (i + 1 : U32), R.arity(k))
+>>> witness emits_links
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 68), 34, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+dm = 1n+T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
 ls = []
 root = T.TE{0, 0}
 curs = []
