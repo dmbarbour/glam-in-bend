@@ -410,6 +410,13 @@ it alone taught. Add to this file what a new proof teaches.
   `st_off`, `glam/PROOF.bend`'s "Alignment". `Nat.cmp` matches both
   arguments, so an absurd case `1n+p < 1n` matches `p` down to a
   constructor before the comparison computes.
+- **Keep a big bound on words, and bound from above.** A premise
+  `U32.is_le(n, 2147483648)` is computed on words, as is a power doubled
+  thirty-one times (`dbl`), where `2^31` as a `Nat` would be expanded in
+  unary. An invariant `to_nat(pw) <= 2^d`, not an equation, carries a
+  doubling through `to_nat_mul` without an overflow argument: a
+  remainder is at most its argument (`map_depth`,
+  `glam/SPLICE_PROOF.bend`).
 - **Prototype a family of lemmas in a file of its own.** A lemma checked
   in `glam/proofgen/align/ALIGN.bend`, importing what the proof
   files import, costs seconds where the proof file costs a minute, and
