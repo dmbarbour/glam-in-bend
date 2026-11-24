@@ -1,0 +1,26 @@
+# Mutations of the wiring's audit (spike/knet.bend's wa.*), each naming
+# the laws of spike/WIRED_LAWS.bend it should fail (docs/Proving.md; the
+# gate runs scripts/one_law.py --mutants on this file). No witness: a
+# witness must pass the original audit, and then every port passes, so a
+# mutant of the audit is caught by the law's proof failing on it.
+
+=== audit_self_unchecked wired_port
+the audit passing a port that links itself
+--- knet.bend
+      wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
++++
+      wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap), h, x, y, ok)
+
+=== audit_back_unchecked wired_port
+the audit passing a link its peer does not return
+--- knet.bend
+  Wa{h, ok && U32.is_eq(z, x)}
++++
+  Wa{h, ok}
+
+=== audit_arity_unchecked wired_port
+the audit passing a link to a port past its node's arity
+--- knet.bend
+  wa.live(U32.is_ne(hy, 0) && U32.is_lt(P.port(y), KR.kind_arity(P.rk(hy))), h, x, y, ok)
++++
+  wa.live(U32.is_ne(hy, 0), h, x, y, ok)

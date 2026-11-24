@@ -449,6 +449,17 @@ it alone taught. Add to this file what a new proof teaches.
   "three or more" case. A proof
   file's plain check is far cheaper than its verdict, 3.6 s against
   35 s there: iterate with the plain check.
+- **A read-only audit bridges like a read-only phase.** `KN.wired_ok`
+  walks the heap reading only, so on a mirrored heap it is a model over
+  the words' tree. Write the model to accumulate the verdict as the code
+  does (`ok && check`, left to right), so that the bridge needs no
+  reassociation. A false verdict stays false, which gives each step of a
+  true one. A mutant of an audit cannot be refuted by a witness, since
+  the witness must pass the original audit: the bridge failing on it is
+  what catches it (`spike/WIRED_PROOF.bend`).
+- **A parameter named as a def shadows it.** A premise `hw` hid the word
+  function `hw` ("expected a function type"): name premises apart from
+  the file's defs.
 - **Keep a frame on the state as it is, not against where it began.**
   The write phase's reads after an error's count come from the updated
   words. Rather than relate them to the original words, the list's
