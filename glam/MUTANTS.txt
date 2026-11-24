@@ -761,3 +761,32 @@ vm = [20, 24]
 dm = 1n
 I = IM.Has{IM.Lf{16, 9}}
 F = [36, 40]
+
+=== put_drops_cursor crossings_look
+the model's insert putting its new leaf beside the leaf it meets in that
+leaf's place too: a crossing that makes a cursor beside the served one
+drops it from the index the model leaves
+--- index_model.bend
+    case True{}:
+      Br{b, c, cur, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, cur}
++++
+    case True{}:
+      Br{b, c, Lf{x, k}, Lf{x, k}}
+    case False{}:
+      Br{b, c, Lf{x, k}, Lf{x, k}}
+>>> witness crossings_look
+w = WB.ix_two(5)
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, Array.set(U32, [0 : U32^2n], 0, 24), 1, 20)
+d = 6n
+dm = 2n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+L = Con{8, Con{16, Con{20, Con{24, Nil{}}}}}
+F = Con{36, Nil{}}
+N = Con{8, Con{16, Con{20, Con{24, Con{36, Nil{}}}}}}
+cs = Con{R.FzC{0, 11, False{}, 3}, Nil{}}
+k = 9
+nc = 16

@@ -861,8 +861,8 @@ def rx.core({CORE_P}, {EP}) ->
   +hpx = cpi.core({CORE_A})
   +hNp = GP.lay_sub({Mp}, {MN}, d, hMpMN, hN, apall_of({Mp}, {MN}, d, hMpMN, hN, {DMP}))
   +hBp = GP.bases_sub({Mp}, {MN}, hMpMN, hB)
-  +hc = GP.cxl.m({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, k, nc, hc0, hu, LAT.mirror(U32, {W1}), LAT.mirror(V.Val, {A1}), LAT.mirror(U32, {MAP1}))
-  +hcx = GP.crf.go(cs, {W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, LAT.mirror(U32, {W1}), LAT.mirror(V.Val, {A1}), LAT.mirror(U32, {MAP1}))
+  +hc = GL.crossings_look({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, k, nc, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, hc0, hu)
+  +hcx = GL.crossings_pend({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok)
   +hp2 = ME.subst(Array<U32>, zz => {T(f'RG.px.ok(AD.view(U32, zz), d, s, {CXI}, [], {CXL}, {CXF}, {Mp})')}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {L(PXc, FLc, 'hcx')})
   +hf2 = ME.subst(Array<U32>, zz => {{AD.full(U32, zz, d) == True{{}} : Bool}}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {R(PXc, FLc, 'hcx')})
   +hpo = {RPC(lambda pe: T(f'RG.po.all({pe}, [], d, {Mp})'), f"po_app(M, {PLS}, {PW}, [], d, rpom(M, {RARG}, GP.sub_refl(M)), rpop({PLS}, {RARG}, GP.sub_refl({PLS})))")}
@@ -979,8 +979,8 @@ def rk.core({CORE_P}, {EP}, +j: U32, +hj: {T('KMd.nodes.off(ns, d, j)')}, +hjM: 
   +hpx = cpi.core({CORE_A})
   +hNp = GP.lay_sub({Mp}, {MN}, d, hMpMN, hN, apall_of({Mp}, {MN}, d, hMpMN, hN, {DMP}))
   +hBp = GP.bases_sub({Mp}, {MN}, hMpMN, hB)
-  +hc = GP.cxl.m({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, k, nc, hc0, hu, LAT.mirror(U32, {W1}), LAT.mirror(V.Val, {A1}), LAT.mirror(U32, {MAP1}))
-  +hcx = GP.crf.go(cs, {W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, LAT.mirror(U32, {W1}), LAT.mirror(V.Val, {A1}), LAT.mirror(U32, {MAP1}))
+  +hc = GL.crossings_look({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, k, nc, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, hc0, hu)
+  +hcx = GL.crossings_pend({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok)
   +hp2 = ME.subst(Array<U32>, zz => {T(f'RG.px.ok(AD.view(U32, zz), d, s, {CXI}, [], {CXL}, {CXF}, {Mp})')}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {L(PXc, FLc, 'hcx')})
   +hf2 = ME.subst(Array<U32>, zz => {{AD.full(U32, zz, d) == True{{}} : Bool}}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {R(PXc, FLc, 'hcx')})
   +hpo = {RPC(lambda pe: T(f'RG.po.all({pe}, [], d, {Mp})'), f"po_app(M, {PLS}, {PW}, [], d, rpom(M, {RARG}, GP.sub_refl(M)), rpop({PLS}, {RARG}, GP.sub_refl({PLS})))")}

@@ -81,8 +81,13 @@ written apart and kept as written. Drafted by the agent.
   apply to serving it. The second reviewer saw the first half in the
   premises review (`IndexPremisesFable_2026-11-23.md:272`); no review or
   plan step dispositioned it [checked].
-- **Unchecked.** Whether the materializer serves this template through
-  the copy at all. Its header's frontier case may take it first: "a
+- **Read out** 2026-11-24 (`cursor-laws.materializer.template`): it
+  does not. The materializer freezes a tree only at a node positioned
+  demand found finished or a climb reached, so that the template holds
+  its root at least; only `freeze_finished`, which tests alone call,
+  builds the empty one. The gap was in the laws' text, as below.
+- **Unchecked** when written: whether the materializer serves this
+  template through the copy at all. Its header's frontier case may take it first: "a
   cursor of the ring at the port reached is joined to the served one
   directly, nothing copied (the identity's case)"
   (`glam/materialize.bend:32-33`). If so, the gap is in the laws' text,

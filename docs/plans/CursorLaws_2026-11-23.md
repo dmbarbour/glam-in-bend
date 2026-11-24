@@ -156,15 +156,41 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       in a copy node the frames allow: evidence for
       `cursor-laws.loop.wires`. Leaving before the crossings only fails
       to typecheck (the map is read once) and is not kept.
-    - `cursor-laws.materializer.look` — planned — `crossings_look`:
-      the served cursor found through the crossings, a law, so that
-      the root's laws are `serve_pend`, it and `leave_pend`, composed of
-      laws alone.
-    - `cursor-laws.materializer.template` — planned — the template
-      freeze builds when nothing has finished (F3): how the
-      materializer serves it, and the laws widened to it where the
-      copy serves it. With it, a law of freeze: a template's crossings
-      at distinct positions (from `.dup`).
+    - `cursor-laws.materializer.look` — built 2026-11-24 — on the side
+      branch `cursor-laws-look`. `crossings_look`: the served cursor,
+      found at its key before a copy's crossings with no crossing's far
+      end there, is found there after, in the index the crossings'
+      model leaves. On `crossings_pend`'s premises; proved by `cxl.m`,
+      until now an internal of the root's proofs. A mutant of the
+      model's insert refutes it: the insert drops the leaf it goes
+      beside. The root's laws now call `crossings_look` and
+      `crossings_pend` as laws, in place of their internals (`cxl.m`,
+      `crf.go`). Still internal to them: the copy's own steps
+      (`cpi.core`) and the root port's link words off the tracked nodes
+      (`rpom`, `rpop`). A law of the copy giving the latter, beside
+      `copy_pend`, would leave the root's laws `serve_pend`,
+      `crossings_look` and `leave_pend` alone.
+    - `cursor-laws.materializer.rootport` — planned — a law of the copy
+      beside `copy_pend`: the copy's root port, read through the map the
+      copy leaves, has its link word off every tracked node's words and
+      off the free list's head (`RG.po.all` over `M` and the holes),
+      where `SV.root.ok` holds. With it, the root's laws are proved from
+      `serve_pend`, `crossings_look` and `leave_pend` alone, the copy's
+      steps (`cpi.core`) and the port's lemmas (`rpom`, `rpop`) no
+      longer internal to them. To try; S to M.
+    - `cursor-laws.materializer.template` — planned — freeze's
+      obligations to the serve's laws, as laws of freeze: a
+      materialization's template meets `SM.tpl.ok`, `SV.copy.ok` and
+      `SV.root.ok`, its crossings at distinct positions (from `.dup`).
+      F3 was read out 2026-11-24, and needs no widening. The template
+      freeze builds when nothing has finished is never served by the
+      copy: the materializer freezes a tree only at a node positioned
+      demand found finished (`PdValue`) or a climb reached
+      (`glam/materialize.bend`, `materialize`'s two calls), so that a
+      materialization's template holds its root at least. Only
+      `freeze_finished` builds the empty one, and only tests call it.
+      The laws' "Not claimed: that freeze builds such templates" stays
+      true; these laws would claim it.
     - `cursor-laws.materializer.frontier` — planned — a law that the
       frontier's join never meets the served cursor
       (`cells-freeze.nested.host.join.self`), replacing the check if

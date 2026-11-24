@@ -201,6 +201,41 @@ law cxs_start:
   for hr: {RG.enough(cs, F) == True{} : Bool}
   {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}
 
+# LAW: a copy's crossings keep the served cursor where it is: nc found at
+# k in the index before them and no crossing looking for k at its far end
+# (RG.far.off), nc is found at k in the index the crossings' model leaves
+# (RG.cxs.I), each crossing's removal at another key (look_del_other) and
+# each insert at a key absent (look_put_other), on crossings_pend's
+# premises (cursor-laws.materializer.look). The root's laws take it from
+# here (glam/SERVE_PROOF.bend).
+# Record: cursors-indexed
+# Record: serve-premises-over-index
+law crossings_look:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for +dm: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +cs: List<&2, R.FzC>
+  for +k: U32
+  for +nc: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, RG.pls(cs, AD.view(U32, map), dm), L, F, N) == True{} : Bool}
+  for hok: {RG.cxs.ok(cs, AD.view(U32, map), dm, I, F) == True{} : Bool}
+  for hk: {IM.ix.look(I, k) == Some{nc} : Maybe<&2, U32>}
+  for hu: {RG.far.off(cs, k) == True{} : Bool}
+  {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, map), dm, I, L, F)), k) == Some{nc} : Maybe<&2, U32>}
+
 # LAW: a copy's crossings (R.crossings, each placeholder found through
 # map), their placeholders the pending ones (RG.pls), keep the pending
 # placeholders' invariant over the index (RG.px.ok) and the words full,
