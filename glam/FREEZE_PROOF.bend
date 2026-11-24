@@ -45,6 +45,12 @@
 #   ems_f), its invariant the conjunction of what it rests on (ik, ij).
 #   Arrows over + parameters are @+x:A; a leaf is ~l_root, not ~root,
 #   which a pattern variable would shadow.
+# - The read nodes' kinds (emits_nodes) keep their frame on the current
+#   tree: the list's invariant is the words full and each base left with
+#   a good header in the current view, kept by an error's write at word
+#   1 (et_keeps; an aligned base's slot is 0 mod 4, slot 1 is 1). A
+#   hypothesis crosses an equation by ME.subst where lets forbid a
+#   rewrite (ems_n). Eraser is tested by S.sp.is_era itself (nd_era).
 
 import Base
 import ./FREEZE_LAWS.bend as Laws

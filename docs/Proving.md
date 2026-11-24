@@ -437,6 +437,14 @@ it alone taught. Add to this file what a new proof teaches.
   follows `~` references (`em_T`, `glam/FREEZE_PROOF.bend`). A proof
   file's plain check is far cheaper than its verdict, 3.6 s against
   35 s there: iterate with the plain check.
+- **Keep a frame on the state as it is, not against where it began.**
+  The write phase's reads after an error's count come from the updated
+  words. Rather than relate them to the original words, the list's
+  invariant is a fact about the current tree (full at `d`, each base
+  left with a good header in its view), and one lemma shows that an
+  error's write keeps it (`et_keeps`, `glam/FREEZE_PROOF.bend`). Where
+  a rewrite is not allowed after lets, carry a hypothesis across by
+  `ME.subst` (`ems_n`).
 - **A let does not infer a constructor's type.** `+l = T.TL{...}` is
   refused as "an annotated term (cannot infer)", and an ascription
   `(T.TL{...} : T.TLink)` does not take: name the term inline where a

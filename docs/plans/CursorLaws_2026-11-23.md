@@ -359,33 +359,46 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             - the kernel's error count written at a header, not word 1
               (the frame's own mutant, its witness a free table entry).
 
-            The original description follows. No node read back is an
-            eraser. The
-            frame is kept on the current tree: its list's invariant is
-            the words full at `d` and each base left a non-eraser kind
-            in the current view, which an error's write keeps
-            (`set_tree_eq`, `set_full`, `set_view`, and the base off
-            word 1). The kind-level test is `S.sp.is_era` itself, so
-            eraser has one owner. It needs each base aligned (a multiple
-            of 4) with `2 <= d`, not nonzero: nonzero matters only to a
-            law on port words. Relating the walk's test of the code
-            (`fz.is_era`) to the kind goes through `N.kof`'s literals.
-            For `rk`'s six bits it is a case tree of 64 over concrete
-            codes, the upper bits zero by a lemma (`.walk`'s).
+            Its frame is kept on the current tree: the list's invariant
+            is the words full at `d` and each base left a non-eraser kind
+            in the current view, which an error's write keeps. It needs
+            each base aligned with `2 <= d`, not nonzero (nonzero only
+            for a law on port words). Relating the walk's test of the
+            code (`fz.is_era`) to the kind goes through `N.kof`'s
+            literals. Probed on one path (code 7, the tail any): the low
+            six bits matched and the tail zeroed by a lemma, `N.kof`
+            reduces and so does `fz.is_era`. So the 64 paths of `rk`'s
+            six bits are a case tree for an authoring aid (`.walk`'s).
+            The walk's marks (`fz.copied`) set bit 6 on controls only,
+            outside `rk`'s bits, and the write phase reads a control's
+            field and offset, not its form.
+        - `cursor-laws.materializer.template.emit.length` — planned —
+          `nodes` is `n` long, in index order: the length after the
+          write phase is the list's plus the length before. Only the
+          ladder shows it, and every kind conclusion at an index below
+          `n` rests on it. The count changes at the node's step, so it
+          enters the template at `emt_T`, the count as the invariant's
+          second argument. Taken before `.positions`.
         - `cursor-laws.materializer.template.emit.positions` — planned — the
           crossings' positions distinct, over distinct aligned bases.
+          Stated from its consumer: which crossings or serve law reads
+          `FzC`'s `src` and `far`, and what it needs. `src` is `b + p` on
+          words, so distinctness wants room against wrapping as well as
+          distinct aligned bases.
         The slices need of the walk's list: its length `n` (the index
         counted down on words from `n - 1`), each base's kind (as
         `N.kof` gives it; relating the walk's tests of the code,
         `fz.is_era`, to kinds is a literal match again, `.walk`'s to
-        do), the map's values, and distinct bases, each a nonzero
-        multiple of 4. Decided 2026-11-24: the walk's premises are about
+        do), the map's values, and distinct bases, each a multiple of 4
+        (nonzero only for a law on port words). Decided 2026-11-24: the walk's premises are about
         the heap before the write phase, while reads after an error's
         count (a free table entry, word 1 written) come from the updated
         tree. A frame lemma at word 1 carries them: the write phase reads
-        `b`, `b+1+p`, `b+2`, `b+3` and `base(q)`, none of them word 1
-        when `b` is a nonzero multiple of 4 (base 0 is the heap's header,
-        never a net node; `cursor-laws.noself`'s family). Not claimed: that the root is the port facing the
+        `b`, `b+1+p`, `b+2`, `b+3` and `base(q)`. A header read at `b`
+        is never word 1 when `b` is a multiple of 4 (`emits_nodes`); a
+        port word at `b+1+p` is word 1 only at base 0, the heap's header,
+        never a net node (`cursor-laws.noself`'s family), which a law on
+        port words would need. Not claimed: that the root is the port facing the
         interface (it starts as `T.TE{0, 0}`, which the root's check
         accepts once `n >= 1`). Stated over indices, then over slots at
         the depth `.depth` gives. M to L.
