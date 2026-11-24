@@ -197,7 +197,10 @@ of 2026-10-26, Bend 2.0.39.
   form into the lemma's (`blend/PROOF.bend`, "Lines"). The alignment
   lemmas abstract 2^32 the same way (`add_mod4.k`), write each motive in
   its law's own syntax, and write a mask whose bits are read as
-  `U32.not(3)` (`glam/PROOF.bend`, "Alignment").
+  `U32.not(3)` (`glam/PROOF.bend`, "Alignment"). One literal out of the
+  law's syntax is enough to overflow: `to_nat_mul`'s motive written with
+  `2n` where the law has `U32.to_nat(2)` overflowed even with 2^32
+  abstracted (`mul2_shl.k`, `glam/SPLICE_PROOF.bend`, 2026-11-24).
 - **Revisit:** when #957 or #1832 lands.
 
 ### Run-time code generation

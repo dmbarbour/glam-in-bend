@@ -215,3 +215,19 @@ of the size, three nodes at depth 1
   depth_for.go(f, U32.is_le(n, U32.from_nat(Nat.pow(2n, 1n+d))), n, d, U32.from_nat(Nat.pow(2n, 1n+d)))
 >>> witness map_depth
 n = 3
+
+=== depth_past_fit depth_upper
+the map's search going one depth past its first fit
+--- ../spike/tpl.bend
+        case True{}:
+          d
+        case False{}:
+          depth_for.go(p, U32.is_le(n, (pw * 2 : U32)), n, 1n+d, (pw * 2 : U32))
++++
+        case True{}:
+          1n+d
+        case False{}:
+          depth_for.go(p, U32.is_le(n, (pw * 2 : U32)), n, 1n+d, (pw * 2 : U32))
+>>> witness depth_upper
+n = 1
+k = 0n
