@@ -238,6 +238,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the search starting a power too high. Shared with `.fresh`, for
         which it gives the map's fullness and depth. The size at most
         `2^31` becomes freeze's obligation, under `.compose`.
+        - `cursor-laws.materializer.template.depth.upper` — planned —
+          the depth at most `k` for a size at most `2^k` (`k` below 32):
+          the search stops at its first fit. `map_depth` disclaims
+          minimality, and `emits_far` and `put_keeps` want the hash
+          map's depth, `1 + depth_for(n << 1)`, below 32, which this
+          gives for `n` at most `2^29`. `.compose` uses it. S.
       - `cursor-laws.materializer.template.emit` — active — laws of
         the write phase. Re-sliced 2026-11-24 after a test of the form
         its proofs take. A record holding the heap and the map is named
@@ -286,12 +292,50 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             (`.compose`);
           - the map `hm.fill(seen, hm.new(n), n)` full (`.walk`, with
             the table's lookup law).
-        - `cursor-laws.materializer.template.emit.links` — planned — each link
-          either a placeholder's port 0 to a finished node, or between
-          two indices below `n`, a finished-to-finished link ending at
-          `v - 1` for the map's value `v`. Wants the table's lookup law
-          (`.walk`'s) and the read words.
-        - `cursor-laws.materializer.template.emit.kinds` — planned — the template
+        - `cursor-laws.materializer.template.emit.links` — built
+          2026-11-24 — the links, split so that what needs nothing of
+          the map's values comes first.
+          - `cursor-laws.materializer.template.emit.links.ends` — built
+            2026-11-24 — on the side branch `cursor-laws-links`,
+            `emits_links` (`glam/FREEZE_LAWS.bend`), four mutants
+            refuted by a witness of two nodes whose map `hm.fill` makes.
+            Every link's near end a node read back (below `n`), its
+            ports below 3, and every eraser's and placeholder's index
+            linked at its port 0 from a node read back (a member of the
+            eras' indices: membership, so no wrap premise). A far port
+            `q & 3` is below 3 off a static, by lawful-words'
+            `to_nat_and_mask`. The node's index counts down on words,
+            the last node split off. The counts carried as a premise.
+          - `cursor-laws.materializer.template.emit.links.far` — built
+            2026-11-24 — on the side branch `cursor-laws-links`,
+            `emits_far` (`glam/FREEZE_LAWS.bend`): every link's far end
+            a node read back (below `n`), or port 0 of an index of eras.
+            Its premise on the map is `FM.vals.le` over its view, the
+            map full at a depth `1 + e` below 32. The parity came
+            cheaply. `(i << 1) + 1` exposes its low bit after one match
+            on the word, so it is odd whatever its tail, and a slot keeps
+            parity (`nat_mod_mod_pow`). No code reshape was needed. Both
+            consumers were prototyped: the read (`mv_le`) and the put
+            side, kept as `put_keeps` (`.walk.vals`). The depth below 32
+            wants the template's read part at most `2^29` (the hash map
+            is `1 + depth_for(n << 1)` deep),
+            `.compose`'s premise, discharged through
+            `.depth.upper`. Four mutants refuted:
+            - the far end at the map's value, not one less;
+            - an unmapped peer taken for a node read back;
+            - a static linked at the next index;
+            - the lookup reading the key as the value.
+        - `cursor-laws.materializer.template.emit.kinds` — planned — first,
+          the step ladder written once. The ladder over the model
+          (`pe.v`, `pe.k`, `pe.s`, `pe`, `pes`, `em.t`, `em`, `ems`) has
+          three hand copies, one each for the counts, the links' ends
+          and the far ends (`_inv`, `_k`, `_j`). Before a fourth, it is
+          written as a template (`~` parameters) or as one ladder over
+          the conjunction with lemmas per leaf (`AGENTS.md`'s variants
+          rule); failing both, it goes on `cursor-laws.proofs`' list.
+          The word-1 frame lemma (`.emit`'s decision) lands here: the
+          links needed no heap premise, while the kinds read each listed
+          node's header from the current tree. Then the template
           nodes' kinds and the root a finished node's port below 3.
         - `cursor-laws.materializer.template.emit.positions` — planned — the
           crossings' positions distinct, over distinct aligned bases.
@@ -321,9 +365,22 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         walk's own law follows it. The table law the write phase needs
         is a lookup after `hm.fill`: each listed base found at its
         index plus one, every other at 0, and the map full at its depth
-        (`emits_counts`' premise). It also owes the write phase's
+        (`emits_counts`' premise) with its values at most `n`
+        (`emits_far`'s `FM.vals.le`). It also owes the write phase's
         premises on the list (`.emit`'s): its length, each base's kind,
-        each base a nonzero multiple of 4. M, with the net's law L.
+        each base a nonzero multiple of 4. The `all` path (`freeze`, a
+        whole finished net) is outside `.compose`'s scope, as the
+        materializer serves through `freeze_tree` with `all` false; its
+        map, the walk's own, would owe the same. M, with the net's law
+        L.
+        - `cursor-laws.materializer.template.walk.vals` — built
+          2026-11-24 — on the side branch `cursor-laws-links`,
+          `put_keeps` (`glam/FREEZE_LAWS.bend`): each `hm.put` keeps the
+          map full at its depth and its values at most `n`, the key at
+          the probe's slot's even word, the value at its odd one. With
+          `hm.new`'s map computing so, `hm.fill`'s map satisfies
+          `emits_far`'s premise by an induction over the list. A mutant
+          swapping the two words is refuted.
       - `cursor-laws.materializer.template.compose` — planned —
         `SM.tpl.ok`, `SV.copy.ok`, `SV.root.ok` and distinct positions
         for `freeze_tree`'s output, the three composed; the serve's
@@ -331,7 +388,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         template's size at most `2^31` (`map_depth`'s), from the source's
         capacity. It owes what `emits_counts` leaves: the placeholders'
         indices distinct (no wrap past `n`), and the template `fz.tpl`
-        makes of the record, `nodes` `n` long. M.
+        makes of the record, `nodes` `n` long. `emits_far`'s map depth
+        below 32 wants the read part at most `2^29`. M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
@@ -428,7 +486,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     the proofs' check times recorded at each step's commit. A step that
     slows iteration much is followed by one that speeds it (the
     maintainer, 2026-11-23: "watch the growth and occasionally take
-    action to improve iteration speed").
+    action to improve iteration speed"). At `.emit.links` (2026-11-24):
+    `glam/FREEZE_PROOF.bend` checks in 35 s cold, the gate in 81 s with
+    the rest kept (run 346).
 
 ## Open
 
