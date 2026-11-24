@@ -523,7 +523,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     invariant. Sliced:
     - `cursor-laws.noself.model` — planned — the family stated over
       the heap's words in `spike/`'s model (`KMd`), beside `lw`: each
-      live node's port links two-way, and to no port of its own.
+      live port links two-way, and no port faces itself (its peer is
+      never the same port). A node's two ports may face each other: the
+      identity function wires its `arg` to its own `result`. Corrected
+      2026-11-24; this said "to no port of its own".
     - `cursor-laws.noself.link` — planned — the `link` family keeps it
       when its ends are distinct live ports, or a port and a static.
     - `cursor-laws.noself.rules` — planned — the rewrites. The
@@ -534,8 +537,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       argued once over the generator's output: decided on reading the
       generator.
     - `cursor-laws.noself.copy` — planned — the materializer's writes:
-      the splice from a template whose links are no self-links
-      (`SM.tpl.ok`'s sharpening), the ring's joins and leaves.
+      the splice from a template in which no end faces itself, each
+      port wired once (`interaction_net`'s construction refuses a port
+      wired twice or never: the maintainer, 2026-11-24); the ring's
+      joins and leaves.
     - `cursor-laws.noself.frontier` — planned — `sv.front.c`'s check
       replaced by a law, as planned above.
 
