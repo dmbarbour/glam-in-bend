@@ -34,3 +34,12 @@ h = KN.load(T.Tpl{[T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KLift{}, V.PLift{1, True{}, 
 pos = 33
 g = 16n
 f = 0n
+
+=== audit_self_unchecked_front front_apart
+the wiring's audit passing a port that links itself (no witness: one
+must pass the original audit, and then no frontier faces itself; the
+law's proof fails on it, through wired_port's)
+--- ../spike/knet.bend
+      wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
++++
+      wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap), h, x, y, ok)

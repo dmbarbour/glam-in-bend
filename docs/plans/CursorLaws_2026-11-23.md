@@ -579,7 +579,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         that hits, a walk ending in state 7). `pd.ended.k` matches the
         walk's state on `U32` literals, stuck in a proof's default arm,
         so it is reshaped to test the state, measured.
-      - `cursor-laws.noself.frontier.apart` — planned — with
+      - `cursor-laws.noself.frontier.apart` — built 2026-11-24 — on
+        the side branch `cursor-laws-noself-apart`, `front_apart`
+        (`glam/POSITION_LAWS.bend`): `front_faces`' fact and
+        `wired_port`'s check of the position's port. The port links
+        either a static eraser, which a port that is no static cannot
+        be, or no port of its own reference. Its mutant, the audit's
+        self-check dropped, is caught by the proof failing through
+        `wired_port`'s. As planned: with
         `wired_port`, the frontier's port is not the position itself.
         Its premises are on the frontier's heap: wired, and the position
         a live node's port below its arity. The second is a premise of
