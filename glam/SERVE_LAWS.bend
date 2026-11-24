@@ -14,6 +14,7 @@ import ./ring.bend as R
 import ./ring_model.bend as RG
 import ./splice_copy.bend as S
 import ./splice_model.bend as SM
+import ./serve.bend as SC
 import ./serve_model.bend as SV
 import ./index_model.bend as IM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
@@ -82,6 +83,8 @@ law copy_pend:
 # leaves; none pending after, the tracked nodes M then the holes.
 # Premises: copy_pend's, and the crossings' over the map the copy leaves
 # (RG.cxs.ok).
+# Stated over SC.serve, the materializer's own composition
+# (glam/serve.bend; laws-over-tests, cursor-laws.materializer).
 # Record: copy-reduced-function-nets
 # Record: serve-premises-over-index
 # Record: cursors-indexed
@@ -101,6 +104,9 @@ law serve_pend:
   for +I: IM.Ix
   for +F: List<&2, U32>
   for +M: List<&2, U32>
+  for +nc: U32
+  for +rn: U32
+  for +rp: U32
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
@@ -115,7 +121,7 @@ law serve_pend:
   for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s))), d) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), Nil{}, RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{})), d) == True{} : Bool}
 
 # LAW: a serve's writes, its copy then its crossings (R.crossings, the
 # holes joined to the cursors the index finds or made cursors), as the
@@ -128,6 +134,8 @@ law serve_pend:
 # Hierarchy review asked of a serve, what the demand's walk resumed may
 # read past. At the source's root the served cursor leaves after
 # (R.leave), serve_root_keeps.
+# Stated over SC.serve, the materializer's own composition
+# (glam/serve.bend; laws-over-tests, cursor-laws.materializer).
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
 # Record: cursors-indexed
@@ -147,6 +155,9 @@ law serve_keeps:
   for +I: IM.Ix
   for +F: List<&2, U32>
   for +M: List<&2, U32>
+  for +nc: U32
+  for +rn: U32
+  for +rp: U32
   for +j: U32
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
@@ -166,7 +177,7 @@ law serve_keeps:
   for +hjM: {RG.off.nodes(M, d, j) == True{} : Bool}
   for +hjh: {KMd.off.words(KMd.hdr_all(), d, j) == True{} : Bool}
   for +hjf: {RG.off.ports(RG.faced(Con{s, t}, AD.view(U32, w), d), d, j) == True{} : Bool}
-  {Pair.snd(P.H, U32, P.rd(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+  {Pair.snd(P.H, U32, P.rd(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
 
 # LAW: a serve at the source's root, its copy, its crossings and then the
 # served cursor nc leaving, the copy's root port (read through the map as
@@ -186,6 +197,8 @@ law serve_keeps:
 # root port's link word: a template linking the root's port would leave
 # its partner facing the root alone, the invariant still (freeze links no
 # root port, fz.peer.k, an obligation for its review).
+# Stated over SC.serve, the materializer's own composition
+# (glam/serve.bend; laws-over-tests, cursor-laws.materializer).
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
 # Record: cursors-indexed
@@ -227,7 +240,7 @@ law serve_ring_exact:
   for +hc: {IM.ix.look(I, k) == Some{nc} : Maybe<&2, U32>}
   for +hu: {RG.far.off(cs, k) == True{} : Bool}
   for +hro: {SV.root.ok(rn, rp, ts, dm, cs) == True{} : Bool}
-  {RG.px.ok(AD.view(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc))), d, s, IM.ix.del(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), Nil{}, RG.without(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc), Con{nc, IM.mb.cons(IM.ix.par(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc)), d) == True{} : Bool}
+  {RG.px.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, True{}))), d, s, IM.ix.del(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), Nil{}, RG.without(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc), Con{nc, IM.mb.cons(IM.ix.par(RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), nc, k), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, True{})), d) == True{} : Bool}
 
 # LAW: a serve's writes at the source's root, its copy, its crossings and
 # the served cursor's leave (serve_keeps's, then leave_keeps's): no word
@@ -240,6 +253,8 @@ law serve_ring_exact:
 # a join may have changed: each live node faces, through the crossings, a
 # port a live node or a hole faced after the copy (cfi.go), so that the
 # bound holds. Not claimed: as serve_ring_exact.
+# Stated over SC.serve, the materializer's own composition
+# (glam/serve.bend; laws-over-tests, cursor-laws.materializer).
 # Record: copy-reduced-function-nets
 # Record: serve-write-sets-hybrid
 # Record: cursors-indexed
@@ -286,4 +301,4 @@ law serve_root_keeps:
   for +hjM: {RG.off.nodes(M, d, j) == True{} : Bool}
   for +hjh: {KMd.off.words(KMd.hdr_all(), d, j) == True{} : Bool}
   for +hjf: {RG.off.ports(RG.faced(Con{s, t}, AD.view(U32, w), d), d, j) == True{} : Bool}
-  {Pair.snd(P.H, U32, P.rd(R.leave(Pair.snd(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), (Pair.snd(Array<U32>, U32, Array.get(U32, Pair.fst(Array<U32>, P.H, R.crossings(cs, (SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by))), SM.heap(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), s)), rn)) + rp : U32), nc), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}
+  {Pair.snd(P.H, U32, P.rd(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, True{}), j)) == Pair.snd(P.H, U32, P.rd(P.H{KM.MG{w}, a}, j)) : U32}

@@ -1,5 +1,6 @@
-# Mutations of the code the serve's laws follow (glam/splice_copy.bend), each
-# naming the laws of glam/SERVE_LAWS.bend it should fail (docs/Proving.md;
+# Mutations of the code the serve's laws follow (glam/splice_copy.bend,
+# glam/serve.bend), each naming the laws of glam/SERVE_LAWS.bend it should
+# fail (docs/Proving.md;
 # the gate runs scripts/one_law.py --mutants on this file). A witness is
 # the law's instance, its premises the template's and the allocator's,
 # each proved by computation (scripts/one_law.py), so that a witness
@@ -50,6 +51,9 @@ cs = [R.FzC{1, 7, True{}, 9}]
 I = IM.Ept{}
 F = Nil{}
 M = Con{8, Nil{}}
+nc = 0
+rn = 0
+rp = 0
 
 === hole_in_place copy_pend serve_pend
 each template node made in place at slot 0, not taken from the free
@@ -91,6 +95,9 @@ cs = [R.FzC{1, 7, True{}, 9}]
 I = IM.Ept{}
 F = Nil{}
 M = Con{8, Nil{}}
+nc = 0
+rn = 0
+rp = 0
 
 === serve_in_place serve_keeps
 each template node made in place at slot 0: the copy writes the header's
@@ -118,6 +125,9 @@ I = IM.Ept{}
 F = Nil{}
 M = Con{8, Nil{}}
 j = 3
+nc = 0
+rn = 0
+rp = 0
 
 === serve_map_unwritten serve_ring_exact serve_root_keeps
 the copy's map left as it was, no node's reference put at its index:
@@ -229,3 +239,67 @@ k = 7
 rn = 0
 rp = 0
 j = 45
+
+=== root_never_left serve_ring_exact
+the served cursor at the source's root never leaving, its copy's root
+port unlinked: the cursor kept in the index
+--- serve.bend
+    case True{}:
+      match root:
+        case T.TE{+n, +p}:
+          rt.e(Array.get(U32, map, n), h, p, nc)
++++
+    case True{}:
+      h
+>>> witness serve_ring_exact
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 18)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = [36]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = Nil{}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+nc = 12
+k = 7
+rn = 0
+rp = 0
+
+=== root_always_left serve_pend
+the served cursor leaving away from the source's root too, the copy's
+root port linked in its place: the cursor out of the index, which the
+crossings' model keeps
+--- serve.bend
+    case False{}:
+      h
++++
+    case False{}:
+      match root:
+        case T.TE{+n, +p}:
+          rt.e(Array.get(U32, map, n), h, p, nc)
+>>> witness serve_pend
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+map = Array.set(U32, [0 : U32^1n], 0, 18)
+d = 6n
+dm = 1n
+ts = [T.TN{RU.KFn{}, V.PNone{}}]
+ls = Nil{}
+by = 0
+ns = [36]
+s = 8
+t = Con{12, Con{16, Nil{}}}
+cs = Nil{}
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+F = Nil{}
+M = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+nc = 12
+rn = 0
+rp = 0
