@@ -829,6 +829,52 @@ def rpom(K: List<&2, U32>, {RPAR}, +hK: {T('RG.sub(K, M)')}) -> {T(f'RG.po.all({
 {rp_body('M','rpom',False)}
 def rpop(K: List<&2, U32>, {RPAR}, +hK: {T(f'RG.sub(K, {PLS})')}) -> {T(f'RG.po.all({PW}, [], d, K)')}:
 {rp_body(PLS,'rpop',True)}'''
+# the copy's root port as the materializer reads it (glam/serve.bend's
+# rt.e: the map the copy leaves, Array.get): from the node pass's map read
+# as a view (PW), the links leaving the map (lmap), a read in range
+# (get_view)
+PA=lambda spl: f'(Pair.snd(Array<U32>, U32, Array.get(U32, SM.map({spl}), rn)) + rp : U32)'
+def RPC0(pred, prf):
+    PEz=lambda z: f'(Pair.snd(Array<U32>, U32, Array.get(U32, {z}, rn)) + rp : U32)'
+    SOME=f'Some{{Pair.snd(Array<U32>, U32, Array.get(U32, SM.map({SPN}), rn))}}'
+    LG=f'List.get(&2, U32, AD.view(U32, SM.map({SPN})), AD.slot(rn, dm))'
+    MFN=f'SPP.mfull_go(ts, SPP.hd_era(ts), {{==}}, {T0}, {TA}, {TM}, dm, 0, by, hfmt, LAT.mirror(U32, {T0}), LAT.mirror(V.Val, {TA}), LAT.mirror(U32, {TM}))'
+    return (f"ME.subst(Array<U32>, zz => {pred(PEz('zz'))}, SM.map({SPN}), {MAP1}, Equal.sym(Array<U32>, {MAP1}, SM.map({SPN}), lmap(ls, {SPN})), "
+            f"ME.subst(Maybe<&2, U32>, zz => {pred('(KMd.word.m(zz) + rp : U32)')}, {LG}, {SOME}, Equal.sym(Maybe<&2, U32>, {SOME}, {LG}, LA.get_view(U32, SM.map({SPN}), dm, rn, {MFN}, hdm)), {prf}))")
+NROOT0='Bool.not(SV.sl.in(SV.ats(cs), dm, rn)) && SM.port3(rp)'
+PCRO=lambda spl, mm: T(f"RG.po.all({PA(spl)}, [], d, {AP('M', f'RG.pls(cs, AD.view(U32, SM.map({spl})), dm)')})")
+sec6+=f'''
+# the copy's root port, its node no hole at a port below 3 (SV.root.ok):
+# its link word, read through the map the copy leaves, off every word of
+# the tracked nodes, of the holes, and off the head (copy_root_off;
+# cursor-laws.materializer.rootport)
+def cro.core({CORE_P}, +rn: U32, +rp: U32, +hro: {T('SV.root.ok(rn, rp, ts, dm, cs)')}) -> {PCRO(SPL, MAP1)}:
+{lets}  +hk1 = {L('SV.node.at(ts, dm, rn)', NROOT0, 'hro')}
+  +hnin = MB.eq_false_of_not_eq_true(SV.sl.in(SV.ats(cs), dm, rn), {L('Bool.not(SV.sl.in(SV.ats(cs), dm, rn))', 'SM.port3(rp)', R('SV.node.at(ts, dm, rn)', NROOT0, 'hro'))})
+  +hp3 = {R('Bool.not(SV.sl.in(SV.ats(cs), dm, rn))', 'SM.port3(rp)', R('SV.node.at(ts, dm, rn)', NROOT0, 'hro'))}
+  {RPC0(lambda pe: T(f'RG.po.all({pe}, [], d, {Mp})'), f"po_app(M, {PLS}, {PW}, [], d, rpom(M, {RARG}, GP.sub_refl(M)), rpop({PLS}, {RARG}, GP.sub_refl({PLS})))")}
+
+def cro.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, +ts: List<&2, T.TNode>, +ls: List<&2, T.TLink>, +by: U32, +ns: List<&2, U32>, +s: U32, +t: List<&2, U32>, +cs: List<&2, R.FzC>,
+  +I: IM.Ix, +F: List<&2, U32>, +M: List<&2, U32>, +rn: U32, +rp: U32, hf: {{AD.full(U32, w, d) == True{{}} : Bool}}, +hd32: {{Nat.is_lt(d, 32n) == True{{}} : Bool}}, hfm: {{AD.full(U32, map, dm) == True{{}} : Bool}}, +hdm: {{Nat.is_lt(dm, 32n) == True{{}} : Bool}},
+  +hN: {T(f'RG.layout({MN}, d)')}, +hB: {T(f'RG.bases({MN})')}, hp: {HPw('w')}, +hl: {{SM.made(ts) == List.length(&2, U32, ns) : Nat}}, +hpaMN: {T(f'KMd.past({MN}, d)')},
+  +hhd: {T('KMd.off.words(KMd.hdr_words(), d, P.at_fh())')}, +hLd: {T(f'RG.distinct({L0})')}, +ht: {T('SM.tpl.ok(ls, ts, dm)')}, +hcp: {T('SV.copy.ok(cs, ls, ts, dm)')},
+  +hro: {T('SV.root.ok(rn, rp, ts, dm, cs)')}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a), mm: LAT.Mirror(U32, map)) -> {PCRO(SPLw('w','a','map'), 'map')}:
+  (+t0, +ew) = mw
+  (+ta, +ea) = ma
+  (+tm, +em) = mm
+  +hft = LAP.full_t(U32, w, t0, d, ew, hf)
+  +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
+  +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
+  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  %ew : {PCRO(SPLw('_','a','map'), 'map')}
+  %ea : {PCRO(SPLw(T0,'_','map'), 'map')}
+  %em : {PCRO(SPLw(T0,TA,'_'), '_')}
+  cro.core({CORE_A.replace('hp, hl','hpT, hl').replace('hfr, hLd','hfrT, hLd')}, rn, rp, hro)
+
+def Laws.copy_root_off(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, rn, rp, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hro):
+  cro.go(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, rn, rp, hf, hd32, hfm, hdm, hN, hB, hp, hl, hpa, hhd, hLd, ht, hcp, hro, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+'''
 # the core
 HE=f'P.H{{KM.MG{{{W1}}}, {A1}}}'
 CX=f'RG.cxs(cs, {MAPV}, dm, I, {Lp}, F)'; CXI=f'RG.cxs.I({CX})'; CXL=f'RG.cxs.L({CX})'; CXF=f'RG.cxs.F({CX})'
@@ -855,17 +901,17 @@ sec6+=f'''
 # port joined in its place: leave_pend on crossings_pend on copy_pend
 def rx.core({CORE_P}, {EP}) ->
   {T(CONC(f'SM.heap({SPL})'))}:
-{lets}  +hk1 = {L('SV.node.at(ts, dm, rn)', NROOT, 'hro')}
-  +hnin = MB.eq_false_of_not_eq_true(SV.sl.in(SV.ats(cs), dm, rn), {L('Bool.not(SV.sl.in(SV.ats(cs), dm, rn))', 'SM.port3(rp)', R('SV.node.at(ts, dm, rn)', NROOT, 'hro'))})
-  +hp3 = {R('Bool.not(SV.sl.in(SV.ats(cs), dm, rn))', 'SM.port3(rp)', R('SV.node.at(ts, dm, rn)', NROOT, 'hro'))}
-  +hpx = cpi.core({CORE_A})
-  +hNp = GP.lay_sub({Mp}, {MN}, d, hMpMN, hN, apall_of({Mp}, {MN}, d, hMpMN, hN, {DMP}))
-  +hBp = GP.bases_sub({Mp}, {MN}, hMpMN, hB)
-  +hc = GL.crossings_look({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, k, nc, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok, hc0, hu)
-  +hcx = GL.crossings_pend({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok)
+  +hcy = Laws.copy_pend({T0}, {TA}, {TM}, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, hft, hd32, hfmt, hdm, hN, hB, hp, hl, hpaMN, hhd, hLd, ht, hcp)
+  +hpx = {proj(CPt,0,'hcy')}
+  +hfw = {proj(CPt,1,'hcy')}
+  +hfmp = {proj(CPt,2,'hcy')}
+  +hNp = {proj(CPt,3,'hcy')}
+  +hBp = {proj(CPt,4,'hcy')}
+  +hc = GL.crossings_look({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, k, nc, hfw, hd32, hfmp, hdm, hNp, hBp, hpx, hok, hc0, hu)
+  +hcx = GL.crossings_pend({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, hfw, hd32, hfmp, hdm, hNp, hBp, hpx, hok)
   +hp2 = ME.subst(Array<U32>, zz => {T(f'RG.px.ok(AD.view(U32, zz), d, s, {CXI}, [], {CXL}, {CXF}, {Mp})')}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {L(PXc, FLc, 'hcx')})
   +hf2 = ME.subst(Array<U32>, zz => {{AD.full(U32, zz, d) == True{{}} : Bool}}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {R(PXc, FLc, 'hcx')})
-  +hpo = {RPC(lambda pe: T(f'RG.po.all({pe}, [], d, {Mp})'), f"po_app(M, {PLS}, {PW}, [], d, rpom(M, {RARG}, GP.sub_refl(M)), rpop({PLS}, {RARG}, GP.sub_refl({PLS})))")}
+  +hpo = ME.subst(Array<U32>, zz => {T(f"RG.po.all((Pair.snd(Array<U32>, U32, Array.get(U32, zz, rn)) + rp : U32), [], d, {Mp})")}, {MAP1}, Pair.fst(Array<U32>, P.H, R.crossings(cs, ({MAP1}, {HE}), s)), Equal.sym(Array<U32>, Pair.fst(Array<U32>, P.H, R.crossings(cs, ({MAP1}, {HE}), s)), {MAP1}, cr_map(cs, {MAP1}, {HE}, s, LAT.mirror(U32, {MAP1}))), Laws.copy_root_off({T0}, {TA}, {TM}, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, rn, rp, hft, hd32, hfmt, hdm, hN, hB, hp, hl, hpaMN, hhd, hLd, ht, hcp, hro))
   %SPP.heta(SM.heap({SPL})) : {T(CONC('_'))}
   %SPP.heta({H2}) : {T(CONC(HE, '_'))}
   GL.leave_pend(KMd.words({H2}), KMd.vals({H2}), d, s, {CXI}, [], {CXL}, {CXF}, {Mp}, {PEXP(HE)}, nc, k, hf2, hd32, hNp, hBp, hp2, hc, hpo)
@@ -983,7 +1029,7 @@ def rk.core({CORE_P}, {EP}, +j: U32, +hj: {T('KMd.nodes.off(ns, d, j)')}, +hjM: 
   +hcx = GL.crossings_pend({W1}, {A1}, {MAP1}, d, dm, s, I, {Lp}, F, {Mp}, cs, copy_full({CTXA}), hd32, {MAPFULL}, hdm, hNp, hBp, hpx, hok)
   +hp2 = ME.subst(Array<U32>, zz => {T(f'RG.px.ok(AD.view(U32, zz), d, s, {CXI}, [], {CXL}, {CXF}, {Mp})')}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {L(PXc, FLc, 'hcx')})
   +hf2 = ME.subst(Array<U32>, zz => {{AD.full(U32, zz, d) == True{{}} : Bool}}, RG.words({H2}), KMd.words({H2}), GP.rw_kw({H2}), {R(PXc, FLc, 'hcx')})
-  +hpo = {RPC(lambda pe: T(f'RG.po.all({pe}, [], d, {Mp})'), f"po_app(M, {PLS}, {PW}, [], d, rpom(M, {RARG}, GP.sub_refl(M)), rpop({PLS}, {RARG}, GP.sub_refl({PLS})))")}
+  +hpo = ME.subst(Array<U32>, zz => {T(f"RG.po.all((Pair.snd(Array<U32>, U32, Array.get(U32, zz, rn)) + rp : U32), [], d, {Mp})")}, {MAP1}, Pair.fst(Array<U32>, P.H, R.crossings(cs, ({MAP1}, {HE}), s)), Equal.sym(Array<U32>, Pair.fst(Array<U32>, P.H, R.crossings(cs, ({MAP1}, {HE}), s)), {MAP1}, cr_map(cs, {MAP1}, {HE}, s, LAT.mirror(U32, {MAP1}))), Laws.copy_root_off({T0}, {TA}, {TM}, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, rn, rp, hft, hd32, hfmt, hdm, hN, hB, hp, hl, hpaMN, hhd, hLd, ht, hcp, hro))
   +hjMp = offn_app(M, {PLS}, d, j, hjM, GP.off_nodes_sub({PLS}, ns, d, j, hPs, rn_of(ns, d, j, hj)))
   +hjh2 = MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)), {L('Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(j, d)))','KMd.off.words(KMd.hdr_words(), d, j)','hjh')})
   +hjf2 = {hjf2}

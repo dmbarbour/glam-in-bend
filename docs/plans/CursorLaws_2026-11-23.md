@@ -170,7 +170,18 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`rpom`, `rpop`). A law of the copy giving the latter, beside
       `copy_pend`, would leave the root's laws `serve_pend`,
       `crossings_look` and `leave_pend` alone.
-    - `cursor-laws.materializer.rootport` — planned — a law of the copy
+    - `cursor-laws.materializer.rootport` — built 2026-11-24 — on the
+      side branch `cursor-laws-frontier`: `copy_root_off`, the copy's
+      root port read as `rt.e` reads it, its link word off the tracked
+      nodes' words and the head, a law of the copy beside `copy_pend`,
+      refuted by `serve_map_unwritten`. `serve_ring_exact`'s proof now
+      composes laws alone: `copy_pend`, `copy_root_off`,
+      `crossings_pend`, `crossings_look` and `leave_pend`, with three
+      generic lemmas between them (the crossings return the map they
+      are given, `cr_map`; a heap's words read two ways, `rw_kw`; the
+      heap's eta). `serve_root_keeps` takes its port from the new law
+      too; its frame's region facts stay internal to it. As written:
+      a law of the copy
       beside `copy_pend`: the copy's root port, read through the map the
       copy leaves, has its link word off every tracked node's words and
       off the free list's head (`RG.po.all` over `M` and the holes),
@@ -191,11 +202,23 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `freeze_finished` builds the empty one, and only tests call it.
       The laws' "Not claimed: that freeze builds such templates" stays
       true; these laws would claim it.
-    - `cursor-laws.materializer.frontier` — planned — a law that the
-      frontier's join never meets the served cursor
-      (`cells-freeze.nested.host.join.self`), replacing the check if
-      practical, and the frontier's `join` and the eraser's `leave` as
-      call sites.
+    - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
+      out: the frontier's `q` is the source port facing the served
+      position (`pd.peer`, the source's word `pos + 1`). The index finds
+      the served cursor at `q` only where `q == pos`, the source's port
+      at the position facing itself. So the check guards a property of
+      the source's net, not of the index or the materializer, and a law
+      replacing it is a law of the kernel's nets: no port faces itself,
+      kept by every rewrite. The kernel's rules have their half
+      (`rules_no_self_links`, `spike/LAWS.bend`: no rule links two ports
+      of one of its new nodes); the net's, over a heap through every
+      rewrite, is not stated. Until it is, the check stays: one compare a serve
+      (`corruption-reported-when-cheap`; its report now stops the run,
+      `implementation-errors-stop`). The kernel's law is tentative,
+      beyond this plan (`cells-freeze.nested.host.join.self` keeps the
+      note). The frontier's `join` and the eraser's `leave` are call
+      sites of laws already (`join_pend`, `leave_era_pend`), their
+      premises the materializer's to meet.
     - `cursor-laws.materializer.fresh` — tentative — the fresh map
       (`mz.fz.t` makes `[0 : U32^T.depth_for(31n, size, 0n)]` and passes
       `k` as the offset) under the laws, which wants a law of
