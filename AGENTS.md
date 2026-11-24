@@ -194,7 +194,8 @@ commit. A check whose inputs are unchanged keeps its pass (a verdict, a
 Bend file's typecheck, the library's whole run; `scripts/kept.py`,
 `spike/tools/library.py`), never a failure: 16 s when only Blend or the
 docs change, near 200 s when the spike does, its verdict 57 s and the
-library 96 s (2026-11-05). Blend has its own gate,
+library 96 s (2026-11-05); the longest verdict now the serve's, 94 s,
+`materialize.bend`'s imports 85 s of it (2026-11-24). Blend has its own gate,
 `blend/check.sh`, which this one runs as a section at the commit the
 submodule has checked out; git leaves Blend's files out of the others.
 Report its result as it is: a check skipped or too slow to finish is not

@@ -5,6 +5,7 @@ import Base
 import ../spike/kprim.bend as P
 import ./position.bend as Q
 import ./position_model.bend as QM
+import ../spike/kdemand.bend as KD
 import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V
 import ../spike/knet.bend as KN
@@ -27,6 +28,19 @@ law front_faces:
   for +g: Nat
   for +f: Nat
   {QM.front.at(Q.positioned(h, pos, g, f), pos) == True{} : Bool}
+
+# LAW: front_faces for demand going on from a walk d stopped and set
+# going again (Q.positioned.from, a serve going on, serve.from): its
+# frontier's port is the position's link word in the frontier's own
+# heap, any walk, no premise.
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+law front_faces_from:
+  for d: KD.D
+  for +pos: U32
+  for +g: Nat
+  for +f: Nat
+  {QM.front.at(Q.positioned.from(d, pos, g, f), pos) == True{} : Bool}
 
 # LAW: the frontier apart from the position
 # (cursor-laws.noself.frontier.apart): a frontier facing a position

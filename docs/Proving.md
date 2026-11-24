@@ -461,9 +461,14 @@ it alone taught. Add to this file what a new proof teaches.
   them.** The serve's end (`glam/MATERIALIZE_PROOF.bend`) takes four
   rewrites, the demand's end, the find, the find's answer and the
   check, each motive the goal with that read a hole; the code between
-  reduces. Another file's law is called through its laws file, its
-  proof file imported beside to fill it. An equation over a `Type`
-  (`Q.Pd`'s) may be marked `+` and named twice, as one over `Data`.
+  reduces. An equation over a `Type` (`Q.Pd`'s) may be marked `+` and
+  named twice, as one over `Data`.
+- **A verdict's cost is mostly its imports'.** Time a file of the
+  imports alone, with one trivial def, before blaming the proofs. The
+  hub's `string.bend` costs about 75 s (2026-11-24, Bend 2.0.39), which
+  the proof files took for one lemma, `u32_eq_of_is_eq`, now copied into
+  `glam/lemmas.bend`; `glam/materialize.bend`'s closure costs 85 s, the
+  floor of any law over the serve's code.
 - **A loop's step is settled at the ends it makes.** For a loop
   `loop.r(step(h), more)`, one lemma walks `step`'s branches to the end
   each makes and settles it there: an end by its own lemma, a "go

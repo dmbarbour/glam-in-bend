@@ -43,3 +43,12 @@ law's proof fails on it, through wired_port's)
       wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x), h, x, y, ok)
 +++
       wa.at(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap), h, x, y, ok)
+
+=== frontier_read_past_ended front_faces front_faces_from
+a walk's frontier read one word past the position's link word; caught
+by the laws' proofs failing, a stopped walk costly to build as a witness
+--- position.bend
+          PdEnd{pd.peer.r(pd.peer(pd.h(d), pos), (acc + n : U32))}
++++
+          PdEnd{pd.peer.r(P.rd(pd.h(d), (pos + 2 : U32)), (acc + n : U32))}
+

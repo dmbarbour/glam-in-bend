@@ -10,15 +10,18 @@ import ../spike/knet.bend as KN
 import ../spike/krules.bend as KR
 import ../spike/kmodel.bend as KMd
 import ./position.bend as Q
+import ./position_model.bend as QM
 import ./ring.bend as R
 import ./index_model.bend as IM
 import ./materialize.bend as M
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
-# LAW: a serve whose positioned demand ends at the frontier joins the
-# served cursor nc to the cursor the host's index finds at the frontier's
-# port, never reporting it as itself (cursor-laws.noself.frontier.cursor):
-# the port faces the position (front_faces) and is not it (front_apart),
+# LAW: a serve whose positioned demand ends at the frontier (sv.pd, which
+# serve and serve.from both end in) joins the served cursor nc to the
+# cursor the host's index finds at the frontier's port, never reporting
+# it as itself (cursor-laws.noself.frontier.cursor): the port faces the
+# position (QM.front.at: front_faces on a fresh serve, front_faces_from
+# on one going on from a walk) and is not it (front_apart),
 # and the cursor found there holds the port as its key, where nc holds
 # the position (found_apart). So sv.front.c's check never fires, under
 # the premises. On the source's frontier heap, the kernel's to discharge
@@ -45,12 +48,9 @@ law front_joins:
   for +pos: U32
   for +hpos: {pos == ((j << 2n : U32) + p : U32) : U32}
   for +hns: {P.is_static(pos) == False{} : Bool}
-  for s0: P.H
-  for +g: Nat
-  for +f: Nat
   for +q: U32
   for +n: U32
-  for +hpd: {Q.positioned(s0, pos, g, f) == Q.PdFront{P.H{KM.MG{w}, a}, q, n} : Q.Pd}
+  for hfa: {QM.front.at(Q.PdFront{P.H{KM.MG{w}, a}, q, n}, pos) == True{} : Bool}
   for wh: Array<U32>
   for ah: Array<V.Val>
   for +dh: Nat
@@ -65,7 +65,7 @@ law front_joins:
   for +k: U32
   for +c: U32
   for +hc: {IM.ix.look(I, q) == Some{c} : Maybe<&2, U32>}
-  {M.sv.pd(Q.positioned(s0, pos, g, f), P.H{KM.MG{wh}, ah}, situ, k, nc, pos) == M.SvOk{P.H{KM.MG{w}, a}, R.join(P.H{KM.MG{wh}, ah}, nc, c), n, 1} : M.Sv}
+  {M.sv.pd(Q.PdFront{P.H{KM.MG{w}, a}, q, n}, P.H{KM.MG{wh}, ah}, situ, k, nc, pos) == M.SvOk{P.H{KM.MG{w}, a}, R.join(P.H{KM.MG{wh}, ah}, nc, c), n, 1} : M.Sv}
 
 # LAW: front_joins on the one-net path (sv1.pd, self-copies-are-cursors):
 # the source the host itself, every premise on the heap after the walks,
@@ -89,12 +89,9 @@ law front_joins1:
   for +pos: U32
   for +hpos: {pos == ((j << 2n : U32) + p : U32) : U32}
   for +hns: {P.is_static(pos) == False{} : Bool}
-  for s0: P.H
-  for +g: Nat
-  for +f: Nat
   for +q: U32
   for +n: U32
-  for +hpd: {Q.positioned(s0, pos, g, f) == Q.PdFront{P.H{KM.MG{w}, a}, q, n} : Q.Pd}
+  for hfa: {QM.front.at(Q.PdFront{P.H{KM.MG{w}, a}, q, n}, pos) == True{} : Bool}
   for +situ: U32
   for +I: IM.Ix
   for +hr: {IM.ix.real(AD.view(U32, w), d, situ, I) == True{} : Bool}
@@ -104,4 +101,4 @@ law front_joins1:
   for +k: U32
   for +c: U32
   for +hc: {IM.ix.look(I, q) == Some{c} : Maybe<&2, U32>}
-  {M.sv1.pd(Q.positioned(s0, pos, g, f), situ, k, nc, pos) == M.S1Ok{R.join(P.H{KM.MG{w}, a}, nc, c), n, 1} : M.Sv1}
+  {M.sv1.pd(Q.PdFront{P.H{KM.MG{w}, a}, q, n}, situ, k, nc, pos) == M.S1Ok{R.join(P.H{KM.MG{w}, a}, nc, c), n, 1} : M.Sv1}

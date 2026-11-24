@@ -30,6 +30,7 @@ import ../spike/rules.bend as R
 import ../spike/tpl.bend as T
 import ../spike/knet.bend as KN
 import ../spike/kdemand.bend as KD
+import ../spike/kernel.bend as K
 import ./position.bend as Q
 import ./position_model.bend as QM
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
@@ -169,6 +170,10 @@ def front_loop(g: Nat, +f: Nat, h: P.H, +pos: U32, +acc: U32) -> {QM.front.at(Q.
 
 def Laws.front_faces(h, pos, g, f):
   front_loop(g, f, h, pos, 0)
+
+# going on from a walk: its end settled first, the loop after
+def Laws.front_faces_from(d, pos, g, f):
+  lp.ended(K.demand_ev(0, f, d), pos, 0, g, f, h2 => a2 => front_loop(g, f, h2, pos, a2))
 
 # --- the frontier apart from the position (front_apart)
 
