@@ -389,7 +389,11 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         capacity. It owes what `emits_counts` leaves: the placeholders'
         indices distinct (no wrap past `n`), and the template `fz.tpl`
         makes of the record, `nodes` `n` long. `emits_far`'s map depth
-        below 32 wants the read part at most `2^29`. M.
+        below 32 wants the read part at most `2^29`. Both size premises
+        come from the heap's capacity: node words up to `2^30`, so at
+        most `2^28` nodes (`net-capacity`, `spike/kprim.bend`'s
+        `w_maxd`), under `2^29` and `map_depth`'s `2^31` (the
+        maintainer, 2026-11-24). M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
