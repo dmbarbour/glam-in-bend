@@ -233,13 +233,56 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the search starting a power too high. Shared with `.fresh`, for
         which it gives the map's fullness and depth. The size at most
         `2^31` becomes freeze's obligation, under `.compose`.
-      - `cursor-laws.materializer.template.emit` — planned — laws of the
-        write phase, on a list of distinct node bases: the holes at
-        distinct indices from `n`, each named by its one link at its
-        port 0 from a finished node; the root a finished node's port
-        below 3; the crossings' positions distinct (distinct node and
-        port pairs). Stated over indices, then over slots at the depth
-        `.depth` gives. M.
+      - `cursor-laws.materializer.template.emit` — active — laws of
+        the write phase. Re-sliced 2026-11-24 after a test of the form
+        its proofs take. A record holding the heap and the map is named
+        once in a proof's terms, so lemmas chained as implications over
+        it fail. Each step is instead an equation over mirrors: the
+        heap's words, its value table and the map as `Data` trees, the
+        code's result rewritten into a pure model of the six data fields
+        (`fz.peer`'s closed, two ports chained). The laws are stated
+        over any heap, mirrored inside their defs (`find_tree.m`'s
+        house style). The bridge stays lemmas.
+        - `cursor-laws.materializer.template.emit.shape` — built
+          2026-11-24 — the node's read and `P.peek` matched `U32`
+          literals, stuck in a proof's default arm (`docs/Proving.md`,
+          "Test values; do not match literals"). The node is read by its
+          kind, `N.kof` computed once for the read and the ports, and
+          `peek` tests its form. Old and new agree by computation on
+          every code and form. Serves cost 0.16% fewer instructions
+          (`scripts/cursors.py`, 100 to 400, run 343), and the kernel's
+          workloads 12.4K fewer, flat (run 342). The segments are
+          unchanged.
+        - `cursor-laws.materializer.template.emit.counts` — active — the
+          bridge end to end (the probe, `fz.peer`, the node's read, an
+          error's write carried by lawful-arrays' `set_tree_eq`), the
+          mirrors at the law's def, and the first law. Each crossing's
+          placeholder is one of the nodes after the `n` read, in order,
+          and the template's next index counts them
+          (`glam/freeze_model.bend`'s `inv`). No heap or map premise
+          but the map's fullness.
+        - `cursor-laws.materializer.template.emit.links` — planned — each link
+          either a placeholder's port 0 to a finished node, or between
+          two indices below `n`, a finished-to-finished link ending at
+          `v - 1` for the map's value `v`. Wants the table's lookup law
+          (`.walk`'s) and the read words.
+        - `cursor-laws.materializer.template.emit.kinds` — planned — the template
+          nodes' kinds and the root a finished node's port below 3.
+        - `cursor-laws.materializer.template.emit.positions` — planned — the
+          crossings' positions distinct, over distinct aligned bases.
+        The slices need of the walk's list: its length `n` (the index
+        counted down on words from `n - 1`), each base's kind (as
+        `N.kof` gives it; relating the walk's tests of the code,
+        `fz.is_era`, to kinds is a literal match again, `.walk`'s to
+        do), the map's values, and distinct aligned bases. To decide
+        before `.links`: the walk's premises are about the heap before
+        the write phase, while reads after an error's count (a free
+        table entry, word 1 written) come from the updated tree. Either
+        a frame lemma at word 1 with address facts, or premises on the
+        current tree. Not claimed: that the root is the port facing the
+        interface (it starts as `T.TE{0, 0}`, which the root's check
+        accepts once `n >= 1`). Stated over indices, then over slots at
+        the depth `.depth` gives. M to L.
       - `cursor-laws.materializer.template.walk` — planned — re-scoped
         2026-11-24 on reading `fz.mark`: the finished part's walk
         (`all` false) never consults the table. It marks each node it

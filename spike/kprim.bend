@@ -984,17 +984,26 @@ def take(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
     case _:
       chk(tab_take(h, w))
 
-# the same, the entry kept
-def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
-  match m:
-    case 1:
+# the same, the entry kept: the form tested, not matched, so that a proof
+# reduces it (docs/Proving.md, "Test values; do not match literals"; the
+# write phase's laws in glam/FREEZE_LAWS.bend read through it)
+def peek.k(+one: Bool, +two: Bool, +three: Bool, h: H, +f: U32, +w: U32) -> H & V.Val:
+  match one:
+    case True{}:
       (h, V.VNum{w})
-    case 2:
-      (h, V.VFun{bop(f), bneed(f), Nil{}})
-    case 3:
-      (h, V.VFun{bop(f), bneed(f), [V.VNum{w}]})
-    case _:
-      chk(tab_get(h, w))
+    case False{}:
+      match two:
+        case True{}:
+          (h, V.VFun{bop(f), bneed(f), Nil{}})
+        case False{}:
+          match three:
+            case True{}:
+              (h, V.VFun{bop(f), bneed(f), [V.VNum{w}]})
+            case False{}:
+              chk(tab_get(h, w))
+
+def peek(h: H, +m: U32, +f: U32, +w: U32) -> H & V.Val:
+  peek.k(U32.is_eq(m, 1), U32.is_eq(m, 2), U32.is_eq(m, 3), h, f, w)
 
 # the word for a copy of a value of form m: an entry duplicated (the Bend
 # value shared), any other word as it is

@@ -287,9 +287,28 @@ def fz.word(r: P.H & U32, k: R.NodeKind, +hd: U32) -> P.H & T.TNode:
   (h, +w) = r
   fz.val(P.peek(h, P.form(hd), P.fld(hd), w), k)
 
-# a fan, or a node with no payload
-def fz.node.f(k: R.NodeKind, h: P.H, +hd: U32) -> P.H & T.TNode:
+# a node read back from its header hd at base b, of kind k: matched by
+# its kind, not its code, so that a proof reduces it (docs/Proving.md,
+# "Test values; do not match literals"), the kind computed once for the
+# node's read and its ports (fz.emit.hd)
+def fz.node.k(k: R.NodeKind, h: P.H, +hd: U32, +b: U32) -> P.H & T.TNode:
   match k:
+    case R.KFn{}:
+      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KFn{}, P.fld(hd)))
+    case R.KAp{}:
+      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KAp{}, P.fld(hd)))
+    case R.KFnD{}:
+      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KFnD{}, P.fld(hd)))
+    case R.KData{}:
+      fz.word(P.rd(h, (b + 2 : U32)), R.KData{}, hd)
+    case R.KOp{}:
+      fz.word(P.rd(h, (b + 3 : U32)), R.KOp{}, hd)
+    case R.KDOp{}:
+      fz.word(P.rd(h, (b + 3 : U32)), R.KDOp{}, hd)
+    case R.KLift{}:
+      fz.lift(P.rd(h, (b + 3 : U32)), R.KLift{}, P.fld(hd))
+    case R.KLiftC{}:
+      fz.lift(P.rd(h, (b + 3 : U32)), R.KLiftC{}, P.fld(hd))
     case R.KCopy{}:
       (h, fz.fan(U32.is_eq(P.form(hd), P.unlev()), R.KCopy{}, P.fld(hd)))
     case R.KMerge{}:
@@ -304,28 +323,6 @@ def fz.node.f(k: R.NodeKind, h: P.H, +hd: U32) -> P.H & T.TNode:
       (h, fz.fan(U32.is_eq(P.form(hd), P.unlev()), R.KMergeR{}, P.fld(hd)))
     case _:
       (h, T.TN{k, V.PNone{}})
-
-# a node read back from its header hd at base b, its kind's code c
-def fz.node.c(+c: U32, h: P.H, +hd: U32, +b: U32) -> P.H & T.TNode:
-  match c:
-    case 1:
-      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KFn{}, P.fld(hd)))
-    case 2:
-      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KAp{}, P.fld(hd)))
-    case 17:
-      (h, fz.lv(U32.is_eq(P.form(hd), P.unlev()), R.KFnD{}, P.fld(hd)))
-    case 5:
-      fz.word(P.rd(h, (b + 2 : U32)), R.KData{}, hd)
-    case 9:
-      fz.word(P.rd(h, (b + 3 : U32)), R.KOp{}, hd)
-    case 16:
-      fz.word(P.rd(h, (b + 3 : U32)), R.KDOp{}, hd)
-    case 10:
-      fz.lift(P.rd(h, (b + 3 : U32)), R.KLift{}, P.fld(hd))
-    case 11:
-      fz.lift(P.rd(h, (b + 3 : U32)), R.KLiftC{}, P.fld(hd))
-    case _:
-      fz.node.f(N.kof(c), h, hd)
 
 
 # Writing the template
@@ -447,13 +444,14 @@ def fz.peers(z: FzE, +k: R.NodeKind, +b: U32, +i: U32, a: Nat) -> FzE:
             case 1n+y:
               fz.peer(fz.peer(fz.peer(z, k, b, i, 0), k, b, i, 1), k, b, i, 2)
 
-def fz.emit.t(r: P.H & T.TNode, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +c: U32, +b: U32, +i: U32) -> FzE:
+def fz.emit.t(r: P.H & T.TNode, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +k: R.NodeKind, +b: U32, +i: U32) -> FzE:
   (h, t) = r
-  fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, N.kof(c), b, i, R.arity(N.kof(c)))
+  fz.peers(FzE{h, map, Con{t, nodes}, eras, ne, ls, root, curs}, k, b, i, R.arity(k))
 
 def fz.emit.hd(r: P.H & U32, map: Array<U32>, nodes: List<&2, T.TNode>, eras: List<&2, T.TNode>, +ne: U32, ls: List<&2, T.TLink>, root: T.TEnd, curs: List<&2, RN.FzC>, +b: U32, +i: U32) -> FzE:
   (h, +hd) = r
-  fz.emit.t(fz.node.c(P.rk(hd), h, hd, b), map, nodes, eras, ne, ls, root, curs, P.rk(hd), b, i)
+  +k = N.kof(P.rk(hd))
+  fz.emit.t(fz.node.k(k, h, hd, b), map, nodes, eras, ne, ls, root, curs, k, b, i)
 
 # the node at base b, its index i, written with its links
 def fz.emit(z: FzE, +b: U32, +i: U32) -> FzE:
