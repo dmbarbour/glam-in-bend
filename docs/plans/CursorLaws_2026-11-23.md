@@ -515,6 +515,32 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     kernel's rewrites are surveyed for it. Scoped with its family: the
     net's links two-way and none itself, so that a finished part is
     reached as a tree, each node once (`.template.walk`).
+    Surveyed 2026-11-24. Link words are written at about 58 sites in
+    the generated rewrites (`spike/krules.bend`), 7 in `knet.bend`, 5 in
+    `kprim.bend`'s `link` family, and 9 in glam's ring, index and splice.
+    A rewrite that wires two peers through (`link_xx`) is free of a
+    self-link only if the peers' links are two-way, so the family is one
+    invariant. Sliced:
+    - `cursor-laws.noself.model` — planned — the family stated over
+      the heap's words in `spike/`'s model (`KMd`), beside `lw`: each
+      live node's port links two-way, and to no port of its own.
+    - `cursor-laws.noself.link` — planned — the `link` family keeps it
+      when its ends are distinct live ports, or a port and a static.
+    - `cursor-laws.noself.rules` — planned — the rewrites. The
+      generator (`spike/tools/gen_krules.bend`) emits each rule's link
+      calls. The obligation per call is distinct ends: fresh against
+      live by the allocator, new against new by `rules_no_self_links`,
+      and old against old by two-way links. Generated with the rules, or
+      argued once over the generator's output: decided on reading the
+      generator.
+    - `cursor-laws.noself.copy` — planned — the materializer's writes:
+      the splice from a template whose links are no self-links
+      (`SM.tpl.ok`'s sharpening), the ring's joins and leaves.
+    - `cursor-laws.noself.frontier` — planned — `sv.front.c`'s check
+      replaced by a law, as planned above.
+
+    L or more. `.loop`'s reshaping waits on it only where it restates
+    the invariant.
   - `cursor-laws.proofs` — planned — the proofs reviewed and
     refactored, the laws unchanged (the maintainer, 2026-11-24). Taken
     after `.noself`, before `.loop`.
