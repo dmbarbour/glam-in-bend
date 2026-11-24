@@ -286,9 +286,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             (`.compose`);
           - the map `hm.fill(seen, hm.new(n), n)` full (`.walk`, with
             the table's lookup law).
-        - `cursor-laws.materializer.template.emit.links` — active — the
-          links, split so that what needs nothing of the map's values
-          comes first.
+        - `cursor-laws.materializer.template.emit.links` — built
+          2026-11-24 — the links, split so that what needs nothing of
+          the map's values comes first.
           - `cursor-laws.materializer.template.emit.links.ends` — built
             2026-11-24 — on the side branch `cursor-laws-links`,
             `emits_links` (`glam/FREEZE_LAWS.bend`), four mutants
@@ -300,8 +300,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             `q & 3` is below 3 off a static, by lawful-words'
             `to_nat_and_mask`. The node's index counts down on words,
             the last node split off. The counts carried as a premise.
-          - `cursor-laws.materializer.template.emit.links.far` —
-            planned — a finished-to-finished link's far end `v - 1`
+          - `cursor-laws.materializer.template.emit.links.far` — built
+            2026-11-24 — on the side branch `cursor-laws-links`,
+            `emits_far` (`glam/FREEZE_LAWS.bend`): every link's far end
+            a node read back (below `n`), or port 0 of an index of eras.
+            Its premise on the map is `FM.vals.le` over its view, the
+            map full at a depth `1 + e` below 32. The parity came
+            cheaply. `(i << 1) + 1` exposes its low bit after one match
+            on the word, so it is odd whatever its tail, and a slot keeps
+            parity (`nat_mod_mod_pow`). No code reshape was needed. Both
+            consumers were prototyped: the read (`mv_le`) and the put
+            side's list lemmas for `.walk` (`set_even`, `set_val`, kept
+            in `results/index_bits/emit/FAR_walk_put.bend` until
+            `.walk`). The depth below 32 wants the template's read part
+            at most `2^29` (the hash map is `1 + depth_for(n << 1)` deep),
+            `.compose`'s premise. Three mutants refuted:
+            - the far end at the map's value, not one less;
+            - an unmapped peer taken for a node read back;
+            - a static linked at the next index.
+
+            The original plan for this slice:
+            a finished-to-finished link's far end `v - 1`
             below `n`, which wants the map's values at most `n`. The map
             keeps values at odd words, `(i << 1) + 1`. So the bound is a
             predicate on the view's odd positions, read through
@@ -344,7 +363,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         walk's own law follows it. The table law the write phase needs
         is a lookup after `hm.fill`: each listed base found at its
         index plus one, every other at 0, and the map full at its depth
-        (`emits_counts`' premise). It also owes the write phase's
+        (`emits_counts`' premise) with its values at most `n`
+        (`emits_far`'s `FM.vals.le`, kept by each `hm.put`: the list
+        lemmas are prototyped). It also owes the write phase's
         premises on the list (`.emit`'s): its length, each base's kind,
         each base a nonzero multiple of 4. M, with the net's law L.
       - `cursor-laws.materializer.template.compose` — planned —
@@ -354,7 +375,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         template's size at most `2^31` (`map_depth`'s), from the source's
         capacity. It owes what `emits_counts` leaves: the placeholders'
         indices distinct (no wrap past `n`), and the template `fz.tpl`
-        makes of the record, `nodes` `n` long. M.
+        makes of the record, `nodes` `n` long. `emits_far`'s map depth
+        below 32 wants the read part at most `2^29`. M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds

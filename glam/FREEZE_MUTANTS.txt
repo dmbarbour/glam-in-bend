@@ -6,7 +6,9 @@
 # cursor; with its port 0's word 3, a static. The links': two such
 # nodes, at 32 (index 0) and 68 (index 1), the map hm.fill makes of
 # them; 32's ports face 68's port 0, a static and a cursor, 68's face
-# 32's port 0 and two cursors.
+# 32's port 0 and two cursors. The far ends': the same, but 32's ports
+# face 68's port 1 and two statics, so that the last eraser is the last
+# index.
 
 === crossing_at_next emits_counts
 a cursor's crossing made at the index after its placeholder's
@@ -139,6 +141,66 @@ seen = [68, 32]
 h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 68), 34, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
 map = F.hm.fill([68, 32], F.hm.new(2), 2)
 dm = 1n+T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== far_at_value emits_far
+a link between nodes read back ending at the map's value, not one less
+--- freeze.bend
+      FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, (v - 1 : U32), (q .&. 3 : U32), ls), root, curs}
++++
+      FzE{h, map, nodes, eras, ne, fz.link.k(U32.is_lt(i, (v - 1 : U32)) || (U32.is_eq(i, (v - 1 : U32)) && U32.is_lt(p, (q .&. 3 : U32))), i, p, v, (q .&. 3 : U32), ls), root, curs}
+>>> witness emits_far
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 69), 34, 3), 35, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+e = T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== unfinished_as_read emits_far
+a node the map does not hold (value 0) taken for one read back
+--- freeze.bend
+  fz.peer.v(U32.is_eq(v, 0), h, map, nodes, eras, ne, ls, root, curs, k, b, i, p, q, v)
++++
+  fz.peer.v(U32.is_eq(v, 1), h, map, nodes, eras, ne, ls, root, curs, k, b, i, p, q, v)
+>>> witness emits_far
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 69), 34, 3), 35, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+e = T.depth_for(31n, 4, 0n)
+n0 = 2
+i = 1
+nodes = []
+eras = []
+ne = 2
+ls = []
+root = T.TE{0, 0}
+curs = []
+
+=== static_far_next emits_far
+a static's eraser linked at the index after its own
+--- freeze.bend
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{ne, 0}}, ls}, root, curs}
++++
+          FzE{h, map, nodes, Con{fz.era(R.port_pol(k, U32.to_nat(p))), eras}, (ne + 1 : U32), Con{T.TL{T.TE{i, p}, T.TE{(ne + 1 : U32), 0}}, ls}, root, curs}
+>>> witness emits_far
+seen = [68, 32]
+h = P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, [0 : U32^7n], 32, 1), 33, 69), 34, 3), 35, 3), 68, 1), 69, 32)}, [V.VNum{0} : V.Val^0n]}
+map = F.hm.fill([68, 32], F.hm.new(2), 2)
+e = T.depth_for(31n, 4, 0n)
 n0 = 2
 i = 1
 nodes = []
