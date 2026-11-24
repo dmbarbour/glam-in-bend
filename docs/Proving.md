@@ -422,6 +422,21 @@ it alone taught. Add to this file what a new proof teaches.
   head with a function (`hd`) so that the tail need never be written,
   and keep the parity through a slot by `nat_mod_mod_pow`
   (`odd_hd`, `odd_slot`, `glam/FREEZE_PROOF.bend`).
+- **A ladder of step lemmas is written once, as a template.** A proof
+  def may take an invariant (`~I`), a context (`~C`) and its leaf
+  lemmas as `~` parameters, and it checks with them abstract. Each
+  instance passes top-level defs. Rules that make it work:
+  - an arrow over a `+` parameter is written `@+x:A -> B`; a plain
+    arrow is refused against a def whose parameter is `+`;
+  - a template passes its own `~` parameters down to another template;
+  - a template is callable only below its definition;
+  - a leaf named like a pattern variable is shadowed inside the match
+    (`~l_root`, not `~root`, beside `Fl{..., +root, ...}`).
+
+  `--verdict` accepts templates, and `scripts/one_law.py`'s cut
+  follows `~` references (`em_T`, `glam/FREEZE_PROOF.bend`). A proof
+  file's plain check is far cheaper than its verdict, 3.6 s against
+  35 s there: iterate with the plain check.
 - **A let does not infer a constructor's type.** `+l = T.TL{...}` is
   refused as "an annotated term (cannot infer)", and an ascription
   `(T.TL{...} : T.TLink)` does not take: name the term inline where a

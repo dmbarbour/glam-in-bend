@@ -325,6 +325,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             - an unmapped peer taken for a node read back;
             - a static linked at the next index;
             - the lookup reading the key as the value.
+        - `cursor-laws.materializer.template.emit.ladder` — built
+          2026-11-24 — the step ladder written once, a template (`em_T`,
+          `glam/FREEZE_PROOF.bend`) over the invariant, a per-node
+          context and five leaves (era, root, hole, link, node). The
+          counts, links and far ends are its instances, their own
+          ladders deleted, the laws and their mutants unchanged. The
+          verdict takes 35.0 s against 35.4 s before; the file is 48
+          lines longer, as the leaves take what the copies took. A new
+          invariant now costs five leaves and its list.
         - `cursor-laws.materializer.template.emit.kinds` — planned — first,
           the step ladder written once. The ladder over the model
           (`pe.v`, `pe.k`, `pe.s`, `pe`, `pes`, `em.t`, `em`, `ems`) has
