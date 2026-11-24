@@ -249,10 +249,13 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           "Test values; do not match literals"). The node is read by its
           kind, `N.kof` computed once for the read and the ports, and
           `peek` tests its form. Old and new agree by computation on
-          every code and form. Serves cost 0.16% fewer instructions
-          (`scripts/cursors.py`, 100 to 400, run 343), and the kernel's
-          workloads 12.4K fewer, flat (run 342). The segments are
-          unchanged.
+          every code and form. No regression:
+          - Serves cost 0.16% fewer instructions in the default build
+            (`scripts/cursors.py`, 100 to 400, run 343).
+          - The kernel's workloads are unchanged in the four builds, a
+            constant +250 to +290 instructions against main measured
+            from the same path lengths (run 345 against 344).
+          - The segments are unchanged.
         - `cursor-laws.materializer.template.emit.counts` — built
           2026-11-24 — on the side branch `cursor-laws-emit`.
           `emits_counts` (`glam/FREEZE_LAWS.bend`): writing the nodes
@@ -269,7 +272,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           - a static uncounted.
 
           The start's premise (`n == n` on words) is the consumer's,
-          `.compose`'s.
+          `.compose`'s. Not given yet, each assigned:
+          - the placeholders' indices distinct, which wants their count
+            past `n` below `2^32` (`.compose`, with `map_depth`'s size
+            premise);
+          - the template `fz.tpl` makes of the record (`nodes` and the
+            reversed `eras`, with `nodes` `n` long), which the serve reads
+            (`.compose`);
+          - the map `hm.fill(seen, hm.new(n), n)` full (`.walk`, with
+            the table's lookup law).
         - `cursor-laws.materializer.template.emit.links` — planned — each link
           either a placeholder's port 0 to a finished node, or between
           two indices below `n`, a finished-to-finished link ending at
@@ -283,12 +294,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         counted down on words from `n - 1`), each base's kind (as
         `N.kof` gives it; relating the walk's tests of the code,
         `fz.is_era`, to kinds is a literal match again, `.walk`'s to
-        do), the map's values, and distinct aligned bases. To decide
-        before `.links`: the walk's premises are about the heap before
-        the write phase, while reads after an error's count (a free
-        table entry, word 1 written) come from the updated tree. Either
-        a frame lemma at word 1 with address facts, or premises on the
-        current tree. Not claimed: that the root is the port facing the
+        do), the map's values, and distinct bases, each a nonzero
+        multiple of 4. Decided 2026-11-24: the walk's premises are about
+        the heap before the write phase, while reads after an error's
+        count (a free table entry, word 1 written) come from the updated
+        tree. A frame lemma at word 1 carries them: the write phase reads
+        `b`, `b+1+p`, `b+2`, `b+3` and `base(q)`, none of them word 1
+        when `b` is a nonzero multiple of 4 (base 0 is the heap's header,
+        never a net node; `cursor-laws.noself`'s family). Not claimed: that the root is the port facing the
         interface (it starts as `T.TE{0, 0}`, which the root's check
         accepts once `n >= 1`). Stated over indices, then over slots at
         the depth `.depth` gives. M to L.
@@ -302,13 +315,18 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         two-way links, and joins `cursor-laws.noself`'s family. The
         walk's own law follows it. The table law the write phase needs
         is a lookup after `hm.fill`: each listed base found at its
-        index plus one, every other at 0. M, with the net's law L.
+        index plus one, every other at 0, and the map full at its depth
+        (`emits_counts`' premise). It also owes the write phase's
+        premises on the list (`.emit`'s): its length, each base's kind,
+        each base a nonzero multiple of 4. M, with the net's law L.
       - `cursor-laws.materializer.template.compose` — planned —
         `SM.tpl.ok`, `SV.copy.ok`, `SV.root.ok` and distinct positions
         for `freeze_tree`'s output, the three composed; the serve's
         laws' "Not claimed" then narrowed. Its premises include the
         template's size at most `2^31` (`map_depth`'s), from the source's
-        capacity. M.
+        capacity. It owes what `emits_counts` leaves: the placeholders'
+        indices distinct (no wrap past `n`), and the template `fz.tpl`
+        makes of the record, `nodes` `n` long. M.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
