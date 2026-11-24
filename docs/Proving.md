@@ -457,6 +457,16 @@ it alone taught. Add to this file what a new proof teaches.
   true one. A mutant of an audit cannot be refuted by a witness, since
   the witness must pass the original audit: the bridge failing on it is
   what catches it (`spike/WIRED_PROOF.bend`).
+- **A loop's step is settled at the ends it makes.** For a loop
+  `loop.r(step(h), more)`, one lemma walks `step`'s branches to the end
+  each makes and settles it there: an end by its own lemma, a "go
+  again" by the induction passed as a function of the next state. A
+  lemma about `step(h)`'s result plus a match on it would name the heap
+  twice. The induction itself can be a lambda calling the lemma on the
+  smaller count (`front_loop`, `glam/POSITION_PROOF.bend`).
+- **A mutant's witness must reach the end it breaks.** Moving a read
+  every path shares moved the witness off the path it tested, so the
+  law held on it. Mutate the read at the end the law is about.
 - **A parameter named as a def shadows it.** A premise `hw` hid the word
   function `hw` ("expected a function type"): name premises apart from
   the file's defs.

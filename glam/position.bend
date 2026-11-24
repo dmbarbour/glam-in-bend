@@ -86,15 +86,22 @@ def pd.peer(h: P.H, +pos: U32) -> P.H & U32:
   P.rd(h, (pos + 1 : U32))
 
 # a walk ended in state st: done, the position read again; 7, the
-# frontier; anything else, a stop
-def pd.ended.k(+st: U32, d: KD.D, +pos: U32, +n: U32, +acc: U32) -> PdS:
-  match st:
-    case 1:
+# frontier; anything else, a stop. The state tested, not matched, so that
+# a proof reduces it (docs/Proving.md, "Test values; do not match
+# literals"; glam/POSITION_LAWS.bend)
+def pd.ended.b(+done: Bool, +front: Bool, d: KD.D, +pos: U32, +n: U32, +acc: U32) -> PdS:
+  match done:
+    case True{}:
       PdMore{pd.h(d), n}
-    case 7:
-      PdEnd{pd.peer.r(pd.peer(pd.h(d), pos), (acc + n : U32))}
-    case _:
-      PdEnd{PdStop{d, acc}}
+    case False{}:
+      match front:
+        case True{}:
+          PdEnd{pd.peer.r(pd.peer(pd.h(d), pos), (acc + n : U32))}
+        case False{}:
+          PdEnd{PdStop{d, acc}}
+
+def pd.ended.k(+st: U32, d: KD.D, +pos: U32, +n: U32, +acc: U32) -> PdS:
+  pd.ended.b(U32.is_eq(st, 1), U32.is_eq(st, 7), d, pos, n, acc)
 
 def pd.ended(d: KD.D, +pos: U32, +acc: U32) -> PdS:
   match d:
