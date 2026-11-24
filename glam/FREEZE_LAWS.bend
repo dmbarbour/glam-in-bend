@@ -4,6 +4,8 @@
 
 import Base
 import ../spike/kprim.bend as P
+import ../spike/kmem_grow.bend as KM
+import ../spike/val.bend as V
 import ../spike/tpl.bend as T
 import ./ring.bend as RN
 import ./freeze.bend as F
@@ -159,3 +161,37 @@ law emits_root:
   for +hi: {U32.is_lt(i, n0) == True{} : Bool}
   for +hl: {Nat.is_le(List.length(&2, U32, seen), 1n+U32.to_nat(i)) == True{} : Bool}
   {FM.inv.r(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i), n0) == True{} : Bool}
+
+# LAW: the read nodes' kinds (cursor-laws.materializer.template.emit.kinds.nodes):
+# writing the nodes reached (F.fz.emits) adds no eraser to the nodes read
+# back (FM.inv.n), given each base reached aligned (a multiple of 4)
+# with its header's kind no eraser's in the heap's words (FM.hdrs.ok, a
+# kind tested by S.sp.is_era itself), the words full at a depth of 2 or
+# more and below 32. An error's count (a free table entry read, word 1
+# written) keeps each base's header, the base never word 1. Not claimed:
+# that the walk's own test of a header (fz.is_era, on its code) agrees
+# with its kind's (.walk's); that nodes is n long in index order.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law emits_nodes:
+  for +seen: List<&2, U32>
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +dm: Nat
+  for hf: {AD.full(U32, map, dm) == True{} : Bool}
+  for +d: Nat
+  for hfw: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +h2: {Nat.is_le(2n, d) == True{} : Bool}
+  for hh: {FM.hdrs.ok(seen, AD.view(U32, w), d) == True{} : Bool}
+  for +n0: U32
+  for +i: U32
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +hn: {FM.no_era(nodes) == True{} : Bool}
+  {FM.inv.n(F.fz.emits(seen, F.FzE{P.H{KM.MG{w}, a}, map, nodes, eras, ne, ls, root, curs}, i)) == True{} : Bool}

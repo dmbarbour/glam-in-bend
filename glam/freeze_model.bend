@@ -6,6 +6,9 @@ import ./ring.bend as RN
 import ./freeze.bend as F
 import ./splice_model.bend as SM
 import ./splice_copy.bend as S
+import ../spike/kprim.bend as P
+import ../spike/net.bend as N
+import ../spike/kmodel.bend as KMd
 
 # What glam/FREEZE_LAWS.bend states of freeze's write phase (the
 # CursorLaws plan's cursor-laws.materializer.template.emit): no code of
@@ -210,3 +213,30 @@ def inv.r(z: F.FzE, +n0: U32) -> Bool:
   match z:
     case F.FzE{h, map, nodes, +eras, +ne, +ls, +root, curs}:
       rt.ok(root, n0) && eras.ok(eras)
+
+# The read nodes' kinds (cursor-laws.materializer.template.emit.kinds.nodes)
+
+# a kind no eraser's, by S.sp.is_era itself (eraser has one owner)
+def k.ok(+k: R.NodeKind) -> Bool:
+  Bool.not(S.sp.is_era(T.TN{k, V.PNone{}}))
+
+# each base aligned (a multiple of 4) and its header's kind no eraser's,
+# in the words' view v at depth d
+def hdrs.ok(bs: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> Bool:
+  match bs:
+    case Nil{}:
+      True{}
+    case Con{+b, r}:
+      Nat.is_eq(Nat.mod(U32.to_nat(b), 4n), 0n) && (k.ok(N.kof(P.rk(KMd.word(v, d, b)))) && hdrs.ok(r, v, d))
+
+def no_era(ns: List<&2, T.TNode>) -> Bool:
+  match ns:
+    case Nil{}:
+      True{}
+    case Con{+t, r}:
+      Bool.not(S.sp.is_era(t)) && no_era(r)
+
+def inv.n(z: F.FzE) -> Bool:
+  match z:
+    case F.FzE{h, map, +nodes, eras, +ne, ls, root, curs}:
+      no_era(nodes)

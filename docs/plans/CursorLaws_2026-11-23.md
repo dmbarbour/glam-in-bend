@@ -334,8 +334,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           verdict takes 35.0 s against 35.4 s before; the file is 48
           lines longer, as the leaves take what the copies took. A new
           invariant now costs five leaves and its list.
-        - `cursor-laws.materializer.template.emit.kinds` — active — the
-          template's nodes' kinds and the root, split as the links were.
+        - `cursor-laws.materializer.template.emit.kinds` — built
+          2026-11-24 — the template's nodes' kinds and the root, split
+          as the links were.
           - `cursor-laws.materializer.template.emit.kinds.root` — built
             2026-11-24 — on the side branch `cursor-laws-kinds`,
             `emits_root` (`glam/FREEZE_LAWS.bend`), the template's
@@ -349,7 +350,17 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             order, and that the root is no placeholder's index (both
             `.compose`'s); that the root faces the interface.
           - `cursor-laws.materializer.template.emit.kinds.nodes` —
-            planned, time-boxed — no node read back is an eraser. The
+            built 2026-11-24 — on the side branch `cursor-laws-kinds`,
+            `emits_nodes` (`glam/FREEZE_LAWS.bend`), well inside its time
+            box. The read node is an eraser exactly when its kind is
+            (`nd_era`, over the 19 kinds). Three mutants refuted:
+            - a function node read as an eraser;
+            - the header read from a port's word;
+            - the kernel's error count written at a header, not word 1
+              (the frame's own mutant, its witness a free table entry).
+
+            The original description follows. No node read back is an
+            eraser. The
             frame is kept on the current tree: its list's invariant is
             the words full at `d` and each base left a non-eraser kind
             in the current view, which an error's write keeps
@@ -476,6 +487,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       instead of writing their own, and are regenerated.
     - The bridge from code to model (`glam/FREEZE_PROOF.bend`) reviewed
       for reuse: the materializer's other proofs may want the same form.
+      Its own duplicates so far:
+      - the mirror plumbing at each law's def, five copies (`ec.m`,
+        `ek.m`, `ej.m`, `er.m`, `en.m`), a template's candidate;
+      - copies of `wl_ne` and `wd` (as `wdv`) from `INDEX_PROOF.bend`;
+      - copies of `slot_mod4` and `ne_mod4` from
+        `proofgen/align/ALIGN.bend`.
     - What it buys measured: each proof file's check time before and
       after, and the gate's (`.watch`). A refactor that slows the gate
       is reverted or justified.
