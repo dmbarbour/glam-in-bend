@@ -209,3 +209,18 @@ law map_depth:
   for +n: U32
   for hn: {U32.is_le(n, 2147483648) == True{} : Bool}
   {Nat.is_lt(T.depth_for(31n, n, 0n), 32n) && (Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))) && AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n))) == True{} : Bool}
+
+# LAW: the map's depth at most k for a size at most 2^k, k at most 31: the
+# search stops at its first fit (cursor-laws.materializer.template.depth.upper).
+# With map_depth's n at most 2^depth, the depth is the least that fits.
+# What the write phase's laws ask of the hash map's depth, 1 +
+# depth_for(n << 1), below 32 (emits_far, put_keeps): k = 29 for a
+# template of at most 2^28 nodes read back, the heap's capacity.
+# Record: copy-reduced-function-nets
+# Record: hub-laws-reused
+law depth_upper:
+  for +n: U32
+  for +k: Nat
+  for hk: {Nat.is_le(k, 31n) == True{} : Bool}
+  for hn: {U32.is_le(n, U32.shln(1, k)) == True{} : Bool}
+  {Nat.is_le(T.depth_for(31n, n, 0n), k) == True{} : Bool}

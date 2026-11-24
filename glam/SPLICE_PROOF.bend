@@ -1269,3 +1269,70 @@ def depth_fit(+n: U32, +hn: {U32.is_le(n, 2147483648) == True{} : Bool}) -> MN.l
 def Laws.map_depth(n, hn):
   MB.and_eq_true(Nat.is_lt(T.depth_for(31n, n, 0n), 32n), Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))) && AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n)), depth_lt(n),
     MB.and_eq_true(Nat.is_le(U32.to_nat(n), Nat.pow(2n, T.depth_for(31n, n, 0n))), AD.full(U32, [0 : U32^T.depth_for(31n, n, 0n)], T.depth_for(31n, n, 0n)), depth_fit(n, hn), LA.new_full(U32, T.depth_for(31n, n, 0n), 0)))
+
+# The map's depth at most k for a size at most 2^k (depth_upper;
+# cursor-laws.materializer.template.depth.upper): the search stops at its
+# first fit, its power carried as U32.shln(1, d); 2^32 abstracted where a
+# word's doubling meets it, the motive in the law's own syntax.
+# doubling a word is shifting it, 2^32 abstracted (ALIGN.bend's add_mod4.k)
+def mul2_shl.k(-m: Nat, +e: {Nat.pow(2n, 32n) == m : Nat}, +x: U32) -> {(x * 2 : U32) == U32.shl(x) : U32}:
+  +e1 = ME.subst(Nat, w => {U32.to_nat(U32.mul(x, 2)) == Nat.mod(Nat.mul(U32.to_nat(x), U32.to_nat(2)), w) : Nat}, Nat.pow(2n, 32n), m, e, WL.to_nat_mul(x, 2))
+  +e2 = ME.subst(Nat, w => {U32.to_nat(U32.shl(x)) == Nat.mod(Nat.mul(U32.to_nat(x), 2n), w) : Nat}, Nat.pow(2n, 32n), m, e, WL.to_nat_shl(x))
+  MU.u32_to_nat_inj((x * 2 : U32), U32.shl(x), Equal.trans(Nat, U32.to_nat((x * 2 : U32)), Nat.mod(Nat.mul(U32.to_nat(x), 2n), m), U32.to_nat(U32.shl(x)),
+    e1, Equal.sym(Nat, U32.to_nat(U32.shl(x)), Nat.mod(Nat.mul(U32.to_nat(x), 2n), m), e2)))
+
+def mul2_shl(+x: U32) -> {(x * 2 : U32) == U32.shl(x) : U32}:
+  mul2_shl.k(Nat.pow(2n, 32n), {==}, x)
+
+# below k and not k, one more is at most k
+def le_succ(+d: Nat, +k: Nat, +hle: {Nat.is_le(d, k) == True{} : Bool}, +hne: {Nat.is_eq(d, k) == False{} : Bool}) -> {Nat.is_le(1n+d, k) == True{} : Bool}:
+  match d:
+    case 0n:
+      match k:
+        case 0n:
+          Empty.absurd({Nat.is_le(1n, 0n) == True{} : Bool}, MB.true_ne_false()(hne))
+        case 1n+c:
+          match c:
+            case 0n:
+              {==}
+            case 1n+e:
+              {==}
+    case 1n+a:
+      match k:
+        case 0n:
+          Empty.absurd({Nat.is_le(1n+1n+a, 0n) == True{} : Bool}, MB.false_ne_true()(hle))
+        case 1n+c:
+          le_succ(a, c, hle, hne)
+
+# the search stops at its first fit: at most k when n fits at k
+def go_up.k(f: Nat, +fits: Bool, +e: Bool, +n: U32, +d: Nat, +pw: U32, +k: Nat, +he: {Nat.is_eq(d, k) == e : Bool},
+  +hdk: {Nat.is_le(d, k) == True{} : Bool}, +hfk: {Nat.is_le(k, Nat.add(f, d)) == True{} : Bool}, +hpw: {pw == U32.shln(1, d) : U32},
+  +hfits: {fits == U32.is_le(n, pw) : Bool}, +hn: {U32.is_le(n, U32.shln(1, k)) == True{} : Bool}) -> {Nat.is_le(T.depth_for.go(f, fits, n, d, pw), k) == True{} : Bool}:
+  match f:
+    case 0n:
+      hdk
+    case 1n+(+p):
+      match fits:
+        case True{}:
+          hdk
+        case False{}:
+          match e:
+            case True{}:
+              +edk = MN.eq_of_is_eq(d, k, he)
+              +hk = ME.subst(Nat, z => {U32.is_le(n, U32.shln(1, z)) == True{} : Bool}, k, d, Equal.sym(Nat, d, k, edk), hn)
+              +hp2 = ME.subst(U32, z => {U32.is_le(n, z) == True{} : Bool}, U32.shln(1, d), pw, Equal.sym(U32, pw, U32.shln(1, d), hpw), hk)
+              Empty.absurd({Nat.is_le(T.depth_for.go(1n+p, False{}, n, d, pw), k) == True{} : Bool}, MB.false_ne_true()(Equal.trans(Bool, False{}, U32.is_le(n, pw), True{}, hfits, hp2)))
+            case False{}:
+              +hpw2 = Equal.trans(U32, (pw * 2 : U32), U32.shl(pw), U32.shln(1, 1n+d), mul2_shl(pw), Equal.cong(U32, U32, z => U32.shl(z), pw, U32.shln(1, d), hpw))
+              +hfk2 = ME.subst(Nat, z => {Nat.is_le(k, z) == True{} : Bool}, 1n+Nat.add(p, d), Nat.add(p, 1n+d), Equal.sym(Nat, Nat.add(p, 1n+d), 1n+Nat.add(p, d), MN.add_succ(p, d)), hfk)
+              go_up.k(p, U32.is_le(n, (pw * 2 : U32)), Nat.is_eq(1n+d, k), n, 1n+d, (pw * 2 : U32), k, {==}, le_succ(d, k, hdk, he), hfk2, hpw2, {==}, hn)
+
+def up_le0(+y: Nat) -> {Nat.is_le(0n, y) == True{} : Bool}:
+  match y:
+    case 0n:
+      {==}
+    case 1n+c:
+      {==}
+
+def Laws.depth_upper(n, k, hk, hn):
+  go_up.k(31n, U32.is_le(n, U32.from_nat(Nat.pow(2n, 0n))), Nat.is_eq(0n, k), n, 0n, U32.from_nat(Nat.pow(2n, 0n)), k, {==}, up_le0(k), hk, {==}, {==}, hn)

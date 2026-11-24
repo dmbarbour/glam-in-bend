@@ -238,8 +238,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the search starting a power too high. Shared with `.fresh`, for
         which it gives the map's fullness and depth. The size at most
         `2^31` becomes freeze's obligation, under `.compose`.
-        - `cursor-laws.materializer.template.depth.upper` — planned —
-          the depth at most `k` for a size at most `2^k` (`k` below 32):
+        - `cursor-laws.materializer.template.depth.upper` — built
+          2026-11-24 — on the side branch `cursor-laws-upper`,
+          `depth_upper` (`glam/SPLICE_LAWS.bend`). The search's power is
+          carried as `U32.shln(1, d)`, a word's doubling being its shift
+          (`mul2_shl`, 2^32 abstracted, the motive in the law's syntax).
+          With `map_depth`, the depth is the least that fits. A mutant
+          going one depth past the first fit is refuted. As planned: the
+          depth at most `k` for a size at most `2^k` (`k` below 32):
           the search stops at its first fit. `map_depth` disclaims
           minimality, and `emits_far` and `put_keeps` want the hash
           map's depth, `1 + depth_for(n << 1)`, below 32, which this
