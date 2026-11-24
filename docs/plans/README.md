@@ -73,6 +73,11 @@ topic, and unique across all docs, e.g. `spike-net-store`.
   errors stopping the run, one cursor a position as a law, the
   materializer under laws, the invariant's loop closed, the index's laws
   by disposition. A rough plan, drafted at the maintainer's request.
+- [`KernelRefine_2026-11-24.md`](KernelRefine_2026-11-24.md): `kernel-refine`
+  steps showing the kernel's heap does what the wiring model does, so
+  that the materializer's premises on the source's wiring are discharged
+  (`wiring-premise-before-refinement`). Drafted for the maintainer's
+  review before building.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,
   sharing and fixpoints, parallelism, fast paths), ending in a

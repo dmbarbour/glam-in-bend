@@ -521,28 +521,21 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     A rewrite that wires two peers through (`link_xx`) is free of a
     self-link only if the peers' links are two-way, so the family is one
     invariant. Sliced:
-    - `cursor-laws.noself.model` — planned — the family stated over
-      the heap's words in `spike/`'s model (`KMd`), beside `lw`: each
-      live port links two-way, and no port faces itself (its peer is
-      never the same port). A node's two ports may face each other: the
-      identity function wires its `arg` to its own `result`. Corrected
-      2026-11-24; this said "to no port of its own".
-    - `cursor-laws.noself.link` — planned — the `link` family keeps it
-      when its ends are distinct live ports, or a port and a static.
-    - `cursor-laws.noself.rules` — planned — the rewrites. The
-      generator (`spike/tools/gen_krules.bend`) emits each rule's link
-      calls. The obligation per call is distinct ends: fresh against
-      live by the allocator, new against new by `rules_no_self_links`,
-      and old against old by two-way links. Generated with the rules, or
-      argued once over the generator's output: decided on reading the
-      generator.
-    - `cursor-laws.noself.copy` — planned — the materializer's writes:
-      the splice from a template in which no end faces itself, each
-      port wired once (`interaction_net`'s construction refuses a port
-      wired twice or never: the maintainer, 2026-11-24); the ring's
-      joins and leaves.
-    - `cursor-laws.noself.frontier` — planned — `sv.front.c`'s check
-      replaced by a law, as planned above.
+    - `cursor-laws.noself.model` — active — the wiring as a premise
+      (`wiring-premise-before-refinement`): `KN.wired_ok`'s verdict on the
+      source heap, the audit the library runs, no second definition.
+      With it, lemmas that extract per port: a live node's port below its
+      arity links a live port, not itself, which links it back.
+    - `cursor-laws.noself.link` — dropped 2026-11-24 — to
+      `kernel-refine.rewrite` (`wiring-premise-before-refinement`).
+    - `cursor-laws.noself.rules` — dropped 2026-11-24 — to
+      `kernel-refine.rewrite`.
+    - `cursor-laws.noself.copy` — dropped 2026-11-24 — to
+      `kernel-refine.copy`.
+    - `cursor-laws.noself.frontier` — planned — the frontier's law under
+      the premise: the served position's port faces no port that is
+      itself, so the cursor found there is never the served one. The
+      check stays until `kernel-refine.discharge`.
 
     L or more. `.loop`'s reshaping waits on it only where it restates
     the invariant.

@@ -207,6 +207,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`implementation-errors-stop`](decisions/implementation-errors-stop.md):
   glam's own implementation errors stop the run where first read, unlike
   user errors, which are diagnostics.
+- [`wiring-premise-before-refinement`](decisions/wiring-premise-before-refinement.md):
+  the materializer's laws take the source's wiring as a premise,
+  `KN.wired_ok`'s verdict, until the kernel is refined against its model;
+  the frontier's check stays till then.
 - [`ring-ports-faced-off-positions`](decisions/ring-ports-faced-off-positions.md):
   a port a live node of a copy's index faces has its link word in no
   live node's key (word 2) nor home (word 3), so that a join or a leave
