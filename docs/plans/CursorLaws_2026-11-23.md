@@ -655,6 +655,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - The redundant error arm of the insert commented.
     - Branches, which no port reaches, stated in `cursors-indexed`'s
       consequences for future sweeps.
+  - `cursor-laws.records` — planned — a cleanup review of the decision
+    records (the maintainer, 2026-11-24): a record holds the why of a
+    decision, not the when, ordering being the role of plans and git
+    history. `wiring-premise-before-refinement` is mostly an ordering
+    decision. Its why (the source's wiring as the audit's verdict, one
+    owner) stays, and its route and timing move to the plans.
   - `cursor-laws.watch` — planned — throughout: the gate's sections and
     the proofs' check times recorded at each step's commit. A step that
     slows iteration much is followed by one that speeds it (the
