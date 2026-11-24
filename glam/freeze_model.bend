@@ -5,6 +5,7 @@ import ../spike/tpl.bend as T
 import ./ring.bend as RN
 import ./freeze.bend as F
 import ./splice_model.bend as SM
+import ./splice_copy.bend as S
 
 # What glam/FREEZE_LAWS.bend states of freeze's write phase (the
 # CursorLaws plan's cursor-laws.materializer.template.emit): no code of
@@ -188,3 +189,24 @@ def inv.j(z: F.FzE, +n0: U32) -> Bool:
   match z:
     case F.FzE{h, map, nodes, +eras, +ne, +ls, root, curs}:
       lks.far(ls, eras, n0)
+
+# The root and the eras' kinds (cursor-laws.materializer.template.emit.kinds.root)
+
+# the root a node read back's port below 3
+def rt.ok(+root: T.TEnd, +n0: U32) -> Bool:
+  match root:
+    case T.TE{+r, +rp}:
+      U32.is_lt(r, n0) && SM.port3(rp)
+
+# each of eras an eraser exactly when it is no placeholder
+def eras.ok(eras: List<&2, T.TNode>) -> Bool:
+  match eras:
+    case Nil{}:
+      True{}
+    case Con{+t, r}:
+      Bool.xor(S.sp.is_era(t), is_hole(t)) && eras.ok(r)
+
+def inv.r(z: F.FzE, +n0: U32) -> Bool:
+  match z:
+    case F.FzE{h, map, nodes, +eras, +ne, +ls, +root, curs}:
+      rt.ok(root, n0) && eras.ok(eras)
