@@ -156,10 +156,20 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       in a copy node the frames allow: evidence for
       `cursor-laws.loop.wires`. Leaving before the crossings only fails
       to typecheck (the map is read once) and is not kept.
-    - `cursor-laws.materializer.look` — planned — `crossings_look`:
-      the served cursor found through the crossings, a law, so that
-      the root's laws are `serve_pend`, it and `leave_pend`, composed of
-      laws alone.
+    - `cursor-laws.materializer.look` — built 2026-11-24 — on the side
+      branch `cursor-laws-look`. `crossings_look`: the served cursor,
+      found at its key before a copy's crossings with no crossing's far
+      end there, is found there after, in the index the crossings'
+      model leaves. On `crossings_pend`'s premises; proved by `cxl.m`,
+      until now an internal of the root's proofs. A mutant of the
+      model's insert refutes it: the insert drops the leaf it goes
+      beside. The root's laws now call `crossings_look` and
+      `crossings_pend` as laws, in place of their internals (`cxl.m`,
+      `crf.go`). Still internal to them: the copy's own steps
+      (`cpi.core`) and the root port's link words off the tracked nodes
+      (`rpom`, `rpop`). A law of the copy giving the latter, beside
+      `copy_pend`, would leave the root's laws `serve_pend`,
+      `crossings_look` and `leave_pend` alone.
     - `cursor-laws.materializer.template` — planned — the template
       freeze builds when nothing has finished (F3): how the
       materializer serves it, and the laws widened to it where the

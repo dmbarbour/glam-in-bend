@@ -100,6 +100,9 @@ def cxl.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hoT = LAB.subst(Array<U32>, qq => {T('RG.cxs.ok(cs, AD.view(U32, qq), dm, I, F)')}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok)
   %em : {GX(S0('cs','AD.view(U32, _)'))}
   cxl.go(cs, {TW}, {TA}, {TM}, d, dm, s, I, L, F, N, hft, hd32, hfmt, hdm, hN, hB, hpb, hoT, k, nc, hk, hu, LAT.mirror(U32, {TW}), LAT.mirror(V.Val, {TA}), LAT.mirror(U32, {TM}))
+
+def Laws.crossings_look(w, a, map, d, dm, s, I, L, F, N, cs, k, nc, hf, hd32, hfm, hdm, hN, hB, hp, hok, hk, hu):
+  cxl.m(w, a, map, d, dm, s, I, L, F, N, cs, hf, hd32, hfm, hdm, hN, hB, hp, hok, k, nc, hk, hu, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
 '''
 FAR='''
 # no crossing of cs looks for key k at its far end: the served cursor's

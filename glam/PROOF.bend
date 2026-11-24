@@ -4019,6 +4019,9 @@ def cxl.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   %em : {IM.ix.look(RG.cxs.I(RG.cxs(cs, AD.view(U32, _), dm, I, L, F)), k) == Some{nc} : Maybe<&2, U32>}
   cxl.go(cs, LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), LAT.fromT(U32, tm), d, dm, s, I, L, F, N, hft, hd32, hfmt, hdm, hN, hB, hpb, hoT, k, nc, hk, hu, LAT.mirror(U32, LAT.fromT(U32, tw)), LAT.mirror(V.Val, LAT.fromT(V.Val, ta)), LAT.mirror(U32, LAT.fromT(U32, tm)))
 
+def Laws.crossings_look(w, a, map, d, dm, s, I, L, F, N, cs, k, nc, hf, hd32, hfm, hdm, hN, hB, hp, hok, hk, hu):
+  cxl.m(w, a, map, d, dm, s, I, L, F, N, cs, hf, hd32, hfm, hdm, hN, hB, hp, hok, k, nc, hk, hu, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
 # the eraser's leave: leave_pend, the eraser's link words off by
 # computation (po_static)
 def Laws.leave_era_pend(w, a, d, s, I, ps, L, F, N, c, k, hf, hd32, hN, hB, hp, hc):
