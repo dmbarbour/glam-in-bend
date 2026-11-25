@@ -427,3 +427,12 @@ I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
 x = 20
 k = 7
 y = 12
+
+=== leaf_key_unread found_apart
+the realization no longer reading a leaf's key at its word 2, so that a
+found cursor may hold any key (no witness: the law's proof fails on it)
+--- index_model.bend
+      U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 2 : U32)), k) && U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)))
++++
+      U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)))
+

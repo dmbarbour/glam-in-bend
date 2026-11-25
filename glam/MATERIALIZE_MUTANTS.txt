@@ -1,0 +1,35 @@
+Mutations of the cursor serve (glam/materialize.bend), each naming the
+laws of glam/MATERIALIZE_LAWS.bend it should fail (docs/Proving.md; the
+gate runs scripts/one_law.py --mutants on this file). None has a
+witness, a realized index in a heap being costly to build: each is
+caught by its law's proof failing on it.
+
+=== find_at_pos front_joins
+the frontier's cursor sought at the served position, not at the port
+the position faces, so that the served cursor itself is found
+--- materialize.bend
+      sv.front.m(R.rg.find(h, situ, q), s, situ, k, nc, q, n)
++++
+      sv.front.m(R.rg.find(h, situ, pos), s, situ, k, nc, q, n)
+
+=== find_at_pos1 front_joins1
+as find_at_pos, on the one-net path
+--- materialize.bend
+      sv1.front.m(R.rg.find(h, situ, q), situ, k, nc, q, n)
++++
+      sv1.front.m(R.rg.find(h, situ, pos), situ, k, nc, q, n)
+
+=== check_self front_joins
+the check comparing the found cursor with itself, so that it always
+fires
+--- materialize.bend
+      sv.front.c(U32.is_eq(c, nc), s, h, nc, c, n)
++++
+      sv.front.c(U32.is_eq(c, c), s, h, nc, c, n)
+
+=== check_self1 front_joins1
+as check_self, on the one-net path
+--- materialize.bend
+      sv1.front.c(U32.is_eq(c, nc), h, nc, c, n)
++++
+      sv1.front.c(U32.is_eq(c, c), h, nc, c, n)

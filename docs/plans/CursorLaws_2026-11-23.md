@@ -502,7 +502,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`mz.fz.t` makes `[0 : U32^T.depth_for(31n, size, 0n)]` and passes
       `k` as the offset) under the laws, which wants a law of
       `T.depth_for`: the map full at a depth below 32.
-  - `cursor-laws.noself` — planned — a kernel law: no port of a net
+  - `cursor-laws.noself` — built 2026-11-24 — its model and the
+    frontier's laws, its kernel half moved to `kernel-refine`. As
+    planned: a kernel law: no port of a net
     faces itself, kept by every rewrite (the maintainer, 2026-11-24).
     The rules' half is stated (`rules_no_self_links`, `spike/LAWS.bend`:
     no rule links two ports of one of its new nodes); the net's half is
@@ -544,7 +546,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `kernel-refine.rewrite`.
     - `cursor-laws.noself.copy` — dropped 2026-11-24 — to
       `kernel-refine.copy`.
-    - `cursor-laws.noself.frontier` — planned — the frontier's law under
+    - `cursor-laws.noself.frontier` — built 2026-11-24 — in three
+      slices, below. As planned: the frontier's law under
       the premise: the served position's port faces no port that is
       itself, so the cursor found there is never the served one. The
       check stays until `kernel-refine.discharge`. Its parts:
@@ -579,14 +582,57 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         that hits, a walk ending in state 7). `pd.ended.k` matches the
         walk's state on `U32` literals, stuck in a proof's default arm,
         so it is reshaped to test the state, measured.
-      - `cursor-laws.noself.frontier.apart` — planned — with
+      - `cursor-laws.noself.frontier.apart` — built 2026-11-24 — on
+        the side branch `cursor-laws-noself-apart`, `front_apart`
+        (`glam/POSITION_LAWS.bend`): `front_faces`' fact and
+        `wired_port`'s check of the position's port. The port links
+        either a static eraser, which a port that is no static cannot
+        be, or no port of its own reference. Its mutant, the audit's
+        self-check dropped, is caught by the proof failing through
+        `wired_port`'s. As planned: with
         `wired_port`, the frontier's port is not the position itself.
         Its premises are on the frontier's heap: wired, and the position
         a live node's port below its arity. The second is a premise of
         its own: a finished node is untouched by the walks
         (`copied-nodes-untouched`), which the kernel's refinement owes
         too.
-      - `cursor-laws.noself.frontier.cursor` — planned — the index's
+      - `cursor-laws.noself.frontier.cursor` — built 2026-11-24 — on
+        the side branch `cursor-laws-noself-apart`, with `.apart`:
+        `found_apart` (`glam/INDEX_LAWS.bend`: the cursor a realized
+        index finds at a key is no cursor whose word 2 holds another),
+        and `front_joins`, `front_joins1` (`glam/MATERIALIZE_LAWS.bend`,
+        new): a serve whose positioned demand ends at the frontier, the
+        index finding a cursor at its port, joins it to the served one,
+        on the two-heap path and the one-net path. Stated over `sv.pd`
+        given the frontier's end and that it faces the position, so a
+        serve going on from a walk (`serve.from`) is covered too:
+        `front_faces_from` (`glam/POSITION_LAWS.bend`) supplies it there,
+        as `front_faces` does on a fresh serve. `front_apart`,
+        `found_apart` and `find_tree` composed as laws.
+        The serve's verdict first took 190 s: `materialize.bend`'s
+        closure 85 s, and the hub's `string.bend` 75 s more, imported by
+        the index's proofs for one lemma, `u32_eq_of_is_eq`. That lemma
+        is vendored (`vendor/bend-mathlib/`) and the index's proofs use it,
+        so their verdict fell from 55 s to 21 s and the serve's to 94 s.
+        The premises:
+        - on the frontier's heap, the kernel's (`kernel-refine`): wired,
+          and the position a live node's port below its arity, no
+          static. The interface is node 7's port 0, so a serve at the
+          root is covered: on `two_lifts` its header is kind 8, of
+          arity 1, under a capacity of 128, and the audit passes, so the
+          premises hold together there
+          (`results/index_bits/apart/ROOT.bend`);
+        - on the host: the index realized on its invariant, and the
+          served cursor's word 2 the position, as the serve reads it.
+        Owed: on the one-net path, the walks keeping the index and the
+        served cursor's word 2 (the host is the source there), for
+        `.loop`. Not claimed: the frontier's port holding no cursor (the
+        climb). The check stays, its comment pointing at the law, until
+        `kernel-refine.discharge`. Mutants: the find keyed at the
+        position, and the check comparing the found cursor with itself,
+        on each path; a leaf's key unread, for `found_apart`. All are
+        caught by the proofs failing; no witness, as a realized index in
+        a heap is costly to build. As planned: the index's
         cursor found at the frontier's port is keyed there, so the
         served cursor is found there only if that port is its
         position. Then `sv.front.c`'s check never fires, under the
@@ -634,6 +680,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
 
       `u32_eq`, `inv`-style `and` splits and the doubling's word lemmas
       are likely to join them.
+    - The rest of the proof files off the hub's `string.bend`, whose
+      import costs about 75 s of verdict for the one lemma they take
+      from it (`u32_eq_of_is_eq`, vendored in `vendor/bend-mathlib/`
+      for the index's proofs at `.frontier.cursor`): `glam/PROOF.bend`,
+      `SERVE_PROOF`, `JOIN_PROOF`, `SPLICE_PROOF` and the generated
+      `ALIGN.bend` through its generator. A home for the lemma in the
+      hub's `u32.bend` is a candidate to offer upstream once glam is
+      relatively stable (the maintainer, 2026-11-25).
     - Shared lemmas in files of their own, beside the code they are
       about: words and Bools, the heap's mirror (`hp`, the reads'
       hand-backs, an error's write kept a tree), the probe. Each is

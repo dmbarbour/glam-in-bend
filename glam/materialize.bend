@@ -175,8 +175,10 @@ def sv.climb.f(r: P.H & P.HS, h: P.H, +situ: U32, +k: U32, +nc: U32, +q: U32, +n
 # the frontier's cursor c joined to nc; nc itself, a port facing its own
 # position, which a well-formed source never holds, is corruption,
 # reported and nothing joined: a join of a cursor with itself frees one
-# node twice (corruption-reported-when-cheap; one compare a serve, until
-# a law of freeze shows it unreached, cells-freeze.nested.host.join.self)
+# node twice (corruption-reported-when-cheap). Unreached under
+# front_joins' premises (glam/MATERIALIZE_LAWS.bend): one compare a serve
+# until the kernel's refinement discharges them (kernel-refine.discharge,
+# cells-freeze.nested.host.join.self)
 def sv.front.c(+same: Bool, s: P.H, h: P.H, +nc: U32, +c: U32, +n: U32) -> Sv:
   match same:
     case True{}:

@@ -49,7 +49,11 @@ kernel's own state, which no law has yet been stated over
     the ring's joins and leaves.
   - `kernel-refine.discharge` — planned — the wiring premise discharged
     for the materializer's laws; `sv.front.c`'s check replaced by its
-    law (`cursor-laws.noself.frontier`).
+    law (`cursor-laws.noself.frontier`). `front_apart` and the serve's
+    laws (`front_joins`, `front_joins1`) owe two premises on the
+    frontier's heap: wired, and the served position a live node's port
+    below its kind's arity, which holds of a finished node as long as
+    the walks leave it untouched (`copied-nodes-untouched`).
 
 ## Open
 

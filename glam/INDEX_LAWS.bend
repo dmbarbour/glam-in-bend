@@ -730,3 +730,25 @@ law look_put_other:
   for ha: {IM.ix.look(I, src) == None{} : Maybe<&2, U32>}
   for hne: {U32.is_eq(src, k) == False{} : Bool}
   {IM.ix.look(IM.ix.put(I, x, src, b), k) == IM.ix.look(I, k) : Maybe<&2, U32>}
+
+# LAW: the cursor a realized index finds at key q, holding q in its word
+# 2, is no cursor nc whose word 2 holds another key pos
+# (cursor-laws.noself.frontier.cursor): so the cursor a serve finds at
+# the frontier's port is not the served one, whose word 2 the serve
+# reads its position from, once the port is not the position
+# (front_apart).
+# Record: cursors-indexed
+law found_apart:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +q: U32
+  for +pos: U32
+  for +c: U32
+  for +nc: U32
+  for +hr: {IM.ix.real(v, d, s, I) == True{} : Bool}
+  for +hq: {IM.ix.look(I, q) == Some{c} : Maybe<&2, U32>}
+  for +hn: {KMd.word(v, d, (nc + 2 : U32)) == pos : U32}
+  for +hne: {U32.is_eq(q, pos) == False{} : Bool}
+  {U32.is_eq(c, nc) == False{} : Bool}
