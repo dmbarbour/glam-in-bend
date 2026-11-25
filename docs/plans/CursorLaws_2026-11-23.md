@@ -667,7 +667,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     for the maintainer. `interaction_net`'s construction refusing a port
     wired twice or never (the maintainer, 2026-11-24) is the base case
     at loading.
-  - `cursor-laws.proofs` — active — the proofs reviewed and
+  - `cursor-laws.proofs` — built 2026-11-25, `.shared.model` and
+    `.bridge` tentative — the proofs reviewed and
     refactored, the laws unchanged (the maintainer, 2026-11-24). Taken
     after `.noself`, before `.loop`. In slices, each measured by its
     files' verdicts alone, before and after, and by the gate's:
@@ -711,7 +712,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       the serve's proofs and the cursors' (`lfull`, `po_at`, `lay_at`).
       As planned: the development aid listing the defs whose types
       match across the proof files, and what it finds.
-    - `cursor-laws.proofs.shared` — active — the duplicates moved to
+    - `cursor-laws.proofs.shared` — built 2026-11-25 — `.hub`,
+      `.align` and `.basics`; `.model` tentative. Over what sharing would
+      save, about 496 lines remain after them (the finder rerun), in 66
+      groups of a few lines each: none buys check time, the verdicts'
+      cost lying in their imports, and in the generated files each is a
+      generator's edit. As planned: the duplicates moved to
       shared lemma files beside the code they are about, the
       generators calling them. Each slice one family, its files'
       verdicts against a baseline of every proof file's alone
@@ -744,10 +750,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         `po_at`, which `PROOF.bend` proves itself under the same names,
         are `.model`'s. As planned: `PROOF.bend` importing `ALIGN.bend`'s
         lemmas, which `gen_align.py` copied.
-      - `cursor-laws.proofs.shared.model` — planned — the model's facts
+      - `cursor-laws.proofs.shared.model` — tentative — taken when the
+        proofs holding them are next edited (`po_at`, `none_has` in
+        `PROOF.bend` and `SERVE_PROOF.bend`, `lfull` in `SERVE_PROOF`
+        and `SPLICE_PROOF`, `links_at` and `pos_at` in `PROOF.bend` and
+        `JOIN_PROOF`: about 70 lines). As planned: the model's facts
         the serve's proofs and the cursors' both prove, in a file
         beside the model.
-      - `cursor-laws.proofs.shared.basics` — planned — the Bool, Nat and
+      - `cursor-laws.proofs.shared.basics` — built 2026-11-25 — as a
+        rule and a table rather than a file: `docs/Proving.md` lists the
+        31 hub laws the proofs had restated, with their statements, and
+        asks that a new lemma be checked by the finder first. The
+        copies already written stay until their files are next edited. As
+        planned: the Bool, Nat and
         U32 facts no hub file holds, in small files by topic; the
         generated files' through their generators. An import a file
         lacks is timed alone first.
@@ -785,7 +800,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         their BendTT is 1 to 1.5 MB a module. Where the writing spends
         its time is Bend's to show (`docs/BendIssues.md`, BendTT emission
         time); until it does, no cut here has a known payoff.
-    - `cursor-laws.proofs.bridge` — planned — the bridge from code to
+    - `cursor-laws.proofs.bridge` — tentative — taken with the next
+      law over the heap, which would reuse it (`.loop`). As planned: the
+      bridge from code to
       model reviewed for reuse, its mirror plumbing a template's
       candidate.
 

@@ -537,6 +537,52 @@ it alone taught. Add to this file what a new proof teaches.
   layout and bases of the nodes after), a caller chains them with
   nothing from the proof files but the heap's eta (`SPP.heta`) and the
   arrays' mirrors, a linear array read twice taking one.
+- **Before writing a basic lemma, look for it.** The proofs had copies
+  of facts the hub proves, some in six files (`not_true`): Bool's `and`
+  and `or` splits, `Nat.sub(n, 0n) == n`, `0 <= n`, `le` transitive. Run
+  `python3 -I scripts/proof_dups.py --detail` over a new proof file: it
+  names any lemma whose statement another file or the hub already proves,
+  the parameters renamed by position. The hub's laws it found restated
+  (2026-11-25, `cursor-laws.proofs.dups`), each callable where its file
+  is imported (`_0`, `_1` the parameters in order; `{x}` for
+  `{x == True{}}`):
+
+  | Law | Where | Statement, parameters by position |
+  |---|---|---|
+  | `bool_or_left_comm` | bend-mathlib `algebra.bend` | `Bool , Bool , Bool -> {Bool.or(_0, Bool.or(_1, _2)) == Bool.or(_1, Bool.or(_0, _2))}` |
+  | `and_eq_true` | bend-mathlib `bool.bend` | `Bool , Bool , {_0} , {_1} -> {Bool.and(_0, _1)}` |
+  | `and_false` | bend-mathlib `bool.bend` | `Bool -> {Bool.and(_0, False{}) == False{}}` |
+  | `and_true` | bend-mathlib `bool.bend` | `Bool -> {Bool.and(_0, True{}) == _0}` |
+  | `eq_false_of_not_eq_true` | bend-mathlib `bool.bend` | `Bool , {Bool.not(_0)} -> {_0 == False{}}` |
+  | `eq_true_of_and_left` | bend-mathlib `bool.bend` | `Bool , Bool , {Bool.and(_0, _1)} -> {_0}` |
+  | `eq_true_of_and_right` | bend-mathlib `bool.bend` | `Bool , Bool , {Bool.and(_0, _1)} -> {_1}` |
+  | `or_assoc` | bend-mathlib `bool.bend` | `Bool , Bool , Bool -> {Bool.or(Bool.or(_0, _1), _2) == Bool.or(_0, Bool.or(_1, _2))}` |
+  | `or_true` | bend-mathlib `bool.bend` | `Bool -> {Bool.or(_0, True{})}` |
+  | `add_assoc_sym` | bend-mathlib `nat.bend` | `Nat , Nat , Nat -> {Nat.add(_0, Nat.add(_1, _2)) == Nat.add(Nat.add(_0, _1), _2)}` |
+  | `add_succ` | bend-mathlib `nat.bend` | `Nat , Nat -> {Nat.add(_0, 1n+_1) == 1n+Nat.add(_0, _1)}` |
+  | `add_succ_sym` | bend-mathlib `nat.bend` | `Nat , Nat -> {1n+Nat.add(_0, _1) == Nat.add(_0, 1n+_1)}` |
+  | `add_zero` | bend-mathlib `nat.bend` | `Nat -> {Nat.add(_0, 0n) == _0}` |
+  | `is_eq_refl` | bend-mathlib `nat.bend` | `Nat -> {Nat.is_eq(_0, _0)}` |
+  | `mod_one` | bend-mathlib `nat.bend` | `Nat -> {Nat.mod(_0, 1n) == 0n}` |
+  | `sub_zero` | bend-mathlib `nat.bend` | `Nat -> {Nat.sub(_0, 0n) == _0}` |
+  | `succ_inj` | bend-mathlib `nat.bend` | `Nat , Nat , {1n+_0 == 1n+_1} -> {_0 == _1}` |
+  | `lt_one` | lawful-arrays `proof_base.bend` | `Nat , {Nat.is_lt(_0, 1n)} -> {_0 == 0n}` |
+  | `true_ne_false` | lawful-arrays `proof_base.bend` | `{True{} == False{}} -> Empty` |
+  | `le0` | lawful-arrays `proof_index.bend` | `Nat -> {Nat.is_le(0n, _0)}` |
+  | `nat_le_trans` | lawful-words `LAWS.bend` | `Nat , Nat , Nat , {Nat.is_le(_0, _1)} , {Nat.is_le(_1, _2)} -> {Nat.is_le(_0, _2)}` |
+  | `bit_zero` | lawful-words `proof_bytes.bend` | `Nat -> {bit(0, _0) == False{}}` |
+  | `add_one` | lawful-words `proof_nat.bend` | `Nat -> {Nat.add(_0, 1n) == 1n+_0}` |
+  | `le_add_mono_l` | lawful-words `proof_nat.bend` | `Nat , Nat , Nat , {Nat.is_le(_1, _2)} -> {Nat.is_le(Nat.add(_0, _1), Nat.add(_0, _2))}` |
+  | `le_ne` | lawful-words `proof_nat.bend` | `Nat , Nat , {Nat.is_le(_0, _1)} , {Nat.is_eq(_0, _1) == False{}} -> {Nat.is_le(1n+_0, _1)}` |
+  | `le_refl` | lawful-words `proof_nat.bend` | `Nat -> {Nat.is_le(_0, _0)}` |
+  | `lt_to_le` | lawful-words `proof_nat.bend` | `Nat , Nat , {Nat.is_lt(_0, _1)} -> {Nat.is_le(_0, _1)}` |
+  | `mod_add_mod_l` | lawful-words `proof_nat.bend` | `Nat , Nat , Nat -> {Nat.mod(Nat.add(Nat.mod(_0, _2), _1), _2) == Nat.mod(Nat.add(_0, _1), _2)}` |
+  | `mod_add_mod_r` | lawful-words `proof_nat.bend` | `Nat , Nat , Nat -> {Nat.mod(Nat.add(_0, Nat.mod(_1, _2)), _2) == Nat.mod(Nat.add(_0, _1), _2)}` |
+  | `zero_ne_succ` | lawful-words `proof_nat.bend` | `Nat , {0n == 1n+_0} -> Empty` |
+  | `u32_eq_of_is_eq` | `vendor/bend-mathlib/u32_eq.bend` | `U32 , U32 , {U32.is_eq(_0, _1)} -> {_0 == _1}` |
+
+  Import `vendor/bend-mathlib/u32_eq.bend` for `u32_eq_of_is_eq`, never
+  the hub's `string.bend`, whose import costs a verdict about 75 s.
 - **Lemmas on the hub**: the package `0x8ae61ec3a6615abd35f196c07232ad28`
   (bend-mathlib) proves lists, `U32`, `Nat`, `Bool` and equality
   (`list.bend`, `u32.bend`, `nat.bend`, `bool.bend`, `equal.bend`).
