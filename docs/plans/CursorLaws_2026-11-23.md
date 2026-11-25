@@ -612,7 +612,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         The serve's verdict first took 190 s: `materialize.bend`'s
         closure 85 s, and the hub's `string.bend` 75 s more, imported by
         the index's proofs for one lemma, `u32_eq_of_is_eq`. That lemma
-        is copied into `glam/lemmas.bend` and the index's proofs use it,
+        is vendored (`vendor/bend-mathlib/`) and the index's proofs use it,
         so their verdict fell from 55 s to 21 s and the serve's to 94 s.
         The premises:
         - on the frontier's heap, the kernel's (`kernel-refine`): wired,
@@ -682,11 +682,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       are likely to join them.
     - The rest of the proof files off the hub's `string.bend`, whose
       import costs about 75 s of verdict for the one lemma they take
-      from it (`u32_eq_of_is_eq`, copied into `glam/lemmas.bend` for
-      the index's proofs at `.frontier.cursor`): `glam/PROOF.bend`,
+      from it (`u32_eq_of_is_eq`, vendored in `vendor/bend-mathlib/`
+      for the index's proofs at `.frontier.cursor`): `glam/PROOF.bend`,
       `SERVE_PROOF`, `JOIN_PROOF`, `SPLICE_PROOF` and the generated
       `ALIGN.bend` through its generator. A home for the lemma in the
-      hub's `u32.bend` is a candidate to offer upstream.
+      hub's `u32.bend` is a candidate to offer upstream once glam is
+      relatively stable (the maintainer, 2026-11-25).
     - Shared lemmas in files of their own, beside the code they are
       about: words and Bools, the heap's mirror (`hp`, the reads'
       hand-backs, an error's write kept a tree), the probe. Each is

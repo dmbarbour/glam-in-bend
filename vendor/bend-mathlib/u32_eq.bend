@@ -1,9 +1,11 @@
-# Lemmas shared by the proof files (cursor-laws.proofs).
+# u32_eq_of_is_eq, from bend-mathlib 0.8.1.0's string.bend (hub package
+# 0x8ae61ec3a6615abd35f196c07232ad28; Apache-2.0, ./LICENSE), with the
+# helpers it needs. Changed here: copied into a file of their own, and
+# the lemma's law and def written as one typed def; the bodies are
+# bend-mathlib's. Why, and what uses it: ./SOURCE.md.
 #
-# u32_eq_of_is_eq is the hub's (bend-mathlib's string.bend, with the
-# helpers it needs), copied: string.bend's import costs a verdict about
-# 75 s (2026-11-24, Bend 2.0.39), and every proof file takes this lemma
-# alone from it.
+# The source file's notice:
+# bend-mathlib/string.bend: String append, reverse and length, and comparison.
 
 import Base
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MBool

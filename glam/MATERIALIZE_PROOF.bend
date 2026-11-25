@@ -9,7 +9,7 @@
 # - A verdict's cost is mostly its imports': materialize.bend's 85 s, the
 #   hub's string.bend 75 s more (2026-11-24, Bend 2.0.39), which the
 #   index's proofs took for u32_eq_of_is_eq alone, copied now
-#   (glam/lemmas.bend). Time a file of the imports alone and one trivial
+#   (vendor/bend-mathlib/u32_eq.bend). Time a file of the imports alone and one trivial
 #   def before blaming the proofs.
 # - The laws' arrays, named by several laws' arguments, are mirrored
 #   (fj2.m, fj1.m): each premise over an array carried onto its tree's
