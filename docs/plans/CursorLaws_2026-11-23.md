@@ -741,6 +741,40 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         U32 facts no hub file holds, in small files by topic; the
         generated files' through their generators. An import a file
         lacks is timed alone first.
+    - `cursor-laws.proofs.imports` — active — what the proofs import
+      from the spike cut to what they use, for the verdicts' time and
+      memory (the maintainer, 2026-11-25: the spike laws' refactoring on
+      the docket, read here as the proofs' imports of the kernel). A
+      verdict translates every definition its imports hold to BendTT,
+      used or not: the kernel's import alone took 82 s and 3.2 GB, its
+      BendTT 51 MB, of which the kernel's command line (`main.run`, the
+      strategies' every mode) 29.6 MB and the generated rule table
+      (`krules`) 15.5 MB; Bend's own check of it 3.8 s.
+      `POSITION_PROOF` and `MATERIALIZE_PROOF`, the gate's longest
+      verdicts and largest peaks, import it.
+      - `cursor-laws.proofs.imports.main` — built 2026-11-25 — the
+        kernel's import 82 to 71 s and 3.2 to 2.4 GB at its peak,
+        positioned demand's 81 to 74 s and 3.4 to 2.4 GB (store run
+        354). The four builds' counts alike: interactions equal,
+        instructions 794 to 845 more on every workload, small or large,
+        a start-up constant (runs 352, 355). The BendTT more than halved
+        (51 to 23 MB) while its writing went from 72 s to 68: the time
+        is not the output's size. The library's runner
+        (`spike/tools/library.py`) calls `run_dev`, `EDRes` and
+        `profile_ev`, which stay in the kernel; a scan of the Bend
+        sources alone had missed them, and the gate's library section
+        caught it. As planned: the command line
+        moved out of `spike/kernel.bend` into `spike/kernel_main.bend`,
+        which the build tools build (`count_builds.sh`, `kmem_run.sh`);
+        no importer used it. The kernel's compiled code checked
+        unchanged by the four builds' counts.
+      - `cursor-laws.proofs.imports.rules` — tentative — what remains
+        is spread over the modules the walk needs, not one definition:
+        a verdict of `krules`' import alone 18 s, `knet`'s 32,
+        `kdemand`'s 59, `kstrat`'s 73, each with what it imports, while
+        their BendTT is 1 to 1.5 MB a module. Where the writing spends
+        its time is Bend's to show (`docs/BendIssues.md`, BendTT emission
+        time); until it does, no cut here has a known payoff.
     - `cursor-laws.proofs.bridge` — planned — the bridge from code to
       model reviewed for reuse, its mirror plumbing a template's
       candidate.

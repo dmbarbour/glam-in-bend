@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds spike/kernel.bend over each storage module (kmem_flat, kmem_grow,
+# Builds spike/kernel_main.bend, the kernel's command line, over each storage module (kmem_flat, kmem_grow,
 # kmem_paged) and times it at k = 4 (start-up alone) and 18, 19, 20,
 # three runs each, with peak memory
 # (docs/plans/EvalSpike_2026-10-26.md, spike-node-layout).
@@ -18,7 +18,7 @@ for v in flat grow paged; do
   cp "$SPIKE"/*.bend "$OUT/$v/"
   sed -i "s|^import ./kmem_[a-z]*.bend as KM$|import ./kmem_$v.bend as KM|" "$OUT/$v/kprim.bend"
   grep -q "^import ./kmem_$v.bend as KM$" "$OUT/$v/kprim.bend"
-  (cd "$OUT/$v" && bend kernel.bend -o kernel >/dev/null)
+  (cd "$OUT/$v" && bend kernel_main.bend -o kernel >/dev/null)
 done
 for k in 4 18 19 20; do
   for v in flat grow paged; do

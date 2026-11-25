@@ -6,7 +6,7 @@
 # by scripts/count.sh under scripts/capped.sh and recorded in the analysis
 # store (scripts/results.py) under one run; with BASE, an earlier run of
 # this tool, each count is printed beside that run's. With EV=1, the
-# erasure modes too (spike/kernel.bend's ev and evlazy: succ, fma and lvl
+# erasure modes too (spike/kernel_main.bend's ev and evlazy: succ, fma and lvl
 # eagerly, succ and lvl on demand), recorded as workloads `succ.ev` and
 # so on, demand's lazy; the profile-guided builds are trained without
 # them. BUILDS names the builds to count, all four by default; without a
@@ -30,11 +30,11 @@ R="python3 -I $ROOT/scripts/results.py"
 BUILDS=${BUILDS:-default ai pgo ai_pgo}
 case " $BUILDS " in
   *pgo*)
-    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" \
+    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel_main.bend" "$OUT/kernel" \
       "14 succ" "14 succ lazy" "14 fma" "14 lvl" "14 lvl lazy" >/dev/null
     TRAIN='["14 succ", "14 succ lazy", "14 fma", "14 lvl", "14 lvl lazy"]' ;;
   *)
-    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel.bend" "$OUT/kernel" >/dev/null
+    "$ROOT/spike/tools/inline_build.sh" "$ROOT/spike/kernel_main.bend" "$OUT/kernel" >/dev/null
     TRAIN='[]' ;;
 esac
 BLIST=$(echo "$BUILDS" | sed 's/\([a-z_]*\)/"\1"/g; s/ /, /g')

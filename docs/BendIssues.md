@@ -110,6 +110,26 @@ of 2026-10-26, Bend 2.0.39.
   run loops).
 - **Revisit:** when a later Bend accepts either form.
 
+### BendTT emission time
+
+- **Need:** a proof file's verdict (`bend X.bend --verdict`) bounds how
+  fast the gate can be; the gate's longest are the kernel's importers'.
+- **Upstream:** none known; to raise when the maintainer asks.
+- **Evidence:** a file importing `spike/kernel.bend` alone: Bend's own
+  check 3.8 s, writing its BendTT (`-o x.bendtt`) 68 s at 2.2 GB peak,
+  the recheck the rest of a 71 s verdict (Bend 2.0.39, 2026-11-25). The
+  time is not the output's size: the kernel's command line moved out,
+  the BendTT more than halved (51 to 23 MB) and its writing went from
+  72 s to 68.
+  By module, with what each imports: `kprim` 13 s, `krules` 18,
+  `knet` 32, `kdemand` 59, `kstrat` 73 (store run 354,
+  `results/spike_imports/`).
+- **Workaround:** a proof imports no more than it uses: what nobody
+  proves sits in modules of its own (`spike/kernel_main.bend`,
+  `cursor-laws.proofs.imports.main`).
+- **Revisit:** with a Bend that reports a verdict's time by definition,
+  or emits faster.
+
 ### Reasoning about U32 in proofs
 
 - **Need:** the kernel's invariants live in `U32` words (the free list,
