@@ -861,12 +861,30 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         and a write more a use; every hello, sharing and growth sample's
         counts alike, 68 of them (`results/loop_base/`), and the ladder
         passing as before.
-      - `cursor-laws.loop.base.situate` — planned — `situate_pend`: the
+      - `cursor-laws.loop.base.situate` — active — `situate_pend`: the
         situating node's writes, on a node fresh from the free list,
         give `RG.px.ok` over the empty index with the leaf pending, so
         that `cursor_pend` applies to the first use. Its premises on the
         leaf: live, its link two-way and none facing itself (the wiring,
         `net-obvious-errors`), off the other tracked nodes' words.
+        Designed 2026-11-25, over `use.top` and `use.situ`'s writes: the
+        node taken by `P.node` from a free list whose chain is
+        `Con{s, F}` (`node_keeps`, `node_next`, `node_index`), its word 1
+        the static eraser (`P.put_st`), word 2 the source's entry, word 3
+        itself. Concluded: `RG.px.ok` over the words after, at `s`, the
+        index empty, the leaf pending, the live nodes `[s, leaf]`, the
+        free list `F`, the tracked `N`; and the words full. Premises: the
+        words full at depth 2 or more, below 32; `Con{s, F}` the free
+        list's chain and distinct; `[s, leaf]` and `F` in `N`, laid out
+        apart, each its own base; the leaf none of `Con{s, F}`; its link
+        word `q` (word 1) with `port.ok([s, leaf], d, q)`,
+        `po.all(q, [s, leaf], d, N)` and facing neither itself nor `s`.
+        The leaf's premises are on the value `q` alone, which the
+        writes leave, so that a caller discharges them from the host's
+        wiring. The static's conjuncts by `ALIGN.bend`'s `po_static` and
+        the alignment lemmas; the realization of the empty index by
+        `s`'s word 3. Not claimed: the reserve's and the doubling's
+        paths, where the free list is empty (`px_grow`, `.loop.shape`).
     - `cursor-laws.loop.shape` — planned — one change of the
       invariant, every law restated once. L. With it, the index's keys
       across serves: those of copied trees' boundaries not yet joined,
