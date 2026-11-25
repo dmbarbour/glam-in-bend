@@ -682,9 +682,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`glam/proofgen/PROOF.bend.in`, `SERVE_PROOF.bend.in`, the join's
       header in its stage), `SPLICE_PROOF.bend` and
       `proofgen/align/ALIGN.bend`, then regenerated.
-    - `cursor-laws.proofs.dups` — planned — the development aid
-      listing the defs whose types match across the proof files, and
-      what it finds.
+    - `cursor-laws.proofs.dups` — built 2026-11-25 —
+      `scripts/proof_dups.py`, run by hand: each proof file's lemmas
+      read as their statements, the parameters renamed by position, the
+      erasure marks dropped and each module alias replaced by its file,
+      grouped where they match. The hub's laws and typed defs, and the
+      repo's laws, join the groups. It finds 136 groups over 12 files,
+      132 across files:
+      - 32 already proved by the hub (`and_l` as bend-mathlib's
+        `eq_true_of_and_left`, `sub0` as `sub_zero`, `le0` as
+        lawful-arrays' `le0`), which the repo's copies can call;
+      - 28 matching one of the repo's laws;
+      - 76 among the repo's proofs alone: Bool's `and`, `or` and `not`
+        splits (`not_true` in six files, `or_false_l` in three),
+        `u32_refl` in five, the alignment lemmas `gen_align.py` copies
+        from `ALIGN.bend` into `PROOF.bend` (34, by design), and the
+        model's small facts (`po_at`, `lay_at`) copied between the
+        serve's and the cursors' proofs.
+
+      About 188 of the repo's lemmas could give way to one each. As
+      planned: the development aid listing the defs whose types match
+      across the proof files, and what it finds.
     - `cursor-laws.proofs.shared` — planned — the duplicates moved to
       shared lemma files beside the code they are about, the
       generators calling them.
