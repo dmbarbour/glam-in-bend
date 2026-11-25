@@ -31,3 +31,11 @@ a cursor made listed again among the live nodes, where it already is
     case None{}:
       Con{x, L}
 
+=== po_any px_sub
+a faced port's link word off one tracked node enough, not every one, so
+that a sub-list of the tracked nodes need not inherit it
+--- ring_model.bend
+      po.n(r, L, d, n) && po.all(r, L, d, t)
++++
+      po.n(r, L, d, n) || po.all(r, L, d, t)
+

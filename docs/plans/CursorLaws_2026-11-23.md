@@ -932,10 +932,20 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           cursor between serves, was dropped: carrying it through the
           crossings needs the index laid out at each step, which only
           the heap-level laws keep.
-      - `cursor-laws.loop.shape.track` — planned — the tracked nodes
+      - `cursor-laws.loop.shape.track` — active — the tracked nodes
         after a serve, the copy's nodes taken from the free list added
         (`M ++ ns`): laid out, bases and past kept, from the free
         list's nodes being laid out apart (`IM.fl.ok`).
+        Redesigned 2026-11-25: one tracked list for a whole run, every
+        node a serve may touch among it, laid out, bases and past once;
+        each serve's laws take the sub-list they name, the old nodes and
+        the copy's. Built on the side branch: `px_sub` (P11's, the
+        invariant over a sub-list holding the live, free and index's
+        nodes; its mutant, a faced port's link word off one tracked node
+        enough, caught), and the lemmas `lay_sub` (a distinct sub-list
+        of a list laid out is laid out, by `lay_pair`), `bases_sub`,
+        `past_sub`. Left for `.serve`: the sub-list's shape `M ++ ns`,
+        the copy's nodes last.
       - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
         invariant across the heap's doubling, the words copied.
       - `cursor-laws.loop.shape.serve` — planned — `serve_loop`: one

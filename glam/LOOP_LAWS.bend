@@ -71,3 +71,27 @@ law cxs_distinct:
   for +F: List<&2, U32>
   for +h: {RG.distinct(L) == True{} : Bool}
   {RG.distinct(RG.cxs.L(RG.cxs(cs, vm, dm, I, L, F))) == True{} : Bool}
+
+# LAW: the pending invariant over a sub-list of the tracked nodes, the
+# live, free and index's nodes still among it (P11,
+# cursor-laws.loop.shape.track): so that one tracked list serves a whole
+# run, each serve's laws taking the sub-list they name (the old nodes and
+# the copy's). Only the faced ports' link words read the tracked list,
+# kept off every one of its nodes, so off a sub-list's.
+# Record: cursors-indexed
+law px_sub:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +N2: List<&2, U32>
+  for +hp: {RG.px.ok(v, d, s, I, ps, L, F, N) == True{} : Bool}
+  for +hs: {RG.sub(N2, N) == True{} : Bool}
+  for +hL: {RG.sub(L, N2) == True{} : Bool}
+  for +hF: {RG.sub(F, N2) == True{} : Bool}
+  for +hI: {RG.sub(IM.ix.nodes(I), N2) == True{} : Bool}
+  {RG.px.ok(v, d, s, I, ps, L, F, N2) == True{} : Bool}
