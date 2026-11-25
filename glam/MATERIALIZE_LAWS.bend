@@ -25,13 +25,13 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 # and the cursor found there holds the port as its key, where nc holds
 # the position (found_apart). So sv.front.c's check never fires, under
 # the premises. On the source's frontier heap, the kernel's to discharge
-# (kernel-refine): wired (wiring-premise-before-refinement), and the
+# (kernel-refine): wired (net-obvious-errors), and the
 # position a live node's port there, a finished node being untouched by
 # the walks (copied-nodes-untouched). On the host: its words realizing
 # the index of the situating node on its invariant (find_tree's), and
 # nc's word 2 the position, as the serve reads it there. Not claimed:
 # the frontier's port without a cursor (the climb), or the other ends.
-# Record: wiring-premise-before-refinement
+# Record: net-obvious-errors
 # Record: cursors-indexed
 law front_joins:
   for w: Array<U32>
@@ -71,7 +71,7 @@ law front_joins:
 # the source the host itself, every premise on the heap after the walks,
 # the index's among them: that the walks keep the host's index and nc's
 # word 2 is owed (cursor-laws.noself.frontier.cursor).
-# Record: wiring-premise-before-refinement
+# Record: net-obvious-errors
 # Record: cursors-indexed
 # Record: self-copies-are-cursors
 law front_joins1:

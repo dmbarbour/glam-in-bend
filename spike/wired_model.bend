@@ -4,7 +4,7 @@ import ./krules.bend as KR
 import ./kmodel.bend as KMd
 
 # The wiring as the laws name it (cursor-laws.noself.model,
-# wiring-premise-before-refinement): no code calls these. A port's link as
+# net-obvious-errors): no code calls these. A port's link as
 # the wiring's audit checks it (KN.wa.link), over the words' view: a
 # static eraser, or a port of a live node past the header, within the
 # capacity, below its kind's arity, not itself, linking it back.

@@ -1,6 +1,6 @@
 # Laws of the wiring's audit (KN.wired_ok, spike/knet.bend), read as
 # facts the materializer's laws take as premises
-# (wiring-premise-before-refinement); proved in spike/WIRED_PROOF.bend.
+# (net-obvious-errors); proved in spike/WIRED_PROOF.bend.
 
 import Base
 import ./kprim.bend as P
@@ -20,7 +20,7 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 # and links are two-way (cursor-laws.noself.model). The node is named
 # by its index j, its port by p, as the audit counts them. Not claimed:
 # that the kernel's rewrites keep the audit passing (kernel-refine).
-# Record: wiring-premise-before-refinement
+# Record: net-obvious-errors
 # Record: static-links-count-as-nodes
 law wired_port:
   for w: Array<U32>

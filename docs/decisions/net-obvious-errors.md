@@ -1,6 +1,6 @@
 # Net construction refuses obvious errors, and only those
 
-`net-obvious-errors` · maintainer · rev fb0aca4
+`net-obvious-errors` · maintainer · rev e21c554
 
 **Context.** A net built by `interaction_net` can be wrong in ways that
 are cheap to see: a port wired twice or not at all; a subnet not
@@ -25,9 +25,24 @@ while a net reduces is not prevented: demand reports it on reaching it.
 **Consequences.**
 - A vicious circle formed by reduction stays in the net, stuck, where
   diagnosis can see it.
-- Until glam's construction exists, the spike's tools check lowered nets
-  for vicious circles beside polarity (`spike/tools/polarity.py`), and
-  the library keeps a hand-built net with one only to show demand
-  finding it.
+- The spike's tools check lowered nets for vicious circles beside
+  polarity (`spike/tools/polarity.py`), and the library keeps a
+  hand-built net with one only to show demand finding it.
+- A net's wiring, each port wired exactly once and so none facing
+  itself, has one definition in the laws: the audit's verdict,
+  `KN.wired_ok`, the same check the library runs after every case. A law
+  that needs the wiring takes that verdict as a premise; its reading
+  port by port (`WR.port.ok`) is tied to the audit by a law
+  (`wired_port`), so that no second definition of wired can drift from
+  the first. The model proves every rewrite keeps a net wired
+  (`W.wired`, `rewrite_wired`); construction's refusal of a port not
+  wired exactly once is the premise's base case at loading, and the
+  kernel's refinement against the model its discharge through reduction
+  ([`../plans/KernelRefine_2026-11-24.md`](../plans/KernelRefine_2026-11-24.md)).
+  The maintainer (2026-11-24): "each port must appear exactly once in
+  the initial wiring (for `interaction_net`), which prevents initial
+  self links."
 
-**Rule lives in:** `docs/Design.md`, Interaction Nets.
+**Rule lives in:** `docs/Design.md`, Interaction Nets; `spike/knet.bend`
+(`KN.wired_ok`, the wiring premise's owner) and `spike/WIRED_LAWS.bend`
+(`wired_port`).

@@ -49,10 +49,10 @@ law front_faces_from:
 # arity and no static. So the cursor found at the frontier's port is not
 # keyed at the position (.frontier.cursor). Premises on the frontier's
 # heap, the kernel's to discharge (kernel-refine): wired
-# (wiring-premise-before-refinement), and the position a live node's
+# (net-obvious-errors), and the position a live node's
 # port there, a finished node being untouched by the walks
 # (copied-nodes-untouched).
-# Record: wiring-premise-before-refinement
+# Record: net-obvious-errors
 # Record: cursors-indexed
 law front_apart:
   for w: Array<U32>

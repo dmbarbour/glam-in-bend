@@ -4,7 +4,7 @@ Drafted for the maintainer's review before building.
 
 The kernel's heap shown to do what the wiring model does, so that the
 premises the materializer's laws take on the source's wiring
-(`wiring-premise-before-refinement`) are discharged. The model's half
+(`net-obvious-errors`) are discharged. The model's half
 exists: every rewrite of the rule table keeps a net wired (`W.wired`,
 `rewrite_wired`, `rules_keep_wired_in`, `spike/wiring.bend`). The heap's
 half is audited at run time (`KN.wired_ok`). This plan builds the bridge

@@ -1,6 +1,6 @@
 # Proofs of spike/WIRED_LAWS.bend: the wiring's audit (KN.wired_ok) read
 # as per-port facts (cursor-laws.noself.model,
-# wiring-premise-before-refinement).
+# net-obvious-errors).
 #
 # Lessons (docs/Proving.md has them too):
 # - The audit only reads, so it bridges as freeze's write phase does:

@@ -76,7 +76,7 @@ topic, and unique across all docs, e.g. `spike-net-store`.
 - [`KernelRefine_2026-11-24.md`](KernelRefine_2026-11-24.md): `kernel-refine`
   steps showing the kernel's heap does what the wiring model does, so
   that the materializer's premises on the source's wiring are discharged
-  (`wiring-premise-before-refinement`). Drafted for the maintainer's
+  (`net-obvious-errors`). Drafted for the maintainer's
   review before building.
 - [`EvalSpike_2026-10-26.md`](EvalSpike_2026-10-26.md): `spike-` steps
   measuring how Bend 2 hosts glam's interaction-net evaluation (the store,

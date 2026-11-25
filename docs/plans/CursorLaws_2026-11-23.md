@@ -536,12 +536,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       dropping one check (not itself, links back, below the arity), are
       caught by the proof failing on them: no witness can pass the
       original audit and fail a port. As planned: the wiring as a premise
-      (`wiring-premise-before-refinement`): `KN.wired_ok`'s verdict on the
+      (`net-obvious-errors`): `KN.wired_ok`'s verdict on the
       source heap, the audit the library runs, no second definition.
       With it, lemmas that extract per port: a live node's port below its
       arity links a live port, not itself, which links it back.
     - `cursor-laws.noself.link` — dropped 2026-11-24 — to
-      `kernel-refine.rewrite` (`wiring-premise-before-refinement`).
+      `kernel-refine.rewrite` (`net-obvious-errors`).
     - `cursor-laws.noself.rules` — dropped 2026-11-24 — to
       `kernel-refine.rewrite`.
     - `cursor-laws.noself.copy` — dropped 2026-11-24 — to
