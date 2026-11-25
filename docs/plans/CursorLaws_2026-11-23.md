@@ -861,7 +861,17 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         and a write more a use; every hello, sharing and growth sample's
         counts alike, 68 of them (`results/loop_base/`), and the ladder
         passing as before.
-      - `cursor-laws.loop.base.situate` — active — `situate_pend`: the
+      - `cursor-laws.loop.base.situate` — built 2026-11-25 — on the
+        side branch `cursor-laws-loop-base`, `situate_pend` in
+        `glam/LOOP_LAWS.bend` (new, the loop's laws), stated over
+        `R.situate`, which the core now calls for the situating node's
+        allocation and writes (`glam/ring.bend`; the 68 samples' counts
+        alike). Proved over the view's list form (`px_sv`), its reads at
+        the written words carried back; the payload word split by the
+        header's test. `lay_pair`, two tracked nodes four words apart,
+        is new and general. The verdict 35 s at 2.7 GB. Two mutants,
+        the index not empty and word 1 left the free list's link, caught
+        by the proof failing. As designed: `situate_pend`: the
         situating node's writes, on a node fresh from the free list,
         give `RG.px.ok` over the empty index with the leaf pending, so
         that `cursor_pend` applies to the first use. Its premises on the

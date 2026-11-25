@@ -469,6 +469,12 @@ it alone taught. Add to this file what a new proof teaches.
   the proof files took for one lemma, `u32_eq_of_is_eq`, now copied into
   `vendor/bend-mathlib/u32_eq.bend`; `glam/materialize.bend`'s closure costs 85 s, the
   floor of any law over the serve's code.
+- **A law over code's writes is proved over the view's list form.** The
+  heap the code leaves is equated to sets on its words, each set's view a
+  `List.set` of the one before (`LA.set_view`), and the invariant proved
+  over that list as a lemma of its own with no heap in it; a conjunct
+  that reads a written word is proved at the value and carried back by
+  substitution (`glam/LOOP_PROOF.bend`'s `px_sv`, `situate_pend`).
 - **A loop's step is settled at the ends it makes.** For a loop
   `loop.r(step(h), more)`, one lemma walks `step`'s branches to the end
   each makes and settles it there: an end by its own lemma, a "go
