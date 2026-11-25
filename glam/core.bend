@@ -768,18 +768,18 @@ def frame.push(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc
 # a negative cursor at the source's interface, put in an index of its own
 # by R.cursor, as a serve's crossings are (cursor-laws.loop.base): the
 # situating node, which holds the source's entry and the applying node's
-# level (the splice's, sp.by), made an empty index, its word 3 itself;
+# level (the splice's, sp.by), made an empty index by R.situate;
 # the leaf's data entry dropped, as a splice drops it. A frame then serves
 # the cursor, the first copy a serve like any other.
 
 def use.situ(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +situ) = r
-  frame.push(R.cursor(P.wr(P.wr(P.put_st(h, situ, P.era()), (situ + 2 : U32), k), (situ + 3 : U32), situ), situ, leaf, P.iface(), True{}),
+  frame.push(R.cursor(h, situ, leaf, P.iface(), True{}),
     path, top, depth, n, k, leaf, P.iface(), who, b, c, ss)
 
 def use.top(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +ht) = r
-  use.situ(P.node(h, P.hd2(18, 2, S.sp.by(ht)), 0), leaf, path, top, depth, n, k, who, b, c, ss)
+  use.situ(R.situate(h, S.sp.by(ht), k), leaf, path, top, depth, n, k, who, b, c, ss)
 
 def use.w(r: P.H & U32, +hb: U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +w) = r
