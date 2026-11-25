@@ -181,13 +181,6 @@ def ah.u32_eq(+a: U32, +b: U32, +h: {U32.is_eq(a, b) == True{} : Bool}) -> {a ==
   MU.u32_to_nat_inj(a, b, MN.eq_of_is_eq(U32.to_nat(a), U32.to_nat(b),
     Equal.trans(Bool, Nat.is_eq(U32.to_nat(a), U32.to_nat(b)), U32.is_eq(a, b), True{}, Equal.sym(Bool, U32.is_eq(a, b), Nat.is_eq(U32.to_nat(a), U32.to_nat(b)), MU.u32_is_eq_to_nat(a, b)), h)))
 
-def ah.nt_of(+b: Bool, +h: {Bool.not(b) == True{} : Bool}) -> {b == False{} : Bool}:
-  match b:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(h))
-    case False{}:
-      {==}
-
 # a port's check passed: its link no port of its own reference, unless a
 # static eraser, which a port that is no static cannot be
 def at_ne(+inside: Bool, +v: List<&2, U32>, +d: Nat, +x: U32, +y: U32, +cap: U32, +hin: {(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap) && U32.is_ne(y, x)) == inside : Bool},
@@ -195,7 +188,7 @@ def at_ne(+inside: Bool, +v: List<&2, U32>, +d: Nat, +x: U32, +y: U32, +cap: U32
   match inside:
     case True{}:
       +hne = MB.eq_true_of_and_right(U32.is_ge((y >> 2n : U32), P.first()) && U32.is_lt((y >> 2n : U32), cap), U32.is_ne(y, x), hin)
-      ah.nt_of(U32.is_eq(y, x), hne)
+      MB.eq_false_of_not_eq_true(U32.is_eq(y, x), hne)
     case False{}:
       Empty.absurd({U32.is_eq(y, x) == False{} : Bool}, MB.false_ne_true()(h))
 

@@ -717,7 +717,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       verdicts against a baseline of every proof file's alone
       (`results/proofs_shared/baseline.sh`); hand-kept files before
       generated ones.
-      - `cursor-laws.proofs.shared.hub` — active — the hand-kept
+      - `cursor-laws.proofs.shared.hub` — built 2026-11-25 — nine
+        lemmas: `FREEZE_PROOF`'s `nt_of`, `sub0` and `le0`,
+        `WIRED_PROOF`'s `sub0` and `le_trans_b`, `INDEX_PROOF`'s
+        `bool_and_false` and `or_assoc`, and `POSITION_PROOF`'s
+        `ah.nt_of` replaced at their calls by bend-mathlib's and
+        lawful-arrays' and lawful-words' laws; `INDEX_PROOF`'s `not_true`,
+        42 callers, a wrapper of bend-mathlib's. 92 lines less. Verdicts
+        alike within the noise (runs 350 and 351, one file at a time,
+        the host's kernel upgraded between: the files touched 1 to 5 s
+        slower, the untouched −1 to +4 s). As planned: the hand-kept
         files' re-proofs of hub laws whose file they import, the marks
         fitting: a lemma with many callers kept as a one-line wrapper
         of the hub's law, so that no call site moves, one with few

@@ -394,17 +394,10 @@ def ok_link(+t0: LAT.Tree<U32>, +d: Nat, +x: U32, +cap: U32, +hft: {AD.full(U32,
   %Equal.sym(U32, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, (x + 1 : U32)), hw(t0, (x + 1 : U32)), wdv(t0, d, (x + 1 : U32), hft, hd32)) : {wm.link(t0, x, cap, True{}) == WR.lk(P.is_static(_), AD.view(U32, LAT.fromT(U32, t0)), d, x, _, cap) : Bool}
   ok_lk(P.is_static(hw(t0, (x + 1 : U32))), t0, d, x, hw(t0, (x + 1 : U32)), cap, hft, hd32)
 
-def sub0(+a: Nat) -> {Nat.sub(a, 0n) == a : Nat}:
-  match a:
-    case 0n:
-      {==}
-    case 1n+c:
-      {==}
-
 def sub_add_b(+m: Nat, +n: Nat, +h: {Nat.is_le(m, n) == True{} : Bool}) -> {Nat.add(Nat.sub(n, m), m) == n : Nat}:
   match m:
     case 0n:
-      %Equal.sym(Nat, Nat.sub(n, 0n), n, sub0(n)) : {Nat.add(_, 0n) == n : Nat}
+      %Equal.sym(Nat, Nat.sub(n, 0n), n, LAB.sub_zero(n)) : {Nat.add(_, 0n) == n : Nat}
       MN.add_zero(n)
     case 1n+c:
       match n:
@@ -434,21 +427,6 @@ def le_of_lt(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.i
         case 1n+c:
           le_of_lt(x, c, h)
 
-def le_trans_b(+a: Nat, +b: Nat, +c: Nat, +h1: {Nat.is_le(a, b) == True{} : Bool}, +h2: {Nat.is_le(b, c) == True{} : Bool}) -> {Nat.is_le(a, c) == True{} : Bool}:
-  match a:
-    case 0n:
-      le0(c)
-    case 1n+x:
-      match b:
-        case 0n:
-          Empty.absurd({Nat.is_le(1n+x, c) == True{} : Bool}, MB.false_ne_true()(h1))
-        case 1n+y:
-          match c:
-            case 0n:
-              Empty.absurd({Nat.is_le(1n+x, 0n) == True{} : Bool}, MB.false_ne_true()(h2))
-            case 1n+z:
-              le_trans_b(x, y, z, h1, h2)
-
 # a live node's port, below its kind's arity, passes the audit's check
 def wp.k(+t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +hwd: {Pair.snd(P.H, Bool, KN.wired_ok(hp(t0, a))) == True{} : Bool}, +j: U32, +p: U32,
   +hj: {U32.is_le(P.first(), j) == True{} : Bool}, +hjc: {U32.is_lt(j, capw(t0)) == True{} : Bool}, +hpa: {U32.is_lt(p, KR.kind_arity(P.rk(hw(t0, (j << 2n : U32))))) == True{} : Bool}) ->
@@ -456,7 +434,7 @@ def wp.k(+t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +hwd: {Pair.snd(P.H, Boo
   +hv = Equal.trans(Bool, wm.go(U32.to_nat((capw(t0) - P.first() : U32)), t0, P.first(), capw(t0), True{}), Pair.snd(P.H, Bool, KN.wired_ok(hp(t0, a))), True{}, Equal.sym(Bool, Pair.snd(P.H, Bool, KN.wired_ok(hp(t0, a))), wm.go(U32.to_nat((capw(t0) - P.first() : U32)), t0, P.first(), capw(t0), True{}), wired_back(t0, a)), hwd)
   +hlo = Equal.trans(Bool, Nat.is_le(U32.to_nat(P.first()), U32.to_nat(j)), U32.is_le(P.first(), j), True{}, Equal.sym(Bool, U32.is_le(P.first(), j), Nat.is_le(U32.to_nat(P.first()), U32.to_nat(j)), MU.u32_is_le_to_nat(P.first(), j)), hj)
   +hjn = Equal.trans(Bool, Nat.is_lt(U32.to_nat(j), U32.to_nat(capw(t0))), U32.is_lt(j, capw(t0)), True{}, Equal.sym(Bool, U32.is_lt(j, capw(t0)), Nat.is_lt(U32.to_nat(j), U32.to_nat(capw(t0))), MU.u32_is_lt_to_nat(j, capw(t0))), hjc)
-  +hfc = le_trans_b(U32.to_nat(P.first()), U32.to_nat(j), U32.to_nat(capw(t0)), hlo, le_of_lt(U32.to_nat(j), U32.to_nat(capw(t0)), hjn))
+  +hfc = WL.nat_le_trans(U32.to_nat(P.first()), U32.to_nat(j), U32.to_nat(capw(t0)), hlo, le_of_lt(U32.to_nat(j), U32.to_nat(capw(t0)), hjn))
   +hfcu = Equal.trans(Bool, U32.is_le(P.first(), capw(t0)), Nat.is_le(U32.to_nat(P.first()), U32.to_nat(capw(t0))), True{}, MU.u32_is_le_to_nat(P.first(), capw(t0)), hfc)
   +hK = Equal.trans(Nat, Nat.add(U32.to_nat((capw(t0) - P.first() : U32)), U32.to_nat(P.first())), Nat.add(Nat.sub(U32.to_nat(capw(t0)), U32.to_nat(P.first())), U32.to_nat(P.first())), U32.to_nat(capw(t0)),
     Equal.cong(Nat, Nat, z => Nat.add(z, U32.to_nat(P.first())), U32.to_nat((capw(t0) - P.first() : U32)), Nat.sub(U32.to_nat(capw(t0)), U32.to_nat(P.first())), WL.to_nat_sub_le(capw(t0), P.first(), hfcu)), sub_add_b(U32.to_nat(P.first()), U32.to_nat(capw(t0)), hfc))

@@ -12,14 +12,16 @@ their results an equation or Empty; definitions without a result type
 (a law's proof, `def Laws.x(a, b)`) are left out, their statements
 their laws'.
 
-    python3 -I scripts/proof_dups.py [FILE...]
+    python3 -I scripts/proof_dups.py [--detail] [FILE...]
 
 prints each group of two or more definitions whose types match, across
 files or within one, the largest groups first, then a count. The laws of
 the hub packages installed (~/.bend/lib) and of the repo's laws files
 join the groups, and the hub's typed defs (marked `*`), so that a lemma a
 law or the hub already proves shows beside it; a group of laws and hub
-defs alone is left out.
+defs alone is left out. --detail gives each def's body length, its
+parameters' erasure marks in order (+, - or . for a linear one) and
+whether its body is one call, a wrapper of another lemma.
 """
 import os
 import re
@@ -129,8 +131,32 @@ def normalized(names, types, result, amap):
     return " , ".join(norm(t) for t in types) + " -> " + norm(result)
 
 
+DETAIL = {}
+LAW_MARKS = {}
+
+
+def detail(lines, i, head):
+    """a def's body length in lines, its parameters' erasure marks, and
+    whether its body is one call (a wrapper of another lemma)."""
+    hl = head.count("\n") + 1
+    body = []
+    for line in lines[i + hl:]:
+        if line.strip() and not line.startswith((" ", "\t")):
+            break
+        if line.strip():
+            body.append(line.strip())
+    m = re.match(r"def [\w.]+\((.*)\)\s*->", head.replace("\n", " "), re.S)
+    marks = []
+    if m:
+        for p in split_params(m.group(1)):
+            p = p.strip()
+            marks.append(p[0] if p[:1] in "+-" else ".")
+    wrapper = len(body) == 1 and re.match(r"^[\w.]+\(", body[0]) is not None
+    return len(body), "".join(marks), wrapper
+
+
 LAW = re.compile(r"^law ([A-Za-z_][\w.]*):\s*$")
-FOR = re.compile(r"^\s+for\s+[+\-]?\s*(~?\w+)\s*:\s*(.*)$")
+FOR = re.compile(r"^\s+for\s+([+\-]?)\s*(~?\w+)\s*:\s*(.*)$")
 
 
 def laws(lines, amap):
@@ -140,17 +166,19 @@ def laws(lines, amap):
         m = LAW.match(line)
         if not m:
             continue
-        names, types, concl = [], [], []
+        names, types, concl, marks = [], [], [], ""
         for line2 in lines[i + 1:i + 80]:
             fm = FOR.match(line2)
             if fm and not concl:
-                names.append(fm.group(1).lstrip("~"))
-                types.append(fm.group(2))
+                marks += fm.group(1) or "."
+                names.append(fm.group(2).lstrip("~"))
+                types.append(fm.group(3))
             elif line2.strip() and line2.startswith((" ", "\t")):
                 concl.append(line2.strip())
             else:
                 break
         if concl:
+            LAW_MARKS[(m.group(1), i + 1)] = marks
             yield m.group(1), i + 1, normalized(names, types, " ".join(concl), amap)
 
 
@@ -191,6 +219,7 @@ def scan(files, extra=()):
             if sig is None:
                 continue
             groups[sig].append((key, i + 1, mark + m.group(1)))
+            DETAIL[(key, i + 1)] = detail(lines, i, head)
         if mark:
             for name, line, sig in laws(lines, amap):
                 groups[sig].append((key, line, "law " + name))
@@ -204,17 +233,24 @@ def repo_laws():
 
 
 def main(argv):
-    files = argv[1:] or default_files()
+    files = [a for a in argv[1:] if not a.startswith("--")] or default_files()
     groups = scan(files, hub_files() + repo_laws())
     # a group is a duplicate when it holds two entries, one a repo proof's def
     dups = [(sig, ds) for sig, ds in groups.items()
             if len(ds) > 1 and any(not n.startswith(("*", "law ")) for _, _, n in ds)]
     dups.sort(key=lambda g: (-len({f for f, _, _ in g[1]}), -len(g[1]), g[1][0]))
+    detailed = "--detail" in argv
     for sig, ds in dups:
         nfiles = len({f for f, _, _ in ds})
         print(f"{len(ds)} defs in {nfiles} file(s): {sig[:200]}")
         for f, line, name in ds:
-            print(f"    {f}:{line} {name}")
+            extra = ""
+            if detailed and (f, line) in DETAIL:
+                n, marks, wrap = DETAIL[(f, line)]
+                extra = f"  [{n} lines, marks {marks}{', a wrapper' if wrap else ''}]"
+            elif detailed and name.startswith("law ") and (name[4:], line) in LAW_MARKS:
+                extra = f"  [marks {LAW_MARKS[(name[4:], line)]}]"
+            print(f"    {f}:{line} {name}{extra}")
     across = sum(1 for _, ds in dups if len({f for f, _, _ in ds}) > 1)
     print(f"proof_dups: {len(dups)} groups, {across} across files, over {len(files)} files")
 

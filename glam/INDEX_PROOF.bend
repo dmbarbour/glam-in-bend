@@ -90,13 +90,6 @@ def zeros(n: Nat) -> Word(n):
     case 1n+p:
       WCon{False{}, zeros(p)}
 
-def bool_and_false(b: Bool) -> {Bool.and(b, False{}) == False{} : Bool}:
-  match b:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
-
 def and_zeros(n: Nat, t: Word(n)) -> {Word.and(n, t, zeros(n)) == zeros(n) : Word(n)}:
   match n:
     case 0n:
@@ -107,7 +100,7 @@ def and_zeros(n: Nat, t: Word(n)) -> {Word.and(n, t, zeros(n)) == zeros(n) : Wor
       match t:
         case WCon{b, r}:
           %Equal.sym(Word(p), Word.and(p, r, zeros(p)), zeros(p), and_zeros(p, r)) : {WCon{Bool.and(b, False{}), _} == WCon{False{}, zeros(p)} : Word(1n+p)}
-          %Equal.sym(Bool, Bool.and(b, False{}), False{}, bool_and_false(b)) : {WCon{_, zeros(p)} == WCon{False{}, zeros(p)} : Word(1n+p)}
+          %Equal.sym(Bool, Bool.and(b, False{}), False{}, MB.and_false(b)) : {WCon{_, zeros(p)} == WCon{False{}, zeros(p)} : Word(1n+p)}
           {==}
 
 def low_fin(h: Bool) -> {Cmp.is_eq(Word.cmp.fin(Bool.and(h, True{}), True{}, EQ{})) == h : Bool}:
@@ -396,11 +389,7 @@ def fuel_down(+g: Nat, +lo: Nat, +i: Nat, +hfu: {Nat.is_le(33n, Nat.add(1n+g, lo
   le_trans_b(33n, 1n+Nat.add(g, lo), 1n+Nat.add(g, i), hfu, le_add_l(g, lo, i, hli))
 
 def not_true(+b: Bool, +h: {Bool.not(b) == True{} : Bool}) -> {b == False{} : Bool}:
-  match b:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(h))
-    case False{}:
-      {==}
+  MB.eq_false_of_not_eq_true(b, h)
 
 # The heap's words
 # ================
@@ -3508,37 +3497,6 @@ def or_swap3(+a: Bool, +b: Bool, +c: Bool) -> {Bool.or(a, Bool.or(b, c)) == Bool
             case False{}:
               {==}
 
-def or_assoc(+a: Bool, +b: Bool, +c: Bool) -> {Bool.or(Bool.or(a, b), c) == Bool.or(a, Bool.or(b, c)) : Bool}:
-  match a:
-    case True{}:
-      match b:
-        case True{}:
-          match c:
-            case True{}:
-              {==}
-            case False{}:
-              {==}
-        case False{}:
-          match c:
-            case True{}:
-              {==}
-            case False{}:
-              {==}
-    case False{}:
-      match b:
-        case True{}:
-          match c:
-            case True{}:
-              {==}
-            case False{}:
-              {==}
-        case False{}:
-          match c:
-            case True{}:
-              {==}
-            case False{}:
-              {==}
-
 def or_j1(+a: Bool, +e: Bool) -> {Bool.or(a, Bool.or(e, False{})) == Bool.or(e, a) : Bool}:
   match a:
     case True{}:
@@ -3575,7 +3533,7 @@ def has_app(xs: List<&2, U32>, +ys: List<&2, U32>, +z: U32) -> {RG.has(List.appe
       {==}
     case Con{+y, +t}:
       %Equal.sym(Bool, RG.has(List.append(&2, U32, t, ys), z), Bool.or(RG.has(t, z), RG.has(ys, z)), has_app(t, ys, z)) : {Bool.or(U32.is_eq(y, z), _) == Bool.or(Bool.or(U32.is_eq(y, z), RG.has(t, z)), RG.has(ys, z)) : Bool}
-      Equal.sym(Bool, Bool.or(Bool.or(U32.is_eq(y, z), RG.has(t, z)), RG.has(ys, z)), Bool.or(U32.is_eq(y, z), Bool.or(RG.has(t, z), RG.has(ys, z))), or_assoc(U32.is_eq(y, z), RG.has(t, z), RG.has(ys, z)))
+      Equal.sym(Bool, Bool.or(Bool.or(U32.is_eq(y, z), RG.has(t, z)), RG.has(ys, z)), Bool.or(U32.is_eq(y, z), Bool.or(RG.has(t, z), RG.has(ys, z))), MB.or_assoc(U32.is_eq(y, z), RG.has(t, z), RG.has(ys, z)))
 
 def wo_app(xs: List<&2, U32>, +ys: List<&2, U32>, +x: U32) -> {RG.without(List.append(&2, U32, xs, ys), x) == List.append(&2, U32, RG.without(xs, x), RG.without(ys, x)) : List<&2, U32>}:
   match xs:
@@ -3740,7 +3698,7 @@ def lp.k(+lt: Bool, +sdi: Bool, +b2: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32
           %Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(IM.tr.place(l, x, k, b, c)), IM.tr.leaves(r)), z), Bool.or(RG.has(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), z), RG.has(IM.tr.leaves(r), z)), has_app(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), IM.tr.leaves(r), z)) : {_ == Bool.or(U32.is_eq(x, z), RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), z)) : Bool}
           %Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), z), Bool.or(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z)), has_app(IM.tr.leaves(l), IM.tr.leaves(r), z)) : {Bool.or(RG.has(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), z), RG.has(IM.tr.leaves(r), z)) == Bool.or(U32.is_eq(x, z), _) : Bool}
           %Equal.sym(Bool, RG.has(IM.tr.leaves(IM.tr.place(l, x, k, b, c)), z), Bool.or(U32.is_eq(x, z), RG.has(IM.tr.leaves(l), z)), ihl) : {Bool.or(_, RG.has(IM.tr.leaves(r), z)) == Bool.or(U32.is_eq(x, z), Bool.or(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z))) : Bool}
-          or_assoc(U32.is_eq(x, z), RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z))
+          MB.or_assoc(U32.is_eq(x, z), RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z))
 
 def place_leaves(t: IM.Tr, +x: U32, +k: U32, +b: U32, +c: Nat, +z: U32) -> {RG.has(IM.tr.leaves(IM.tr.place(t, x, k, b, c)), z) == Bool.or(U32.is_eq(x, z), RG.has(IM.tr.leaves(t), z)) : Bool}:
   match t:
