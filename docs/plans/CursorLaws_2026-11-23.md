@@ -848,7 +848,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - M.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
-    - `cursor-laws.loop.base` — active — the first use made through
+    - `cursor-laws.loop.base` — built 2026-11-25 — `.code` and
+      `.situate`. As planned: the first use made through
       `R.cursor` on an empty index (H8). `situate_pend` (P6): a fresh
       situating node is an empty index, and `cursor_pend` the base case.
       S to M, measured on the sharing families.
