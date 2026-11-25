@@ -766,7 +766,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         U32 facts no hub file holds, in small files by topic; the
         generated files' through their generators. An import a file
         lacks is timed alone first.
-    - `cursor-laws.proofs.imports` — active — what the proofs import
+    - `cursor-laws.proofs.imports` — built 2026-11-25, `.rules`
+      tentative — what the proofs import
       from the spike cut to what they use, for the verdicts' time and
       memory (the maintainer, 2026-11-25: the spike laws' refactoring on
       the docket, read here as the proofs' imports of the kernel). A
@@ -876,7 +877,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - The redundant error arm of the insert commented.
     - Branches, which no port reaches, stated in `cursors-indexed`'s
       consequences for future sweeps.
-  - `cursor-laws.records` — planned — a cleanup review of the decision
+  - `cursor-laws.records` — active — the review drafted
+    (`docs/reviews/Records_2026-11-25.md`), its rules awaiting the
+    maintainer's answers before any record is edited. As planned: a
+    cleanup review of the decision
     records (the maintainer, 2026-11-24): a record holds the why of a
     decision, not the when, ordering being the role of plans and git
     history. `wiring-premise-before-refinement` is mostly an ordering

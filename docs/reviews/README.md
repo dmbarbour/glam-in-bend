@@ -266,6 +266,12 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   the second reviewer's holistic review of the same merge, by a Fable
   sub-agent, written apart and kept as written beside
   `IndexHolistic_2026-11-23.md`.
+- [`Records_2026-11-25.md`](Records_2026-11-25.md): the decision records
+  read for the when beside their why (`cursor-laws.records`): 28 clean,
+  35 mixed, one mostly ordering (`wiring-premise-before-refinement`), ten
+  borderline; six treatment rules and two questions put to the
+  maintainer before any record is edited. Drafted by the agent, the
+  records read by a sub-agent.
 
 ## Retired
 
