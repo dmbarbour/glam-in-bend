@@ -877,7 +877,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - The redundant error arm of the insert commented.
     - Branches, which no port reaches, stated in `cursors-indexed`'s
       consequences for future sweeps.
-  - `cursor-laws.records` — built 2026-11-25 — the review, retired: all
+  - `cursor-laws.records` — built 2026-11-25, `.stale` planned — the
+    review, retired: all
     74 records read; 35 cleaned of their when by six rules the
     maintainer approved, one (`wiring-premise-before-refinement`)
     folded into `net-obvious-errors` at the maintainer's word; the rule
@@ -888,6 +889,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     history. `wiring-premise-before-refinement` is mostly an ordering
     decision. Its why (the source's wiring as the audit's verdict, one
     owner) stays, and its route and timing move to the plans.
+    - `cursor-laws.records.stale` — planned — the records read again for
+      content that no longer holds, apart from the when (the maintainer,
+      2026-11-25). Seen in the cleanup: rings where the index replaced
+      them (`self-copies-are-cursors`' "a ring of cursors",
+      `corruption-reported-when-cheap`), `splice-frame-premises`' Context
+      on templates that "link every eraser", and `drops-stop-at-index`'
+      Context on peeling and fusion, which `drop-runs-fuse` changed. A
+      record whose decision still holds is revised in place, its rev
+      moved; one that no longer holds is deleted once nothing cites it.
   - `cursor-laws.watch` — planned — throughout: the gate's sections and
     the proofs' check times recorded at each step's commit. A step that
     slows iteration much is followed by one that speeds it (the
