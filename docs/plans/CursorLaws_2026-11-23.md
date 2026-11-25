@@ -667,9 +667,32 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     for the maintainer. `interaction_net`'s construction refusing a port
     wired twice or never (the maintainer, 2026-11-24) is the base case
     at loading.
-  - `cursor-laws.proofs` — planned — the proofs reviewed and
+  - `cursor-laws.proofs` — active — the proofs reviewed and
     refactored, the laws unchanged (the maintainer, 2026-11-24). Taken
-    after `.noself`, before `.loop`.
+    after `.noself`, before `.loop`. In slices, each measured by its
+    files' verdicts alone, before and after, and by the gate's:
+    - `cursor-laws.proofs.string` — built 2026-11-25 — each file's
+      verdict, four at a time, about 20 s less (store run 349):
+      `PROOF` 59 to 38 s, `SERVE_PROOF` 68 to 44, `JOIN_PROOF` 47 to 28,
+      `SPLICE_PROOF` 43 to 25. The alias `MS` is kept, now naming the
+      vendored file. As planned: the proof files off the
+      hub's `string.bend`: each file's import of it pointed at the
+      vendored `u32_eq_of_is_eq`, which keeps the name, so that the
+      generated bodies stand unchanged. The hand-kept inputs
+      (`glam/proofgen/PROOF.bend.in`, `SERVE_PROOF.bend.in`, the join's
+      header in its stage), `SPLICE_PROOF.bend` and
+      `proofgen/align/ALIGN.bend`, then regenerated.
+    - `cursor-laws.proofs.dups` — planned — the development aid
+      listing the defs whose types match across the proof files, and
+      what it finds.
+    - `cursor-laws.proofs.shared` — planned — the duplicates moved to
+      shared lemma files beside the code they are about, the
+      generators calling them.
+    - `cursor-laws.proofs.bridge` — planned — the bridge from code to
+      model reviewed for reuse, its mirror plumbing a template's
+      candidate.
+
+    What was found before the slicing:
     - Duplicates found by statement, not by name: a development aid
       listing the defs whose types match across the proof files. Seen so
       far:

@@ -17,7 +17,7 @@ import ../spike/kmodel.bend as KMd
 import ./splice_copy.bend as S
 import ./splice_model.bend as SM
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
-import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
+import ../vendor/bend-mathlib/u32_eq.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/list.bend as ML

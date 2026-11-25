@@ -20,7 +20,7 @@ import ./INDEX_LAWS.bend as XL
 import ./INDEX_PROOF.bend as XP
 import ./index_model.bend as IMd
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
-import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
+import ../vendor/bend-mathlib/u32_eq.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA

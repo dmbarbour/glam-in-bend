@@ -16,8 +16,11 @@
   [u32_eq.bend](u32_eq.bend), with a header saying so;
   `u32_eq_of_is_eq`'s law and def written as one def with its types.
   The bodies are unchanged.
-- **Used by:** `glam/INDEX_PROOF.bend`. The other proof files importing
-  `string.bend` for it move to the copy at `cursor-laws.proofs`.
+- **Used by:** glam's proof files: `glam/INDEX_PROOF.bend`, and under
+  the alias `MS` they gave `string.bend`, so that their bodies stand
+  unchanged, `glam/PROOF.bend`, `SERVE_PROOF.bend` and `JOIN_PROOF.bend`
+  (through their generator's inputs, `glam/proofgen/`),
+  `SPLICE_PROOF.bend` and `glam/proofgen/align/ALIGN.bend`.
 - **Replaced** by an import once the hub carries the lemma in a file
   cheap to import. Offering that upstream waits until glam is
   relatively stable (the maintainer, 2026-11-25: "to avoid hassle and

@@ -31,7 +31,7 @@ import ./INDEX_LAWS.bend as XL
 import ./index_model.bend as IM
 import ./witness.bend as WB
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
-import 0x8ae61ec3a6615abd35f196c07232ad28/string.bend as MS
+import ../vendor/bend-mathlib/u32_eq.bend as MS
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/u32.bend as MU
