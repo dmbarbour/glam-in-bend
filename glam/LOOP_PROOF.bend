@@ -358,3 +358,62 @@ def sp.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +by: U32, +k: U32, +s: U32, 
 
 def Laws.situate_pend(w, a, d, by, k, s, leaf, F, N, hf, hd32, h2, hch, hdF, hN, hB, hsN, hFN, hlf, hq1, hq2, hq3, hq4):
   sp.m(w, a, d, by, k, s, leaf, F, N, hf, hd32, h2, hch, hdF, hN, hB, hsN, hFN, hlf, hq1, hq2, hq3, hq4, LAT.mirror(U32, w))
+
+# The live nodes distinct across the crossings (cxs_distinct)
+# ============================================================
+
+def hw.k(+e: Bool, +z: U32, +t: List<&2, U32>, +x: U32, +y: U32, +hez: {U32.is_eq(z, x) == e : Bool}, +hzy: {U32.is_eq(z, y) == False{} : Bool},
+  ih: {RG.has(RG.without(t, x), y) == False{} : Bool}) -> {RG.has(List.append(&2, U32, RG.keep(e, z), RG.without(t, x)), y) == False{} : Bool}:
+  match e:
+    case True{}:
+      ih
+    case False{}:
+      ME.subst(Bool, b => {Bool.or(b, RG.has(RG.without(t, x), y)) == False{} : Bool}, False{}, U32.is_eq(z, y), Equal.sym(Bool, U32.is_eq(z, y), False{}, hzy), ih)
+
+# taking x out of a list adds no member
+def has_without(ys: List<&2, U32>, +x: U32, +y: U32, +h: {RG.has(ys, y) == False{} : Bool}) -> {RG.has(RG.without(ys, x), y) == False{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+z, +t}:
+      hw.k(U32.is_eq(z, x), z, t, x, y, {==}, XP.orf_l(U32.is_eq(z, y), RG.has(t, y), h), has_without(t, x, y, XP.orf_r(U32.is_eq(z, y), RG.has(t, y), h)))
+
+def wd.k(+e: Bool, +z: U32, +t: List<&2, U32>, +x: U32, +hez: {U32.is_eq(z, x) == e : Bool}, +hzt: {RG.has(t, z) == False{} : Bool},
+  ih: {RG.distinct(RG.without(t, x)) == True{} : Bool}) -> {RG.distinct(List.append(&2, U32, RG.keep(e, z), RG.without(t, x))) == True{} : Bool}:
+  match e:
+    case True{}:
+      ih
+    case False{}:
+      XP.and_intro(Bool.not(RG.has(RG.without(t, x), z)), RG.distinct(RG.without(t, x)), XP.nf(RG.has(RG.without(t, x), z), has_without(t, x, z, hzt)), ih)
+
+# taking x out of a distinct list leaves it distinct
+def without_distinct(ys: List<&2, U32>, +x: U32, +h: {RG.distinct(ys) == True{} : Bool}) -> {RG.distinct(RG.without(ys, x)) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+z, +t}:
+      +hzt = XP.not_true(RG.has(t, z), XP.and_l(Bool.not(RG.has(t, z)), RG.distinct(t), h))
+      wd.k(U32.is_eq(z, x), z, t, x, {==}, hzt, without_distinct(t, x, XP.and_r(Bool.not(RG.has(t, z)), RG.distinct(t), h)))
+
+def cxl_distinct(m: Maybe<&2, U32>, +x: U32, +L: List<&2, U32>, +h: {RG.distinct(L) == True{} : Bool}) -> {RG.distinct(RG.cx.L(m, x, L)) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      without_distinct(RG.without(L, x), y, without_distinct(L, x, h))
+    case None{}:
+      h
+
+def cxs_d(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>, +h: {RG.distinct(L) == True{} : Bool}) ->
+  {RG.distinct(RG.cxs.L(RG.cxs(cs, vm, dm, I, L, F))) == True{} : Bool}:
+  match cs:
+    case Nil{}:
+      h
+    case Con{c, r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          cxs_d(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far),
+            RG.cx.L(IM.ix.look(I, far), RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L),
+            RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F)),
+            cxl_distinct(IM.ix.look(I, far), RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), L, h))
+
+def Laws.cxs_distinct(cs, vm, dm, I, L, F, h):
+  cxs_d(cs, vm, dm, I, L, F, h)

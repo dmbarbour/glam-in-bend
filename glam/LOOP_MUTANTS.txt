@@ -19,3 +19,15 @@ eraser written there
   (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
 +++
   (P.wr(P.wr(h, (s + 2 : U32), k), (s + 3 : U32), s), s)
+
+=== cursor_relisted cxs_distinct
+a cursor made listed again among the live nodes, where it already is
+--- ring_model.bend
+      without(without(L, x), y)
+    case None{}:
+      L
++++
+      without(without(L, x), y)
+    case None{}:
+      Con{x, L}
+

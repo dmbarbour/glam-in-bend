@@ -920,6 +920,18 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         list (`cx.L`, `without`), so it stays distinct
         (`cxs_distinct`, a model law); the copy appends its holes,
         fresh nodes none of which is live.
+        - `cxs_distinct` built 2026-11-25 on the side branch, with
+          `without_distinct` and `has_without`; its mutant, a made
+          cursor listed again, caught.
+        - The copy's half, found 2026-11-25: the invariant after the
+          copy says the holes are neither `s` nor the index's nodes
+          (`none.in(ps, Con{s, nodes(I)})`), not that they are none of
+          the live list's other members. Between serves, with nothing
+          pending, every live node but `s` is a cursor, a leaf of the
+          index; the wider invariant states it (`sub(L, Con{s,
+          leaves(I)})` when nothing is pending), and the holes' being
+          off the live list follows, the leaves among the index's
+          nodes. Next: that lemma, and `copy_distinct`.
       - `cursor-laws.loop.shape.track` — planned — the tracked nodes
         after a serve, the copy's nodes taken from the free list added
         (`M ++ ns`): laid out, bases and past kept, from the free

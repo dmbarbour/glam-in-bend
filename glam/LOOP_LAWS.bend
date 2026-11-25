@@ -56,3 +56,18 @@ law situate_pend:
   for +hq3: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (leaf + 1 : U32)), (leaf + 1 : U32)) == True{} : Bool}
   for +hq4: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (leaf + 1 : U32)), (s + 1 : U32)) == True{} : Bool}
   {RG.px.ok(AD.view(U32, RG.words(Pair.fst(P.H, U32, R.situate(P.H{KM.MG{w}, a}, by, k)))), d, s, IM.Ept{}, Con{leaf, Nil{}}, Con{s, Con{leaf, Nil{}}}, F, N) && AD.full(U32, RG.words(Pair.fst(P.H, U32, R.situate(P.H{KM.MG{w}, a}, by, k))), d) == True{} : Bool}
+
+# LAW: the crossings keep the live nodes distinct (P5,
+# cursor-laws.loop.shape.distinct): each crossing either makes a cursor,
+# its live list as it was, or joins two cursors, taking both out of the
+# list (RG.cx.L, RG.without), never adding to it. A model law.
+# Record: cursors-indexed
+law cxs_distinct:
+  for cs: List<&2, R.FzC>
+  for +vm: List<&2, U32>
+  for +dm: Nat
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +h: {RG.distinct(L) == True{} : Bool}
+  {RG.distinct(RG.cxs.L(RG.cxs(cs, vm, dm, I, L, F))) == True{} : Bool}
