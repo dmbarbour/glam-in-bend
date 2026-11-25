@@ -931,7 +931,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           index; the wider invariant states it (`sub(L, Con{s,
           leaves(I)})` when nothing is pending), and the holes' being
           off the live list follows, the leaves among the index's
-          nodes. Next: that lemma, and `copy_distinct`.
+          nodes. `copy_distinct` built 2026-11-25, a lemma of the
+          serve's law to come, with `dist_app` and `ni_sym`. Next: that
+          the crossings leave every live node but `s` a cursor, all
+          pending ones made cursors or joined (`cxs_cursors`).
       - `cursor-laws.loop.shape.track` — planned — the tracked nodes
         after a serve, the copy's nodes taken from the free list added
         (`M ++ ns`): laid out, bases and past kept, from the free
