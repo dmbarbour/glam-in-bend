@@ -266,15 +266,13 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   the second reviewer's holistic review of the same merge, by a Fable
   sub-agent, written apart and kept as written beside
   `IndexHolistic_2026-11-23.md`.
-- [`Records_2026-11-25.md`](Records_2026-11-25.md): the decision records
-  read for the when beside their why (`cursor-laws.records`): 28 clean,
-  35 mixed, one mostly ordering (`wiring-premise-before-refinement`), ten
-  borderline; six treatment rules and two questions put to the
-  maintainer before any record is edited. Drafted by the agent, the
-  records read by a sub-agent.
 
 ## Retired
 
+- `Records_2026-11-25.md`: the decision records read for the when beside
+  their why, 35 cleaned by six rules and one folded at the maintainer's
+  word; its rule in `docs/Decisions.md` (the why, not the when), built
+  as the CursorLaws plan's `cursor-laws.records`; last commit c8e3ae0.
 - `LawsInBend_2026-11-06.md`: where Blend writes laws and proofs, against
   how Bend checks them; its decisions in Blend's `blend-laws-in-module`,
   built as Blend's `blend-module-laws`; last commit 03cb4ac.

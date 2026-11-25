@@ -877,10 +877,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - The redundant error arm of the insert commented.
     - Branches, which no port reaches, stated in `cursors-indexed`'s
       consequences for future sweeps.
-  - `cursor-laws.records` — active — the review drafted
-    (`docs/reviews/Records_2026-11-25.md`), its rules awaiting the
-    maintainer's answers before any record is edited. As planned: a
-    cleanup review of the decision
+  - `cursor-laws.records` — built 2026-11-25 — the review, retired: all
+    74 records read; 35 cleaned of their when by six rules the
+    maintainer approved, one (`wiring-premise-before-refinement`)
+    folded into `net-obvious-errors` at the maintainer's word; the rule
+    kept in `docs/Decisions.md`. As planned: a cleanup review of the
+    decision
     records (the maintainer, 2026-11-24): a record holds the why of a
     decision, not the when, ordering being the role of plans and git
     history. `wiring-premise-before-refinement` is mostly an ordering
@@ -913,5 +915,5 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
   `.materializer`'s module should wait for it.
 - Option C of the cursors' design, fewer cursors made (opportunistic
   crossing, for one), waits until it can be exercised usefully (the
-  maintainer, 2026-11-22; moved here from `cursors-indexed`,
-  `docs/reviews/Records_2026-11-25.md`).
+  maintainer, 2026-11-22; moved here from `cursors-indexed` by the
+  records' cleanup, `cursor-laws.records`).

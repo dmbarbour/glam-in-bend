@@ -26,6 +26,13 @@ A record is `decisions/<slug>.md`. Its slug is its stable name: cite it as
   `git log <rev>` the context it was decided in. Typo fixes leave it alone.
 - **Revise in place.** A record states the current decision only; git keeps
   the old versions.
+- **The why, not the when.** A record holds why the design is so: no
+  sequencing, deferrals, routes taken first or status reports, which are
+  plans' and git history's; a measurement stays only as a reason for the
+  decision; "Rule lives in" names a place; a title states the decision
+  (the maintainer, 2026-11-24: "architecture decision records aren't the
+  right place for ordering decisions"; cleaned so 2026-11-25, `Records`
+  review, last commit in the retired reviews' list).
 - **Delete what no longer holds**, with its index line, once nothing cites
   its slug. A successor may name what it replaced in a sentence.
 - **maintainer** marks a decision the maintainer made or ratified; **agent**

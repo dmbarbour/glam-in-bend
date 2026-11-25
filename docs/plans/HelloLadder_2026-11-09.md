@@ -498,7 +498,7 @@ workload from the rungs to measure it on.
   Bend allows).
 
 Moved here from the decision records, which keep the why and not the
-when (`docs/reviews/Records_2026-11-25.md`):
+when (the CursorLaws plan's `cursor-laws.records`):
 - An error's diagnostic is a text; Syntax.md's diagnostic objects, with
   their context frames, would come with `anno 'error`
   (`net-error-values`).
