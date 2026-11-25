@@ -418,9 +418,9 @@ def cxs_d(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +L: List
 def Laws.cxs_distinct(cs, vm, dm, I, L, F, h):
   cxs_d(cs, vm, dm, I, L, F, h)
 
-# The copy's half: its holes appended to a distinct live list keep it
-# distinct, the live nodes but s being cursors (copy_distinct, a lemma of
-# the serve's law to come)
+# The copy's half: its holes, fresh nodes from the free list
+# (SP.holes_sub), none live, appended to a distinct live list keep it
+# distinct (dist_app, in the serve's law to come)
 
 # none of A in Con{b, B}: b in none of A, and none of A in B
 def ni_head(A: List<&2, U32>, +b: U32, +B: List<&2, U32>, +h: {RG.none.in(A, Con{b, B}) == True{} : Bool}) -> {RG.has(A, b) == False{} : Bool}:
@@ -465,30 +465,3 @@ def dist_app(A: List<&2, U32>, +B: List<&2, U32>, +hA: {RG.distinct(A) == True{}
       XP.and_intro(Bool.not(RG.has(List.append(&2, U32, r, B), a)), RG.distinct(List.append(&2, U32, r, B)),
         XP.nf(RG.has(List.append(&2, U32, r, B), a), Equal.trans(Bool, RG.has(List.append(&2, U32, r, B), a), Bool.or(RG.has(r, a), RG.has(B, a)), False{}, XP.has_app(r, B, a), hor)),
         dist_app(r, B, XP.and_r(Bool.not(RG.has(r, a)), RG.distinct(r), hA), hB, XP.and_r(Bool.not(RG.has(B, a)), RG.none.in(r, B), hAB)))
-
-# an index's leaves are among its nodes
-def ix_lv_sub(I: IM.Ix) -> {RG.sub(IM.ix.leaves(I), IM.ix.nodes(I)) == True{} : Bool}:
-  match I:
-    case IM.Ept{}:
-      {==}
-    case IM.Has{t}:
-      GP.lv_sub(t)
-
-# a list's members are members of it with one more in front
-def sub_cons(xs: List<&2, U32>, +y: U32, +M: List<&2, U32>, +h: {RG.sub(xs, M) == True{} : Bool}) -> {RG.sub(xs, Con{y, M}) == True{} : Bool}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{+x, +r}:
-      XP.and_intro(Bool.or(U32.is_eq(y, x), RG.has(M, x)), RG.sub(r, Con{y, M}), XP.or_t_r(U32.is_eq(y, x), RG.has(M, x), XP.and_l(RG.has(M, x), RG.sub(r, M), h)),
-        sub_cons(r, y, M, XP.and_r(RG.has(M, x), RG.sub(r, M), h)))
-
-# the copy's holes ps appended to the live list Con{s, t}: distinct, the
-# holes distinct and neither s nor the index's nodes, which t's members,
-# cursors, are among
-def copy_distinct(+s: U32, +t: List<&2, U32>, +ps: List<&2, U32>, +I: IM.Ix, +hL: {RG.distinct(Con{s, t}) == True{} : Bool}, +ht: {RG.sub(t, IM.ix.leaves(I)) == True{} : Bool},
-  +hps: {RG.distinct(ps) == True{} : Bool}, +hpn: {RG.none.in(ps, Con{s, IM.ix.nodes(I)}) == True{} : Bool}) -> {RG.distinct(List.append(&2, U32, Con{s, t}, ps)) == True{} : Bool}:
-  +htn = GP.sub_trans(t, IM.ix.leaves(I), IM.ix.nodes(I), ht, ix_lv_sub(I))
-  +hst = XP.and_intro(Bool.or(U32.is_eq(s, s), RG.has(IM.ix.nodes(I), s)), RG.sub(t, Con{s, IM.ix.nodes(I)}), XP.or_t_l(U32.is_eq(s, s), RG.has(IM.ix.nodes(I), s), XP.is_eq_self(s)),
-    sub_cons(t, s, IM.ix.nodes(I), htn))
-  dist_app(Con{s, t}, ps, hL, hps, ni_sym(ps, Con{s, t}, GP.none_sub(ps, Con{s, IM.ix.nodes(I)}, Con{s, t}, hpn, hst)))

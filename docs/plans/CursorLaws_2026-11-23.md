@@ -915,7 +915,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       per fact added, rather than every proof restated: the facts added
       are about lists and the tracked nodes, which a step's writes do
       not touch. Slices:
-      - `cursor-laws.loop.shape.distinct` — active — the live nodes
+      - `cursor-laws.loop.shape.distinct` — built 2026-11-25 — the live nodes
         distinct (P5): the crossings only take nodes out of the live
         list (`cx.L`, `without`), so it stays distinct
         (`cxs_distinct`, a model law); the copy appends its holes,
@@ -923,18 +923,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         - `cxs_distinct` built 2026-11-25 on the side branch, with
           `without_distinct` and `has_without`; its mutant, a made
           cursor listed again, caught.
-        - The copy's half, found 2026-11-25: the invariant after the
-          copy says the holes are neither `s` nor the index's nodes
-          (`none.in(ps, Con{s, nodes(I)})`), not that they are none of
-          the live list's other members. Between serves, with nothing
-          pending, every live node but `s` is a cursor, a leaf of the
-          index; the wider invariant states it (`sub(L, Con{s,
-          leaves(I)})` when nothing is pending), and the holes' being
-          off the live list follows, the leaves among the index's
-          nodes. `copy_distinct` built 2026-11-25, a lemma of the
-          serve's law to come, with `dist_app` and `ni_sym`. Next: that
-          the crossings leave every live node but `s` a cursor, all
-          pending ones made cursors or joined (`cxs_cursors`).
+        - The copy's half: its holes are among the nodes the copy takes
+          from the free list (`SP.holes_sub`), and no free node is live
+          (the invariant's `none.in(F, L)`), so the holes are none of
+          the live list and the append stays distinct (`dist_app`,
+          `ni_sym`, in `glam/LOOP_PROOF.bend`), composed in the serve's
+          law (`.serve`). A detour, that every live node but `s` is a
+          cursor between serves, was dropped: carrying it through the
+          crossings needs the index laid out at each step, which only
+          the heap-level laws keep.
       - `cursor-laws.loop.shape.track` — planned — the tracked nodes
         after a serve, the copy's nodes taken from the free list added
         (`M ++ ns`): laid out, bases and past kept, from the free
