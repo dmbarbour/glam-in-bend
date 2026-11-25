@@ -42,6 +42,17 @@ def cur.form(+neg: Bool) -> U32:
     case False{}:
       1
 
+# a situating node: a node taken for a copy's index, of kind 18 and form
+# 2 at the applying level by, its word 1 its static eraser, word 2 the
+# source's entry k, word 3 itself, the index empty
+# (cursor-laws.loop.base)
+def situate.w(r: P.H & U32, +k: U32) -> P.H & U32:
+  (h, +s) = r
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
+
+def situate(h: P.H, +by: U32, +k: U32) -> P.H & U32:
+  situate.w(P.node(h, P.hd2(18, 2, by), 0), k)
+
 # a placeholder pl made a cursor at position src, its header and word 2
 # written, and put in situ's index (out of glam/materialize.bend, as leave
 # is, so that its laws import the heap's primitives alone)

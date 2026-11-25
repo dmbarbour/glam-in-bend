@@ -1,0 +1,21 @@
+Mutations of the code the loop's laws follow (glam/ring.bend's
+R.situate), each naming the laws of glam/LOOP_LAWS.bend it should fail
+(docs/Proving.md; the gate runs scripts/one_law.py --mutants on this
+file). Each is caught by its law's proof failing: a heap with a free list
+and a leaf laid out apart is costly to build as a witness.
+
+=== index_not_empty situate_pend
+the situating node's word 3 written the source's entry, not itself, so
+that the index it heads is not empty
+--- ring.bend
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
++++
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), k), s)
+
+=== word1_left situate_pend
+the situating node's word 1 left as the free list's link, no static
+eraser written there
+--- ring.bend
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
++++
+  (P.wr(P.wr(h, (s + 2 : U32), k), (s + 3 : U32), s), s)

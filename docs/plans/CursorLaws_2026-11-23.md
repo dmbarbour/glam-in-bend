@@ -848,7 +848,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - M.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
-    - `cursor-laws.loop.base` — active — the first use made through
+    - `cursor-laws.loop.base` — built 2026-11-25 — `.code` and
+      `.situate`. As planned: the first use made through
       `R.cursor` on an empty index (H8). `situate_pend` (P6): a fresh
       situating node is an empty index, and `cursor_pend` the base case.
       S to M, measured on the sharing families.
@@ -861,12 +862,40 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         and a write more a use; every hello, sharing and growth sample's
         counts alike, 68 of them (`results/loop_base/`), and the ladder
         passing as before.
-      - `cursor-laws.loop.base.situate` — planned — `situate_pend`: the
+      - `cursor-laws.loop.base.situate` — built 2026-11-25 — on the
+        side branch `cursor-laws-loop-base`, `situate_pend` in
+        `glam/LOOP_LAWS.bend` (new, the loop's laws), stated over
+        `R.situate`, which the core now calls for the situating node's
+        allocation and writes (`glam/ring.bend`; the 68 samples' counts
+        alike). Proved over the view's list form (`px_sv`), its reads at
+        the written words carried back; the payload word split by the
+        header's test. `lay_pair`, two tracked nodes four words apart,
+        is new and general. The verdict 35 s at 2.7 GB. Two mutants,
+        the index not empty and word 1 left the free list's link, caught
+        by the proof failing. As designed: `situate_pend`: the
         situating node's writes, on a node fresh from the free list,
         give `RG.px.ok` over the empty index with the leaf pending, so
         that `cursor_pend` applies to the first use. Its premises on the
         leaf: live, its link two-way and none facing itself (the wiring,
         `net-obvious-errors`), off the other tracked nodes' words.
+        Designed 2026-11-25, over `use.top` and `use.situ`'s writes: the
+        node taken by `P.node` from a free list whose chain is
+        `Con{s, F}` (`node_keeps`, `node_next`, `node_index`), its word 1
+        the static eraser (`P.put_st`), word 2 the source's entry, word 3
+        itself. Concluded: `RG.px.ok` over the words after, at `s`, the
+        index empty, the leaf pending, the live nodes `[s, leaf]`, the
+        free list `F`, the tracked `N`; and the words full. Premises: the
+        words full at depth 2 or more, below 32; `Con{s, F}` the free
+        list's chain and distinct; `[s, leaf]` and `F` in `N`, laid out
+        apart, each its own base; the leaf none of `Con{s, F}`; its link
+        word `q` (word 1) with `port.ok([s, leaf], d, q)`,
+        `po.all(q, [s, leaf], d, N)` and facing neither itself nor `s`.
+        The leaf's premises are on the value `q` alone, which the
+        writes leave, so that a caller discharges them from the host's
+        wiring. The static's conjuncts by `ALIGN.bend`'s `po_static` and
+        the alignment lemmas; the realization of the empty index by
+        `s`'s word 3. Not claimed: the reserve's and the doubling's
+        paths, where the free list is empty (`px_grow`, `.loop.shape`).
     - `cursor-laws.loop.shape` — planned — one change of the
       invariant, every law restated once. L. With it, the index's keys
       across serves: those of copied trees' boundaries not yet joined,
