@@ -846,7 +846,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       after, and the gate's (`.watch`). A refactor that slows the gate
       is reverted or justified.
     - M.
-  - `cursor-laws.loop` — planned — the invariant established and kept
+  - `cursor-laws.loop` — active — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — built 2026-11-25 — `.code` and
       `.situate`. As planned: the first use made through
@@ -896,7 +896,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the alignment lemmas; the realization of the empty index by
         `s`'s word 3. Not claimed: the reserve's and the doubling's
         paths, where the free list is empty (`px_grow`, `.loop.shape`).
-    - `cursor-laws.loop.shape` — planned — one change of the
+    - `cursor-laws.loop.shape` — active — one change of the
       invariant, every law restated once. L. With it, the index's keys
       across serves: those of copied trees' boundaries not yet joined,
       so that a serve's crossings start absent (`cxs_start`'s premise,
@@ -906,6 +906,29 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         every law.
       - `px_sub` and `px_grow` (P11): one serve's conclusion the next
         one's premise, across the heap's growth.
+
+      Designed 2026-11-25: the laws already merged stay as they are,
+      and a wider invariant is laid over them, `RG.px.ok` with the facts
+      no step returns (the live nodes distinct; the tracked nodes laid
+      out, each its own base, past the header). Each step gets one law
+      of the wider invariant, its own law composed with a "kept" lemma
+      per fact added, rather than every proof restated: the facts added
+      are about lists and the tracked nodes, which a step's writes do
+      not touch. Slices:
+      - `cursor-laws.loop.shape.distinct` — active — the live nodes
+        distinct (P5): the crossings only take nodes out of the live
+        list (`cx.L`, `without`), so it stays distinct
+        (`cxs_distinct`, a model law); the copy appends its holes,
+        fresh nodes none of which is live.
+      - `cursor-laws.loop.shape.track` — planned — the tracked nodes
+        after a serve, the copy's nodes taken from the free list added
+        (`M ++ ns`): laid out, bases and past kept, from the free
+        list's nodes being laid out apart (`IM.fl.ok`).
+      - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
+        invariant across the heap's doubling, the words copied.
+      - `cursor-laws.loop.shape.serve` — planned — `serve_loop`: one
+        serve keeps the wider invariant, its crossings starting absent
+        (`cxs_start`), so that serves compose.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
   - `cursor-laws.index` — planned — the index's 41 laws by
