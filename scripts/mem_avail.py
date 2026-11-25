@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """The memory free to this process's runs, in MB: the least of the host's
 MemAvailable and, at every level of the cgroup this process is in up to
-the root, that level's limit less what it holds now.
+the root, that level's limit less what it holds now, the inactive file
+cache, which the kernel reclaims, not counted as held.
 
 Inside a container /proc/meminfo is the host's: the container's own
-limit (`--memory=10g`, .devcontainer/devcontainer.json) is its cgroup's
+limit (`--memory`, .devcontainer/devcontainer.json) is its cgroup's
 memory.max, which a gate sized by MemAvailable alone once overran, the
 container killed with the session in it (2026-11-25).
 
@@ -49,6 +50,15 @@ def cgroup_free_mb():
                 mx = f.read().strip()
             with open(d + "/memory.current") as f:
                 cur = int(f.read().strip())
+            # the file cache not lately used the kernel reclaims under
+            # pressure: free for a run, as docker's own figures count it
+            try:
+                with open(d + "/memory.stat") as f:
+                    for line in f:
+                        if line.startswith("inactive_file "):
+                            cur -= int(line.split()[1])
+            except OSError:
+                pass
             if mx != "max":
                 free = max(0, int(mx) - cur) // 1048576
                 least = free if least is None else min(least, free)

@@ -138,10 +138,11 @@ Lessons carried over from the Rust bootstrap:
   a time, and keep the caps of runs that overlap below the machine's
   free memory. Run
   `scripts/cgroup-delegate.sh` first, or the caps only poll.
-  The container holds 10 GiB (`--memory=10g`,
-  `.devcontainer/devcontainer.json`), less than the host's
-  `/proc/meminfo` shows: size runs by `scripts/mem_avail.py`, and cap a
-  gate run at 8000 MB, the session and editor keeping the rest. A run
+  The container holds 12 GiB and 4 GiB of swap (`--memory=12g
+  --memory-swap=16g`, `.devcontainer/devcontainer.json`, 2026-11-25),
+  less than the host's `/proc/meminfo` shows: size runs by
+  `scripts/mem_avail.py`, and cap a gate run at 10000 MB, the session
+  and editor keeping the rest; a capped run takes no swap. A run
   `capped.sh` starts inside another capped run leaves the outer group,
   so the outer cap does not hold it: each is capped on its own. Five
   verdicts at once overran the container and killed it with the
