@@ -911,3 +911,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
   `glam/PROOF.bend` (`.sources.commit`).
 - How much `.loop.shape` shrinks the proofs, and whether
   `.materializer`'s module should wait for it.
+- Option C of the cursors' design, fewer cursors made (opportunistic
+  crossing, for one), waits until it can be exercised usefully (the
+  maintainer, 2026-11-22; moved here from `cursors-indexed`,
+  `docs/reviews/Records_2026-11-25.md`).

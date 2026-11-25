@@ -28,8 +28,5 @@ premises through it, and the crossings' region (`RG.off.ports`) too.
   review's Corrections); no law over `ring.ok` changes meaning.
 - An encoding change touches `KMd.lw.k` and the proof lemmas that
   unfold it (`lx_keeps`, `link2`), not the laws' text.
-- The free list's node address (`((fh - 1) << 2n)`) and the ring's word
-  offsets (`m + 2`, `m + 3`) are still spelled in laws: the review's B2,
-  to come or not.
 
 **Rule lives in:** `spike/kmodel.bend`.

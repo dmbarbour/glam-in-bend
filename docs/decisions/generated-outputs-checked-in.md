@@ -26,10 +26,8 @@ generated."
 - Each such file says at its top that it is generated, and by what.
 - `scripts/check_generated.sh` lists each, and the gate checks that its
   generator reproduces it.
-- The proofs' generators move into git with the snapshot they start from
-  (`cursor-laws.sources`). A proof file kept by hand since a program
-  first wrote it says so, and which of its sections a program still
-  writes.
+- A proof file kept by hand since a program first wrote it says so, and
+  which of its sections a program still writes.
 
 **Rule lives in:** `scripts/check_generated.sh`; the generated files'
 headers.

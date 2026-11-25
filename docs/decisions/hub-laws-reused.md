@@ -8,7 +8,7 @@ by shifts and masks. Other users have proven what that needs: the
 ArrayLaws review (`docs/reviews/ArrayLaws_2026-11-13.md`) found
 `lawful-arrays` proving a read after a write and `lawful-words` the
 shifts and masks, both checked under the Bend glam pins with `--verdict`,
-MIT, their statements reviewed by AI models but not yet by their
+MIT, their statements reviewed by AI models but not by their
 author's human reviewer. `vendored-sources` already imports hub code by
 hash; whether glam's own laws may depend on another's proofs was open.
 
@@ -23,7 +23,5 @@ hub packages.
 - The gate's verdict rechecks an imported package's proofs with glam's
   own, as imports of `PROOF.bend`; a package that stops checking under a
   new Bend fails the gate like glam's own proofs.
-- `lawful-arrays@0.1.0.1` and `lawful-words@0.1.0.1` are the first, for
-  `cells-freeze.nested.host.array` and `.words`.
 - What the packages lack is listed by package in the ArrayLaws review,
   to offer upstream when the maintainer chooses.

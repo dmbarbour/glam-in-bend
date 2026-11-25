@@ -30,11 +30,7 @@ a drop by one it is the drop as before.
   bounded a drop's amount, deleted with the maintainer's approval
   (2026-11-13).
 - A drop by more than one now means something: b unit drops at one
-  index, which drop fusion would make (`pairing-fusion.drops` in
-  `docs/plans/NetPairing_2026-10-26.md`). Drops still do not fuse
-  (`fuse-control-runs`).
-- Instructions moved -1.1% to +0.6% on the spot workloads (analysis
-  store run 319 against 318).
+  index, which drop fusion makes (`drop-runs-fuse`).
 
 **Rule lives in:** `spike/LAWS.bend`, laws `lift_drop` and
 `raise_lift_drop`.

@@ -45,9 +45,3 @@ freeze if or insofar as there's any residue".
   There, small nets (128 nodes to start, `net-nodes-double`) and compact
   forms of finished nets (`spike-materialize`) matter. Cursors are
   EvalSpike's `spike-cursors`.
-- This record first held a quick start the agent favoured as if it were
-  decided: reduce a function's net, then copy it whole, with cursors
-  later. The maintainer dropped it (2026-11-10): "If it isn't working
-  out, drop it. It should have been recorded as an experimental
-  direction, not an ADR." Live templates are built now, in the Cells
-  plan's `cells-freeze`.

@@ -33,8 +33,8 @@ it does not emit. Whatever it leaves stays lazy.
   so found wholly finished freezes into its cell's value
   (`finished-sources-freeze`; `cells-freeze.early`). The net's
   collection is the one a net runs before growing its node heap, not
-  only to recover memory; the cell layer's, not yet built, is another
-  (the maintainer, 2026-11-21).
+  only to recover memory; the cell layer's is another (the maintainer,
+  2026-11-21).
 - Fuel is the guarantee of termination that `net-demand-whnf` asks of
   a strategy past weak head normal form. A reflection task is the
   other stop.
@@ -45,6 +45,6 @@ it does not emit. Whatever it leaves stays lazy.
   and it reduces once. That is a live template
   (`copy-reduced-function-nets`). With live templates, reducing first
   is not needed at all.
-- Sparks also run work ahead of demand. How this record meets the
-  bridge's note on sparks and reflection tasks, where annotations
-  guide the policy (`bridge-parallel`), is open.
+- Sparks also run work ahead of demand; how this record meets the
+  bridge's note on sparks and reflection tasks, where annotations guide
+  the policy, is `bridge-parallel`'s.

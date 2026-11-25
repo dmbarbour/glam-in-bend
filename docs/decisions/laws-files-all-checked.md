@@ -16,9 +16,7 @@ should read every `*LAWS.bend`, main's history then rechecked against
 them too: "Yes". A laws file is `LAWS.bend` or `X_LAWS.bend`.
 
 **Consequences.**
-- The hook and the history check read every laws file. Main's history so
-  rechecked passes as it stands (2026-11-23): its commits changing those
-  files named their laws.
+- The hook and the history check read every laws file.
 - The rule against weakening a law on main without approval is enforced
   for every laws file, not `LAWS.bend` alone.
 

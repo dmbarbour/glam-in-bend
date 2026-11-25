@@ -12,8 +12,7 @@ could not be told from a value, nor its cause read.
 
 **Decision.** The maintainer (2026-11-09): a `Data` variant represents
 an error. The rest is the agent's:
-- `VErr{e}`, its diagnostic `e` a glam value, a text for now; Syntax.md's
-  diagnostic objects, with their context frames, come with `anno 'error`.
+- `VErr{e}`, its diagnostic `e` a glam value.
 - A builtin given an error answers it; applying an error answers it, the
   kernel's application test counting an error among the values it
   applies (`is_fn`), so that its operator waits for the argument as a
@@ -29,8 +28,7 @@ an error. The rest is the agent's:
 - The core reports an error that reaches `asm.result` with its
   diagnostic.
 - An error applied to an argument that is no data (a function) leaves
-  the operator stuck, as a builtin's would: the argument is not erased
-  yet.
+  the operator stuck, as a builtin's would: the argument is not erased.
 - HeapModel's permanent failure (`Failed{e}`) has its value.
 
 **Rule lives in:** `spike/val.bend`, Builtins.

@@ -21,16 +21,11 @@ will need more design."
 - A source found wholly finished is frozen whole, and its cell's value
   becomes the template; its later uses are splices, with no ring, no
   positioned demand and no crossings.
-- Whether and when the source itself is released waits on the tactic
-  for the cursors copies still hold into it: the cell layer's
-  collection, or something particular to sources.
 
 **Consequences.**
 - Finding a source wholly finished is a check after its reductions;
   early evaluation and the net's collection look for chances to make it
   so (`early-evaluation-optimization`).
-- Until release is designed, a source frozen this way stays where
-  cursors reach it, its serves answered as before.
-- The template value is what persistent caching may later key, once its
-  form is chosen (`cells-freeze.format`).
+- The template value is what persistent caching may key, once its form
+  is chosen (`cells-freeze.format`).
 - Steps: `cells-freeze.whole`, `cells-freeze.release` (the Cells plan).

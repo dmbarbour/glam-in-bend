@@ -25,19 +25,15 @@ everywhere else.
 **Consequences.**
 - The mark is form 1 of the control's header (`P.mark`, `P.marked` in
   `spike/kprim.bend`), a control's form bits otherwise clear. No reader of
-  a control's header reads them, as checked when it was built
-  (2026-11-13): dispatch reads the kind (`P.rk`); fusion, peeling and
-  freezing read the field and the offset word. A rewrite copies a form
-  only from a node it consumes, and a marked control, finished, is in no
-  pair; fusion's result and a copy's nodes are written with form 0, so a
-  copy in its host fuses freely.
+  a control's header reads them: dispatch reads the kind (`P.rk`);
+  fusion, peeling and freezing read the field and the offset word. A
+  rewrite copies a form only from a node it consumes, and a marked
+  control, finished, is in no pair; fusion's result and a copy's nodes
+  are written with form 0, so a copy in its host fuses freely.
 - Fusion tests the mark in `P.fuse_test` before composing, where both
-  headers are read already (law `marked_unfused`): instructions moved at
-  most 0.02% on the spot workloads (analysis store run 321). Freezing a
-  source's finished part sets it, one write for each control taken
-  (`fz.copied` in `glam/freeze.bend`); reading a net back whole does
-  not. `glam/test_mark.bend` checks both on the kernel's code.
+  headers are read already (law `marked_unfused`). Freezing a source's
+  finished part sets it, one write for each control taken (`fz.copied`
+  in `glam/freeze.bend`); reading a net back whole does not.
+  `glam/test_mark.bend` checks both on the kernel's code.
 - With the mark, finished nodes stay finished under reduction, which
   the cursor laws can then state without an exception for fusion.
-- Instruction-level comparisons come later, with a build that neither
-  fuses nor pays to look for fusions (the maintainer, 2026-11-11).

@@ -42,5 +42,4 @@ stated, not proved from the kernel's wiring laws."
 
 **Rule lives in:** `docs/plans/Cells_2026-11-09.md`,
 `cells-freeze.sharing.cursors.index` (its step restating the ring's
-laws, on the side branch); with its merge, the serve's invariant in
-`glam/ring_model.bend`.
+laws); the serve's invariant in `glam/ring_model.bend`.

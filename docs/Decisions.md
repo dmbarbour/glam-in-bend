@@ -118,7 +118,7 @@ Surface and semantic rules settled for this implementation.
   own.
 - [`builtin-imports-compiler-local`](decisions/builtin-imports-compiler-local.md):
   built-in imports such as `import 'std` are the compiler's, presented as
-  module imports, and may come before modules are objects.
+  module imports, outside the module system.
 
 ## Language, from the Rust bootstrap
 
@@ -163,7 +163,7 @@ where the shared lazy state that Bend cannot hold goes.
   coordinator runs coarse work on workers in rounds; fairness comes across
   rounds.
 - [`store-collection`](decisions/store-collection.md): the store's own
-  collector, stop-the-world first, then concurrent with an SATB barrier.
+  collector, concurrent with an SATB barrier.
 - [`net-nodes-double`](decisions/net-nodes-double.md): a net holds its
   nodes in one flat array of its own, doubled when full; the heap holds nets
   as values, each reduced by one worker at a time.
@@ -235,10 +235,10 @@ where the shared lazy state that Bend cannot hold goes.
 - [`serve-premises-over-index`](decisions/serve-premises-over-index.md):
   the serve's laws over the index take four premises (positions absent,
   faced ports sane, none facing itself, the free list holding the
-  crossings' nodes), to be reviewed later for what can become laws.
+  crossings' nodes).
 - [`finished-sources-freeze`](decisions/finished-sources-freeze.md): a
   wholly finished source's cell reduces to a frozen template, its uses
-  splices; the source's release waits on the tactic for cursors.
+  splices.
 - [`finished-trees-cached`](decisions/finished-trees-cached.md): a tree
   frozen at a source's position is cached for later serves there, its
   space accounted and bounded against the time it saves.

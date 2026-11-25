@@ -497,6 +497,21 @@ workload from the rungs to measure it on.
   a directory of their own importing it (`../spike/kernel.bend`, which
   Bend allows).
 
+Moved here from the decision records, which keep the why and not the
+when (`docs/reviews/Records_2026-11-25.md`):
+- An error's diagnostic is a text; Syntax.md's diagnostic objects, with
+  their context frames, would come with `anno 'error`
+  (`net-error-values`).
+- An error applied to a function leaves the operator stuck, the
+  argument not erased: whether it should be erased (`net-error-values`).
+- `::=` is disabled, its token reserved, pending its redesign
+  (`prior-update-disabled`).
+- What counts as an event and where events enter: modeling interaction,
+  with interactive mode (`pure-core-io-shell`).
+- The spike's tools check lowered nets for vicious circles and scoping
+  beside polarity; glam's own construction takes those checks over
+  (`net-obvious-errors`, `net-scoped-arguments`).
+
 Settled by this plan: every `hello/` sample produces `Hello, World!`
 (`samples/README.md`), so the check asserts that literal for each built
 rung's samples, with no `.out` files; the invalid samples' `.expect`

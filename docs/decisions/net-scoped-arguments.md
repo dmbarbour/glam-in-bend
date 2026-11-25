@@ -42,9 +42,8 @@ variable demanded outside its function's body.
   the variable is read, as a callback reporting to its creator or an
   early return would. If wanted, it returns as a kind of its own, with an
   edge of its own for the collection.
-- Until glam's construction exists, the spike's tools check nets for
-  scoping beside polarity (`spike/tools/polarity.py`), and the library
-  keeps the hand-built unscoped nets only to show them refused and
-  demand's report.
+- The spike's tools check nets for scoping beside polarity
+  (`spike/tools/polarity.py`), and the library keeps the hand-built
+  unscoped nets only to show them refused and demand's report.
 
 **Rule lives in:** `docs/Design.md`, Interaction Nets.

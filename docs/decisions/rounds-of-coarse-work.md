@@ -25,5 +25,4 @@ Fairness, where needed, comes from scheduling across rounds.
   can hold them all.
 - The coordinator owes no task to any worker: assignments may change every
   round.
-- Fuel starts as one unit per logical step, however large the step.
-  Weights wait for performance profiles across several machines.
+- Fuel is one unit per logical step, however large the step.

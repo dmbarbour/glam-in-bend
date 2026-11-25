@@ -21,5 +21,4 @@ of it.
   store; rope and dict code handles both.
 - Parallel evaluation depends on partitioning: the architecture sketch's
   "Pages and rounds" proposes pages owned linearly by workers, granted
-  between parallel rounds. EvalSpike measures before anything depends on
-  it.
+  between parallel rounds.

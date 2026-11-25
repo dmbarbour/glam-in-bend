@@ -8,10 +8,10 @@ feeding an operator, which takes data in and writes data out, without
 that net being built. The spike called a builtin when an application met
 data holding one (a `Call`), its encoding grown piecemeal: the op in the
 field, the arity in the word or implied, other partial applications in
-the data table's flat forms. A general form was built and proven on
-2026-10-31: an operator with its payload behind a port, a separate
-operator's data pairing an opcode with an accumulator, and a step the
-operator rotates into (`spike-operators.model`, `.call`). Holding the
+the data table's flat forms. A general form had an operator with its
+payload behind a port, a separate operator's data pairing an opcode with
+an accumulator, and a step the operator rotates into
+(`spike-operators.model`, `.call`). Holding the
 opcode in the header and the accumulator in the operator's own word,
 the opcode in the kind all the time, makes the separate data and the
 rotation unneeded (the maintainer, 2026-11-01).
@@ -41,8 +41,7 @@ rotation unneeded (the maintainer, 2026-11-01).
 **Consequences.**
 - The header is 6/2/24 (`header-kind-byte`).
 - The call becomes the operator, and the dead call an eraser of the
-  operator's input (`fusions-as-components`; once the dead operator); the
-  general form of 2026-10-31 retires with its law (`spike-operators.one`).
+  operator's input (`fusions-as-components`; once the dead operator).
 - From the user's view there are still three kinds, copy, data and bind;
   operators are the implementation's.
 

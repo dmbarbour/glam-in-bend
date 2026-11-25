@@ -29,13 +29,10 @@ applied to a fusion gives what it gives the expanded form.
   its input (`cells-freeze.deadop` in `docs/plans/Cells_2026-11-09.md`).
   It differs from the call only against a function, where the call is
   stuck. An operator's input is data, so no well-typed net shows the
-  difference. Until then it was a fused node of its own, stuck where a
-  call is (`heap-strategies.erasure.deadcall`).
+  difference.
 - An optimization without such a law is an experiment, not a feature.
 - The laws compare kinds, wiring and every payload's provenance, levels,
-  fans' identities and controls' indexes included; control runs are to
-  be stated as their unit controls at the level of rules, not only of
-  levels.
+  fans' identities and controls' indexes included.
 
 **Rule lives in:** `spike/LAWS.bend`, laws `linear_as_components` and
 `events_as_components` (controls: `units_are_run`, `run_splits`,

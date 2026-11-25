@@ -33,5 +33,3 @@ nodes."
 - Counts may differ between representations only as
   `static-links-count-as-nodes` allows: they count what allocated nodes
   would.
-- The discrepancy review of erasers and statics follows the freeze
-  review; its fixes C1 and B1 among them.

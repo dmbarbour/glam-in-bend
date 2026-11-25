@@ -18,20 +18,13 @@ free, as a walk's fuel running out, the kernel's error is raised.
 **Consequences.**
 - A descent of a copy's index (`glam/index.bend`) raises the kernel's
   error (`P.err_if`, the error count in the heap's header) when it does
-  not end at a leaf within its bound, as the walks round a copy's ring
-  did before the index replaced them (`cursors-indexed`), and the run
-  reports it as any kernel error.
+  not end at a leaf within its bound, and the run reports it as any
+  kernel error.
 - Laws over steps that descend the index take it real (the pending
   invariant over the index), so that no descent runs out and their frames
   allow no error.
 - A check that costs on the normal path is not added for corruption:
-  what the laws prove is not checked again. A join of a cursor with
-  itself, which no law yet excludes at the materializer's frontier, is
-  tested there, one compare a serve, and reported (the maintainer,
-  2026-11-23: "we can start with a check and tentatively add
-  investigating a law to replace it to the docket";
-  `cells-freeze.nested.host.join.self`).
-
+  what the laws prove is not checked again.
 - Once reported, the error stops the run (`implementation-errors-stop`).
 
 **Rule lives in:** `glam/index.bend`, the descents' ends.

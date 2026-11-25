@@ -2,7 +2,7 @@
 
 `ring-ports-faced-off-positions` · maintainer · rev b6c82c8
 
-**Context.** A copy's cursors first formed a ring linked through word 3,
+**Context.** A copy's cursors formed a ring linked through word 3,
 and the ring exact with its nodes (`RG.ring.ok`) said of each member
 that the port it faces has its link word off every member's word 3, so
 that linking that port, as a join does, left the ring's links. It said
@@ -13,11 +13,11 @@ port, its principal, and the situating node none (the maintainer,
 2026-11-14). The serve's composition, a find after a join, needs the
 positions kept. Three ways were set out: strengthen `faces`; a separate
 predicate in the serve's invariant alone; or read positions from the
-heap as it changes, the model sharing the find's decisions. The index
-of the net's nodes then replaced the ring (`cursors-indexed`): a
-cursor's word 2 is its key, which a find descends by, its word 3 its
-home, the situating node, whose word 3 is the index's root; a join and
-a leave still link the ports the live nodes face.
+heap as it changes, the model sharing the find's decisions. In the
+index of the net's nodes (`cursors-indexed`), a cursor's word 2 is its
+key, which a find descends by, its word 3 its home, the situating node,
+whose word 3 is the index's root; a join and a leave still link the
+ports the live nodes face.
 
 **Decision.** The maintainer (2026-11-17): "Strengthen faces." A port a
 member faces has its link word in no member's word 2 nor word 3. A
@@ -40,10 +40,10 @@ and the pending placeholders.
   or the eraser) is stated faceable too (`leave_pend`'s `port.ok`
   premise), which its `po.all` premise may imply
   (`docs/reviews/IndexPremises_2026-11-23.md`, P3).
-- The situating node's word 1, its static eraser, is not protected, the
-  decision deferred (the maintainer, 2026-11-17): no law reads it, and
-  naming it in `port.ok` would single out the situating node in every
-  list the faces are stated against.
+- The situating node's word 1, its static eraser, is not protected: no
+  law reads it, and naming it in `port.ok` would single out the
+  situating node in every list the faces are stated against. Whether it
+  should be is the Cells plan's `cells-freeze.nested.host.situ`.
 
 **Rule lives in:** `glam/ring_model.bend`, `port.ok`, `faces.m` and
 `px.ok`.

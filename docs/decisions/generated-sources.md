@@ -12,7 +12,7 @@ the rule table with a Bend program; a macro processor such as M4, or
 scripts that rewrite sources in place, were the alternatives raised (the
 maintainer, 2026-10-29). Bend's templates (`~` parameters, substituted at
 compile time, a copy for each distinct argument, a def or a lambda as
-the argument alike) were found on 2026-10-30 to compile such variants:
+the argument alike) were found to compile such variants:
 the erasure modes' rewrite chain is a template over the step after each
 rewrite. But a function beneath the templates that both copies call then
 has two callers, and Bend folds a function only into its one caller:
@@ -39,18 +39,12 @@ to be written this way.
   and compares, never writing; the gate and the pre-commit hook in
   `.githooks/` run it, so what was developed and tested is what the
   generators produce.
-- Variants generated before templates were found to work, such as the
-  rewrites' plain and eager families, are to become templates where they
-  can, as a task of its own (EvalSpike's `spike-templates`).
 - A template may call only templates declared above it, so a recursive
   loop is not one: each variant keeps a loop of its own, calling the
   templates with its argument.
 - A variant is free only if the templates reach down to whatever its
   copies would otherwise share and Bend would fold, the generated
-  rewrites included. So carried (HeapModel's
-  `heap-strategies.erasure.kernel.parity`), the chain without events
-  counts what it did before the modes existed (store run 82 against
-  69).
+  rewrites included.
 - Where a template's copies are too thin to pay for a call (a wrapper
   over a templated hot function costs its caller a call, which Bend's
   runtime makes dear: 4% of plain demand's instructions), the variants

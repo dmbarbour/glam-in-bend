@@ -26,9 +26,7 @@ net construction `interaction_net` gives every user (`.bind`, `.copy`,
 - No lambda term type in the core, and no evaluator of lambda terms: the
   front end's output is net construction and data.
 - Pairing must be right for every net the front end makes, not only for
-  user nets: NetPairing's verdict decides for `.g`'s own code, and
-  `spike-lowering` is on the critical path, since it shows which nets
-  the front end makes.
+  user nets: NetPairing's verdict decides for `.g`'s own code.
 - Laziness, sharing and fixpoints are net matters: cells hold nets
   (HeapModel), a function is a net with its arity
   (`functions-are-nets-with-arity`), a thunk a net waiting at its

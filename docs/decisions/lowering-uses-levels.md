@@ -7,10 +7,8 @@
 lambda terms and wrong under self-application, where two copies of one
 duplication meet under one label; levels right on every term tried, at
 the cost of control nodes (brackets and croissants) and their
-interactions. The hello ladder's first fans, locals copying data
-(`ladder-locals`), paired by labels. Lowering functions (`ladder-lambda`)
-needed the choice: labels first, levels where a test shows a need, or
-levels throughout.
+interactions. Lowering functions needed the choice: labels, with levels
+where a test shows a need, or levels throughout.
 
 **Decision.** The maintainer (2026-11-09): GAL levels from the start.
 glam's lowering gives every function, application and copy fan its
@@ -23,7 +21,7 @@ for (`let x = v in b` is `(\x -> b) v`).
 **Consequences.**
 - Nets from `.g` pair as the spike's leveled terms do, self-application
   included; the controls' interactions are part of every count.
-- Whether a function known to need no levels could drop them is a later
+- Whether a function known to need no levels could drop them is an
   optimization (NetPairing's `pairing-overhead`), measured against this.
 - `pairing-verdict` keeps the question open for nets users build with
   `interaction_net` (`pairing-nets`).

@@ -12,8 +12,8 @@ nothing kept. The statics pass's frame needed an invariant carried
 through it, and three premises more, since it writes through words it
 reads (`cells-freeze.nested.host.splice.statics`). Asked why the pass
 was its own, the maintainer (2026-11-20): "for now I favor a single
-pass"; and of two erasers linked to each other, kept as two nodes so
-far: "we could just immediately count the interaction for eager, or
+pass"; and of two erasers linked to each other, kept as two nodes:
+"we could just immediately count the interaction for eager, or
 immediately ignore for lazy (disconnected subgraphs can't be reached by
 demand)."
 
@@ -24,10 +24,8 @@ writes the static in its peer's link word and nothing of its own. Two
 erasers linked to each other write nothing: the splice runs under
 demand, which never reaches such a pair, and a pair off demand's path is
 counted by no one (`static-links-count-as-nodes`). The loader keeps its
-statics pass for now; an eager loader would count such a pair as one
-interaction at once, of its kinds. Templates and freeze, statics among
-them, go to a design review of their own
-(`cells-freeze.nested.host.templates`).
+statics pass; an eager loader would count such a pair as one
+interaction at once, of its kinds.
 
 **Consequences.**
 - No outcome changes for any template the system makes: lowering emits
@@ -41,13 +39,6 @@ them, go to a design review of their own
 - An eraser at a source's root no longer reads a stale word: its map
   entry is the static, which the materializer's root leaves with, as it
   does a static eraser.
-- Measured (the Cells plan's `.splice.single`, runs 326 to 328, four
-  builds of each tree): outputs and counts alike; where no eraser is
-  copied, which none of the sharing families did, the work a few
-  instructions a node less, clang's inlining moving the default builds
-  by a tenth of a percent either way; about 120 instructions saved for
-  each eraser served, and, by inference, one doubling of the store
-  fewer where the erasers' nodes had tipped it.
 
 **Rule lives in:** `glam/splice_copy.bend` (`sp.node_k`, `sp.link2`),
 `glam/SPLICE_LAWS.bend`, and `docs/plans/Cells_2026-11-09.md`,

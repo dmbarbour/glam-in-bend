@@ -19,6 +19,4 @@ through the shell as ordered input.
   scheduler inside the core, not host threads.
 - Reflection and interactive mode are deterministic relative to the shell's
   event log: a run can be replayed, though two live runs may differ.
-  Modeling interaction (what counts as an event, and where events enter)
-  waits for interactive mode.
 - Bend's parallel calls speed up the core; they never decide results.

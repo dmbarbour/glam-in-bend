@@ -7,9 +7,7 @@ around `asm.result` as one binding group, which cannot hold recursion.
 The cells review asked how a function value meets an application; the
 maintainer agreed to try a splice at the applying level ("We'll try your
 recommended approach", on the level offset) and to treat the protocol
-"as an experiment" (2026-11-09), then approved the bridge plan, whose
-first milestone, `bridge-recursion`, makes a recursive function a
-template ("Alright, let's begin developing this bridge").
+"as an experiment" (2026-11-09).
 
 **Decision.** The maintainer (2026-11-09): a top-level function is a
 template, its net lowered alone and closed, each name of a top-level
@@ -25,25 +23,21 @@ needs them.
 - Recursion, direct and mutual, runs through templates: each use copies
   the template whole, as lowered. `copy-reduced-function-nets` would
   either reduce it first or leave its unfinished work in the source
-  behind cursors, and neither was built when this was decided (the
-  second since, for values whose outcome is a function, below). So closed work in a function's
-  body is done again at every splice, where the linker shared it: 147
-  interactions and 8 splices a use
+  behind cursors; a template takes neither. So closed work in a
+  function's body is done again at every splice, where the linker shared
+  it: 147 interactions and 8 splices a use
   (`docs/reviews/InsideData_2026-11-10.md`, F2, run 312 of the analysis
   store).
 - The values a template names are root cells, forced once each on a
-  task of their own. A value whose outcome is a function was spliced
-  from its recipe at each use, redoing the work of the partial
-  application it holds (the same review, F2); since `cells-freeze.cells`
-  (2026-11-13) its net is kept live and copied as
-  `copy-reduced-function-nets` describes, at the level a template's
-  splice would take.
+  task of their own. A value whose outcome is a function, spliced from
+  its recipe at each use, would redo the work of the partial
+  application it holds (the same review, F2); its net is kept live and
+  copied as `copy-reduced-function-nets` describes, at the level a
+  template's splice would take.
 - The raise is `V.raise_pay` in `spike/val.bend`, which the splice and
   the materializer call. The reference rules cannot tell a copy raised
   whole, where no level wraps: their tests and the levels controls give
-  commute with it (laws `raise_*` in `spike/LAWS.bend`, 2026-11-12). The
-  kernel's own arithmetic and the rewrite as a whole are not yet proved
-  (`cells-freeze.levels.shift` in `docs/plans/Cells_2026-11-09.md`).
+  commute with it (laws `raise_*` in `spike/LAWS.bend`).
 - A splice is no interaction: counts of interactions miss its cost, a
   copy of the template.
 

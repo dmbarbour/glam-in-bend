@@ -6,14 +6,13 @@
 one was defined by `drops-stop-at-index`, b unit drops at n, and the
 one-wire model had checked drop runs (NetPairing's
 `pairing-fusion.drops`, 2026-11-13), but random terms rarely made two
-drops meet (analysis store run 320), so the kernel's part waited for "a
-workload that shows drops piling up". glam's walk of a Scott list was
-one: each recursive call is spliced a level deeper and leaves a unit
-drop on the tail's wire, unfused, and each later step's controls cross
-every one, so a walk of n costs 6n² + 15n + 9 interactions
+drops meet (analysis store run 320). glam's walk of a Scott list shows
+them piling up: each recursive call is spliced a level deeper and leaves
+a unit drop on the tail's wire, unfused, and each later step's controls
+cross every one, so a walk of n costs 6n² + 15n + 9 interactions
 (`docs/reviews/RecursionFable_2026-11-21.md`, the Cells plan's
 `cells-recursion.depth`). The agent asked whether drop runs should be
-allowed to fuse, the model checked first and the laws brought at merge.
+allowed to fuse.
 
 **Decision.** Two drops at one index fuse into one dropping by their
 sum, b unit drops at n: the maintainer (2026-11-21), asked whether drop
@@ -50,13 +49,7 @@ agent's, within that ruling, each choice one the model checks:
   against the model's window, and a raise run's own units against a
   drop run's; the model's enumeration and the library's drop-run nets
   check them, and mutations of the test fail those nets.
-- glam's Scott walk costs 19n + 9. Over the library, the full
-  reduction's interactions fall in 19 cases, demand's in 50, by up to
-  19%, and none rise; the logical interactions are unchanged wherever the
-  reduction finishes (store runs 334 and 335). Over 5,400 random terms
-  (store runs 330 and 329) no value changes. Instructions rise 0.26% in
-  the default build on the leveled workload, peeling entered only at one
-  index or for a drop run.
+- glam's Scott walk costs 19n + 9.
 - A walk of a Scott numeral by a fixpoint (`scott-walk-*` in the
   library) keeps a quadratic, demand about 0.8n² where it was 5.8n²: not
   drops but raises, the numeral built by exponentiation leaving a stack

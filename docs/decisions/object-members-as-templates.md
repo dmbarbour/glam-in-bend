@@ -4,12 +4,11 @@
 
 **Context.** An object is a chain of mixins (Syntax.md, Objects: `defs`
 is `\prior instance -> prior with ...`). The bridge's object milestone
-instantiates the objects whose bodies and parents are known at load;
-objects made at run time are to follow. The maintainer (2026-11-10):
-"Regarding the recipe for members, you may need the entire prior
-dictionary in general." Resolving member names straight to cell handles
-at load would be faster, and is the shortcut runtime objects would have
-to undo.
+instantiates the objects whose bodies and parents are known at load.
+The maintainer (2026-11-10): "Regarding the recipe for members, you may
+need the entire prior dictionary in general." Resolving member names
+straight to cell handles at load would be faster, and is the shortcut
+runtime objects would have to undo.
 
 **Decision.** A member is lowered as Syntax.md desugars a body: a
 template of two parameters, `self`, the instance, and `_self`, the whole
@@ -20,8 +19,7 @@ the host's, `h` is `self` and `_h` `_self`, an alias spelt `_h` being
 member's template applied to two constants: the instance's dict of
 member handles, and the prior dict where the definition's body stands.
 The instance is that dict of handles, a constant. Each body, an object's
-own or an `extend`'s, is a mixin step of its own. `spec` is left out
-until something reads it.
+own or an `extend`'s, is a mixin step of its own.
 
 **Consequences.**
 - One template for each member definition, shared by every instance;
@@ -30,8 +28,6 @@ until something reads it.
   `self`, a cost for each reference that handles resolved at load would
   not have.
 - Objects made at run time apply the same templates to dicts that
-  evaluation builds; what remains for them is making cells at run time.
-- The module resolves its own overrides statically, by versions, until
-  modules become objects (`cells-modules`).
+  evaluation builds, their cells made at run time.
 
 **Rule lives in:** `glam/objects.bend`, its header.
