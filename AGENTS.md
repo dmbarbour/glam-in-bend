@@ -138,6 +138,15 @@ Lessons carried over from the Rust bootstrap:
   a time, and keep the caps of runs that overlap below the machine's
   free memory. Run
   `scripts/cgroup-delegate.sh` first, or the caps only poll.
+  The container holds 10 GiB (`--memory=10g`,
+  `.devcontainer/devcontainer.json`), less than the host's
+  `/proc/meminfo` shows: size runs by `scripts/mem_avail.py`, and cap a
+  gate run at 8000 MB, the session and editor keeping the rest. A run
+  `capped.sh` starts inside another capped run leaves the outer group,
+  so the outer cap does not hold it: each is capped on its own. Five
+  verdicts at once overran the container and killed it with the
+  session (2026-11-25); the gate now runs them as memory holds them
+  (`scripts/verdicts.py`).
 - Bend folds a chain of functions into one compiled segment only while
   each has one caller; a second caller splits a function into a segment
   of its own, which costs every call through it. Before trusting a

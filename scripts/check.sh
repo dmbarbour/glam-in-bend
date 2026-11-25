@@ -60,25 +60,17 @@ for laws in $(git ls-files --cached --others --exclude-standard -- '*LAWS.bend' 
   [ -f "${laws%LAWS.bend}PROOF.bend" ] || { echo "$laws has no ${laws%LAWS.bend}PROOF.bend beside it"; status=1; }
 done
 if [ -n "$proofs" ]; then
-  # the files' verdicts run at once, a gigabyte or so each (1.3 GB the
-  # serve's, 2026-11-20), their outputs printed in order after: the
-  # section the longest verdict, not their sum. Serially where BendTT is
-  # not yet built (a new container), so that its build runs once.
+  # the files' verdicts run at once as far as memory holds them, longest
+  # first, each by the peak it last reached (scripts/verdicts.py: up to
+  # 3.7 GB, the serve's, 2026-11-25; five at once once overran the
+  # container's 10 GiB), their outputs printed in order after. Serially
+  # where BendTT is not yet built (a new container), so that its build
+  # runs once.
   vdir=results/gate-verdicts
   mkdir -p "$vdir"
   if ls "$HOME"/.bend/bendtt/*/bendtt >/dev/null 2>&1; then par=1; else par=0; fi
-  # one file's verdict, its output, status and time under its name
-  one() {
-    at=$(date +%s.%N)
-    BEND=$BEND python3 -I scripts/kept.py verdict "$1" > "$vdir/$2.log" 2>&1
-    echo $? > "$vdir/$2.status"
-    since "$at" > "$vdir/$2.time"
-  }
-  for f in $proofs; do
-    n=$(echo "$f" | tr / _)
-    if [ "$par" = 1 ]; then one "$f" "$n" & else one "$f" "$n"; fi
-  done
-  wait
+  # shellcheck disable=SC2086
+  BEND=$BEND python3 -I scripts/verdicts.py "$vdir" "$par" $proofs || status=1
   for f in $proofs; do
     n=$(echo "$f" | tr / _)
     echo "-- $f"

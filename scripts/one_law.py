@@ -462,18 +462,17 @@ def verdict(name, law, res):
 
 def jobs_for(cap, asked):
     """Runs at once: as asked, else as many as the available memory holds
-    at the cap, at most half the processors, at least one."""
+    at the cap, at most half the processors, at least one. The memory
+    free is the container's (scripts/mem_avail.py): /proc/meminfo alone
+    is the host's."""
     if asked:
         return max(1, asked)
-    avail = 0
-    try:
-        with open("/proc/meminfo") as f:
-            for line in f:
-                if line.startswith("MemAvailable:"):
-                    avail = int(line.split()[1]) // 1024
-    except OSError:
-        pass
-    return max(1, min((os.cpu_count() or 2) // 2, avail // int(cap[0])))
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "mem_avail", os.path.join(os.path.dirname(os.path.abspath(__file__)), "mem_avail.py"))
+    mem = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mem)
+    return max(1, min((os.cpu_count() or 2) // 2, mem.avail_mb() // int(cap[0])))
 
 
 def main(args):

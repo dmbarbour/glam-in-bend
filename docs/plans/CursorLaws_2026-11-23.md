@@ -700,12 +700,38 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         model's small facts (`po_at`, `lay_at`) copied between the
         serve's and the cursors' proofs.
 
-      About 188 of the repo's lemmas could give way to one each. As
-      planned: the development aid listing the defs whose types match
-      across the proof files, and what it finds.
-    - `cursor-laws.proofs.shared` — planned — the duplicates moved to
+      Classified (`--detail`: each def's body length, erasure marks,
+      and whether it is one call): 46 groups save nothing, their
+      members wrappers of one lemma, and 28 are a lemma proving its own
+      file's law, no duplicate. What sharing would save is about 843
+      lines of proof, not lemmas by count: `ALIGN.bend`'s copies in
+      `PROOF.bend` the most (`pig` 85 lines), the hub's laws re-proved
+      next (36 groups, their marks fitting every caller's: `le_succ`,
+      `or_assoc`, `le_trans`), then the model's facts copied between
+      the serve's proofs and the cursors' (`lfull`, `po_at`, `lay_at`).
+      As planned: the development aid listing the defs whose types
+      match across the proof files, and what it finds.
+    - `cursor-laws.proofs.shared` — active — the duplicates moved to
       shared lemma files beside the code they are about, the
-      generators calling them.
+      generators calling them. Each slice one family, its files'
+      verdicts against a baseline of every proof file's alone
+      (`results/proofs_shared/baseline.sh`); hand-kept files before
+      generated ones.
+      - `cursor-laws.proofs.shared.hub` — active — the hand-kept
+        files' re-proofs of hub laws whose file they import, the marks
+        fitting: a lemma with many callers kept as a one-line wrapper
+        of the hub's law, so that no call site moves, one with few
+        replaced by it.
+      - `cursor-laws.proofs.shared.align` — planned — `PROOF.bend`
+        importing `ALIGN.bend`'s lemmas, which `gen_align.py` copies
+        now.
+      - `cursor-laws.proofs.shared.model` — planned — the model's facts
+        the serve's proofs and the cursors' both prove, in a file
+        beside the model.
+      - `cursor-laws.proofs.shared.basics` — planned — the Bool, Nat and
+        U32 facts no hub file holds, in small files by topic; the
+        generated files' through their generators. An import a file
+        lacks is timed alone first.
     - `cursor-laws.proofs.bridge` — planned — the bridge from code to
       model reviewed for reuse, its mirror plumbing a template's
       candidate.
@@ -792,7 +818,17 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     maintainer, 2026-11-23: "watch the growth and occasionally take
     action to improve iteration speed"). At `.emit.links` (2026-11-24):
     `glam/FREEZE_PROOF.bend` checks in 35 s cold, the gate in 81 s with
-    the rest kept (run 346).
+    the rest kept (run 346). 2026-11-25: the gate started every changed
+    file's verdict at once, and five, 11.5 GB at their peaks, overran
+    the container's 10 GiB, killing it with the session. Measured alone,
+    the verdicts peak at 0.4 to 3.7 GB, the kernel's importers the
+    largest (`MATERIALIZE_PROOF` 3.7, `POSITION_PROOF` 3.5,
+    `SERVE_PROOF` 2.6); with company, a few percent more. The gate now
+    starts them as the memory free at the start holds them
+    (`scripts/verdicts.py`, by `scripts/mem_avail.py`, the container's
+    limit counted), longest first by their last real durations, each
+    capped on its own and its peak recorded for the next; the mutant
+    runner sizes its jobs by the same free memory.
 
 ## Open
 

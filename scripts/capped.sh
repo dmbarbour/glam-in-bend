@@ -12,7 +12,11 @@
 # process group's resident memory every 0.1 s, which overshoots by whatever
 # the command allocates between polls. Exits 137 when it kills, else with
 # the command's status. With CAPPED_REPORT set, the cgroup form also
-# reports the run's peak memory and time on stderr.
+# reports the run's peak memory and time on stderr. Every cgroup run's
+# group is a child of the parent below, never of the caller's: a capped
+# run started inside another leaves the outer group, so the outer cap
+# does not hold it (the gate's verdicts and mutants are each capped on
+# their own).
 set -u
 [ $# -ge 3 ] || { echo "usage: $0 MEGABYTES SECONDS command [args...]" >&2; exit 2; }
 mb=$1; limit=$(( $2 * 10 )); shift 2
