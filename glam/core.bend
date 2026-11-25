@@ -765,20 +765,16 @@ def frame.push(h: P.H, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, +nc
   frame.hs(host.of(who, KD.D{h, path, top, depth, n, 2}, k, ss, c, b), k, nc, pos, b)
 
 # A use of a live source: the leaf a host's demand stopped needing becomes
-# a negative cursor at the source's interface, the one cursor of an
-# index of its own, whose situating node holds the source's entry and the
-# applying node's level (the splice's, sp.by), laid out as
-# glam/test_materialize.bend's index_one (a tree of one leaf: the
-# situating node and the cursor naming each other);
+# a negative cursor at the source's interface, put in an index of its own
+# by R.cursor, as a serve's crossings are (cursor-laws.loop.base): the
+# situating node, which holds the source's entry and the applying node's
+# level (the splice's, sp.by), made an empty index, its word 3 itself;
 # the leaf's data entry dropped, as a splice drops it. A frame then serves
 # the cursor, the first copy a serve like any other.
 
-def use.cursor(h: P.H, +leaf: U32, +situ: U32) -> P.H:
-  P.wr(P.wr(P.wr(h, leaf, P.hd2(18, 0, 0)), (leaf + 2 : U32), P.iface()), (leaf + 3 : U32), situ)
-
 def use.situ(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:
   (h, +situ) = r
-  frame.push(use.cursor(P.wr(P.wr(P.put_st(h, situ, P.era()), (situ + 2 : U32), k), (situ + 3 : U32), leaf), leaf, situ),
+  frame.push(R.cursor(P.wr(P.wr(P.put_st(h, situ, P.era()), (situ + 2 : U32), k), (situ + 3 : U32), situ), situ, leaf, P.iface(), True{}),
     path, top, depth, n, k, leaf, P.iface(), who, b, c, ss)
 
 def use.top(r: P.H & U32, +leaf: U32, path: KM.M, +top: U32, +depth: U32, +n: U32, +k: U32, who: Wh, +b: List<&2, Ent>, c: Cn, ss: Srcs) -> Run:

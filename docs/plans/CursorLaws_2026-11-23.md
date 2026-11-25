@@ -848,10 +848,25 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - M.
   - `cursor-laws.loop` — planned — the invariant established and kept
     across serves (F7, H5).
-    - `cursor-laws.loop.base` — planned — the first use made through
+    - `cursor-laws.loop.base` — active — the first use made through
       `R.cursor` on an empty index (H8). `situate_pend` (P6): a fresh
       situating node is an empty index, and `cursor_pend` the base case.
       S to M, measured on the sharing families.
+      - `cursor-laws.loop.base.code` — built 2026-11-25 — the core's
+        first use (`use.situ`, `glam/core.bend`) writes the situating
+        node an empty index, its word 3 itself, and puts the leaf in it
+        by `R.cursor`, as a serve's crossings are; the hand layout
+        (`use.cursor`) gone. The words written are the same (the
+        insert's empty case writes the root and the home), at two reads
+        and a write more a use; every hello, sharing and growth sample's
+        counts alike, 68 of them (`results/loop_base/`), and the ladder
+        passing as before.
+      - `cursor-laws.loop.base.situate` — planned — `situate_pend`: the
+        situating node's writes, on a node fresh from the free list,
+        give `RG.px.ok` over the empty index with the leaf pending, so
+        that `cursor_pend` applies to the first use. Its premises on the
+        leaf: live, its link two-way and none facing itself (the wiring,
+        `net-obvious-errors`), off the other tracked nodes' words.
     - `cursor-laws.loop.shape` — planned — one change of the
       invariant, every law restated once. L. With it, the index's keys
       across serves: those of copied trees' boundaries not yet joined,
