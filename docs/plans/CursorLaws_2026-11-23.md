@@ -946,6 +946,20 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         of a list laid out is laid out, by `lay_pair`), `bases_sub`,
         `past_sub`. Left for `.serve`: the sub-list's shape `M ++ ns`,
         the copy's nodes last.
+        Found 2026-11-25, reading `serve_pend`'s conclusion: after a
+        serve the tracked nodes are `M ++ pls`, the copy's holes kept and
+        its other nodes, now the host's, dropped; so a run's tracked list
+        shrinks with each serve and grows only where the next copy takes
+        nodes past the tracked prefix of the free list. Those nodes join
+        the tracked list on two conditions: laid out apart from it, and
+        no faced port linking into them. The first is arithmetic,
+        distinct bases past the header and in range being apart; the
+        second is the host's wiring, live ports linking only live ports
+        (`net-obvious-errors`' premise). Proposed: both premises of the
+        serve's law for now, the kernel's to discharge
+        (`kernel-refine`), as the wiring is; the arithmetic law
+        (`bases_apart`) a step of its own, which would fold the layout
+        into the invariant by computation (P10).
       - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
         invariant across the heap's doubling, the words copied.
       - `cursor-laws.loop.shape.serve` — planned — `serve_loop`: one
