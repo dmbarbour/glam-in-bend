@@ -345,7 +345,7 @@ def lpx.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: Li
   +hft = LAP.full_t(U32, w, t0, d, e, hf)
   +ew = Equal.sym(Array<U32>, {A0}, w, e)
   +hpT = LAB.subst(Array<U32>, qq => {T('RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N)')}, w, {A0}, ew, hp)
-  +hpk = port_of_po(L, p, [], d, N, hpo, {proj(PXOK(f'AD.view(U32, {A0})', 'I', 'ps', 'L', 'F', 'N'),12,'hpT')}, none_nil(L), hN, hB)
+  +hpk = AL.port_of_po(L, p, [], d, N, hpo, {proj(PXOK(f'AD.view(U32, {A0})', 'I', 'ps', 'L', 'F', 'N'),12,'hpT')}, none_nil(L), hN, hB)
   %e : {GK0('I','_','a')}
   %ea : {GK0('I',A0,'_')}
   and_l({conj(PXOK(f'AD.view(U32, RG.words(R.leave({H0}, p, y)))', 'IM.ix.del(I, y, k)', 'ps', L2, FP('IM.mb.cons(IM.ix.par(I, y, k), F)'), 'N'))}, AD.full(U32, RG.words(R.leave({H0}, p, y)), d),

@@ -84,7 +84,7 @@ def lvk.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +s: U32, +I: IM.Ix, +ps: Li
   +hft = LAP.full_t(U32, w, t0, d, e, hf)
   +ew = Equal.sym(Array<U32>, {A0}, w, e)
   +hpT = LAB.subst(Array<U32>, qq => {T('RG.px.ok(AD.view(U32, qq), d, s, I, ps, L, F, N)')}, w, {A0}, ew, hp)
-  +hpk = port_of_po(L, p, [], d, N, hpo, {proj(PXOK(f'AD.view(U32, {A0})', 'I', 'ps', 'L', 'F', 'N'),12,'hpT')}, none_nil(L), hN, hB)
+  +hpk = AL.port_of_po(L, p, [], d, N, hpo, {proj(PXOK(f'AD.view(U32, {A0})', 'I', 'ps', 'L', 'F', 'N'),12,'hpT')}, none_nil(L), hN, hB)
   %e : {KGm('_','a')}
   %ea : {KGm(A0,'_')}
   lvk.k(I, t0, ta, d, s, ps, L, F, N, p, c, k, hft, hd32, hN, hB, hpT, hc, hpo, hpk,

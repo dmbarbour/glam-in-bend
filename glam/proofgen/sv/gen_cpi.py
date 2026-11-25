@@ -585,15 +585,6 @@ def cpi.core({CORE_P}) ->
 '''
 CPF=[f'RG.px.ok({V1}, d, s, I, {PLS}, {Lp}, F, {Mp})', f'AD.full(U32, {W1}, d)', f'AD.full(U32, {MAP1}, dm)', f'RG.layout({Mp}, d)', f'RG.bases({Mp})']
 sec4+=f'''
-# the fresh nodes no statics, each its own base (IndexPremises P3)
-def dyn_of_bases(ns: List<&2, U32>, +hB: {{RG.bases(ns) == True{{}} : Bool}}) -> {{SV.dyn(ns) == True{{}} : Bool}}:
-  match ns:
-    case Nil{{}}:
-      {{==}}
-    case Con{{+n, r}}:
-      MB.and_eq_true(Bool.not(P.is_static(n)), SV.dyn(r), ME.subst(Bool, b => {{Bool.not(b) == True{{}} : Bool}}, False{{}}, P.is_static(n), Equal.sym(Bool, P.is_static(n), False{{}}, GP.dyn_one(n, MB.eq_true_of_and_left(U32.is_eq(P.base(n), n), RG.bases(r), hB))), {{==}}),
-        dyn_of_bases(r, MB.eq_true_of_and_right(U32.is_eq(P.base(n), n), RG.bases(r), hB)))
-
 # the copy's invariant, and what the crossings ask besides: the words and
 # the map full, the tracked nodes after (M, then the holes) laid out
 # apart, each its own base (IndexPremises P1)
@@ -635,8 +626,8 @@ def cpi.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat
   +hft = LAP.full_t(U32, w, t0, d, ew, hf)
   +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
   +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
-  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
-  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  +hfrT = AL.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = AL.dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
   %ew : {GOALw('_','a','map')}
   %ea : {GOALw(T0,'_','map')}
   %em : {GOALw(T0,TA,'_')}
@@ -733,8 +724,8 @@ def sk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hft = LAP.full_t(U32, w, t0, d, ew, hf)
   +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
   +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
-  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
-  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  +hfrT = AL.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = AL.dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
   +hjfT = LAB.subst(Array<U32>, qq => {T(f'RG.off.ports(RG.faced({L0}, AD.view(U32, qq), d), d, j)')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hjf)
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
@@ -865,8 +856,8 @@ def cro.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat
   +hft = LAP.full_t(U32, w, t0, d, ew, hf)
   +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
   +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
-  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
-  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  +hfrT = AL.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = AL.dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
   %ew : {PCRO(SPLw('_','a','map'), 'map')}
   %ea : {PCRO(SPLw(T0,'_','map'), 'map')}
   %em : {PCRO(SPLw(T0,TA,'_'), '_')}
@@ -939,8 +930,8 @@ def rx.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hft = LAP.full_t(U32, w, t0, d, ew, hf)
   +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
   +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
-  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
-  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  +hfrT = AL.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = AL.dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)
   +hok3 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,TA,'qq')})), dm, I, F)")}, map, {TM}, Equal.sym(Array<U32>, {TM}, map, em), hok2)
@@ -1063,8 +1054,8 @@ def rk.go(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat,
   +hft = LAP.full_t(U32, w, t0, d, ew, hf)
   +hfmt = LAP.full_t(U32, map, tm, dm, em, hfm)
   +hpT = LAB.subst(Array<U32>, qq => {HPw('qq')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hp)
-  +hfrT = GP.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
-  +hdy = dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
+  +hfrT = AL.faces_fresh({L0}, t0, d, {L0}, {MN}, ns, hft, hd32, {proj(C0,16,'hpT')}, sub_app_r(M, ns), none_appl(ns, F, {L0}, {proj(C0,11,'hpT')}), hN, hB)
+  +hdy = AL.dyn_of_bases(ns, GP.bases_sub(ns, {MN}, sub_app_r(M, ns), hB))
   +hjfT = LAB.subst(Array<U32>, qq => {T(f'RG.off.ports(RG.faced({L0}, AD.view(U32, qq), d), d, j)')}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hjf)
   +hok1 = LAB.subst(Array<U32>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2('qq','a','map')})), dm, I, F)")}, w, {T0}, Equal.sym(Array<U32>, {T0}, w, ew), hok)
   +hok2 = LAB.subst(Array<V.Val>, qq => {T(f"RG.cxs.ok(cs, AD.view(U32, SM.map({SPLw2(T0,'qq','map')})), dm, I, F)")}, a, {TA}, Equal.sym(Array<V.Val>, {TA}, a, ea), hok1)

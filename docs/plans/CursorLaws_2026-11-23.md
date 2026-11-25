@@ -731,9 +731,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         fitting: a lemma with many callers kept as a one-line wrapper
         of the hub's law, so that no call site moves, one with few
         replaced by it.
-      - `cursor-laws.proofs.shared.align` — planned — `PROOF.bend`
-        importing `ALIGN.bend`'s lemmas, which `gen_align.py` copies
-        now.
+      - `cursor-laws.proofs.shared.align` — built 2026-11-25 —
+        `gen_align.py` writes the import (`AL`) where it wrote 30
+        copies, and the leave's three stages call `AL.port_of_po` and
+        `AL.po_static`: `glam/PROOF.bend` 345 lines shorter, its
+        lawful-words imports coming with `ALIGN.bend`'s. Its verdict
+        alike, 30.8 s before and 31.0 and 31.4 after, its peak about
+        60 MB more, `serve_model` coming too. `SERVE_PROOF` drops its
+        copy of `dyn_of_bases` and calls it and `faces_fresh` as `AL`'s
+        where it called `PROOF.bend`'s copies (`gen_cpi.py`), its verdict
+        alike (39 s in the gate, 2.7 GB). `bases_at`, `none_nil` and
+        `po_at`, which `PROOF.bend` proves itself under the same names,
+        are `.model`'s. As planned: `PROOF.bend` importing `ALIGN.bend`'s
+        lemmas, which `gen_align.py` copied.
       - `cursor-laws.proofs.shared.model` — planned — the model's facts
         the serve's proofs and the cursors' both prove, in a file
         beside the model.

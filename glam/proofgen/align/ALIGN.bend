@@ -1,8 +1,8 @@
 # glam/proofgen's alignment lemmas (cells-freeze.sharing.cursors.index
 # .ring.premises.implied): a static port's link word and a base's words 2
 # and 3 in different slots, at a depth of 2 or more. Kept by hand, checked
-# as itself by the gate; gen_align.py copies its lemmas into
-# glam/PROOF.bend's "Alignment" section, leaving out those the file has.
+# as itself by the gate, and imported by glam/PROOF.bend as AL
+# (gen_align.py; cursor-laws.proofs.shared.align).
 import Base
 import ../../../spike/kprim.bend as P
 import ../../../spike/kmodel.bend as KMd

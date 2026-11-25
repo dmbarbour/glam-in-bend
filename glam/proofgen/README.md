@@ -36,7 +36,7 @@ to a marker's line must keep the marker matching, or the whole file runs.
 - `SERVE_PROOF.bend.in`: likewise `glam/SERVE_PROOF.bend`'s, first
   written by an aid not kept.
 - `align/ALIGN.bend`: the alignment lemmas, a Bend file the gate checks
-  as itself, which `gen_align.py` copies. `align/bisect.py` checks a
+  as itself, which `glam/PROOF.bend` imports (`gen_align.py`). `align/bisect.py` checks a
   Bend file's growing prefixes, naming the first definition whose prefix
   fails: Bend reports a stack overflow with no place.
 - `sv/ctxp.txt`, `wsel.txt`: text the stages read.
@@ -58,7 +58,7 @@ to a marker's line must keep the marker matching, or the whole file runs.
 4. `gen_fold.py`: `crossings_pend`.
 5. `gen_keeps.py`, with `gen_keeps_b.py` to `_e.py`:
    `crossings_keeps`.
-6. `gen_align.py`: the alignment section, from `align/ALIGN.bend`.
+6. `gen_align.py`: the import of `align/ALIGN.bend`'s lemmas.
 7. `gen_lv.py`: `leave_pend`.
 8. `gen_jn.py`: `join_pend`.
 9. `gen_cfi.py`: the ports faced after a copy's crossings.

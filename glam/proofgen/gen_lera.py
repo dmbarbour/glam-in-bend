@@ -33,7 +33,7 @@ if 'def Laws.leave_era_pend(' not in s:
 # the eraser's leave: leave_pend, the eraser's link words off by
 # computation (po_static)
 def Laws.leave_era_pend(w, a, d, s, I, ps, L, F, N, c, k, hf, hd32, hN, hB, hp, hc):
-  Laws.leave_pend(w, a, d, s, I, ps, L, F, N, P.era(), c, k, hf, hd32, hN, hB, hp, hc, po_static([], d, N))
+  Laws.leave_pend(w, a, d, s, I, ps, L, F, N, P.era(), c, k, hf, hd32, hN, hB, hp, hc, AL.po_static([], d, N))
 '''
     open(p,'w').write(s)
 print('lera')
