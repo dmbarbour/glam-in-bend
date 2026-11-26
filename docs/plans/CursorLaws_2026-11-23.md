@@ -1026,7 +1026,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             `lx_drop`: the invariant with the free prefix dropped to
             `Nil`, the form handed between serves. Structural, so named
             by no mutation.
-          - `cursor-laws.loop.shape.grow.copy.up` — planned — `lx_up`:
+          - `cursor-laws.loop.shape.grow.copy.up` — built 2026-11-26 —
+            `lx_up`, and `grow_next` composing `lx_drop`, `lx_up` and
+            `lx_extend` at 1n+d. The reads go by the kept words
+            (`kp_has`, `kp_sub`, the tree's `kr.tr`, `kr.faces`,
+            `kr.off`, `kr.tw`), the slots by `.mono` (with `off.links`,
+            `off.pos`). `px.tw`'s faced-back test is a slot equality,
+            kept only with both words in range: the live node's word 1
+            by `RG.nodes.in`, the faced port's link word by a scaffolding
+            premise, `LM.faced.in`, the wiring's to discharge. Its two
+            mutants, the faced port unranged and a node's first word
+            alone kept, are caught by the proof only, as premise
+            mutations must be. Written by `results/grow/gen_up.py`, and
+            checked on the first full run. As planned: `lx_up`:
             the invariant over the same lists, `F` `Nil`, carried from d
             to 1n+d where the tracked nodes' words read alike (a premise
             relation, `LM.kept`, the growth law's to discharge): the

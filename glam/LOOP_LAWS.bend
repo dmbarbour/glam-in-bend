@@ -304,3 +304,53 @@ law lx_drop:
   for +N: List<&2, U32>
   for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
   {LM.lx.ok(v, d, s, I, L, Nil{}, N) == True{} : Bool}
+
+# LAW: the wider invariant, its free prefix dropped (lx_drop), carried
+# across the heap's doubling (cursor-laws.loop.shape.grow.copy.up): from
+# the view v at depth d to the grown view v2 at 1n+d, where each word of
+# each tracked node reads alike (LM.kept, the growth law's to discharge)
+# and the port each live node faces links a word in range (LM.faced.in,
+# the wiring's): the reads by the kept words, every slot inequality kept
+# from d to 1n+d, and the one slot equality, a live node faced back, by
+# both its words in range. Then lx_extend at 1n+d adds the fresh nodes.
+# Record: cursors-indexed
+# Record: laws-across-steps-iterative
+# Record: net-obvious-errors
+law lx_up:
+  for +v: List<&2, U32>
+  for +v2: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(v, d, s, I, L, Nil{}, N) == True{} : Bool}
+  for +hk: {LM.kept(N, v, d, v2) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, v, d) == True{} : Bool}
+  {LM.lx.ok(v2, 1n+d, s, I, L, Nil{}, N) == True{} : Bool}
+
+# LAW: the wider invariant across the heap's doubling, for the next serve
+# (cursor-laws.loop.shape.grow.copy.up): its free prefix dropped
+# (lx_drop), carried to the grown view at 1n+d (lx_up), and the fresh
+# nodes E, the free list's first, added under the growth premises at
+# 1n+d (lx_extend, LM.ext.ok over no prefix). So that after growth the
+# next serve finds the invariant it asks, the fresh nodes its copy's.
+# Record: cursors-indexed
+# Record: laws-across-steps-iterative
+law grow_next:
+  for +v: List<&2, U32>
+  for +v2: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +E: List<&2, U32>
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
+  for +hk: {LM.kept(N, v, d, v2) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, v, d) == True{} : Bool}
+  for +hE: {LM.ext.ok(v2, 1n+d, s, I, L, Nil{}, N, E) == True{} : Bool}
+  {LM.lx.ok(v2, 1n+d, s, I, L, E, List.append(&2, U32, N, E)) == True{} : Bool}
