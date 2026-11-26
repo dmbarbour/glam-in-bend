@@ -1037,7 +1037,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
-  - `cursor-laws.alloc` — planned — a review of how the laws manage
+  - `cursor-laws.alloc` — active — reviewed 2026-11-26
+    (`docs/reviews/Alloc_2026-11-26.md`, the second reviewer's
+    `AllocFable_2026-11-26.md`); five questions to the maintainer.
+    Found:
+    - `LM.ext.ok` is the prefix law `splice-frame-premises` recorded,
+      and three of its conjuncts are a fourth said again;
+    - the layout is arithmetic given a range, which the loop's
+      invariant lacks and the doubling needs;
+    - a free node is marked by its zero header, which premise 6 needs
+      beside the wiring;
+    - the host reduces between serves (`host.go`), so `serve_next`
+      composes two serves with no kernel step between, and the loop
+      closes only when `kernel-refine` carries the invariant across a
+      kernel step.
+
+    Recommended: `LM.ext.ok` cut to five conjuncts before
+    `.loop.shape.next` merges; a per-node range as `.grow`'s first
+    slice; the per-serve contract recorded once the questions are
+    answered; the sound free list built before `kernel-refine.align`;
+    room before a serve decided by a measurement.
+    As planned: a review of how the laws manage
     allocation and the heap's growth, two reviewers, the agent and a
     Fable sub-agent, Fable's kept beside as written (the maintainer,
     2026-11-26: "Adding six premises related to free lists suggests
