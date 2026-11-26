@@ -266,6 +266,22 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   the second reviewer's holistic review of the same merge, by a Fable
   sub-agent, written apart and kept as written beside
   `IndexHolistic_2026-11-23.md`.
+- [`Alloc_2026-11-26.md`](Alloc_2026-11-26.md): how the laws manage
+  allocation and the heap's growth (`cursor-laws.alloc`), at the
+  maintainer's request after `LM.ext.ok`'s eight premises. Two reviewers,
+  compared:
+  - the premises are the recorded prefix law
+    (`splice-frame-premises`), three of them redundant;
+  - the layout is arithmetic, given a range the loop's invariant lacks;
+  - a free node is marked by its zero header, which the wiring needs as
+    well;
+  - the host reduces between serves, so the loop closes only with the
+    kernel refinement.
+
+  Five recommendations, five questions. Drafted for the maintainer.
+- [`AllocFable_2026-11-26.md`](AllocFable_2026-11-26.md): the second
+  reviewer's review of the same question, by a Fable sub-agent, kept as
+  written beside `Alloc_2026-11-26.md`, which compares the two.
 
 ## Retired
 

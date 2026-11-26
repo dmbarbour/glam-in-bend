@@ -43,7 +43,9 @@ law first. We can back off if it's impractical."
 7. `cursor-laws.loop`: the invariant established, reshaped once, and
    the wires stated. It restates every law, so it comes after the steps
    that add laws, which it then simplifies. It is split in three so that
-   the base case comes first.
+   the base case comes first. `cursor-laws.alloc`, a review of the
+   free list's laws, falls within it, after `.loop.shape.next` (the
+   maintainer, 2026-11-26).
 8. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
 9. `cursor-laws.watch`, throughout.
@@ -978,18 +980,126 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         facts over a sub-list. The verdict 36 s at 2.7 GB. As planned:
         `serve_loop`: one serve keeps the wider invariant, its crossings
         starting absent (`cxs_start`), so that serves compose.
-      - `cursor-laws.loop.shape.next` — planned — from one serve's
+      - `cursor-laws.loop.shape.next` — built 2026-11-26 — on the side
+        branch `cursor-laws-loop-next`, `serve_next`: one serve's
+        conclusion is the next one's premise, for any free nodes `E` past
+        the tracked prefix under the growth premises (`LM.ext.ok`, one
+        predicate for the kernel to discharge) and any count `k` of the
+        next copy's nodes; the next serve's `hl`, its copy's count the
+        length of `List.take`, the loop's to give. The verdict 36 s at
+        2.8 GB, as before. As planned: from one serve's
         conclusion to the next one's premise: the live list headed by
         `s` again (`s` no cursor and never pending), the free list split
         into the next copy's nodes and the rest, and the tracked list
         grown by the next copy's nodes past its tracked prefix, under
         the two premises the maintainer accepted (laid out apart from
-        the tracked nodes; no faced port linking into them).
+        the tracked nodes; no faced port linking into them). Slices:
+        - `cursor-laws.loop.shape.next.head` — built 2026-11-26 — on the
+          side branch `cursor-laws-loop-next`, `cxs_head`: the live list
+          after the crossings still headed by `s`, a model law with no
+          layout premise, since what a join takes out is a hole or one
+          of the index's leaves and the index's leaves only lose members
+          (`cut_nl`, `del_nl`) or gain the placeholder (`put_leaves`).
+          Its mutant, a made cursor listed again, caught.
+        - `cursor-laws.loop.shape.next.split` — built 2026-11-26 —
+          `lx_split`, for any count `k`, the members the same; with
+          `minus_sub`, `minus_none`, `minus_dist`, `sub_minus_app` and
+          `hd_eta`; its mutant, `minus` keeping what it takes out,
+          caught. As planned: the free
+          list's first nodes split into the next copy's nodes and the
+          rest (taken and dropped), the tracked list reshaped to the old
+          nodes but those, then those (`RG.minus`), the live list to
+          `Con{s, tl}`: the wider invariant over the next serve's lists,
+          by `px_sub`, `lay_sub`, `bases_sub`, `kpast_sub`.
+        - `cursor-laws.loop.shape.next.extend` — built 2026-11-26 —
+          `lx_extend`, the two premises stated as the layout of `N ++ E`
+          and the faced ports' link words off `E`'s nodes, with the free
+          list's chain over `F ++ E`, each its own base, past the header;
+          with `bases_app`, `past_app`, `pxoff_app`. Cut 2026-11-26 from
+          eight conjuncts to five on `cursor-laws.alloc`'s review (its
+          second reviewer's F5): `F ++ E` distinct and `E` none of the
+          live nodes nor `s` nor the index's follow from the layout and
+          the invariant's sub-lists (`SP.lay_dist`, `SP.none_of_dist`,
+          `GP.none_sub`, `GP.sub_has`, `dist_app`). Named by no
+          mutation: every fact it concludes over the grown lists is a
+          premise, unchanged, or a per-node fold over an append, which an
+          append keeps whatever the per-node test, a mutation of the test
+          changing premise and conclusion alike; what it claims is that
+          these premises are all the grown lists need. As planned: the tracked
+          list and the free list's tracked prefix grown by nodes past
+          it, under the two premises.
+        - `cursor-laws.loop.shape.next.compose` — built 2026-11-26 —
+          `serve_next`: `sl.k`, `cxs_head` (`s` no leaf, by the index's
+          layout, `lay_nl`; none of the holes, which `holes_in.k` puts
+          among the copy's nodes, none of the live list), `lx_extend`,
+          `lx_split`; `lx_extend` restated over `LM.ext.ok`. Both
+          mutants of the laws it composes caught. Authoring aid:
+          `results/loop_next/gen_sn.py`. As planned: one serve's
+          conclusion to the next one's premise, the three composed.
       - `cursor-laws.loop.shape.root` — planned — the serve at the
         source's root (`serve_root_keeps`, `serve_ring_exact`) given the
         same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
+  - `cursor-laws.alloc` — active — reviewed 2026-11-26
+    (`docs/reviews/Alloc_2026-11-26.md`, the second reviewer's
+    `AllocFable_2026-11-26.md`); five questions to the maintainer.
+    Found:
+    - `LM.ext.ok` is the prefix law `splice-frame-premises` recorded,
+      and three of its conjuncts are a fourth said again;
+    - the layout is arithmetic given a range, which the loop's
+      invariant lacks and the doubling needs;
+    - a free node is marked by its zero header, which premise 6 needs
+      beside the wiring;
+    - the host reduces between serves (`host.go`), so `serve_next`
+      composes two serves with no kernel step between, and the loop
+      closes only when `kernel-refine` carries the invariant across a
+      kernel step.
+
+    Recommended: `LM.ext.ok` cut to five conjuncts before
+    `.loop.shape.next` merges (done 2026-11-26, and `serve_next`'s
+    comment notes that it composes serves with no kernel step between); a per-node range as `.grow`'s first
+    slice; the per-serve contract recorded once the questions are
+    answered; the sound free list built before `kernel-refine.align`;
+    room before a serve decided by a measurement.
+    As planned: a review of how the laws manage
+    allocation and the heap's growth, two reviewers, the agent and a
+    Fable sub-agent, Fable's kept beside as written (the maintainer,
+    2026-11-26: "Adding six premises related to free lists suggests
+    it's about time to lawfully manage allocation and growth
+    explicitly. But I'm not sure exactly when to handle it and how much
+    it cleans up beyond the immediate."). Done next, within `.loop`,
+    before `cursor-laws.loop.shape.root` and
+    `cursor-laws.loop.shape.grow`: the growth step is the heap's growth
+    itself, and the root's serve would take `LM.ext.ok` again.
+    `cursor-laws.loop.shape.next` waits on its verdict on `LM.ext.ok`
+    before merging. What it builds, if anything, becomes steps here or
+    a plan of its own. Its questions:
+    - What `LM.ext.ok`'s eight premises become: the two accepted (laid
+      out apart from the tracked nodes, no faced port linking into the
+      new ones) and six the free list should give (its chain past the
+      tracked prefix, distinct, none of the live nodes nor `s` nor the
+      index's, each its own base, past the header).
+    - How much it cleans up beyond them. About 49 laws take a premise
+      touching the free list (its chain, `IM.fl.ok`, `FL.ok`, the free
+      head's word, or `RG.px.ok` carrying it; a rough count by
+      pattern, 2026-11-26), over three models of it:
+      `spike/freelist.bend`'s `FL.ok` (each free slot on the list once
+      and nothing else, with laws for an allocation and a free, not
+      bridged to the words); `KMd.chain` (a prefix of it over the
+      words, the splice's and the serve's); `IM.fl.ok` (the index's,
+      each its own node).
+    - The approaches, among others: premises, as now; `FL.ok`'s
+      partition bridged to the words, a node free or in use and never
+      both; the layout by arithmetic over any two distinct bases
+      (`bases_apart`, generalized), so that the tracked list needs no
+      growth; a mark past which every node is free and untouched, the
+      heap's doubling past it (`spike/kmem_grow.bend`); the kernel's
+      reserve (`kernel-refine.align`). Which hold by computation
+      (P10).
+    - When: now, with `.loop`'s laws restated once; after the loop
+      closes; or with `kernel-refine`. What each costs in proofs
+      restated and verdict time.
   - `cursor-laws.index` — planned — the index's 41 laws by
     disposition, as `.retire`'s were (H6, H9, H12). M.
     - Each law gets the downstream proof that uses it, or the reason it

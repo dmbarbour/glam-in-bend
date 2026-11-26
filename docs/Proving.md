@@ -94,7 +94,11 @@ it alone taught. Add to this file what a new proof teaches.
   after the served cursor leaves holds of a lone `s` whatever the leave
   wrote elsewhere, so the witness of `serve_map_unwritten` keeps a
   second cursor in the ring, its word 3 where the stale root sends the
-  write. A law that survives the mutation claims less than meant. Keep the mutations in a `MUTANTS.txt` beside
+  write. A law that survives the mutation claims less than meant. A law
+  that only regroups facts over an append (`lx_extend`), each a premise
+  or a per-node fold, survives every mutation of the folds, premise and
+  conclusion changing alike: say so where it is planned rather than
+  invent a mutant. Keep the mutations in a `MUTANTS.txt` beside
   the proof file (`X_MUTANTS.txt` beside `X_PROOF.bend`), each naming the
   laws it should fail: the gate tries each against them
   (`scripts/one_law.py`, below), its pass kept while its inputs are

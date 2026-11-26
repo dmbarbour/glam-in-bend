@@ -59,4 +59,5 @@ kernel's own state, which no law has yet been stated over
 
 - Whether the kernel's state is refined against the model whole, or only
   the wiring is (`KA.ends`), the free list and kinds left to their
-  audits.
+  audits. `cursor-laws.alloc` (`docs/plans/CursorLaws_2026-11-23.md`)
+  reviews the free list's laws and models, the reserve among them.
