@@ -104,8 +104,9 @@ law px_sub:
 
 # LAW: a serve away from the source's root keeps the wider invariant
 # (LM.lx.ok: the pending one with nothing pending, the live nodes
-# distinct, the tracked laid out apart, each its own base, past the
-# header), its tracked nodes then the old ones and the copy's holes
+# distinct, the tracked distinct and in range, each its own base, past
+# the header, so laid out apart by bases_apart, given 2 <= d), its
+# tracked nodes then the old ones and the copy's holes
 # (cursor-laws.loop.shape.serve): serve_pend composed with the live
 # nodes' distinctness (cxs_distinct; the copy's holes fresh, among the
 # nodes taken from the free list) and the tracked facts over a sub-list.
@@ -136,6 +137,7 @@ law serve_loop:
   for rp: U32
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +h2: {Nat.is_le(2n, d) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
   for +hlx: {LM.lx.ok(AD.view(U32, w), d, s, I, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
@@ -190,13 +192,13 @@ law lx_split:
 # (cursor-laws.loop.shape.next.extend), for the next copy needing more
 # nodes than the prefix holds. Premises (LM.ext.ok), the kernel's to
 # discharge (kernel-refine; the maintainer, 2026-11-26: "Premises now is
-# acceptable."): E laid out apart from the tracked nodes (layout of
-# N ++ E), and no live node's faced port linking into E (px.off over E),
-# the host's wiring (net-obvious-errors). Besides: the free list's chain
-# over F ++ E, each its own base, past the header. That E is none of the
-# tracked nodes, the live, s and the index's among them, and lists none
-# twice follows from the layout (docs/reviews/AllocFable_2026-11-26.md,
-# F5).
+# acceptable."): E laid out apart from the tracked nodes, stated as E
+# none twice, none of them, and in range (RG.nodes.in), the layout then
+# arithmetic (bases_apart); and no live node's faced port linking into E
+# (px.off over E), the host's wiring (net-obvious-errors). Besides: the
+# free list's chain over F ++ E, each its own base, past the header. That
+# E is none of the live nodes, s or the index's follows from its being
+# none of the tracked (docs/reviews/AllocFable_2026-11-26.md, F5).
 # Record: cursors-indexed
 # Record: net-obvious-errors
 law lx_extend:
@@ -250,6 +252,7 @@ law serve_next:
   for +k: Nat
   for +hf: {AD.full(U32, w, d) == True{} : Bool}
   for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +h2: {Nat.is_le(2n, d) == True{} : Bool}
   for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
   for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
   for +hlx: {LM.lx.ok(AD.view(U32, w), d, s, I, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}

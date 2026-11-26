@@ -987,7 +987,23 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           run. Its mutant, the range doubled, is caught by the proof
           only: an instance that breaks the layout fails the range
           premise unmutated, so no witness can show it.
-        - `cursor-laws.loop.shape.grow.invariant` — planned — `LM.lx.ok`
+        - `cursor-laws.loop.shape.grow.invariant` — built 2026-11-26 —
+          on `cursor-laws-grow`:
+          - `LM.lx.ok` holds the tracked nodes distinct and in range
+            (`RG.nodes.in`) in place of their layout, bases and past
+            kept.
+          - `LM.ext.ok` asks `E` none twice, none of `N` and in range in
+            place of the layout of `N ++ E`: seven conjuncts, of which
+            the faced ports' is the wiring's and the rest the free
+            list's and arithmetic.
+          - `serve_loop` and `serve_next` take `2 <= d` and derive the
+            layout `serve_pend` asks by `bases_apart`.
+          - `lx_split` and `lx_extend` carry the range by sub-lists and
+            appends (`nin_sub`, `nin_app`).
+
+          Laws on main restated, so the merge asks the maintainer's
+          approval; their mutants are still caught. Authoring aid:
+          `results/grow/gen_inv.py`. As planned: `LM.lx.ok`
           restated with `RG.nodes.in(N, d)` and `RG.distinct(N)` in
           place of the layout, bases and past being kept (by
           `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
