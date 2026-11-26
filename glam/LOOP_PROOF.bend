@@ -33,6 +33,7 @@ import ../spike/kmodel.bend as KMd
 import ./ring.bend as R
 import ./ring_model.bend as RG
 import ./index_model.bend as IM
+import ./index.bend as X
 import ./loop_model.bend as LM
 import ./SPLICE_PROOF.bend as SPP
 import ./SPLICE_LAWS.bend as SPL
@@ -536,3 +537,109 @@ def sl.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, 
 
 def Laws.serve_loop(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, hf, hd32, hfm, hdm, hlx, hl, hhd, ht, hcp, hok):
   sl.m(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, hf, hd32, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# The live list headed by s across the crossings (cxs_head)
+# =========================================================
+
+# a cut adds no leaf
+def ck.r(+hit: Bool, +b: U32, +i: Nat, +l: IM.Tr, +cr: IM.Tr, +z: U32, +hl: {RG.has(IM.tr.leaves(l), z) == False{} : Bool}, +hcr: {RG.has(IM.tr.leaves(cr), z) == False{} : Bool}) ->
+  {RG.has(IM.tr.leaves(IM.tr.cut.r(hit, b, i, l, cr)), z) == False{} : Bool}:
+  match hit:
+    case True{}:
+      hl
+    case False{}:
+      Equal.trans(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(cr)), z), Bool.or(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(cr), z)), False{}, XP.has_app(IM.tr.leaves(l), IM.tr.leaves(cr), z),
+        ME.subst(Bool, q => {Bool.or(q, RG.has(IM.tr.leaves(cr), z)) == False{} : Bool}, False{}, RG.has(IM.tr.leaves(l), z), Equal.sym(Bool, RG.has(IM.tr.leaves(l), z), False{}, hl),
+          ME.subst(Bool, q => {Bool.or(False{}, q) == False{} : Bool}, False{}, RG.has(IM.tr.leaves(cr), z), Equal.sym(Bool, RG.has(IM.tr.leaves(cr), z), False{}, hcr), {==})))
+
+def ck.l(+hit: Bool, +b: U32, +i: Nat, +r: IM.Tr, +cl: IM.Tr, +z: U32, +hr: {RG.has(IM.tr.leaves(r), z) == False{} : Bool}, +hcl: {RG.has(IM.tr.leaves(cl), z) == False{} : Bool}) ->
+  {RG.has(IM.tr.leaves(IM.tr.cut.l(hit, b, i, r, cl)), z) == False{} : Bool}:
+  match hit:
+    case True{}:
+      hr
+    case False{}:
+      Equal.trans(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(cl), IM.tr.leaves(r)), z), Bool.or(RG.has(IM.tr.leaves(cl), z), RG.has(IM.tr.leaves(r), z)), False{}, XP.has_app(IM.tr.leaves(cl), IM.tr.leaves(r), z),
+        ME.subst(Bool, q => {Bool.or(q, RG.has(IM.tr.leaves(r), z)) == False{} : Bool}, False{}, RG.has(IM.tr.leaves(cl), z), Equal.sym(Bool, RG.has(IM.tr.leaves(cl), z), False{}, hcl),
+          ME.subst(Bool, q => {Bool.or(False{}, q) == False{} : Bool}, False{}, RG.has(IM.tr.leaves(r), z), Equal.sym(Bool, RG.has(IM.tr.leaves(r), z), False{}, hr), {==})))
+
+def ck.k(+sd: Bool, +b: U32, +i: Nat, +l: IM.Tr, +r: IM.Tr, +x: U32, +cl: IM.Tr, +cr: IM.Tr, +z: U32, +hl: {RG.has(IM.tr.leaves(l), z) == False{} : Bool}, +hr: {RG.has(IM.tr.leaves(r), z) == False{} : Bool},
+  +hcl: {RG.has(IM.tr.leaves(cl), z) == False{} : Bool}, +hcr: {RG.has(IM.tr.leaves(cr), z) == False{} : Bool}) -> {RG.has(IM.tr.leaves(IM.tr.cut.k(sd, b, i, l, r, x, cl, cr)), z) == False{} : Bool}:
+  match sd:
+    case True{}:
+      ck.r(U32.is_eq(IM.tr.addr(r), x), b, i, l, cr, z, hl, hcr)
+    case False{}:
+      ck.l(U32.is_eq(IM.tr.addr(l), x), b, i, r, cl, z, hr, hcl)
+
+def cut_nl(t: IM.Tr, +x: U32, +k: U32, +z: U32, +h: {RG.has(IM.tr.leaves(t), z) == False{} : Bool}) -> {RG.has(IM.tr.leaves(IM.tr.cut(t, x, k)), z) == False{} : Bool}:
+  match t:
+    case IM.Lf{+y, +ky}:
+      h
+    case IM.Br{+b, +i, +l, +r}:
+      +ho = Equal.trans(Bool, Bool.or(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z)), RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), z), False{},
+        Equal.sym(Bool, RG.has(List.append(&2, U32, IM.tr.leaves(l), IM.tr.leaves(r)), z), Bool.or(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z)), XP.has_app(IM.tr.leaves(l), IM.tr.leaves(r), z)), h)
+      +hl = XP.orf_l(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z), ho)
+      +hr = XP.orf_r(RG.has(IM.tr.leaves(l), z), RG.has(IM.tr.leaves(r), z), ho)
+      ck.k(X.ix.side(k, i), b, i, l, r, x, IM.tr.cut(l, x, k), IM.tr.cut(r, x, k), z, hl, hr, cut_nl(l, x, k, z, hl), cut_nl(r, x, k, z, hr))
+
+def dk.k(+only: Bool, +t: IM.Tr, +x: U32, +k: U32, +z: U32, +h: {RG.has(IM.tr.leaves(t), z) == False{} : Bool}) -> {RG.has(IM.ix.leaves(IM.ix.del.k(only, t, x, k)), z) == False{} : Bool}:
+  match only:
+    case True{}:
+      {==}
+    case False{}:
+      cut_nl(t, x, k, z, h)
+
+# a removal adds no leaf
+def del_nl(I: IM.Ix, +x: U32, +k: U32, +z: U32, +h: {RG.has(IM.ix.leaves(I), z) == False{} : Bool}) -> {RG.has(IM.ix.leaves(IM.ix.del(I, x, k)), z) == False{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      {==}
+    case IM.Has{+t}:
+      dk.k(U32.is_eq(IM.tr.addr(t), x), t, x, k, z, h)
+
+# taking out a node other than the head keeps the head
+def wo_head(+s: U32, +x: U32, +t: List<&2, U32>, +h: {U32.is_eq(s, x) == False{} : Bool}) -> {RG.without(Con{s, t}, x) == Con{s, RG.without(t, x)} : List<&2, U32>}:
+  %Equal.sym(Bool, U32.is_eq(s, x), False{}, h) : {List.append(&2, U32, RG.keep(_, s), RG.without(t, x)) == Con{s, RG.without(t, x)} : List<&2, U32>}
+  {==}
+
+# a node absent from a list is no member of it
+def ne_has.k(+e: Bool, +s: U32, +y: U32, +L: List<&2, U32>, +he: {U32.is_eq(s, y) == e : Bool}, +hs: {RG.has(L, s) == False{} : Bool}, +hy: {RG.has(L, y) == True{} : Bool}) -> {e == False{} : Bool}:
+  match e:
+    case True{}:
+      +h1 = ME.subst(U32, z => {RG.has(L, z) == True{} : Bool}, y, s, Equal.sym(U32, s, y, MS.u32_eq_of_is_eq(s, y, he)), hy)
+      Empty.absurd({True{} == False{} : Bool}, MB.false_ne_true()(Equal.trans(Bool, False{}, RG.has(L, s), True{}, Equal.sym(Bool, RG.has(L, s), False{}, hs), h1)))
+    case False{}:
+      {==}
+
+# one crossing keeps the head
+def hd.c(m: Maybe<&2, U32>, +r: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +s: U32, +t: List<&2, U32>, +F: List<&2, U32>, +at: U32, +src: U32, +far: U32,
+  +hm: {IM.ix.look(I, far) == m : Maybe<&2, U32>}, +hI: {RG.has(IM.ix.leaves(I), s) == False{} : Bool}, +hpl: {U32.is_eq(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))) == False{} : Bool},
+  ih: @I2:IM.Ix -> @t2:List<&2, U32> -> @F2:List<&2, U32> -> {RG.has(IM.ix.leaves(I2), s) == False{} : Bool} -> {LM.headed(RG.cxs.L(RG.cxs(r, vm, dm, I2, Con{s, t2}, F2)), s) == True{} : Bool}) -> {LM.headed(RG.cxs.L(RG.cxs(r, vm, dm, RG.cx.I(m, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), RG.cx.L(m, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), Con{s, t}), RG.cx.F1(m, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(m, I, F)))), s) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      +hy = XL.look_leaf(I, far, y, hm)
+      +hsy = ne_has.k(U32.is_eq(s, y), s, y, IM.ix.leaves(I), {==}, hI, hy)
+      +e = Equal.trans(List<&2, U32>, RG.without(RG.without(Con{s, t}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), y), RG.without(Con{s, RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))))}, y), Con{s, RG.without(RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), y)},
+        Equal.cong(List<&2, U32>, List<&2, U32>, q => RG.without(q, y), RG.without(Con{s, t}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), Con{s, RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))))}, wo_head(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), t, hpl)), wo_head(s, y, RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), hsy))
+      %Equal.sym(List<&2, U32>, RG.without(RG.without(Con{s, t}, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), y), Con{s, RG.without(RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), y)}, e) : {LM.headed(RG.cxs.L(RG.cxs(r, vm, dm, RG.cx.I(Some{y}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), _, RG.cx.F1(Some{y}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(Some{y}, I, F)))), s) == True{} : Bool}
+      ih(RG.cx.I(Some{y}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), RG.without(RG.without(t, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), y), RG.cx.F1(Some{y}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(Some{y}, I, F)), del_nl(I, y, far, s, hI))
+    case None{}:
+      +hput = Equal.trans(Bool, RG.has(IM.ix.leaves(IM.ix.put(I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F))), s), Bool.or(U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), RG.has(IM.ix.leaves(I), s)), False{},
+        XL.put_leaves(I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), s),
+        ME.subst(Bool, q => {Bool.or(q, RG.has(IM.ix.leaves(I), s)) == False{} : Bool}, False{}, U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), Equal.trans(Bool, False{}, U32.is_eq(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), Equal.sym(Bool, U32.is_eq(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), False{}, hpl), XP.ueq_comm(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))))),
+          ME.subst(Bool, q => {Bool.or(False{}, q) == False{} : Bool}, False{}, RG.has(IM.ix.leaves(I), s), Equal.sym(Bool, RG.has(IM.ix.leaves(I), s), False{}, hI), {==})))
+      ih(RG.cx.I(None{}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), t, RG.cx.F1(None{}, I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(None{}, I, F)), hput)
+
+def hd.go(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +s: U32, +t: List<&2, U32>, +F: List<&2, U32>, +hI: {RG.has(IM.ix.leaves(I), s) == False{} : Bool}, +hp: {RG.has(RG.pls(cs, vm, dm), s) == False{} : Bool}) ->
+  {LM.headed(RG.cxs.L(RG.cxs(cs, vm, dm, I, Con{s, t}, F)), s) == True{} : Bool}:
+  match cs:
+    case Nil{}:
+      XP.is_eq_self(s)
+    case Con{c, +r}:
+      match c:
+        case R.FzC{+at, +src, neg, +far}:
+          +hpr = XP.orf_r(U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), RG.has(RG.pls(r, vm, dm), s), hp)
+          +hpl = Equal.trans(Bool, U32.is_eq(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), False{}, XP.ueq_comm(s, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm)))), XP.orf_l(U32.is_eq(RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), s), RG.has(RG.pls(r, vm, dm), s), hp))
+          hd.c(IM.ix.look(I, far), r, vm, dm, I, s, t, F, at, src, far, {==}, hI, hpl, I2 => t2 => F2 => h2 => hd.go(r, vm, dm, I2, s, t2, F2, h2, hpr))
+
+def Laws.cxs_head(cs, vm, dm, I, s, t, F, hI, hp):
+  hd.go(cs, vm, dm, I, s, t, F, hI, hp)

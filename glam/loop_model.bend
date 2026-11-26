@@ -11,3 +11,11 @@ import ./index_model.bend as IM
 # the wider invariant between serves
 def lx.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>) -> Bool:
   RG.px.ok(v, d, s, I, Nil{}, L, F, N) && (RG.distinct(L) && (RG.layout(N, d) && (RG.bases(N) && KMd.past(N, d))))
+
+# a list headed by s
+def headed(L: List<&2, U32>, +s: U32) -> Bool:
+  match L:
+    case Nil{}:
+      False{}
+    case Con{+x, r}:
+      U32.is_eq(x, s)

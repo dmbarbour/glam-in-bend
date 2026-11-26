@@ -978,13 +978,31 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         facts over a sub-list. The verdict 36 s at 2.7 GB. As planned:
         `serve_loop`: one serve keeps the wider invariant, its crossings
         starting absent (`cxs_start`), so that serves compose.
-      - `cursor-laws.loop.shape.next` — planned — from one serve's
+      - `cursor-laws.loop.shape.next` — active — from one serve's
         conclusion to the next one's premise: the live list headed by
         `s` again (`s` no cursor and never pending), the free list split
         into the next copy's nodes and the rest, and the tracked list
         grown by the next copy's nodes past its tracked prefix, under
         the two premises the maintainer accepted (laid out apart from
-        the tracked nodes; no faced port linking into them).
+        the tracked nodes; no faced port linking into them). Slices:
+        - `cursor-laws.loop.shape.next.head` — built 2026-11-26 — on the
+          side branch `cursor-laws-loop-next`, `cxs_head`: the live list
+          after the crossings still headed by `s`, a model law with no
+          layout premise, since what a join takes out is a hole or one
+          of the index's leaves and the index's leaves only lose members
+          (`cut_nl`, `del_nl`) or gain the placeholder (`put_leaves`).
+          Its mutant, a made cursor listed again, caught.
+        - `cursor-laws.loop.shape.next.split` — planned — the free
+          list's first nodes split into the next copy's nodes and the
+          rest (taken and dropped), the tracked list reshaped to the old
+          nodes but those, then those (`RG.minus`), the live list to
+          `Con{s, tl}`: the wider invariant over the next serve's lists,
+          by `px_sub`, `lay_sub`, `bases_sub`, `kpast_sub`.
+        - `cursor-laws.loop.shape.next.extend` — planned — the tracked
+          list and the free list's tracked prefix grown by nodes past
+          it, under the two premises.
+        - `cursor-laws.loop.shape.next.compose` — planned — one serve's
+          conclusion to the next one's premise, the three composed.
       - `cursor-laws.loop.shape.root` — planned — the serve at the
         source's root (`serve_root_keeps`, `serve_ring_exact`) given the
         same wider law.

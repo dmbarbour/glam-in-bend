@@ -145,3 +145,22 @@ law serve_loop:
   for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
   for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{})), d) == True{} : Bool}
+
+# LAW: the live list after the crossings is still headed by the situating
+# node s (cursor-laws.loop.shape.next.head): no crossing takes s out, a
+# join taking its placeholder, a hole, which s is not, and the cursor the
+# index finds, one of its leaves, which s is never among: a removal keeps
+# the leaves' members (adds none), a put adds the placeholder. So that the
+# next serve's live list is Con{s, ...}, as its laws ask. A model law.
+# Record: cursors-indexed
+law cxs_head:
+  for cs: List<&2, R.FzC>
+  for +vm: List<&2, U32>
+  for +dm: Nat
+  for +I: IM.Ix
+  for +s: U32
+  for +t: List<&2, U32>
+  for +F: List<&2, U32>
+  for +hI: {RG.has(IM.ix.leaves(I), s) == False{} : Bool}
+  for +hp: {RG.has(RG.pls(cs, vm, dm), s) == False{} : Bool}
+  {LM.headed(RG.cxs.L(RG.cxs(cs, vm, dm, I, Con{s, t}, F)), s) == True{} : Bool}
