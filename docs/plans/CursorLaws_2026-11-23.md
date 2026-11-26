@@ -846,7 +846,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       after, and the gate's (`.watch`). A refactor that slows the gate
       is reverted or justified.
     - M.
-  - `cursor-laws.loop` — planned — the invariant established and kept
+  - `cursor-laws.loop` — active — the invariant established and kept
     across serves (F7, H5).
     - `cursor-laws.loop.base` — built 2026-11-25 — `.code` and
       `.situate`. As planned: the first use made through
@@ -869,8 +869,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         allocation and writes (`glam/ring.bend`; the 68 samples' counts
         alike). Proved over the view's list form (`px_sv`), its reads at
         the written words carried back; the payload word split by the
-        header's test. `lay_pair`, two tracked nodes four words apart,
-        is new and general. The verdict 35 s at 2.7 GB. Two mutants,
+        header's test; `GP.lay_pair`, two tracked nodes four words
+        apart (a copy written first, dropped). The verdict 35 s at 2.7 GB. Two mutants,
         the index not empty and word 1 left the free list's link, caught
         by the proof failing. As designed: `situate_pend`: the
         situating node's writes, on a node fresh from the free list,
@@ -896,7 +896,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the alignment lemmas; the realization of the empty index by
         `s`'s word 3. Not claimed: the reserve's and the doubling's
         paths, where the free list is empty (`px_grow`, `.loop.shape`).
-    - `cursor-laws.loop.shape` — planned — one change of the
+    - `cursor-laws.loop.shape` — active — one change of the
       invariant, every law restated once. L. With it, the index's keys
       across serves: those of copied trees' boundaries not yet joined,
       so that a serve's crossings start absent (`cxs_start`'s premise,
@@ -906,6 +906,88 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         every law.
       - `px_sub` and `px_grow` (P11): one serve's conclusion the next
         one's premise, across the heap's growth.
+
+      Designed 2026-11-25: the laws already merged stay as they are,
+      and a wider invariant is laid over them, `RG.px.ok` with the facts
+      no step returns (the live nodes distinct; the tracked nodes laid
+      out, each its own base, past the header). Each step gets one law
+      of the wider invariant, its own law composed with a "kept" lemma
+      per fact added, rather than every proof restated: the facts added
+      are about lists and the tracked nodes, which a step's writes do
+      not touch. Slices:
+      - `cursor-laws.loop.shape.distinct` — built 2026-11-25 — the live nodes
+        distinct (P5): the crossings only take nodes out of the live
+        list (`cx.L`, `without`), so it stays distinct
+        (`cxs_distinct`, a model law); the copy appends its holes,
+        fresh nodes none of which is live.
+        - `cxs_distinct` built 2026-11-25 on the side branch, with
+          `without_distinct` and `has_without`; its mutant, a made
+          cursor listed again, caught.
+        - The copy's half: its holes are among the nodes the copy takes
+          from the free list (`SP.holes_sub`), and no free node is live
+          (the invariant's `none.in(F, L)`), so the holes are none of
+          the live list and the append stays distinct (`dist_app`, in
+          `glam/LOOP_PROOF.bend`), composed in the serve's
+          law (`.serve`), `SP.none_flip` for the symmetry. A detour, that every live node but `s` is a
+          cursor between serves, was dropped: carrying it through the
+          crossings needs the index laid out at each step, which only
+          the heap-level laws keep.
+      - `cursor-laws.loop.shape.track` — active — the tracked nodes
+        after a serve, the copy's nodes taken from the free list added
+        (`M ++ ns`): laid out, bases and past kept, from the free
+        list's nodes being laid out apart (`IM.fl.ok`).
+        Redesigned 2026-11-25: one tracked list for a whole run, every
+        node a serve may touch among it, laid out, bases and past once;
+        each serve's laws take the sub-list they name, the old nodes and
+        the copy's. Built on the side branch: `px_sub` (P11's, the
+        invariant over a sub-list holding the live, free and index's
+        nodes; its mutant, a faced port's link word off one tracked node
+        enough, caught). For the tracked nodes' facts over a sub-list,
+        the lemmas already written serve: `GP.lay_sub` with
+        `SP.apall_of` (a distinct sub-list of a list laid out),
+        `GP.bases_sub`, `SP.kpast_sub`; copies of them, written first,
+        were dropped, found by their names after the finder's rule was
+        skipped. Left for `.serve`: the sub-list's shape `M ++ ns`,
+        the copy's nodes last.
+        Found 2026-11-25, reading `serve_pend`'s conclusion: after a
+        serve the tracked nodes are `M ++ pls`, the copy's holes kept and
+        its other nodes, now the host's, dropped; so a run's tracked list
+        shrinks with each serve and grows only where the next copy takes
+        nodes past the tracked prefix of the free list. Those nodes join
+        the tracked list on two conditions: laid out apart from it, and
+        no faced port linking into them. The first is arithmetic,
+        distinct bases past the header and in range being apart; the
+        second is the host's wiring, live ports linking only live ports
+        (`net-obvious-errors`' premise). Proposed: both premises of the
+        serve's law for now, the kernel's to discharge
+        (`kernel-refine`), as the wiring is; the arithmetic law
+        (`bases_apart`) a step of its own, which would fold the layout
+        into the invariant by computation (P10). The maintainer
+        (2026-11-26): "Premises now is acceptable."
+      - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
+        invariant across the heap's doubling, the words copied.
+      - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
+        branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
+        `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the
+        source's root keeps it, its tracked nodes then the old ones and
+        the copy's holes. `serve_pend` composed with `copy_pend` (the
+        holes distinct), `SP.holes_sub` (the holes among the copy's
+        nodes, its premises derived as the copy's proof derives them,
+        taken from `cpi.go` and `cpf.core` by an authoring aid,
+        `results/loop_base/gen_sl.py`), `cxs_distinct`, and the tracked
+        facts over a sub-list. The verdict 36 s at 2.7 GB. As planned:
+        `serve_loop`: one serve keeps the wider invariant, its crossings
+        starting absent (`cxs_start`), so that serves compose.
+      - `cursor-laws.loop.shape.next` — planned — from one serve's
+        conclusion to the next one's premise: the live list headed by
+        `s` again (`s` no cursor and never pending), the free list split
+        into the next copy's nodes and the rest, and the tracked list
+        grown by the next copy's nodes past its tracked prefix, under
+        the two premises the maintainer accepted (laid out apart from
+        the tracked nodes; no faced port linking into them).
+      - `cursor-laws.loop.shape.root` — planned — the serve at the
+        source's root (`serve_root_keeps`, `serve_ring_exact`) given the
+        same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
   - `cursor-laws.index` — planned — the index's 41 laws by
