@@ -971,7 +971,32 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         by `cursor-laws.alloc`: growth as `grow_more`'s one law between
         steps; first a per-node range (its own base, past the header,
         below 2^d), without which the invariant is not kept at d + 1,
-        added to `LM.lx.ok` with the maintainer's approval.
+        added to `LM.lx.ok` with the maintainer's approval. Slices:
+        - `cursor-laws.loop.shape.grow.layout` — built 2026-11-26 — on
+          the side branch `cursor-laws-grow` (after
+          `cursor-laws-alloc-mark`), `bases_apart`, the arithmetic law:
+          bases, past the header, each node's words below 2^d
+          (`RG.inr`, `RG.nodes.in`), distinct, give `RG.layout`. A
+          node's four words differ modulo 4 (`AL.slot_base`,
+          `AL.ne_mod4`) and miss the head's word by being past the
+          header. Two nodes' words at one offset are their bases plus
+          the offset, a slot being the word itself in range: lawful-words'
+          `to_nat_add`, `nat_mod_mod_pow` and `nat_mod_small`, 2^32
+          kept abstract as `AL.add_mod4.k` keeps it. Written by an
+          authoring aid (`results/grow/gen_ba.py`), checked on the first
+          run. Its mutant, the range doubled, is caught by the proof
+          only: an instance that breaks the layout fails the range
+          premise unmutated, so no witness can show it.
+        - `cursor-laws.loop.shape.grow.invariant` — planned — `LM.lx.ok`
+          restated with `RG.nodes.in(N, d)` and `RG.distinct(N)` in
+          place of the layout, bases and past being kept (by
+          `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
+          of `N` and `RG.nodes.in(E, d)`. Laws on main restated, for
+          the maintainer's approval.
+        - `cursor-laws.loop.shape.grow.copy` — planned — `grow_more`'s
+          law: the old words read as before at d + 1, the new range
+          zero but its links, the list the new nodes then the old; and
+          `px_grow`, the invariant kept across it.
       - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
         branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
         `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the

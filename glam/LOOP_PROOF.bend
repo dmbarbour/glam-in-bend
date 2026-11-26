@@ -43,6 +43,7 @@ import ./splice_model.bend as SM
 import ./serve_model.bend as SV
 import ./serve.bend as SC
 import ../vendor/bend-mathlib/u32_eq.bend as MS
+import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/list.bend as ML
@@ -845,3 +846,115 @@ def sn.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, 
 
 def Laws.serve_next(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, E, k, hf, hd32, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE):
   sn.m(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, E, k, hf, hd32, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# The layout by arithmetic (bases_apart)
+# ======================================
+
+# a word below 2^d added to: its slot the sum, 2^32 kept abstract (as
+# AL.add_mod4.k does: the checker would expand it in unary)
+def ba.sla.k(-m: Nat, +e: {Nat.pow(2n, 32n) == m : Nat}, +y: U32, +d: Nat, +i: U32, +hr: {Nat.is_lt(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d)) == True{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {Nat.mod(U32.to_nat(U32.add(y, i)), Nat.pow(2n, d)) == Nat.add(U32.to_nat(y), U32.to_nat(i)) : Nat}:
+  +e1 = ME.subst(Nat, q => {U32.to_nat(U32.add(y, i)) == Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), q) : Nat}, Nat.pow(2n, 32n), m, e, WL.to_nat_add(y, i))
+  +e2 = ME.subst(Nat, q => {Nat.mod(Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), q), Nat.pow(2n, d)) == Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d)) : Nat}, Nat.pow(2n, 32n), m, e,
+    WL.nat_mod_mod_pow(Nat.add(U32.to_nat(y), U32.to_nat(i)), d, 32n, hd))
+  Equal.trans(Nat, Nat.mod(U32.to_nat(U32.add(y, i)), Nat.pow(2n, d)), Nat.mod(Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), m), Nat.pow(2n, d)), Nat.add(U32.to_nat(y), U32.to_nat(i)),
+    Equal.cong(Nat, Nat, z => Nat.mod(z, Nat.pow(2n, d)), U32.to_nat(U32.add(y, i)), Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), m), e1),
+    Equal.trans(Nat, Nat.mod(Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), m), Nat.pow(2n, d)), Nat.mod(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d)), Nat.add(U32.to_nat(y), U32.to_nat(i)),
+      e2, WL.nat_mod_small(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d), hr)))
+
+def ba.sla(+y: U32, +d: Nat, +i: U32, +hr: {Nat.is_lt(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d)) == True{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {AD.slot((y + i : U32), d) == Nat.add(U32.to_nat(y), U32.to_nat(i)) : Nat}:
+  ba.sla.k(Nat.pow(2n, 32n), {==}, y, d, i, hr, hd)
+
+# a node in range: each of its words below 2^d
+def ba.lt0(+y: U32, +d: Nat, +hr: {RG.inr(y, d) == True{} : Bool}) -> {Nat.is_lt(U32.to_nat(y), Nat.pow(2n, d)) == True{} : Bool}:
+  MN.lt_of_le_of_lt(U32.to_nat(y), Nat.add(U32.to_nat(y), 3n), Nat.pow(2n, d), MN.le_add_right(U32.to_nat(y), 3n), hr)
+
+def ba.lti(+y: U32, +d: Nat, +i: U32, +hle: {Nat.is_le(U32.to_nat(i), 3n) == True{} : Bool}, +hr: {RG.inr(y, d) == True{} : Bool}) -> {Nat.is_lt(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.pow(2n, d)) == True{} : Bool}:
+  MN.lt_of_le_of_lt(Nat.add(U32.to_nat(y), U32.to_nat(i)), Nat.add(U32.to_nat(y), 3n), Nat.pow(2n, d), MN.add_le_add_left(U32.to_nat(i), 3n, U32.to_nat(y), hle), hr)
+
+# x + c and z + c apart where x and z are
+def ba.ne_add.k(+e: Bool, +x: Nat, +z: Nat, +c: Nat, +he: {Nat.is_eq(Nat.add(x, c), Nat.add(z, c)) == e : Bool}, +hxz: {Nat.is_eq(x, z) == False{} : Bool}) -> {Bool.not(e) == True{} : Bool}:
+  match e:
+    case True{}:
+      +exz = MN.add_right_cancel(x, c, z, MN.eq_of_is_eq(Nat.add(x, c), Nat.add(z, c), he))
+      +hxx = ME.subst(Nat, q => {Nat.is_eq(x, q) == False{} : Bool}, z, x, Equal.sym(Nat, x, z, exz), hxz)
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, MB.false_ne_true()(Equal.trans(Bool, False{}, Nat.is_eq(x, x), True{}, Equal.sym(Bool, Nat.is_eq(x, x), False{}, hxx), MN.is_eq_refl(x))))
+    case False{}:
+      {==}
+
+def ba.ne_add(+x: Nat, +z: Nat, +c: Nat, +hxz: {Nat.is_eq(x, z) == False{} : Bool}) -> {Bool.not(Nat.is_eq(Nat.add(x, c), Nat.add(z, c))) == True{} : Bool}:
+  ba.ne_add.k(Nat.is_eq(Nat.add(x, c), Nat.add(z, c)), x, z, c, {==}, hxz)
+
+# two nodes' words at one offset: their bases' slots the bases
+def ba.same0(+a: U32, +b: U32, +d: Nat, +hra: {RG.inr(a, d) == True{} : Bool}, +hrb: {RG.inr(b, d) == True{} : Bool}, +hBA: {Nat.is_eq(U32.to_nat(b), U32.to_nat(a)) == False{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))) == True{} : Bool}:
+  %Equal.sym(Nat, AD.slot(b, d), U32.to_nat(b), LA.slot_small(b, d, ba.lt0(b, d, hrb))) : {Bool.not(Nat.is_eq(_, AD.slot(a, d))) == True{} : Bool}
+  %Equal.sym(Nat, AD.slot(a, d), U32.to_nat(a), LA.slot_small(a, d, ba.lt0(a, d, hra))) : {Bool.not(Nat.is_eq(U32.to_nat(b), _)) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_eq(U32.to_nat(b), U32.to_nat(a)), False{}, hBA) : {Bool.not(_) == True{} : Bool}
+  {==}
+
+def ba.same1(+a: U32, +b: U32, +d: Nat, +hra: {RG.inr(a, d) == True{} : Bool}, +hrb: {RG.inr(b, d) == True{} : Bool}, +hBA: {Nat.is_eq(U32.to_nat(b), U32.to_nat(a)) == False{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))) == True{} : Bool}:
+  %Equal.sym(Nat, AD.slot((b + 1 : U32), d), Nat.add(U32.to_nat(b), U32.to_nat(1)), ba.sla(b, d, 1, ba.lti(b, d, 1, {==}, hrb), hd)) : {Bool.not(Nat.is_eq(_, AD.slot((a + 1 : U32), d))) == True{} : Bool}
+  %Equal.sym(Nat, AD.slot((a + 1 : U32), d), Nat.add(U32.to_nat(a), U32.to_nat(1)), ba.sla(a, d, 1, ba.lti(a, d, 1, {==}, hra), hd)) : {Bool.not(Nat.is_eq(Nat.add(U32.to_nat(b), U32.to_nat(1)), _)) == True{} : Bool}
+  ba.ne_add(U32.to_nat(b), U32.to_nat(a), U32.to_nat(1), hBA)
+
+def ba.same2(+a: U32, +b: U32, +d: Nat, +hra: {RG.inr(a, d) == True{} : Bool}, +hrb: {RG.inr(b, d) == True{} : Bool}, +hBA: {Nat.is_eq(U32.to_nat(b), U32.to_nat(a)) == False{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))) == True{} : Bool}:
+  %Equal.sym(Nat, AD.slot((b + 2 : U32), d), Nat.add(U32.to_nat(b), U32.to_nat(2)), ba.sla(b, d, 2, ba.lti(b, d, 2, {==}, hrb), hd)) : {Bool.not(Nat.is_eq(_, AD.slot((a + 2 : U32), d))) == True{} : Bool}
+  %Equal.sym(Nat, AD.slot((a + 2 : U32), d), Nat.add(U32.to_nat(a), U32.to_nat(2)), ba.sla(a, d, 2, ba.lti(a, d, 2, {==}, hra), hd)) : {Bool.not(Nat.is_eq(Nat.add(U32.to_nat(b), U32.to_nat(2)), _)) == True{} : Bool}
+  ba.ne_add(U32.to_nat(b), U32.to_nat(a), U32.to_nat(2), hBA)
+
+def ba.same3(+a: U32, +b: U32, +d: Nat, +hra: {RG.inr(a, d) == True{} : Bool}, +hrb: {RG.inr(b, d) == True{} : Bool}, +hBA: {Nat.is_eq(U32.to_nat(b), U32.to_nat(a)) == False{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) ->
+  {Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))) == True{} : Bool}:
+  %Equal.sym(Nat, AD.slot((b + 3 : U32), d), Nat.add(U32.to_nat(b), U32.to_nat(3)), ba.sla(b, d, 3, ba.lti(b, d, 3, {==}, hrb), hd)) : {Bool.not(Nat.is_eq(_, AD.slot((a + 3 : U32), d))) == True{} : Bool}
+  %Equal.sym(Nat, AD.slot((a + 3 : U32), d), Nat.add(U32.to_nat(a), U32.to_nat(3)), ba.sla(a, d, 3, ba.lti(a, d, 3, {==}, hra), hd)) : {Bool.not(Nat.is_eq(Nat.add(U32.to_nat(b), U32.to_nat(3)), _)) == True{} : Bool}
+  ba.ne_add(U32.to_nat(b), U32.to_nat(a), U32.to_nat(3), hBA)
+
+# two nodes in range, bases, apart: every word of one off every word of the other
+def ba.dj(+a: U32, +b: U32, +d: Nat, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}, +ha: {U32.is_eq(P.base(a), a) == True{} : Bool}, +hb: {U32.is_eq(P.base(b), b) == True{} : Bool},
+  +hra: {RG.inr(a, d) == True{} : Bool}, +hrb: {RG.inr(b, d) == True{} : Bool}, +hBA: {Nat.is_eq(U32.to_nat(b), U32.to_nat(a)) == False{} : Bool}) -> {RG.disj4(d, a, b) == True{} : Bool}:
+  XP.and_intro(RG.off(RG.nw(b), d, a), RG.off(RG.nw(b), d, (a + 1 : U32)) && (RG.off(RG.nw(b), d, (a + 2 : U32)) && RG.off(RG.nw(b), d, (a + 3 : U32))), XP.and_intro(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot(a, d))), RG.off(Con{(b + 1 : U32), Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}}, d, a), ba.same0(a, b, d, hra, hrb, hBA, hd), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot(a, d))), RG.off(Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}, d, a), AL.ne_mod4(AD.slot((b + 1 : U32), d), AD.slot(a, d), U32.to_nat(1), 0n, AL.slot_base(b, d, 1, h2, hb, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot(a, d))), RG.off(Con{(b + 3 : U32), Nil{}}, d, a), AL.ne_mod4(AD.slot((b + 2 : U32), d), AD.slot(a, d), U32.to_nat(2), 0n, AL.slot_base(b, d, 2, h2, hb, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot(a, d))), RG.off(Nil{}, d, a), AL.ne_mod4(AD.slot((b + 3 : U32), d), AD.slot(a, d), U32.to_nat(3), 0n, AL.slot_base(b, d, 3, h2, hb, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), {==})))),
+    XP.and_intro(RG.off(RG.nw(b), d, (a + 1 : U32)), RG.off(RG.nw(b), d, (a + 2 : U32)) && RG.off(RG.nw(b), d, (a + 3 : U32)), XP.and_intro(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 1 : U32), d))), RG.off(Con{(b + 1 : U32), Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}}, d, (a + 1 : U32)), AL.ne_mod4(AD.slot(b, d), AD.slot((a + 1 : U32), d), 0n, U32.to_nat(1), Equal.trans(Nat, Nat.mod(AD.slot(b, d), 4n), Nat.mod(U32.to_nat(b), 4n), 0n, AL.slot_mod4(b, d, h2), AL.base_mod4(b, hb)), AL.slot_base(a, d, 1, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 1 : U32), d))), RG.off(Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}, d, (a + 1 : U32)), ba.same1(a, b, d, hra, hrb, hBA, hd), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d))), RG.off(Con{(b + 3 : U32), Nil{}}, d, (a + 1 : U32)), AL.ne_mod4(AD.slot((b + 2 : U32), d), AD.slot((a + 1 : U32), d), U32.to_nat(2), U32.to_nat(1), AL.slot_base(b, d, 2, h2, hb, {==}), AL.slot_base(a, d, 1, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d))), RG.off(Nil{}, d, (a + 1 : U32)), AL.ne_mod4(AD.slot((b + 3 : U32), d), AD.slot((a + 1 : U32), d), U32.to_nat(3), U32.to_nat(1), AL.slot_base(b, d, 3, h2, hb, {==}), AL.slot_base(a, d, 1, h2, ha, {==}), {==}), {==})))),
+      XP.and_intro(RG.off(RG.nw(b), d, (a + 2 : U32)), RG.off(RG.nw(b), d, (a + 3 : U32)), XP.and_intro(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 2 : U32), d))), RG.off(Con{(b + 1 : U32), Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}}, d, (a + 2 : U32)), AL.ne_mod4(AD.slot(b, d), AD.slot((a + 2 : U32), d), 0n, U32.to_nat(2), Equal.trans(Nat, Nat.mod(AD.slot(b, d), 4n), Nat.mod(U32.to_nat(b), 4n), 0n, AL.slot_mod4(b, d, h2), AL.base_mod4(b, hb)), AL.slot_base(a, d, 2, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d))), RG.off(Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}, d, (a + 2 : U32)), AL.ne_mod4(AD.slot((b + 1 : U32), d), AD.slot((a + 2 : U32), d), U32.to_nat(1), U32.to_nat(2), AL.slot_base(b, d, 1, h2, hb, {==}), AL.slot_base(a, d, 2, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 2 : U32), d))), RG.off(Con{(b + 3 : U32), Nil{}}, d, (a + 2 : U32)), ba.same2(a, b, d, hra, hrb, hBA, hd), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d))), RG.off(Nil{}, d, (a + 2 : U32)), AL.ne_mod4(AD.slot((b + 3 : U32), d), AD.slot((a + 2 : U32), d), U32.to_nat(3), U32.to_nat(2), AL.slot_base(b, d, 3, h2, hb, {==}), AL.slot_base(a, d, 2, h2, ha, {==}), {==}), {==})))), XP.and_intro(Bool.not(Nat.is_eq(AD.slot(b, d), AD.slot((a + 3 : U32), d))), RG.off(Con{(b + 1 : U32), Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}}, d, (a + 3 : U32)), AL.ne_mod4(AD.slot(b, d), AD.slot((a + 3 : U32), d), 0n, U32.to_nat(3), Equal.trans(Nat, Nat.mod(AD.slot(b, d), 4n), Nat.mod(U32.to_nat(b), 4n), 0n, AL.slot_mod4(b, d, h2), AL.base_mod4(b, hb)), AL.slot_base(a, d, 3, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d))), RG.off(Con{(b + 2 : U32), Con{(b + 3 : U32), Nil{}}}, d, (a + 3 : U32)), AL.ne_mod4(AD.slot((b + 1 : U32), d), AD.slot((a + 3 : U32), d), U32.to_nat(1), U32.to_nat(3), AL.slot_base(b, d, 1, h2, hb, {==}), AL.slot_base(a, d, 3, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d))), RG.off(Con{(b + 3 : U32), Nil{}}, d, (a + 3 : U32)), AL.ne_mod4(AD.slot((b + 2 : U32), d), AD.slot((a + 3 : U32), d), U32.to_nat(2), U32.to_nat(3), AL.slot_base(b, d, 2, h2, hb, {==}), AL.slot_base(a, d, 3, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((b + 3 : U32), d), AD.slot((a + 3 : U32), d))), RG.off(Nil{}, d, (a + 3 : U32)), ba.same3(a, b, d, hra, hrb, hBA, hd), {==})))))))
+
+# one node's four words apart, by their residues
+def ba.aw(+a: U32, +d: Nat, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +ha: {U32.is_eq(P.base(a), a) == True{} : Bool}) -> {RG.apartw(RG.nw(a), d) == True{} : Bool}:
+  XP.and_intro(RG.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, d, a), RG.apartw(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, d), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot(a, d))), RG.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, d, a), AL.ne_mod4(AD.slot((a + 1 : U32), d), AD.slot(a, d), U32.to_nat(1), 0n, AL.slot_base(a, d, 1, h2, ha, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(a, d))), RG.off(Con{(a + 3 : U32), Nil{}}, d, a), AL.ne_mod4(AD.slot((a + 2 : U32), d), AD.slot(a, d), U32.to_nat(2), 0n, AL.slot_base(a, d, 2, h2, ha, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(a, d))), RG.off(Nil{}, d, a), AL.ne_mod4(AD.slot((a + 3 : U32), d), AD.slot(a, d), U32.to_nat(3), 0n, AL.slot_base(a, d, 3, h2, ha, {==}), Equal.trans(Nat, Nat.mod(AD.slot(a, d), 4n), Nat.mod(U32.to_nat(a), 4n), 0n, AL.slot_mod4(a, d, h2), AL.base_mod4(a, ha)), {==}), {==}))), XP.and_intro(RG.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, d, (a + 1 : U32)), RG.apartw(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, d), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot((a + 1 : U32), d))), RG.off(Con{(a + 3 : U32), Nil{}}, d, (a + 1 : U32)), AL.ne_mod4(AD.slot((a + 2 : U32), d), AD.slot((a + 1 : U32), d), U32.to_nat(2), U32.to_nat(1), AL.slot_base(a, d, 2, h2, ha, {==}), AL.slot_base(a, d, 1, h2, ha, {==}), {==}), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((a + 1 : U32), d))), RG.off(Nil{}, d, (a + 1 : U32)), AL.ne_mod4(AD.slot((a + 3 : U32), d), AD.slot((a + 1 : U32), d), U32.to_nat(3), U32.to_nat(1), AL.slot_base(a, d, 3, h2, ha, {==}), AL.slot_base(a, d, 1, h2, ha, {==}), {==}), {==})), XP.and_intro(RG.off(Con{(a + 3 : U32), Nil{}}, d, (a + 2 : U32)), RG.apartw(Con{(a + 3 : U32), Nil{}}, d), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot((a + 2 : U32), d))), RG.off(Nil{}, d, (a + 2 : U32)), AL.ne_mod4(AD.slot((a + 3 : U32), d), AD.slot((a + 2 : U32), d), U32.to_nat(3), U32.to_nat(2), AL.slot_base(a, d, 3, h2, ha, {==}), AL.slot_base(a, d, 2, h2, ha, {==}), {==}), {==}), XP.and_intro(RG.off(Nil{}, d, (a + 3 : U32)), RG.apartw(Nil{}, d), {==}, {==}))))
+
+# one node's words off the head's, as it is past the header
+def ba.oh(+a: U32, +d: Nat, +hp: {KMd.ws.off(RG.nw(a), KMd.hdr_all(), d) == True{} : Bool}) -> {RG.off(RG.nw(a), d, P.at_fh()) == True{} : Bool}:
+  XP.and_intro(Bool.not(Nat.is_eq(AD.slot(a, d), AD.slot(P.at_fh(), d))), RG.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, d, P.at_fh()), SPP.flipn(AD.slot(P.at_fh(), d), AD.slot(a, d), XP.and_l(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot(a, d))), KMd.off.words(KMd.hdr_words(), d, a), XP.and_l(KMd.off.words(KMd.hdr_all(), d, a), KMd.ws.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), hp))), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 1 : U32), d), AD.slot(P.at_fh(), d))), RG.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, d, P.at_fh()), SPP.flipn(AD.slot(P.at_fh(), d), AD.slot((a + 1 : U32), d), XP.and_l(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((a + 1 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (a + 1 : U32)), XP.and_l(KMd.off.words(KMd.hdr_all(), d, (a + 1 : U32)), KMd.ws.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, a), KMd.ws.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), hp)))), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 2 : U32), d), AD.slot(P.at_fh(), d))), RG.off(Con{(a + 3 : U32), Nil{}}, d, P.at_fh()), SPP.flipn(AD.slot(P.at_fh(), d), AD.slot((a + 2 : U32), d), XP.and_l(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((a + 2 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (a + 2 : U32)), XP.and_l(KMd.off.words(KMd.hdr_all(), d, (a + 2 : U32)), KMd.ws.off(Con{(a + 3 : U32), Nil{}}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, (a + 1 : U32)), KMd.ws.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, a), KMd.ws.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), hp))))), XP.and_intro(Bool.not(Nat.is_eq(AD.slot((a + 3 : U32), d), AD.slot(P.at_fh(), d))), RG.off(Nil{}, d, P.at_fh()), SPP.flipn(AD.slot(P.at_fh(), d), AD.slot((a + 3 : U32), d), XP.and_l(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), d), AD.slot((a + 3 : U32), d))), KMd.off.words(KMd.hdr_words(), d, (a + 3 : U32)), XP.and_l(KMd.off.words(KMd.hdr_all(), d, (a + 3 : U32)), KMd.ws.off(Nil{}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, (a + 2 : U32)), KMd.ws.off(Con{(a + 3 : U32), Nil{}}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, (a + 1 : U32)), KMd.ws.off(Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}, KMd.hdr_all(), d), XP.and_r(KMd.off.words(KMd.hdr_all(), d, a), KMd.ws.off(Con{(a + 1 : U32), Con{(a + 2 : U32), Con{(a + 3 : U32), Nil{}}}}, KMd.hdr_all(), d), hp)))))), {==}))))
+
+def ba.cross(t: List<&2, U32>, +d: Nat, +a: U32, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}, +ha: {U32.is_eq(P.base(a), a) == True{} : Bool}, +hra: {RG.inr(a, d) == True{} : Bool},
+  +hB: {RG.bases(t) == True{} : Bool}, +hI: {RG.nodes.in(t, d) == True{} : Bool}, +hn: {RG.has(t, a) == False{} : Bool}) -> {RG.cross(t, d, a) == True{} : Bool}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+b, +t2}:
+      +hb = XP.and_l(U32.is_eq(P.base(b), b), RG.bases(t2), hB)
+      +hrb = XP.and_l(RG.inr(b, d), RG.nodes.in(t2, d), hI)
+      +hba = XP.orf_l(U32.is_eq(b, a), RG.has(t2, a), hn)
+      +hBA = Equal.trans(Bool, Nat.is_eq(U32.to_nat(b), U32.to_nat(a)), U32.is_eq(b, a), False{}, Equal.sym(Bool, U32.is_eq(b, a), Nat.is_eq(U32.to_nat(b), U32.to_nat(a)), WL.is_eq_to_nat(b, a)), hba)
+      XP.and_intro(RG.disj4(d, a, b), RG.cross(t2, d, a), ba.dj(a, b, d, h2, hd, ha, hb, hra, hrb, hBA),
+        ba.cross(t2, d, a, h2, hd, ha, hra, XP.and_r(U32.is_eq(P.base(b), b), RG.bases(t2), hB), XP.and_r(RG.inr(b, d), RG.nodes.in(t2, d), hI), XP.orf_r(U32.is_eq(b, a), RG.has(t2, a), hn)))
+
+def ba.lay(N: List<&2, U32>, +d: Nat, +h2: {Nat.is_le(2n, d) == True{} : Bool}, +hd: {Nat.is_le(d, 32n) == True{} : Bool}, +hB: {RG.bases(N) == True{} : Bool}, +hP: {KMd.past(N, d) == True{} : Bool}, +hI: {RG.nodes.in(N, d) == True{} : Bool}, +hD: {RG.distinct(N) == True{} : Bool}) ->
+  {RG.layout(N, d) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      {==}
+    case Con{+a, +t}:
+      +ha = XP.and_l(U32.is_eq(P.base(a), a), RG.bases(t), hB)
+      +hra = XP.and_l(RG.inr(a, d), RG.nodes.in(t, d), hI)
+      +hpa = XP.and_l(KMd.ws.off(RG.nw(a), KMd.hdr_all(), d), KMd.past(t, d), hP)
+      +hn = XP.not_true(RG.has(t, a), XP.and_l(Bool.not(RG.has(t, a)), RG.distinct(t), hD))
+      XP.and_intro(RG.apartw(RG.nw(a), d), RG.off(RG.nw(a), d, P.at_fh()) && (RG.cross(t, d, a) && RG.layout(t, d)), ba.aw(a, d, h2, ha),
+        XP.and_intro(RG.off(RG.nw(a), d, P.at_fh()), RG.cross(t, d, a) && RG.layout(t, d), ba.oh(a, d, hpa),
+          XP.and_intro(RG.cross(t, d, a), RG.layout(t, d), ba.cross(t, d, a, h2, hd, ha, hra, XP.and_r(U32.is_eq(P.base(a), a), RG.bases(t), hB), XP.and_r(RG.inr(a, d), RG.nodes.in(t, d), hI), hn),
+            ba.lay(t, d, h2, hd, XP.and_r(U32.is_eq(P.base(a), a), RG.bases(t), hB), XP.and_r(KMd.ws.off(RG.nw(a), KMd.hdr_all(), d), KMd.past(t, d), hP),
+              XP.and_r(RG.inr(a, d), RG.nodes.in(t, d), hI), XP.and_r(Bool.not(RG.has(t, a)), RG.distinct(t), hD)))))
+
+def Laws.bases_apart(N, d, h2, hd32, hB, hP, hI, hD):
+  ba.lay(N, d, h2, MN.le_of_lt(d, 32n, hd32), hB, hP, hI, hD)

@@ -173,6 +173,19 @@ def layout(ys: List<&2, U32>, +d: Nat) -> Bool:
     case Con{+a, +t}:
       apartw(nw(a), d) && (off(nw(a), d, P.at_fh()) && (cross(t, d, a) && layout(t, d)))
 
+# node n's words below the words' count 2^d, its last word's index
+# (cursor-laws.loop.shape.grow.layout): within it a word's slot is the word
+# itself, so that nodes apart as numbers are apart as slots
+def inr(+n: U32, +d: Nat) -> Bool:
+  Nat.is_lt(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, d))
+
+def nodes.in(ys: List<&2, U32>, +d: Nat) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+n, t}:
+      inr(n, d) && nodes.in(t, d)
+
 # every member its own node's base
 def bases(ys: List<&2, U32>) -> Bool:
   match ys:

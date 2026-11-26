@@ -53,3 +53,12 @@ def minus.k(+b: Bool, +x: U32, r: List<&2, U32>) -> List<&2, U32>:
     case True{}:
       Con{x, r}
 
+
+=== range_doubled bases_apart
+the range admitting nodes below twice the words' count, whose words alias
+in the slots of the nodes below it (caught by its proof only: an instance
+it breaks fails the range unmutated, so no witness can show it)
+--- ring_model.bend
+  Nat.is_lt(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, d))
++++
+  Nat.is_lt(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, Nat.add(d, 1n)))
