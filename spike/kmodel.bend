@@ -91,6 +91,36 @@ def used_at(+v: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
 def at_idx(+h: U32) -> U32:
   ((h - 1 : U32) << 2n : U32)
 
+# the link after link h on the free list (P.fl.step): the next node's
+# word 1 where h names a node, 0 where it is 0
+def nx(+ne: Bool, +v: List<&2, U32>, +d: Nat, +h: U32) -> U32:
+  match ne:
+    case True{}:
+      word(v, d, (at_idx(h) + 1 : U32))
+    case False{}:
+      0
+
+# the link k steps on from link h (P.fl.walk), 0 once past the list's end
+def lk(k: Nat, +v: List<&2, U32>, +d: Nat, +h: U32) -> U32:
+  match k:
+    case 0n:
+      h
+    case 1n+p:
+      lk(p, v, d, nx(U32.is_ne(h, 0), v, d, h))
+
+# the free list's first k nodes read from link h on, none past a link of 0
+# (P.frees's walk; none the link 0); its chain from h holds by computation
+def walk(k: Nat, +none: Bool, +v: List<&2, U32>, +d: Nat, +h: U32) -> List<&2, U32>:
+  match k:
+    case 0n:
+      Nil{}
+    case 1n+p:
+      match none:
+        case True{}:
+          Nil{}
+        case False{}:
+          Con{at_idx(h), walk(p, U32.is_eq(word(v, d, (at_idx(h) + 1 : U32)), 0), v, d, word(v, d, (at_idx(h) + 1 : U32)))}
+
 # ns the free list's nodes from link h on: h not 0 and naming ns's first,
 # whose word 1 links the next
 def chain(ns: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +h: U32) -> Bool:

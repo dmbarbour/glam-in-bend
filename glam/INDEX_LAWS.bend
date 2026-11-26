@@ -769,3 +769,42 @@ law free_marks:
   for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
   for hok: {IM.nd.ok(r, d) == True{} : Bool}
   {KMd.free_at(AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, r) == True{} : Bool}
+
+# LAW: room made, as the guard reads it (cursor-laws.alloc.guard): where
+# P.frees answers that the free list holds k nodes, the first k read from
+# its head (KMd.walk) are k. With chain_walk, the free list's first k
+# nodes chained from the head, the serve's room premise (the copy's nodes
+# the list's prefix, SM.made of them) discharged by computation where the
+# guard, glam/materialize.bend's mz.room, has answered.
+# Record: free-list-sound
+# Record: collect-before-growth
+law frees_room:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +k: Nat
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for h: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == True{} : Bool}
+  {List.length(&2, U32, KMd.walk(k, U32.is_eq(KMd.word(AD.view(U32, w), d, P.at_fh()), 0), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh()))) == k : Nat}
+
+# LAW: and P.frees writes nothing: the heap it answers is the one it read.
+# Record: free-list-sound
+law frees_kept:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +k: Nat
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  {Pair.fst(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == P.H{KM.MG{w}, a} : P.H}
+
+# LAW: the nodes read from link h on are the free list's chain from h
+# (KMd.chain), in every heap: the walk follows the links the chain names.
+# Record: free-list-sound
+law chain_walk:
+  for +k: Nat
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +x: U32
+  {KMd.chain(KMd.walk(k, U32.is_eq(x, 0), v, d, x), v, d, x) == True{} : Bool}

@@ -449,3 +449,38 @@ w = WB.ix_one(7)
 a = [V.VUnit{} : V.Val^1n]
 d = 6n
 r = 16
+
+=== frees_head_only frees_room
+P.frees answering from the head alone, so that a list of one node seems
+to hold k (caught by its proof only: an instance it breaks fails the
+premise, P.frees's answer, unmutated)
+--- ../spike/kprim.bend
+      fl.fin(fl.walk(p, rd(h, at_fh())))
++++
+      fl.fin(rd(h, at_fh()))
+
+=== frees_writes_head frees_kept
+P.frees writing the last link it read into the list's head, so that the
+walk the guard makes moves the list
+--- ../spike/kprim.bend
+  (h, U32.is_ne(fh, 0))
++++
+  (wr(h, at_fh(), fh), U32.is_ne(fh, 0))
+>>> witness frees_kept
+w = WB.ix_one(7)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+k = 2n
+
+=== walk_word2 chain_walk
+the model's walk following a node's word 2, not its word 1, so that the
+nodes it reads are no chain of the free list's links
+--- ../spike/kmodel.bend
+          Con{at_idx(h), walk(p, U32.is_eq(word(v, d, (at_idx(h) + 1 : U32)), 0), v, d, word(v, d, (at_idx(h) + 1 : U32)))}
++++
+          Con{at_idx(h), walk(p, U32.is_eq(word(v, d, (at_idx(h) + 2 : U32)), 0), v, d, word(v, d, (at_idx(h) + 2 : U32)))}
+>>> witness chain_walk
+k = 2n
+v = AD.view(U32, WB.ix_one(7))
+d = 6n
+x = 5

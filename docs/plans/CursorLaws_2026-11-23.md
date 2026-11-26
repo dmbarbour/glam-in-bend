@@ -1254,9 +1254,28 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (freeze scratch the size of the source, `glam/materialize.bend`'s
       note?), to trace (`cursor-laws.alloc.nested`).
 
-      Left: the guard adopted in the code, its law (`frees_room`), the
-      law of a covered serve, and its growth through the room policy
-      (`.collect`). As planned: the guard at `mz.fz.t` and
+      Adopted 2026-11-26 on the side branch `cursor-laws-guard`:
+      - the guard in `glam/materialize.bend` (`mz.room` at both serve
+        sites), its growth through one call (`mz.more`, which
+        `.collect` fills), and a serve it cannot make room for refused
+        whole, the host untouched and an error counted. Outputs and
+        counted interactions as before; at most 0.22% of a run, 0.026%
+        over all (store run 359).
+      - Its laws in `glam/INDEX_LAWS.bend`:
+        - `frees_room`: where `P.frees` answers, the first `k` nodes
+          read from the head (`KMd.walk`) are `k`;
+        - `frees_kept`: it writes nothing;
+        - `chain_walk`: the nodes read are the free list's chain from
+          the head.
+
+        The walk is modelled by the link `k` steps on (`KMd.lk`), the
+        kernel's walk shown to compute it (`fwl`, `frs`). Mutants: a
+        head-only answer (proof), a walk writing the head and a model
+        walk by word 2 (both refuted by witnesses).
+
+      Left: the law of a covered serve, the serve's room premise (the
+      copy's nodes the free list's first) given by these where the
+      guard answers; the growth branch with `.grow.copy.store`. As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the

@@ -5675,3 +5675,135 @@ def fapart.k(+e: Bool, +c: U32, +nc: U32, +q: U32, +pos: U32, +v: List<&2, U32>,
 
 def Laws.found_apart(v, d, s, I, q, pos, c, nc, hr, hq, hn, hne):
   fapart.k(U32.is_eq(c, nc), c, nc, q, pos, v, d, {==}, ix_look_key(I, v, d, s, q, c, hr, hq), hn, hne)
+
+# P.frees's answer in the model: k = 0, or the link k - 1 steps on from the
+# head a node
+def fr.m(k: Nat, +v: List<&2, U32>, +d: Nat) -> Bool:
+  match k:
+    case 0n:
+      True{}
+    case 1n+p:
+      U32.is_ne(KMd.lk(p, v, d, KMd.word(v, d, P.at_fh())), 0)
+
+
+# Room made, as the guard reads it (frees_room, frees_kept, chain_walk)
+# =====================================================================
+
+# a word read from a full heap: the view's
+def rdw(+t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +i: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}) ->
+  {P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, i) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, i)) : P.H & U32}:
+  Equal.trans(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, i), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), i))), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, i)), rd_eq(t0, a, i),
+    Equal.cong(U32, P.H & U32, q => (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, q), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), i)), KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, i),
+      Equal.cong(Maybe<&2, U32>, U32, m => KMd.word.m(m), Some{Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, t0), i))}, List.get(&2, U32, AD.view(U32, LAT.fromT(U32, t0)), AD.slot(i, d)), LA.get_view(U32, LAT.fromT(U32, t0), d, i, hft, hd32))))
+
+# a step of the free list's walk: the heap kept, the next link the model's
+def fst.k(+e: Bool, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}) ->
+  {P.fl.step(e, P.H{KM.MG{LAT.fromT(U32, t0)}, a}, x) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.nx(e, AD.view(U32, LAT.fromT(U32, t0)), d, x)) : P.H & U32}:
+  match e:
+    case True{}:
+      rdw(t0, a, d, (KMd.at_idx(x) + 1 : U32), hft, hd32)
+    case False{}:
+      {==}
+
+# the walk keeps the heap and reads the model's link
+def fwl(p: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +x: U32, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}) ->
+  {P.fl.walk(p, (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, x)) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.lk(p, AD.view(U32, LAT.fromT(U32, t0)), d, x)) : P.H & U32}:
+  match p:
+    case 0n:
+      {==}
+    case 1n+q:
+      %Equal.sym(P.H & U32, P.fl.step(U32.is_ne(x, 0), P.H{KM.MG{LAT.fromT(U32, t0)}, a}, x), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.nx(U32.is_ne(x, 0), AD.view(U32, LAT.fromT(U32, t0)), d, x)), fst.k(U32.is_ne(x, 0), t0, a, d, x, hft, hd32)) :
+        {P.fl.walk(q, _) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.lk(1n+q, AD.view(U32, LAT.fromT(U32, t0)), d, x)) : P.H & U32}
+      fwl(q, t0, a, d, KMd.nx(U32.is_ne(x, 0), AD.view(U32, LAT.fromT(U32, t0)), d, x), hft, hd32)
+
+# P.frees as the model's link: the heap kept, and whether the link k - 1
+# steps on from the head is a node
+def frs(k: Nat, +t0: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +hft: {AD.full(U32, LAT.fromT(U32, t0), d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}) ->
+  {P.frees(k, P.H{KM.MG{LAT.fromT(U32, t0)}, a}) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, fr.m(k, AD.view(U32, LAT.fromT(U32, t0)), d)) : P.H & Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      %Equal.sym(P.H & U32, P.rd(P.H{KM.MG{LAT.fromT(U32, t0)}, a}, P.at_fh()), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh())), rdw(t0, a, d, P.at_fh(), hft, hd32)) :
+        {P.fl.fin(P.fl.walk(p, _)) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, fr.m(1n+p, AD.view(U32, LAT.fromT(U32, t0)), d)) : P.H & Bool}
+      %Equal.sym(P.H & U32, P.fl.walk(p, (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()))), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, KMd.lk(p, AD.view(U32, LAT.fromT(U32, t0)), d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()))), fwl(p, t0, a, d, KMd.word(AD.view(U32, LAT.fromT(U32, t0)), d, P.at_fh()), hft, hd32)) :
+        {P.fl.fin(_) == (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, fr.m(1n+p, AD.view(U32, LAT.fromT(U32, t0)), d)) : P.H & Bool}
+      {==}
+
+# the link 0 stays 0
+def lk0(p: Nat, +v: List<&2, U32>, +d: Nat) -> {KMd.lk(p, v, d, 0) == 0 : U32}:
+  match p:
+    case 0n:
+      {==}
+    case 1n+q:
+      lk0(q, v, d)
+
+# where the link p steps on is a node, the walk of p + 1 holds p + 1 nodes
+def lw.k(+e: Bool, +p: Nat, +v: List<&2, U32>, +d: Nat, +x: U32, +he: {U32.is_eq(x, 0) == e : Bool}, +h: {U32.is_ne(KMd.lk(1n+p, v, d, x), 0) == True{} : Bool},
+  ih: @y:U32 -> {U32.is_ne(KMd.lk(p, v, d, y), 0) == True{} : Bool} -> {List.length(&2, U32, KMd.walk(1n+p, U32.is_eq(y, 0), v, d, y)) == 1n+p : Nat}) ->
+  {List.length(&2, U32, KMd.walk(2n+p, e, v, d, x)) == 2n+p : Nat}:
+  match e:
+    case True{}:
+      +e0 = LM.u32_eq_of_is_eq(x, 0, he)
+      +h0 = ME.subst(U32, z => {U32.is_ne(KMd.lk(1n+p, v, d, z), 0) == True{} : Bool}, x, 0, e0, h)
+      +hz = ME.subst(U32, z => {U32.is_ne(z, 0) == True{} : Bool}, KMd.lk(p, v, d, 0), 0, lk0(p, v, d), h0)
+      Empty.absurd({List.length(&2, U32, KMd.walk(2n+p, True{}, v, d, x)) == 2n+p : Nat}, MB.false_ne_true()(hz))
+    case False{}:
+      Equal.cong(Nat, Nat, n => 1n+n, List.length(&2, U32, KMd.walk(1n+p, U32.is_eq(KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)), 0), v, d, KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)))), 1n+p, ih(KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)), ME.subst(Bool, q => {U32.is_ne(KMd.lk(p, v, d, KMd.nx(Bool.not(q), v, d, x)), 0) == True{} : Bool}, U32.is_eq(x, 0), False{}, he, h)))
+
+def lw(+p: Nat, +v: List<&2, U32>, +d: Nat, +x: U32, +h: {U32.is_ne(KMd.lk(p, v, d, x), 0) == True{} : Bool}) -> {List.length(&2, U32, KMd.walk(1n+p, U32.is_eq(x, 0), v, d, x)) == 1n+p : Nat}:
+  match p:
+    case 0n:
+      %Equal.sym(Bool, U32.is_eq(x, 0), False{}, not_true(U32.is_eq(x, 0), h)) : {List.length(&2, U32, KMd.walk(1n, _, v, d, x)) == 1n : Nat}
+      {==}
+    case 1n+q:
+      lw.k(U32.is_eq(x, 0), q, v, d, x, {==}, h, y => hy => lw(q, v, d, y, hy))
+
+
+def fr.len.k(k: Nat, +v: List<&2, U32>, +d: Nat, +h: {fr.m(k, v, d) == True{} : Bool}) -> {List.length(&2, U32, KMd.walk(k, U32.is_eq(KMd.word(v, d, P.at_fh()), 0), v, d, KMd.word(v, d, P.at_fh()))) == k : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      lw(p, v, d, KMd.word(v, d, P.at_fh()), h)
+
+def fr.room(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +k: Nat, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool},
+  +h: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == True{} : Bool}, m: LAT.Mirror(U32, w)) ->
+  {List.length(&2, U32, KMd.walk(k, U32.is_eq(KMd.word(AD.view(U32, w), d, P.at_fh()), 0), AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh()))) == k : Nat}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  +h1 = LAB.subst(Array<U32>, qq => {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{qq}, a})) == True{} : Bool}, w, LAT.fromT(U32, t0), Equal.sym(Array<U32>, LAT.fromT(U32, t0), w, e), h)
+  +h2 = ME.subst(P.H & Bool, z => {Pair.snd(P.H, Bool, z) == True{} : Bool}, P.frees(k, P.H{KM.MG{LAT.fromT(U32, t0)}, a}), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, fr.m(k, AD.view(U32, LAT.fromT(U32, t0)), d)), frs(k, t0, a, d, hft, hd32), h1)
+  %e : {List.length(&2, U32, KMd.walk(k, U32.is_eq(KMd.word(AD.view(U32, _), d, P.at_fh()), 0), AD.view(U32, _), d, KMd.word(AD.view(U32, _), d, P.at_fh()))) == k : Nat}
+  fr.len.k(k, AD.view(U32, LAT.fromT(U32, t0)), d, h2)
+
+def fr.kept(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +k: Nat, hf: {AD.full(U32, w, d) == True{} : Bool}, +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}, m: LAT.Mirror(U32, w)) ->
+  {Pair.fst(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == P.H{KM.MG{w}, a} : P.H}:
+  (+t0, +e) = m
+  +hft = LAP.full_t(U32, w, t0, d, e, hf)
+  %e : {Pair.fst(P.H, Bool, P.frees(k, P.H{KM.MG{_}, a})) == P.H{KM.MG{_}, a} : P.H}
+  %Equal.sym(P.H & Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, t0)}, a}), (P.H{KM.MG{LAT.fromT(U32, t0)}, a}, fr.m(k, AD.view(U32, LAT.fromT(U32, t0)), d)), frs(k, t0, a, d, hft, hd32)) : {Pair.fst(P.H, Bool, _) == P.H{KM.MG{LAT.fromT(U32, t0)}, a} : P.H}
+  {==}
+
+def Laws.frees_room(w, a, d, k, hf, hd32, h):
+  fr.room(w, a, d, k, hf, hd32, h, LAT.mirror(U32, w))
+
+def Laws.frees_kept(w, a, d, k, hf, hd32):
+  fr.kept(w, a, d, k, hf, hd32, LAT.mirror(U32, w))
+
+def cw.k(+e: Bool, +p: Nat, +v: List<&2, U32>, +d: Nat, +x: U32, +he: {U32.is_eq(x, 0) == e : Bool}, ih: @y:U32 -> {KMd.chain(KMd.walk(p, U32.is_eq(y, 0), v, d, y), v, d, y) == True{} : Bool}) ->
+  {KMd.chain(KMd.walk(1n+p, e, v, d, x), v, d, x) == True{} : Bool}:
+  match e:
+    case True{}:
+      {==}
+    case False{}:
+      and_intro(Bool.not(U32.is_eq(x, 0)), U32.is_eq(KMd.at_idx(x), KMd.at_idx(x)) && KMd.chain(KMd.walk(p, U32.is_eq(KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)), 0), v, d, KMd.word(v, d, (KMd.at_idx(x) + 1 : U32))), v, d, KMd.word(v, d, (KMd.at_idx(x) + 1 : U32))),
+        ME.subst(Bool, q => {Bool.not(q) == True{} : Bool}, False{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), False{}, he), {==}),
+        and_intro(U32.is_eq(KMd.at_idx(x), KMd.at_idx(x)), KMd.chain(KMd.walk(p, U32.is_eq(KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)), 0), v, d, KMd.word(v, d, (KMd.at_idx(x) + 1 : U32))), v, d, KMd.word(v, d, (KMd.at_idx(x) + 1 : U32))), is_eq_self(KMd.at_idx(x)), ih(KMd.word(v, d, (KMd.at_idx(x) + 1 : U32)))))
+
+def Laws.chain_walk(k, v, d, x):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      cw.k(U32.is_eq(x, 0), p, v, d, x, {==}, y => Laws.chain_walk(p, v, d, y))
