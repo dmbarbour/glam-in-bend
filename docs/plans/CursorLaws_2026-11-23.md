@@ -1124,9 +1124,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           mutants of the laws it composes caught. Authoring aid:
           `results/loop_next/gen_sn.py`. As planned: one serve's
           conclusion to the next one's premise, the three composed.
-      - `cursor-laws.loop.shape.root` — planned — the serve at the
-        source's root (`serve_root_keeps`, `serve_ring_exact`) given the
-        same wider law.
+      - `cursor-laws.loop.shape.root` — built 2026-11-26 — on
+        `cursor-laws-root` (after `cursor-laws-grow-copy`),
+        `serve_root_loop`: the serve at the source's root keeps the
+        wider invariant, `serve_ring_exact` composed as `serve_loop`
+        composes `serve_pend` (its derivations taken verbatim from
+        `sl.k` by `results/loop_root/gen_root.py`). The served cursor is
+        taken out of the live list (`without_distinct`), and it is freed
+        with the branch above it, which head the free list. Its mutant,
+        a made cursor listed again, caught. Left: the root serve's
+        conclusion to the next serve's premise, as `serve_next` (the
+        live list still headed by `s`, the served cursor not `s`). As
+        planned: the serve at the source's root (`serve_root_keeps`,
+        `serve_ring_exact`) given the same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
   - `cursor-laws.alloc` — active — reviewed 2026-11-26
