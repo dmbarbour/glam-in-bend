@@ -533,6 +533,24 @@ it alone taught. Add to this file what a new proof teaches.
   doubling through `to_nat_mul` without an overflow argument: a
   remainder is at most its argument (`map_depth`,
   `glam/SPLICE_PROOF.bend`).
+- **2^32 stays out of a comparison.** The checker expands a power it must
+  normalize: `WL.to_nat_add(i, 1)`'s type holds `U32.to_nat(1)`, and a
+  motive written with `1n` there sets the two side by side under
+  `Nat.mod(..., Nat.pow(2n, 32n))`, overflowing the machine's stack.
+  Write the lemma's own form in the motive and turn `U32.to_nat(1)` into
+  `1n` apart, where no power stands beside it; bound an index below
+  2^32 by a word above it (`WL.to_nat_lt(c)`), never by a power's order
+  (`MN.pow_lt_pow_right` states its base as `2n+a`, which meets
+  `Nat.pow(2n, 32n)` only by expansion; `tn1`,
+  `spike/GROW_PROOF.bend`).
+- **A Nat matched binds its predecessor once.** `case 1n+p:` gives a
+  linear `p`; a proof that uses it twice (a recursive call and a bound)
+  takes the matched parameter `+k`, which makes `p` copyable.
+- **No forward references, so no mutual recursion.** A proof that would
+  recurse through a helper passes the recursive call to the helper as a
+  closure (`ih: {..} -> {..}`, the binder `@y:U32 -> ..` where it is
+  dependent), and code loops through a step type, as `KM.ens` does
+  (`glam/materialize.bend`'s `rm.loop`).
 - **Prototype a family of lemmas in a file of its own.** A lemma checked
   in `glam/proofgen/align/ALIGN.bend`, importing what the proof
   files import, costs seconds where the proof file costs a minute, and

@@ -1045,8 +1045,35 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
             words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
             the fresh nodes.
-          - `cursor-laws.loop.shape.grow.copy.store` — planned — the
-            kernel's: `grow_more` keeps every word below the old
+          - `cursor-laws.loop.shape.grow.copy.store` — active (ordered
+            before `cursor-laws.alloc.collect`, which waits on the copy
+            marks; the agent's ordering, the maintainer, 2026-11-26:
+            "ordering judgements are yours") — the kernel's. Slices:
+            - `cursor-laws.loop.shape.grow.copy.store.copy` — built
+              2026-11-26 — on `cursor-laws-store`, `spike/GROW_LAWS.bend`:
+              `grow_full`, `grow_old` (a word below the old capacity 2^d
+              reads as before), `grow_new` (one of the new half reads 0),
+              `copy_full`. The copy's loop by array reads (`ca.lo`,
+              `ca.hi`, `ca.in`, through `LA.get_set_same` and
+              `get_set_other`), the arrays erased with mirrors; an index
+              one on below the capacity, no 2^32 compared (`tn1`);
+              `KM.depth`'s value a premise. Mutants, each refuted by a
+              witness on four words of 7: the copy from index 1, a fill
+              of 1, a store two levels deeper. `copy_full` named by
+              none, a set keeping an array full whatever it writes.
+            - `cursor-laws.loop.shape.grow.copy.store.ensure` — planned —
+              `m_ensure`'s one doubling for `grow.c`'s request: the
+              products `(wcap * 2) * 4` and `cap * 2`, by lawful-words'
+              `to_nat_mul_fits`.
+            - `cursor-laws.loop.shape.grow.copy.store.thread` — planned —
+              `grow.done`'s `thread`, head and capacity; `gm.link` and
+              the free that puts node `wcap0` back: the new nodes chained
+              ahead of the old list.
+            - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
+              `grow_more` discharging `LM.kept` for tracked nodes below the
+              old capacity and past the header, and `LM.ext.ok`'s chain,
+              range and marks for the fresh nodes.
+            As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:
             `KM.grow`'s copy, `thread`, `gm.link`; `KM.depth` reshaped

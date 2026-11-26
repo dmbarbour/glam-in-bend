@@ -1,0 +1,40 @@
+Mutations of the store's growth (spike/kmem_grow.bend's KM.grow), each
+naming the laws of spike/GROW_LAWS.bend it should fail (docs/Proving.md;
+the gate runs scripts/one_law.py --mutants on this file). Witnesses: a
+store of four words of 7, two levels deep, its capacity 4.
+
+=== copy_from_1 grow_old
+the copy starting at index 1, so that word 0 of the grown store is the
+zero fill's, not the old word
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 1, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
+>>> witness grow_old
+w = [7 : U32^2n]
+d = 2n
+cap = 4
+j = 0
+
+=== fill_ones grow_new
+the grown store filled with 1, so that its new half's nodes read in use
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [1 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
+>>> witness grow_new
+w = [7 : U32^2n]
+d = 2n
+cap = 4
+j = 4
+
+=== depth_two grow_full
+the store grown two levels deeper, not one
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 2n)]})}
+>>> witness grow_full
+w = [7 : U32^2n]
+d = 2n
+cap = 4
