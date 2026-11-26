@@ -869,8 +869,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         allocation and writes (`glam/ring.bend`; the 68 samples' counts
         alike). Proved over the view's list form (`px_sv`), its reads at
         the written words carried back; the payload word split by the
-        header's test. `lay_pair`, two tracked nodes four words apart,
-        is new and general. The verdict 35 s at 2.7 GB. Two mutants,
+        header's test; `GP.lay_pair`, two tracked nodes four words
+        apart (a copy written first, dropped). The verdict 35 s at 2.7 GB. Two mutants,
         the index not empty and word 1 left the free list's link, caught
         by the proof failing. As designed: `situate_pend`: the
         situating node's writes, on a node fresh from the free list,
@@ -926,9 +926,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         - The copy's half: its holes are among the nodes the copy takes
           from the free list (`SP.holes_sub`), and no free node is live
           (the invariant's `none.in(F, L)`), so the holes are none of
-          the live list and the append stays distinct (`dist_app`,
-          `ni_sym`, in `glam/LOOP_PROOF.bend`), composed in the serve's
-          law (`.serve`). A detour, that every live node but `s` is a
+          the live list and the append stays distinct (`dist_app`, in
+          `glam/LOOP_PROOF.bend`), composed in the serve's
+          law (`.serve`), `SP.none_flip` for the symmetry. A detour, that every live node but `s` is a
           cursor between serves, was dropped: carrying it through the
           crossings needs the index laid out at each step, which only
           the heap-level laws keep.
@@ -942,9 +942,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         the copy's. Built on the side branch: `px_sub` (P11's, the
         invariant over a sub-list holding the live, free and index's
         nodes; its mutant, a faced port's link word off one tracked node
-        enough, caught), and the lemmas `lay_sub` (a distinct sub-list
-        of a list laid out is laid out, by `lay_pair`), `bases_sub`,
-        `past_sub`. Left for `.serve`: the sub-list's shape `M ++ ns`,
+        enough, caught). For the tracked nodes' facts over a sub-list,
+        the lemmas already written serve: `GP.lay_sub` with
+        `SP.apall_of` (a distinct sub-list of a list laid out),
+        `GP.bases_sub`, `SP.kpast_sub`; copies of them, written first,
+        were dropped, found by their names after the finder's rule was
+        skipped. Left for `.serve`: the sub-list's shape `M ++ ns`,
         the copy's nodes last.
         Found 2026-11-25, reading `serve_pend`'s conclusion: after a
         serve the tracked nodes are `M ++ pls`, the copy's holes kept and
@@ -959,7 +962,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         serve's law for now, the kernel's to discharge
         (`kernel-refine`), as the wiring is; the arithmetic law
         (`bases_apart`) a step of its own, which would fold the layout
-        into the invariant by computation (P10).
+        into the invariant by computation (P10). The maintainer
+        (2026-11-26): "Premises now is acceptable."
       - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
         invariant across the heap's doubling, the words copied.
       - `cursor-laws.loop.shape.serve` — planned — `serve_loop`: one
