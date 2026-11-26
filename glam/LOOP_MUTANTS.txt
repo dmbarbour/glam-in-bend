@@ -20,7 +20,7 @@ eraser written there
 +++
   (P.wr(P.wr(h, (s + 2 : U32), k), (s + 3 : U32), s), s)
 
-=== cursor_relisted cxs_distinct
+=== cursor_relisted cxs_distinct serve_loop
 a cursor made listed again among the live nodes, where it already is
 --- ring_model.bend
       without(without(L, x), y)

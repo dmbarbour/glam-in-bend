@@ -966,9 +966,28 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         (2026-11-26): "Premises now is acceptable."
       - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
         invariant across the heap's doubling, the words copied.
-      - `cursor-laws.loop.shape.serve` — planned — `serve_loop`: one
-        serve keeps the wider invariant, its crossings starting absent
-        (`cxs_start`), so that serves compose.
+      - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
+        branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
+        `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the
+        source's root keeps it, its tracked nodes then the old ones and
+        the copy's holes. `serve_pend` composed with `copy_pend` (the
+        holes distinct), `SP.holes_sub` (the holes among the copy's
+        nodes, its premises derived as the copy's proof derives them,
+        taken from `cpi.go` and `cpf.core` by an authoring aid,
+        `results/loop_base/gen_sl.py`), `cxs_distinct`, and the tracked
+        facts over a sub-list. The verdict 36 s at 2.7 GB. As planned:
+        `serve_loop`: one serve keeps the wider invariant, its crossings
+        starting absent (`cxs_start`), so that serves compose.
+      - `cursor-laws.loop.shape.next` — planned — from one serve's
+        conclusion to the next one's premise: the live list headed by
+        `s` again (`s` no cursor and never pending), the free list split
+        into the next copy's nodes and the rest, and the tracked list
+        grown by the next copy's nodes past its tracked prefix, under
+        the two premises the maintainer accepted (laid out apart from
+        the tracked nodes; no faced port linking into them).
+      - `cursor-laws.loop.shape.root` — planned — the serve at the
+        source's root (`serve_root_keeps`, `serve_ring_exact`) given the
+        same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
   - `cursor-laws.index` — planned — the index's 41 laws by

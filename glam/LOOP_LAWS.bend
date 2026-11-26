@@ -11,6 +11,12 @@ import ../spike/kmodel.bend as KMd
 import ./ring.bend as R
 import ./ring_model.bend as RG
 import ./index_model.bend as IM
+import ./loop_model.bend as LM
+import ../spike/tpl.bend as T
+import ./splice_copy.bend as S
+import ./splice_model.bend as SM
+import ./serve_model.bend as SV
+import ./serve.bend as SC
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: a situating node taken from the free list and written an empty
@@ -95,3 +101,47 @@ law px_sub:
   for +hF: {RG.sub(F, N2) == True{} : Bool}
   for +hI: {RG.sub(IM.ix.nodes(I), N2) == True{} : Bool}
   {RG.px.ok(v, d, s, I, ps, L, F, N2) == True{} : Bool}
+
+# LAW: a serve away from the source's root keeps the wider invariant
+# (LM.lx.ok: the pending one with nothing pending, the live nodes
+# distinct, the tracked laid out apart, each its own base, past the
+# header), its tracked nodes then the old ones and the copy's holes
+# (cursor-laws.loop.shape.serve): serve_pend composed with the live
+# nodes' distinctness (cxs_distinct; the copy's holes fresh, among the
+# nodes taken from the free list) and the tracked facts over a sub-list.
+# So that a serve's conclusion is the next one's premise but for the
+# tracked list's growth, which the next copy's nodes need (premises, the
+# maintainer, 2026-11-26).
+# Record: cursors-indexed
+# Record: serve-premises-over-index
+# Record: copy-reduced-function-nets
+law serve_loop:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for dm: Nat
+  for ts: List<&2, T.TNode>
+  for ls: List<&2, T.TLink>
+  for by: U32
+  for ns: List<&2, U32>
+  for s: U32
+  for t: List<&2, U32>
+  for cs: List<&2, R.FzC>
+  for I: IM.Ix
+  for F: List<&2, U32>
+  for M: List<&2, U32>
+  for nc: U32
+  for rn: U32
+  for rp: U32
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), d, s, I, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
+  for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
+  for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm))) && AD.full(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{})), d) == True{} : Bool}
