@@ -212,3 +212,12 @@ def Laws.grow_new(w, d, cap, j, hd, hc, hdp, hj0, hj1):
   Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, KM.copy(U32.to_nat(cap), 0, KM.CP{w, Array.new(U32, 1n+d, 0)}), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.new(U32, 1n+d, 0), j)), 0,
     ca.hi(U32.to_nat(cap), 0, w, Array.new(U32, 1n+d, 0), j, 1n+d, cap, LA.new_full(U32, 1n+d, 0), hd, hcD, MN.le_refl(U32.to_nat(cap)), hj1, hge, LAT.mirror(U32, w), LAT.mirror(U32, Array.new(U32, 1n+d, 0))),
     LA.get_new(U32, 1n+d, 0, j))
+
+# a store asked for room doubles once: the three tests decided by the
+# premises, in the order m_ensure, decide and ens take them
+def Laws.ensure_once(m, n, cap, maxd, h1, h2, h3):
+  %Equal.sym(Bool, U32.is_le(n, cap), False{}, h1) : {KM.m_ensure.go(_, m, n, cap, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
+  %Equal.sym(Bool, Nat.is_ge(KM.depth(32n, cap, 0n), maxd), False{}, h2) : {KM.ens(32n, KM.decide(False{}, _, m, cap), n, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
+  %Equal.sym(Bool, U32.is_le(n, (cap * 2 : U32)), True{}, h3) :
+    {KM.ens(31n, KM.decide(_, Nat.is_ge(KM.depth(32n, (cap * 2 : U32), 0n), maxd), KM.grow(m, cap), (cap * 2 : U32)), n, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
+  {==}

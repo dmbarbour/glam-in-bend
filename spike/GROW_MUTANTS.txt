@@ -38,3 +38,16 @@ the store grown two levels deeper, not one
 w = [7 : U32^2n]
 d = 2n
 cap = 4
+
+=== capacity_quadrupled ensure_once
+the doubled store's capacity reported as four times the old, so that the
+kernel believes in words it has not
+--- kmem_grow.bend
+            grow(m, cap), (cap * 2 : U32)), n, maxd)
++++
+            grow(m, cap), (cap * 4 : U32)), n, maxd)
+>>> witness ensure_once
+m = KM.MG{[0 : U32^2n]}
+n = 8
+cap = 4
+maxd = 30n

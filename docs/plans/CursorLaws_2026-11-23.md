@@ -1061,10 +1061,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               witness on four words of 7: the copy from index 1, a fill
               of 1, a store two levels deeper. `copy_full` named by
               none, a set keeping an array full whatever it writes.
-            - `cursor-laws.loop.shape.grow.copy.store.ensure` — planned —
-              `m_ensure`'s one doubling for `grow.c`'s request: the
-              products `(wcap * 2) * 4` and `cap * 2`, by lawful-words'
-              `to_nat_mul_fits`.
+            - `cursor-laws.loop.shape.grow.copy.store.ensure` — built
+              2026-11-26 — `ensure_once`: a store asked for room it lacks,
+              that may grow and that twice its capacity holds, doubles
+              once (`KM.m_ensure`): case analysis over three tests as
+              premises, the products `grow.c` asks with
+              (`(wcap * 2) * 4` against `wcap * 4` and its double) left
+              to `.kept`, which states the capacity word's relation to
+              the depth. Its mutant, the capacity reported as four times
+              the old, refuted by a witness.
             - `cursor-laws.loop.shape.grow.copy.store.thread` — planned —
               `grow.done`'s `thread`, head and capacity; `gm.link` and
               the free that puts node `wcap0` back: the new nodes chained

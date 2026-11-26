@@ -57,3 +57,18 @@ law grow_new:
   for +hj0: {Nat.is_le(Nat.pow(2n, d), U32.to_nat(j)) == True{} : Bool}
   for +hj1: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, 1n+d)) == True{} : Bool}
   {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(KM.grow(KM.MG{w}, cap)), j)) == 0 : U32}
+
+# LAW: a store asked for room it lacks, that may grow and that twice its
+# capacity holds, doubles once (KM.m_ensure, as grow.c asks it): the
+# store grown, its capacity twice. The products a caller asks with stand
+# in the premises, which the capacity word's law gives where it is used.
+# Record: net-nodes-double
+law ensure_once:
+  for m: KM.M
+  for +n: U32
+  for +cap: U32
+  for +maxd: Nat
+  for +h1: {U32.is_le(n, cap) == False{} : Bool}
+  for +h2: {Nat.is_ge(KM.depth(32n, cap, 0n), maxd) == False{} : Bool}
+  for +h3: {U32.is_le(n, (cap * 2 : U32)) == True{} : Bool}
+  {KM.m_ensure(m, n, cap, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
