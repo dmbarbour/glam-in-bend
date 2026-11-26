@@ -164,3 +164,23 @@ law cxs_head:
   for +hI: {RG.has(IM.ix.leaves(I), s) == False{} : Bool}
   for +hp: {RG.has(RG.pls(cs, vm, dm), s) == False{} : Bool}
   {LM.headed(RG.cxs.L(RG.cxs(cs, vm, dm, I, Con{s, t}, F)), s) == True{} : Bool}
+
+# LAW: the wider invariant over the next serve's lists
+# (cursor-laws.loop.shape.next.split): the live list as Con{s, tl}, the
+# free list's tracked prefix split into the next copy's k nodes and the
+# rest (List.take, List.drop), the tracked list the old nodes but those,
+# then those (RG.minus), the live list headed by s (cxs_head). The serve's
+# laws ask their lists in that shape; the members are the same.
+# Record: cursors-indexed
+law lx_split:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +k: Nat
+  for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
+  for +hh: {LM.headed(L, s) == True{} : Bool}
+  {LM.lx.ok(v, d, s, I, Con{s, LM.tl(L)}, List.append(&2, U32, List.take(&2, U32, F, k), List.drop(&2, U32, F, k)), List.append(&2, U32, RG.minus(N, List.take(&2, U32, F, k)), List.take(&2, U32, F, k))) == True{} : Bool}

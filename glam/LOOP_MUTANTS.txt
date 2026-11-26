@@ -39,3 +39,17 @@ that a sub-list of the tracked nodes need not inherit it
 +++
       po.n(r, L, d, n) || po.all(r, L, d, t)
 
+=== minus_keeps lx_split
+a list minus another keeping the members it should take out, so that the
+next serve's tracked list lists the copy's nodes twice
+--- ring_model.bend
+def minus.k(+b: Bool, +x: U32, r: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      r
++++
+def minus.k(+b: Bool, +x: U32, r: List<&2, U32>) -> List<&2, U32>:
+  match b:
+    case True{}:
+      Con{x, r}
+

@@ -992,7 +992,11 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           of the index's leaves and the index's leaves only lose members
           (`cut_nl`, `del_nl`) or gain the placeholder (`put_leaves`).
           Its mutant, a made cursor listed again, caught.
-        - `cursor-laws.loop.shape.next.split` — planned — the free
+        - `cursor-laws.loop.shape.next.split` — built 2026-11-26 —
+          `lx_split`, for any count `k`, the members the same; with
+          `minus_sub`, `minus_none`, `minus_dist`, `sub_minus_app` and
+          `hd_eta`; its mutant, `minus` keeping what it takes out,
+          caught. As planned: the free
           list's first nodes split into the next copy's nodes and the
           rest (taken and dropped), the tracked list reshaped to the old
           nodes but those, then those (`RG.minus`), the live list to

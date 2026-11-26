@@ -19,3 +19,11 @@ def headed(L: List<&2, U32>, +s: U32) -> Bool:
       False{}
     case Con{+x, r}:
       U32.is_eq(x, s)
+
+# a list's tail
+def tl(L: List<&2, U32>) -> List<&2, U32>:
+  match L:
+    case Nil{}:
+      Nil{}
+    case Con{+x, r}:
+      r
