@@ -1132,10 +1132,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         `sl.k` by `results/loop_root/gen_root.py`). The served cursor is
         taken out of the live list (`without_distinct`), and it is freed
         with the branch above it, which head the free list. Its mutant,
-        a made cursor listed again, caught. Left: the root serve's
-        conclusion to the next serve's premise, as `serve_next` (the
-        live list still headed by `s`, the served cursor not `s`). As
-        planned: the serve at the source's root (`serve_root_keeps`,
+        a made cursor listed again, caught. And `serve_root_next`
+        (`cursor-laws.loop.shape.root.next`, built the same day): the
+        root serve's conclusion to the next serve's premise, as
+        `serve_next`, the live list still headed by `s` (`wo_headed`;
+        the served cursor a leaf of the index before the crossings,
+        `XL.look_leaf`, which `s` is not, `lay_nl`). Both mutants of the
+        laws it composes caught. Authoring aid:
+        `results/loop_root/gen_rootnext.py`. As planned: the serve at the source's root (`serve_root_keeps`,
         `serve_ring_exact`) given the same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
