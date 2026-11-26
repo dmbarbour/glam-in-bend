@@ -20,7 +20,7 @@ eraser written there
 +++
   (P.wr(P.wr(h, (s + 2 : U32), k), (s + 3 : U32), s), s)
 
-=== cursor_relisted cxs_distinct serve_loop cxs_head
+=== cursor_relisted cxs_distinct serve_loop cxs_head serve_next
 a cursor made listed again among the live nodes, where it already is
 --- ring_model.bend
       without(without(L, x), y)
@@ -39,7 +39,7 @@ that a sub-list of the tracked nodes need not inherit it
 +++
       po.n(r, L, d, n) || po.all(r, L, d, t)
 
-=== minus_keeps lx_split
+=== minus_keeps lx_split serve_next
 a list minus another keeping the members it should take out, so that the
 next serve's tracked list lists the copy's nodes twice
 --- ring_model.bend

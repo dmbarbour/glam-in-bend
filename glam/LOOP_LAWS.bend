@@ -188,8 +188,8 @@ law lx_split:
 # LAW: the wider invariant over the tracked list and the free list's
 # tracked prefix grown by free nodes E past it
 # (cursor-laws.loop.shape.next.extend), for the next copy needing more
-# nodes than the prefix holds. Premises, the kernel's to discharge
-# (kernel-refine; the maintainer, 2026-11-26: "Premises now is
+# nodes than the prefix holds. Premises (LM.ext.ok), the kernel's to
+# discharge (kernel-refine; the maintainer, 2026-11-26: "Premises now is
 # acceptable."): E laid out apart from the tracked nodes (layout of
 # N ++ E), and no live node's faced port linking into E (px.off over E),
 # the host's wiring (net-obvious-errors). Besides: the free list's chain
@@ -207,12 +207,51 @@ law lx_extend:
   for +N: List<&2, U32>
   for +E: List<&2, U32>
   for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
-  for +hch: {KMd.chain(List.append(&2, U32, F, E), v, d, KMd.word(v, d, P.at_fh())) == True{} : Bool}
-  for +hdE: {RG.distinct(List.append(&2, U32, F, E)) == True{} : Bool}
-  for +hEL: {RG.none.in(E, L) == True{} : Bool}
-  for +hEI: {RG.none.in(E, Con{s, IM.ix.nodes(I)}) == True{} : Bool}
-  for +hlay: {RG.layout(List.append(&2, U32, N, E), d) == True{} : Bool}
-  for +hbE: {RG.bases(E) == True{} : Bool}
-  for +hpE: {KMd.past(E, d) == True{} : Bool}
-  for +hpo: {RG.px.off(L, v, d, L, E) == True{} : Bool}
+  for +hE: {LM.ext.ok(v, d, s, I, L, F, N, E) == True{} : Bool}
   {LM.lx.ok(v, d, s, I, L, List.append(&2, U32, F, E), List.append(&2, U32, N, E)) == True{} : Bool}
+
+# LAW: one serve's conclusion to the next one's premise
+# (cursor-laws.loop.shape.next.compose): serve_loop, the live list headed
+# by s after it (cxs_head: s no leaf of the index, which is laid out
+# apart from it, and none of the copy's holes, taken from the free list),
+# the tracked lists grown by free nodes E past them (lx_extend, under the
+# growth premises, LM.ext.ok) and split for the next copy's k nodes
+# (lx_split): the next serve's live list Con{s, tl}, its free list
+# take ++ drop, its tracked list the rest, then those, as serve_loop asks.
+# Record: cursors-indexed
+# Record: serve-premises-over-index
+# Record: copy-reduced-function-nets
+# Record: net-obvious-errors
+law serve_next:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for map: Array<U32>
+  for +d: Nat
+  for dm: Nat
+  for ts: List<&2, T.TNode>
+  for ls: List<&2, T.TLink>
+  for by: U32
+  for ns: List<&2, U32>
+  for s: U32
+  for t: List<&2, U32>
+  for cs: List<&2, R.FzC>
+  for I: IM.Ix
+  for F: List<&2, U32>
+  for M: List<&2, U32>
+  for nc: U32
+  for rn: U32
+  for rp: U32
+  for +E: List<&2, U32>
+  for +k: Nat
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +hfm: {AD.full(U32, map, dm) == True{} : Bool}
+  for +hdm: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), d, s, I, Con{s, t}, List.append(&2, U32, ns, F), List.append(&2, U32, M, ns)) == True{} : Bool}
+  for +hl: {SM.made(ts) == List.length(&2, U32, ns) : Nat}
+  for +hhd: {KMd.off.words(KMd.hdr_words(), d, P.at_fh()) == True{} : Bool}
+  for +ht: {SM.tpl.ok(ls, ts, dm) == True{} : Bool}
+  for +hcp: {SV.copy.ok(cs, ls, ts, dm) == True{} : Bool}
+  for +hok: {RG.cxs.ok(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, F) == True{} : Bool}
+  for +hE: {LM.ext.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), E) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), Con{s, LM.tl(RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)))}, List.append(&2, U32, List.take(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), E), k), List.drop(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), E), k)), List.append(&2, U32, RG.minus(List.append(&2, U32, List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), E), List.take(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), E), k)), List.take(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), F)), E), k))) && AD.full(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{})), d) == True{} : Bool}

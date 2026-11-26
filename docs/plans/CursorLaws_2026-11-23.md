@@ -978,7 +978,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         facts over a sub-list. The verdict 36 s at 2.7 GB. As planned:
         `serve_loop`: one serve keeps the wider invariant, its crossings
         starting absent (`cxs_start`), so that serves compose.
-      - `cursor-laws.loop.shape.next` — active — from one serve's
+      - `cursor-laws.loop.shape.next` — built 2026-11-26 — on the side
+        branch `cursor-laws-loop-next`, `serve_next`: one serve's
+        conclusion is the next one's premise, for any free nodes `E` past
+        the tracked prefix under the growth premises (`LM.ext.ok`, one
+        predicate for the kernel to discharge) and any count `k` of the
+        next copy's nodes; the next serve's `hl`, its copy's count the
+        length of `List.take`, the loop's to give. The verdict 36 s at
+        2.8 GB, as before. As planned: from one serve's
         conclusion to the next one's premise: the live list headed by
         `s` again (`s` no cursor and never pending), the free list split
         into the next copy's nodes and the rest, and the tracked list
@@ -1015,7 +1022,13 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           these premises are all the grown lists need. As planned: the tracked
           list and the free list's tracked prefix grown by nodes past
           it, under the two premises.
-        - `cursor-laws.loop.shape.next.compose` — planned — one serve's
+        - `cursor-laws.loop.shape.next.compose` — built 2026-11-26 —
+          `serve_next`: `sl.k`, `cxs_head` (`s` no leaf, by the index's
+          layout, `lay_nl`; none of the holes, which `holes_in.k` puts
+          among the copy's nodes, none of the live list), `lx_extend`,
+          `lx_split`; `lx_extend` restated over `LM.ext.ok`. Both
+          mutants of the laws it composes caught. Authoring aid:
+          `results/loop_next/gen_sn.py`. As planned: one serve's
           conclusion to the next one's premise, the three composed.
       - `cursor-laws.loop.shape.root` — planned — the serve at the
         source's root (`serve_root_keeps`, `serve_ring_exact`) given the
