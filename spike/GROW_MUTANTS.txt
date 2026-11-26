@@ -85,3 +85,25 @@ a = [7 : U32^3n]
 n = 1
 D = 3n
 c = 8
+
+=== depth_doubled depth_pow
+each halving counted twice, so that a store of four words reads as four
+levels deep, not two
+--- kmem_grow.bend
+          depth.go(p, U32.is_eq((cap >> 1n : U32), 1), (cap >> 1n : U32), 1n+d)
++++
+          depth.go(p, U32.is_eq((cap >> 1n : U32), 1), (cap >> 1n : U32), 2n+d)
+>>> witness depth_pow
+cap = 4
+d = 2n
+
+=== depth_stop_zero depth_pow
+the first test made against 0, not 1, so that a store of one word
+halves past it to the step bound
+--- kmem_grow.bend
+  depth.go(k, U32.is_eq(cap, 1), cap, d)
++++
+  depth.go(k, U32.is_eq(cap, 0), cap, d)
+>>> witness depth_pow
+cap = 1
+d = 0n

@@ -114,3 +114,14 @@ law thread_link:
   for +hlo: {Nat.is_le(U32.to_nat(i), U32.to_nat(n)) == True{} : Bool}
   for +hhi: {Nat.is_lt(U32.to_nat(n), Nat.add(U32.to_nat(i), k)) == True{} : Bool}
   {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}
+
+# LAW: the depth m_ensure reads of a store of 2^d words is d (KM.depth),
+# so that the growth laws' depth premise is the capacity's relation to
+# the depth, for every d below 32.
+# Record: net-nodes-double
+law depth_pow:
+  for +cap: U32
+  for +d: Nat
+  for +hc: {U32.to_nat(cap) == Nat.pow(2n, d) : Nat}
+  for +hd: {Nat.is_lt(d, 32n) == True{} : Bool}
+  {KM.depth(32n, cap, 0n) == d : Nat}

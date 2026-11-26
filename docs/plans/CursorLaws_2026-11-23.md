@@ -1083,6 +1083,31 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               last node linked on, not ended. A mutant of `link_of.go`
               itself changes both sides of `thread_link`: the encoding's
               meaning is the chain's, in `.kept`.
+            - `cursor-laws.loop.shape.grow.copy.store.depth` — built
+              2026-11-26 — `depth_pow`: `KM.depth` reads d for a capacity
+              of 2^d words, d below 32, the premise `grow_full`,
+              `grow_old`, `grow_new` and `ensure_once` take. A U32
+              literal's `case 1:` compiles to a match on all 32 bits,
+              which a symbolic capacity never passes, so `depth` now
+              tests `U32.is_eq(cap, 1)`, carried as a Bool through one
+              self-recursive function (`depth.go`): the same semantics,
+              cold code (growth only). By induction on the power, each
+              test decided from the capacity's number, its half by
+              `to_nat_shr` and `mul_div_cancel_left`. Mutants refuted by
+              witnesses: each halving counted twice; the first test
+              against 0.
+            - `cursor-laws.loop.shape.grow.copy.store.old` — planned — the
+              grown heap's words below the old capacity, the head's and
+              the capacity's apart, read as before through `m_ensure`,
+              the copy, the thread, `grow.done`'s two header writes,
+              `gm.link`'s link and the free of node `wcap0`; then
+              `LM.kept` for tracked nodes past the header, by `get_view`.
+            - `cursor-laws.loop.shape.grow.copy.store.fresh` — planned — the
+              fresh nodes E, node `wcap0` on to node `wcap - 1` (a model
+              list), chained from the new head, the last linking the old
+              head; E's marks, bases, range, distinctness, its nodes
+              apart from the tracked and from the cursors' ports
+              (`LM.ext.ok`).
             - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
               `grow_more` composed: `m_ensure`'s doubling (`ensure_once`,
               its products from the capacity word's relation to the

@@ -330,3 +330,32 @@ def tl(+k: Nat, +i: U32, +to: U32, -a: Array<U32>, +n: U32, +D: Nat, +c: U32, +h
 
 def Laws.thread_link(k, i, to, a, n, D, c, hf, hD, hc, hcD, hlo, hhi):
   tl(k, i, to, a, n, D, c, hf, hD, hc, hcD, hlo, hhi, LAT.mirror(U32, a))
+
+# a capacity of 2^j words halves j times to 1 within k > j steps: the
+# depth a on by j. Each step's test decided from the capacity's number:
+# 1 at j = 0, above 1 after, and its half 2^(j - 1)
+def dp(+j: Nat, +k: Nat, +cap: U32, +a: Nat, +hc: {U32.to_nat(cap) == Nat.pow(2n, j) : Nat}, +hk: {Nat.is_lt(j, k) == True{} : Bool}) -> {KM.depth(k, cap, a) == Nat.add(j, a) : Nat}:
+  match j:
+    case 0n:
+      match k:
+        case 0n:
+          Empty.absurd({KM.depth(0n, cap, a) == Nat.add(0n, a) : Nat}, MB.false_ne_true()(hk))
+        case 1n+p:
+          +e1 = WL.to_nat_inj(cap, 1, hc)
+          ME.subst(U32, z => {KM.depth(1n+p, z, a) == a : Nat}, 1, cap, Equal.sym(U32, cap, 1, e1), {==})
+    case 1n+q:
+      match k:
+        case 0n:
+          Empty.absurd({KM.depth(0n, cap, a) == Nat.add(1n+q, a) : Nat}, MB.false_ne_true()(hk))
+        case 1n+p:
+          +hgt = ME.subst(Nat, z => {Nat.is_lt(1n, z) == True{} : Bool}, Nat.pow(2n, 1n+q), U32.to_nat(cap), Equal.sym(Nat, U32.to_nat(cap), Nat.pow(2n, 1n+q), hc), MN.pow_lt_pow_right(0n, 0n, 1n+q, {==}))
+          +hne = Equal.trans(Bool, U32.is_eq(cap, 1), Nat.is_eq(U32.to_nat(cap), 1n), False{}, WL.is_eq_to_nat(cap, 1), ne_flip(1n, U32.to_nat(cap), ne_lt(1n, U32.to_nat(cap), hgt)))
+          +hs = Equal.trans(Nat, U32.to_nat((cap >> 1n : U32)), Nat.div(U32.to_nat(cap), 2n), Nat.pow(2n, q), WL.to_nat_shr(cap),
+            Equal.trans(Nat, Nat.div(U32.to_nat(cap), 2n), Nat.div(Nat.pow(2n, 1n+q), 2n), Nat.pow(2n, q), Equal.cong(Nat, Nat, z => Nat.div(z, 2n), U32.to_nat(cap), Nat.pow(2n, 1n+q), hc),
+              MN.mul_div_cancel_left(Nat.pow(2n, q), 1n)))
+          +ih = dp(q, p, (cap >> 1n : U32), 1n+a, hs, hk)
+          %Equal.sym(Bool, U32.is_eq(cap, 1), False{}, hne) : {KM.depth.go(1n+p, _, cap, a) == Nat.add(1n+q, a) : Nat}
+          Equal.trans(Nat, KM.depth(p, (cap >> 1n : U32), 1n+a), Nat.add(q, 1n+a), 1n+Nat.add(q, a), ih, MN.add_succ(q, a))
+
+def Laws.depth_pow(cap, d, hc, hd):
+  Equal.trans(Nat, KM.depth(32n, cap, 0n), Nat.add(d, 0n), d, dp(d, 32n, cap, 0n, hc, hd), MN.add_zero(d))

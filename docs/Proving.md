@@ -543,6 +543,12 @@ it alone taught. Add to this file what a new proof teaches.
   (`MN.pow_lt_pow_right` states its base as `2n+a`, which meets
   `Nat.pow(2n, 32n)` only by expansion; `tn1`,
   `spike/GROW_PROOF.bend`).
+- **A U32 literal's case is 32 matches.** `match cap: case 1:` compiles
+  to a match on each of the word's bits (`bend x.bend -o x.bendtt` shows
+  it), which a symbolic word never passes, and no premise rewrites it.
+  Test `U32.is_eq(cap, 1)` instead and match the Bool, carried as a
+  parameter where the function recurses, so that a proof rewrites the
+  test by its premise (`KM.depth`, `spike/kmem_grow.bend`).
 - **A Nat matched binds its predecessor once.** `case 1n+p:` gives a
   linear `p`; a proof that uses it twice (a recursive call and a bound)
   takes the matched parameter `+k`, which makes `p` copyable.
