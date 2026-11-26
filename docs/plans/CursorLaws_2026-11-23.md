@@ -1014,9 +1014,13 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         - `cursor-laws.loop.shape.next.extend` — built 2026-11-26 —
           `lx_extend`, the two premises stated as the layout of `N ++ E`
           and the faced ports' link words off `E`'s nodes, with the free
-          list's chain over `F ++ E`, its distinctness, `E` none of the
-          live nodes nor `s` nor the index's, each its own base, past the
-          header; with `bases_app`, `past_app`, `pxoff_app`. Named by no
+          list's chain over `F ++ E`, each its own base, past the header;
+          with `bases_app`, `past_app`, `pxoff_app`. Cut 2026-11-26 from
+          eight conjuncts to five on `cursor-laws.alloc`'s review (its
+          second reviewer's F5): `F ++ E` distinct and `E` none of the
+          live nodes nor `s` nor the index's follow from the layout and
+          the invariant's sub-lists (`SP.lay_dist`, `SP.none_of_dist`,
+          `GP.none_sub`, `GP.sub_has`, `dist_app`). Named by no
           mutation: every fact it concludes over the grown lists is a
           premise, unchanged, or a per-node fold over an append, which an
           append keeps whatever the per-node test, a mutation of the test
@@ -1053,7 +1057,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       kernel step.
 
     Recommended: `LM.ext.ok` cut to five conjuncts before
-    `.loop.shape.next` merges; a per-node range as `.grow`'s first
+    `.loop.shape.next` merges (done 2026-11-26, and `serve_next`'s
+    comment notes that it composes serves with no kernel step between); a per-node range as `.grow`'s first
     slice; the per-serve contract recorded once the questions are
     answered; the sound free list built before `kernel-refine.align`;
     room before a serve decided by a measurement.

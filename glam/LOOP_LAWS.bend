@@ -193,8 +193,10 @@ law lx_split:
 # acceptable."): E laid out apart from the tracked nodes (layout of
 # N ++ E), and no live node's faced port linking into E (px.off over E),
 # the host's wiring (net-obvious-errors). Besides: the free list's chain
-# over F ++ E, distinct, E none of the live nodes nor s nor the index's,
-# each its own base, past the header.
+# over F ++ E, each its own base, past the header. That E is none of the
+# tracked nodes, the live, s and the index's among them, and lists none
+# twice follows from the layout (docs/reviews/AllocFable_2026-11-26.md,
+# F5).
 # Record: cursors-indexed
 # Record: net-obvious-errors
 law lx_extend:
@@ -218,6 +220,9 @@ law lx_extend:
 # growth premises, LM.ext.ok) and split for the next copy's k nodes
 # (lx_split): the next serve's live list Con{s, tl}, its free list
 # take ++ drop, its tracked list the rest, then those, as serve_loop asks.
+# Two serves with no kernel step between: the host reduces between serves
+# (host.go), and carrying the invariant across its steps is the kernel
+# refinement's (docs/reviews/Alloc_2026-11-26.md).
 # Record: cursors-indexed
 # Record: serve-premises-over-index
 # Record: copy-reduced-function-nets

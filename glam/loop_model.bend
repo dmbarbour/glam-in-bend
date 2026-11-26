@@ -30,9 +30,9 @@ def tl(L: List<&2, U32>) -> List<&2, U32>:
       r
 
 # the growth premises (glam/LOOP_LAWS.bend, lx_extend): free nodes E past
-# the free list's tracked prefix F, chained after it and distinct, none
-# of the live nodes nor s nor the index's, laid out apart from the
-# tracked nodes N, no live node's faced port linking into them, each its
-# own base, past the header; the kernel's to discharge (kernel-refine)
+# the free list's tracked prefix F, chained after it, laid out apart from
+# the tracked nodes N (so none of them, and none twice), no live node's
+# faced port linking into them, each its own base, past the header; the
+# kernel's to discharge (kernel-refine; docs/reviews/Alloc_2026-11-26.md)
 def ext.ok(+v: List<&2, U32>, +d: Nat, +s: U32, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>, +E: List<&2, U32>) -> Bool:
-  KMd.chain(List.append(&2, U32, F, E), v, d, KMd.word(v, d, P.at_fh())) && (RG.distinct(List.append(&2, U32, F, E)) && (RG.none.in(E, L) && (RG.none.in(E, Con{s, IM.ix.nodes(I)}) && (RG.layout(List.append(&2, U32, N, E), d) && (RG.px.off(L, v, d, L, E) && (RG.bases(E) && (KMd.past(E, d))))))))
+  KMd.chain(List.append(&2, U32, F, E), v, d, KMd.word(v, d, P.at_fh())) && (RG.layout(List.append(&2, U32, N, E), d) && (RG.px.off(L, v, d, L, E) && (RG.bases(E) && (KMd.past(E, d)))))
