@@ -43,7 +43,9 @@ law first. We can back off if it's impractical."
 7. `cursor-laws.loop`: the invariant established, reshaped once, and
    the wires stated. It restates every law, so it comes after the steps
    that add laws, which it then simplifies. It is split in three so that
-   the base case comes first.
+   the base case comes first. `cursor-laws.alloc`, a review of the
+   free list's laws, falls within it, after `.loop.shape.next` (the
+   maintainer, 2026-11-26).
 8. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
 9. `cursor-laws.watch`, throughout.
@@ -1035,6 +1037,44 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         same wider law.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
+  - `cursor-laws.alloc` — planned — a review of how the laws manage
+    allocation and the heap's growth, two reviewers, the agent and a
+    Fable sub-agent, Fable's kept beside as written (the maintainer,
+    2026-11-26: "Adding six premises related to free lists suggests
+    it's about time to lawfully manage allocation and growth
+    explicitly. But I'm not sure exactly when to handle it and how much
+    it cleans up beyond the immediate."). Done next, within `.loop`,
+    before `cursor-laws.loop.shape.root` and
+    `cursor-laws.loop.shape.grow`: the growth step is the heap's growth
+    itself, and the root's serve would take `LM.ext.ok` again.
+    `cursor-laws.loop.shape.next` waits on its verdict on `LM.ext.ok`
+    before merging. What it builds, if anything, becomes steps here or
+    a plan of its own. Its questions:
+    - What `LM.ext.ok`'s eight premises become: the two accepted (laid
+      out apart from the tracked nodes, no faced port linking into the
+      new ones) and six the free list should give (its chain past the
+      tracked prefix, distinct, none of the live nodes nor `s` nor the
+      index's, each its own base, past the header).
+    - How much it cleans up beyond them. About 49 laws take a premise
+      touching the free list (its chain, `IM.fl.ok`, `FL.ok`, the free
+      head's word, or `RG.px.ok` carrying it; a rough count by
+      pattern, 2026-11-26), over three models of it:
+      `spike/freelist.bend`'s `FL.ok` (each free slot on the list once
+      and nothing else, with laws for an allocation and a free, not
+      bridged to the words); `KMd.chain` (a prefix of it over the
+      words, the splice's and the serve's); `IM.fl.ok` (the index's,
+      each its own node).
+    - The approaches, among others: premises, as now; `FL.ok`'s
+      partition bridged to the words, a node free or in use and never
+      both; the layout by arithmetic over any two distinct bases
+      (`bases_apart`, generalized), so that the tracked list needs no
+      growth; a mark past which every node is free and untouched, the
+      heap's doubling past it (`spike/kmem_grow.bend`); the kernel's
+      reserve (`kernel-refine.align`). Which hold by computation
+      (P10).
+    - When: now, with `.loop`'s laws restated once; after the loop
+      closes; or with `kernel-refine`. What each costs in proofs
+      restated and verdict time.
   - `cursor-laws.index` — planned — the index's 41 laws by
     disposition, as `.retire`'s were (H6, H9, H12). M.
     - Each law gets the downstream proof that uses it, or the reason it
