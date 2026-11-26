@@ -214,6 +214,12 @@ where the shared lazy state that Bend cannot hold goes.
 - [`free-list-sound`](decisions/free-list-sound.md): the
   materializer's laws ask only that a listed free node is not in use;
   no leaks is a property and a law of its own.
+- [`free-mark-internal`](decisions/free-mark-internal.md): what marks
+  a free node is the kernel's representation, read through one
+  predicate pair that laws cite; no law spells the encoding.
+- [`collect-before-growth`](decisions/collect-before-growth.md): a net
+  glam runs tries a collection before its store grows; room is one
+  policy with one home.
 - [`splice-erasers-static`](decisions/splice-erasers-static.md): the
   splice makes a template's erasers static as it links, no node made
   and freed for them; two erasers linked to each other, a pair demand

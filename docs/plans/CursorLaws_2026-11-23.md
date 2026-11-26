@@ -1077,10 +1077,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     Found on the way: a template may carry the free kind, whose header
     reads free (C6); a serve that cannot grow writes over the interface
     before the run stops (C3); no glam net keeps a reserve. Four
-    questions to the maintainer. Its sub-steps, ordered:
-    - `cursor-laws.alloc.mark` — tentative — the mark's one definition,
-      the wiring's reading through it, `free`'s and the headers' laws,
-      C6 settled; recorded once the mark's meaning is ruled.
+    questions to the maintainer, answered the same day (the review's
+    last section; `free-mark-internal`, `collect-before-growth`). Its
+    sub-steps, ordered:
+    - `cursor-laws.alloc.mark` — planned — the mark's one definition
+      (`free-mark-internal`: the encoding the kernel's, behind
+      `KMd.free_at` and `KMd.used_at`), the wiring's reading and the
+      audit through it, `free`'s and the headers' laws, and C6 closed
+      as a fact of templates (their nodes of kinds in use).
     - `cursor-laws.alloc.count` — planned — serves and copies counted
       against interactions over the sample ladder and the sharing
       families at n, 2n and 4n (`Cn`'s counters, no new build), and the
@@ -1089,7 +1093,25 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - `cursor-laws.alloc.guard` — tentative — the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
-      covered serve.
+      covered serve. Both forms measured: a walk then pops, and the
+      batch taken (the maintainer's preference of 2026-11-01 for the
+      kernel's room check, nodes "popped there and handed to the
+      rewrite"). Its growth goes through the room policy
+      (`collect-before-growth`), one call that `.collect` fills. A
+      serve refused whole where room cannot be made: a feature, no law
+      (the maintainer, 2026-11-26: "No need for atomic serves as law.
+      They are nice as a feature, though, if near free."). Early
+      doubling accepted ("Early doubling is okay.").
+    - `cursor-laws.alloc.collect` — planned — glam's nets collect before
+      they grow (`collect-before-growth`): the core's demand made a
+      collecting one, as `KS.demand.c` collects on its reserve; the
+      guard's growth asking for a collection first; a host's collector
+      keeping the situating node, its index, the cursors and the
+      placeholders, as a source's keeps the nodes a copy took
+      (`copied-nodes-untouched`). Then the laws' premise that the
+      reserve's word is 0 is discharged by the reserve's law. Work of
+      its own, measured as AGENTS.md asks; a plan of its own if it
+      grows.
     - `cursor-laws.alloc.sound` — tentative — the sound list over the
       mark and the primitives' laws (a pop, a free, `grow.done`,
       `grow_more`), before `kernel-refine.align`.
