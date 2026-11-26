@@ -1022,8 +1022,10 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             index's `nd.ok` to `ix.lay`, `off.port`, `po.n`, `po.all`)
             and the range (`up.inr`, `up.nin`). Written by
             `results/grow/gen_mono.py`, checked on the first run.
-          - `cursor-laws.loop.shape.grow.copy.drop` — planned — the
-            invariant with the free prefix dropped to `Nil`.
+          - `cursor-laws.loop.shape.grow.copy.drop` — built 2026-11-26 —
+            `lx_drop`: the invariant with the free prefix dropped to
+            `Nil`, the form handed between serves. Structural, so named
+            by no mutation.
           - `cursor-laws.loop.shape.grow.copy.up` — planned — `lx_up`:
             the invariant over the same lists, `F` `Nil`, carried from d
             to 1n+d where the tracked nodes' words read alike (a premise

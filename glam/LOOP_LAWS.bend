@@ -284,3 +284,23 @@ law bases_apart:
   for +hI: {RG.nodes.in(N, d) == True{} : Bool}
   for +hD: {RG.distinct(N) == True{} : Bool}
   {RG.layout(N, d) == True{} : Bool}
+
+# LAW: the wider invariant with the free list's tracked prefix dropped
+# (cursor-laws.loop.shape.grow.copy.drop): between serves the kernel's
+# steps take and give free nodes, so the prefix one serve leaves is not
+# the next one's (docs/reviews/AllocFable_2026-11-26.md, F9); the
+# invariant handed on holds nothing of the free list, which the next
+# serve's contract asks afresh (LM.ext.ok at F = Nil). Structural: it
+# forgets facts, so no mutation of the code can make it false.
+# Record: cursors-indexed
+# Record: laws-across-steps-iterative
+law lx_drop:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
+  {LM.lx.ok(v, d, s, I, L, Nil{}, N) == True{} : Bool}
