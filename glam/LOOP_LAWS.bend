@@ -184,3 +184,35 @@ law lx_split:
   for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
   for +hh: {LM.headed(L, s) == True{} : Bool}
   {LM.lx.ok(v, d, s, I, Con{s, LM.tl(L)}, List.append(&2, U32, List.take(&2, U32, F, k), List.drop(&2, U32, F, k)), List.append(&2, U32, RG.minus(N, List.take(&2, U32, F, k)), List.take(&2, U32, F, k))) == True{} : Bool}
+
+# LAW: the wider invariant over the tracked list and the free list's
+# tracked prefix grown by free nodes E past it
+# (cursor-laws.loop.shape.next.extend), for the next copy needing more
+# nodes than the prefix holds. Premises, the kernel's to discharge
+# (kernel-refine; the maintainer, 2026-11-26: "Premises now is
+# acceptable."): E laid out apart from the tracked nodes (layout of
+# N ++ E), and no live node's faced port linking into E (px.off over E),
+# the host's wiring (net-obvious-errors). Besides: the free list's chain
+# over F ++ E, distinct, E none of the live nodes nor s nor the index's,
+# each its own base, past the header.
+# Record: cursors-indexed
+# Record: net-obvious-errors
+law lx_extend:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +E: List<&2, U32>
+  for +hlx: {LM.lx.ok(v, d, s, I, L, F, N) == True{} : Bool}
+  for +hch: {KMd.chain(List.append(&2, U32, F, E), v, d, KMd.word(v, d, P.at_fh())) == True{} : Bool}
+  for +hdE: {RG.distinct(List.append(&2, U32, F, E)) == True{} : Bool}
+  for +hEL: {RG.none.in(E, L) == True{} : Bool}
+  for +hEI: {RG.none.in(E, Con{s, IM.ix.nodes(I)}) == True{} : Bool}
+  for +hlay: {RG.layout(List.append(&2, U32, N, E), d) == True{} : Bool}
+  for +hbE: {RG.bases(E) == True{} : Bool}
+  for +hpE: {KMd.past(E, d) == True{} : Bool}
+  for +hpo: {RG.px.off(L, v, d, L, E) == True{} : Bool}
+  {LM.lx.ok(v, d, s, I, L, List.append(&2, U32, F, E), List.append(&2, U32, N, E)) == True{} : Bool}

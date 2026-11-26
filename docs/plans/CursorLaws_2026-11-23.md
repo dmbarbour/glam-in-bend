@@ -1002,7 +1002,17 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           nodes but those, then those (`RG.minus`), the live list to
           `Con{s, tl}`: the wider invariant over the next serve's lists,
           by `px_sub`, `lay_sub`, `bases_sub`, `kpast_sub`.
-        - `cursor-laws.loop.shape.next.extend` — planned — the tracked
+        - `cursor-laws.loop.shape.next.extend` — built 2026-11-26 —
+          `lx_extend`, the two premises stated as the layout of `N ++ E`
+          and the faced ports' link words off `E`'s nodes, with the free
+          list's chain over `F ++ E`, its distinctness, `E` none of the
+          live nodes nor `s` nor the index's, each its own base, past the
+          header; with `bases_app`, `past_app`, `pxoff_app`. Named by no
+          mutation: every fact it concludes over the grown lists is a
+          premise, unchanged, or a per-node fold over an append, which an
+          append keeps whatever the per-node test, a mutation of the test
+          changing premise and conclusion alike; what it claims is that
+          these premises are all the grown lists need. As planned: the tracked
           list and the free list's tracked prefix grown by nodes past
           it, under the two premises.
         - `cursor-laws.loop.shape.next.compose` — planned — one serve's
