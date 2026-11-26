@@ -8,6 +8,7 @@
 import Base
 import ./GROW_LAWS.bend as Laws
 import ./kmem_grow.bend as KM
+import ./kprim.bend as P
 import ./grow_model.bend as GM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
@@ -178,14 +179,6 @@ def ca.in(+k: Nat, +i: U32, -src: Array<U32>, -dst: Array<U32>, +j: U32, +D: Nat
       ca.s(Nat.is_eq(U32.to_nat(i), U32.to_nat(j)), i, j, ts, td, p, D, c, {==}, hfd1, hD, hcD, hiD, e1, hr1, hlo, hhi,
         h1 => h2 => ca.in(p, (i + 1 : U32), LAT.fromT(U32, ts), Array.set(U32, LAT.fromT(U32, td), i, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, ts), i))), j, D, c, LA.set_full(U32, LAT.fromT(U32, td), D, i, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, ts), i)), hfd1), hD, hcD, hr1, h1, h2, LAT.mirror(U32, LAT.fromT(U32, ts)), LAT.mirror(U32, Array.set(U32, LAT.fromT(U32, td), i, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, ts), i))))))
 
-# 0 below or at every number
-def le0(n: Nat) -> {Nat.is_le(0n, n) == True{} : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+p:
-      {==}
-
 # the grown store as a copy into one level deeper: the depth's premise
 # and Nat.add(d, 1n) as 1n+d
 def gr.eq(-w: Array<U32>, +d: Nat, +cap: U32, +hdp: {KM.depth(32n, cap, 0n) == d : Nat}) -> {GM.arr(KM.grow(KM.MG{w}, cap)) == KM.copy(U32.to_nat(cap), 0, KM.CP{w, Array.new(U32, 1n+d, 0)}) : Array<U32>}:
@@ -202,7 +195,7 @@ def Laws.grow_old(w, d, cap, j, hd, hc, hdp, hj):
   +hcD = ME.subst(Nat, q => {Nat.is_le(q, Nat.pow(2n, 1n+d)) == True{} : Bool}, Nat.pow(2n, d), U32.to_nat(cap), Equal.sym(Nat, U32.to_nat(cap), Nat.pow(2n, d), hc),
     MN.pow_le_pow_right(1n, d, 1n+d, MN.le_succ(d)))
   +hhi = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(j), q) == True{} : Bool}, Nat.pow(2n, d), U32.to_nat(cap), Equal.sym(Nat, U32.to_nat(cap), Nat.pow(2n, d), hc), hj)
-  ca.in(U32.to_nat(cap), 0, w, Array.new(U32, 1n+d, 0), j, 1n+d, cap, LA.new_full(U32, 1n+d, 0), hd, hcD, MN.le_refl(U32.to_nat(cap)), le0(U32.to_nat(j)), hhi, LAT.mirror(U32, w), LAT.mirror(U32, Array.new(U32, 1n+d, 0)))
+  ca.in(U32.to_nat(cap), 0, w, Array.new(U32, 1n+d, 0), j, 1n+d, cap, LA.new_full(U32, 1n+d, 0), hd, hcD, MN.le_refl(U32.to_nat(cap)), MN.zero_le(U32.to_nat(j)), hhi, LAT.mirror(U32, w), LAT.mirror(U32, Array.new(U32, 1n+d, 0)))
 
 def Laws.grow_new(w, d, cap, j, hd, hc, hdp, hj0, hj1):
   %Equal.sym(Array<U32>, GM.arr(KM.grow(KM.MG{w}, cap)), KM.copy(U32.to_nat(cap), 0, KM.CP{w, Array.new(U32, 1n+d, 0)}), gr.eq(w, d, cap, hdp)) : {Pair.snd(Array<U32>, U32, Array.get(U32, _, j)) == 0 : U32}
@@ -221,3 +214,119 @@ def Laws.ensure_once(m, n, cap, maxd, h1, h2, h3):
   %Equal.sym(Bool, U32.is_le(n, (cap * 2 : U32)), True{}, h3) :
     {KM.ens(31n, KM.decide(_, Nat.is_ge(KM.depth(32n, (cap * 2 : U32), 0n), maxd), KM.grow(m, cap), (cap * 2 : U32)), n, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
   {==}
+
+# x + 1 below x + 2 + q
+def lt2(+x: Nat, +q: Nat) -> {Nat.is_lt(1n+x, Nat.add(x, 2n+q)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(x, 2n+q), 1n+Nat.add(x, 1n+q), MN.add_succ(x, 1n+q)) : {Nat.is_lt(1n+x, _) == True{} : Bool}
+  %Equal.sym(Nat, Nat.add(x, 1n+q), 1n+Nat.add(x, q), MN.add_succ(x, q)) : {Nat.is_lt(1n+x, 1n+_) == True{} : Bool}
+  MN.lt_succ_of_le(x, Nat.add(x, q), MN.le_add_right(x, q))
+
+# x + (4 + q) as 4 + (x + q)
+def add4(+x: Nat, +q: Nat) -> {Nat.add(x, 4n+q) == 4n+Nat.add(x, q) : Nat}:
+  %Equal.sym(Nat, Nat.add(x, 1n+3n+q), 1n+Nat.add(x, 3n+q), MN.add_succ(x, 3n+q)) : {_ == 4n+Nat.add(x, q) : Nat}
+  %Equal.sym(Nat, Nat.add(x, 1n+2n+q), 1n+Nat.add(x, 2n+q), MN.add_succ(x, 2n+q)) : {1n+_ == 4n+Nat.add(x, q) : Nat}
+  %Equal.sym(Nat, Nat.add(x, 1n+1n+q), 1n+Nat.add(x, 1n+q), MN.add_succ(x, 1n+q)) : {2n+_ == 4n+Nat.add(x, q) : Nat}
+  %Equal.sym(Nat, Nat.add(x, 1n+q), 1n+Nat.add(x, q), MN.add_succ(x, q)) : {3n+_ == 4n+Nat.add(x, q) : Nat}
+  {==}
+
+# n at most 4n
+def le4(+n: Nat) -> {Nat.is_le(n, Nat.mul(n, 4n)) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      MN.le_trans(p, Nat.mul(p, 4n), 3n+Nat.mul(p, 4n), le4(p), MN.le_add_left(Nat.mul(p, 4n), 3n))
+
+# node i's word 1, 4i + 1 as a number below the bound c; 2^32 abstract
+# as m, put back only for the shift's premise
+def w1n.k(+m: Nat, +e: {Nat.pow(2n, 32n) == m : Nat}, +i: U32, +c: U32, +h: {Nat.is_lt(Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c)) == True{} : Bool}) -> {U32.to_nat(((i << 2n : U32) + 1 : U32)) == 1n+Nat.mul(U32.to_nat(i), 4n) : Nat}:
+  +hp = ME.subst(Nat, q => {Nat.is_lt(q, U32.to_nat(c)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), Nat.mul(U32.to_nat(i), Nat.pow(2n, 2n)), {==}, h)
+  +hcm = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(c), q) == True{} : Bool}, Nat.pow(2n, 32n), m, e, WL.to_nat_lt(c))
+  +hfm = MN.lt_of_lt_of_le(Nat.mul(U32.to_nat(i), Nat.pow(2n, 2n)), U32.to_nat(c), m, hp, MN.le_of_lt(U32.to_nat(c), m, hcm))
+  +hf = ME.subst(Nat, q => {Nat.is_lt(Nat.mul(U32.to_nat(i), Nat.pow(2n, 2n)), q) == True{} : Bool}, m, Nat.pow(2n, 32n), Equal.sym(Nat, Nat.pow(2n, 32n), m, e), hfm)
+  +es = WL.to_nat_shln_fits(i, 2n, hf)
+  +hs = ME.subst(Nat, q => {Nat.is_lt(q, U32.to_nat(c)) == True{} : Bool}, Nat.mul(U32.to_nat(i), Nat.pow(2n, 2n)), U32.to_nat(U32.shln(i, 2n)), Equal.sym(Nat, U32.to_nat(U32.shln(i, 2n)), Nat.mul(U32.to_nat(i), Nat.pow(2n, 2n)), es), hp)
+  Equal.trans(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), 1n+U32.to_nat(U32.shln(i, 2n)), 1n+Nat.mul(U32.to_nat(i), 4n), tn1(U32.shln(i, 2n), c, hs), Equal.cong(Nat, Nat, z => 1n+z, U32.to_nat(U32.shln(i, 2n)), Nat.mul(U32.to_nat(i), 4n), es))
+
+def w1n(+i: U32, +c: U32, +h: {Nat.is_lt(Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c)) == True{} : Bool}) -> {U32.to_nat(((i << 2n : U32) + 1 : U32)) == 1n+Nat.mul(U32.to_nat(i), 4n) : Nat}:
+  w1n.k(Nat.pow(2n, 32n), {==}, i, c, h)
+
+def tb(+k: Nat, +i: U32, +to: U32, -a: Array<U32>, +j: U32, +D: Nat, +c: U32, +hf: {AD.full(U32, a, D) == True{} : Bool}, +hD: {Nat.is_lt(D, 32n) == True{} : Bool},
+  +hc: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(k, 4n)), U32.to_nat(c)) == True{} : Bool}, +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool}, +hj: {Nat.is_lt(U32.to_nat(j), Nat.mul(U32.to_nat(i), 4n)) == True{} : Bool}, ma: LAT.Mirror(U32, a)) ->
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, a, j)) : U32}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      (+ta, +ea) = ma
+      +hfa = LAP.full_t(U32, a, ta, D, ea, hf)
+      %ea : {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(1n+p, KM.MG{_}, i, to)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, _, j)) : U32}
+      +hW = MN.lt_of_lt_of_le(1n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(p, 4n)), U32.to_nat(c), lt2(Nat.mul(U32.to_nat(i), 4n), 2n+Nat.mul(p, 4n)), hc)
+      +hMC = MN.lt_of_lt_of_le(Nat.mul(U32.to_nat(i), 4n), 1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), MN.lt_succ_of_le(Nat.mul(U32.to_nat(i), 4n), Nat.mul(U32.to_nat(i), 4n), MN.le_refl(Nat.mul(U32.to_nat(i), 4n))), MN.le_of_lt(1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), hW))
+      +ew = w1n(i, c, hMC)
+      +hWD = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, D)) == True{} : Bool}, 1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(((i << 2n : U32) + 1 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), 1n+Nat.mul(U32.to_nat(i), 4n), ew), MN.lt_of_lt_of_le(1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), Nat.pow(2n, D), hW, hcD))
+      +hjD = MN.lt_of_lt_of_le(U32.to_nat(j), U32.to_nat(c), Nat.pow(2n, D), MN.lt_of_lt_of_le(U32.to_nat(j), Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), hj, MN.le_of_lt(Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), hMC)), hcD)
+      +hne = ME.subst(Nat, q => {Nat.is_eq(q, U32.to_nat(j)) == False{} : Bool}, 1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(((i << 2n : U32) + 1 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), 1n+Nat.mul(U32.to_nat(i), 4n), ew),
+        ne_flip(U32.to_nat(j), 1n+Nat.mul(U32.to_nat(i), 4n), ne_lt(U32.to_nat(j), 1n+Nat.mul(U32.to_nat(i), 4n), MN.lt_of_lt_of_le(U32.to_nat(j), Nat.mul(U32.to_nat(i), 4n), 1n+Nat.mul(U32.to_nat(i), 4n), hj, MN.le_succ(Nat.mul(U32.to_nat(i), 4n))))))
+      +hiC = MN.lt_of_le_of_lt(U32.to_nat(i), Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), le4(U32.to_nat(i)), hMC)
+      +e1 = tn1(i, c, hiC)
+      +hc1 = ME.subst(Nat, q => {Nat.is_le(Nat.add(Nat.mul(q, 4n), Nat.mul(p, 4n)), U32.to_nat(c)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1),
+        ME.subst(Nat, q => {Nat.is_le(q, U32.to_nat(c)) == True{} : Bool}, Nat.add(Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(p, 4n)), 4n+Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(p, 4n)), add4(Nat.mul(U32.to_nat(i), 4n), Nat.mul(p, 4n)), hc))
+      +hj1 = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(j), Nat.mul(q, 4n)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1),
+        MN.lt_of_lt_of_le(U32.to_nat(j), Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(U32.to_nat(i), 4n), hj, MN.le_add_left(Nat.mul(U32.to_nat(i), 4n), 4n)))
+      +ih = tb(p, (i + 1 : U32), to, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), j, D, c, LA.set_full(U32, LAT.fromT(U32, ta), D, ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)), hfa), hD, hc1, hcD, hj1, LAT.mirror(U32, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))))
+      Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(p, KM.MG{Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))}, (i + 1 : U32), to)), j)), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), j)), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, ta), j)), ih,
+        LA.get_set_other(U32, LAT.fromT(U32, ta), D, ((i << 2n : U32) + 1 : U32), j, P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)), hfa, hD, sl_ne(((i << 2n : U32) + 1 : U32), j, D, hWD, hjD, hne)))
+
+def Laws.thread_below(k, i, to, a, j, D, c, hf, hD, hc, hcD, hj):
+  tb(k, i, to, a, j, D, c, hf, hD, hc, hcD, hj, LAT.mirror(U32, a))
+
+# the node just written, or one further on: n as i, its word written now
+# and kept by the writes after (tb), or past it, by the induction
+def tl.s(+e: Bool, +i: U32, +to: U32, +n: U32, +ta: LAT.Tree<U32>, +p: Nat, +D: Nat, +c: U32, +he: {Nat.is_eq(U32.to_nat(i), U32.to_nat(n)) == e : Bool},
+  +hfa: {AD.full(U32, LAT.fromT(U32, ta), D) == True{} : Bool}, +hD: {Nat.is_lt(D, 32n) == True{} : Bool}, +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool},
+  +hc1: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat((i + 1 : U32)), 4n), Nat.mul(p, 4n)), U32.to_nat(c)) == True{} : Bool}, +e1: {U32.to_nat((i + 1 : U32)) == 1n+U32.to_nat(i) : Nat}, +ew: {U32.to_nat(((i << 2n : U32) + 1 : U32)) == 1n+Nat.mul(U32.to_nat(i), 4n) : Nat},
+  +hlo: {Nat.is_le(U32.to_nat(i), U32.to_nat(n)) == True{} : Bool}, +hhi: {Nat.is_lt(U32.to_nat(n), Nat.add(U32.to_nat(i), 1n+p)) == True{} : Bool},
+  ih: {Nat.is_le(U32.to_nat((i + 1 : U32)), U32.to_nat(n)) == True{} : Bool} -> {Nat.is_lt(U32.to_nat(n), Nat.add(U32.to_nat((i + 1 : U32)), p)) == True{} : Bool} -> {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(p, KM.MG{Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))}, (i + 1 : U32), to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}) ->
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(p, KM.MG{Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))}, (i + 1 : U32), to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}:
+  match e:
+    case True{}:
+      +ein = WL.to_nat_inj(i, n, MN.eq_of_is_eq(U32.to_nat(i), U32.to_nat(n), he))
+      +hj0 = MN.lt_succ_of_le(1n+Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_add_left(Nat.mul(U32.to_nat(i), 4n), 2n))
+      +hj1 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.mul(1n+U32.to_nat(i), 4n)) == True{} : Bool}, 1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(((i << 2n : U32) + 1 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), 1n+Nat.mul(U32.to_nat(i), 4n), ew), hj0)
+      +hjW = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(((i << 2n : U32) + 1 : U32)), Nat.mul(q, 4n)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), hj1)
+      +hat = Equal.trans(U32, Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(p, KM.MG{Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))}, (i + 1 : U32), to)), ((i << 2n : U32) + 1 : U32))), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), ((i << 2n : U32) + 1 : U32))), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)),
+        tb(p, (i + 1 : U32), to, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), ((i << 2n : U32) + 1 : U32), D, c, LA.set_full(U32, LAT.fromT(U32, ta), D, ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)), hfa), hD, hc1, hcD, hjW, LAT.mirror(U32, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))))),
+        LA.get_set_same(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))))
+      ME.subst(U32, z => {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(p, KM.MG{Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)))}, (i + 1 : U32), to)), ((z << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((z + 1 : U32), to), (z + 1 : U32)) : U32}, i, n, ein, hat)
+    case False{}:
+      +hlt = lt_le_ne(U32.to_nat(i), U32.to_nat(n), hlo, he)
+      +hlo2 = ME.subst(Nat, q => {Nat.is_le(q, U32.to_nat(n)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), MN.succ_le_of_lt(U32.to_nat(i), U32.to_nat(n), hlt))
+      +hhi2 = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(n), Nat.add(q, p)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1),
+        ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(n), q) == True{} : Bool}, Nat.add(U32.to_nat(i), 1n+p), 1n+Nat.add(U32.to_nat(i), p), MN.add_succ(U32.to_nat(i), p), hhi))
+      ih(hlo2, hhi2)
+
+def tl(+k: Nat, +i: U32, +to: U32, -a: Array<U32>, +n: U32, +D: Nat, +c: U32, +hf: {AD.full(U32, a, D) == True{} : Bool}, +hD: {Nat.is_lt(D, 32n) == True{} : Bool},
+  +hc: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(k, 4n)), U32.to_nat(c)) == True{} : Bool}, +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool},
+  +hlo: {Nat.is_le(U32.to_nat(i), U32.to_nat(n)) == True{} : Bool}, +hhi: {Nat.is_lt(U32.to_nat(n), Nat.add(U32.to_nat(i), k)) == True{} : Bool}, ma: LAT.Mirror(U32, a)) ->
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}:
+  match k:
+    case 0n:
+      +h0 = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(n), q) == True{} : Bool}, Nat.add(U32.to_nat(i), 0n), U32.to_nat(i), MN.add_zero(U32.to_nat(i)), hhi)
+      Empty.absurd({Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(0n, KM.MG{a}, i, to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}, MN.lt_irrefl(U32.to_nat(i))(MN.lt_of_le_of_lt(U32.to_nat(i), U32.to_nat(n), U32.to_nat(i), hlo, h0)))
+    case 1n+p:
+      (+ta, +ea) = ma
+      +hfa = LAP.full_t(U32, a, ta, D, ea, hf)
+      %ea : {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(1n+p, KM.MG{_}, i, to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}
+      +hW = MN.lt_of_lt_of_le(1n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(p, 4n)), U32.to_nat(c), lt2(Nat.mul(U32.to_nat(i), 4n), 2n+Nat.mul(p, 4n)), hc)
+      +hMC = MN.lt_of_lt_of_le(Nat.mul(U32.to_nat(i), 4n), 1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), MN.lt_succ_of_le(Nat.mul(U32.to_nat(i), 4n), Nat.mul(U32.to_nat(i), 4n), MN.le_refl(Nat.mul(U32.to_nat(i), 4n))), MN.le_of_lt(1n+Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), hW))
+      +ew = w1n(i, c, hMC)
+      +hiC = MN.lt_of_le_of_lt(U32.to_nat(i), Nat.mul(U32.to_nat(i), 4n), U32.to_nat(c), le4(U32.to_nat(i)), hMC)
+      +e1 = tn1(i, c, hiC)
+      +hc1 = ME.subst(Nat, q => {Nat.is_le(Nat.add(Nat.mul(q, 4n), Nat.mul(p, 4n)), U32.to_nat(c)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1),
+        ME.subst(Nat, q => {Nat.is_le(q, U32.to_nat(c)) == True{} : Bool}, Nat.add(Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(p, 4n)), 4n+Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(p, 4n)), add4(Nat.mul(U32.to_nat(i), 4n), Nat.mul(p, 4n)), hc))
+      tl.s(Nat.is_eq(U32.to_nat(i), U32.to_nat(n)), i, to, n, ta, p, D, c, {==}, hfa, hD, hcD, hc1, e1, ew, hlo, hhi,
+        h1 => h2 => tl(p, (i + 1 : U32), to, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), n, D, c, LA.set_full(U32, LAT.fromT(U32, ta), D, ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32)), hfa), hD, hc1, hcD, h1, h2, LAT.mirror(U32, Array.set(U32, LAT.fromT(U32, ta), ((i << 2n : U32) + 1 : U32), P.link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))))))
+
+def Laws.thread_link(k, i, to, a, n, D, c, hf, hD, hc, hcD, hlo, hhi):
+  tl(k, i, to, a, n, D, c, hf, hD, hc, hcD, hlo, hhi, LAT.mirror(U32, a))

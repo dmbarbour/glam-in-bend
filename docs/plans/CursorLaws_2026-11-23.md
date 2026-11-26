@@ -1070,14 +1070,28 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               to `.kept`, which states the capacity word's relation to
               the depth. Its mutant, the capacity reported as four times
               the old, refuted by a witness.
-            - `cursor-laws.loop.shape.grow.copy.store.thread` — planned —
-              `grow.done`'s `thread`, head and capacity; `gm.link` and
-              the free that puts node `wcap0` back: the new nodes chained
-              ahead of the old list.
+            - `cursor-laws.loop.shape.grow.copy.store.thread` — built
+              2026-11-26 — `P.thread` over the grown store's words:
+              `thread_below`, each word below node i's (index 4i) read as
+              before, the old store kept; `thread_link`, node n of
+              i .. i + k - 1 reading in word 1 the next node, encoded one
+              on, or the list's end (`P.link_of.go`). The words written
+              bounded by a word c within the store's 2^D; 4i + 1 a number
+              through the shift's `to_nat_shln_fits`, 2^32 abstract
+              (`w1n`). Mutants, each refuted by a witness on an
+              eight-word store: the link written at i + 1, unshifted; the
+              last node linked on, not ended. A mutant of `link_of.go`
+              itself changes both sides of `thread_link`: the encoding's
+              meaning is the chain's, in `.kept`.
             - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
-              `grow_more` discharging `LM.kept` for tracked nodes below the
-              old capacity and past the header, and `LM.ext.ok`'s chain,
-              range and marks for the fresh nodes.
+              `grow_more` composed: `m_ensure`'s doubling (`ensure_once`,
+              its products from the capacity word's relation to the
+              depth), the copy, the thread, `grow.done`'s head and
+              capacity, `gm.link`'s link to the old list and the free
+              that puts node `wcap0` back; discharging `LM.kept` for
+              tracked nodes below the old capacity and past the header,
+              and `LM.ext.ok`'s chain, range and marks for the fresh
+              nodes.
             As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:

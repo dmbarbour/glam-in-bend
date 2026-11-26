@@ -7,6 +7,7 @@
 
 import Base
 import ./kmem_grow.bend as KM
+import ./kprim.bend as P
 import ./grow_model.bend as GM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
@@ -72,3 +73,44 @@ law ensure_once:
   for +h2: {Nat.is_ge(KM.depth(32n, cap, 0n), maxd) == False{} : Bool}
   for +h3: {U32.is_le(n, (cap * 2 : U32)) == True{} : Bool}
   {KM.m_ensure(m, n, cap, maxd) == (KM.grow(m, cap), (cap * 2 : U32)) : KM.M & U32}
+
+# LAW: threading the grown store's new nodes (P.thread, under grow.done)
+# writes only word 1 of nodes i on, so that each word below node i's,
+# index 4i, reads as before: the old store's words kept. c a word bound
+# on the words written (4(i + k) of them), within the store's 2^D.
+# Record: net-nodes-double
+law thread_below:
+  for k: Nat
+  for +i: U32
+  for +to: U32
+  for a: Array<U32>
+  for +j: U32
+  for +D: Nat
+  for +c: U32
+  for +hf: {AD.full(U32, a, D) == True{} : Bool}
+  for +hD: {Nat.is_lt(D, 32n) == True{} : Bool}
+  for +hc: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(k, 4n)), U32.to_nat(c)) == True{} : Bool}
+  for +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool}
+  for +hj: {Nat.is_lt(U32.to_nat(j), Nat.mul(U32.to_nat(i), 4n)) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, a, j)) : U32}
+
+# LAW: threading the grown store's new nodes links each in turn: node n
+# of i .. i + k - 1 reads, in its word 1, the next node (n + 1, encoded
+# one on) or, for the last before to, the list's end (P.link_of.go). The
+# bounds as thread_below's.
+# Record: net-nodes-double
+law thread_link:
+  for k: Nat
+  for +i: U32
+  for +to: U32
+  for a: Array<U32>
+  for +n: U32
+  for +D: Nat
+  for +c: U32
+  for +hf: {AD.full(U32, a, D) == True{} : Bool}
+  for +hD: {Nat.is_lt(D, 32n) == True{} : Bool}
+  for +hc: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(k, 4n)), U32.to_nat(c)) == True{} : Bool}
+  for +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool}
+  for +hlo: {Nat.is_le(U32.to_nat(i), U32.to_nat(n)) == True{} : Bool}
+  for +hhi: {Nat.is_lt(U32.to_nat(n), Nat.add(U32.to_nat(i), k)) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), ((n << 2n : U32) + 1 : U32))) == P.link_of.go(U32.is_lt((n + 1 : U32), to), (n + 1 : U32)) : U32}
