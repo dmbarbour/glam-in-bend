@@ -69,10 +69,90 @@ def mz.end(+whole: Bool, s: P.H, h: P.H, +m: U32, +t: T.Tpl) -> Mz:
     case False{}:
       Mz{s, h, m}
 
-def mz.fz.t(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
+# Room for a serve, made before its first write (cursor-laws.alloc.guard):
+# the free list walked for the template's size and the crossings' nodes,
+# an over-count harmless since nothing is set aside; where it is short,
+# the room policy grows the store and walks again, at most 32 times. The
+# policy is one call, mz.more, which tries a collection first once glam's
+# nets collect (collect-before-growth, cursor-laws.alloc.collect). A serve
+# room cannot be made for is refused whole, the host untouched and an
+# error counted (a feature, not a law: the maintainer, 2026-11-26). Room
+# first costs at most 0.18% of a run (store run 358).
+def mz.more(h: P.H) -> P.H & Bool:
+  P.grow_more(h)
+
+type Rm is Type:
+  RmDone{h: P.H, +ok: Bool}
+  RmMore{r: P.H & Bool}
+
+def rm.grew(+grew: Bool, h: P.H, +k: Nat) -> Rm:
+  match grew:
+    case True{}:
+      RmMore{P.frees(k, h)}
+    case False{}:
+      RmDone{h, False{}}
+
+def rm.more(r: P.H & Bool, +k: Nat) -> Rm:
+  (h, +grew) = r
+  rm.grew(grew, h, k)
+
+def rm.ok(+ok: Bool, h: P.H, +k: Nat) -> Rm:
+  match ok:
+    case True{}:
+      RmDone{h, True{}}
+    case False{}:
+      rm.more(mz.more(h), k)
+
+def rm.step(r: P.H & Bool, +k: Nat) -> Rm:
+  (h, +ok) = r
+  rm.ok(ok, h, k)
+
+def rm.out(st: Rm) -> P.H & Bool:
+  match st:
+    case RmDone{h, +ok}:
+      (h, ok)
+    case RmMore{r}:
+      r
+
+def rm.loop(f: Nat, st: Rm, +k: Nat) -> P.H & Bool:
+  match f:
+    case 0n:
+      rm.out(st)
+    case 1n+p:
+      match st:
+        case RmDone{h, +ok}:
+          (h, ok)
+        case RmMore{r}:
+          rm.loop(p, rm.step(r, k), k)
+
+# the store with room for k nodes on its free list, and whether it has it
+def mz.room(h: P.H, +k: Nat) -> P.H & Bool:
+  rm.loop(32n, rm.step(P.frees(k, h), k), k)
+
+# the nodes a serve may take: its template's, and a branch a crossing
+def mz.need(+t: T.Tpl, +curs: List<&2, R.FzC>) -> Nat:
+  match t:
+    case T.Tpl{nodes, links, root, +size}:
+      Nat.add(U32.to_nat(size), List.length(&2, R.FzC, curs))
+
+def mz.fz.s(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   match t:
     case T.Tpl{nodes, links, root, +size}:
       mz.end(whole, s, SC.serve(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m, t)
+
+def mz.fz.ok(+ok: Bool, +whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
+  match ok:
+    case True{}:
+      mz.fz.s(whole, s, t, curs, m, h, situ, k, nc, at_root)
+    case False{}:
+      mz.end(whole, s, P.err_if(True{}, h), m, t)
+
+def mz.fz.r(r: P.H & Bool, +whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
+  (h, +ok) = r
+  mz.fz.ok(ok, whole, s, t, curs, m, h, situ, k, nc, at_root)
+
+def mz.fz.t(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
+  mz.fz.r(mz.room(h, mz.need(t, curs)), whole, s, t, curs, m, situ, k, nc, at_root)
 
 def mz.fz(r: P.H & F.Fz, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   (s, f) = r
@@ -266,13 +346,27 @@ type Sv1 is Type:
   S1Cur{h: P.H, +x: U32, +n: U32}
   S1Bad{h: P.H, +n: U32}
 
+def mz1.s(h: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
+  match t:
+    case T.Tpl{nodes, links, root, +size}:
+      (SC.serve(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m)
+
+def mz1.ok(+ok: Bool, h: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
+  match ok:
+    case True{}:
+      mz1.s(h, t, curs, m, situ, k, nc, at_root)
+    case False{}:
+      (P.err_if(True{}, h), m)
+
+def mz1.r(r: P.H & Bool, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
+  (h, +ok) = r
+  mz1.ok(ok, h, t, curs, m, situ, k, nc, at_root)
+
 def mz1.fz(r: P.H & F.Fz, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> P.H & U32:
   (h, f) = r
   match f:
-    case F.Fz{t, curs, +m}:
-      match t:
-        case T.Tpl{nodes, links, root, +size}:
-          (SC.serve(S.sp.links(links, S.sp.nodes(nodes, 0, S.Sp{h, [0 : U32^T.depth_for(31n, size, 0n)]}, k)), curs, root, situ, nc, at_root), m)
+    case F.Fz{+t, +curs, +m}:
+      mz1.r(mz.room(h, mz.need(t, curs)), t, curs, m, situ, k, nc, at_root)
 
 # the finished tree at node base v of net h copied into h itself at
 # offset k, as materialize does between two nets
