@@ -967,7 +967,11 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         into the invariant by computation (P10). The maintainer
         (2026-11-26): "Premises now is acceptable."
       - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
-        invariant across the heap's doubling, the words copied.
+        invariant across the heap's doubling, the words copied. Narrowed
+        by `cursor-laws.alloc`: growth as `grow_more`'s one law between
+        steps; first a per-node range (its own base, past the header,
+        below 2^d), without which the invariant is not kept at d + 1,
+        added to `LM.lx.ok` with the maintainer's approval.
       - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
         branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
         `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the
@@ -1065,7 +1069,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     where feasible"), and who owes the room, a second round of pros and
     cons with recommendations, two reviewers again, weighing simplicity,
     extensibility, modularity and runtime performance.
-    Recommended: `LM.ext.ok` cut to five conjuncts before
+    The second round (2026-11-26, `AllocChoicesFable_2026-11-26.md`
+    beside): the mark named once (`KMd.free_at`, `KMd.used_at`), the
+    sound list over it at a head given as an argument; room a premise of
+    every step law, growth stated once as `grow_more`'s law; room made
+    first by the materializer's guard at `mz.fz.t`, on a measurement.
+    Found on the way: a template may carry the free kind, whose header
+    reads free (C6); a serve that cannot grow writes over the interface
+    before the run stops (C3); no glam net keeps a reserve. Four
+    questions to the maintainer. Its sub-steps, ordered:
+    - `cursor-laws.alloc.mark` — tentative — the mark's one definition,
+      the wiring's reading through it, `free`'s and the headers' laws,
+      C6 settled; recorded once the mark's meaning is ruled.
+    - `cursor-laws.alloc.count` — planned — serves and copies counted
+      against interactions over the sample ladder and the sharing
+      families at n, 2n and 4n (`Cn`'s counters, no new build), and the
+      serves with no rewrite since the last: what the guard could cost,
+      and how often `serve_next`'s case arises.
+    - `cursor-laws.alloc.guard` — tentative — the guard at `mz.fz.t` and
+      its one-net twin in a measurement build, counted as AGENTS.md
+      asks; adopted on the count, with `frees_room` and the law of a
+      covered serve.
+    - `cursor-laws.alloc.sound` — tentative — the sound list over the
+      mark and the primitives' laws (a pop, a free, `grow.done`,
+      `grow_more`), before `kernel-refine.align`.
+    The growth law and the range are `cursor-laws.loop.shape.grow`'s,
+    narrowed to `grow_more` between steps.
+    Recommended in round one: `LM.ext.ok` cut to five conjuncts before
     `.loop.shape.next` merges (done 2026-11-26, and `serve_next`'s
     comment notes that it composes serves with no kernel step between); a per-node range as `.grow`'s first
     slice; the per-serve contract recorded once the questions are

@@ -278,10 +278,16 @@ It lists findings, each with a stable ID (`F1`, `F2`, …; write
   - the host reduces between serves, so the loop closes only with the
     kernel refinement.
 
-  Five recommendations, five questions. Drafted for the maintainer.
+  Five recommendations, five questions; after the maintainer's answers,
+  a second round on the mark, room and who owes it, four questions.
+  Drafted for the maintainer.
 - [`AllocFable_2026-11-26.md`](AllocFable_2026-11-26.md): the second
   reviewer's review of the same question, by a Fable sub-agent, kept as
   written beside `Alloc_2026-11-26.md`, which compares the two.
+- [`AllocChoicesFable_2026-11-26.md`](AllocChoicesFable_2026-11-26.md):
+  the second reviewer's second round on the free list's mark, room
+  before a serve, and who owes it, by a Fable sub-agent, kept as written;
+  compared in `Alloc_2026-11-26.md`'s second round.
 
 ## Retired
 

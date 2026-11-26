@@ -14,7 +14,10 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 # LAW: a node taken from a free list that has one leaves every word
 # outside that node and the list's head (word P.at_fh()) as it was
 # (cells-freeze.nested.host.alloc). The node's own four words are not
-# claimed, none for code to rely on (the maintainer, 2026-11-13): the
+# claimed, a frame law not promising a node's stale words kept (the
+# maintainer, 2026-11-13: "I certainly wouldn't encourage any code to
+# depend on us preserving those words"; what a law may read of the free
+# list's own writes, the zero header, is cursor-laws.alloc's): the
 # code writes its header and its payload word (P.node.fin) and leaves the
 # others as the free list left them. The head fh, a node's index plus
 # one, is not 0, and the node taken is (fh - 1) << 2. The words a perfect
@@ -96,8 +99,8 @@ law link_keeps:
 
 # LAW: freeing the node behind reference r leaves every word outside
 # that node and the free list's head as it was. The freed node's four
-# words are not claimed, none of them for code to rely on (the
-# maintainer, 2026-11-13): the code writes its header and its word 1,
+# words are not claimed, a frame law not promising a node's stale words
+# kept (the maintainer, 2026-11-13): the code writes its header and its word 1,
 # the next free node, and leaves words 2 and 3 as they were, which no
 # law promises.
 # Record: net-nodes-double
