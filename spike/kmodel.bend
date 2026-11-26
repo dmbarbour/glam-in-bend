@@ -76,6 +76,17 @@ def word.m(m: Maybe<&2, U32>) -> U32:
 def word(+v: List<&2, U32>, +d: Nat, +i: U32) -> U32:
   word.m(List.get(&2, U32, v, AD.slot(i, d)))
 
+# The mark (free-mark-internal): whether node n is free or in use, read
+# at its words. The encoding is the kernel's (today a free node's header
+# word is 0, as P.free writes it and growth's zero fill leaves it), and
+# this is the one place that says so: laws, the wiring's model and the
+# audit cite these names, never the encoding.
+def free_at(+v: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
+  U32.is_eq(word(v, d, n), 0)
+
+def used_at(+v: List<&2, U32>, +d: Nat, +n: U32) -> Bool:
+  U32.is_ne(word(v, d, n), 0)
+
 # the node a free list's link names, the link its index plus one (P.alloc)
 def at_idx(+h: U32) -> U32:
   ((h - 1 : U32) << 2n : U32)

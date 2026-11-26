@@ -98,7 +98,10 @@ it alone taught. Add to this file what a new proof teaches.
   after the served cursor leaves holds of a lone `s` whatever the leave
   wrote elsewhere, so the witness of `serve_map_unwritten` keeps a
   second cursor in the ring, its word 3 where the stale root sends the
-  write. A law that survives the mutation claims less than meant. A law
+  write. A mutation that widens a premise's predicate has no witness:
+  an instance that breaks the law fails the premise unmutated
+  (`range_doubled`, `glam/LOOP_MUTANTS.txt`), so its proof is the only
+  catch. A law that survives the mutation claims less than meant. A law
   that only regroups facts over an append (`lx_extend`), each a premise
   or a per-node fold, survives every mutation of the folds, premise and
   conclusion changing alike: say so where it is planned rather than

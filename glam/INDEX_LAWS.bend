@@ -752,3 +752,20 @@ law found_apart:
   for +hn: {KMd.word(v, d, (nc + 2 : U32)) == pos : U32}
   for +hne: {U32.is_eq(q, pos) == False{} : Bool}
   {U32.is_eq(c, nc) == False{} : Bool}
+
+# LAW: a node freed reads free (KMd.free_at, free-mark-internal): the
+# free writes the mark, then only the node's word 1 and the list's head,
+# which a node laid out on its own keeps apart from its first word
+# (IM.nd.ok). With the sound free list (cursor-laws.alloc.sound), so that
+# a node a free puts on the list is marked there.
+# Record: free-mark-internal
+# Record: free-list-sound
+law free_marks:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +r: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hok: {IM.nd.ok(r, d) == True{} : Bool}
+  {KMd.free_at(AD.view(U32, KMd.words(P.free(P.H{KM.MG{w}, a}, r))), d, r) == True{} : Bool}

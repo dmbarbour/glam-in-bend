@@ -35,5 +35,5 @@ cases." So the encoding stays an implementation detail.
 - The frame laws still promise nothing of a free or taken node's stale
   words (the maintainer, 2026-11-13).
 
-**Rule lives in:** `spike/kmodel.bend` once built
-(`cursor-laws.alloc.mark`).
+**Rule lives in:** `spike/kmodel.bend`, `KMd.free_at` and
+`KMd.used_at`.
