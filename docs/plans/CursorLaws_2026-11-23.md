@@ -1009,10 +1009,39 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
           of `N` and `RG.nodes.in(E, d)`. Laws on main restated, for
           the maintainer's approval.
-        - `cursor-laws.loop.shape.grow.copy` — planned — `grow_more`'s
-          law: the old words read as before at d + 1, the new range
-          zero but its links, the list the new nodes then the old; and
-          `px_grow`, the invariant kept across it.
+        - `cursor-laws.loop.shape.grow.copy` — active — the invariant
+          across the doubling. Growth comes between serves (room made
+          first), where the tracked free prefix is dead weight (the
+          second reviewer's F9), so it goes in three laws and a kernel
+          one:
+          - `cursor-laws.loop.shape.grow.copy.mono` — built 2026-11-26 —
+            on `cursor-laws-grow-copy`, proof lemmas: two words in
+            different slots at d are at 1n+d (`up.ne`, by
+            `nat_mod_mod_pow`), lifted through every slot predicate the
+            invariant states (`off`, `off.words`, `ws.off`, `past`, the
+            index's `nd.ok` to `ix.lay`, `off.port`, `po.n`, `po.all`)
+            and the range (`up.inr`, `up.nin`). Written by
+            `results/grow/gen_mono.py`, checked on the first run.
+          - `cursor-laws.loop.shape.grow.copy.drop` — planned — the
+            invariant with the free prefix dropped to `Nil`.
+          - `cursor-laws.loop.shape.grow.copy.up` — planned — `lx_up`:
+            the invariant over the same lists, `F` `Nil`, carried from d
+            to 1n+d where the tracked nodes' words read alike (a premise
+            relation, `LM.kept`, the growth law's to discharge): the
+            reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
+            words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
+            the fresh nodes.
+          - `cursor-laws.loop.shape.grow.copy.store` — planned — the
+            kernel's: `grow_more` keeps every word below the old
+            capacity but the head's and the capacity's, its new nodes
+            past it, zero but their links, chained to the old head:
+            `KM.grow`'s copy, `thread`, `gm.link`; `KM.depth` reshaped
+            as `alloc.k` was. It discharges `LM.kept` and `LM.ext.ok`'s
+            chain, range and marks for the fresh nodes.
+          As planned: `grow_more`'s law: the old words read as before at
+          d + 1, the new range zero but its links, the list the new
+          nodes then the old; and `px_grow`, the invariant kept across
+          it.
       - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
         branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
         `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the

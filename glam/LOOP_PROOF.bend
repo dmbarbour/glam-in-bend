@@ -998,3 +998,140 @@ def sn.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, 
 
 def Laws.serve_next(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, E, k, hf, hd32, h2, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE):
   sn.m(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, M, nc, rn, rp, E, k, hf, hd32, h2, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# Slots kept across the doubling (cursor-laws.loop.shape.grow.copy)
+# =================================================================
+
+# two words in different slots at depth d are at 1n+d: equal mod 2^(1+d)
+# would make them equal mod 2^d
+def up.ne.k(+e: Bool, +i: U32, +j: U32, +d: Nat, +he: {Nat.is_eq(AD.slot(i, 1n+d), AD.slot(j, 1n+d)) == e : Bool}, +h: {Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot(j, d))) == True{} : Bool}) -> {Bool.not(e) == True{} : Bool}:
+  match e:
+    case True{}:
+      +eq = MN.eq_of_is_eq(AD.slot(i, 1n+d), AD.slot(j, 1n+d), he)
+      +ei = WL.nat_mod_mod_pow(U32.to_nat(i), d, 1n+d, MN.le_succ(d))
+      +ej = WL.nat_mod_mod_pow(U32.to_nat(j), d, 1n+d, MN.le_succ(d))
+      +eij = Equal.trans(Nat, AD.slot(i, d), Nat.mod(AD.slot(i, 1n+d), Nat.pow(2n, d)), AD.slot(j, d), Equal.sym(Nat, Nat.mod(AD.slot(i, 1n+d), Nat.pow(2n, d)), AD.slot(i, d), ei),
+        Equal.trans(Nat, Nat.mod(AD.slot(i, 1n+d), Nat.pow(2n, d)), Nat.mod(AD.slot(j, 1n+d), Nat.pow(2n, d)), AD.slot(j, d), Equal.cong(Nat, Nat, q => Nat.mod(q, Nat.pow(2n, d)), AD.slot(i, 1n+d), AD.slot(j, 1n+d), eq), ej))
+      +ht = ME.subst(Nat, q => {Nat.is_eq(AD.slot(i, d), q) == True{} : Bool}, AD.slot(i, d), AD.slot(j, d), eij, MN.is_eq_refl(AD.slot(i, d)))
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, MB.false_ne_true()(ME.subst(Bool, q => {Bool.not(q) == True{} : Bool}, Nat.is_eq(AD.slot(i, d), AD.slot(j, d)), True{}, ht, h)))
+    case False{}:
+      {==}
+
+def up.ne(+i: U32, +j: U32, +d: Nat, +h: {Bool.not(Nat.is_eq(AD.slot(i, d), AD.slot(j, d))) == True{} : Bool}) -> {Bool.not(Nat.is_eq(AD.slot(i, 1n+d), AD.slot(j, 1n+d))) == True{} : Bool}:
+  up.ne.k(Nat.is_eq(AD.slot(i, 1n+d), AD.slot(j, 1n+d)), i, j, d, {==}, h)
+
+def up.off(ws: List<&2, U32>, +d: Nat, +j: U32, +h: {RG.off(ws, d, j) == True{} : Bool}) -> {RG.off(ws, 1n+d, j) == True{} : Bool}:
+  match ws:
+    case Nil{}:
+      {==}
+    case Con{+v, +t}:
+      XP.and_intro(Bool.not(Nat.is_eq(AD.slot(v, 1n+d), AD.slot(j, 1n+d))), RG.off(t, 1n+d, j), up.ne(v, j, d, XP.and_l(Bool.not(Nat.is_eq(AD.slot(v, d), AD.slot(j, d))), RG.off(t, d, j), h)), up.off(t, d, j, XP.and_r(Bool.not(Nat.is_eq(AD.slot(v, d), AD.slot(j, d))), RG.off(t, d, j), h)))
+
+def up.ow(ws: List<&2, U32>, +d: Nat, +j: U32, +h: {KMd.off.words(ws, d, j) == True{} : Bool}) -> {KMd.off.words(ws, 1n+d, j) == True{} : Bool}:
+  match ws:
+    case Nil{}:
+      {==}
+    case Con{+v, +t}:
+      XP.and_intro(Bool.not(Nat.is_eq(AD.slot(v, 1n+d), AD.slot(j, 1n+d))), KMd.off.words(t, 1n+d, j), up.ne(v, j, d, XP.and_l(Bool.not(Nat.is_eq(AD.slot(v, d), AD.slot(j, d))), KMd.off.words(t, d, j), h)), up.ow(t, d, j, XP.and_r(Bool.not(Nat.is_eq(AD.slot(v, d), AD.slot(j, d))), KMd.off.words(t, d, j), h)))
+
+def up.wso(xs: List<&2, U32>, +ys: List<&2, U32>, +d: Nat, +h: {KMd.ws.off(xs, ys, d) == True{} : Bool}) -> {KMd.ws.off(xs, ys, 1n+d) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      XP.and_intro(KMd.off.words(ys, 1n+d, x), KMd.ws.off(r, ys, 1n+d), up.ow(ys, d, x, XP.and_l(KMd.off.words(ys, d, x), KMd.ws.off(r, ys, d), h)), up.wso(r, ys, d, XP.and_r(KMd.off.words(ys, d, x), KMd.ws.off(r, ys, d), h)))
+
+def up.past(ns: List<&2, U32>, +d: Nat, +h: {KMd.past(ns, d) == True{} : Bool}) -> {KMd.past(ns, 1n+d) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +r}:
+      XP.and_intro(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), 1n+d), KMd.past(r, 1n+d), up.wso(KMd.nw(n), KMd.hdr_all(), d, XP.and_l(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(r, d), h)), up.past(r, d, XP.and_r(KMd.ws.off(KMd.nw(n), KMd.hdr_all(), d), KMd.past(r, d), h)))
+
+def up.wsa(ws: List<&2, U32>, +d: Nat, +h: {IM.ws.apart(ws, d) == True{} : Bool}) -> {IM.ws.apart(ws, 1n+d) == True{} : Bool}:
+  match ws:
+    case Nil{}:
+      {==}
+    case Con{+v, +t}:
+      XP.and_intro(KMd.off.words(t, 1n+d, v), IM.ws.apart(t, 1n+d), up.ow(t, d, v, XP.and_l(KMd.off.words(t, d, v), IM.ws.apart(t, d), h)), up.wsa(t, d, XP.and_r(KMd.off.words(t, d, v), IM.ws.apart(t, d), h)))
+
+def up.ndok(+a: U32, +d: Nat, +h: {IM.nd.ok(a, d) == True{} : Bool}) -> {IM.nd.ok(a, 1n+d) == True{} : Bool}:
+  XP.and_intro(U32.is_eq(P.base(a), a), IM.ws.apart(KMd.nw(a), 1n+d) && (KMd.off.words(KMd.nw(a), 1n+d, P.at_fh())), XP.and_l(U32.is_eq(P.base(a), a), IM.ws.apart(KMd.nw(a), d) && (KMd.off.words(KMd.nw(a), d, P.at_fh())), h), XP.and_intro(IM.ws.apart(KMd.nw(a), 1n+d), KMd.off.words(KMd.nw(a), 1n+d, P.at_fh()), up.wsa(KMd.nw(a), d, XP.and_l(IM.ws.apart(KMd.nw(a), d), KMd.off.words(KMd.nw(a), d, P.at_fh()), XP.and_r(U32.is_eq(P.base(a), a), IM.ws.apart(KMd.nw(a), d) && (KMd.off.words(KMd.nw(a), d, P.at_fh())), h))), up.ow(KMd.nw(a), d, P.at_fh(), XP.and_r(IM.ws.apart(KMd.nw(a), d), KMd.off.words(KMd.nw(a), d, P.at_fh()), XP.and_r(U32.is_eq(P.base(a), a), IM.ws.apart(KMd.nw(a), d) && (KMd.off.words(KMd.nw(a), d, P.at_fh())), h)))))
+
+def up.disj(+d: Nat, +a: U32, +b: U32, +h: {IM.nd.disj(d, a, b) == True{} : Bool}) -> {IM.nd.disj(1n+d, a, b) == True{} : Bool}:
+  XP.and_intro(KMd.off.words(KMd.nw(b), 1n+d, a), KMd.off.words(KMd.nw(b), 1n+d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), 1n+d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), 1n+d, (a + 3 : U32)))), up.ow(KMd.nw(b), d, a, XP.and_l(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32)))), h)), XP.and_intro(KMd.off.words(KMd.nw(b), 1n+d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), 1n+d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), 1n+d, (a + 3 : U32))), up.ow(KMd.nw(b), d, (a + 1 : U32), XP.and_l(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), XP.and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32)))), h))), XP.and_intro(KMd.off.words(KMd.nw(b), 1n+d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), 1n+d, (a + 3 : U32)), up.ow(KMd.nw(b), d, (a + 2 : U32), XP.and_l(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), XP.and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), XP.and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32)))), h)))), up.ow(KMd.nw(b), d, (a + 3 : U32), XP.and_r(KMd.off.words(KMd.nw(b), d, (a + 2 : U32)), KMd.off.words(KMd.nw(b), d, (a + 3 : U32)), XP.and_r(KMd.off.words(KMd.nw(b), d, (a + 1 : U32)), KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32))), XP.and_r(KMd.off.words(KMd.nw(b), d, a), KMd.off.words(KMd.nw(b), d, (a + 1 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 2 : U32)) && (KMd.off.words(KMd.nw(b), d, (a + 3 : U32)))), h)))))))
+
+def up.sep(+d: Nat, +a: U32, +b: U32, +h: {IM.nd.sep(d, a, b) == True{} : Bool}) -> {IM.nd.sep(1n+d, a, b) == True{} : Bool}:
+  XP.and_intro(IM.nd.disj(1n+d, a, b), IM.nd.disj(1n+d, b, a), up.disj(d, a, b, XP.and_l(IM.nd.disj(d, a, b), IM.nd.disj(d, b, a), h)), up.disj(d, b, a, XP.and_r(IM.nd.disj(d, a, b), IM.nd.disj(d, b, a), h)))
+
+def up.offn(t: IM.Tr, +d: Nat, +a: U32, +h: {IM.tr.offn(t, d, a) == True{} : Bool}) -> {IM.tr.offn(t, 1n+d, a) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      up.sep(d, x, a, h)
+    case IM.Br{+b, +i, +l, +r}:
+      XP.and_intro(IM.nd.sep(1n+d, b, a), IM.tr.offn(l, 1n+d, a) && (IM.tr.offn(r, 1n+d, a)), up.sep(d, b, a, XP.and_l(IM.nd.sep(d, b, a), IM.tr.offn(l, d, a) && (IM.tr.offn(r, d, a)), h)), XP.and_intro(IM.tr.offn(l, 1n+d, a), IM.tr.offn(r, 1n+d, a), up.offn(l, d, a, XP.and_l(IM.tr.offn(l, d, a), IM.tr.offn(r, d, a), XP.and_r(IM.nd.sep(d, b, a), IM.tr.offn(l, d, a) && (IM.tr.offn(r, d, a)), h))), up.offn(r, d, a, XP.and_r(IM.tr.offn(l, d, a), IM.tr.offn(r, d, a), XP.and_r(IM.nd.sep(d, b, a), IM.tr.offn(l, d, a) && (IM.tr.offn(r, d, a)), h)))))
+
+def up.apart(l: IM.Tr, +r: IM.Tr, +d: Nat, +h: {IM.tr.apart(l, r, d) == True{} : Bool}) -> {IM.tr.apart(l, r, 1n+d) == True{} : Bool}:
+  match l:
+    case IM.Lf{+x, +k}:
+      up.offn(r, d, x, h)
+    case IM.Br{+b, +i, +l2, +r2}:
+      XP.and_intro(IM.tr.offn(r, 1n+d, b), IM.tr.apart(l2, r, 1n+d) && (IM.tr.apart(r2, r, 1n+d)), up.offn(r, d, b, XP.and_l(IM.tr.offn(r, d, b), IM.tr.apart(l2, r, d) && (IM.tr.apart(r2, r, d)), h)), XP.and_intro(IM.tr.apart(l2, r, 1n+d), IM.tr.apart(r2, r, 1n+d), up.apart(l2, r, d, XP.and_l(IM.tr.apart(l2, r, d), IM.tr.apart(r2, r, d), XP.and_r(IM.tr.offn(r, d, b), IM.tr.apart(l2, r, d) && (IM.tr.apart(r2, r, d)), h))), up.apart(r2, r, d, XP.and_r(IM.tr.apart(l2, r, d), IM.tr.apart(r2, r, d), XP.and_r(IM.tr.offn(r, d, b), IM.tr.apart(l2, r, d) && (IM.tr.apart(r2, r, d)), h)))))
+
+def up.trlay(t: IM.Tr, +d: Nat, +h: {IM.tr.lay(t, d) == True{} : Bool}) -> {IM.tr.lay(t, 1n+d) == True{} : Bool}:
+  match t:
+    case IM.Lf{+x, +k}:
+      up.ndok(x, d, h)
+    case IM.Br{+b, +i, +l, +r}:
+      XP.and_intro(IM.nd.ok(b, 1n+d), IM.tr.offn(l, 1n+d, b) && (IM.tr.offn(r, 1n+d, b) && (IM.tr.apart(l, r, 1n+d) && (IM.tr.lay(l, 1n+d) && (IM.tr.lay(r, 1n+d))))), up.ndok(b, d, XP.and_l(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h)), XP.and_intro(IM.tr.offn(l, 1n+d, b), IM.tr.offn(r, 1n+d, b) && (IM.tr.apart(l, r, 1n+d) && (IM.tr.lay(l, 1n+d) && (IM.tr.lay(r, 1n+d)))), up.offn(l, d, b, XP.and_l(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), XP.and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h))), XP.and_intro(IM.tr.offn(r, 1n+d, b), IM.tr.apart(l, r, 1n+d) && (IM.tr.lay(l, 1n+d) && (IM.tr.lay(r, 1n+d))), up.offn(r, d, b, XP.and_l(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), XP.and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), XP.and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h)))), XP.and_intro(IM.tr.apart(l, r, 1n+d), IM.tr.lay(l, 1n+d) && (IM.tr.lay(r, 1n+d)), up.apart(l, r, d, XP.and_l(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), XP.and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), XP.and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), XP.and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h))))), XP.and_intro(IM.tr.lay(l, 1n+d), IM.tr.lay(r, 1n+d), up.trlay(l, d, XP.and_l(IM.tr.lay(l, d), IM.tr.lay(r, d), XP.and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), XP.and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), XP.and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), XP.and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h)))))), up.trlay(r, d, XP.and_r(IM.tr.lay(l, d), IM.tr.lay(r, d), XP.and_r(IM.tr.apart(l, r, d), IM.tr.lay(l, d) && (IM.tr.lay(r, d)), XP.and_r(IM.tr.offn(r, d, b), IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))), XP.and_r(IM.tr.offn(l, d, b), IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d)))), XP.and_r(IM.nd.ok(b, d), IM.tr.offn(l, d, b) && (IM.tr.offn(r, d, b) && (IM.tr.apart(l, r, d) && (IM.tr.lay(l, d) && (IM.tr.lay(r, d))))), h)))))))))))
+
+def up.ixlay(I: IM.Ix, +s: U32, +d: Nat, +h: {IM.ix.lay(I, s, d) == True{} : Bool}) -> {IM.ix.lay(I, s, 1n+d) == True{} : Bool}:
+  match I:
+    case IM.Ept{}:
+      up.ndok(s, d, h)
+    case IM.Has{+t}:
+      XP.and_intro(IM.nd.ok(s, 1n+d), IM.tr.offn(t, 1n+d, s) && (IM.tr.lay(t, 1n+d)), up.ndok(s, d, XP.and_l(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && (IM.tr.lay(t, d)), h)), XP.and_intro(IM.tr.offn(t, 1n+d, s), IM.tr.lay(t, 1n+d), up.offn(t, d, s, XP.and_l(IM.tr.offn(t, d, s), IM.tr.lay(t, d), XP.and_r(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && (IM.tr.lay(t, d)), h))), up.trlay(t, d, XP.and_r(IM.tr.offn(t, d, s), IM.tr.lay(t, d), XP.and_r(IM.nd.ok(s, d), IM.tr.offn(t, d, s) && (IM.tr.lay(t, d)), h)))))
+
+def up.olw(m: Maybe<&2, U32>, +d: Nat, +j: U32, +h: {KMd.off.lw(m, d, j) == True{} : Bool}) -> {KMd.off.lw(m, 1n+d, j) == True{} : Bool}:
+  match m:
+    case Some{+i}:
+      up.ne(i, j, d, h)
+    case None{}:
+      {==}
+
+def up.oport(+d: Nat, +r: U32, +j: U32, +h: {KMd.off.port(d, r, j) == True{} : Bool}) -> {KMd.off.port(1n+d, r, j) == True{} : Bool}:
+  up.olw(KMd.lw(r), d, j, h)
+
+def up.or(+a: Bool, +b: Bool, +c: Bool, +h: {Bool.or(a, b) == True{} : Bool}, f: {b == True{} : Bool} -> {c == True{} : Bool}) -> {Bool.or(a, c) == True{} : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      f(h)
+
+def up.p3(+d: Nat, +r: U32, +n: U32, +h: {KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32)))) == True{} : Bool}) -> {KMd.off.port(1n+d, r, (n + 1 : U32)) && (KMd.off.port(1n+d, r, (n + 2 : U32)) && (KMd.off.port(1n+d, r, (n + 3 : U32)))) == True{} : Bool}:
+  XP.and_intro(KMd.off.port(1n+d, r, (n + 1 : U32)), KMd.off.port(1n+d, r, (n + 2 : U32)) && (KMd.off.port(1n+d, r, (n + 3 : U32))), up.oport(d, r, (n + 1 : U32), XP.and_l(KMd.off.port(d, r, (n + 1 : U32)), KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32))), h)), XP.and_intro(KMd.off.port(1n+d, r, (n + 2 : U32)), KMd.off.port(1n+d, r, (n + 3 : U32)), up.oport(d, r, (n + 2 : U32), XP.and_l(KMd.off.port(d, r, (n + 2 : U32)), KMd.off.port(d, r, (n + 3 : U32)), XP.and_r(KMd.off.port(d, r, (n + 1 : U32)), KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32))), h))), up.oport(d, r, (n + 3 : U32), XP.and_r(KMd.off.port(d, r, (n + 2 : U32)), KMd.off.port(d, r, (n + 3 : U32)), XP.and_r(KMd.off.port(d, r, (n + 1 : U32)), KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32))), h)))))
+
+def up.pon(+r: U32, +L: List<&2, U32>, +d: Nat, +n: U32, +h: {RG.po.n(r, L, d, n) == True{} : Bool}) -> {RG.po.n(r, L, 1n+d, n) == True{} : Bool}:
+  XP.and_intro(KMd.off.port(1n+d, r, n), Bool.or(RG.has(L, n), KMd.off.port(1n+d, r, (n + 1 : U32)) && (KMd.off.port(1n+d, r, (n + 2 : U32)) && (KMd.off.port(1n+d, r, (n + 3 : U32))))),
+    up.oport(d, r, n, XP.and_l(KMd.off.port(d, r, n), Bool.or(RG.has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32))))), h)),
+    up.or(RG.has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32)))), KMd.off.port(1n+d, r, (n + 1 : U32)) && (KMd.off.port(1n+d, r, (n + 2 : U32)) && (KMd.off.port(1n+d, r, (n + 3 : U32)))),
+      XP.and_r(KMd.off.port(d, r, n), Bool.or(RG.has(L, n), KMd.off.port(d, r, (n + 1 : U32)) && (KMd.off.port(d, r, (n + 2 : U32)) && (KMd.off.port(d, r, (n + 3 : U32))))), h), q => up.p3(d, r, n, q)))
+
+def up.poall(+r: U32, +L: List<&2, U32>, +d: Nat, N: List<&2, U32>, +h: {RG.po.all(r, L, d, N) == True{} : Bool}) -> {RG.po.all(r, L, 1n+d, N) == True{} : Bool}:
+  match N:
+    case Nil{}:
+      up.oport(d, r, P.at_fh(), h)
+    case Con{+n, +t}:
+      XP.and_intro(RG.po.n(r, L, 1n+d, n), RG.po.all(r, L, 1n+d, t), up.pon(r, L, d, n, XP.and_l(RG.po.n(r, L, d, n), RG.po.all(r, L, d, t), h)), up.poall(r, L, d, t, XP.and_r(RG.po.n(r, L, d, n), RG.po.all(r, L, d, t), h)))
+
+# a node in range at d is at 1n+d
+def up.inr(+n: U32, +d: Nat, +h: {RG.inr(n, d) == True{} : Bool}) -> {RG.inr(n, 1n+d) == True{} : Bool}:
+  WL.nat_lt_le_trans(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, d), Nat.pow(2n, 1n+d), h, MN.pow_le_pow_right(1n, d, 1n+d, MN.le_succ(d)))
+
+def up.nin(ns: List<&2, U32>, +d: Nat, +h: {RG.nodes.in(ns, d) == True{} : Bool}) -> {RG.nodes.in(ns, 1n+d) == True{} : Bool}:
+  match ns:
+    case Nil{}:
+      {==}
+    case Con{+n, +t}:
+      XP.and_intro(RG.inr(n, 1n+d), RG.nodes.in(t, 1n+d), up.inr(n, d, XP.and_l(RG.inr(n, d), RG.nodes.in(t, d), h)), up.nin(t, d, XP.and_r(RG.inr(n, d), RG.nodes.in(t, d), h)))
