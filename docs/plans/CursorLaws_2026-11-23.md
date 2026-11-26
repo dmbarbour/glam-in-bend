@@ -1085,7 +1085,28 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       `KMd.free_at` and `KMd.used_at`), the wiring's reading and the
       audit through it, `free`'s and the headers' laws, and C6 closed
       as a fact of templates (their nodes of kinds in use).
-    - `cursor-laws.alloc.count` — planned — serves and copies counted
+    - `cursor-laws.alloc.count` — built 2026-11-26 — store runs 356 (the
+      assembler at 553dbb9) and 357 (a measurement build: a serve counted
+      where no interaction came since the last serve;
+      `results/alloc_count/`, out of git), over the hello ladder, the
+      sharing families at 1, 2, 4 and 8 uses and the growth families.
+      - Copies are small: 1 to 5.3 nodes a serve, at most 0.55 a
+        counted interaction (`hello_self_copy`), at most 0.10 in the
+        sharing families. So a walk before each copy adds at most about
+        half a link read an interaction in the worst sample, a tenth in
+        the families. Instructions decide whether that is felt
+        (`.guard`).
+      - Serves back to back are the common case: 84 of the 141 serves
+        came with no interaction since the last serve, 27 of 28 in
+        `hello_lazy_list` and 9 of 19 in `nested_sources_8`. So
+        `serve_next`'s case, two serves with no kernel step between, is
+        most of the loop as the ladder runs it. A lower bound for "no
+        host rewrite between": the source's positioned demand and other
+        frames' interactions count too, and a first serve met at count
+        0 would count wrongly.
+      - The workloads are small (at most 345 interactions, 28 serves),
+        so they show the shape, not the cost.
+      As planned: serves and copies counted
       against interactions over the sample ladder and the sharing
       families at n, 2n and 4n (`Cn`'s counters, no new build), and the
       serves with no rewrite since the last: what the guard could cost,
