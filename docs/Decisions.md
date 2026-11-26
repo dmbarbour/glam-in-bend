@@ -93,6 +93,10 @@ IO shell.
 - [`laws-over-tests`](decisions/laws-over-tests.md): a property that
   matters for correctness or cost, or is easy to state, is a law rather
   than a test.
+- [`laws-across-steps-iterative`](decisions/laws-across-steps-iterative.md):
+  laws carry invariants across multi-step evaluation in the end,
+  reached in steps; meanwhile a premise a later law discharges stands
+  as scaffolding, its discharger named.
 
 Blend, the preprocessor of static objects for Bend that `generated-sources`
 allows, is a repository of its own, a submodule here, and keeps its
@@ -207,6 +211,9 @@ where the shared lazy state that Bend cannot hold goes.
   splice's fresh nodes a premise, discharged by the allocator's prefix
   law; the template's a predicate, discharged by a law on freeze; the
   header's words an exact list.
+- [`free-list-sound`](decisions/free-list-sound.md): the
+  materializer's laws ask only that a listed free node is not in use;
+  no leaks is a property and a law of its own.
 - [`splice-erasers-static`](decisions/splice-erasers-static.md): the
   splice makes a template's erasers static as it links, no node made
   and freed for them; two erasers linked to each other, a pair demand

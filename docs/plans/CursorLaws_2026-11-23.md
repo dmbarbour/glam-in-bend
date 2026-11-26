@@ -1056,6 +1056,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       closes only when `kernel-refine` carries the invariant across a
       kernel step.
 
+    The maintainer's answers (2026-11-26): no leaks separated and
+    planned (`free-list-sound`, `kernel-refine.leaks`); laws across
+    multi-step evaluation reached iteratively on scaffolding premises
+    (`laws-across-steps-iterative`); for a zero header's meaning, room
+    before a serve against laws ambivalent to growth ("I'm inclined to
+    make room first, but I also think the laws should be ambivalent
+    where feasible"), and who owes the room, a second round of pros and
+    cons with recommendations, two reviewers again, weighing simplicity,
+    extensibility, modularity and runtime performance.
     Recommended: `LM.ext.ok` cut to five conjuncts before
     `.loop.shape.next` merges (done 2026-11-26, and `serve_next`'s
     comment notes that it composes serves with no kernel step between); a per-node range as `.grow`'s first

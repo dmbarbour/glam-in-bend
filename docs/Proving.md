@@ -25,6 +25,10 @@ it alone taught. Add to this file what a new proof teaches.
   callee-first wants laws that the order loses and duplicates nothing; a
   law that every item receives a disposition wants a law that every
   disposition is carried out (where no error is reported).
+- **Scaffolding, named** (`laws-across-steps-iterative`): what a law
+  cannot yet show, such as an invariant across the kernel's steps,
+  stands as a premise only with what discharges it named in the law's
+  comment and a plan step owning the discharge.
 - **Confidence, not only cheapness.** A guard that makes a law hold by
   computation (AGENTS.md, Laws) is a fine shape, but prove too that the
   guard never fires where it should not, or say plainly that the law does

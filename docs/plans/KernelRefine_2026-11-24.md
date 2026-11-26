@@ -47,6 +47,14 @@ kernel's own state, which no law has yet been stated over
   - `kernel-refine.copy` — planned — the materializer's own writes kept
     wired: the splice from a template in which each port is wired once,
     the ring's joins and leaves.
+  - `kernel-refine.leaks` — planned — no leaks (`free-list-sound`):
+    every node not in use is on the free list or the reserve, as
+    `FL.ok`'s completeness says in `Nat` and the audit `KN.free_ok`
+    checks by counting the zero headers. The materializer's laws ask
+    only soundness, so this law serves the kernel's own accounting: a
+    collection's or a reserve's nodes not lost. After the sound list
+    over the words (`cursor-laws.alloc`), beside `kernel-refine.align`,
+    whose reserve it covers.
   - `kernel-refine.discharge` — planned — the wiring premise discharged
     for the materializer's laws; `sv.front.c`'s check replaced by its
     law (`cursor-laws.noself.frontier`). `front_apart` and the serve's
