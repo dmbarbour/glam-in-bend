@@ -1250,9 +1250,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       Found on the way: `nested_sources` grows superlinearly in
       instructions (1.6M, 1.9M, 2.8M, 5.7M, 19.7M, 105.7M from 1 to 32
       uses, a factor of 5.4 from 16 to 32) while its interactions stay
-      in the hundreds (run 356), a cost outside the kernel's steps
-      (freeze scratch the size of the source, `glam/materialize.bend`'s
-      note?), to trace (`cursor-laws.alloc.nested`).
+      in the hundreds (run 356): the front end's, quadratic in a
+      program's definitions, known (`ladder-measure.names`; see
+      `cursor-laws.alloc.nested`).
 
       Adopted 2026-11-26 on the side branch `cursor-laws-guard`:
       - the guard in `glam/materialize.bend` (`mz.room` at both serve
@@ -1287,12 +1287,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (the maintainer, 2026-11-26: "No need for atomic serves as law.
       They are nice as a feature, though, if near free."). Early
       doubling accepted ("Early doubling is okay.").
-    - `cursor-laws.alloc.nested` — planned — `nested_sources`'
-      superlinear instructions traced: counted by phase (freeze, splice,
-      crossings, demand) over its family at n, 2n and 4n, the exponent
-      fitted, the cause named, and the work moved to the plan that owns
-      it (the Cells plan's `cells-freeze.nested` if the freeze's
-      scratch).
+    - `cursor-laws.alloc.nested` — dropped 2026-11-26, known — the
+      superlinear instructions are the front end's: a profile at 64
+      uses spends 91% in the Bend runtime dropping terms (`span_fade`
+      52.8%, `term_drop` 38.3%), the names copied for each comparison
+      of the parser's and lowering's lookups, as `ladder-measure.names`
+      (`docs/plans/HelloLadder_2026-11-09.md`) records, planned there
+      since 2026-11-21. Instructions 105.7M at 32 uses and 711.7M at 64,
+      serves 67 and 131.
     - `cursor-laws.alloc.collect` — planned — glam's nets collect before
       they grow (`collect-before-growth`): the core's demand made a
       collecting one, as `KS.demand.c` collects on its reserve; the
@@ -1302,7 +1304,21 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`copied-nodes-untouched`). Then the laws' premise that the
       reserve's word is 0 is discharged by the reserve's law. Work of
       its own, measured as AGENTS.md asks; a plan of its own if it
-      grows.
+      grows. Its dependencies (2026-11-26):
+      - a source collecting needs the copy marks
+        (`copied-nodes-untouched`), tentative as
+        `cells-freeze.sharing.cursors.growth.marks` in the Cells plan
+        (`glam/materialize.bend`'s note: "a source must run no events,
+        fusion or collection near copied nodes");
+      - a host collecting keeps the materializer's structures, which
+        no collector knows yet: the situating node and its index,
+        reached by word 3 rather than by a port, and the cursors and
+        placeholders;
+      - glam's core runs plain demand only, so the collecting demand
+        (`KS.demand.c`) and its reserve are new to every glam net.
+
+      The guard's growth already goes through its one call (`mz.more`),
+      so the collection, once there, changes one function.
     - `cursor-laws.alloc.sound` — tentative — the sound list over the
       mark and the primitives' laws (a pop, a free, `grow.done`,
       `grow_more`), before `kernel-refine.align`; with `.mark`'s moved
