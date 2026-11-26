@@ -1230,7 +1230,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       families at n, 2n and 4n (`Cn`'s counters, no new build), and the
       serves with no rewrite since the last: what the guard could cost,
       and how often `serve_next`'s case arises.
-    - `cursor-laws.alloc.guard` — tentative — the guard at `mz.fz.t` and
+    - `cursor-laws.alloc.guard` — active — measured 2026-11-26, store
+      run 358 (`results/alloc_guard/`, out of git):
+      - The guard, room for the template's size and the crossings made
+        before each serve (`P.frees`, `P.grow_more` while short, as
+        `KM.ens` loops), costs at most 0.18% of a run
+        (`hello_lazy_list`, 28 serves) and at most 0.06% elsewhere,
+        about 150 to 250 instructions a serve. That is after a fixed
+        offset of -251 instructions, the two builds' start-up, which
+        the workloads without serves show (range -261 to -244).
+      - Outputs and counted interactions are the same in all 71
+        workloads.
+      - So the walk then pops suffices; the batch taken is not needed
+        for cost.
+
+      Measured in the default build only: the forced-inline comparison
+      wants glam's main in `spike/tools/inline_build.sh`.
+
+      Found on the way: `nested_sources` grows superlinearly in
+      instructions (1.6M, 1.9M, 2.8M, 5.7M, 19.7M, 105.7M from 1 to 32
+      uses, a factor of 5.4 from 16 to 32) while its interactions stay
+      in the hundreds (run 356), a cost outside the kernel's steps
+      (freeze scratch the size of the source, `glam/materialize.bend`'s
+      note?), to trace (`cursor-laws.alloc.nested`).
+
+      Left: the guard adopted in the code, its law (`frees_room`), the
+      law of a covered serve, and its growth through the room policy
+      (`.collect`). As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the
@@ -1242,6 +1268,12 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (the maintainer, 2026-11-26: "No need for atomic serves as law.
       They are nice as a feature, though, if near free."). Early
       doubling accepted ("Early doubling is okay.").
+    - `cursor-laws.alloc.nested` — planned — `nested_sources`'
+      superlinear instructions traced: counted by phase (freeze, splice,
+      crossings, demand) over its family at n, 2n and 4n, the exponent
+      fitted, the cause named, and the work moved to the plan that owns
+      it (the Cells plan's `cells-freeze.nested` if the freeze's
+      scratch).
     - `cursor-laws.alloc.collect` — planned — glam's nets collect before
       they grow (`collect-before-growth`): the core's demand made a
       collecting one, as `KS.demand.c` collects on its reserve; the
