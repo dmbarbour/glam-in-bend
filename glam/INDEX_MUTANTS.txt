@@ -436,3 +436,16 @@ found cursor may hold any key (no witness: the law's proof fails on it)
 +++
       U32.is_eq(p, x) && (Bool.not(X.ix.branch(KMd.word(v, d, x))) && (U32.is_eq(KMd.word(v, d, (x + 3 : U32)), s)))
 
+
+=== free_unmarked free_marks
+the free zeroing the node's word 2 rather than its header, so that a node
+freed still reads in use
+--- ../spike/kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, (base(r) + 2 : U32), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness free_marks
+w = WB.ix_one(7)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+r = 16

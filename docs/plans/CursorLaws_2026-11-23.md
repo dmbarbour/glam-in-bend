@@ -1080,7 +1080,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     questions to the maintainer, answered the same day (the review's
     last section; `free-mark-internal`, `collect-before-growth`). Its
     sub-steps, ordered:
-    - `cursor-laws.alloc.mark` — planned — the mark's one definition
+    - `cursor-laws.alloc.mark` — built 2026-11-26 — on the side branch
+      `cursor-laws-alloc-mark`:
+      - `KMd.free_at` and `KMd.used_at` in `spike/kmodel.bend`, the
+        mark's one definition;
+      - the wiring's model reading a live node through `used_at`
+        (`spike/wired_model.bend`, the same term unfolded, its proofs
+        unchanged);
+      - `free_marks` (`glam/INDEX_LAWS.bend`): a node freed reads free.
+        Its mutant, a free zeroing word 2 rather than the header, is
+        refuted by a witness (`WB.ix_one`, node 16). `gs_some` and
+        `map_some` moved from the loop's proofs to the index's, for
+        both.
+
+      Moved:
+      - the headers' law (a node made with a kind in use reads in use)
+        and C6's template fact to `.sound`, whose laws first read a
+        copied node's mark;
+      - the audit's tie to the predicate to `kernel-refine.audit`,
+        where the audit is bridged to the model.
+
+      As planned: the mark's one definition
       (`free-mark-internal`: the encoding the kernel's, behind
       `KMd.free_at` and `KMd.used_at`), the wiring's reading and the
       audit through it, `free`'s and the headers' laws, and C6 closed
@@ -1135,7 +1155,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       grows.
     - `cursor-laws.alloc.sound` — tentative — the sound list over the
       mark and the primitives' laws (a pop, a free, `grow.done`,
-      `grow_more`), before `kernel-refine.align`.
+      `grow_more`), before `kernel-refine.align`; with `.mark`'s moved
+      pieces: a node made with a kind in use reads in use, and a
+      template's nodes of kinds in use (C6).
     The growth law and the range are `cursor-laws.loop.shape.grow`'s,
     narrowed to `grow_more` between steps.
     Recommended in round one: `LM.ext.ok` cut to five conjuncts before

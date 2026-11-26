@@ -19,7 +19,7 @@ def live(+live: Bool, +v: List<&2, U32>, +d: Nat, +x: U32, +y: U32) -> Bool:
 def at(+inside: Bool, +v: List<&2, U32>, +d: Nat, +x: U32, +y: U32) -> Bool:
   match inside:
     case True{}:
-      live(U32.is_ne(KMd.word(v, d, P.base(y)), 0) && U32.is_lt(P.port(y), KR.kind_arity(P.rk(KMd.word(v, d, P.base(y))))), v, d, x, y)
+      live(KMd.used_at(v, d, P.base(y)) && U32.is_lt(P.port(y), KR.kind_arity(P.rk(KMd.word(v, d, P.base(y))))), v, d, x, y)
     case False{}:
       False{}
 
