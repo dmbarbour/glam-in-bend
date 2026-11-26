@@ -1009,10 +1009,53 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
           of `N` and `RG.nodes.in(E, d)`. Laws on main restated, for
           the maintainer's approval.
-        - `cursor-laws.loop.shape.grow.copy` — planned — `grow_more`'s
-          law: the old words read as before at d + 1, the new range
-          zero but its links, the list the new nodes then the old; and
-          `px_grow`, the invariant kept across it.
+        - `cursor-laws.loop.shape.grow.copy` — active — the invariant
+          across the doubling. Growth comes between serves (room made
+          first), where the tracked free prefix is dead weight (the
+          second reviewer's F9), so it goes in three laws and a kernel
+          one:
+          - `cursor-laws.loop.shape.grow.copy.mono` — built 2026-11-26 —
+            on `cursor-laws-grow-copy`, proof lemmas: two words in
+            different slots at d are at 1n+d (`up.ne`, by
+            `nat_mod_mod_pow`), lifted through every slot predicate the
+            invariant states (`off`, `off.words`, `ws.off`, `past`, the
+            index's `nd.ok` to `ix.lay`, `off.port`, `po.n`, `po.all`)
+            and the range (`up.inr`, `up.nin`). Written by
+            `results/grow/gen_mono.py`, checked on the first run.
+          - `cursor-laws.loop.shape.grow.copy.drop` — built 2026-11-26 —
+            `lx_drop`: the invariant with the free prefix dropped to
+            `Nil`, the form handed between serves. Structural, so named
+            by no mutation.
+          - `cursor-laws.loop.shape.grow.copy.up` — built 2026-11-26 —
+            `lx_up`, and `grow_next` composing `lx_drop`, `lx_up` and
+            `lx_extend` at 1n+d. The reads go by the kept words
+            (`kp_has`, `kp_sub`, the tree's `kr.tr`, `kr.faces`,
+            `kr.off`, `kr.tw`), the slots by `.mono` (with `off.links`,
+            `off.pos`). `px.tw`'s faced-back test is a slot equality,
+            kept only with both words in range: the live node's word 1
+            by `RG.nodes.in`, the faced port's link word by a scaffolding
+            premise, `LM.faced.in`, the wiring's to discharge. Its two
+            mutants, the faced port unranged and a node's first word
+            alone kept, are caught by the proof only, as premise
+            mutations must be. Written by `results/grow/gen_up.py`, and
+            checked on the first full run. As planned: `lx_up`:
+            the invariant over the same lists, `F` `Nil`, carried from d
+            to 1n+d where the tracked nodes' words read alike (a premise
+            relation, `LM.kept`, the growth law's to discharge): the
+            reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
+            words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
+            the fresh nodes.
+          - `cursor-laws.loop.shape.grow.copy.store` — planned — the
+            kernel's: `grow_more` keeps every word below the old
+            capacity but the head's and the capacity's, its new nodes
+            past it, zero but their links, chained to the old head:
+            `KM.grow`'s copy, `thread`, `gm.link`; `KM.depth` reshaped
+            as `alloc.k` was. It discharges `LM.kept` and `LM.ext.ok`'s
+            chain, range and marks for the fresh nodes.
+          As planned: `grow_more`'s law: the old words read as before at
+          d + 1, the new range zero but its links, the list the new
+          nodes then the old; and `px_grow`, the invariant kept across
+          it.
       - `cursor-laws.loop.shape.serve` — built 2026-11-26 — on the side
         branch, `serve_loop` (`glam/LOOP_LAWS.bend`; the wider invariant
         `LM.lx.ok` in `glam/loop_model.bend`): a serve away from the
@@ -1081,9 +1124,24 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           mutants of the laws it composes caught. Authoring aid:
           `results/loop_next/gen_sn.py`. As planned: one serve's
           conclusion to the next one's premise, the three composed.
-      - `cursor-laws.loop.shape.root` — planned — the serve at the
+      - `cursor-laws.loop.shape.root` — built 2026-11-26 — on
+        `cursor-laws-root` (after `cursor-laws-grow-copy`),
+        `serve_root_loop`: the serve at the source's root keeps the
+        wider invariant, `serve_ring_exact` composed as `serve_loop`
+        composes `serve_pend` (its derivations taken verbatim from
+        `sl.k` by `results/loop_root/gen_root.py`). The served cursor is
+        taken out of the live list (`without_distinct`), and it is freed
+        with the branch above it, which head the free list. Its mutant,
+        a made cursor listed again, caught. As planned: the serve at the
         source's root (`serve_root_keeps`, `serve_ring_exact`) given the
         same wider law.
+        - `cursor-laws.loop.shape.root.next` — built 2026-11-26 —
+          `serve_root_next`: the root serve's conclusion to the next
+          serve's premise, as `serve_next`, the live list still headed
+          by `s` (`wo_headed`; the served cursor a leaf of the index
+          before the crossings, `XL.look_leaf`, which `s` is not,
+          `lay_nl`). Both mutants of the laws it composes caught.
+          Authoring aid: `results/loop_root/gen_rootnext.py`.
     - `cursor-laws.loop.wires` — planned — `join_links`,
       `leave_links` (P7): the wire a join or a leave makes. M.
   - `cursor-laws.alloc` — active — reviewed 2026-11-26

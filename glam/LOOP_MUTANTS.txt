@@ -20,7 +20,7 @@ eraser written there
 +++
   (P.wr(P.wr(h, (s + 2 : U32), k), (s + 3 : U32), s), s)
 
-=== cursor_relisted cxs_distinct serve_loop cxs_head serve_next
+=== cursor_relisted cxs_distinct serve_loop cxs_head serve_next serve_root_loop serve_root_next
 a cursor made listed again among the live nodes, where it already is
 --- ring_model.bend
       without(without(L, x), y)
@@ -39,7 +39,7 @@ that a sub-list of the tracked nodes need not inherit it
 +++
       po.n(r, L, d, n) || po.all(r, L, d, t)
 
-=== minus_keeps lx_split serve_next
+=== minus_keeps lx_split serve_next serve_root_next
 a list minus another keeping the members it should take out, so that the
 next serve's tracked list lists the copy's nodes twice
 --- ring_model.bend
@@ -62,3 +62,21 @@ it breaks fails the range unmutated, so no witness can show it)
   Nat.is_lt(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, d))
 +++
   Nat.is_lt(Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, Nat.add(d, 1n)))
+
+=== faced_unranged lx_up grow_next
+a faced port's link word asked in range no more, so that a live node
+faced back, a slot equality at d, need not be one at 1n+d (caught by its
+proof only: an instance it breaks fails the premise unmutated)
+--- loop_model.bend
+      Nat.is_lt(U32.to_nat(i), Nat.pow(2n, d))
++++
+      True{}
+
+=== kept_word0 lx_up grow_next
+a node's first word alone asked to read alike across the doubling, so
+that the port a live node faces (its word 1) may change (caught by its
+proof only, as faced_unranged)
+--- loop_model.bend
+      kept.w(n, v, d, v2) && (kept.w((n + 1 : U32), v, d, v2) && (kept.w((n + 2 : U32), v, d, v2) && (kept.w((n + 3 : U32), v, d, v2) && kept(t, v, d, v2))))
++++
+      kept.w(n, v, d, v2) && kept(t, v, d, v2)
