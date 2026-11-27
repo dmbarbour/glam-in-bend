@@ -550,6 +550,11 @@ it alone taught. Add to this file what a new proof teaches.
   `m` while reasoning (`+m`, `+em: {Nat.pow(2n, 32n) == m}`), and put it
   back only for a word law's premise, written in that law's own form
   (`tnm.k`, `spike/GROW_PROOF.bend`).
+- **A closed heap's law by computation.** `h_new()`'s 512-word heap, 121
+  nodes threaded, normalizes in the checker in about 2 s, so a law about
+  it is `{==}` (`shape_new`, `spike/GROW_PROOF.bend`). A law about the
+  largest store, 2^30 words, has no witness a run could build: its
+  mutants are caught by the proof only (`shape_max`).
 - **A U32 literal's case is 32 matches.** `match cap: case 1:` compiles
   to a match on each of the word's bits (`bend x.bend -o x.bendtt` shows
   it), which a symbolic word never passes, and no premise rewrites it.

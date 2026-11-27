@@ -1059,14 +1059,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
             words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
             the fresh nodes.
-          - `cursor-laws.loop.shape.grow.copy.store` — built 2026-11-27,
-            `.shape` planned (ordered before `cursor-laws.alloc.collect`,
+          - `cursor-laws.loop.shape.grow.copy.store` — built 2026-11-27
+            (ordered before `cursor-laws.alloc.collect`,
             which waits on the copy marks; the agent's ordering, the
             maintainer, 2026-11-26: "ordering judgements are yours") —
             the kernel's: `grow_loop` carries the wider invariant across
             `P.grow_more`, every growth premise of `grow_next`
-            discharged but `LM.faced.in` (the wiring's) and the heap's
-            shape (`.shape`). Slices:
+            discharged but `LM.faced.in` (the wiring's), and
+            `grow_shape_loop` with it the heap's shape (`.shape`).
+            Slices:
             - `cursor-laws.loop.shape.grow.copy.store.copy` — built
               2026-11-26 — on `cursor-laws-store`, `spike/GROW_LAWS.bend`:
               `grow_full`, `grow_old` (a word below the old capacity 2^d
@@ -1235,15 +1236,55 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               should a second step write header words outside the
               splice's frame. Tidying with it: `t4` through `lt1d`, as
               `w1lt` is.
-            - `cursor-laws.loop.shape.grow.copy.store.shape` — planned —
+            - `cursor-laws.loop.shape.grow.copy.store.shape` — built
+              2026-11-27 —
               the heap's shape as a law, discharging the growth laws'
               scaffolding: the capacity word reads wc = 2^e nodes,
-              3 <= e < 28, the store full at 2^(e + 2) words. Made by
-              `h_new`, kept by every step that writes neither word 3 nor
-              the store's size, carried by growth to wc = 2^(e + 1) while
-              e + 1 < 28, and an error past it (`grow.done`'s refusal).
-              With `.alloc.sound`, which reads the same words, or before
-              it, as `.kept` finds it wanted.
+              3 <= e <= 28, the store full at 2^(e + 2) words (up to
+              2^30, `w_maxd`). Only `hdr_new` (`h_new`) and `grow.done`
+              write word 3, and only growth resizes the heap's store (the
+              other `m_ensure`s are the strategies' stacks'). In slices:
+              - `cursor-laws.loop.shape.grow.copy.store.shape.model` —
+                built 2026-11-27 — `GM.shape(w, e)` (spike/grow_model.bend),
+                word 3 read through the pair `Array.get` hands back, the
+                store linear; read as the growth laws' premises (`sh.rd`,
+                the capacity word itself the growth laws' wc).
+              - `cursor-laws.loop.shape.grow.copy.store.shape.grow` —
+                built 2026-11-27 — `shape_grow`: growth carries the shape
+                from e to e + 1 for e < 28, by `more_full` and `more_cap`
+                (the grown capacity word reads 2^(e + 1): the trace's sets
+                apart from word 3, then `grow.done`'s write). Mutants, the
+                capacity written as the old one, refuted by witnesses.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.new` —
+                built 2026-11-27 — `shape_new`: `h_new`'s heap has the
+                shape at e = 7 (512 words, 128 nodes), by computation, in
+                about 2 s. Its mutant, the first store a level deeper,
+                refuted by the law itself, a witness of no variables.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.frame` —
+                built 2026-11-27 — `shape_set`: a write at a slot other
+                than the capacity word's keeps the shape (stated by slots,
+                as `get_set_other` asks, a write past the store landing on
+                a slot): the frame a step that writes neither the capacity
+                nor the store's size cites; each step's own frame is its
+                law's (`.alloc.sound`, `kernel-refine`). Its mutant, the
+                shape read at word 2, refuted by a witness.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.loop` —
+                built 2026-11-27 — `grow_shape_loop` (`glam/LOOP_LAWS.bend`):
+                from a heap of the shape at e < 28, the invariant over the
+                grown view and the shape at e + 1 together, the fresh
+                nodes its capacity word's; `grow_loop` and `shape_grow`
+                composed, the shape read as their premises. Its mutant,
+                the capacity left as it was, caught by its proof only.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.max` —
+                built 2026-11-27 — `shape_max`: at the largest shape
+                (e = 28, 2^30 words) `grow_more` answers it did not grow,
+                the store as it was but the error count: `m_ensure` finds
+                the depth at `w_maxd` and hands the store back, then
+                `grow.done`'s test fails. Its own arithmetic at e <= 28
+                (the growth laws' asks e < 28), e kept symbolic so that
+                2^28 is never expanded. Its mutant, the refusal
+                uncounted, caught by its proof only (a witness would be a
+                store of 2^30 words).
             As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:

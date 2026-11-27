@@ -33,6 +33,8 @@ import ../spike/kmodel.bend as KMd
 import ../spike/grow_model.bend as GM
 import ./GROWN_LAWS.bend as GN
 import ./GROWN_PROOF.bend as GNP
+import ../spike/GROW_LAWS.bend as GW
+import ../spike/GROW_PROOF.bend as GWP
 import ./ring.bend as R
 import ./ring_model.bend as RG
 import ./index_model.bend as IM
@@ -1519,3 +1521,35 @@ def gl.w(-w: Array<U32>, -a: Array<V.Val>, +wc: U32, +e: Nat, +s: U32, +I: IM.Ix
 
 def Laws.grow_loop(w, a, wc, e, s, I, L, F, N, hf, hwc, hw, he3, he27, hlx, hfi):
   gl.w(w, a, wc, e, s, I, L, F, N, hf, hwc, hw, he3, he27, hlx, hfi, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# The wider invariant and the heap's shape across the doubling (grow_shape_loop)
+# ==============================================================================
+
+def gsl.k(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +e: Nat, +s: U32, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>,
+  +hs: {GM.shape(LAT.fromT(U32, tw), e) == True{} : Bool}, +he: {Nat.is_lt(e, 28n) == True{} : Bool}, +hlx: {LM.lx.ok(AD.view(U32, LAT.fromT(U32, tw)), 2n+e, s, I, L, F, N) == True{} : Bool}, +hfi: {LM.faced.in(L, AD.view(U32, LAT.fromT(U32, tw)), 2n+e) == True{} : Bool}) ->
+  {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), 1n+e) == True{} : Bool}:
+  +hr = GWP.sh.rd(tw, e, hs)
+  +hf = MB.eq_true_of_and_left(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +hr2 = MB.eq_true_of_and_right(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +hq = MB.eq_true_of_and_left(Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)), Nat.is_le(3n, e) && Nat.is_le(e, 28n), hr2)
+  +hr3 = MB.eq_true_of_and_right(Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)), Nat.is_le(3n, e) && Nat.is_le(e, 28n), hr2)
+  +he3 = MB.eq_true_of_and_left(Nat.is_le(3n, e), Nat.is_le(e, 28n), hr3)
+  +hw = MN.eq_of_is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e), hq)
+  MB.and_eq_true(LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))))), GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), 1n+e),
+    Laws.grow_loop(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())), e, s, I, L, F, N, hf, {==}, hw, he3, he, hlx, hfi), GW.shape_grow(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), e, hs, he))
+
+def gsl.w(-w: Array<U32>, -a: Array<V.Val>, +e: Nat, +s: U32, +I: IM.Ix, +L: List<&2, U32>, +F: List<&2, U32>, +N: List<&2, U32>,
+  +hs: {GM.shape(w, e) == True{} : Bool}, +he: {Nat.is_lt(e, 28n) == True{} : Bool}, +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}, +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool},
+  mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) -> {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}:
+  (+tw, +ew) = mw
+  (+ta, +ea) = ma
+  +sw = Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew)
+  +hs2 = ME.subst(Array<U32>, z => {GM.shape(z, e) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hs)
+  +hlx2 = ME.subst(Array<U32>, z => {LM.lx.ok(AD.view(U32, z), 2n+e, s, I, L, F, N) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hlx)
+  +hfi2 = ME.subst(Array<U32>, z => {LM.faced.in(L, AD.view(U32, z), 2n+e) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hfi)
+  %ew : {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, _, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, _, P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, _, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, _, P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a}))), 1n+e) == True{} : Bool}
+  %ea : {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, _})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, _}))), 1n+e) == True{} : Bool}
+  gsl.k(tw, ta, e, s, I, L, F, N, hs2, he, hlx2, hfi2)
+
+def Laws.grow_shape_loop(w, a, e, s, I, L, F, N, hs, he, hlx, hfi):
+  gsl.w(w, a, e, s, I, L, F, N, hs, he, hlx, hfi, LAT.mirror(U32, w), LAT.mirror(V.Val, a))

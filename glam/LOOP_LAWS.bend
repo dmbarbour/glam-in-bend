@@ -480,3 +480,25 @@ law grow_loop:
   for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
   for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(wc), wc), List.append(&2, U32, N, GM.fresh(U32.to_nat(wc), wc))) == True{} : Bool}
+
+# LAW: the wider invariant and the heap's shape across the heap's
+# doubling together (grow_loop over GM.shape): from a heap of the shape
+# at e < 28, the grown heap has the shape at e + 1 and the invariant
+# holds over its view, the fresh nodes (those of its capacity word) the
+# free list's first and tracked.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grow_shape_loop:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +e: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +he: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}
