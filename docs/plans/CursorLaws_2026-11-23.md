@@ -1108,6 +1108,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               rewritten as `U32.not(3)` so that its bits are `bit_not`'s
               and its number is never expanded, none past bit 31. Its
               mutant, a base clearing three bits, refuted by a witness.
+              Then `grow_more`'s trace (`gm.tr`, `gm.tr2`): the grown
+              heap as one chain of sets on the threaded store, each read
+              rewritten by `get_pair` and a premise, the thread's result
+              a store again (`th_mg`) so that the writes after compute;
+              its five tests decided from the capacity word wc = 2^e
+              nodes, 3 <= e < 28, each product and halving a power
+              (`tnm`, `tsh.k`, `hs1`), 2^32 abstract where a word's law
+              names it, the powers' base written 2n (`p2lt`).
             - `cursor-laws.loop.shape.grow.copy.store.fresh` — planned — the
               fresh nodes E, node `wcap0` on to node `wcap - 1` (a model
               list), chained from the new head, the last linking the old
