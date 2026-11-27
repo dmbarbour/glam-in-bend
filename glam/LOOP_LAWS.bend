@@ -527,3 +527,30 @@ law grow_serve_ready:
   for +hh: {LM.headed(L, s) == True{} : Bool}
   for +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, Con{s, LM.tl(L)}, List.append(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k), List.drop(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.append(&2, U32, RG.minus(List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k))) && (GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) && (LM.faced.in(L, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e) && Nat.is_eq(List.length(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), k))) == True{} : Bool}
+
+# LAW: the wider invariant with its free list's tracked prefix grown by
+# tracked nodes Q chained after it (cursor-laws.alloc.guard.covered.keep
+# .more): Q distinct and none of the prefix, none of s, the index's nodes
+# or the live, and tracked already. Only the invariant's facts over the
+# prefix change: its chain, distinct, apart from the live and the
+# index's, tracked. So that growth keeps the old prefix after the fresh
+# nodes, whose last links its head.
+# Record: cursors-indexed
+# Record: laws-across-steps-iterative
+law lx_more:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +P: List<&2, U32>
+  for +Q: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hlx: {LM.lx.ok(v, d, s, I, L, P, N) == True{} : Bool}
+  for +hc: {KMd.chain(List.append(&2, U32, P, Q), v, d, KMd.word(v, d, P.at_fh())) == True{} : Bool}
+  for +hdq: {RG.distinct(Q) == True{} : Bool}
+  for +hqp: {RG.none.in(Q, P) == True{} : Bool}
+  for +hn: {RG.none.in(Q, Con{s, IM.ix.nodes(I)}) == True{} : Bool}
+  for +hl: {RG.none.in(Q, L) == True{} : Bool}
+  for +hs: {RG.sub(Q, N) == True{} : Bool}
+  {LM.lx.ok(v, d, s, I, L, List.append(&2, U32, P, Q), N) == True{} : Bool}
