@@ -1096,34 +1096,48 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               `to_nat_shr` and `mul_div_cancel_left`. Mutants refuted by
               witnesses: each halving counted twice; the first test
               against 0.
-            - `cursor-laws.loop.shape.grow.copy.store.old` — active — the
-              grown heap's words below the old capacity, the head's and
-              the capacity's apart, read as before through `m_ensure`,
-              the copy, the thread, `grow.done`'s two header writes,
-              `gm.link`'s link and the free of node `wcap0`; then
-              `LM.kept` for tracked nodes past the header, by `get_view`.
-              Built so far: `base_shl`, a node's reference (its index
-              shifted two places) its own base, bit by bit (`bit_ext`):
-              bits 0 and 1 clear by its number modulo 4, the mask
-              rewritten as `U32.not(3)` so that its bits are `bit_not`'s
-              and its number is never expanded, none past bit 31. Its
-              mutant, a base clearing three bits, refuted by a witness.
-              Then `grow_more`'s trace (`gm.tr`, `gm.tr2`): the grown
-              heap as one chain of sets on the threaded store, each read
-              rewritten by `get_pair` and a premise, the thread's result
-              a store again (`th_mg`) so that the writes after compute;
-              its five tests decided from the capacity word wc = 2^e
-              nodes, 3 <= e < 28, each product and halving a power
-              (`tnm`, `tsh.k`, `hs1`), 2^32 abstract where a word's law
-              names it, the powers' base written 2n (`p2lt`).
+            - `cursor-laws.loop.shape.grow.copy.store.old` — built
+              2026-11-27 — the old words, at the array level:
+              `more_old`, `P.grow_more` on a heap of 2^(e + 2) words whose
+              capacity word reads wc = 2^e nodes, 3 <= e < 28, leaves
+              each word below the old capacity as it was, but the free
+              head's and the capacity's. Through `grow_more`'s trace
+              (`gm.tr`, `gm.tr2`): the grown heap as one chain of sets on
+              the threaded store, each read rewritten by `get_pair` and a
+              premise, the thread's result a store again (`th_mg`) so
+              that the writes after compute; its five tests decided from
+              wc's number, each product, halving and shift a power
+              (`tnm`, `tsh.k`, the arrays package's `half`), 2^32
+              abstract where a word's law names it, the powers' order by
+              the hub's `pow_lt` and `pow_le`, whose base is written 2n,
+              so that a type at 32 names `Nat.pow(2n, 32n)` as the
+              words' laws do. Then the
+              trace's sets peeled by `get_set_other`, each index a number
+              apart from the word read (the thread's count with wc + 1
+              making 2wc, the last node's link 4(2wc - 1) + 1, stated
+              without subtraction), `thread_below`, `grow_old`. With
+              `base_shl`: a node's reference (its index shifted two
+              places) its own base, bit by bit (`bit_ext`), the mask
+              written `U32.not(3)` so that its number is never expanded.
+              Mutants refuted by witnesses on a 32-word store: a base
+              clearing three bits; the capacity written at word 4; the
+              last node's link shifted one place. `LM.kept`, in the
+              views, moves to `.kept`: `KMd.hdr_all` holds no
+              `at_wcap`, so a tracked node's words miss word 3 through
+              its base and `past` (a base past words 0, 1 and 4 to 7 is 8
+              or more).
             - `cursor-laws.loop.shape.grow.copy.store.fresh` — planned — the
-              fresh nodes E, node `wcap0` on to node `wcap - 1` (a model
-              list), chained from the new head, the last linking the old
-              head; E's marks, bases, range, distinctness, its nodes
-              apart from the tracked and from the cursors' ports
-              (`LM.ext.ok`).
+              fresh nodes at the array level: the new head reading node
+              wc, each fresh node's link word the next, the last's the
+              old head, each fresh node's header word 0 (its mark), by
+              the trace, `thread_link` and the free's writes.
             - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
-              `grow_more` composed: `m_ensure`'s doubling (`ensure_once`,
+              the growth premises in the views: `LM.kept` for tracked
+              nodes from `more_old` by `get_view`; `LM.ext.ok` for the
+              fresh nodes E, node wc on to node 2wc - 1 (a model list),
+              from `.fresh`: chained from the new head, marks, bases,
+              range, distinctness, apart from the tracked and from the
+              cursors' ports. Then `grow_more` composed: `m_ensure`'s doubling (`ensure_once`,
               its products from the capacity word's relation to the
               depth), the copy, the thread, `grow.done`'s head and
               capacity, `gm.link`'s link to the old list and the free

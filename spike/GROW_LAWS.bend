@@ -8,6 +8,8 @@
 import Base
 import ./kmem_grow.bend as KM
 import ./kprim.bend as P
+import ./val.bend as V
+import ./kmodel.bend as KMd
 import ./grow_model.bend as GM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
@@ -133,3 +135,25 @@ law depth_pow:
 law base_shl:
   for +i: U32
   {P.base((i << 2n : U32)) == (i << 2n : U32) : U32}
+
+# LAW: growth keeps the old words: P.grow_more on a heap of 2^(e + 2)
+# words whose capacity word reads wc = 2^e nodes, 3 <= e < 28, leaves
+# each word below the old capacity as it was, but the free head's and the
+# capacity's, which it writes. So that the tracked nodes, past the
+# header, read alike after growth (LM.kept).
+# Record: net-nodes-double
+law more_old:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +j: U32
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hj: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, 2n+e)) == True{} : Bool}
+  for +hj0: {Nat.is_eq(U32.to_nat(j), U32.to_nat(P.at_fh())) == False{} : Bool}
+  for +hj3: {Nat.is_eq(U32.to_nat(j), U32.to_nat(P.at_wcap())) == False{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, w, j)) : U32}

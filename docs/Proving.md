@@ -543,6 +543,13 @@ it alone taught. Add to this file what a new proof teaches.
   (`MN.pow_lt_pow_right` states its base as `2n+a`, which meets
   `Nat.pow(2n, 32n)` only by expansion; `tn1`,
   `spike/GROW_PROOF.bend`).
+- **Bound a power below 2^32 by the hub's `pow_lt`.** Its base is
+  written `2n`, so that `pow_lt(j, 32n, h)` names `Nat.pow(2n, 32n)` as
+  the words' laws do; `MN.pow_lt_pow_right` names `Nat.pow(2n+0n, 32n)`,
+  which meets the words' form only by expansion. Keep 2^32 abstract as
+  `m` while reasoning (`+m`, `+em: {Nat.pow(2n, 32n) == m}`), and put it
+  back only for a word law's premise, written in that law's own form
+  (`tnm.k`, `spike/GROW_PROOF.bend`).
 - **A U32 literal's case is 32 matches.** `match cap: case 1:` compiles
   to a match on each of the word's bits (`bend x.bend -o x.bendtt` shows
   it), which a symbolic word never passes, and no premise rewrites it.
