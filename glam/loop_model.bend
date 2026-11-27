@@ -87,3 +87,27 @@ def faced.in(ys: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> Bool:
       True{}
     case Con{+z, t}:
       lw.in(KMd.lw(KMd.word(v, d, (z + 1 : U32))), d) && faced.in(t, v, d)
+
+# The free list's tracked prefix and the guard's room
+# (cursor-laws.alloc.guard.covered.keep.cover): the link after A's nodes,
+# read from link h on
+def after(A: List<&2, U32>, +v: List<&2, U32>, +d: Nat, +h: U32) -> U32:
+  match A:
+    case Nil{}:
+      h
+    case Con{+n, r}:
+      after(r, v, d, KMd.word(v, d, (n + 1 : U32)))
+
+# the tracked prefix F the whole free list: the link after it, from the
+# head, 0
+def ends(F: List<&2, U32>, +v: List<&2, U32>, +d: Nat) -> Bool:
+  U32.is_eq(after(F, v, d, KMd.word(v, d, P.at_fh())), 0)
+
+# whether the free list holds k nodes, as the guard reads it (P.frees):
+# the link k - 1 steps on from the head a node
+def fr(k: Nat, +v: List<&2, U32>, +d: Nat) -> Bool:
+  match k:
+    case 0n:
+      True{}
+    case 1n+p:
+      U32.is_ne(KMd.lk(p, v, d, KMd.word(v, d, P.at_fh())), 0)

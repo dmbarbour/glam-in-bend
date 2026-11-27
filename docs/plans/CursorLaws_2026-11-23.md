@@ -1602,12 +1602,21 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             0 and 1n+p that `rm.loop` matches. Its mutant, the guard
             answering after growth without testing, caught by its proof
             only (a dependent pair no witness refutes).
-          - `cursor-laws.alloc.guard.covered.keep.cover` — planned — the
+          - `cursor-laws.alloc.guard.covered.keep.cover` — active — the
             room's nodes tracked: where the old tracked prefix is the
             whole free list (its chain ends, `after` reading 0), growth
             keeps it so (the fresh nodes before it), so that where the
             guard answers the walk's k nodes are the prefix's first and
-            `lx_split` gives `serve_next`'s shape for any k.
+            `lx_split` gives `serve_next`'s shape for any k. Built so
+            far: `LM.after`, `LM.ends` and `LM.fr` (the guard's test as
+            the model reads it, `XP.fr.m`'s body) in glam/loop_model.bend;
+            `grown_ends`, growth keeps the prefix the whole list (the link
+            after an append, `aapp`; kept across growth, `akp`); and
+            `cover_room`, a prefix that is the whole list holds the room
+            the guard finds (past it the walk's link is 0, `lkz`). Their
+            mutants caught by their proofs only: one breaks the link
+            into the prefix, which a witness's own premise would read;
+            one widens a premise.
         - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
           the guard's answer and the next serve's premises:
           `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it
