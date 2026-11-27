@@ -125,3 +125,11 @@ law depth_pow:
   for +hc: {U32.to_nat(cap) == Nat.pow(2n, d) : Nat}
   for +hd: {Nat.is_lt(d, 32n) == True{} : Bool}
   {KM.depth(32n, cap, 0n) == d : Nat}
+
+# LAW: a node's reference, its index shifted two places, is its own base
+# (P.base): its low two bits clear, the rest kept. So that the nodes
+# growth threads and frees are bases, as the free list's are taken.
+# Record: net-nodes-double
+law base_shl:
+  for +i: U32
+  {P.base((i << 2n : U32)) == (i << 2n : U32) : U32}

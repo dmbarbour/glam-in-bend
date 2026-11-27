@@ -1096,12 +1096,18 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               `to_nat_shr` and `mul_div_cancel_left`. Mutants refuted by
               witnesses: each halving counted twice; the first test
               against 0.
-            - `cursor-laws.loop.shape.grow.copy.store.old` — planned — the
+            - `cursor-laws.loop.shape.grow.copy.store.old` — active — the
               grown heap's words below the old capacity, the head's and
               the capacity's apart, read as before through `m_ensure`,
               the copy, the thread, `grow.done`'s two header writes,
               `gm.link`'s link and the free of node `wcap0`; then
               `LM.kept` for tracked nodes past the header, by `get_view`.
+              Built so far: `base_shl`, a node's reference (its index
+              shifted two places) its own base, bit by bit (`bit_ext`):
+              bits 0 and 1 clear by its number modulo 4, the mask
+              rewritten as `U32.not(3)` so that its bits are `bit_not`'s
+              and its number is never expanded, none past bit 31. Its
+              mutant, a base clearing three bits, refuted by a witness.
             - `cursor-laws.loop.shape.grow.copy.store.fresh` — planned — the
               fresh nodes E, node `wcap0` on to node `wcap - 1` (a model
               list), chained from the new head, the last linking the old

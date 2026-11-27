@@ -17,6 +17,8 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
 import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WLP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
+import 0x96ab58f86121cb4f3fb48b3c8a045989/proof_bytes.bend as WY
+import 0x96ab58f86121cb4f3fb48b3c8a045989/defs.bend as WD
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
 
@@ -359,3 +361,60 @@ def dp(+j: Nat, +k: Nat, +cap: U32, +a: Nat, +hc: {U32.to_nat(cap) == Nat.pow(2n
 
 def Laws.depth_pow(cap, d, hc, hd):
   Equal.trans(Nat, KM.depth(32n, cap, 0n), Nat.add(d, 0n), d, dp(d, 32n, cap, 0n, hc, hd), MN.add_zero(d))
+
+# i << 2 and 3 is 0: its number modulo 4
+def lo0(+i: U32) -> {U32.and((i << 2n : U32), 3) == 0 : U32}:
+  WL.to_nat_inj(U32.and((i << 2n : U32), 3), 0,
+    Equal.trans(Nat, U32.to_nat(U32.and((i << 2n : U32), 3)), Nat.mod(U32.to_nat((i << 2n : U32)), Nat.pow(2n, 2n)), 0n,
+      WL.to_nat_and_mask((i << 2n : U32), 3, 2n, {==}), WL.to_nat_shln_mod(i, 2n)))
+
+# bit k of i << 2 clear where 3's is set (k = 0, 1): bit k of their and,
+# bit k of 0
+def lo.b(+i: U32, +k: Nat, +h3: {WD.bit(3, k) == True{} : Bool}) -> {WD.bit((i << 2n : U32), k) == False{} : Bool}:
+  Equal.trans(Bool, WD.bit((i << 2n : U32), k), Bool.and(WD.bit((i << 2n : U32), k), True{}), False{}, Equal.sym(Bool, Bool.and(WD.bit((i << 2n : U32), k), True{}), WD.bit((i << 2n : U32), k), MB.and_true(WD.bit((i << 2n : U32), k))),
+    Equal.trans(Bool, Bool.and(WD.bit((i << 2n : U32), k), True{}), Bool.and(WD.bit((i << 2n : U32), k), WD.bit(3, k)), False{}, Equal.cong(Bool, Bool, z => Bool.and(WD.bit((i << 2n : U32), k), z), True{}, WD.bit(3, k), Equal.sym(Bool, WD.bit(3, k), True{}, h3)),
+      Equal.trans(Bool, Bool.and(WD.bit((i << 2n : U32), k), WD.bit(3, k)), WD.bit(U32.and((i << 2n : U32), 3), k), False{}, Equal.sym(Bool, WD.bit(U32.and((i << 2n : U32), 3), k), Bool.and(WD.bit((i << 2n : U32), k), WD.bit(3, k)), WL.bit_and((i << 2n : U32), 3, k)),
+        Equal.trans(Bool, WD.bit(U32.and((i << 2n : U32), 3), k), WD.bit(0, k), False{}, Equal.cong(U32, Bool, z => WD.bit(z, k), U32.and((i << 2n : U32), 3), 0, lo0(i)), WY.bit_zero(k)))))
+
+# a low bit of the base: clear on both sides
+def lo.k(+i: U32, +k: Nat, +h3: {WD.bit(3, k) == True{} : Bool}) -> {WD.bit(U32.and((i << 2n : U32), U32.not(3)), k) == WD.bit((i << 2n : U32), k) : Bool}:
+  +hx = lo.b(i, k, h3)
+  Equal.trans(Bool, WD.bit(U32.and((i << 2n : U32), U32.not(3)), k), Bool.and(WD.bit((i << 2n : U32), k), WD.bit(U32.not(3), k)), WD.bit((i << 2n : U32), k), WL.bit_and((i << 2n : U32), U32.not(3), k),
+    ME.subst(Bool, z => {Bool.and(z, WD.bit(U32.not(3), k)) == z : Bool}, False{}, WD.bit((i << 2n : U32), k), Equal.sym(Bool, WD.bit((i << 2n : U32), k), False{}, hx), {==}))
+
+# a high bit: kept below 32, and past 31 none
+def hi.s(+b: Bool, +i: U32, +r: Nat, +he: {Nat.is_lt(2n+r, 32n) == b : Bool}) -> {Bool.and(WD.bit((i << 2n : U32), 2n+r), Bool.and(b, True{})) == WD.bit((i << 2n : U32), 2n+r) : Bool}:
+  match b:
+    case True{}:
+      MB.and_true(WD.bit((i << 2n : U32), 2n+r))
+    case False{}:
+      +hx = WY.bit_ge32((i << 2n : U32), 2n+r, MN.le_of_not_lt(2n+r, 32n, he))
+      %Equal.sym(Bool, WD.bit((i << 2n : U32), 2n+r), False{}, hx) : {Bool.and(_, False{}) == _ : Bool}
+      {==}
+
+def hi.b(+i: U32, +r: Nat) -> {WD.bit(U32.and((i << 2n : U32), U32.not(3)), 2n+r) == WD.bit((i << 2n : U32), 2n+r) : Bool}:
+  Equal.trans(Bool, WD.bit(U32.and((i << 2n : U32), U32.not(3)), 2n+r), Bool.and(WD.bit((i << 2n : U32), 2n+r), WD.bit(U32.not(3), 2n+r)), WD.bit((i << 2n : U32), 2n+r), WL.bit_and((i << 2n : U32), U32.not(3), 2n+r),
+    Equal.trans(Bool, Bool.and(WD.bit((i << 2n : U32), 2n+r), WD.bit(U32.not(3), 2n+r)), Bool.and(WD.bit((i << 2n : U32), 2n+r), Bool.and(Nat.is_lt(2n+r, 32n), Bool.not(WD.bit(3, 2n+r)))), WD.bit((i << 2n : U32), 2n+r),
+      Equal.cong(Bool, Bool, z => Bool.and(WD.bit((i << 2n : U32), 2n+r), z), WD.bit(U32.not(3), 2n+r), Bool.and(Nat.is_lt(2n+r, 32n), Bool.not(WD.bit(3, 2n+r))), WL.bit_not(3, 2n+r)),
+      Equal.trans(Bool, Bool.and(WD.bit((i << 2n : U32), 2n+r), Bool.and(Nat.is_lt(2n+r, 32n), Bool.not(WD.bit(3, 2n+r)))), Bool.and(WD.bit((i << 2n : U32), 2n+r), Bool.and(Nat.is_lt(2n+r, 32n), True{})), WD.bit((i << 2n : U32), 2n+r),
+        Equal.cong(Bool, Bool, z => Bool.and(WD.bit((i << 2n : U32), 2n+r), Bool.and(Nat.is_lt(2n+r, 32n), Bool.not(z))), WD.bit(3, 2n+r), False{}, WY.bit_lt_pow(3, 2n, 2n+r, {==}, MN.le_add_right(2n, r))),
+        hi.s(Nat.is_lt(2n+r, 32n), i, r, {==}))))
+
+def bk(+i: U32, +k: Nat) -> {WD.bit(U32.and((i << 2n : U32), U32.not(3)), k) == WD.bit((i << 2n : U32), k) : Bool}:
+  match k:
+    case 0n:
+      lo.k(i, 0n, {==})
+    case 1n+k1:
+      match k1:
+        case 0n:
+          lo.k(i, 1n, {==})
+        case 1n+r:
+          hi.b(i, r)
+
+# P.base's mask as not(3), so that its bits are bit_not's
+def n3() -> {U32.not(3) == 4294967292 : U32}:
+  {==}
+
+def Laws.base_shl(i):
+  %n3() : {U32.and((i << 2n : U32), _) == (i << 2n : U32) : U32}
+  WL.bit_ext(U32.and((i << 2n : U32), U32.not(3)), (i << 2n : U32), k => bk(i, k))

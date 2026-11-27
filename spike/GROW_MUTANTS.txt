@@ -107,3 +107,13 @@ halves past it to the step bound
 >>> witness depth_pow
 cap = 1
 d = 0n
+
+=== base_three_bits base_shl
+the base clearing three low bits, not two, so that node 1's reference,
+4, has base 0
+--- kprim.bend
+  (r .&. 4294967292 : U32)
++++
+  (r .&. 4294967288 : U32)
+>>> witness base_shl
+i = 1
