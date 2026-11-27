@@ -14,6 +14,7 @@ import ./position_model.bend as QM
 import ./ring.bend as R
 import ./index_model.bend as IM
 import ./materialize.bend as M
+import ../spike/grow_model.bend as GM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: a serve whose positioned demand ends at the frontier (sv.pd, which
@@ -127,3 +128,33 @@ law room_grow:
   for +hg: {P.grow_more(h) == (g, True{}) : P.H & Bool}
   for +hf1: {P.frees(k, g) == (g, True{}) : P.H & Bool}
   {M.mz.room(h, k) == (g, True{}) : P.H & Bool}
+
+# LAW: the guard answers on a full heap where its free list holds the
+# room asked, the heap untouched (room_free, P.frees as the model reads
+# it).
+# Record: collect-before-growth
+law room_hit:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +d: Nat
+  for +k: Nat
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +h1: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == True{} : Bool}
+  {M.mz.room(P.H{KM.MG{w}, a}, k) == (P.H{KM.MG{w}, a}, True{}) : P.H & Bool}
+
+# LAW: on a heap of the shape (GM.shape) at e < 28, asked for room up to
+# its node count that its free list lacks, the guard answers on the heap
+# one growth makes (room_grow, its premises by the growth laws).
+# Record: collect-before-growth
+# Record: net-nodes-double
+law room_covered:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +e: Nat
+  for +k: Nat
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +he: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool}
+  for +h0: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == False{} : Bool}
+  {M.mz.room(P.H{KM.MG{w}, a}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})), True{}) : P.H & Bool}

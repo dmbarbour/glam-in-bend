@@ -1516,7 +1516,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
       guard answers; the growth branch with `.grow.copy.store`:
-      - `cursor-laws.alloc.guard.covered` — active — the guard's loop
+      - `cursor-laws.alloc.guard.covered` — built 2026-11-27, `.keep`
+        planned — the guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
         carrying the invariant, the heap's shape and `LM.faced.in` to
         the heap it answers on, and where it answers, the free list's
@@ -1560,9 +1561,24 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           old free prefix after the fresh nodes (an extension at the
           front, beside `lx_extend`'s at the back); until then the
           covered serve asks k <= 2^e.
-        - `cursor-laws.alloc.guard.covered.serve` — planned — where
-          the guard answers, `frees_room`'s k nodes the tracked prefix's
-          first (`lx_split`), `serve_next`'s premise. As planned: the guard at `mz.fz.t` and
+        - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
+          the guard's answer and the next serve's premises:
+          `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it
+          answers on the heap itself where a full heap's list holds the
+          room, on the heap one growth makes where a heap of the shape
+          lacks it and k is up to its node count (`room_grow`, its
+          premises by `frs`, `more_grew` and `grown_frees`, which moves to
+          glam/GROWN_LAWS.bend as the full equation, the heap kept, so
+          that the materializer's proofs reach it, 2 s more, without the
+          loop's imports, 60 s more); `grow_serve_ready`
+          (glam/LOOP_LAWS.bend), on the growth branch the invariant over
+          the grown view in `serve_next`'s shape (`lx_split` at k, the
+          copy's nodes the fresh nodes' first), the shape at e + 1, the
+          cursors' faced ports in range, and the copy's nodes k in
+          number. Mutants: the guard's two on the first heap's words,
+          refuted by witnesses; the composition's, caught by its proof.
+          Left with the no-growth branch: the copy's nodes tracked
+          there as before, by the serve laws' prefix premises. As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the

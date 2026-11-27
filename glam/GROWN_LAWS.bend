@@ -155,3 +155,22 @@ law grown_faced:
   for +hk: {LM.kept(N, v, d, v2) == True{} : Bool}
   for +hfi: {LM.faced.in(L, v, d) == True{} : Bool}
   {LM.faced.in(L, v2, 1n+d) == True{} : Bool}
+
+# LAW: after one growth the free list holds any k nodes up to the old
+# node count, wc (P.frees answers, the heap kept): the fresh nodes chained from the
+# head, each link one on. So that the guard's growth is its last when
+# the room it asks is no more than the heap's nodes.
+# Record: net-nodes-double
+law grown_frees:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +k: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hk: {Nat.is_le(k, U32.to_nat(wc)) == True{} : Bool}
+  {P.frees(k, Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})), True{}) : P.H & Bool}

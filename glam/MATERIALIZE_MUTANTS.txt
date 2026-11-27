@@ -57,3 +57,29 @@ free, 249 after one growth
 h = P.h_new()
 g = Pair.fst(P.H, Bool, P.grow_more(P.h_new()))
 k = 130n
+
+=== room_ok_refused_hit room_hit
+the guard refusing room the free list holds: four nodes asked of the
+first heap's words, 121 free
+--- materialize.bend
+      RmDone{h, True{}}
++++
+      RmDone{h, False{}}
+>>> witness room_hit
+w = KMd.words(P.h_new())
+a = Array.new(V.Val, 4n, V.VUnit{})
+d = 9n
+k = 4n
+
+=== room_grown_refused_covered room_covered
+the guard giving up after growth that made room: 125 nodes asked of the
+first heap, its 128 nodes, 121 of them free
+--- materialize.bend
+      RmMore{P.frees(k, h)}
++++
+      RmDone{h, False{}}
+>>> witness room_covered
+w = KMd.words(P.h_new())
+a = Array.new(V.Val, 4n, V.VUnit{})
+e = 7n
+k = 125n
