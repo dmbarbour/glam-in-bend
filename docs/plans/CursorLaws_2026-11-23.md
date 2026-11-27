@@ -779,7 +779,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         line over `MN.is_eq_comm`, as `INDEX_PROOF`'s `neq_comm` and
         `PROOF`'s `neq_comm2` are; `orff` (an or of two falses), as
         `INDEX_PROOF`'s `or_ff2`, `PROOF`'s `or_ff` and `SERVE_PROOF`'s
-        `bff` are.
+        `bff` are; `or_r` and `or_l` (an or true by its right, and its
+        right true where its left is false), as `SPLICE_PROOF`'s `or_r`
+        and `ALIGN.bend`'s `ort_r` are.
     - `cursor-laws.proofs.imports` — built 2026-11-25, `.rules`
       tentative — what the proofs import
       from the spike cut to what they use, for the verdicts' time and
@@ -1184,9 +1186,17 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
                 index shifted one place (two laws) or three, counting
                 down.
               - `cursor-laws.loop.shape.grow.copy.store.kept.ports` —
-                planned — `px.off(L, v2, 1n+d, L, E)`: each cursor's
-                faced port, in range by `faced.in` and read alike by
-                `LM.kept`, off the fresh nodes' words and the head.
+                built 2026-11-27 — `grown_ports`, over views alone:
+                `px.off(L, v2, 1n+d, L, E)` from `sub(L, N)`, `LM.kept`,
+                `LM.faced.in`, the old `px.off` over the tracked nodes (its
+                base, the head) and E's range, `GM.above(E, d)` (every node
+                at or past 2^d) with `nodes.in(E, 1n+d)`: each faced port
+                read alike (`khas`, `sw`), its link word below 2^d off
+                every fresh word (`opj`) and off the head one level deeper
+                as at d (`opf`), a static's none. `grown_above`: the fresh
+                nodes past the old store. Mutants: the model's index shifted
+                one place, refuted by a witness; `GM.above` admitting any
+                node, caught by its proof only (a premise widened).
               - `cursor-laws.loop.shape.grow.copy.store.kept.carry` —
                 planned — the invariant across `grow_more`, through
                 `grow_next`, in `glam/LOOP_LAWS.bend`; the heap's shape a

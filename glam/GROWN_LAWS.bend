@@ -103,3 +103,38 @@ law grown_in:
   for +he3: {Nat.is_le(3n, e) == True{} : Bool}
   for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
   {RG.nodes.in(GM.fresh(U32.to_nat(wc), wc), 3n+e) == True{} : Bool}
+
+# LAW: the fresh nodes lie past the old store, each at word 2^(e + 2)
+# or past it.
+# Record: net-nodes-double
+law grown_above:
+  for +wc: U32
+  for +e: Nat
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {GM.above(GM.fresh(U32.to_nat(wc), wc), 2n+e) == True{} : Bool}
+
+# LAW: across the heap's doubling from depth d, each cursor's faced port
+# keeps off the nodes made past the old store (E, GM.above, in range one
+# level deeper) and off the free list's head: LM.ext.ok's ports, from
+# the old invariant's (px.off over the tracked nodes, its base the head),
+# the cursors tracked (sub) and read alike (LM.kept), and each faced port
+# linking a word in range (LM.faced.in).
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grown_ports:
+  for +v: List<&2, U32>
+  for +v2: List<&2, U32>
+  for +d: Nat
+  for +L: List<&2, U32>
+  for +N: List<&2, U32>
+  for +E: List<&2, U32>
+  for +hd: {Nat.is_lt(1n+d, 32n) == True{} : Bool}
+  for +hs: {RG.sub(L, N) == True{} : Bool}
+  for +hk: {LM.kept(N, v, d, v2) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, v, d) == True{} : Bool}
+  for +hpo: {RG.px.off(L, v, d, L, N) == True{} : Bool}
+  for +hab: {GM.above(E, d) == True{} : Bool}
+  for +hin: {RG.nodes.in(E, 1n+d) == True{} : Bool}
+  {RG.px.off(L, v2, 1n+d, L, E) == True{} : Bool}

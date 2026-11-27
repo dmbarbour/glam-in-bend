@@ -18,3 +18,12 @@ def fresh(k: Nat, +i: U32) -> List<&2, U32>:
       Nil{}
     case 1n+p:
       Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
+
+# every one of ys at or past word 2^d, as growth's fresh nodes lie past
+# the old store
+def above(ys: List<&2, U32>, +d: Nat) -> Bool:
+  match ys:
+    case Nil{}:
+      True{}
+    case Con{+n, t}:
+      Nat.is_le(Nat.pow(2n, d), U32.to_nat(n)) && above(t, d)
