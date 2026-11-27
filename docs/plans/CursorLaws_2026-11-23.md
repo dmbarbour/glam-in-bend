@@ -768,6 +768,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         U32 facts no hub file holds, in small files by topic; the
         generated files' through their generators. An import a file
         lacks is timed alone first.
+        Candidates found since (`.loop.shape.grow.copy.store`,
+        2026-11-27), for `blend/docs/HubCandidates.md` with Blend's next
+        change: `lt_le_ne` (at most and not equal is below; also
+        `WIRED_PROOF`'s `lt_of_le_ne`), `bcase` (a Bool decided, either
+        case's proof), `q4` and `o4` (four times a equals four times b
+        just where a equals b, and one past it never does), `npred` (a
+        predecessor that strips a successor by computation, where
+        `Nat.sub(1n+a, 1n)` sticks at `Nat.sub(a, 0n)`); `ne_flip` is a
+        line over `MN.is_eq_comm`, as `INDEX_PROOF`'s `neq_comm` and
+        `PROOF`'s `neq_comm2` are.
     - `cursor-laws.proofs.imports` — built 2026-11-25, `.rules`
       tentative — what the proofs import
       from the spike cut to what they use, for the verdicts' time and
@@ -1154,7 +1164,24 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               that puts node `wcap0` back; discharging `LM.kept` for
               tracked nodes below the old capacity and past the header,
               and `LM.ext.ok`'s chain, range and marks for the fresh
-              nodes.
+              nodes. Its catch: `KMd.hdr_all`, the header's words a
+              splice writes, holds no `at_wcap` (word 3), which growth
+              writes, so `past` alone does not keep a tracked node off
+              it. Either a node's base and `past` together (a base past
+              words 0, 1 and 4 to 7 is 8 or more), the cheaper, or a
+              model list of the words growth writes beside `hdr_all`,
+              should a second step write header words outside the
+              splice's frame. Tidying with it: `t4` through `lt1d`, as
+              `w1lt` is.
+            - `cursor-laws.loop.shape.grow.copy.store.shape` — planned —
+              the heap's shape as a law, discharging the growth laws'
+              scaffolding: the capacity word reads wc = 2^e nodes,
+              3 <= e < 28, the store full at 2^(e + 2) words. Made by
+              `h_new`, kept by every step that writes neither word 3 nor
+              the store's size, carried by growth to wc = 2^(e + 1) while
+              e + 1 < 28, and an error past it (`grow.done`'s refusal).
+              With `.alloc.sound`, which reads the same words, or before
+              it, as `.kept` finds it wanted.
             As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:
