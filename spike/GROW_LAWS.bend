@@ -157,3 +157,93 @@ law more_old:
   for +hj0: {Nat.is_eq(U32.to_nat(j), U32.to_nat(P.at_fh())) == False{} : Bool}
   for +hj3: {Nat.is_eq(U32.to_nat(j), U32.to_nat(P.at_wcap())) == False{} : Bool}
   {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), j)) == Pair.snd(Array<U32>, U32, Array.get(U32, w, j)) : U32}
+
+# LAW: threading writes no node's header word: word 4m of the threaded
+# store reads as before, for every node m whose words lie below the bound
+# c, so that the fresh nodes keep the zero fill's mark.
+# Record: net-nodes-double
+law thread_mark:
+  for k: Nat
+  for +i: U32
+  for +to: U32
+  for a: Array<U32>
+  for +m: U32
+  for +D: Nat
+  for +c: U32
+  for +hf: {AD.full(U32, a, D) == True{} : Bool}
+  for +hD: {Nat.is_lt(D, 32n) == True{} : Bool}
+  for +hc: {Nat.is_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), Nat.mul(k, 4n)), U32.to_nat(c)) == True{} : Bool}
+  for +hcD: {Nat.is_le(U32.to_nat(c), Nat.pow(2n, D)) == True{} : Bool}
+  for +hm: {Nat.is_lt(Nat.mul(U32.to_nat(m), 4n), U32.to_nat(c)) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, GM.arr(P.thread(k, KM.MG{a}, i, to)), (m << 2n : U32))) == Pair.snd(Array<U32>, U32, Array.get(U32, a, (m << 2n : U32))) : U32}
+
+# LAW: after growth the free list's head names node wc, the first fresh
+# node (a link is its node's index plus one), on a heap as more_old's.
+# Record: net-nodes-double
+law more_head:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), P.at_fh())) == (wc + 1 : U32) : U32}
+
+# LAW: each fresh node m, wc <= m < 2wc, reads 0 at its header word after
+# growth: free (KMd.free_at), the zero fill's for the threaded nodes, the
+# free's for node wc.
+# Record: net-nodes-double
+# Record: free-mark-internal
+law more_mark:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +m: U32
+  for +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(m)) == True{} : Bool}
+  for +hhi: {Nat.is_lt(U32.to_nat(m), Nat.pow(2n, 1n+e)) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), (m << 2n : U32))) == 0 : U32}
+
+# LAW: each fresh node m but the last, wc <= m < 2wc - 1, links the next
+# after growth: its word 1 reads m + 1 encoded one on (the free's write
+# for node wc, the thread's for the rest).
+# Record: net-nodes-double
+law more_link:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +m: U32
+  for +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(m)) == True{} : Bool}
+  for +hhi: {Nat.is_lt(1n+U32.to_nat(m), Nat.pow(2n, 1n+e)) == True{} : Bool}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), ((m << 2n : U32) + 1 : U32))) == ((m + 1 : U32) + 1 : U32) : U32}
+
+# LAW: the last fresh node, 2wc - 1, links the old free list's head after
+# growth (gm.link), so that the nodes free before follow the fresh ones.
+# Record: net-nodes-double
+law more_last:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +m: U32
+  for +hm: {1n+U32.to_nat(m) == Nat.pow(2n, 1n+e) : Nat}
+  {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), ((m << 2n : U32) + 1 : U32))) == Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) : U32}

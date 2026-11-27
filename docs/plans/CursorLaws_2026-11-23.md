@@ -1126,11 +1126,21 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               `at_wcap`, so a tracked node's words miss word 3 through
               its base and `past` (a base past words 0, 1 and 4 to 7 is 8
               or more).
-            - `cursor-laws.loop.shape.grow.copy.store.fresh` — planned — the
-              fresh nodes at the array level: the new head reading node
-              wc, each fresh node's link word the next, the last's the
-              old head, each fresh node's header word 0 (its mark), by
-              the trace, `thread_link` and the free's writes.
+            - `cursor-laws.loop.shape.grow.copy.store.fresh` — built
+              2026-11-27 — the fresh nodes at the array level, on a heap
+              as `more_old`'s: `more_head`, the head names node wc;
+              `more_mark`, each fresh node m, wc <= m < 2wc, reads 0 at
+              its header word; `more_link`, each but the last links the
+              next (m + 1, encoded one on); `more_last`, the last links
+              the old head. Node wc by the free's writes, the rest by
+              `thread_link` and the new `thread_mark` (threading writes
+              no node's header word: four times an index plus one is
+              never four times another, `o4`), the zero fill by
+              `grow_new`; the two cases split by a generic `bcase`. Each
+              index a number apart from the word read, as in `more_old`.
+              Mutants refuted by witnesses: the link written at the
+              header word; the head unencoded; the free marking 1; the
+              head skipping node wc + 1; the last node unlinked.
             - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
               the growth premises in the views: `LM.kept` for tracked
               nodes from `more_old` by `get_view`; `LM.ext.ok` for the

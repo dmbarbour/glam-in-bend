@@ -146,3 +146,76 @@ a = Array.new(V.Val, 1n, V.VUnit{})
 wc = 8
 e = 3n
 j = 31
+
+=== thread_on_header thread_mark
+node i's link written at its header word, 4i, not 4i + 1, so that
+threading clears the mark the zero fill left: node 1 of an eight-word
+store reads 0 at word 4
+--- kprim.bend
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
++++
+      thread(p, KM.m_set(m, (i << 2n : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
+>>> witness thread_mark
+k = 1n
+i = 1
+to = 2
+a = [7 : U32^3n]
+m = 1
+D = 3n
+c = 8
+
+=== head_unencoded more_head
+the freed node's link to it written as its index, not its index plus
+one, so that the head names the node before: node 8 of a store of eight
+nodes grown reads 8 at the head, not 9
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), (r >> 2n : U32)), a}
+>>> witness more_head
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+
+=== free_marks_one more_mark
+the freed node's header word written 1, not 0, so that node wc, the
+first fresh node, reads in use
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 1), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness more_mark
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 8
+
+=== head_skips more_link
+the grown head written as node wc + 2's link, not wc + 1's, so that the
+freed node wc links past node wc + 1
+--- kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 3 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
+>>> witness more_link
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 8
+
+=== last_unlinked more_last
+the last fresh node linked to no node, not the old head, so that the
+nodes free before growth fall off the list: an old head of 5 lost
+--- kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), 0), n)
+>>> witness more_last
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 3, 8), 0, 5)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 15
