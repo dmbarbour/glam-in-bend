@@ -138,3 +138,20 @@ law grown_ports:
   for +hab: {GM.above(E, d) == True{} : Bool}
   for +hin: {RG.nodes.in(E, 1n+d) == True{} : Bool}
   {RG.px.off(L, v2, 1n+d, L, E) == True{} : Bool}
+
+# LAW: across the heap's doubling from depth d, each cursor's faced port
+# still links a word in range (LM.faced.in, at 1n+d), the cursors tracked
+# and read alike (LM.kept): a link word below 2^d is below 2^(d + 1), a
+# static's none. So that the guard's rounds of growth carry it.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grown_faced:
+  for +v: List<&2, U32>
+  for +v2: List<&2, U32>
+  for +d: Nat
+  for +L: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hs: {RG.sub(L, N) == True{} : Bool}
+  for +hk: {LM.kept(N, v, d, v2) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, v, d) == True{} : Bool}
+  {LM.faced.in(L, v2, 1n+d) == True{} : Bool}

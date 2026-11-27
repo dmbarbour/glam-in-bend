@@ -528,3 +528,34 @@ def pxo(ys: List<&2, U32>, +v: List<&2, U32>, +v2: List<&2, U32>, +d: Nat, +L: L
 
 def Laws.grown_ports(v, v2, d, L, N, E, hd, hs, hk, hfi, hpo, hab, hin):
   pxo(L, v, v2, d, L, N, E, hd, hs, hk, hfi, hpo, hab, hin)
+
+# a link word in range at d is in range one level deeper
+def lwu.k(+st: Bool, +r: U32, +d: Nat, +hst: {P.is_static(r) == st : Bool}, +hl: {LM.lw.in(KMd.lw(r), d) == True{} : Bool}) -> {LM.lw.in(KMd.lw(r), 1n+d) == True{} : Bool}:
+  match st:
+    case True{}:
+      %Equal.sym(Bool, P.is_static(r), True{}, hst) : {LM.lw.in(KMd.lw.k(_, r), 1n+d) == True{} : Bool}
+      {==}
+    case False{}:
+      +hl2 = ME.subst(Bool, q => {LM.lw.in(KMd.lw.k(q, r), d) == True{} : Bool}, P.is_static(r), False{}, hst, hl)
+      %Equal.sym(Bool, P.is_static(r), False{}, hst) : {LM.lw.in(KMd.lw.k(_, r), 1n+d) == True{} : Bool}
+      MN.lt_of_lt_of_le(U32.to_nat((r + 1 : U32)), Nat.pow(2n, d), Nat.pow(2n, 1n+d), hl2, MN.le_of_lt(Nat.pow(2n, d), Nat.pow(2n, 1n+d), AB.pow_lt(d, 1n+d, MN.lt_succ_of_le(d, d, MN.le_refl(d)))))
+
+def lwu(+r: U32, +d: Nat, +hl: {LM.lw.in(KMd.lw(r), d) == True{} : Bool}) -> {LM.lw.in(KMd.lw(r), 1n+d) == True{} : Bool}:
+  lwu.k(P.is_static(r), r, d, {==}, hl)
+
+def gfo(ys: List<&2, U32>, +v: List<&2, U32>, +v2: List<&2, U32>, +d: Nat, +N: List<&2, U32>, +hs: {RG.sub(ys, N) == True{} : Bool}, +hk: {LM.kept(N, v, d, v2) == True{} : Bool},
+  +hfi: {LM.faced.in(ys, v, d) == True{} : Bool}) -> {LM.faced.in(ys, v2, 1n+d) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+z, t}:
+      +hz = MB.eq_true_of_and_left(RG.has(N, z), RG.sub(t, N), hs)
+      +hst = MB.eq_true_of_and_right(RG.has(N, z), RG.sub(t, N), hs)
+      +hl = MB.eq_true_of_and_left(LM.lw.in(KMd.lw(KMd.word(v, d, (z + 1 : U32))), d), LM.faced.in(t, v, d), hfi)
+      +hft = MB.eq_true_of_and_right(LM.lw.in(KMd.lw(KMd.word(v, d, (z + 1 : U32))), d), LM.faced.in(t, v, d), hfi)
+      +we = sw(List.get(&2, U32, v2, AD.slot((z + 1 : U32), 1n+d)), List.get(&2, U32, v, AD.slot((z + 1 : U32), d)), khas(N, z, v, d, v2, hk, hz))
+      +lz = ME.subst(U32, q => {LM.lw.in(KMd.lw(q), 1n+d) == True{} : Bool}, KMd.word(v, d, (z + 1 : U32)), KMd.word(v2, 1n+d, (z + 1 : U32)), Equal.sym(U32, KMd.word(v2, 1n+d, (z + 1 : U32)), KMd.word(v, d, (z + 1 : U32)), we), lwu(KMd.word(v, d, (z + 1 : U32)), d, hl))
+      MB.and_eq_true(LM.lw.in(KMd.lw(KMd.word(v2, 1n+d, (z + 1 : U32))), 1n+d), LM.faced.in(t, v2, 1n+d), lz, gfo(t, v, v2, d, N, hst, hk, hft))
+
+def Laws.grown_faced(v, v2, d, L, N, hs, hk, hfi):
+  gfo(L, v, v2, d, N, hs, hk, hfi)

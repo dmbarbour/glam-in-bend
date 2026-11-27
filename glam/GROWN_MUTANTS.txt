@@ -107,3 +107,13 @@ breaks fails the premise unmutated, so no witness can show it)
       Nat.is_le(Nat.pow(2n, d), U32.to_nat(n)) && above(t, d)
 +++
       above(t, d)
+
+=== kept_old_depth grown_faced
+the kept words' relation reading the grown view at the old depth, so
+that a faced port read alike there says nothing of the word read one
+level deeper (caught by its proof only: a witness would be views built
+by hand with a cursor whose faced port is in range)
+--- loop_model.bend
+  same(List.get(&2, U32, v2, AD.slot(i, 1n+d)), List.get(&2, U32, v, AD.slot(i, d)))
++++
+  same(List.get(&2, U32, v2, AD.slot(i, d)), List.get(&2, U32, v, AD.slot(i, d)))

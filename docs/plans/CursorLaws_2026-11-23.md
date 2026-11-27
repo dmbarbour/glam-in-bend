@@ -980,7 +980,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         (`bases_apart`) a step of its own, which would fold the layout
         into the invariant by computation (P10). The maintainer
         (2026-11-26): "Premises now is acceptable."
-      - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
+      - `cursor-laws.loop.shape.grow` — built 2026-11-27 — `px_grow` as
+        `grow_next`, `grow_loop` and `grow_shape_loop`: the wider
         invariant across the heap's doubling, the words copied. Narrowed
         by `cursor-laws.alloc`: growth as `grow_more`'s one law between
         steps; first a per-node range (its own base, past the header,
@@ -1023,7 +1024,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
           of `N` and `RG.nodes.in(E, d)`. Laws on main restated, for
           the maintainer's approval.
-        - `cursor-laws.loop.shape.grow.copy` — active — the invariant
+        - `cursor-laws.loop.shape.grow.copy` — built 2026-11-27 — the invariant
           across the doubling. Growth comes between serves (room made
           first), where the tracked free prefix is dead weight (the
           second reviewer's F9), so it goes in three laws and a kernel
@@ -1514,7 +1515,37 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
 
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
-      guard answers; the growth branch with `.grow.copy.store`. As planned: the guard at `mz.fz.t` and
+      guard answers; the growth branch with `.grow.copy.store`:
+      - `cursor-laws.alloc.guard.covered` — active — the guard's loop
+        (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
+        carrying the invariant, the heap's shape and `LM.faced.in` to
+        the heap it answers on, and where it answers, the free list's
+        first k nodes tracked, as `serve_next` asks. The loop runs a
+        number of rounds no law fixes, so its law concludes a
+        dependent pair: some e', free prefix and tracked list for which
+        the three hold. Its catch: `grow_loop` drops the free prefix
+        and tracks the fresh nodes alone, while the free list after
+        growth is the fresh nodes then the old list (`more_last`), and
+        a walk of k nodes runs past the fresh ones into the old list
+        whenever k exceeds the new half. So a growth law keeping the
+        old prefix after the fresh nodes, the chain `more_last`
+        already gives. In slices:
+        - `cursor-laws.alloc.guard.covered.faced` — built 2026-11-27 —
+          `grown_faced` (glam/GROWN_LAWS.bend): `LM.faced.in` across
+          growth, over views alone, each cursor tracked and read alike
+          (`khas`, `sw`), a link word below 2^d below 2^(d + 1), a
+          static's none. Its mutant, the kept words read at the old
+          depth, caught by its proof only.
+        - `cursor-laws.alloc.guard.covered.keep` — planned — the
+          growth law keeping the old free prefix after the fresh
+          nodes (an extension at the front, beside `lx_extend`'s at
+          the back).
+        - `cursor-laws.alloc.guard.covered.loop` — planned —
+          `mz.room`'s law: the three carried through its rounds,
+          `frees_kept` at each test, the growth laws at each growth.
+        - `cursor-laws.alloc.guard.covered.serve` — planned — where
+          the guard answers, `frees_room`'s k nodes the tracked prefix's
+          first (`lx_split`), `serve_next`'s premise. As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the
