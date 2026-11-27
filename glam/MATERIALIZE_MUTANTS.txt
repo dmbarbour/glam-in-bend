@@ -33,3 +33,27 @@ as check_self, on the one-net path
       sv1.front.c(U32.is_eq(c, nc), h, nc, c, n)
 +++
       sv1.front.c(U32.is_eq(c, c), h, nc, c, n)
+
+=== room_ok_refused room_free
+the guard refusing room the free list holds, so that a serve it could
+make is refused: four nodes asked of the first heap, 121 free
+--- materialize.bend
+      RmDone{h, True{}}
++++
+      RmDone{h, False{}}
+>>> witness room_free
+h = P.h_new()
+k = 4n
+
+=== room_grown_refused room_grow
+the guard giving up after growth that made room, so that a serve the
+grown heap holds is refused: 130 nodes asked of the first heap, 121
+free, 249 after one growth
+--- materialize.bend
+      RmMore{P.frees(k, h)}
++++
+      RmDone{h, False{}}
+>>> witness room_grow
+h = P.h_new()
+g = Pair.fst(P.H, Bool, P.grow_more(P.h_new()))
+k = 130n

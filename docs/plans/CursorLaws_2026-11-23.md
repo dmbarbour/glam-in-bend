@@ -1536,13 +1536,30 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           (`khas`, `sw`), a link word below 2^d below 2^(d + 1), a
           static's none. Its mutant, the kept words read at the old
           depth, caught by its proof only.
-        - `cursor-laws.alloc.guard.covered.keep` — planned — the
-          growth law keeping the old free prefix after the fresh
-          nodes (an extension at the front, beside `lx_extend`'s at
-          the back).
-        - `cursor-laws.alloc.guard.covered.loop` — planned —
-          `mz.room`'s law: the three carried through its rounds,
-          `frees_kept` at each test, the growth laws at each growth.
+        - `cursor-laws.alloc.guard.covered.fits` — built 2026-11-27 —
+          `grown_frees` (glam/LOOP_LAWS.bend): after one growth
+          `P.frees` answers for any k up to the old node count, the
+          walk along the fresh nodes (`lkf`, each link one on) through
+          `frs`; `more_grew`, growth answering that it grew. So that
+          for a request up to the heap's nodes (k <= 2^e), the case a
+          first heap of 128 nodes and a template's size give, one round
+          of growth is the guard's last. Mutants refuted by witnesses:
+          threading's links at the header words; growth answering it
+          did not grow.
+        - `cursor-laws.alloc.guard.covered.loop` — built 2026-11-27 —
+          the guard's loop as its control flow, over any heap
+          (glam/MATERIALIZE_LAWS.bend): `room_free`, it answers on the
+          heap itself where the free list holds the room; `room_grow`,
+          on the grown heap where growth makes it. Mutants refuted by
+          witnesses on real heaps (`P.h_new()`, 121 free nodes, asked 4
+          and then 130): room the list holds refused; room growth made
+          refused.
+        - `cursor-laws.alloc.guard.covered.keep` — planned — a request
+          past the heap's nodes: more rounds, and the walk past the
+          fresh nodes into the old list, so a growth law keeping the
+          old free prefix after the fresh nodes (an extension at the
+          front, beside `lx_extend`'s at the back); until then the
+          covered serve asks k <= 2^e.
         - `cursor-laws.alloc.guard.covered.serve` — planned — where
           the guard answers, `frees_room`'s k nodes the tracked prefix's
           first (`lx_split`), `serve_next`'s premise. As planned: the guard at `mz.fz.t` and

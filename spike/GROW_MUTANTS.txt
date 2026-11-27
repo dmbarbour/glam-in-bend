@@ -288,3 +288,16 @@ proof only: a witness would be a store of 2^30 words)
       (h_err(H{w, a}), iface())
 +++
       (H{w, a}, iface())
+
+=== grew_false more_grew
+growth answering that it did not grow when it did, so that the guard
+gives up on room it made
+--- kprim.bend
+      (gm.link(rd(h, at_wcap()), fh0, r), True{})
++++
+      (gm.link(rd(h, at_wcap()), fh0, r), False{})
+>>> witness more_grew
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n

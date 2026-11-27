@@ -90,3 +90,16 @@ def fj1.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +hf: {AD.full(U32, w, d) ==
 
 def Laws.front_joins1(w, a, d, hf, hd32, hwd, j, p, hj, hjc, hpa, pos, hpos, hns, q, n, hfa, situ, I, hr, hi, nc, hn, k, c, hc):
   fj1.m(w, a, d, hf, hd32, hwd, j, p, hj, hjc, hpa, pos, hpos, hns, q, n, hfa, situ, I, hr, hi, nc, hn, k, c, hc, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# The guard's loop as its control flow (room_free, room_grow)
+# ===========================================================
+
+def Laws.room_free(h, k, hf0):
+  %Equal.sym(P.H & Bool, P.frees(k, h), (h, True{}), hf0) : {M.rm.loop(32n, M.rm.step(_, k), k) == (h, True{}) : P.H & Bool}
+  {==}
+
+def Laws.room_grow(h, g, k, hf0, hg, hf1):
+  %Equal.sym(P.H & Bool, P.frees(k, h), (h, False{}), hf0) : {M.rm.loop(32n, M.rm.step(_, k), k) == (g, True{}) : P.H & Bool}
+  %Equal.sym(P.H & Bool, P.grow_more(h), (g, True{}), hg) : {M.rm.loop(32n, M.rm.more(_, k), k) == (g, True{}) : P.H & Bool}
+  %Equal.sym(P.H & Bool, P.frees(k, g), (g, True{}), hf1) : {M.rm.loop(31n, M.rm.step(_, k), k) == (g, True{}) : P.H & Bool}
+  {==}

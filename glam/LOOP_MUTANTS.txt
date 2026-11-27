@@ -101,3 +101,18 @@ spike/GROW_MUTANTS.txt)
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
 +++
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))
+
+=== thread_on_header grown_frees
+node i's link written at its header word, not word 1, so that the fresh
+nodes past the first two are off the free list: eight nodes asked of a
+heap grown from eight
+--- ../spike/kprim.bend
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
++++
+      thread(p, KM.m_set(m, (i << 2n : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
+>>> witness grown_frees
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+k = 8n

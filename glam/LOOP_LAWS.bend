@@ -502,3 +502,22 @@ law grow_shape_loop:
   for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
   for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}
+
+# LAW: after one growth the free list holds any k nodes up to the old
+# node count, wc (P.frees answers): the fresh nodes chained from the
+# head, each link one on. So that the guard's growth is its last when
+# the room it asks is no more than the heap's nodes.
+# Record: net-nodes-double
+law grown_frees:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +k: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hk: {Nat.is_le(k, U32.to_nat(wc)) == True{} : Bool}
+  {Pair.snd(P.H, Bool, P.frees(k, Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))) == True{} : Bool}

@@ -102,3 +102,28 @@ law front_joins1:
   for +c: U32
   for +hc: {IM.ix.look(I, q) == Some{c} : Maybe<&2, U32>}
   {M.sv1.pd(Q.PdFront{P.H{KM.MG{w}, a}, q, n}, situ, k, nc, pos) == M.S1Ok{R.join(P.H{KM.MG{w}, a}, nc, c), n, 1} : M.Sv1}
+
+# LAW: the guard answers on the heap itself where the free list holds
+# the room it asks (M.mz.room, its first round's test answering), the
+# heap untouched.
+# Record: collect-before-growth
+law room_free:
+  for -h: P.H
+  for +k: Nat
+  for +hf0: {P.frees(k, h) == (h, True{}) : P.H & Bool}
+  {M.mz.room(h, k) == (h, True{}) : P.H & Bool}
+
+# LAW: the guard answers on the grown heap where the free list lacks the
+# room, growth grows, and the grown free list holds it: one round of
+# growth, then the test answering. With grown_frees (glam/LOOP_LAWS.bend)
+# one round is all a request up to the heap's node count needs.
+# Record: collect-before-growth
+# Record: net-nodes-double
+law room_grow:
+  for -h: P.H
+  for -g: P.H
+  for +k: Nat
+  for +hf0: {P.frees(k, h) == (h, False{}) : P.H & Bool}
+  for +hg: {P.grow_more(h) == (g, True{}) : P.H & Bool}
+  for +hf1: {P.frees(k, g) == (g, True{}) : P.H & Bool}
+  {M.mz.room(h, k) == (g, True{}) : P.H & Bool}
