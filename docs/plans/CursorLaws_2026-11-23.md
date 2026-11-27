@@ -1254,16 +1254,25 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
                 apart from word 3, then `grow.done`'s write). Mutants, the
                 capacity written as the old one, refuted by witnesses.
               - `cursor-laws.loop.shape.grow.copy.store.shape.new` —
-                planned — `h_new`'s heap has the shape at e = 7 (512
-                words, 128 nodes).
+                built 2026-11-27 — `shape_new`: `h_new`'s heap has the
+                shape at e = 7 (512 words, 128 nodes), by computation, in
+                about 2 s. Its mutant, the first store a level deeper,
+                refuted by the law itself, a witness of no variables.
               - `cursor-laws.loop.shape.grow.copy.store.shape.frame` —
-                planned — a write at any word but 3 keeps the shape: the
-                frame a step that writes neither the capacity nor the
-                store's size cites; each step's own frame is its law's
-                (`.alloc.sound`, `kernel-refine`).
+                built 2026-11-27 — `shape_set`: a write at a slot other
+                than the capacity word's keeps the shape (stated by slots,
+                as `get_set_other` asks, a write past the store landing on
+                a slot): the frame a step that writes neither the capacity
+                nor the store's size cites; each step's own frame is its
+                law's (`.alloc.sound`, `kernel-refine`). Its mutant, the
+                shape read at word 2, refuted by a witness.
               - `cursor-laws.loop.shape.grow.copy.store.shape.loop` —
-                planned — `grow_loop` restated over the shape, carrying
-                it with the invariant, as a law of its own beside it.
+                built 2026-11-27 — `grow_shape_loop` (`glam/LOOP_LAWS.bend`):
+                from a heap of the shape at e < 28, the invariant over the
+                grown view and the shape at e + 1 together, the fresh
+                nodes its capacity word's; `grow_loop` and `shape_grow`
+                composed, the shape read as their premises. Its mutant,
+                the capacity left as it was, caught by its proof only.
               - `cursor-laws.loop.shape.grow.copy.store.shape.max` —
                 planned — at e = 28 growth refuses: the store as it was,
                 the error counted (`grow.done`'s refusal).

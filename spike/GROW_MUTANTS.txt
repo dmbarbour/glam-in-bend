@@ -257,3 +257,25 @@ heap's shape fails: 64 words, its capacity word 8 nodes
 w = Array.set(U32, [0 : U32^5n], 3, 8)
 a = Array.new(V.Val, 1n, V.VUnit{})
 e = 3n
+
+=== first_deeper shape_new
+the first heap's store a level deeper, 1024 words, so that its capacity
+word reads 256 nodes and the shape at 7 fails
+--- kprim.bend
+  h_new.w(KM.m_new(9n, w_maxd()))
++++
+  h_new.w(KM.m_new(10n, w_maxd()))
+>>> witness shape_new
+
+=== shape_word2 shape_set
+the shape's capacity read at word 2, not 3, so that a write the frame
+admits, at word 2, changes the shape
+--- grow_model.bend
+  shape.go(Array.get(U32, w, P.at_wcap()), e)
++++
+  shape.go(Array.get(U32, w, P.at_itrs()), e)
+>>> witness shape_set
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 2, 8), 3, 8)
+e = 3n
+j = 2
+x = 5

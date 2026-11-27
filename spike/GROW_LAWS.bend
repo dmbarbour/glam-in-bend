@@ -288,3 +288,22 @@ law shape_grow:
   for +hs: {GM.shape(w, e) == True{} : Bool}
   for +he: {Nat.is_lt(e, 28n) == True{} : Bool}
   {GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}
+
+# LAW: the first heap has the shape at e = 7: 512 words, 128 nodes
+# (P.h_new), by computation.
+# Record: net-nodes-double
+law shape_new:
+  {GM.shape(KMd.words(P.h_new()), 7n) == True{} : Bool}
+
+# LAW: a write at a slot other than the capacity word's keeps the heap's
+# shape: the frame a step that writes neither word 3 nor the store's
+# size cites.
+# Record: net-nodes-double
+law shape_set:
+  for w: Array<U32>
+  for +e: Nat
+  for +j: U32
+  for +x: U32
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +hj: {Nat.is_eq(AD.slot(j, 2n+e), AD.slot(P.at_wcap(), 2n+e)) == False{} : Bool}
+  {GM.shape(Array.set(U32, w, j, x), e) == True{} : Bool}

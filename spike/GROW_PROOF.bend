@@ -1127,3 +1127,28 @@ def sg.w(-w: Array<U32>, -a: Array<V.Val>, +e: Nat, +hs: {GM.shape(w, e) == True
 
 def Laws.shape_grow(w, a, e, hs, he):
   sg.w(w, a, e, hs, he, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+def Laws.shape_new():
+  {==}
+
+def ss.k(+tw: LAT.Tree<U32>, +e: Nat, +j: U32, +x: U32, +hs: {GM.shape(LAT.fromT(U32, tw), e) == True{} : Bool}, +hj: {Nat.is_eq(AD.slot(j, 2n+e), AD.slot(P.at_wcap(), 2n+e)) == False{} : Bool}) ->
+  {GM.shape(Array.set(U32, LAT.fromT(U32, tw), j, x), e) == True{} : Bool}:
+  +hr = sh.rd(tw, e, hs)
+  +hf = MB.eq_true_of_and_left(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +hr2 = MB.eq_true_of_and_right(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +h28 = MB.eq_true_of_and_right(Nat.is_le(3n, e), Nat.is_le(e, 28n), MB.eq_true_of_and_right(Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)), Nat.is_le(3n, e) && Nat.is_le(e, 28n), hr2))
+  +hd = MN.lt_of_le_of_lt(2n+e, 30n, 32n, h28, {==})
+  +eg = LA.get_set_other(U32, LAT.fromT(U32, tw), 2n+e, j, P.at_wcap(), x, hf, hd, hj)
+  %Equal.sym(Array<U32> & U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), P.at_wcap()), (Array.set(U32, LAT.fromT(U32, tw), j, x), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), P.at_wcap()))), LA.get_pair(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), P.at_wcap())) : {GM.shape.go(_, e) == True{} : Bool}
+  %Equal.sym(U32, Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), P.at_wcap())), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())), eg) : {AD.full(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), 2n+e) && (Nat.is_eq(U32.to_nat(_), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n))) == True{} : Bool}
+  MB.and_eq_true(AD.full(U32, Array.set(U32, LAT.fromT(U32, tw), j, x), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), LA.set_full(U32, LAT.fromT(U32, tw), 2n+e, j, x, hf), hr2)
+
+def ss.w(-w: Array<U32>, +e: Nat, +j: U32, +x: U32, +hs: {GM.shape(w, e) == True{} : Bool}, +hj: {Nat.is_eq(AD.slot(j, 2n+e), AD.slot(P.at_wcap(), 2n+e)) == False{} : Bool}, mw: LAT.Mirror(U32, w)) ->
+  {GM.shape(Array.set(U32, w, j, x), e) == True{} : Bool}:
+  (+tw, +ew) = mw
+  +hs2 = ME.subst(Array<U32>, z => {GM.shape(z, e) == True{} : Bool}, w, LAT.fromT(U32, tw), Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew), hs)
+  %ew : {GM.shape(Array.set(U32, _, j, x), e) == True{} : Bool}
+  ss.k(tw, e, j, x, hs2, hj)
+
+def Laws.shape_set(w, e, j, x, hs, hj):
+  ss.w(w, e, j, x, hs, hj, LAT.mirror(U32, w))
