@@ -1235,15 +1235,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               should a second step write header words outside the
               splice's frame. Tidying with it: `t4` through `lt1d`, as
               `w1lt` is.
-            - `cursor-laws.loop.shape.grow.copy.store.shape` — planned —
+            - `cursor-laws.loop.shape.grow.copy.store.shape` — active —
               the heap's shape as a law, discharging the growth laws'
               scaffolding: the capacity word reads wc = 2^e nodes,
-              3 <= e < 28, the store full at 2^(e + 2) words. Made by
-              `h_new`, kept by every step that writes neither word 3 nor
-              the store's size, carried by growth to wc = 2^(e + 1) while
-              e + 1 < 28, and an error past it (`grow.done`'s refusal).
-              With `.alloc.sound`, which reads the same words, or before
-              it, as `.kept` finds it wanted.
+              3 <= e <= 28, the store full at 2^(e + 2) words (up to
+              2^30, `w_maxd`). Only `hdr_new` (`h_new`) and `grow.done`
+              write word 3, and only growth resizes the heap's store (the
+              other `m_ensure`s are the strategies' stacks'). In slices:
+              - `cursor-laws.loop.shape.grow.copy.store.shape.model` —
+                active — `GM.shape(w, e)`, the shape as a predicate, and
+                its reading as the growth laws' premises.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.grow` —
+                planned — growth carries it from e to e + 1 for e < 28:
+                `more_full` and the grown capacity word (`more_cap`).
+              - `cursor-laws.loop.shape.grow.copy.store.shape.new` —
+                planned — `h_new`'s heap has the shape at e = 7 (512
+                words, 128 nodes).
+              - `cursor-laws.loop.shape.grow.copy.store.shape.frame` —
+                planned — a write at any word but 3 keeps the shape: the
+                frame a step that writes neither the capacity nor the
+                store's size cites; each step's own frame is its law's
+                (`.alloc.sound`, `kernel-refine`).
+              - `cursor-laws.loop.shape.grow.copy.store.shape.loop` —
+                planned — `grow_loop` restated over the shape, carrying
+                it with the invariant, as a law of its own beside it.
+              - `cursor-laws.loop.shape.grow.copy.store.shape.max` —
+                planned — at e = 28 growth refuses: the store as it was,
+                the error counted (`grow.done`'s refusal).
             As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:
