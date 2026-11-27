@@ -247,3 +247,18 @@ law more_last:
   for +m: U32
   for +hm: {1n+U32.to_nat(m) == Nat.pow(2n, 1n+e) : Nat}
   {Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), ((m << 2n : U32) + 1 : U32))) == Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_fh())) : U32}
+
+# LAW: the grown heap is full one level deeper, its 2^(e + 3) words all
+# there, on a heap as more_old's: so that its view reads each word.
+# Record: net-nodes-double
+law more_full:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {AD.full(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 3n+e) == True{} : Bool}

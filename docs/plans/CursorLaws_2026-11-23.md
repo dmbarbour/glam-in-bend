@@ -1151,8 +1151,36 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               Mutants refuted by witnesses: the link written at the
               header word; the head unencoded; the free marking 1; the
               head skipping node wc + 1; the last node unlinked.
-            - `cursor-laws.loop.shape.grow.copy.store.kept` — planned —
-              the growth premises in the views: `LM.kept` for tracked
+            - `cursor-laws.loop.shape.grow.copy.store.kept` — active —
+              in slices, the views' laws in a file pair of their own
+              (`glam/GROWN_LAWS.bend`), off `LOOP_PROOF`'s imports:
+              - `cursor-laws.loop.shape.grow.copy.store.kept.view` —
+                built 2026-11-27 — `more_full` (spike/GROW_LAWS.bend), the
+                grown heap full one level deeper; `grown_kept`
+                (glam/GROWN_LAWS.bend), `LM.kept` for tracked nodes in
+                range and past the header, each word read through
+                `get_view` on both sides and `more_old`, its number by
+                `nodes.in` and the words' sum lemma `tnb`, off word 0 by
+                `past` and off word 3 since `past` keeps it off words 0, 1
+                and 4 (`ge4`: 4 or more). The heap's values taken through
+                a mirror as the store is, since the grown view's term
+                holds them. Mutants refuted by witnesses: the store grown
+                to its own depth; the last node's link shifted onto a
+                tracked node's word.
+              - `cursor-laws.loop.shape.grow.copy.store.kept.fresh` —
+                planned — the fresh nodes E as a model list, node wc on
+                to node 2wc - 1, and `LM.ext.ok`'s chain from the new
+                head, distinctness, bases, `past`, `nodes.in` and
+                `none.in(E, N)`, from `.fresh`'s laws.
+              - `cursor-laws.loop.shape.grow.copy.store.kept.ports` —
+                planned — `px.off(L, v2, 1n+d, L, E)`: each cursor's
+                faced port, in range by `faced.in` and read alike by
+                `LM.kept`, off the fresh nodes' words and the head.
+              - `cursor-laws.loop.shape.grow.copy.store.kept.carry` —
+                planned — the invariant across `grow_more`, through
+                `grow_next`, in `glam/LOOP_LAWS.bend`; the heap's shape a
+                premise until `.shape`.
+              As planned, the growth premises in the views: `LM.kept` for tracked
               nodes from `more_old` by `get_view`; `LM.ext.ok` for the
               fresh nodes E, node wc on to node 2wc - 1 (a model list),
               from `.fresh`: chained from the new head, marks, bases,

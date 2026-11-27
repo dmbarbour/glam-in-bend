@@ -1,0 +1,20 @@
+Mutations of the heap's growth (spike/kprim.bend's grow_more and the
+writes it makes), each naming the laws of glam/GROWN_LAWS.bend it
+should fail (docs/Proving.md; the gate runs scripts/one_law.py
+--mutants on this file). Witnesses: a store of 32 words, eight nodes,
+its capacity word 8, a tracked node at word 28.
+
+=== link_shift1 grown_kept
+the last new node's link written at its index shifted one place, not
+two, so that it lands on word 31 of the old store: the tracked node at
+word 28 reads its word 31 changed
+--- ../spike/kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 1n : U32) + 1 : U32), fh0), n)
+>>> witness grown_kept
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 3, 8), 31, 7)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+N = [28]

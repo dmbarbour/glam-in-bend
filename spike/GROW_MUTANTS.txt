@@ -219,3 +219,16 @@ a = Array.new(V.Val, 1n, V.VUnit{})
 wc = 8
 e = 3n
 m = 15
+
+=== grow_same_depth more_full
+the store copied into one of its own depth, not one level deeper, so
+that the grown heap of eight nodes holds 32 words, not 64
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 0n)]})}
+>>> witness more_full
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
