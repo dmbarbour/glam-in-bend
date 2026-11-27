@@ -120,3 +120,13 @@ grown_chain_keep's witness shows the fault)
   free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
 +++
   free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), 0), n)
+
+=== situate_spills situate_ends
+situate's last write one node on, onto the next node's link word, so
+that a free node past the situating one links elsewhere (caught by its
+proof only: a witness would need situate_pend's premises whole, the
+ports' among them)
+--- ring.bend
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
++++
+  (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 5 : U32), s), s)
