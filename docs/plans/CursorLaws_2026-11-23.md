@@ -1059,10 +1059,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
             words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
             the fresh nodes.
-          - `cursor-laws.loop.shape.grow.copy.store` — active (ordered
-            before `cursor-laws.alloc.collect`, which waits on the copy
-            marks; the agent's ordering, the maintainer, 2026-11-26:
-            "ordering judgements are yours") — the kernel's. Slices:
+          - `cursor-laws.loop.shape.grow.copy.store` — built 2026-11-27,
+            `.shape` planned (ordered before `cursor-laws.alloc.collect`,
+            which waits on the copy marks; the agent's ordering, the
+            maintainer, 2026-11-26: "ordering judgements are yours") —
+            the kernel's: `grow_loop` carries the wider invariant across
+            `P.grow_more`, every growth premise of `grow_next`
+            discharged but `LM.faced.in` (the wiring's) and the heap's
+            shape (`.shape`). Slices:
             - `cursor-laws.loop.shape.grow.copy.store.copy` — built
               2026-11-26 — on `cursor-laws-store`, `spike/GROW_LAWS.bend`:
               `grow_full`, `grow_old` (a word below the old capacity 2^d
