@@ -1155,8 +1155,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               Mutants refuted by witnesses: the link written at the
               header word; the head unencoded; the free marking 1; the
               head skipping node wc + 1; the last node unlinked.
-            - `cursor-laws.loop.shape.grow.copy.store.kept` — active —
-              in slices, the views' laws in a file pair of their own
+            - `cursor-laws.loop.shape.grow.copy.store.kept` — built
+              2026-11-27 — in slices, the views' laws in a file pair of their own
               (`glam/GROWN_LAWS.bend`), off `LOOP_PROOF`'s imports:
               - `cursor-laws.loop.shape.grow.copy.store.kept.view` —
                 built 2026-11-27 — `more_full` (spike/GROW_LAWS.bend), the
@@ -1198,9 +1198,18 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
                 one place, refuted by a witness; `GM.above` admitting any
                 node, caught by its proof only (a premise widened).
               - `cursor-laws.loop.shape.grow.copy.store.kept.carry` —
-                planned — the invariant across `grow_more`, through
-                `grow_next`, in `glam/LOOP_LAWS.bend`; the heap's shape a
-                premise until `.shape`.
+                built 2026-11-27 — `grow_loop` (`glam/LOOP_LAWS.bend`):
+                `LM.lx.ok` across `P.grow_more`, from the view of a heap
+                of 2^(e + 2) words, its capacity word wc = 2^e, to the
+                grown view one level deeper, the fresh nodes the free
+                list's first and tracked: `grow_next` with `grown_kept`
+                and `LM.ext.ok` built from the seven growth laws, `sub(L,
+                N)` and the old `px.off` taken from `px.ok`; the heap's
+                shape and `LM.faced.in` premises (`.shape`, the wiring's).
+                Its mutant, the last node's link shifted onto the old
+                words, caught by its proof only (a witness would need the
+                invariant's whole state; the growth laws' witnesses show
+                the fault).
               As planned, the growth premises in the views: `LM.kept` for tracked
               nodes from `more_old` by `get_view`; `LM.ext.ok` for the
               fresh nodes E, node wc on to node 2wc - 1 (a model list),

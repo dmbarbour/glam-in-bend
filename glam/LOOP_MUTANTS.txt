@@ -80,3 +80,14 @@ proof only, as faced_unranged)
       kept.w(n, v, d, v2) && (kept.w((n + 1 : U32), v, d, v2) && (kept.w((n + 2 : U32), v, d, v2) && (kept.w((n + 3 : U32), v, d, v2) && kept(t, v, d, v2))))
 +++
       kept.w(n, v, d, v2) && kept(t, v, d, v2)
+
+=== link_shift1 grow_loop
+the last new node's link written at its index shifted one place, not
+two, so that growth writes an old word a tracked node may hold (caught
+by its proof only: a witness would need the wider invariant's whole
+state; the growth laws' own witnesses show the fault, glam/GROWN_MUTANTS.txt
+and spike/GROW_MUTANTS.txt)
+--- ../spike/kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 1n : U32) + 1 : U32), fh0), n)
