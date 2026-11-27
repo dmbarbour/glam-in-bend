@@ -1587,10 +1587,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             nodes (it is tracked, they are not) and tracked still. Its
             mutant, the last fresh node unlinked, caught by its proof
             only.
-          - `cursor-laws.alloc.guard.covered.keep.rounds` — planned —
-            the guard's rounds past one growth, a dependent pair: some
-            depth, prefix and tracked list for which the invariant, the
-            shape and `LM.faced.in` hold where it answers.
+          - `cursor-laws.alloc.guard.covered.keep.rounds` — built
+            2026-11-27 — `room_rounds` (glam/MATERIALIZE_LAWS.bend): where
+            the guard answers, over however many rounds, its heap has
+            the shape, the invariant and the faced ports in range at
+            some depth, free prefix and tracked list, a dependent pair,
+            and its free list holds the room. By induction on the
+            guard's fuel, each round split on its test (the free list
+            holds the room: the heap as it is) and on the shape (below
+            the largest: growth by `grow_keep`, `shape_grow`,
+            `grown_faced`, the grown heap mirrored for the next round;
+            at it: `shape_max`'s refusal, no answer), the next round
+            passed as a closure, the helpers in two forms for the fuel
+            0 and 1n+p that `rm.loop` matches. Its mutant, the guard
+            answering after growth without testing, caught by its proof
+            only (a dependent pair no witness refutes).
+          - `cursor-laws.alloc.guard.covered.keep.cover` — planned — the
+            room's nodes tracked: where the old tracked prefix is the
+            whole free list (its chain ends, `after` reading 0), growth
+            keeps it so (the fresh nodes before it), so that where the
+            guard answers the walk's k nodes are the prefix's first and
+            `lx_split` gives `serve_next`'s shape for any k.
         - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
           the guard's answer and the next serve's premises:
           `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it

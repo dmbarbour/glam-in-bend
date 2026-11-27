@@ -15,6 +15,8 @@ import ./ring.bend as R
 import ./index_model.bend as IM
 import ./materialize.bend as M
 import ../spike/grow_model.bend as GM
+import ./ring_model.bend as RG
+import ./loop_model.bend as LM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: a serve whose positioned demand ends at the frontier (sv.pd, which
@@ -158,3 +160,27 @@ law room_covered:
   for +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool}
   for +h0: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == False{} : Bool}
   {M.mz.room(P.H{KM.MG{w}, a}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})), True{}) : P.H & Bool}
+
+# LAW: where the guard answers (M.mz.room), over however many rounds of
+# growth it took, its heap has the shape, the wider invariant and the
+# cursors' faced ports in range at some depth, free prefix and tracked
+# list, and its free list holds the room asked: each round by grow_keep,
+# shape_grow and grown_faced, the largest shape's refusal (shape_max) no
+# answer. So that the guard's room needs no bound on what is asked.
+# Record: collect-before-growth
+# Record: laws-across-steps-iterative
+law room_rounds:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +e: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +k: Nat
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
+  for +hok: {Pair.snd(P.H, Bool, M.mz.room(P.H{KM.MG{w}, a}, k)) == True{} : Bool}
+  Sigma<&2, &2, Nat, e2 => Sigma<&2, &2, List<&2, U32>, F2 => Sigma<&2, &2, List<&2, U32>, N2 => {GM.shape(KMd.words(Pair.fst(P.H, Bool, M.mz.room(P.H{KM.MG{w}, a}, k))), e2) && (LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, M.mz.room(P.H{KM.MG{w}, a}, k)))), 2n+e2, s, I, L, F2, N2) && (LM.faced.in(L, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, M.mz.room(P.H{KM.MG{w}, a}, k)))), 2n+e2) && Pair.snd(P.H, Bool, P.frees(k, Pair.fst(P.H, Bool, M.mz.room(P.H{KM.MG{w}, a}, k)))))) == True{} : Bool}>>>

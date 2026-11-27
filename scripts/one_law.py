@@ -75,7 +75,10 @@ Blend's directory), its copies written under that project's results/:
                                                        names, against the
                                                        proof file beside it
   --cap MB SECONDS   each run's cap (scripts/capped.sh), 1500 MB 300 s by
-                     default, the largest run 380 MB (2026-11-16)
+                     default, the largest run 380 MB (2026-11-16), or the
+                     mutants file's own: a line `cap: MB SECONDS` among
+                     its comments (glam/MATERIALIZE_MUTANTS.txt's laws
+                     importing the loop's proofs, about 2 GB, 2026-11-27)
   --jobs N           at most N runs at once
   --gate             no law checked alone, as the gate runs it
 """
@@ -475,12 +478,23 @@ def jobs_for(cap, asked):
     return max(1, min((os.cpu_count() or 2) // 2, mem.avail_mb() // int(cap[0])))
 
 
+def file_cap(path):
+    """A mutants file's own cap: a line `cap: MB SECONDS` among the
+    comments before its first mutation, for a file whose laws' proofs
+    import more than the default holds."""
+    with open(path) as f:
+        head = re.split(r"(?m)^=== ", f.read())[0]
+    m = re.search(r"(?m)^cap: (\d+) (\d+)\s*$", head)
+    return (m.group(1), m.group(2)) if m else None
+
+
 def main(args):
     cap = ("1500", "300")
     muts, jobs = None, 0
     alone = "--gate" not in args
     args = [a for a in args if a != "--gate"]
-    if "--cap" in args:
+    given = "--cap" in args
+    if given:
         i = args.index("--cap")
         cap, args = tuple(args[i + 1:i + 3]), args[:i] + args[i + 3:]
     if "--jobs" in args:
@@ -489,6 +503,8 @@ def main(args):
     if "--mutants" in args:
         i = args.index("--mutants")
         muts, args = args[i + 1], args[:i] + args[i + 2:]
+        if not given and os.path.isfile(muts):
+            cap = file_cap(muts) or cap
     if len(cap) != 2 or not (len(args) == 2 or (not args and muts)):
         print(__doc__.split("Run from")[1], file=sys.stderr)
         return 2
