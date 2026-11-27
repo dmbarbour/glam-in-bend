@@ -1555,12 +1555,42 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           witnesses on real heaps (`P.h_new()`, 121 free nodes, asked 4
           and then 130): room the list holds refused; room growth made
           refused.
-        - `cursor-laws.alloc.guard.covered.keep` — planned — a request
+        - `cursor-laws.alloc.guard.covered.keep` — active — a request
           past the heap's nodes: more rounds, and the walk past the
           fresh nodes into the old list, so a growth law keeping the
-          old free prefix after the fresh nodes (an extension at the
-          front, beside `lx_extend`'s at the back); until then the
-          covered serve asks k <= 2^e.
+          old free prefix after the fresh nodes; until then the covered
+          serve asks k <= 2^e. The old prefix is tracked already, so no
+          front extension: the free prefix grown by tracked nodes, its
+          chain through the fresh nodes' last link (`more_last`). In
+          slices:
+          - `cursor-laws.alloc.guard.covered.keep.more` — built
+            2026-11-27 — `lx_more`: the invariant with its free prefix
+            grown by tracked nodes Q chained after it, Q distinct, none
+            of the prefix, the live, s or the index's nodes; only
+            `px.ok`'s five conjuncts over the prefix change (`SP.none_app`,
+            `SP.distinct_app`, `XP.sub_app`). Structural, as `lx_drop`
+            is, so named by no mutation.
+          - `cursor-laws.alloc.guard.covered.keep.chain` — built
+            2026-11-27 — `grown_chain_keep`: the grown view chains the
+            fresh nodes then the old prefix: a chain over an append
+            through the link after the first list (`after`, `chA`), the
+            link after the fresh nodes the old head (`afr`, by
+            `more_link` and `more_last`), the old prefix's chain kept by
+            its links read alike (`chk`). Its mutant, the last fresh node
+            unlinked, refuted by a witness: a 32-word store whose old
+            free list is node 5, tracked.
+          - `cursor-laws.alloc.guard.covered.keep.grow` — built
+            2026-11-27 — `grow_keep`: the invariant over the grown view
+            with the free prefix the fresh nodes then the old one, the
+            tracked list grown by the fresh: `grow_loop`, then `lx_more`
+            by `grown_chain_keep`, the old prefix none of the fresh
+            nodes (it is tracked, they are not) and tracked still. Its
+            mutant, the last fresh node unlinked, caught by its proof
+            only.
+          - `cursor-laws.alloc.guard.covered.keep.rounds` — planned —
+            the guard's rounds past one growth, a dependent pair: some
+            depth, prefix and tracked list for which the invariant, the
+            shape and `LM.faced.in` hold where it answers.
         - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
           the guard's answer and the next serve's premises:
           `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it

@@ -527,3 +527,56 @@ law grow_serve_ready:
   for +hh: {LM.headed(L, s) == True{} : Bool}
   for +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, Con{s, LM.tl(L)}, List.append(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k), List.drop(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.append(&2, U32, RG.minus(List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k))) && (GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) && (LM.faced.in(L, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e) && Nat.is_eq(List.length(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), k))) == True{} : Bool}
+
+# LAW: the wider invariant with its free list's tracked prefix grown by
+# tracked nodes Q chained after it (cursor-laws.alloc.guard.covered.keep
+# .more): Q distinct and none of the prefix, none of s, the index's nodes
+# or the live, and tracked already. Only the invariant's facts over the
+# prefix change: its chain, distinct, apart from the live and the
+# index's, tracked. So that growth keeps the old prefix after the fresh
+# nodes, whose last links its head.
+# Record: cursors-indexed
+# Record: laws-across-steps-iterative
+law lx_more:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +P: List<&2, U32>
+  for +Q: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hlx: {LM.lx.ok(v, d, s, I, L, P, N) == True{} : Bool}
+  for +hc: {KMd.chain(List.append(&2, U32, P, Q), v, d, KMd.word(v, d, P.at_fh())) == True{} : Bool}
+  for +hdq: {RG.distinct(Q) == True{} : Bool}
+  for +hqp: {RG.none.in(Q, P) == True{} : Bool}
+  for +hn: {RG.none.in(Q, Con{s, IM.ix.nodes(I)}) == True{} : Bool}
+  for +hl: {RG.none.in(Q, L) == True{} : Bool}
+  for +hs: {RG.sub(Q, N) == True{} : Bool}
+  {LM.lx.ok(v, d, s, I, L, List.append(&2, U32, P, Q), N) == True{} : Bool}
+
+# LAW: the wider invariant across the heap's doubling with the old free
+# list's tracked prefix kept after the fresh nodes (grow_loop, then
+# lx_more by grown_chain_keep): the free list after growth the fresh
+# nodes then the old one, its tracked prefix the same, so that a request
+# past the fresh nodes still finds its nodes tracked.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grow_keep:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), List.append(&2, U32, N, GM.fresh(U32.to_nat(wc), wc))) == True{} : Bool}

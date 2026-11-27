@@ -174,3 +174,27 @@ law grown_frees:
   for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
   for +hk: {Nat.is_le(k, U32.to_nat(wc)) == True{} : Bool}
   {P.frees(k, Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})), True{}) : P.H & Bool}
+
+# LAW: after growth the grown view chains the fresh nodes, then the old
+# free list's tracked prefix F (its chain from the old head kept, F
+# tracked): the last fresh node links the old head (more_last), and F's
+# link words read alike (LM.kept). So that growth keeps the old prefix
+# after the fresh nodes (lx_more), a request past them still tracked.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grown_chain_keep:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hc: {KMd.chain(F, AD.view(U32, w), 2n+e, KMd.word(AD.view(U32, w), 2n+e, P.at_fh())) == True{} : Bool}
+  for +hs: {RG.sub(F, N) == True{} : Bool}
+  for +hk: {LM.kept(N, AD.view(U32, w), 2n+e, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))))) == True{} : Bool}
+  {KMd.chain(List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, P.at_fh())) == True{} : Bool}
