@@ -198,3 +198,40 @@ law grown_chain_keep:
   for +hs: {RG.sub(F, N) == True{} : Bool}
   for +hk: {LM.kept(N, AD.view(U32, w), 2n+e, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))))) == True{} : Bool}
   {KMd.chain(List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, P.at_fh())) == True{} : Bool}
+
+# LAW: growth keeps the free list's tracked prefix the whole list
+# (LM.ends): the fresh nodes before it, the link after them the old head
+# (more_last), its links read alike (LM.kept). So that the guard's rounds
+# keep the room it finds tracked.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grown_ends:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hen: {LM.ends(F, AD.view(U32, w), 2n+e) == True{} : Bool}
+  for +hs: {RG.sub(F, N) == True{} : Bool}
+  for +hk: {LM.kept(N, AD.view(U32, w), 2n+e, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))))) == True{} : Bool}
+  {LM.ends(List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e) == True{} : Bool}
+
+# LAW: a tracked prefix that is the whole free list holds the room the
+# guard finds (LM.fr, P.frees as the model reads it): the walk's link past
+# the prefix is 0, so a link k - 1 steps on that is a node lies within it.
+# Record: collect-before-growth
+law cover_room:
+  for +v: List<&2, U32>
+  for +d: Nat
+  for +F: List<&2, U32>
+  for +k: Nat
+  for +hc: {KMd.chain(F, v, d, KMd.word(v, d, P.at_fh())) == True{} : Bool}
+  for +hen: {LM.ends(F, v, d) == True{} : Bool}
+  for +hfr: {LM.fr(k, v, d) == True{} : Bool}
+  {Nat.is_le(k, List.length(&2, U32, F)) == True{} : Bool}

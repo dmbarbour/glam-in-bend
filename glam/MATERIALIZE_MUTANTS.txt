@@ -2,7 +2,9 @@ Mutations of the cursor serve (glam/materialize.bend), each naming the
 laws of glam/MATERIALIZE_LAWS.bend it should fail (docs/Proving.md; the
 gate runs scripts/one_law.py --mutants on this file). None has a
 witness, a realized index in a heap being costly to build: each is
-caught by its law's proof failing on it.
+caught by its law's proof failing on it. Its laws' proofs reach the
+loop's (room_rounds), more than the default cap holds:
+cap: 4000 300
 
 === find_at_pos front_joins
 the frontier's cursor sought at the served position, not at the port
@@ -83,3 +85,21 @@ w = KMd.words(P.h_new())
 a = Array.new(V.Val, 4n, V.VUnit{})
 e = 7n
 k = 125n
+
+=== room_grown_unchecked room_rounds
+the guard answering after growth without testing the grown free list,
+so that a request past one growth is answered on a heap that cannot
+hold it (caught by its proof only: the law concludes a dependent pair,
+which no witness refutes by evaluation)
+--- materialize.bend
+      RmMore{P.frees(k, h)}
++++
+      RmDone{h, True{}}
+
+=== room_grown_unchecked_serve room_serve
+the guard answering after growth without testing the grown free list
+(caught by its proof only: the law concludes a dependent pair)
+--- materialize.bend
+      RmMore{P.frees(k, h)}
++++
+      RmDone{h, True{}}
