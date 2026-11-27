@@ -110,3 +110,13 @@ wider invariant's whole state; shape_grow's witness shows the fault)
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
 +++
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))
+
+=== last_unlinked_loop grow_keep
+the last fresh node linked to no node, not the old head, so that the old
+free prefix falls off the grown list (caught by its proof only: a
+witness would need the wider invariant's whole state;
+grown_chain_keep's witness shows the fault)
+--- ../spike/kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), 0), n)

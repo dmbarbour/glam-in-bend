@@ -1579,9 +1579,14 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             its links read alike (`chk`). Its mutant, the last fresh node
             unlinked, refuted by a witness: a 32-word store whose old
             free list is node 5, tracked.
-          - `cursor-laws.alloc.guard.covered.keep.grow` — planned —
-            `grow_keep`: the invariant over the grown view with the free
-            prefix the fresh nodes then the old one.
+          - `cursor-laws.alloc.guard.covered.keep.grow` — built
+            2026-11-27 — `grow_keep`: the invariant over the grown view
+            with the free prefix the fresh nodes then the old one, the
+            tracked list grown by the fresh: `grow_loop`, then `lx_more`
+            by `grown_chain_keep`, the old prefix none of the fresh
+            nodes (it is tracked, they are not) and tracked still. Its
+            mutant, the last fresh node unlinked, caught by its proof
+            only.
           - `cursor-laws.alloc.guard.covered.keep.rounds` — planned —
             the guard's rounds past one growth, a dependent pair: some
             depth, prefix and tracked list for which the invariant, the

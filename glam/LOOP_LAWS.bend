@@ -554,3 +554,29 @@ law lx_more:
   for +hl: {RG.none.in(Q, L) == True{} : Bool}
   for +hs: {RG.sub(Q, N) == True{} : Bool}
   {LM.lx.ok(v, d, s, I, L, List.append(&2, U32, P, Q), N) == True{} : Bool}
+
+# LAW: the wider invariant across the heap's doubling with the old free
+# list's tracked prefix kept after the fresh nodes (grow_loop, then
+# lx_more by grown_chain_keep): the free list after growth the fresh
+# nodes then the old one, its tracked prefix the same, so that a request
+# past the fresh nodes still finds its nodes tracked.
+# Record: net-nodes-double
+# Record: laws-across-steps-iterative
+law grow_keep:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), List.append(&2, U32, N, GM.fresh(U32.to_nat(wc), wc))) == True{} : Bool}
