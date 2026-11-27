@@ -1195,3 +1195,17 @@ def mx.w(-w: Array<U32>, -a: Array<V.Val>, +e: Nat, +hs: {GM.shape(w, e) == True
 
 def Laws.shape_max(w, a, e, hs, hm):
   mx.w(w, a, e, hs, hm, LAT.mirror(U32, w))
+
+def fr.grew(+tw: LAT.Tree<U32>, -a: Array<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, LAT.fromT(U32, tw), 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())) == wc : U32}) -> {Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, a})) == True{} : Bool}:
+  %Equal.sym(P.H & Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, a}), (P.H{KM.MG{Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, GM.arr(P.thread(U32.to_nat(((((wc * 4 : U32) * 2 : U32) >> 2n : U32) - (wc + 1 : U32) : U32)), KM.grow(KM.MG{LAT.fromT(U32, tw)}, (wc * 4 : U32)), (wc + 1 : U32), (((wc * 4 : U32) * 2 : U32) >> 2n : U32))), P.at_fh(), (wc + 2 : U32)), P.at_wcap(), (((wc * 4 : U32) * 2 : U32) >> 2n : U32)), ((((((wc * 4 : U32) * 2 : U32) >> 2n : U32) - 1 : U32) << 2n : U32) + 1 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_fh()))), P.base((wc << 2n : U32)), 0), (P.base((wc << 2n : U32)) + 1 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, Array.set(U32, Array.set(U32, Array.set(U32, GM.arr(P.thread(U32.to_nat(((((wc * 4 : U32) * 2 : U32) >> 2n : U32) - (wc + 1 : U32) : U32)), KM.grow(KM.MG{LAT.fromT(U32, tw)}, (wc * 4 : U32)), (wc + 1 : U32), (((wc * 4 : U32) * 2 : U32) >> 2n : U32))), P.at_fh(), (wc + 2 : U32)), P.at_wcap(), (((wc * 4 : U32) * 2 : U32) >> 2n : U32)), ((((((wc * 4 : U32) * 2 : U32) >> 2n : U32) - 1 : U32) << 2n : U32) + 1 : U32), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_fh()))), P.at_fh()))), P.at_fh(), (((wc << 2n : U32) >> 2n : U32) + 1 : U32))}, a}, True{}), gm.tr2(tw, a, wc, Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_fh())), e, {==}, hwc, hw, he3, he27)) : {Pair.snd(P.H, Bool, _) == True{} : Bool}
+  {==}
+
+def more_grew.w(-w: Array<U32>, -a: Array<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}, mw: LAT.Mirror(U32, w)) -> {Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})) == True{} : Bool}:
+  (+tw, +ew) = mw
+  +hf2 = LAP.full_t(U32, w, tw, 2n+e, ew, hf)
+  +hwc2 = ME.subst(Array<U32>, z => {Pair.snd(Array<U32>, U32, Array.get(U32, z, P.at_wcap())) == wc : U32}, w, LAT.fromT(U32, tw), Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew), hwc)
+  %ew : {Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a})) == True{} : Bool}
+  fr.grew(tw, a, wc, e, hw, he3, he27, hf2, hwc2)
+
+def Laws.more_grew(w, a, wc, e, hf, hwc, hw, he3, he27):
+  more_grew.w(w, a, wc, e, hw, he3, he27, hf, hwc, LAT.mirror(U32, w))

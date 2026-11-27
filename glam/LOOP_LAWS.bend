@@ -502,3 +502,28 @@ law grow_shape_loop:
   for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
   for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))))) && GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}
+
+# LAW: on the guard's growth branch (room_covered), the next serve's
+# premises over the grown heap: the wider invariant over its view in
+# serve_next's shape, the copy's k nodes the fresh nodes' first (lx_split
+# at k), the shape at e + 1, the cursors' faced ports in range, and those
+# nodes k in number, for k up to the heap's node count.
+# Record: collect-before-growth
+# Record: laws-across-steps-iterative
+law grow_serve_ready:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +e: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +k: Nat
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +he: {Nat.is_lt(e, 28n) == True{} : Bool}
+  for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
+  for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
+  for +hh: {LM.headed(L, s) == True{} : Bool}
+  for +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool}
+  {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, Con{s, LM.tl(L)}, List.append(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k), List.drop(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.append(&2, U32, RG.minus(List.append(&2, U32, N, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k))) && (GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) && (LM.faced.in(L, AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e) && Nat.is_eq(List.length(&2, U32, List.take(&2, U32, GM.fresh(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap()))), k)), k))) == True{} : Bool}

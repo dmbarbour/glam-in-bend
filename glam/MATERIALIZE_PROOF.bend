@@ -33,6 +33,13 @@ import ./ring.bend as R
 import ./index.bend as X
 import ./index_model.bend as IM
 import ./materialize.bend as M
+import ../spike/grow_model.bend as GM
+import ../spike/GROW_LAWS.bend as GW
+import ../spike/GROW_PROOF.bend as GWP
+import ./GROWN_LAWS.bend as GN
+import ./GROWN_PROOF.bend as GNP
+import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
+import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_base.bend as LAB
@@ -90,3 +97,76 @@ def fj1.m(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +hf: {AD.full(U32, w, d) ==
 
 def Laws.front_joins1(w, a, d, hf, hd32, hwd, j, p, hj, hjc, hpa, pos, hpos, hns, q, n, hfa, situ, I, hr, hi, nc, hn, k, c, hc):
   fj1.m(w, a, d, hf, hd32, hwd, j, p, hj, hjc, hpa, pos, hpos, hns, q, n, hfa, situ, I, hr, hi, nc, hn, k, c, hc, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# The guard's loop as its control flow (room_free, room_grow)
+# ===========================================================
+
+def Laws.room_free(h, k, hf0):
+  %Equal.sym(P.H & Bool, P.frees(k, h), (h, True{}), hf0) : {M.rm.loop(32n, M.rm.step(_, k), k) == (h, True{}) : P.H & Bool}
+  {==}
+
+def Laws.room_grow(h, g, k, hf0, hg, hf1):
+  %Equal.sym(P.H & Bool, P.frees(k, h), (h, False{}), hf0) : {M.rm.loop(32n, M.rm.step(_, k), k) == (g, True{}) : P.H & Bool}
+  %Equal.sym(P.H & Bool, P.grow_more(h), (g, True{}), hg) : {M.rm.loop(32n, M.rm.more(_, k), k) == (g, True{}) : P.H & Bool}
+  %Equal.sym(P.H & Bool, P.frees(k, g), (g, True{}), hf1) : {M.rm.loop(31n, M.rm.step(_, k), k) == (g, True{}) : P.H & Bool}
+  {==}
+
+# The guard's answer on a full heap and on a heap of the shape
+# ============================================================
+
+# a pair as its two halves
+def peta(p: P.H & Bool) -> {p == (Pair.fst(P.H, Bool, p), Pair.snd(P.H, Bool, p)) : P.H & Bool}:
+  match p:
+    case (x, y):
+      {==}
+
+def rh.k(+tw: LAT.Tree<U32>, -a: Array<V.Val>, +d: Nat, +k: Nat, +hf: {AD.full(U32, LAT.fromT(U32, tw), d) == True{} : Bool}, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +h1: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, a})) == True{} : Bool}) ->
+  {M.mz.room(P.H{KM.MG{LAT.fromT(U32, tw)}, a}, k) == (P.H{KM.MG{LAT.fromT(U32, tw)}, a}, True{}) : P.H & Bool}:
+  +hfr = XP.frs(k, tw, a, d, hf, hd)
+  +hm = ME.subst(P.H & Bool, q => {Pair.snd(P.H, Bool, q) == True{} : Bool}, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, a}), (P.H{KM.MG{LAT.fromT(U32, tw)}, a}, XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), d)), hfr, h1)
+  Laws.room_free(P.H{KM.MG{LAT.fromT(U32, tw)}, a}, k, Equal.trans(P.H & Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, a}), (P.H{KM.MG{LAT.fromT(U32, tw)}, a}, XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), d)), (P.H{KM.MG{LAT.fromT(U32, tw)}, a}, True{}), hfr,
+    Equal.cong(Bool, P.H & Bool, z => (P.H{KM.MG{LAT.fromT(U32, tw)}, a}, z), XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), d), True{}, hm)))
+
+def rh.w(-w: Array<U32>, -a: Array<V.Val>, +d: Nat, +k: Nat, +hf: {AD.full(U32, w, d) == True{} : Bool}, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +h1: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == True{} : Bool}, mw: LAT.Mirror(U32, w)) ->
+  {M.mz.room(P.H{KM.MG{w}, a}, k) == (P.H{KM.MG{w}, a}, True{}) : P.H & Bool}:
+  (+tw, +ew) = mw
+  +sw = Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew)
+  +hf2 = ME.subst(Array<U32>, z => {AD.full(U32, z, d) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hf)
+  +h12 = ME.subst(Array<U32>, z => {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{z}, a})) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, h1)
+  %ew : {M.mz.room(P.H{KM.MG{_}, a}, k) == (P.H{KM.MG{_}, a}, True{}) : P.H & Bool}
+  rh.k(tw, a, d, k, hf2, hd, h12)
+
+def Laws.room_hit(w, a, d, k, hf, hd, h1):
+  rh.w(w, a, d, k, hf, hd, h1, LAT.mirror(U32, w))
+
+def rc.k(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +e: Nat, +k: Nat, +hs: {GM.shape(LAT.fromT(U32, tw), e) == True{} : Bool}, +he: {Nat.is_lt(e, 28n) == True{} : Bool}, +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())))) == True{} : Bool},
+  +h0: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})) == False{} : Bool}) -> {M.mz.room(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), True{}) : P.H & Bool}:
+  +hr = GWP.sh.rd(tw, e, hs)
+  +hf = MB.eq_true_of_and_left(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +hr2 = MB.eq_true_of_and_right(AD.full(U32, LAT.fromT(U32, tw), 2n+e), Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)) && (Nat.is_le(3n, e) && Nat.is_le(e, 28n)), hr)
+  +hq = MB.eq_true_of_and_left(Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)), Nat.is_le(3n, e) && Nat.is_le(e, 28n), hr2)
+  +he3 = MB.eq_true_of_and_left(Nat.is_le(3n, e), Nat.is_le(e, 28n), MB.eq_true_of_and_right(Nat.is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e)), Nat.is_le(3n, e) && Nat.is_le(e, 28n), hr2))
+  +hw = MN.eq_of_is_eq(U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap()))), Nat.pow(2n, e), hq)
+  +hd = MN.lt_of_lt_of_le(2n+e, 30n, 32n, he, {==})
+  +hfr = XP.frs(k, tw, LAT.fromT(V.Val, ta), 2n+e, hf, hd)
+  +hm = ME.subst(P.H & Bool, q => {Pair.snd(P.H, Bool, q) == False{} : Bool}, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}), (P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), 2n+e)), hfr, h0)
+  +hf0 = Equal.trans(P.H & Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}), (P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), 2n+e)), (P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, False{}), hfr, Equal.cong(Bool, P.H & Bool, z => (P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, z), XP.fr.m(k, AD.view(U32, LAT.fromT(U32, tw)), 2n+e), False{}, hm))
+  +hg = Equal.trans(P.H & Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}), (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), True{}), peta(P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})),
+    Equal.cong(Bool, P.H & Bool, z => (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), z), Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), True{}, GW.more_grew(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())), e, hf, {==}, hw, he3, he)))
+  Laws.room_grow(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}, Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})), k, hf0, hg, GN.grown_frees(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())), e, k, hf, {==}, hw, he3, he, hk))
+
+def rc.w(-w: Array<U32>, -a: Array<V.Val>, +e: Nat, +k: Nat, +hs: {GM.shape(w, e) == True{} : Bool}, +he: {Nat.is_lt(e, 28n) == True{} : Bool}, +hk: {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())))) == True{} : Bool},
+  +h0: {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{w}, a})) == False{} : Bool}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) -> {M.mz.room(P.H{KM.MG{w}, a}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})), True{}) : P.H & Bool}:
+  (+tw, +ew) = mw
+  (+ta, +ea) = ma
+  +sw = Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew)
+  +sa = Equal.sym(Array<V.Val>, LAT.fromT(V.Val, ta), a, ea)
+  +hs2 = ME.subst(Array<U32>, z => {GM.shape(z, e) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hs)
+  +hk2 = ME.subst(Array<U32>, z => {Nat.is_le(k, U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, z, P.at_wcap())))) == True{} : Bool}, w, LAT.fromT(U32, tw), sw, hk)
+  +h02 = ME.subst(Array<V.Val>, z => {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{LAT.fromT(U32, tw)}, z})) == False{} : Bool}, a, LAT.fromT(V.Val, ta), sa, ME.subst(Array<U32>, z => {Pair.snd(P.H, Bool, P.frees(k, P.H{KM.MG{z}, a})) == False{} : Bool}, w, LAT.fromT(U32, tw), sw, h0))
+  %ew : {M.mz.room(P.H{KM.MG{_}, a}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a})), True{}) : P.H & Bool}
+  %ea : {M.mz.room(P.H{KM.MG{LAT.fromT(U32, tw)}, _}, k) == (Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, _})), True{}) : P.H & Bool}
+  rc.k(tw, ta, e, k, hs2, he, hk2, h02)
+
+def Laws.room_covered(w, a, e, k, hs, he, hk, h0):
+  rc.w(w, a, e, k, hs, he, hk, h0, LAT.mirror(U32, w), LAT.mirror(V.Val, a))

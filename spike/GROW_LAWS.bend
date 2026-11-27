@@ -320,3 +320,17 @@ law shape_max:
   for +hs: {GM.shape(w, e) == True{} : Bool}
   for +hm: {Nat.is_le(28n, e) == True{} : Bool}
   {P.grow_more(P.H{KM.MG{w}, a}) == (P.H{KM.MG{Array.set(U32, w, P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_errs())) + 1 : U32))}, a}, False{}) : P.H & Bool}
+
+# LAW: growth answers that it grew, on a heap as more_old's.
+# Record: net-nodes-double
+law more_grew:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {Pair.snd(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})) == True{} : Bool}

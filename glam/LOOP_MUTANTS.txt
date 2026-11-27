@@ -101,3 +101,12 @@ spike/GROW_MUTANTS.txt)
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
 +++
         at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))
+
+=== capacity_kept_ready grow_serve_ready
+the grown capacity word written as the old capacity, so that the grown
+heap's shape fails (caught by its proof only: a witness would need the
+wider invariant's whole state; shape_grow's witness shows the fault)
+--- ../spike/kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))

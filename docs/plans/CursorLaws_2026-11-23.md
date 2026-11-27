@@ -980,7 +980,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         (`bases_apart`) a step of its own, which would fold the layout
         into the invariant by computation (P10). The maintainer
         (2026-11-26): "Premises now is acceptable."
-      - `cursor-laws.loop.shape.grow` — planned — `px_grow`: the wider
+      - `cursor-laws.loop.shape.grow` — built 2026-11-27 — `px_grow` as
+        `grow_next`, `grow_loop` and `grow_shape_loop`: the wider
         invariant across the heap's doubling, the words copied. Narrowed
         by `cursor-laws.alloc`: growth as `grow_more`'s one law between
         steps; first a per-node range (its own base, past the header,
@@ -1023,7 +1024,7 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           `bases_apart`); `LM.ext.ok`'s layout of `N ++ E` as `E` none
           of `N` and `RG.nodes.in(E, d)`. Laws on main restated, for
           the maintainer's approval.
-        - `cursor-laws.loop.shape.grow.copy` — active — the invariant
+        - `cursor-laws.loop.shape.grow.copy` — built 2026-11-27 — the invariant
           across the doubling. Growth comes between serves (room made
           first), where the tracked free prefix is dead weight (the
           second reviewer's F9), so it goes in three laws and a kernel
@@ -1514,7 +1515,70 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
 
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
-      guard answers; the growth branch with `.grow.copy.store`. As planned: the guard at `mz.fz.t` and
+      guard answers; the growth branch with `.grow.copy.store`:
+      - `cursor-laws.alloc.guard.covered` — built 2026-11-27, `.keep`
+        planned — the guard's loop
+        (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
+        carrying the invariant, the heap's shape and `LM.faced.in` to
+        the heap it answers on, and where it answers, the free list's
+        first k nodes tracked, as `serve_next` asks. The loop runs a
+        number of rounds no law fixes, so its law concludes a
+        dependent pair: some e', free prefix and tracked list for which
+        the three hold. Its catch: `grow_loop` drops the free prefix
+        and tracks the fresh nodes alone, while the free list after
+        growth is the fresh nodes then the old list (`more_last`), and
+        a walk of k nodes runs past the fresh ones into the old list
+        whenever k exceeds the new half. So a growth law keeping the
+        old prefix after the fresh nodes, the chain `more_last`
+        already gives. In slices:
+        - `cursor-laws.alloc.guard.covered.faced` — built 2026-11-27 —
+          `grown_faced` (glam/GROWN_LAWS.bend): `LM.faced.in` across
+          growth, over views alone, each cursor tracked and read alike
+          (`khas`, `sw`), a link word below 2^d below 2^(d + 1), a
+          static's none. Its mutant, the kept words read at the old
+          depth, caught by its proof only.
+        - `cursor-laws.alloc.guard.covered.fits` — built 2026-11-27 —
+          `grown_frees` (glam/LOOP_LAWS.bend): after one growth
+          `P.frees` answers for any k up to the old node count, the
+          walk along the fresh nodes (`lkf`, each link one on) through
+          `frs`; `more_grew`, growth answering that it grew. So that
+          for a request up to the heap's nodes (k <= 2^e), the case a
+          first heap of 128 nodes and a template's size give, one round
+          of growth is the guard's last. Mutants refuted by witnesses:
+          threading's links at the header words; growth answering it
+          did not grow.
+        - `cursor-laws.alloc.guard.covered.loop` — built 2026-11-27 —
+          the guard's loop as its control flow, over any heap
+          (glam/MATERIALIZE_LAWS.bend): `room_free`, it answers on the
+          heap itself where the free list holds the room; `room_grow`,
+          on the grown heap where growth makes it. Mutants refuted by
+          witnesses on real heaps (`P.h_new()`, 121 free nodes, asked 4
+          and then 130): room the list holds refused; room growth made
+          refused.
+        - `cursor-laws.alloc.guard.covered.keep` — planned — a request
+          past the heap's nodes: more rounds, and the walk past the
+          fresh nodes into the old list, so a growth law keeping the
+          old free prefix after the fresh nodes (an extension at the
+          front, beside `lx_extend`'s at the back); until then the
+          covered serve asks k <= 2^e.
+        - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
+          the guard's answer and the next serve's premises:
+          `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it
+          answers on the heap itself where a full heap's list holds the
+          room, on the heap one growth makes where a heap of the shape
+          lacks it and k is up to its node count (`room_grow`, its
+          premises by `frs`, `more_grew` and `grown_frees`, which moves to
+          glam/GROWN_LAWS.bend as the full equation, the heap kept, so
+          that the materializer's proofs reach it, 2 s more, without the
+          loop's imports, 60 s more); `grow_serve_ready`
+          (glam/LOOP_LAWS.bend), on the growth branch the invariant over
+          the grown view in `serve_next`'s shape (`lx_split` at k, the
+          copy's nodes the fresh nodes' first), the shape at e + 1, the
+          cursors' faced ports in range, and the copy's nodes k in
+          number. Mutants: the guard's two on the first heap's words,
+          refuted by witnesses; the composition's, caught by its proof.
+          Left with the no-growth branch: the copy's nodes tracked
+          there as before, by the serve laws' prefix premises. As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the
