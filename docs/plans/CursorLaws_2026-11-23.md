@@ -1243,11 +1243,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
               write word 3, and only growth resizes the heap's store (the
               other `m_ensure`s are the strategies' stacks'). In slices:
               - `cursor-laws.loop.shape.grow.copy.store.shape.model` —
-                active — `GM.shape(w, e)`, the shape as a predicate, and
-                its reading as the growth laws' premises.
+                built 2026-11-27 — `GM.shape(w, e)` (spike/grow_model.bend),
+                word 3 read through the pair `Array.get` hands back, the
+                store linear; read as the growth laws' premises (`sh.rd`,
+                the capacity word itself the growth laws' wc).
               - `cursor-laws.loop.shape.grow.copy.store.shape.grow` —
-                planned — growth carries it from e to e + 1 for e < 28:
-                `more_full` and the grown capacity word (`more_cap`).
+                built 2026-11-27 — `shape_grow`: growth carries the shape
+                from e to e + 1 for e < 28, by `more_full` and `more_cap`
+                (the grown capacity word reads 2^(e + 1): the trace's sets
+                apart from word 3, then `grow.done`'s write). Mutants, the
+                capacity written as the old one, refuted by witnesses.
               - `cursor-laws.loop.shape.grow.copy.store.shape.new` —
                 planned — `h_new`'s heap has the shape at e = 7 (512
                 words, 128 nodes).

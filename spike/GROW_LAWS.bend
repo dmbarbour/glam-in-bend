@@ -262,3 +262,29 @@ law more_full:
   for +he3: {Nat.is_le(3n, e) == True{} : Bool}
   for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
   {AD.full(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 3n+e) == True{} : Bool}
+
+# LAW: the grown capacity word reads 2^(e + 1) nodes, twice the old, on a
+# heap as more_old's.
+# Record: net-nodes-double
+law more_cap:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +wc: U32
+  for +e: Nat
+  for +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}
+  for +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}
+  for +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}
+  for +he3: {Nat.is_le(3n, e) == True{} : Bool}
+  for +he27: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {U32.to_nat(Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), P.at_wcap()))) == Nat.pow(2n, 1n+e) : Nat}
+
+# LAW: growth carries the heap's shape from e to e + 1 while e < 28
+# (GM.shape: the store full at 2^(e + 2) words, its capacity word 2^e).
+# Record: net-nodes-double
+law shape_grow:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +e: Nat
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +he: {Nat.is_lt(e, 28n) == True{} : Bool}
+  {GM.shape(KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a}))), 1n+e) == True{} : Bool}

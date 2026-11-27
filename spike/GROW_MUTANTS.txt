@@ -232,3 +232,28 @@ w = Array.set(U32, [0 : U32^5n], 3, 8)
 a = Array.new(V.Val, 1n, V.VUnit{})
 wc = 8
 e = 3n
+
+=== capacity_kept more_cap
+the grown capacity word written as the old capacity, not twice it, so
+that a store of eight nodes grown still reads 8
+--- kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))
+>>> witness more_cap
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+
+=== capacity_kept_shape shape_grow
+the grown capacity word written as the old capacity, so that the grown
+heap's shape fails: 64 words, its capacity word 8 nodes
+--- kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap0), a}, (wcap0 << 2n : U32))
+>>> witness shape_grow
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+e = 3n
