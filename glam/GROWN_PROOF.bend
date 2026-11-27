@@ -12,6 +12,7 @@ import Base
 import ./GROWN_LAWS.bend as Laws
 import ../spike/GROW_LAWS.bend as GW
 import ../spike/GROW_PROOF.bend as GP
+import ../spike/grow_model.bend as GM
 import ../spike/kprim.bend as P
 import ../spike/kmem_grow.bend as KM
 import ../spike/val.bend as V
@@ -21,6 +22,7 @@ import ./loop_model.bend as LM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/LAWS.bend as LA
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/PROOF.bend as LAP
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_base.bend as AB
+import 0x96ab58f86121cb4f3fb48b3c8a045989/proof_nat.bend as WN
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_tree.bend as LAT
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
@@ -28,10 +30,6 @@ import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WLP
 import 0x8ae61ec3a6615abd35f196c07232ad28/nat.bend as MN
 import 0x8ae61ec3a6615abd35f196c07232ad28/equal.bend as ME
 import 0x8ae61ec3a6615abd35f196c07232ad28/bool.bend as MB
-
-# a negation true, its argument false
-def nf(+x: Bool, +h: {Bool.not(x) == True{} : Bool}) -> {x == False{} : Bool}:
-  MB.not_inj(x, False{}, h)
 
 # a word read alike as itself
 def srefl(+x: U32) -> {LM.same(Some{x}, Some{x}) == True{} : Bool}:
@@ -74,14 +72,14 @@ def ge4(+x: Nat, +h0: {Nat.is_eq(0n, x) == False{} : Bool}, +h1: {Nat.is_eq(1n, 
 # word x of a node off the header's head, errors and table head words
 # (one conjunct each of KMd.off.words over KMd.hdr_all)
 def ow0(+e: Nat, +x: U32, +o: {KMd.off.words(KMd.hdr_all(), 2n+e, x) == True{} : Bool}) -> {Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e)) == False{} : Bool}:
-  nf(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.hdr_words(), 2n+e, x), o))
+  MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.hdr_words(), 2n+e, x), o))
 
 def ow1(+e: Nat, +x: U32, +o: {KMd.off.words(KMd.hdr_all(), 2n+e, x) == True{} : Bool}) -> {Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e)) == False{} : Bool}:
-  nf(Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.tab_words(), 2n+e, x),
+  MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.tab_words(), 2n+e, x),
     MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.hdr_words(), 2n+e, x), o)))
 
 def ow4(+e: Nat, +x: U32, +o: {KMd.off.words(KMd.hdr_all(), 2n+e, x) == True{} : Bool}) -> {Nat.is_eq(AD.slot(P.at_tfh(), 2n+e), AD.slot(x, 2n+e)) == False{} : Bool}:
-  nf(Nat.is_eq(AD.slot(P.at_tfh(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words([P.at_tn(), P.at_tcap(), P.at_td()], 2n+e, x),
+  MB.eq_false_of_not_eq_true(Nat.is_eq(AD.slot(P.at_tfh(), 2n+e), AD.slot(x, 2n+e)), MB.eq_true_of_and_left(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words([P.at_tn(), P.at_tcap(), P.at_td()], 2n+e, x),
     MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.tab_words(), 2n+e, x),
       MB.eq_true_of_and_right(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), 2n+e), AD.slot(x, 2n+e))), KMd.off.words(KMd.hdr_words(), 2n+e, x), o))))
 
@@ -167,3 +165,219 @@ def kept.w(-w: Array<U32>, -a: Array<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat
 
 def Laws.grown_kept(w, a, wc, e, N, hf, hwc, hw, he3, he27, hin, hp):
   kept.w(w, a, wc, e, hw, he3, he27, N, hf, hwc, hin, hp, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# a word of the grown view, the grown heap's word
+def wv(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, LAT.fromT(U32, tw), 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())) == wc : U32}, +j: U32) -> {KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, j) == Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), j)) : U32}:
+  +hf2 = GW.more_full(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), wc, e, hf, hwc, hw, he3, he27)
+  %LA.get_view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), 3n+e, j, hf2, MN.lt_of_lt_of_le(e, 28n, 29n, he27, {==})) : {KMd.word.m(_) == Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), j)) : U32}
+  {==}
+
+# node i of the fresh range, i below 2wc: its successor's number, one on
+def fi1(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +i: U32, +hi: {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {U32.to_nat((i + 1 : U32)) == 1n+U32.to_nat(i) : Nat}:
+  +h = MN.lt_of_le_of_lt(Nat.add(U32.to_nat(i), 1n), Nat.pow(2n, 1n+e), Nat.pow(2n, 3n+e), ME.subst(Nat, q => {Nat.is_le(q, Nat.pow(2n, 1n+e)) == True{} : Bool}, 1n+U32.to_nat(i), Nat.add(U32.to_nat(i), 1n), MN.add_comm(1n, U32.to_nat(i)), MN.succ_le_of_lt(U32.to_nat(i), Nat.pow(2n, 1n+e), hi)), AB.pow_lt(1n+e, 3n+e, MN.lt_succ_of_le(1n+e, 2n+e, MN.le_succ(1n+e))))
+  Equal.trans(Nat, U32.to_nat((i + 1 : U32)), Nat.add(U32.to_nat(i), 1n), 1n+U32.to_nat(i), tnb(i, 1, 3n+e, h, MN.lt_of_lt_of_le(e, 28n, 29n, he27, {==})), MN.add_comm(U32.to_nat(i), 1n))
+
+# a link one on, less one, is the node again (KMd.at_idx)
+def ai(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +i: U32, +hi: {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {U32.is_eq(KMd.at_idx((i + 1 : U32)), (i << 2n : U32)) == True{} : Bool}:
+  +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+  +hle = Equal.trans(Bool, U32.is_le(1, (i + 1 : U32)), Nat.is_le(U32.to_nat(1), U32.to_nat((i + 1 : U32))), True{}, WL.is_le_to_nat(1, (i + 1 : U32)), ME.subst(Nat, q => {Nat.is_le(1n, q) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), MN.zero_le(U32.to_nat(i))))
+  +es = Equal.trans(Nat, U32.to_nat(((i + 1 : U32) - 1 : U32)), Nat.sub(U32.to_nat((i + 1 : U32)), 1n), U32.to_nat(i), WL.to_nat_sub_le((i + 1 : U32), 1, hle), Equal.trans(Nat, Nat.sub(U32.to_nat((i + 1 : U32)), 1n), Nat.sub(Nat.add(U32.to_nat(i), 1n), 1n), U32.to_nat(i), Equal.cong(Nat, Nat, z => Nat.sub(z, 1n), U32.to_nat((i + 1 : U32)), Nat.add(U32.to_nat(i), 1n), Equal.trans(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), Nat.add(U32.to_nat(i), 1n), e1, MN.add_comm(1n, U32.to_nat(i)))), MN.add_sub_cancel(U32.to_nat(i), 1n)))
+  +eq = WL.to_nat_inj(((i + 1 : U32) - 1 : U32), i, es)
+  ME.subst(U32, z => {U32.is_eq((z << 2n : U32), (i << 2n : U32)) == True{} : Bool}, i, ((i + 1 : U32) - 1 : U32), Equal.sym(U32, ((i + 1 : U32) - 1 : U32), i, eq), Equal.trans(Bool, U32.is_eq((i << 2n : U32), (i << 2n : U32)), Nat.is_eq(U32.to_nat((i << 2n : U32)), U32.to_nat((i << 2n : U32))), True{}, WL.is_eq_to_nat((i << 2n : U32), (i << 2n : U32)), MN.is_eq_refl(U32.to_nat((i << 2n : U32)))))
+
+# a link one on is never 0
+def nz(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +i: U32, +hi: {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {Bool.not(U32.is_eq((i + 1 : U32), 0)) == True{} : Bool}:
+  +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+  +h0 = Equal.trans(Bool, U32.is_eq((i + 1 : U32), 0), Nat.is_eq(U32.to_nat((i + 1 : U32)), U32.to_nat(0)), False{}, WL.is_eq_to_nat((i + 1 : U32), 0), ME.subst(Nat, q => {Nat.is_eq(q, U32.to_nat(0)) == False{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), {==}))
+  Equal.cong(Bool, Bool, z => Bool.not(z), U32.is_eq((i + 1 : U32), 0), False{}, h0)
+
+def hik(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +p: Nat, +i: U32, +hk: {Nat.is_le(Nat.add(1n+p, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, 1n+e)) == True{} : Bool}:
+  MN.lt_of_lt_of_le(U32.to_nat(i), Nat.add(1n+p, U32.to_nat(i)), Nat.pow(2n, 1n+e), MN.lt_of_lt_of_le(U32.to_nat(i), 1n+U32.to_nat(i), Nat.add(1n+p, U32.to_nat(i)), MN.lt_succ_of_le(U32.to_nat(i), U32.to_nat(i), MN.le_refl(U32.to_nat(i))), MN.le_add_left(U32.to_nat(i), p)), hk)
+
+def kst(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +p: Nat, +i: U32, +hk: {Nat.is_le(Nat.add(1n+p, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}, +e1: {U32.to_nat((i + 1 : U32)) == 1n+U32.to_nat(i) : Nat}) -> {Nat.is_le(Nat.add(p, U32.to_nat((i + 1 : U32))), Nat.pow(2n, 1n+e)) == True{} : Bool}:
+  ME.subst(Nat, q => {Nat.is_le(Nat.add(p, q), Nat.pow(2n, 1n+e)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), ME.subst(Nat, q => {Nat.is_le(q, Nat.pow(2n, 1n+e)) == True{} : Bool}, 1n+Nat.add(p, U32.to_nat(i)), Nat.add(p, 1n+U32.to_nat(i)), Equal.sym(Nat, Nat.add(p, 1n+U32.to_nat(i)), 1n+Nat.add(p, U32.to_nat(i)), MN.add_succ(p, U32.to_nat(i))), hk))
+
+def lo1(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +i: U32, +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(i)) == True{} : Bool}, +e1: {U32.to_nat((i + 1 : U32)) == 1n+U32.to_nat(i) : Nat}) -> {Nat.is_le(U32.to_nat(wc), U32.to_nat((i + 1 : U32))) == True{} : Bool}:
+  ME.subst(Nat, q => {Nat.is_le(U32.to_nat(wc), q) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), MN.le_trans(U32.to_nat(wc), U32.to_nat(i), 1n+U32.to_nat(i), hlo, MN.le_succ(U32.to_nat(i))))
+
+# wc nodes from wc fit below 2wc
+def hkw(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}) -> {Nat.is_le(Nat.add(U32.to_nat(wc), U32.to_nat(wc)), Nat.pow(2n, 1n+e)) == True{} : Bool}:
+  ME.subst(Nat, q => {Nat.is_le(Nat.add(q, q), Nat.pow(2n, 1n+e)) == True{} : Bool}, Nat.pow(2n, e), U32.to_nat(wc), Equal.sym(Nat, U32.to_nat(wc), Nat.pow(2n, e), hw), ME.subst(Nat, q => {Nat.is_le(Nat.add(Nat.pow(2n, e), q), Nat.pow(2n, 1n+e)) == True{} : Bool}, Nat.add(Nat.pow(2n, e), 0n), Nat.pow(2n, e), MN.add_zero(Nat.pow(2n, e)), MN.le_refl(Nat.pow(2n, 1n+e))))
+
+# the fresh nodes i on, chained from node i's link: each links the next
+# (more_link), the last's link not read
+def ch.go(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, LAT.fromT(U32, tw), 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())) == wc : U32}, +p: Nat, +i: U32, +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(i)) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(1n+p, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool},
+  ih: {Nat.is_le(U32.to_nat(wc), U32.to_nat((i + 1 : U32))) == True{} : Bool} -> {Nat.is_le(Nat.add(p, U32.to_nat((i + 1 : U32))), Nat.pow(2n, 1n+e)) == True{} : Bool} -> {KMd.chain(GM.fresh(p, (i + 1 : U32)), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i + 1 : U32) + 1 : U32)) == True{} : Bool}) ->
+  {KMd.chain(GM.fresh(p, (i + 1 : U32)), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i << 2n : U32) + 1 : U32))) == True{} : Bool}:
+  match p:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hi = hik(wc, e, hw, he3, he27, 1n+q, i, hk)
+      +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+      +hhi = MN.lt_of_lt_of_le(1n+U32.to_nat(i), Nat.add(2n+q, U32.to_nat(i)), Nat.pow(2n, 1n+e), MN.lt_succ_of_le(U32.to_nat(i), Nat.add(q, U32.to_nat(i)), MN.le_add_left(U32.to_nat(i), q)), hk)
+      +eL = Equal.trans(U32, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i << 2n : U32) + 1 : U32)), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), ((i << 2n : U32) + 1 : U32))), ((i + 1 : U32) + 1 : U32), wv(tw, ta, wc, e, hw, he3, he27, hf, hwc, ((i << 2n : U32) + 1 : U32)), GW.more_link(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), wc, e, hf, hwc, hw, he3, he27, i, hlo, hhi))
+      %Equal.sym(U32, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i << 2n : U32) + 1 : U32)), ((i + 1 : U32) + 1 : U32), eL) : {KMd.chain(GM.fresh(1n+q, (i + 1 : U32)), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, _) == True{} : Bool}
+      +hlo1 = lo1(wc, e, hw, he3, he27, i, hlo, e1)
+      +hk1 = kst(wc, e, hw, he3, he27, 1n+q, i, hk, e1)
+      ih(hlo1, hk1)
+
+def ch(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, LAT.fromT(U32, tw), 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())) == wc : U32}, +k: Nat, +i: U32, +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(i)) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(k, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {KMd.chain(GM.fresh(k, i), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, (i + 1 : U32)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      +hi = hik(wc, e, hw, he3, he27, p, i, hk)
+      MB.and_eq_true(Bool.not(U32.is_eq((i + 1 : U32), 0)), U32.is_eq(KMd.at_idx((i + 1 : U32)), (i << 2n : U32)) && KMd.chain(GM.fresh(p, (i + 1 : U32)), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i << 2n : U32) + 1 : U32))), nz(wc, e, hw, he3, he27, i, hi),
+        MB.and_eq_true(U32.is_eq(KMd.at_idx((i + 1 : U32)), (i << 2n : U32)), KMd.chain(GM.fresh(p, (i + 1 : U32)), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, ((i << 2n : U32) + 1 : U32))), ai(wc, e, hw, he3, he27, i, hi),
+          ch.go(tw, ta, wc, e, hw, he3, he27, hf, hwc, p, i, hlo, hk, h1 => h2 => ch(tw, ta, wc, e, hw, he3, he27, hf, hwc, p, (i + 1 : U32), h1, h2))))
+
+def gch(+tw: LAT.Tree<U32>, +ta: LAT.Tree<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, LAT.fromT(U32, tw), 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, LAT.fromT(U32, tw), P.at_wcap())) == wc : U32}) -> {KMd.chain(GM.fresh(U32.to_nat(wc), wc), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, P.at_fh())) == True{} : Bool}:
+  +eh = Equal.trans(U32, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, P.at_fh()), Pair.snd(Array<U32>, U32, Array.get(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)}))), P.at_fh())), (wc + 1 : U32), wv(tw, ta, wc, e, hw, he3, he27, hf, hwc, P.at_fh()), GW.more_head(LAT.fromT(U32, tw), LAT.fromT(V.Val, ta), wc, e, hf, hwc, hw, he3, he27))
+  %Equal.sym(U32, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, P.at_fh()), (wc + 1 : U32), eh) : {KMd.chain(GM.fresh(U32.to_nat(wc), wc), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, LAT.fromT(V.Val, ta)})))), 3n+e, _) == True{} : Bool}
+  +hk = ME.subst(Nat, q => {Nat.is_le(Nat.add(q, q), Nat.pow(2n, 1n+e)) == True{} : Bool}, Nat.pow(2n, e), U32.to_nat(wc), Equal.sym(Nat, U32.to_nat(wc), Nat.pow(2n, e), hw), ME.subst(Nat, q => {Nat.is_le(Nat.add(Nat.pow(2n, e), q), Nat.pow(2n, 1n+e)) == True{} : Bool}, Nat.add(Nat.pow(2n, e), 0n), Nat.pow(2n, e), MN.add_zero(Nat.pow(2n, e)), MN.le_refl(Nat.pow(2n, 1n+e))))
+  ch(tw, ta, wc, e, hw, he3, he27, hf, hwc, U32.to_nat(wc), wc, MN.le_refl(U32.to_nat(wc)), hk)
+
+def chain.w(-w: Array<U32>, -a: Array<V.Val>, +wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +hf: {AD.full(U32, w, 2n+e) == True{} : Bool}, +hwc: {Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_wcap())) == wc : U32}, mw: LAT.Mirror(U32, w), ma: LAT.Mirror(V.Val, a)) ->
+  {KMd.chain(GM.fresh(U32.to_nat(wc), wc), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, P.at_fh())) == True{} : Bool}:
+  (+tw, +ew) = mw
+  (+ta, +ea) = ma
+  +hf2 = LAP.full_t(U32, w, tw, 2n+e, ew, hf)
+  +hwc2 = ME.subst(Array<U32>, z => {Pair.snd(Array<U32>, U32, Array.get(U32, z, P.at_wcap())) == wc : U32}, w, LAT.fromT(U32, tw), Equal.sym(Array<U32>, LAT.fromT(U32, tw), w, ew), hwc)
+  %ew : {KMd.chain(GM.fresh(U32.to_nat(wc), wc), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{_}, a})))), 3n+e, P.at_fh())) == True{} : Bool}
+  %ea : {KMd.chain(GM.fresh(U32.to_nat(wc), wc), AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, _})))), 3n+e, KMd.word(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{LAT.fromT(U32, tw)}, _})))), 3n+e, P.at_fh())) == True{} : Bool}
+  gch(tw, ta, wc, e, hw, he3, he27, hf2, hwc2)
+
+def Laws.grown_chain(w, a, wc, e, hf, hwc, hw, he3, he27):
+  chain.w(w, a, wc, e, hw, he3, he27, hf, hwc, LAT.mirror(U32, w), LAT.mirror(V.Val, a))
+
+# Bool.or of two falses
+def orff(+x: Bool, +y: Bool, +hx: {x == False{} : Bool}, +hy: {y == False{} : Bool}) -> {Bool.or(x, y) == False{} : Bool}:
+  %Equal.sym(Bool, x, False{}, hx) : {Bool.or(_, y) == False{} : Bool}
+  hy
+
+# no fresh node j on is node i's, i below j
+def nh(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +p: Nat, +j: U32, +i: U32, +hij: {Nat.is_lt(U32.to_nat(i), U32.to_nat(j)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(p, U32.to_nat(j)), Nat.pow(2n, 1n+e)) == True{} : Bool}) ->
+  {RG.has(GM.fresh(p, j), (i << 2n : U32)) == False{} : Bool}:
+  match p:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hj = hik(wc, e, hw, he3, he27, q, j, hb)
+      +hi = MN.lt_of_lt_of_le(U32.to_nat(i), U32.to_nat(j), Nat.pow(2n, 1n+e), hij, MN.le_of_lt(U32.to_nat(j), Nat.pow(2n, 1n+e), hj))
+      +e1 = fi1(wc, e, hw, he3, he27, j, hj)
+      +h4 = Equal.trans(Bool, Nat.is_eq(Nat.mul(U32.to_nat(j), 4n), Nat.mul(U32.to_nat(i), 4n)), Nat.is_eq(U32.to_nat(j), U32.to_nat(i)), False{}, GP.q4(U32.to_nat(j), U32.to_nat(i)), GP.ne_flip(U32.to_nat(i), U32.to_nat(j), GP.ne_lt(U32.to_nat(i), U32.to_nat(j), hij)))
+      +h5 = ME.subst(Nat, q => {Nat.is_eq(q, U32.to_nat((i << 2n : U32))) == False{} : Bool}, Nat.mul(U32.to_nat(j), 4n), U32.to_nat((j << 2n : U32)), Equal.sym(Nat, U32.to_nat((j << 2n : U32)), Nat.mul(U32.to_nat(j), 4n), GP.eH(wc, e, hw, he3, he27, j, hj)), ME.subst(Nat, q => {Nat.is_eq(Nat.mul(U32.to_nat(j), 4n), q) == False{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), GP.eH(wc, e, hw, he3, he27, i, hi)), h4))
+      +h6 = Equal.trans(Bool, U32.is_eq((j << 2n : U32), (i << 2n : U32)), Nat.is_eq(U32.to_nat((j << 2n : U32)), U32.to_nat((i << 2n : U32))), False{}, WL.is_eq_to_nat((j << 2n : U32), (i << 2n : U32)), h5)
+      +hij1 = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(i), q) == True{} : Bool}, 1n+U32.to_nat(j), U32.to_nat((j + 1 : U32)), Equal.sym(Nat, U32.to_nat((j + 1 : U32)), 1n+U32.to_nat(j), e1), MN.lt_of_lt_of_le(U32.to_nat(i), U32.to_nat(j), 1n+U32.to_nat(j), hij, MN.le_succ(U32.to_nat(j))))
+      +hb2 = kst(wc, e, hw, he3, he27, q, j, hb, e1)
+      orff(U32.is_eq((j << 2n : U32), (i << 2n : U32)), RG.has(GM.fresh(q, (j + 1 : U32)), (i << 2n : U32)), h6, nh(wc, e, hw, he3, he27, q, (j + 1 : U32), i, hij1, hb2))
+
+def dst(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +k: Nat, +i: U32, +hk: {Nat.is_le(Nat.add(k, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {RG.distinct(GM.fresh(k, i)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      +hi = hik(wc, e, hw, he3, he27, p, i, hk)
+      +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+      +hij = ME.subst(Nat, q => {Nat.is_lt(U32.to_nat(i), q) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), e1), MN.lt_succ_of_le(U32.to_nat(i), U32.to_nat(i), MN.le_refl(U32.to_nat(i))))
+      +hb = kst(wc, e, hw, he3, he27, p, i, hk, e1)
+      MB.and_eq_true(Bool.not(RG.has(GM.fresh(p, (i + 1 : U32)), (i << 2n : U32))), RG.distinct(GM.fresh(p, (i + 1 : U32))), Equal.cong(Bool, Bool, z => Bool.not(z), RG.has(GM.fresh(p, (i + 1 : U32)), (i << 2n : U32)), False{}, nh(wc, e, hw, he3, he27, p, (i + 1 : U32), i, hij, hb)), dst(wc, e, hw, he3, he27, p, (i + 1 : U32), hb))
+
+def Laws.grown_distinct(wc, e, hw, he3, he27):
+  dst(wc, e, hw, he3, he27, U32.to_nat(wc), wc, hkw(wc, e, hw, he3, he27))
+
+# no tracked node, in range at the old depth, is word x at 2^(e + 2) or past
+def hn(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +N: List<&2, U32>, +x: U32, +hin: {RG.nodes.in(N, 2n+e) == True{} : Bool}, +hx: {Nat.is_le(Nat.pow(2n, 2n+e), U32.to_nat(x)) == True{} : Bool}) -> {RG.has(N, x) == False{} : Bool}:
+  match N:
+    case Nil{}:
+      {==}
+    case Con{+n, t}:
+      +hr = MB.eq_true_of_and_left(RG.inr(n, 2n+e), RG.nodes.in(t, 2n+e), hin)
+      +hrt = MB.eq_true_of_and_right(RG.inr(n, 2n+e), RG.nodes.in(t, 2n+e), hin)
+      +hl = MN.lt_of_lt_of_le(U32.to_nat(n), Nat.pow(2n, 2n+e), U32.to_nat(x), MN.lt_of_le_of_lt(U32.to_nat(n), Nat.add(U32.to_nat(n), 3n), Nat.pow(2n, 2n+e), MN.le_add_right(U32.to_nat(n), 3n), hr), hx)
+      +h0 = Equal.trans(Bool, U32.is_eq(n, x), Nat.is_eq(U32.to_nat(n), U32.to_nat(x)), False{}, WL.is_eq_to_nat(n, x), GP.ne_lt(U32.to_nat(n), U32.to_nat(x), hl))
+      orff(U32.is_eq(n, x), RG.has(t, x), h0, hn(wc, e, hw, he3, he27, t, x, hrt, hx))
+
+def nin(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +k: Nat, +i: U32, +N: List<&2, U32>, +hin: {RG.nodes.in(N, 2n+e) == True{} : Bool}, +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(i)) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(k, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {RG.none.in(GM.fresh(k, i), N) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      +hi = hik(wc, e, hw, he3, he27, p, i, hk)
+      +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+      +hx = ME.subst(Nat, q => {Nat.is_le(Nat.pow(2n, 2n+e), q) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), GP.eH(wc, e, hw, he3, he27, i, hi)), GP.pm(wc, e, hw, he3, he27, i, hlo))
+      MB.and_eq_true(Bool.not(RG.has(N, (i << 2n : U32))), RG.none.in(GM.fresh(p, (i + 1 : U32)), N), Equal.cong(Bool, Bool, z => Bool.not(z), RG.has(N, (i << 2n : U32)), False{}, hn(wc, e, hw, he3, he27, N, (i << 2n : U32), hin, hx)),
+        nin(wc, e, hw, he3, he27, p, (i + 1 : U32), N, hin, lo1(wc, e, hw, he3, he27, i, hlo, e1), kst(wc, e, hw, he3, he27, p, i, hk, e1)))
+
+def Laws.grown_none(wc, e, hw, he3, he27, N, hin):
+  nin(wc, e, hw, he3, he27, U32.to_nat(wc), wc, N, hin, MN.le_refl(U32.to_nat(wc)), hkw(wc, e, hw, he3, he27))
+
+def bs(+k: Nat, +i: U32) -> {RG.bases(GM.fresh(k, i)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      MB.and_eq_true(U32.is_eq(P.base((i << 2n : U32)), (i << 2n : U32)), RG.bases(GM.fresh(p, (i + 1 : U32))),
+        ME.subst(U32, z => {U32.is_eq(z, (i << 2n : U32)) == True{} : Bool}, (i << 2n : U32), P.base((i << 2n : U32)), Equal.sym(U32, P.base((i << 2n : U32)), (i << 2n : U32), GW.base_shl(i)), Equal.trans(Bool, U32.is_eq((i << 2n : U32), (i << 2n : U32)), Nat.is_eq(U32.to_nat((i << 2n : U32)), U32.to_nat((i << 2n : U32))), True{}, WL.is_eq_to_nat((i << 2n : U32), (i << 2n : U32)), MN.is_eq_refl(U32.to_nat((i << 2n : U32))))), bs(p, (i + 1 : U32)))
+
+def Laws.grown_bases(wc, e, hw, he3, he27):
+  bs(U32.to_nat(wc), wc)
+
+# a word at 8 or past it, within the grown store, off a header word below 8
+def offh(+e: Nat, +h: U32, +j: U32, +hh: {Nat.is_lt(U32.to_nat(h), 8n) == True{} : Bool}, +hhd: {Nat.is_le(8n, Nat.pow(2n, 3n+e)) == True{} : Bool}, +h8: {Nat.is_le(8n, U32.to_nat(j)) == True{} : Bool}, +hD: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, 3n+e)) == True{} : Bool}) ->
+  {Bool.not(Nat.is_eq(AD.slot(h, 3n+e), AD.slot(j, 3n+e))) == True{} : Bool}:
+  +sh = LA.slot_small(h, 3n+e, MN.lt_of_lt_of_le(U32.to_nat(h), 8n, Nat.pow(2n, 3n+e), hh, hhd))
+  +sj = LA.slot_small(j, 3n+e, hD)
+  +ne = GP.ne_lt(U32.to_nat(h), U32.to_nat(j), MN.lt_of_lt_of_le(U32.to_nat(h), 8n, U32.to_nat(j), hh, h8))
+  +ne2 = ME.subst(Nat, q => {Nat.is_eq(q, AD.slot(j, 3n+e)) == False{} : Bool}, U32.to_nat(h), AD.slot(h, 3n+e), Equal.sym(Nat, AD.slot(h, 3n+e), U32.to_nat(h), sh), ME.subst(Nat, q => {Nat.is_eq(U32.to_nat(h), q) == False{} : Bool}, U32.to_nat(j), AD.slot(j, 3n+e), Equal.sym(Nat, AD.slot(j, 3n+e), U32.to_nat(j), sj), ne))
+  Equal.cong(Bool, Bool, z => Bool.not(z), Nat.is_eq(AD.slot(h, 3n+e), AD.slot(j, 3n+e)), False{}, ne2)
+
+def off8(+e: Nat, +j: U32, +h8: {Nat.is_le(8n, U32.to_nat(j)) == True{} : Bool}, +hD: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, 3n+e)) == True{} : Bool}) -> {KMd.off.words(KMd.hdr_all(), 3n+e, j) == True{} : Bool}:
+  +hhd = WN.pow_le(3n, 3n+e, MN.le_add_right(3n, e))
+  MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_fh(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words(KMd.hdr_words(), 3n+e, j), offh(e, P.at_fh(), j, {==}, hhd, h8, hD), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_errs(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words(KMd.tab_words(), 3n+e, j), offh(e, P.at_errs(), j, {==}, hhd, h8, hD), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_tfh(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words([P.at_tn(), P.at_tcap(), P.at_td()], 3n+e, j), offh(e, P.at_tfh(), j, {==}, hhd, h8, hD), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_tn(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words([P.at_tcap(), P.at_td()], 3n+e, j), offh(e, P.at_tn(), j, {==}, hhd, h8, hD), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_tcap(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words([P.at_td()], 3n+e, j), offh(e, P.at_tcap(), j, {==}, hhd, h8, hD), MB.and_eq_true(Bool.not(Nat.is_eq(AD.slot(P.at_td(), 3n+e), AD.slot(j, 3n+e))), KMd.off.words(Nil{}, 3n+e, j), offh(e, P.at_td(), j, {==}, hhd, h8, hD), {==}))))))
+
+def pst(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +k: Nat, +i: U32, +hlo: {Nat.is_le(U32.to_nat(wc), U32.to_nat(i)) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(k, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {KMd.past(GM.fresh(k, i), 3n+e) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      +hi = hik(wc, e, hw, he3, he27, p, i, hk)
+      +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+      +g3 = GP.g32(wc, e, hw, he3, he27, i, hlo)
+      +mb = GP.m4b(wc, e, hw, he3, he27, i, hi)
+      +n0 = ME.subst(Nat, q => {U32.to_nat((i << 2n : U32)) == q : Nat}, Nat.mul(U32.to_nat(i), 4n), Nat.mul(U32.to_nat(i), 4n), {==}, GP.eH(wc, e, hw, he3, he27, i, hi))
+      +h80 = ME.subst(Nat, q => {Nat.is_le(8n, q) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), n0), MN.le_trans(8n, 32n, Nat.mul(U32.to_nat(i), 4n), {==}, g3))
+      +hD0 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), n0), MN.lt_of_lt_of_le(Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(U32.to_nat(i), 4n), Nat.pow(2n, 3n+e), MN.lt_succ_of_le(Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_add_left(Nat.mul(U32.to_nat(i), 4n), 3n)), mb))
+      +bk1 = ME.subst(Nat, q => {Nat.is_lt(Nat.add(q, 1n), Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), n0), MN.lt_of_lt_of_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), 1n), 4n+Nat.mul(U32.to_nat(i), 4n), Nat.pow(2n, 3n+e), ME.subst(Nat, q => {Nat.is_lt(q, 4n+Nat.mul(U32.to_nat(i), 4n)) == True{} : Bool}, 1n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 1n), MN.add_comm(1n, Nat.mul(U32.to_nat(i), 4n)), MN.lt_succ_of_le(1n+Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_add_left(1n+Nat.mul(U32.to_nat(i), 4n), 2n))), mb))
+      +n1 = tnb((i << 2n : U32), 1, 3n+e, bk1, MN.lt_of_lt_of_le(e, 28n, 29n, he27, {==}))
+      +h81 = ME.subst(Nat, q => {Nat.is_le(8n, q) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 1n), U32.to_nat(((i << 2n : U32) + 1 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 1n), n1), MN.le_trans(8n, U32.to_nat((i << 2n : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 1n), h80, MN.le_add_right(U32.to_nat((i << 2n : U32)), 1n)))
+      +hD1 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 1n), U32.to_nat(((i << 2n : U32) + 1 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 1 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 1n), n1), bk1)
+      +bk2 = ME.subst(Nat, q => {Nat.is_lt(Nat.add(q, 2n), Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), n0), MN.lt_of_lt_of_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), 2n), 4n+Nat.mul(U32.to_nat(i), 4n), Nat.pow(2n, 3n+e), ME.subst(Nat, q => {Nat.is_lt(q, 4n+Nat.mul(U32.to_nat(i), 4n)) == True{} : Bool}, 2n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 2n), MN.add_comm(2n, Nat.mul(U32.to_nat(i), 4n)), MN.lt_succ_of_le(2n+Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_add_left(2n+Nat.mul(U32.to_nat(i), 4n), 1n))), mb))
+      +n2 = tnb((i << 2n : U32), 2, 3n+e, bk2, MN.lt_of_lt_of_le(e, 28n, 29n, he27, {==}))
+      +h82 = ME.subst(Nat, q => {Nat.is_le(8n, q) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 2n), U32.to_nat(((i << 2n : U32) + 2 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 2 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 2n), n2), MN.le_trans(8n, U32.to_nat((i << 2n : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 2n), h80, MN.le_add_right(U32.to_nat((i << 2n : U32)), 2n)))
+      +hD2 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 2n), U32.to_nat(((i << 2n : U32) + 2 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 2 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 2n), n2), bk2)
+      +bk3 = ME.subst(Nat, q => {Nat.is_lt(Nat.add(q, 3n), Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), n0), MN.lt_of_lt_of_le(Nat.add(Nat.mul(U32.to_nat(i), 4n), 3n), 4n+Nat.mul(U32.to_nat(i), 4n), Nat.pow(2n, 3n+e), ME.subst(Nat, q => {Nat.is_lt(q, 4n+Nat.mul(U32.to_nat(i), 4n)) == True{} : Bool}, 3n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 3n), MN.add_comm(3n, Nat.mul(U32.to_nat(i), 4n)), MN.lt_succ_of_le(3n+Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_add_left(3n+Nat.mul(U32.to_nat(i), 4n), 0n))), mb))
+      +n3 = tnb((i << 2n : U32), 3, 3n+e, bk3, MN.lt_of_lt_of_le(e, 28n, 29n, he27, {==}))
+      +h83 = ME.subst(Nat, q => {Nat.is_le(8n, q) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 3n), U32.to_nat(((i << 2n : U32) + 3 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 3 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 3n), n3), MN.le_trans(8n, U32.to_nat((i << 2n : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 3n), h80, MN.le_add_right(U32.to_nat((i << 2n : U32)), 3n)))
+      +hD3 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.add(U32.to_nat((i << 2n : U32)), 3n), U32.to_nat(((i << 2n : U32) + 3 : U32)), Equal.sym(Nat, U32.to_nat(((i << 2n : U32) + 3 : U32)), Nat.add(U32.to_nat((i << 2n : U32)), 3n), n3), bk3)
+      MB.and_eq_true(KMd.ws.off(KMd.nw((i << 2n : U32)), KMd.hdr_all(), 3n+e), KMd.past(GM.fresh(p, (i + 1 : U32)), 3n+e), MB.and_eq_true(KMd.off.words(KMd.hdr_all(), 3n+e, (i << 2n : U32)), KMd.ws.off([((i << 2n : U32) + 1 : U32), ((i << 2n : U32) + 2 : U32), ((i << 2n : U32) + 3 : U32)], KMd.hdr_all(), 3n+e), off8(e, (i << 2n : U32), h80, hD0), MB.and_eq_true(KMd.off.words(KMd.hdr_all(), 3n+e, ((i << 2n : U32) + 1 : U32)), KMd.ws.off([((i << 2n : U32) + 2 : U32), ((i << 2n : U32) + 3 : U32)], KMd.hdr_all(), 3n+e), off8(e, ((i << 2n : U32) + 1 : U32), h81, hD1), MB.and_eq_true(KMd.off.words(KMd.hdr_all(), 3n+e, ((i << 2n : U32) + 2 : U32)), KMd.ws.off([((i << 2n : U32) + 3 : U32)], KMd.hdr_all(), 3n+e), off8(e, ((i << 2n : U32) + 2 : U32), h82, hD2), MB.and_eq_true(KMd.off.words(KMd.hdr_all(), 3n+e, ((i << 2n : U32) + 3 : U32)), KMd.ws.off(Nil{}, KMd.hdr_all(), 3n+e), off8(e, ((i << 2n : U32) + 3 : U32), h83, hD3), {==})))),
+        pst(wc, e, hw, he3, he27, p, (i + 1 : U32), lo1(wc, e, hw, he3, he27, i, hlo, e1), kst(wc, e, hw, he3, he27, p, i, hk, e1)))
+
+def Laws.grown_past(wc, e, hw, he3, he27):
+  pst(wc, e, hw, he3, he27, U32.to_nat(wc), wc, MN.le_refl(U32.to_nat(wc)), hkw(wc, e, hw, he3, he27))
+
+def gin(+wc: U32, +e: Nat, +hw: {U32.to_nat(wc) == Nat.pow(2n, e) : Nat}, +he3: {Nat.is_le(3n, e) == True{} : Bool}, +he27: {Nat.is_lt(e, 28n) == True{} : Bool}, +k: Nat, +i: U32, +hk: {Nat.is_le(Nat.add(k, U32.to_nat(i)), Nat.pow(2n, 1n+e)) == True{} : Bool}) -> {RG.nodes.in(GM.fresh(k, i), 3n+e) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      +hi = hik(wc, e, hw, he3, he27, p, i, hk)
+      +e1 = fi1(wc, e, hw, he3, he27, i, hi)
+      +mb = GP.m4b(wc, e, hw, he3, he27, i, hi)
+      +l3 = ME.subst(Nat, q => {Nat.is_lt(q, Nat.pow(2n, 3n+e)) == True{} : Bool}, 3n+Nat.mul(U32.to_nat(i), 4n), Nat.add(Nat.mul(U32.to_nat(i), 4n), 3n), MN.add_comm(3n, Nat.mul(U32.to_nat(i), 4n)), MN.lt_of_lt_of_le(3n+Nat.mul(U32.to_nat(i), 4n), 4n+Nat.mul(U32.to_nat(i), 4n), Nat.pow(2n, 3n+e), MN.lt_succ_of_le(3n+Nat.mul(U32.to_nat(i), 4n), 3n+Nat.mul(U32.to_nat(i), 4n), MN.le_refl(3n+Nat.mul(U32.to_nat(i), 4n))), mb))
+      +l4 = ME.subst(Nat, q => {Nat.is_lt(Nat.add(q, 3n), Nat.pow(2n, 3n+e)) == True{} : Bool}, Nat.mul(U32.to_nat(i), 4n), U32.to_nat((i << 2n : U32)), Equal.sym(Nat, U32.to_nat((i << 2n : U32)), Nat.mul(U32.to_nat(i), 4n), GP.eH(wc, e, hw, he3, he27, i, hi)), l3)
+      MB.and_eq_true(RG.inr((i << 2n : U32), 3n+e), RG.nodes.in(GM.fresh(p, (i + 1 : U32)), 3n+e), l4, gin(wc, e, hw, he3, he27, p, (i + 1 : U32), kst(wc, e, hw, he3, he27, p, i, hk, e1)))
+
+def Laws.grown_in(wc, e, hw, he3, he27):
+  gin(wc, e, hw, he3, he27, U32.to_nat(wc), wc, hkw(wc, e, hw, he3, he27))

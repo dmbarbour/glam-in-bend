@@ -777,7 +777,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         predecessor that strips a successor by computation, where
         `Nat.sub(1n+a, 1n)` sticks at `Nat.sub(a, 0n)`); `ne_flip` is a
         line over `MN.is_eq_comm`, as `INDEX_PROOF`'s `neq_comm` and
-        `PROOF`'s `neq_comm2` are.
+        `PROOF`'s `neq_comm2` are; `orff` (an or of two falses), as
+        `INDEX_PROOF`'s `or_ff2`, `PROOF`'s `or_ff` and `SERVE_PROOF`'s
+        `bff` are.
     - `cursor-laws.proofs.imports` — built 2026-11-25, `.rules`
       tentative — what the proofs import
       from the spike cut to what they use, for the verdicts' time and
@@ -1168,10 +1170,19 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
                 to its own depth; the last node's link shifted onto a
                 tracked node's word.
               - `cursor-laws.loop.shape.grow.copy.store.kept.fresh` —
-                planned — the fresh nodes E as a model list, node wc on
-                to node 2wc - 1, and `LM.ext.ok`'s chain from the new
-                head, distinctness, bases, `past`, `nodes.in` and
-                `none.in(E, N)`, from `.fresh`'s laws.
+                built 2026-11-27 — the fresh nodes as a model list
+                (`GM.fresh(k, i)`, nodes i to i + k - 1, E their wc from
+                wc) and six laws in the grown view, each by induction on
+                the count with the bound i + k <= 2wc: `grown_chain`
+                (chained from the head, each link one on read by
+                `more_link`, `KMd.at_idx` of a link the node again),
+                `grown_distinct`, `grown_none` (no tracked node in range
+                at the old depth among them), `grown_bases`, `grown_past`
+                (a word at 8 or past it off every header word),
+                `grown_in`. Mutants refuted by witnesses: the head
+                skipping a node; the model naming one node again, its
+                index shifted one place (two laws) or three, counting
+                down.
               - `cursor-laws.loop.shape.grow.copy.store.kept.ports` —
                 planned — `px.off(L, v2, 1n+d, L, E)`: each cursor's
                 faced port, in range by `faced.in` and read alike by
