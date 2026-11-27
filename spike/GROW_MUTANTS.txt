@@ -1,0 +1,234 @@
+Mutations of the store's growth (spike/kmem_grow.bend's KM.grow), each
+naming the laws of spike/GROW_LAWS.bend it should fail (docs/Proving.md;
+the gate runs scripts/one_law.py --mutants on this file). Witnesses: a
+store of four words of 7, two levels deep, its capacity 4.
+
+=== copy_from_1 grow_old
+the copy starting at index 1, so that word 0 of the grown store is the
+zero fill's, not the old word
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 1, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
+>>> witness grow_old
+w = [7 : U32^2n]
+d = 2n
+cap = 4
+j = 0
+
+=== fill_ones grow_new
+the grown store filled with 1, so that its new half's nodes read in use
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [1 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
+>>> witness grow_new
+w = [7 : U32^2n]
+d = 2n
+cap = 4
+j = 4
+
+=== depth_two grow_full
+the store grown two levels deeper, not one
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 2n)]})}
+>>> witness grow_full
+w = [7 : U32^2n]
+d = 2n
+cap = 4
+
+=== capacity_quadrupled ensure_once
+the doubled store's capacity reported as four times the old, so that the
+kernel believes in words it has not
+--- kmem_grow.bend
+            grow(m, cap), (cap * 2 : U32)), n, maxd)
++++
+            grow(m, cap), (cap * 4 : U32)), n, maxd)
+>>> witness ensure_once
+m = KM.MG{[0 : U32^2n]}
+n = 8
+cap = 4
+maxd = 30n
+
+=== thread_unshifted thread_below
+node i's link written at word i + 1, not 4i + 1, so that it lands in an
+earlier node's words: node 1 of an eight-word store overwrites word 2
+--- kprim.bend
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
++++
+      thread(p, KM.m_set(m, (i + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
+>>> witness thread_below
+k = 1n
+i = 1
+to = 2
+a = [7 : U32^3n]
+j = 2
+D = 3n
+c = 8
+
+=== thread_unended thread_link
+the last node threaded linked on past to, not ending the list: node 1 of
+nodes 1 .. 1 links to a node 2 the store has not threaded. (A mutant of
+P.link_of.go itself changes both sides of thread_link; the encoding's
+meaning is the chain's, under grow_more.)
+--- kprim.bend
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
++++
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_le((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
+>>> witness thread_link
+k = 1n
+i = 1
+to = 2
+a = [7 : U32^3n]
+n = 1
+D = 3n
+c = 8
+
+=== depth_doubled depth_pow
+each halving counted twice, so that a store of four words reads as four
+levels deep, not two
+--- kmem_grow.bend
+          depth.go(p, U32.is_eq((cap >> 1n : U32), 1), (cap >> 1n : U32), 1n+d)
++++
+          depth.go(p, U32.is_eq((cap >> 1n : U32), 1), (cap >> 1n : U32), 2n+d)
+>>> witness depth_pow
+cap = 4
+d = 2n
+
+=== depth_stop_zero depth_pow
+the first test made against 0, not 1, so that a store of one word
+halves past it to the step bound
+--- kmem_grow.bend
+  depth.go(k, U32.is_eq(cap, 1), cap, d)
++++
+  depth.go(k, U32.is_eq(cap, 0), cap, d)
+>>> witness depth_pow
+cap = 1
+d = 0n
+
+=== base_three_bits base_shl
+the base clearing three low bits, not two, so that node 1's reference,
+4, has base 0
+--- kprim.bend
+  (r .&. 4294967292 : U32)
++++
+  (r .&. 4294967288 : U32)
+>>> witness base_shl
+i = 1
+
+=== capacity_word4 more_old
+the grown capacity written at word 4, not word 3, so that an old header
+word changes: a store of 32 words, eight nodes, reads 16 at word 4
+--- kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 2 : U32)), 4, wcap), a}, (wcap0 << 2n : U32))
+>>> witness more_old
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+j = 4
+
+=== link_shift1 more_old
+the last new node's link written at its index shifted one place, not
+two, so that it lands among the old words: word 31 of a store of 32
+takes the old head
+--- kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 1n : U32) + 1 : U32), fh0), n)
+>>> witness more_old
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 3, 8), 31, 7)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+j = 31
+
+=== thread_on_header thread_mark
+node i's link written at its header word, 4i, not 4i + 1, so that
+threading clears the mark the zero fill left: node 1 of an eight-word
+store reads 0 at word 4
+--- kprim.bend
+      thread(p, KM.m_set(m, ((i << 2n : U32) + 1 : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
++++
+      thread(p, KM.m_set(m, (i << 2n : U32), link_of.go(U32.is_lt((i + 1 : U32), to), (i + 1 : U32))), (i + 1 : U32), to)
+>>> witness thread_mark
+k = 1n
+i = 1
+to = 2
+a = [7 : U32^3n]
+m = 1
+D = 3n
+c = 8
+
+=== head_unencoded more_head
+the freed node's link to it written as its index, not its index plus
+one, so that the head names the node before: node 8 of a store of eight
+nodes grown reads 8 at the head, not 9
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), (r >> 2n : U32)), a}
+>>> witness more_head
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+
+=== free_marks_one more_mark
+the freed node's header word written 1, not 0, so that node wc, the
+first fresh node, reads in use
+--- kprim.bend
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 0), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
++++
+  H{KM.m_set(KM.m_set(KM.m_set(w, base(r), 1), (base(r) + 1 : U32), fh), at_fh(), ((r >> 2n : U32) + 1 : U32)), a}
+>>> witness more_mark
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 8
+
+=== head_skips more_link
+the grown head written as node wc + 2's link, not wc + 1's, so that the
+freed node wc links past node wc + 1
+--- kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 3 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
+>>> witness more_link
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 8
+
+=== last_unlinked more_last
+the last fresh node linked to no node, not the old head, so that the
+nodes free before growth fall off the list: an old head of 5 lost
+--- kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), 0), n)
+>>> witness more_last
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 3, 8), 0, 5)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+m = 15
+
+=== grow_same_depth more_full
+the store copied into one of its own depth, not one level deeper, so
+that the grown heap of eight nodes holds 32 words, not 64
+--- kmem_grow.bend
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 1n)]})}
++++
+      MG{copy(U32.to_nat(cap), 0, CP{a, [0 : U32^Nat.add(depth(32n, cap, 0n), 0n)]})}
+>>> witness more_full
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n

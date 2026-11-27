@@ -45,16 +45,22 @@ def copy(n: Nat, +i: U32, c: CP) -> Array<U32>:
           copy(p, (i + 1 : U32), cp.step(Array.get(U32, src, i), dst, i))
 
 # the depth of an array of cap words, cap a power of two
-def depth(k: Nat, +cap: U32, +d: Nat) -> Nat:
+def depth.go(k: Nat, +one: Bool, +cap: U32, +d: Nat) -> Nat:
   match k:
     case 0n:
       d
     case 1n+p:
-      match cap:
-        case 1:
+      match one:
+        case True{}:
           d
-        case _:
-          depth(p, (cap >> 1n : U32), 1n+d)
+        case False{}:
+          depth.go(p, U32.is_eq((cap >> 1n : U32), 1), (cap >> 1n : U32), 1n+d)
+
+# whether cap is 1 tested as a Bool, carried to the next halving, not
+# matched on the literal's bits, so that a proof splits on it
+# (cursor-laws.loop.shape.grow.copy.store.depth)
+def depth(k: Nat, +cap: U32, +d: Nat) -> Nat:
+  depth.go(k, U32.is_eq(cap, 1), cap, d)
 
 def grow(m: M, +cap: U32) -> M:
   match m:

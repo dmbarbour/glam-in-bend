@@ -768,6 +768,20 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         U32 facts no hub file holds, in small files by topic; the
         generated files' through their generators. An import a file
         lacks is timed alone first.
+        Candidates found since (`.loop.shape.grow.copy.store`,
+        2026-11-27), for `blend/docs/HubCandidates.md` with Blend's next
+        change: `lt_le_ne` (at most and not equal is below; also
+        `WIRED_PROOF`'s `lt_of_le_ne`), `bcase` (a Bool decided, either
+        case's proof), `q4` and `o4` (four times a equals four times b
+        just where a equals b, and one past it never does), `npred` (a
+        predecessor that strips a successor by computation, where
+        `Nat.sub(1n+a, 1n)` sticks at `Nat.sub(a, 0n)`); `ne_flip` is a
+        line over `MN.is_eq_comm`, as `INDEX_PROOF`'s `neq_comm` and
+        `PROOF`'s `neq_comm2` are; `orff` (an or of two falses), as
+        `INDEX_PROOF`'s `or_ff2`, `PROOF`'s `or_ff` and `SERVE_PROOF`'s
+        `bff` are; `or_r` and `or_l` (an or true by its right, and its
+        right true where its left is false), as `SPLICE_PROOF`'s `or_r`
+        and `ALIGN.bend`'s `ort_r` are.
     - `cursor-laws.proofs.imports` — built 2026-11-25, `.rules`
       tentative — what the proofs import
       from the spike cut to what they use, for the verdicts' time and
@@ -1045,8 +1059,192 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             reads (`ix.real`, `faces`, `px.off`, `px.tw`) by the kept
             words, the slots by `.mono`. Then `lx_extend` at 1n+d adds
             the fresh nodes.
-          - `cursor-laws.loop.shape.grow.copy.store` — planned — the
-            kernel's: `grow_more` keeps every word below the old
+          - `cursor-laws.loop.shape.grow.copy.store` — built 2026-11-27,
+            `.shape` planned (ordered before `cursor-laws.alloc.collect`,
+            which waits on the copy marks; the agent's ordering, the
+            maintainer, 2026-11-26: "ordering judgements are yours") —
+            the kernel's: `grow_loop` carries the wider invariant across
+            `P.grow_more`, every growth premise of `grow_next`
+            discharged but `LM.faced.in` (the wiring's) and the heap's
+            shape (`.shape`). Slices:
+            - `cursor-laws.loop.shape.grow.copy.store.copy` — built
+              2026-11-26 — on `cursor-laws-store`, `spike/GROW_LAWS.bend`:
+              `grow_full`, `grow_old` (a word below the old capacity 2^d
+              reads as before), `grow_new` (one of the new half reads 0),
+              `copy_full`. The copy's loop by array reads (`ca.lo`,
+              `ca.hi`, `ca.in`, through `LA.get_set_same` and
+              `get_set_other`), the arrays erased with mirrors; an index
+              one on below the capacity, no 2^32 compared (`tn1`);
+              `KM.depth`'s value a premise. Mutants, each refuted by a
+              witness on four words of 7: the copy from index 1, a fill
+              of 1, a store two levels deeper. `copy_full` named by
+              none, a set keeping an array full whatever it writes.
+            - `cursor-laws.loop.shape.grow.copy.store.ensure` — built
+              2026-11-26 — `ensure_once`: a store asked for room it lacks,
+              that may grow and that twice its capacity holds, doubles
+              once (`KM.m_ensure`): case analysis over three tests as
+              premises, the products `grow.c` asks with
+              (`(wcap * 2) * 4` against `wcap * 4` and its double) left
+              to `.kept`, which states the capacity word's relation to
+              the depth. Its mutant, the capacity reported as four times
+              the old, refuted by a witness.
+            - `cursor-laws.loop.shape.grow.copy.store.thread` — built
+              2026-11-26 — `P.thread` over the grown store's words:
+              `thread_below`, each word below node i's (index 4i) read as
+              before, the old store kept; `thread_link`, node n of
+              i .. i + k - 1 reading in word 1 the next node, encoded one
+              on, or the list's end (`P.link_of.go`). The words written
+              bounded by a word c within the store's 2^D; 4i + 1 a number
+              through the shift's `to_nat_shln_fits`, 2^32 abstract
+              (`w1n`). Mutants, each refuted by a witness on an
+              eight-word store: the link written at i + 1, unshifted; the
+              last node linked on, not ended. A mutant of `link_of.go`
+              itself changes both sides of `thread_link`: the encoding's
+              meaning is the chain's, in `.kept`.
+            - `cursor-laws.loop.shape.grow.copy.store.depth` — built
+              2026-11-26 — `depth_pow`: `KM.depth` reads d for a capacity
+              of 2^d words, d below 32, the premise `grow_full`,
+              `grow_old`, `grow_new` and `ensure_once` take. A U32
+              literal's `case 1:` compiles to a match on all 32 bits,
+              which a symbolic capacity never passes, so `depth` now
+              tests `U32.is_eq(cap, 1)`, carried as a Bool through one
+              self-recursive function (`depth.go`): the same semantics,
+              cold code (growth only). By induction on the power, each
+              test decided from the capacity's number, its half by
+              `to_nat_shr` and `mul_div_cancel_left`. Mutants refuted by
+              witnesses: each halving counted twice; the first test
+              against 0.
+            - `cursor-laws.loop.shape.grow.copy.store.old` — built
+              2026-11-27 — the old words, at the array level:
+              `more_old`, `P.grow_more` on a heap of 2^(e + 2) words whose
+              capacity word reads wc = 2^e nodes, 3 <= e < 28, leaves
+              each word below the old capacity as it was, but the free
+              head's and the capacity's. Through `grow_more`'s trace
+              (`gm.tr`, `gm.tr2`): the grown heap as one chain of sets on
+              the threaded store, each read rewritten by `get_pair` and a
+              premise, the thread's result a store again (`th_mg`) so
+              that the writes after compute; its five tests decided from
+              wc's number, each product, halving and shift a power
+              (`tnm`, `tsh.k`, the arrays package's `half`), 2^32
+              abstract where a word's law names it, the powers' order by
+              the hub's `pow_lt` and `pow_le`, whose base is written 2n,
+              so that a type at 32 names `Nat.pow(2n, 32n)` as the
+              words' laws do. Then the
+              trace's sets peeled by `get_set_other`, each index a number
+              apart from the word read (the thread's count with wc + 1
+              making 2wc, the last node's link 4(2wc - 1) + 1, stated
+              without subtraction), `thread_below`, `grow_old`. With
+              `base_shl`: a node's reference (its index shifted two
+              places) its own base, bit by bit (`bit_ext`), the mask
+              written `U32.not(3)` so that its number is never expanded.
+              Mutants refuted by witnesses on a 32-word store: a base
+              clearing three bits; the capacity written at word 4; the
+              last node's link shifted one place. `LM.kept`, in the
+              views, moves to `.kept`: `KMd.hdr_all` holds no
+              `at_wcap`, so a tracked node's words miss word 3 through
+              its base and `past` (a base past words 0, 1 and 4 to 7 is 8
+              or more).
+            - `cursor-laws.loop.shape.grow.copy.store.fresh` — built
+              2026-11-27 — the fresh nodes at the array level, on a heap
+              as `more_old`'s: `more_head`, the head names node wc;
+              `more_mark`, each fresh node m, wc <= m < 2wc, reads 0 at
+              its header word; `more_link`, each but the last links the
+              next (m + 1, encoded one on); `more_last`, the last links
+              the old head. Node wc by the free's writes, the rest by
+              `thread_link` and the new `thread_mark` (threading writes
+              no node's header word: four times an index plus one is
+              never four times another, `o4`), the zero fill by
+              `grow_new`; the two cases split by a generic `bcase`. Each
+              index a number apart from the word read, as in `more_old`.
+              Mutants refuted by witnesses: the link written at the
+              header word; the head unencoded; the free marking 1; the
+              head skipping node wc + 1; the last node unlinked.
+            - `cursor-laws.loop.shape.grow.copy.store.kept` — built
+              2026-11-27 — in slices, the views' laws in a file pair of their own
+              (`glam/GROWN_LAWS.bend`), off `LOOP_PROOF`'s imports:
+              - `cursor-laws.loop.shape.grow.copy.store.kept.view` —
+                built 2026-11-27 — `more_full` (spike/GROW_LAWS.bend), the
+                grown heap full one level deeper; `grown_kept`
+                (glam/GROWN_LAWS.bend), `LM.kept` for tracked nodes in
+                range and past the header, each word read through
+                `get_view` on both sides and `more_old`, its number by
+                `nodes.in` and the words' sum lemma `tnb`, off word 0 by
+                `past` and off word 3 since `past` keeps it off words 0, 1
+                and 4 (`ge4`: 4 or more). The heap's values taken through
+                a mirror as the store is, since the grown view's term
+                holds them. Mutants refuted by witnesses: the store grown
+                to its own depth; the last node's link shifted onto a
+                tracked node's word.
+              - `cursor-laws.loop.shape.grow.copy.store.kept.fresh` —
+                built 2026-11-27 — the fresh nodes as a model list
+                (`GM.fresh(k, i)`, nodes i to i + k - 1, E their wc from
+                wc) and six laws in the grown view, each by induction on
+                the count with the bound i + k <= 2wc: `grown_chain`
+                (chained from the head, each link one on read by
+                `more_link`, `KMd.at_idx` of a link the node again),
+                `grown_distinct`, `grown_none` (no tracked node in range
+                at the old depth among them), `grown_bases`, `grown_past`
+                (a word at 8 or past it off every header word),
+                `grown_in`. Mutants refuted by witnesses: the head
+                skipping a node; the model naming one node again, its
+                index shifted one place (two laws) or three, counting
+                down.
+              - `cursor-laws.loop.shape.grow.copy.store.kept.ports` —
+                built 2026-11-27 — `grown_ports`, over views alone:
+                `px.off(L, v2, 1n+d, L, E)` from `sub(L, N)`, `LM.kept`,
+                `LM.faced.in`, the old `px.off` over the tracked nodes (its
+                base, the head) and E's range, `GM.above(E, d)` (every node
+                at or past 2^d) with `nodes.in(E, 1n+d)`: each faced port
+                read alike (`khas`, `sw`), its link word below 2^d off
+                every fresh word (`opj`) and off the head one level deeper
+                as at d (`opf`), a static's none. `grown_above`: the fresh
+                nodes past the old store. Mutants: the model's index shifted
+                one place, refuted by a witness; `GM.above` admitting any
+                node, caught by its proof only (a premise widened).
+              - `cursor-laws.loop.shape.grow.copy.store.kept.carry` —
+                built 2026-11-27 — `grow_loop` (`glam/LOOP_LAWS.bend`):
+                `LM.lx.ok` across `P.grow_more`, from the view of a heap
+                of 2^(e + 2) words, its capacity word wc = 2^e, to the
+                grown view one level deeper, the fresh nodes the free
+                list's first and tracked: `grow_next` with `grown_kept`
+                and `LM.ext.ok` built from the seven growth laws, `sub(L,
+                N)` and the old `px.off` taken from `px.ok`; the heap's
+                shape and `LM.faced.in` premises (`.shape`, the wiring's).
+                Its mutant, the last node's link shifted onto the old
+                words, caught by its proof only (a witness would need the
+                invariant's whole state; the growth laws' witnesses show
+                the fault).
+              As planned, the growth premises in the views: `LM.kept` for tracked
+              nodes from `more_old` by `get_view`; `LM.ext.ok` for the
+              fresh nodes E, node wc on to node 2wc - 1 (a model list),
+              from `.fresh`: chained from the new head, marks, bases,
+              range, distinctness, apart from the tracked and from the
+              cursors' ports. Then `grow_more` composed: `m_ensure`'s doubling (`ensure_once`,
+              its products from the capacity word's relation to the
+              depth), the copy, the thread, `grow.done`'s head and
+              capacity, `gm.link`'s link to the old list and the free
+              that puts node `wcap0` back; discharging `LM.kept` for
+              tracked nodes below the old capacity and past the header,
+              and `LM.ext.ok`'s chain, range and marks for the fresh
+              nodes. Its catch: `KMd.hdr_all`, the header's words a
+              splice writes, holds no `at_wcap` (word 3), which growth
+              writes, so `past` alone does not keep a tracked node off
+              it. Either a node's base and `past` together (a base past
+              words 0, 1 and 4 to 7 is 8 or more), the cheaper, or a
+              model list of the words growth writes beside `hdr_all`,
+              should a second step write header words outside the
+              splice's frame. Tidying with it: `t4` through `lt1d`, as
+              `w1lt` is.
+            - `cursor-laws.loop.shape.grow.copy.store.shape` — planned —
+              the heap's shape as a law, discharging the growth laws'
+              scaffolding: the capacity word reads wc = 2^e nodes,
+              3 <= e < 28, the store full at 2^(e + 2) words. Made by
+              `h_new`, kept by every step that writes neither word 3 nor
+              the store's size, carried by growth to wc = 2^(e + 1) while
+              e + 1 < 28, and an error past it (`grow.done`'s refusal).
+              With `.alloc.sound`, which reads the same words, or before
+              it, as `.kept` finds it wanted.
+            As planned: `grow_more` keeps every word below the old
             capacity but the head's and the capacity's, its new nodes
             past it, zero but their links, chained to the old head:
             `KM.grow`'s copy, `thread`, `gm.link`; `KM.depth` reshaped

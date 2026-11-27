@@ -1,0 +1,109 @@
+Mutations of the heap's growth (spike/kprim.bend's grow_more and the
+writes it makes), each naming the laws of glam/GROWN_LAWS.bend it
+should fail (docs/Proving.md; the gate runs scripts/one_law.py
+--mutants on this file). Witnesses: a store of 32 words, eight nodes,
+its capacity word 8, a tracked node at word 28.
+
+=== link_shift1 grown_kept
+the last new node's link written at its index shifted one place, not
+two, so that it lands on word 31 of the old store: the tracked node at
+word 28 reads its word 31 changed
+--- ../spike/kprim.bend
+  free(wr(h, (((wcap - 1 : U32) << 2n : U32) + 1 : U32), fh0), n)
++++
+  free(wr(h, (((wcap - 1 : U32) << 1n : U32) + 1 : U32), fh0), n)
+>>> witness grown_kept
+w = Array.set(U32, Array.set(U32, [0 : U32^5n], 3, 8), 31, 7)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+N = [28]
+
+=== head_skips grown_chain
+the grown head written as node wc + 2's link, not wc + 1's, so that the
+freed node wc links past node wc + 1 and the fresh nodes' chain breaks
+--- ../spike/kprim.bend
+        at_fh(), (wcap0 + 2 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
++++
+        at_fh(), (wcap0 + 3 : U32)), at_wcap(), wcap), a}, (wcap0 << 2n : U32))
+>>> witness grown_chain
+w = Array.set(U32, [0 : U32^5n], 3, 8)
+a = Array.new(V.Val, 1n, V.VUnit{})
+wc = 8
+e = 3n
+
+=== fresh_repeats grown_distinct
+the fresh nodes' model naming node wc again and again, so that its
+eight nodes are one
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 2n : U32), fresh(p, i)}
+>>> witness grown_distinct
+wc = 8
+e = 3n
+
+=== fresh_halved grown_bases
+the fresh nodes' model shifting each index one place, not two, so that
+node 9's reference, 18, is no node's base
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 1n : U32), fresh(p, (i + 1 : U32))}
+>>> witness grown_bases
+wc = 8
+e = 3n
+
+=== fresh_halved_none grown_none
+the fresh nodes' model shifting each index one place, not two, so that
+node 8's reference, 16, is a tracked node below the old capacity
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 1n : U32), fresh(p, (i + 1 : U32))}
+>>> witness grown_none
+wc = 8
+e = 3n
+N = [16]
+
+=== fresh_down grown_past
+the fresh nodes' model counting down from node wc, not up, so that it
+reaches the header's nodes: node 1's words 4 to 7
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 2n : U32), fresh(p, (i - 1 : U32))}
+>>> witness grown_past
+wc = 8
+e = 3n
+
+=== fresh_doubled grown_in
+the fresh nodes' model shifting each index three places, not two, so
+that node 8's reference, 64, lies past the grown store's 64 words
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 3n : U32), fresh(p, (i + 1 : U32))}
+>>> witness grown_in
+wc = 8
+e = 3n
+
+=== fresh_halved_above grown_above
+the fresh nodes' model shifting each index one place, not two, so that
+node 8's reference, 16, lies within the old store of 32 words
+--- ../spike/grow_model.bend
+      Con{(i << 2n : U32), fresh(p, (i + 1 : U32))}
++++
+      Con{(i << 1n : U32), fresh(p, (i + 1 : U32))}
+>>> witness grown_above
+wc = 8
+e = 3n
+
+=== above_any grown_ports
+the fresh nodes' range premise admitting any node, so that a faced port
+may link one of their words (caught by its proof only: an instance it
+breaks fails the premise unmutated, so no witness can show it)
+--- ../spike/grow_model.bend
+      Nat.is_le(Nat.pow(2n, d), U32.to_nat(n)) && above(t, d)
++++
+      above(t, d)
