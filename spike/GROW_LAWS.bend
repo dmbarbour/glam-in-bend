@@ -307,3 +307,16 @@ law shape_set:
   for +hs: {GM.shape(w, e) == True{} : Bool}
   for +hj: {Nat.is_eq(AD.slot(j, 2n+e), AD.slot(P.at_wcap(), 2n+e)) == False{} : Bool}
   {GM.shape(Array.set(U32, w, j, x), e) == True{} : Bool}
+
+# LAW: at the largest shape, e = 28 (2^30 words, P.w_maxd), growth
+# refuses: grow_more answers that it did not grow, and the store is as it
+# was but the error count, which it counts (grow.done's refusal).
+# Record: net-nodes-double
+# Record: net-obvious-errors
+law shape_max:
+  for w: Array<U32>
+  for -a: Array<V.Val>
+  for +e: Nat
+  for +hs: {GM.shape(w, e) == True{} : Bool}
+  for +hm: {Nat.is_le(28n, e) == True{} : Bool}
+  {P.grow_more(P.H{KM.MG{w}, a}) == (P.H{KM.MG{Array.set(U32, w, P.at_errs(), (Pair.snd(Array<U32>, U32, Array.get(U32, w, P.at_errs())) + 1 : U32))}, a}, False{}) : P.H & Bool}
