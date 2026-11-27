@@ -1516,8 +1516,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
       guard answers; the growth branch with `.grow.copy.store`:
-      - `cursor-laws.alloc.guard.covered` — built 2026-11-27, `.keep`
-        planned — the guard's loop
+      - `cursor-laws.alloc.guard.covered` — built 2026-11-27 — the
+        guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
         carrying the invariant, the heap's shape and `LM.faced.in` to
         the heap it answers on, and where it answers, the free list's
@@ -1555,7 +1555,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           witnesses on real heaps (`P.h_new()`, 121 free nodes, asked 4
           and then 130): room the list holds refused; room growth made
           refused.
-        - `cursor-laws.alloc.guard.covered.keep` — active — a request
+        - `cursor-laws.alloc.guard.covered.keep` — built 2026-11-27 —
+          a request
           past the heap's nodes: more rounds, and the walk past the
           fresh nodes into the old list, so a growth law keeping the
           old free prefix after the fresh nodes; until then the covered
@@ -1602,7 +1603,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             0 and 1n+p that `rm.loop` matches. Its mutant, the guard
             answering after growth without testing, caught by its proof
             only (a dependent pair no witness refutes).
-          - `cursor-laws.alloc.guard.covered.keep.cover` — active — the
+          - `cursor-laws.alloc.guard.covered.keep.cover` — built
+            2026-11-27 — the
             room's nodes tracked: where the old tracked prefix is the
             whole free list (its chain ends, `after` reading 0), growth
             keeps it so (the fresh nodes before it), so that where the
@@ -1616,7 +1618,15 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             the guard finds (past it the walk's link is 0, `lkz`). Their
             mutants caught by their proofs only: one breaks the link
             into the prefix, which a witness's own premise would read;
-            one widens a premise.
+            one widens a premise. Then `room_rounds` restated with the
+            prefix's coverage carried through its rounds (`grown_ends`)
+            and the guard's test as the model reads it (`LM.fr`, equal
+            to `XP.fr.m` by `frq`), and `room_serve`: where the guard
+            answers, at some depth, prefix and tracked list, the wider
+            invariant in `serve_next`'s shape for any k, the copy's k
+            nodes the prefix's first (`cover_room`, `lx_split`), the
+            shape and the faced ports in range. Its mutant, as
+            `room_rounds`', caught by its proof only.
         - `cursor-laws.alloc.guard.covered.serve` — built 2026-11-27 —
           the guard's answer and the next serve's premises:
           `room_hit` and `room_covered` (glam/MATERIALIZE_LAWS.bend), it

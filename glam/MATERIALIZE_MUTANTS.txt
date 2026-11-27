@@ -95,3 +95,11 @@ which no witness refutes by evaluation)
       RmMore{P.frees(k, h)}
 +++
       RmDone{h, True{}}
+
+=== room_grown_unchecked_serve room_serve
+the guard answering after growth without testing the grown free list
+(caught by its proof only: the law concludes a dependent pair)
+--- materialize.bend
+      RmMore{P.frees(k, h)}
++++
+      RmDone{h, True{}}
