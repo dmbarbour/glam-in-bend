@@ -1386,8 +1386,24 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           before the crossings, `XL.look_leaf`, which `s` is not,
           `lay_nl`). Both mutants of the laws it composes caught.
           Authoring aid: `results/loop_root/gen_rootnext.py`.
-    - `cursor-laws.loop.wires` — planned — `join_links`,
-      `leave_links` (P7): the wire a join or a leave makes. M.
+    - `cursor-laws.loop.wires` — built 2026-11-28 — `join_links`,
+      `leave_links` (P7): the wire a join or a leave makes. M. In
+      glam/LOOP_LAWS.bend, four laws, an end each, at a peer no list
+      tracks (its link word off every tracked node's words and the free
+      list's head, `RG.po.all` over no live node; a live peer is
+      `link_live`'s): `join_links` (the port x faced holds the port y
+      faced, its link word not that one's), `join_links_back`,
+      `leave_links` (the port c faced holds p) and `leave_links_back` (p
+      no static holds it back). Each reads the heap below the link by
+      the frames the generated proofs already hold (`GP.jnk.below`,
+      `GP.lvfr.k`, from `join_keeps`' and `leave_keeps`' generators),
+      then the link's own writes (`JP.lk`, `LA.get_set_same`,
+      `LA.get_set_other`); the faced ports named by binders with their
+      equations, so that the premises read as the review drafted them.
+      By `results/grow/gen_wires.py`. Their mutants, a join linking y's
+      port one word on and a leave linking one word past p, refuted by
+      witnesses on `glam/witness.bend`'s heaps, which glam/LOOP_PROOF.bend
+      now imports.
   - `cursor-laws.alloc` — active — reviewed 2026-11-26
     (`docs/reviews/Alloc_2026-11-26.md`, the second reviewer's
     `AllocFable_2026-11-26.md`); five questions to the maintainer.
@@ -1704,7 +1720,9 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           number. Mutants: the guard's two on the first heap's words,
           refuted by witnesses; the composition's, caught by its proof.
           Left with the no-growth branch: the copy's nodes tracked
-          there as before, by the serve laws' prefix premises. As planned: the guard at `mz.fz.t` and
+          there as before, by the serve laws' prefix premises. Settled
+          by `room_serve` (`.covered.keep.cover`): its round 0, where the
+          free list already holds the room, is the no-growth branch. As planned: the guard at `mz.fz.t` and
       its one-net twin in a measurement build, counted as AGENTS.md
       asks; adopted on the count, with `frees_room` and the law of a
       covered serve. Both forms measured: a walk then pops, and the

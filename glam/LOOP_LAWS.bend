@@ -683,3 +683,139 @@ law cxs_ok_snoc:
   for +f: U32
   for +hok: {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}
   {RG.cxs.ok(cs, vm, dm, I, List.append(&2, U32, F, Con{f, Nil{}})) == True{} : Bool}
+
+# LAW: the wire a join makes (cursor-laws.loop.wires, P7): two cursors x
+# and y of the index joined (R.join, on join_pend's premises), the port u
+# that x faced, no static and its link word off every tracked node's
+# words and the free list's head (RG.po.all over no live node: a peer no
+# list tracks, the usual case; a live peer is link_live's), its link word
+# not that of the port z y faced: u's link word holds z after. The
+# join's purpose, which its frame (join_keeps) leaves out.
+# Record: cursors-indexed
+# Record: copy-links-two-way
+law join_links:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +x: U32
+  for +y: U32
+  for +kx: U32
+  for +ky: U32
+  for +u: U32
+  for +z: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(I, ky) == Some{y} : Maybe<&2, U32>}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
+  for hu: {KMd.word(AD.view(U32, w), d, (x + 1 : U32)) == u : U32}
+  for hz: {KMd.word(AD.view(U32, w), d, (y + 1 : U32)) == z : U32}
+  for hus: {P.is_static(u) == False{} : Bool}
+  for hun: {RG.po.all(u, Nil{}, d, N) == True{} : Bool}
+  for hzu: {KMd.off.port(d, z, (u + 1 : U32)) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), (u + 1 : U32))) == z : U32}
+
+# LAW: and the other end: z, the port y faced, no static and its link
+# word off every tracked node's words and the head, holds u after.
+# Record: cursors-indexed
+# Record: copy-links-two-way
+law join_links_back:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +x: U32
+  for +y: U32
+  for +kx: U32
+  for +ky: U32
+  for +u: U32
+  for +z: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hx: {IM.ix.look(I, kx) == Some{x} : Maybe<&2, U32>}
+  for hy: {IM.ix.look(I, ky) == Some{y} : Maybe<&2, U32>}
+  for hxy: {U32.is_eq(x, y) == False{} : Bool}
+  for hu: {KMd.word(AD.view(U32, w), d, (x + 1 : U32)) == u : U32}
+  for hz: {KMd.word(AD.view(U32, w), d, (y + 1 : U32)) == z : U32}
+  for hzs: {P.is_static(z) == False{} : Bool}
+  for hzn: {RG.po.all(z, Nil{}, d, N) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.join(P.H{KM.MG{w}, a}, x, y), (z + 1 : U32))) == u : U32}
+
+# LAW: the wire a leave makes (cursor-laws.loop.wires, P7): a cursor c
+# leaving (R.leave, on leave_pend's premises), the port z that c faced,
+# no static and its link word off every tracked node's words and the
+# free list's head, holds p after, the port linked in c's place.
+# Record: cursors-indexed
+# Record: copy-links-two-way
+law leave_links:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +p: U32
+  for +c: U32
+  for +k: U32
+  for +z: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
+  for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
+  for hz: {KMd.word(AD.view(U32, w), d, (c + 1 : U32)) == z : U32}
+  for hzs: {P.is_static(z) == False{} : Bool}
+  for hzn: {RG.po.all(z, Nil{}, d, N) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), (z + 1 : U32))) == p : U32}
+
+# LAW: and the other end: p, no static (the copy's root port, not the
+# eraser), its link word not z's, holds z after.
+# Record: cursors-indexed
+# Record: copy-links-two-way
+law leave_links_back:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +s: U32
+  for +I: IM.Ix
+  for +ps: List<&2, U32>
+  for +L: List<&2, U32>
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +p: U32
+  for +c: U32
+  for +k: U32
+  for +z: U32
+  for hf: {AD.full(U32, w, d) == True{} : Bool}
+  for hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for hN: {RG.layout(N, d) == True{} : Bool}
+  for hB: {RG.bases(N) == True{} : Bool}
+  for hp: {RG.px.ok(AD.view(U32, w), d, s, I, ps, L, F, N) == True{} : Bool}
+  for hc: {IM.ix.look(I, k) == Some{c} : Maybe<&2, U32>}
+  for hpo: {RG.po.all(p, Nil{}, d, N) == True{} : Bool}
+  for hz: {KMd.word(AD.view(U32, w), d, (c + 1 : U32)) == z : U32}
+  for hps: {P.is_static(p) == False{} : Bool}
+  for hzp: {KMd.off.port(d, z, (p + 1 : U32)) == True{} : Bool}
+  {Pair.snd(P.H, U32, P.rd(R.leave(P.H{KM.MG{w}, a}, p, c), (p + 1 : U32))) == z : U32}
