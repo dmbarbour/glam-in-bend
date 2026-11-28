@@ -348,3 +348,37 @@ law tpl_links:
   for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
   for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
   {SM.tpl.ok(FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), dm) == True{} : Bool}
+
+# LAW: the template's placeholders (cursor-laws.materializer.template.compose.holes):
+# the template the write phase's record makes (F.fz.tpl) has its crossings'
+# placeholders in slots apart, each a node, named by a link at its port 0,
+# every link end at a placeholder's slot its port 0 from a node read back
+# in no placeholder's slot (SV.copy.ok): given the record's links so
+# (FM.inv.k's near ends and each era's index linked from a node read back,
+# emits_links; FM.lks.far, emits_far), the crossings the placeholders'
+# (FM.inv.f, emits_counts), each era an eraser exactly where no
+# placeholder (FM.eras.ok, emits_root), the nodes read back n0 and no
+# eraser, all within 2^dm, the map's depth. Not claimed: that the record
+# is so after the walk (.tree's).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+law tpl_holes:
+  for h: P.H
+  for map: Array<U32>
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +n0: U32
+  for +dm: Nat
+  for +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}
+  for +hne: {FM.no_era(nodes) == True{} : Bool}
+  for +hk: {FM.inv.k(ls, eras, n0) == True{} : Bool}
+  for +hj: {FM.lks.far(ls, eras, n0) == True{} : Bool}
+  for +hf: {FM.inv.f(eras, ne, curs, n0) == True{} : Bool}
+  for +hok: {FM.eras.ok(eras) == True{} : Bool}
+  for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
+  for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  {SV.copy.ok(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), dm) == True{} : Bool}

@@ -548,11 +548,22 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           0, which fits at either kind (`kp.era`, its membership read off
           `FM.lsin` as `RG.has`, `kl.lsin_has`). Its mutant, a link more
           from past the nodes, refuted by a witness of one function node.
-        - `cursor-laws.materializer.template.compose.holes` — planned —
-          `SV.copy.ok`: the placeholders' indices in slots apart (the
-          eras' indices `n` up, below `2^dm`), each named by a link at
-          its port 0 from a node read back (`FM.all.to`), no other link
-          at it.
+        - `cursor-laws.materializer.template.compose.holes` — built
+          2026-11-28 — `SV.copy.ok`: the placeholders' indices in slots
+          apart (the eras' indices `n` up, below `2^dm`), each named by a
+          link at its port 0 from a node read back (`FM.all.to`), no
+          other link at it. `tpl_holes` (glam/FREEZE_LAWS.bend), over
+          `fz.tpl`'s output: the crossings' holes the placeholders'
+          indices as lists (`FM.inv.f`'s `lsteq`, U32 equality by the
+          vendored `MS`, now imported), reversed; their slots apart
+          (`kh.apart_holes`, each below the next, kept by the reversal
+          through `kh.disj`), each a node (`kp.hole`), named
+          (`kh.allto`, `kh.names`), and each link's ends: the near one a
+          node read back, below every placeholder, the far one that or an
+          era's port 0 with a node read back in no placeholder's slot at
+          its other end (`kh.hlinks`). Its mutant, the eras placed
+          unreversed, refuted by a witness: an eraser and a placeholder
+          after one function node, each linked at its port 0.
         - `cursor-laws.materializer.template.compose.root` — built
           2026-11-28 — `SV.root.ok`: the root a node read back's port
           below 3, in no hole's slot. `tpl_root` (glam/FREEZE_LAWS.bend),
