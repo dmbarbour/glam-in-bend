@@ -43,7 +43,11 @@ kernel's own state, which no law has yet been stated over
   - `kernel-refine.rewrite` — planned — `kernel_rewrite_refines` over
     the generated rewrites (about 58 link sites in `spike/krules.bend`),
     per rule or argued once over the generator's output
-    (`spike/tools/gen_krules.bend`).
+    (`spike/tools/gen_krules.bend`). With it, a rewrite's frame (the
+    nodes it takes and frees, and the live ends it links), so that the
+    free list's coverage across a rewrite follows from the frame and
+    the list's model, as across a serve (`serve_ends`; CursorLaws'
+    `cursor-laws.frame.adopt`).
   - `kernel-refine.copy` — planned — the materializer's own writes kept
     wired: the splice from a template in which each port is wired once,
     the ring's joins and leaves.
