@@ -576,10 +576,33 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           the crossings' holes carried to them through `lsteq` and the
           reversal (`kr.*`). Its mutant, the root put at the next index,
           refuted by a witness of one function node.
-        - `cursor-laws.materializer.template.compose.tree` — planned —
+        - `cursor-laws.materializer.template.compose.tree` — active —
           the four for `freeze_tree`'s output, the walk's facts its
           premises (`.walk`'s to discharge), the serve laws' "Not
-          claimed" narrowed.
+          claimed" narrowed. In two:
+          - `cursor-laws.materializer.template.compose.tree.record` —
+            built 2026-11-28 — `tpl_ok` (glam/FREEZE_LAWS.bend): any
+            record meeting the write phase's invariants (`FM.inv`,
+            `inv.l`, `inv.j`, `inv.r`, `inv.n`, the crossings at distinct
+            positions), its nodes read back `n0`, all within `2^dm`,
+            makes a template meeting all four of the serve's predicates.
+            The record matched once; the four laws over its fields, the
+            heap and map, which the template drops, given as any (the
+            template the same). Its witness on the unreversed eras'
+            mutant.
+          - `cursor-laws.materializer.template.compose.tree.walk` —
+            planned — `freeze_tree`'s output: the walk's record
+            (`fz.reach`) written from the empty one (`fz.written.k`), each
+            invariant kept by its write-phase law from the empty record's
+            (which hold by computation, `rt.ok` at a root `0 < n`), the
+            map `hm.fill`'s (full at its depth and its values at most
+            `n`, by `put_keeps` over the list), the serve's map its own
+            (`map_depth`: the template's size within `2^dm`, the size
+            counted without wrap from the heap's capacity, at most `2^28`
+            nodes), and the template of nothing finished (`n == 0`) set
+            apart, never served by the copy. Premises the walk's
+            (`.walk`): the bases met distinct, their port positions
+            distinct, aligned with good headers, `n` of them.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds

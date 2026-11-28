@@ -382,3 +382,29 @@ law tpl_holes:
   for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
   for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
   {SV.copy.ok(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), dm) == True{} : Bool}
+
+# LAW: the template a record meeting the write phase's invariants makes
+# (cursor-laws.materializer.template.compose.tree.record): F.fz.tpl's
+# template meets all the serve asks of a copy's (SV.root.ok, SM.tpl.ok,
+# SV.copy.ok, its crossings at distinct positions), given the record's
+# invariants as the write phase's laws keep them (FM.inv, FM.inv.l,
+# FM.inv.j, FM.inv.r, FM.inv.n; emits_counts to emits_pos), its nodes read
+# back n0, all within 2^dm, the map's depth: tpl_root, tpl_links,
+# tpl_holes and tpl_pos over any record. Not claimed: that the walk's
+# record is such (.tree.walk's).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+law tpl_ok:
+  for z: F.FzE
+  for +n0: U32
+  for +dm: Nat
+  for +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, FM.nodes.of(z)) : Nat}
+  for +hf: {FM.inv(z, n0) == True{} : Bool}
+  for +hk: {FM.inv.l(z, n0) == True{} : Bool}
+  for +hj: {FM.inv.j(z, n0) == True{} : Bool}
+  for +hr: {FM.inv.r(z, n0) == True{} : Bool}
+  for +hne: {FM.inv.n(z) == True{} : Bool}
+  for +hs: {RG.distinct(RG.srcs(FM.curs.of(z))) == True{} : Bool}
+  for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, FM.eras.of(z))), Nat.pow(2n, dm)) == True{} : Bool}
+  for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  {SV.root.ok(FM.fz.rn(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), FM.fz.rp(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), dm, FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0)))) && (SM.tpl.ok(FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), dm) && (SV.copy.ok(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))), dm) && RG.distinct(RG.srcs(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(z, n0))))))) == True{} : Bool}
