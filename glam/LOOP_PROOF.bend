@@ -2122,3 +2122,44 @@ def ce.m(-w: Array<U32>, -a: Array<V.Val>, -map: Array<U32>, +d: Nat, +dm: Nat, 
 
 def Laws.serve_ends(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, f, M, nc, rn, rp, E, k, hf, hd32, h2, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE, hen):
   ce.m(w, a, map, d, dm, ts, ls, by, ns, s, t, cs, I, F, f, M, nc, rn, rp, E, k, hf, hd32, h2, hfm, hdm, hlx, hl, hhd, ht, hcp, hok, hE, hen, LAT.mirror(U32, w), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# room for the crossings over F, room over F then f: an insert into a tree
+# takes the first node of either, the index and lists they build alike
+# (cxs_ok_snoc)
+def ce.room_snoc(m: Maybe<&2, U32>, I: IM.Ix, F: List<&2, U32>, +f: U32) -> {RG.cx.room(m, I, List.append(&2, U32, F, Con{f, Nil{}})) == True{} : Bool}:
+  match m:
+    case Some{+y}:
+      {==}
+    case None{}:
+      match I:
+        case IM.Ept{}:
+          {==}
+        case IM.Has{+tr}:
+          match F:
+            case Nil{}:
+              {==}
+            case Con{+b, +r}:
+              {==}
+
+def ce.cxs_ok_snoc(cs: List<&2, R.FzC>, +vm: List<&2, U32>, +dm: Nat, +I: IM.Ix, +F: List<&2, U32>, +f: U32, +hok: {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}) -> {RG.cxs.ok(cs, vm, dm, I, List.append(&2, U32, F, Con{f, Nil{}})) == True{} : Bool}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{+c, +r}:
+      match c:
+        case R.FzC{+at, +src, +neg, +far}:
+          +h1 = XP.and_l(RG.cx.ab(IM.ix.look(I, far), I, src) && RG.cx.room(IM.ix.look(I, far), I, F), RG.cxs.ok(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F))), hok)
+          +hab = XP.and_l(RG.cx.ab(IM.ix.look(I, far), I, src), RG.cx.room(IM.ix.look(I, far), I, F), h1)
+          +hr = XP.and_r(RG.cx.ab(IM.ix.look(I, far), I, src), RG.cx.room(IM.ix.look(I, far), I, F), h1)
+          +hrest = XP.and_r(RG.cx.ab(IM.ix.look(I, far), I, src) && RG.cx.room(IM.ix.look(I, far), I, F), RG.cxs.ok(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F))), hok)
+          +eI = ce.hd_I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, far, F, f, hr)
+          +eF = Equal.trans(List<&2, U32>, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}}))), RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, List.append(&2, U32, RG.cx.tl(IM.ix.look(I, far), I, F), Con{f, Nil{}})), List.append(&2, U32, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F)), Con{f, Nil{}}),
+            Equal.cong(List<&2, U32>, List<&2, U32>, z => RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, z), RG.cx.tl(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}})), List.append(&2, U32, RG.cx.tl(IM.ix.look(I, far), I, F), Con{f, Nil{}}), ce.tl_snoc(IM.ix.look(I, far), I, F, f, hr)),
+            ce.f1_snoc(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F), f))
+          %Equal.sym(IM.Ix, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(List.append(&2, U32, F, Con{f, Nil{}})), far), RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), eI) : {(RG.cx.ab(IM.ix.look(I, far), I, src) && RG.cx.room(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}}))) && RG.cxs.ok(r, vm, dm, _, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}})))) == True{} : Bool}
+          %Equal.sym(List<&2, U32>, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}}))), List.append(&2, U32, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F)), Con{f, Nil{}}), eF) : {(RG.cx.ab(IM.ix.look(I, far), I, src) && RG.cx.room(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}}))) && RG.cxs.ok(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), _) == True{} : Bool}
+          XP.and_intro(RG.cx.ab(IM.ix.look(I, far), I, src) && RG.cx.room(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}})), RG.cxs.ok(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), List.append(&2, U32, RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F)), Con{f, Nil{}})), XP.and_intro(RG.cx.ab(IM.ix.look(I, far), I, src), RG.cx.room(IM.ix.look(I, far), I, List.append(&2, U32, F, Con{f, Nil{}})), hab, ce.room_snoc(IM.ix.look(I, far), I, F, f)),
+            ce.cxs_ok_snoc(r, vm, dm, RG.cx.I(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), src, RG.cx.hd(F), far), RG.cx.F1(IM.ix.look(I, far), I, RG.pl.of(List.get(&2, U32, vm, AD.slot(at, dm))), far, RG.cx.tl(IM.ix.look(I, far), I, F)), f, hrest))
+
+def Laws.cxs_ok_snoc(cs, vm, dm, I, F, f, hok):
+  ce.cxs_ok_snoc(cs, vm, dm, I, F, f, hok)

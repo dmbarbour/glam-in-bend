@@ -46,6 +46,10 @@ law first. We can back off if it's impractical."
    the base case comes first. `cursor-laws.alloc`, a review of the
    free list's laws, falls within it, after `.loop.shape.next` (the
    maintainer, 2026-11-26).
+   `cursor-laws.frame` reviews the frame pattern after
+   `.alloc.guard.covered.across`, before the loop's remaining steps,
+   which its survey may shorten (the maintainer asked for the review,
+   2026-11-28).
 8. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
 9. `cursor-laws.watch`, throughout.
@@ -1562,9 +1566,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         serve's imported proofs first: a law composed of laws and the
         shared model has no mutation of its own to catch. Left for the
         composition (KernelRefine): room for the crossings without f
-        from the guard's room, `RG.cxs.ok` over F from F's length, and
-        over F then f for `serve_next` itself; the kernel's steps
-        between serves keeping coverage.
+        from the guard's room, `RG.cxs.ok` over F from F's length; the
+        kernel's steps between serves keeping coverage.
+        - `cursor-laws.alloc.guard.covered.across.room` — built
+          2026-11-28 — `cxs_ok_snoc` (glam/LOOP_LAWS.bend): room for
+          the crossings over F leaves room over F then f, so that one
+          fact feeds both `serve_ends` and `serve_next`. Room over a
+          list with a node at its end holds outright (`ce.room_snoc`);
+          the index and lists the crossings build are alike, as in
+          `ce.cxs_snoc`. Its mutant, room only where the list holds one
+          node, refuted by a witness (one insert into a leaf's tree).
       - `cursor-laws.alloc.guard.covered` — built 2026-11-27 — the
         guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
@@ -1722,7 +1733,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       (`copied-nodes-untouched`). Then the laws' premise that the
       reserve's word is 0 is discharged by the reserve's law. Work of
       its own, measured as AGENTS.md asks; a plan of its own if it
-      grows. Its dependencies (2026-11-26):
+      grows. Its law stated as the collector's frame over the nodes it
+      keeps (`cursor-laws.frame.adopt`). Its dependencies (2026-11-26):
       - a source collecting needs the copy marks
         (`copied-nodes-untouched`), tentative as
         `cells-freeze.sharing.cursors.growth.marks` in the Cells plan
@@ -1788,6 +1800,34 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - When: now, with `.loop`'s laws restated once; after the loop
       closes; or with `kernel-refine`. What each costs in proofs
       restated and verdict time.
+  - `cursor-laws.frame` — active — the frame pattern reviewed:
+    where a fact about one node's words is carried step by step through
+    an operation that has a frame law, the frame law over the tracked
+    lists without that node, and where needed a policy keeping the node
+    out of the operation's reach, may replace the step-by-step proof
+    (`serve_ends`, `serve-spares-last-free`; docs/Proving.md, Keep the
+    node a fact is about out of the operation's reach).
+    - `cursor-laws.frame.survey` — built 2026-11-28 — the laws and the
+      open steps read for facts about one node's words carried step by
+      step through an operation that has a frame law, or will. Costs
+      counted by the definitions whose statements carry the fact
+      (`KMd.chain` in `glam/PROOF.bend`: 42 definitions, 1,342 lines,
+      2.4 MB of terms; `serve_ends`' own: 21, 345 lines, 105 kB).
+
+      | Fact | Operation | Step by step | Frame route | Choice |
+      |---|---|---|---|---|
+      | the list ends where its prefix does (`LM.ends`) | a serve | the crossings' chain proofs again, their pops and pushes | `serve_keeps` over the tracked list without the last node, a spare node keeping it out of reach | built (`serve_ends`) |
+      | the same | the kernel's steps between serves | cheap per primitive (a pop as `situate_ends`; the last node popped leaves the head its link, 0; a push keeps the end), dear per rule (58 link sites) | a rewrite's frame, which no law states yet, and the free list's model; no spare: the list gives up its last node only as it runs dry, then the reserve (its own end a fact of the reserve) or a doubling (`grown_ends`) | adopt at `kernel-refine.rewrite` |
+      | the materializer's structures (the situating node, its index, the cursors, the placeholders) | a collection | the collector's walk carried over each held node | the collector's law stated as its frame over the nodes it keeps, the invariant reading only their words and the free list, the free list rebuilt whole and so covered by construction | adopt at `cursor-laws.alloc.collect` |
+      | the cursors' faced ports in range (`LM.faced.in`) | a serve | the joins move faced ports, which need their steps | a frame only for the ports no join moves | not a frame fact: the wiring gives it of any wired net (`kernel-refine.discharge`) |
+      | F's links after the copy | the copy | built (`nf_go`, `lk_ch`, `ctr`: 289 lines with the splice's other chain proofs) | the copy's frame over F's link words (`agree_at`) and an induction for the head alone | keep; the frame form for any new proof of its kind |
+      | the situating node's words | the crossings | the index's laws | none: the crossings write them | not a candidate |
+    - `cursor-laws.frame.adopt` — planned — the two adoptions the survey
+      chose, each in the step it names: coverage across a rewrite by
+      the rewrite's frame (`kernel-refine.rewrite`), and the collector's
+      law as its frame over the materializer's structures
+      (`cursor-laws.alloc.collect`). Each measured against its
+      step-by-step form when built; one found dearer recorded with why.
   - `cursor-laws.index` — planned — the index's 41 laws by
     disposition, as `.retire`'s were (H6, H9, H12). M.
     - Each law gets the downstream proof that uses it, or the reason it

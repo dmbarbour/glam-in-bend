@@ -130,3 +130,32 @@ ports' among them)
   (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 3 : U32), s), s)
 +++
   (P.wr(P.wr(P.put_st(h, s, P.era()), (s + 2 : U32), k), (s + 5 : U32), s), s)
+
+=== room_one cxs_ok_snoc
+room for an insert into a tree only where the free list holds one node,
+so that the list with a node more at its end has none
+--- ring_model.bend
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              False{}
+            case Con{+b, r}:
+              True{}
++++
+        case IM.Has{+t}:
+          match F:
+            case Nil{}:
+              False{}
+            case Con{+b, r}:
+              match r:
+                case Nil{}:
+                  True{}
+                case Con{+c, u}:
+                  False{}
+>>> witness cxs_ok_snoc
+cs = [R.FzC{0, 11, False{}, 9}]
+vm = []
+dm = 0n
+I = IM.Has{IM.Lf{5, 7}}
+F = [12]
+f = 16
