@@ -129,6 +129,13 @@ it alone taught. Add to this file what a new proof teaches.
   proof until the result reduces.
 - **State whose invariant holds by computation**: then the law costs a
   case split per step.
+- **Keep the node a fact is about out of the operation's reach.** That
+  the free list ends where its tracked prefix does survives a serve
+  because its last node does: a spare node in the guard's room
+  (`serve-spares-last-free`) keeps the serve from taking it, and the
+  serve's frame law over the tracked list without that node
+  (`RG.minus`) keeps its link word. Followed step by step instead, the
+  fact would copy the crossings' chain proofs (`serve_ends`).
 
 ## Writing proofs
 
@@ -656,3 +663,10 @@ it alone taught. Add to this file what a new proof teaches.
   as many as the available memory holds at the cap (1500 MB, the
   largest run near 380 MB), at most half the processors (`--jobs N`
   to choose), reported in order.
+- **A mutant of a shared model is caught where it first breaks.** The
+  copy keeps the imported proof files whole, so a mutation of a model
+  that they read too is reported at the first of their proofs it
+  refutes (`has_minus.k`, in the serve's). For a law composed of other
+  laws over that model (`serve_ends`), such a catch shows only that
+  some proof needs the model as it is; no mutation of the code reaches
+  the law's own proof.

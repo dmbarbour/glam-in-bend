@@ -129,11 +129,13 @@ def rm.loop(f: Nat, st: Rm, +k: Nat) -> P.H & Bool:
 def mz.room(h: P.H, +k: Nat) -> P.H & Bool:
   rm.loop(32n, rm.step(P.frees(k, h), k), k)
 
-# the nodes a serve may take: its template's, and a branch a crossing
+# the nodes a serve may take: its template's, and a branch a crossing;
+# and one more, the free list's last, which it leaves, its link word
+# ending the list (serve-spares-last-free)
 def mz.need(+t: T.Tpl, +curs: List<&2, R.FzC>) -> Nat:
   match t:
     case T.Tpl{nodes, links, root, +size}:
-      Nat.add(U32.to_nat(size), List.length(&2, R.FzC, curs))
+      1n+Nat.add(U32.to_nat(size), List.length(&2, R.FzC, curs))
 
 def mz.fz.s(+whole: Bool, s: P.H, +t: T.Tpl, +curs: List<&2, R.FzC>, +m: U32, h: P.H, +situ: U32, +k: U32, +nc: U32, +at_root: Bool) -> Mz:
   match t:

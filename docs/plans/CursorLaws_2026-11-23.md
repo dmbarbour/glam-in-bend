@@ -1516,8 +1516,8 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
       guard answers; the growth branch with `.grow.copy.store`:
-      - `cursor-laws.alloc.guard.covered.start` — built 2026-11-27,
-        across serves planned — the tracked
+      - `cursor-laws.alloc.guard.covered.start` — built 2026-11-27 —
+        the tracked
         prefix the whole free list where the invariant starts
         (`room_rounds`' and `room_serve`'s premise `LM.ends`): at the
         situating node's first use (`situate_pend`), the free list s
@@ -1534,9 +1534,37 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         `results/grow/gen_sitends2.py`): the same rewrites of the
         situated view, their motive `LM.ends` where it was `px.ok`, the
         last step `sv_ends`. Its mutant, situate's last write one node
-        on, caught by its proof only. Across serves (which free nodes
-        onto the list's head) a step of its own, planned with what the
-        serve laws track.
+        on, caught by its proof only. Across serves, the next
+        step.
+      - `cursor-laws.alloc.guard.covered.across` — built 2026-11-28 —
+        coverage across a serve, `serve_next`'s companion (the
+        maintainer chose a companion over coverage in `lx.ok` itself,
+        2026-11-28): `serve_ends` (glam/LOOP_LAWS.bend), on
+        `serve_next`'s premises with the free list `ns` then F then f
+        and coverage before, the crossings' room counted without f
+        (`RG.cxs.ok` over F), concludes the prefix `serve_next` hands
+        on the whole free list. Not followed step by step through the
+        crossings, which would copy their chain proofs: for a list not
+        empty, the link after it is its last node's link word
+        (`LM.after`), and f stays the last node. The crossings' model
+        over F then f leaves the list over F with f appended
+        (`ce.cxs_snoc`; an insert into an empty index takes no node),
+        and the serve writes none of f's words: `serve_keeps` over the
+        tracked list without f (`RG.minus`), the invariant carried there
+        (`ce.px_pre`, `px_sub`, `ce.so`) and f's link word off the
+        nodes, the header and the faced ports (`ce.pof`); E, past the
+        whole list, is none (`ce.ends_app`). By
+        `results/grow/gen_sends1.py` and `gen_sends2.py`. That f
+        survives every serve takes the guard's room for one node more
+        than the serve can take (`mz.need`; `serve-spares-last-free`,
+        the agent's tactic: at most one growth earlier). Its mutant
+        (`minus_keeps`, shared with `serve_next`) is caught in the
+        serve's imported proofs first: a law composed of laws and the
+        shared model has no mutation of its own to catch. Left for the
+        composition (KernelRefine): room for the crossings without f
+        from the guard's room, `RG.cxs.ok` over F from F's length, and
+        over F then f for `serve_next` itself; the kernel's steps
+        between serves keeping coverage.
       - `cursor-laws.alloc.guard.covered` — built 2026-11-27 — the
         guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
