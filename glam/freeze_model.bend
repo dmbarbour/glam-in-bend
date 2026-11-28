@@ -319,3 +319,9 @@ def fz.links(f: F.Fz) -> List<&2, T.TLink>:
       match tpl:
         case T.Tpl{nodes, links, root, +size}:
           links
+
+# the record's eras (tpl_ok)
+def eras.of(z: F.FzE) -> List<&2, T.TNode>:
+  match z:
+    case F.FzE{h, map, nodes, +eras, +ne, ls, root, curs}:
+      eras
