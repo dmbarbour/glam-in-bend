@@ -529,3 +529,23 @@ root = T.TE{0, 0}
 curs = Nil{}
 n0 = 1
 dm = 1n
+
+=== tpl_eras_unreversed tpl_holes
+the template's eras placed as recorded, the last first, not reversed, so
+that a placeholder's index holds another era (one function node, then an
+eraser at index 1 and a placeholder at index 2, each linked at port 0)
+--- freeze.bend
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
++++
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, eras), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
+>>> witness tpl_holes
+h = P.H{KM.MG{[0 : U32^1n]}, [V.VUnit{} : V.Val^1n]}
+map = [0 : U32^1n]
+nodes = [T.TN{R.KFn{}, V.PNone{}}]
+eras = [T.TN{R.KCur{}, V.PNone{}}, T.TN{R.KEraP{}, V.PNone{}}]
+ne = 3
+ls = [T.TL{T.TE{0, 1}, T.TE{1, 0}}, T.TL{T.TE{0, 2}, T.TE{2, 0}}]
+root = T.TE{0, 0}
+curs = [RN.FzC{2, 7, False{}, 9}]
+n0 = 1
+dm = 2n
