@@ -277,3 +277,11 @@ def fz.curs(f: F.Fz) -> List<&2, RN.FzC>:
   match f:
     case F.Fz{tpl, curs, +n}:
       curs
+
+# the node pass's kind code of a template node, if any (SM.kc; kind_at_get)
+def kind.m(m: Maybe<&2, T.TNode>) -> U32:
+  match m:
+    case Some{+t}:
+      SM.kc(S.sp.is_era(t))
+    case None{}:
+      0

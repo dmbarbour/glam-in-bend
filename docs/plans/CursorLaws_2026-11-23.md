@@ -505,12 +505,40 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
           mutant, the crossings listed twice, refuted by a witness of one
           crossing (the pattern's binder made copyable with it, the
           mutated code otherwise refused).
-        - `cursor-laws.materializer.template.compose.kinds` — planned —
+        - `cursor-laws.materializer.template.compose.kinds` — built
+          2026-11-28 —
           `SM.kind_at` over the nodes then the eras reversed: below `n`
           a node read back (no eraser, `emits_nodes`), from `n` up an
           eraser exactly where no placeholder (`emits_root`'s
           `FM.inv.r`), every index below `2^dm` in a slot of its own
-          (`map_depth`).
+          (`map_depth`). Built 2026-11-28, the generic half:
+          `kind_at_get` (glam/FREEZE_LAWS.bend), where a list's indices
+          each have a slot of their own (as many as `2^dm`), the kind the
+          node pass last wrote at an index's slot is the code of the node
+          at that index (`FM.kind.m`), by induction on the list and the
+          distance to the index (`ka.get`, `ka.miss`; the last node's next
+          index left uncomputed, as it may be `2^dm`). The index's step
+          by the words' `to_nat_add_fits`, 2^32 abstract (`ka.tnb.k`, as
+          GROWN_PROOF's `tnb`, which this file does not import: a copy,
+          for `cursor-laws.proofs`' shared arithmetic). Its mutant, the
+          index stepping by two, refuted by a two-node witness.
+          - `cursor-laws.materializer.template.compose.kinds.place` —
+            built 2026-11-28 — the template's nodes by position: below `n` the
+            nodes read back (`no_era`), at an era's index (`FM.er.idx`)
+            its era, so a placeholder's (`FM.er.holes`) a node: the
+            eras' indices counted from `n` (`er.top` without wrap), the
+            reversal placing the era at index `n + k` at position `k`.
+            Lemmas in glam/FREEZE_PROOF.bend (`kp.*`, by
+            `results/grow/gen_kplace.py`), for the three slices that
+            state the serve's predicates as laws: `kp.node` (a node read
+            back's code 1), `kp.era` (an era's index fits a link at its
+            port 0, `SM.tm.k` at either code), `kp.hole` (a placeholder's
+            code 1), on `kp.at_top` and `kp.at_rest` (the reversal with
+            one more at the head: the new era at position `n + |r|`, the
+            rest where they were), `kp.top` (the next index counted
+            without wrap, at most `2^dm`, below 2^32) and `kp.idx_lt`.
+            No law of their own: what they say of code the serve's
+            predicates will.
         - `cursor-laws.materializer.template.compose.links` — planned —
           `SM.tpl.ok` from the links' near and far ends (`emits_links`,
           `emits_far`) by the kinds.

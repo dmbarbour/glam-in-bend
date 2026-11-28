@@ -11,6 +11,7 @@ import ./ring.bend as RN
 import ./freeze.bend as F
 import ./freeze_model.bend as FM
 import ./ring_model.bend as RG
+import ./splice_model.bend as SM
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the write phase's count (cursor-laws.materializer.template.emit.counts):
@@ -271,3 +272,20 @@ law tpl_pos:
   for +n: U32
   for +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}
   {RG.distinct(RG.srcs(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n))))) == True{} : Bool}
+
+# LAW: the node pass's kind at an index (cursor-laws.materializer.template.compose.kinds):
+# where every index of a template's nodes has a slot of its own at the
+# map's depth (as many nodes as 2^dm at most), the kind the node pass
+# last wrote at an index's slot (SM.kind_at) is the code of the node at
+# that index (FM.kind.m: 1 for a node, 2 for an eraser, 0 past the last).
+# So that the serve's premises on kinds (SM.tpl.ok, SV.copy.ok,
+# SV.root.ok) read the template's nodes by position.
+# Record: copy-reduced-function-nets
+law kind_at_get:
+  for +ts: List<&2, T.TNode>
+  for +dm: Nat
+  for +ix: U32
+  for +hb: {Nat.is_le(List.length(&2, T.TNode, ts), Nat.pow(2n, dm)) == True{} : Bool}
+  for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  for +hix: {Nat.is_lt(U32.to_nat(ix), Nat.pow(2n, dm)) == True{} : Bool}
+  {SM.kind_at(ts, 0, dm, ix, 0) == FM.kind.m(List.get(&2, T.TNode, ts, U32.to_nat(ix))) : U32}
