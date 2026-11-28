@@ -311,3 +311,11 @@ def fz.rp(f: F.Fz) -> U32:
           match root:
             case T.TE{+r, +p}:
               p
+
+# the template's links (tpl_links)
+def fz.links(f: F.Fz) -> List<&2, T.TLink>:
+  match f:
+    case F.Fz{tpl, curs, +n}:
+      match tpl:
+        case T.Tpl{nodes, links, root, +size}:
+          links

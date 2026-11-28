@@ -320,3 +320,31 @@ law tpl_root:
   for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
   for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
   {SV.root.ok(FM.fz.rn(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), FM.fz.rp(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), dm, FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0)))) == True{} : Bool}
+
+# LAW: the template's links (cursor-laws.materializer.template.compose.links):
+# the template the write phase's record makes (F.fz.tpl) has every link's
+# end at a node read back's port below 3 or at an era's port 0, which the
+# serve's node pass writes (SM.tpl.ok): given each link's near end so and
+# its far end a node read back or an era's port 0 (emits_links' FM.lks.ok,
+# emits_far's FM.lks.far), the nodes read back n0 and no eraser, all within
+# 2^dm, the map's depth. Not claimed: that the record is so after the walk
+# (.tree's).
+# Record: copy-reduced-function-nets
+law tpl_links:
+  for h: P.H
+  for map: Array<U32>
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +n0: U32
+  for +dm: Nat
+  for +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}
+  for +hne: {FM.no_era(nodes) == True{} : Bool}
+  for +hl: {FM.lks.ok(ls, n0) == True{} : Bool}
+  for +hf: {FM.lks.far(ls, eras, n0) == True{} : Bool}
+  for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
+  for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  {SM.tpl.ok(FM.fz.links(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n0))), dm) == True{} : Bool}
