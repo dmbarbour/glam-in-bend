@@ -271,3 +271,9 @@ def curs.of(z: F.FzE) -> List<&2, RN.FzC>:
   match z:
     case F.FzE{h, map, nodes, eras, +ne, ls, root, curs}:
       curs
+
+# the template's crossings (tpl_pos)
+def fz.curs(f: F.Fz) -> List<&2, RN.FzC>:
+  match f:
+    case F.Fz{tpl, curs, +n}:
+      curs

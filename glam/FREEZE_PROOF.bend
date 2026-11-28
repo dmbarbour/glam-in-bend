@@ -2399,3 +2399,63 @@ def Laws.emits_pos(seen, h, map, dm, hf, i, nodes, eras, ne, ls, root, curs, hd,
       match w:
         case KM.MG{A}:
           ep.m(seen, A, a, map, dm, hf, i, nodes, eras, ne, ls, root, curs, hd, hs, hj, LAT.mirror(U32, A), LAT.mirror(V.Val, a), LAT.mirror(U32, map))
+
+# The template's crossings (tpl_pos;
+# cursor-laws.materializer.template.compose.positions): F.fz.tpl lists the
+# record's crossings reversed, by the accumulating reversal
+
+# the positions of a reversal, the reversal of the positions
+def tp.srcs(cs: List<&2, RN.FzC>, +acc: List<&2, RN.FzC>) -> {RG.srcs(List.reverse.go(&2, RN.FzC, cs, acc)) == List.reverse.go(&2, U32, RG.srcs(cs), RG.srcs(acc)) : List<&2, U32>}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{c, r}:
+      match c:
+        case RN.FzC{+at, +src, +neg, +far}:
+          tp.srcs(r, Con{RN.FzC{at, src, neg, far}, acc})
+
+# x none of r, r none of acc: r none of x then acc
+def tp.nc.k(+e: Bool, +y: U32, +x: U32, +t: List<&2, U32>, +acc: List<&2, U32>, +he: {U32.is_eq(y, x) == e : Bool}, +h1: {Bool.or(e, RG.has(t, x)) == False{} : Bool}, +hay: {Bool.not(RG.has(acc, y)) == True{} : Bool},
+  ih: {RG.has(t, x) == False{} : Bool} -> {RG.none.in(t, Con{x, acc}) == True{} : Bool}) -> {RG.none.in(Con{y, t}, Con{x, acc}) == True{} : Bool}:
+  match e:
+    case True{}:
+      Empty.absurd({RG.none.in(Con{y, t}, Con{x, acc}) == True{} : Bool}, MB.false_ne_true()(Equal.sym(Bool, True{}, False{}, h1)))
+    case False{}:
+      +hc = Equal.trans(Bool, U32.is_eq(x, y), Nat.is_eq(U32.to_nat(x), U32.to_nat(y)), U32.is_eq(y, x), MU.u32_is_eq_to_nat(x, y),
+        Equal.trans(Bool, Nat.is_eq(U32.to_nat(x), U32.to_nat(y)), Nat.is_eq(U32.to_nat(y), U32.to_nat(x)), U32.is_eq(y, x), MN.is_eq_comm(U32.to_nat(x), U32.to_nat(y)),
+          Equal.sym(Bool, U32.is_eq(y, x), Nat.is_eq(U32.to_nat(y), U32.to_nat(x)), MU.u32_is_eq_to_nat(y, x))))
+      +hxy = Equal.trans(Bool, U32.is_eq(x, y), U32.is_eq(y, x), False{}, hc, he)
+      +hay2 = ME.subst(Bool, z => {Bool.not(Bool.or(z, RG.has(acc, y))) == True{} : Bool}, False{}, U32.is_eq(x, y), Equal.sym(Bool, U32.is_eq(x, y), False{}, hxy), hay)
+      MB.and_eq_true(Bool.not(RG.has(Con{x, acc}, y)), RG.none.in(t, Con{x, acc}), hay2, ih(h1))
+
+def tp.none_cons(r: List<&2, U32>, +x: U32, +acc: List<&2, U32>, +h1: {RG.has(r, x) == False{} : Bool}, +h2: {RG.none.in(r, acc) == True{} : Bool}) -> {RG.none.in(r, Con{x, acc}) == True{} : Bool}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      tp.nc.k(U32.is_eq(y, x), y, x, t, acc, {==}, h1, MB.eq_true_of_and_left(Bool.not(RG.has(acc, y)), RG.none.in(t, acc), h2),
+        q => tp.none_cons(t, x, acc, q, MB.eq_true_of_and_right(Bool.not(RG.has(acc, y)), RG.none.in(t, acc), h2)))
+
+# a reversal of distinct members onto distinct others, none shared: distinct
+def tp.dist(xs: List<&2, U32>, +acc: List<&2, U32>, +hx: {RG.distinct(xs) == True{} : Bool}, +ha: {RG.distinct(acc) == True{} : Bool}, +hn: {RG.none.in(xs, acc) == True{} : Bool}) -> {RG.distinct(List.reverse.go(&2, U32, xs, acc)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      ha
+    case Con{+x, +r}:
+      +hxr = MB.eq_false_of_not_eq_true(RG.has(r, x), MB.eq_true_of_and_left(Bool.not(RG.has(r, x)), RG.distinct(r), hx))
+      +hr = MB.eq_true_of_and_right(Bool.not(RG.has(r, x)), RG.distinct(r), hx)
+      +hxa = MB.eq_true_of_and_left(Bool.not(RG.has(acc, x)), RG.none.in(r, acc), hn)
+      +hra = MB.eq_true_of_and_right(Bool.not(RG.has(acc, x)), RG.none.in(r, acc), hn)
+      tp.dist(r, Con{x, acc}, hr, MB.and_eq_true(Bool.not(RG.has(acc, x)), RG.distinct(acc), hxa, ha), tp.none_cons(r, x, acc, hxr, hra))
+
+def tp.none_nil(xs: List<&2, U32>) -> {RG.none.in(xs, Nil{}) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      tp.none_nil(r)
+
+def Laws.tpl_pos(h, map, nodes, eras, ne, ls, root, curs, n, hs):
+  ME.subst(List<&2, U32>, q => {RG.distinct(q) == True{} : Bool}, List.reverse.go(&2, U32, RG.srcs(curs), Nil{}), RG.srcs(List.reverse.go(&2, RN.FzC, curs, Nil{})),
+    Equal.sym(List<&2, U32>, RG.srcs(List.reverse.go(&2, RN.FzC, curs, Nil{})), List.reverse.go(&2, U32, RG.srcs(curs), Nil{}), tp.srcs(curs, Nil{})),
+    tp.dist(RG.srcs(curs), Nil{}, hs, {==}, tp.none_nil(RG.srcs(curs))))

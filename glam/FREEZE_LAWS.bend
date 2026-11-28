@@ -251,3 +251,23 @@ law emits_pos:
   for +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}
   for +hj: {FM.disj(RG.srcs(curs), FM.ports(seen)) == True{} : Bool}
   {RG.distinct(RG.srcs(FM.curs.of(F.fz.emits(seen, F.FzE{h, map, nodes, eras, ne, ls, root, curs}, i)))) == True{} : Bool}
+
+# LAW: the template's crossings (cursor-laws.materializer.template.compose.positions):
+# the template the write phase's record makes (F.fz.tpl) lists the record's
+# crossings reversed, so that their positions are distinct where the
+# record's are (emits_pos): what cxs_start asks of a serve's crossings.
+# Not claimed: that the record's are so after the walk's (.tree's).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+law tpl_pos:
+  for h: P.H
+  for map: Array<U32>
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +root: T.TEnd
+  for +curs: List<&2, RN.FzC>
+  for +n: U32
+  for +hs: {RG.distinct(RG.srcs(curs)) == True{} : Bool}
+  {RG.distinct(RG.srcs(FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, root, curs}, n))))) == True{} : Bool}
