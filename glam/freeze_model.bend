@@ -285,3 +285,29 @@ def kind.m(m: Maybe<&2, T.TNode>) -> U32:
       SM.kc(S.sp.is_era(t))
     case None{}:
       0
+
+# the template's nodes and root (tpl_root)
+def fz.tnodes(f: F.Fz) -> List<&2, T.TNode>:
+  match f:
+    case F.Fz{tpl, curs, +n}:
+      match tpl:
+        case T.Tpl{nodes, links, root, +size}:
+          nodes
+
+def fz.rn(f: F.Fz) -> U32:
+  match f:
+    case F.Fz{tpl, curs, +n}:
+      match tpl:
+        case T.Tpl{nodes, links, root, +size}:
+          match root:
+            case T.TE{+r, +p}:
+              r
+
+def fz.rp(f: F.Fz) -> U32:
+  match f:
+    case F.Fz{tpl, curs, +n}:
+      match tpl:
+        case T.Tpl{nodes, links, root, +size}:
+          match root:
+            case T.TE{+r, +p}:
+              p

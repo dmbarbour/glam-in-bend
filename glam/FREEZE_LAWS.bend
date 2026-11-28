@@ -12,6 +12,7 @@ import ./freeze.bend as F
 import ./freeze_model.bend as FM
 import ./ring_model.bend as RG
 import ./splice_model.bend as SM
+import ./serve_model.bend as SV
 import 0x2c172a8ac85e328d5e6af8aa51cec1f8/defs.bend as AD
 
 # LAW: the write phase's count (cursor-laws.materializer.template.emit.counts):
@@ -289,3 +290,33 @@ law kind_at_get:
   for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
   for +hix: {Nat.is_lt(U32.to_nat(ix), Nat.pow(2n, dm)) == True{} : Bool}
   {SM.kind_at(ts, 0, dm, ix, 0) == FM.kind.m(List.get(&2, T.TNode, ts, U32.to_nat(ix))) : U32}
+
+# LAW: the template's root (cursor-laws.materializer.template.compose.root):
+# the template the write phase's record makes (F.fz.tpl) has its root at a
+# node read back's port below 3, in no placeholder's slot, what the serve
+# asks of a copy's root (SV.root.ok): given the record's root a node's
+# port below 3 (emits_root's FM.rt.ok), the nodes read back n0 (emits_len)
+# and no eraser (emits_nodes), the crossings the placeholders' (FM.inv.f,
+# emits_counts), all within 2^dm, the map's depth. Not claimed: that the
+# record is so after the walk (.tree's).
+# Record: copy-reduced-function-nets
+# Record: cursors-indexed
+law tpl_root:
+  for h: P.H
+  for map: Array<U32>
+  for +nodes: List<&2, T.TNode>
+  for +eras: List<&2, T.TNode>
+  for +ne: U32
+  for +ls: List<&2, T.TLink>
+  for +rn: U32
+  for +rp: U32
+  for +curs: List<&2, RN.FzC>
+  for +n0: U32
+  for +dm: Nat
+  for +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}
+  for +hr: {FM.rt.ok(T.TE{rn, rp}, n0) == True{} : Bool}
+  for +hne: {FM.no_era(nodes) == True{} : Bool}
+  for +hf: {FM.inv.f(eras, ne, curs, n0) == True{} : Bool}
+  for +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}
+  for +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}
+  {SV.root.ok(FM.fz.rn(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), FM.fz.rp(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), FM.fz.tnodes(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0))), dm, FM.fz.curs(Pair.snd(P.H, F.Fz, F.fz.tpl(F.FzE{h, map, nodes, eras, ne, ls, T.TE{rn, rp}, curs}, n0)))) == True{} : Bool}
