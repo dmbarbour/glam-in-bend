@@ -46,6 +46,10 @@ law first. We can back off if it's impractical."
    the base case comes first. `cursor-laws.alloc`, a review of the
    free list's laws, falls within it, after `.loop.shape.next` (the
    maintainer, 2026-11-26).
+   `cursor-laws.frame` reviews the frame pattern after
+   `.alloc.guard.covered.across`, before the loop's remaining steps,
+   which its survey may shorten (the maintainer asked for the review,
+   2026-11-28).
 8. `cursor-laws.index`: the index's laws by disposition, last, as
    nothing waits on it.
 9. `cursor-laws.watch`, throughout.
@@ -1562,9 +1566,16 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         serve's imported proofs first: a law composed of laws and the
         shared model has no mutation of its own to catch. Left for the
         composition (KernelRefine): room for the crossings without f
-        from the guard's room, `RG.cxs.ok` over F from F's length, and
-        over F then f for `serve_next` itself; the kernel's steps
-        between serves keeping coverage.
+        from the guard's room, `RG.cxs.ok` over F from F's length; the
+        kernel's steps between serves keeping coverage.
+        - `cursor-laws.alloc.guard.covered.across.room` — built
+          2026-11-28 — `cxs_ok_snoc` (glam/LOOP_LAWS.bend): room for
+          the crossings over F leaves room over F then f, so that one
+          fact feeds both `serve_ends` and `serve_next`. Room over a
+          list with a node at its end holds outright (`ce.room_snoc`);
+          the index and lists the crossings build are alike, as in
+          `ce.cxs_snoc`. Its mutant, room only where the list holds one
+          node, refuted by a witness (one insert into a leaf's tree).
       - `cursor-laws.alloc.guard.covered` — built 2026-11-27 — the
         guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)
@@ -1788,6 +1799,31 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
     - When: now, with `.loop`'s laws restated once; after the loop
       closes; or with `kernel-refine`. What each costs in proofs
       restated and verdict time.
+  - `cursor-laws.frame` — planned — the frame pattern reviewed:
+    where a fact about one node's words is carried step by step through
+    an operation that has a frame law, the frame law over the tracked
+    lists without that node, and where needed a policy keeping the node
+    out of the operation's reach, may replace the step-by-step proof
+    (`serve_ends`, `serve-spares-last-free`; docs/Proving.md, Keep the
+    node a fact is about out of the operation's reach).
+    - `cursor-laws.frame.survey` — planned — the laws and the open steps
+      read for such facts, each with what the step-by-step proof costs
+      (lines, lemmas, verdict time) and what the frame route would: the
+      frame law there is, the node's exclusion from the tracked lists,
+      and whether the operation can reach the node and a policy can stop
+      it. Candidates seen: coverage across the kernel's steps between
+      serves (allocation pops the head, a free pushes there, growth
+      appends past the end, so the last node is out of reach until the
+      list runs dry); the cursors' faced ports in range (`LM.faced.in`)
+      across a serve; the situating node's words across the crossings;
+      the copy's free chain (`nf_go`, `lk_ch`), F's links kept by the
+      copy's frame over its fresh nodes. Reported as a table in this
+      plan, with the survey's choice for each.
+    - `cursor-laws.frame.adopt` — planned — each candidate the survey
+      finds cheaper, adopted as a step of its own and measured against
+      its step-by-step form; one it finds dearer recorded with why. A
+      policy change, as the spare node was, recorded as a decision with
+      its cost.
   - `cursor-laws.index` — planned — the index's 41 laws by
     disposition, as `.retire`'s were (H6, H9, H12). M.
     - Each law gets the downstream proof that uses it, or the reason it

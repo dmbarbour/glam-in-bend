@@ -665,3 +665,21 @@ law serve_ends:
   for +hE: {LM.ext.ok(AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d, s, RG.cxs.I(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), List.append(&2, U32, F, Con{f, Nil{}}))), RG.cxs.L(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), List.append(&2, U32, F, Con{f, Nil{}}))), RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), List.append(&2, U32, F, Con{f, Nil{}}))), List.append(&2, U32, M, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), E) == True{} : Bool}
   for +hen: {LM.ends(List.append(&2, U32, ns, List.append(&2, U32, F, Con{f, Nil{}})), AD.view(U32, w), d) == True{} : Bool}
   {LM.ends(List.append(&2, U32, List.take(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), List.append(&2, U32, F, Con{f, Nil{}}))), E), k), List.drop(&2, U32, List.append(&2, U32, RG.cxs.F(RG.cxs(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm, I, List.append(&2, U32, Con{s, t}, RG.pls(cs, AD.view(U32, SM.map(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)))), dm)), List.append(&2, U32, F, Con{f, Nil{}}))), E), k)), AD.view(U32, RG.words(SC.serve(S.sp.links(ls, S.sp.nodes(ts, 0, S.Sp{P.H{KM.MG{w}, a}, map}, by)), cs, T.TE{rn, rp}, s, nc, False{}))), d) == True{} : Bool}
+
+# LAW: room for a serve's crossings over the free list F leaves room over
+# F then a node f at its end (cursor-laws.alloc.guard.covered.across.room):
+# an insert into a tree takes the list's first node, the same in both, so
+# that the index the crossings build is the same and each list the same
+# but for f at its end. So that serve_next's premise over the whole list
+# follows from serve_ends', over the list without its last node.
+# Record: cursors-indexed
+# Record: serve-spares-last-free
+law cxs_ok_snoc:
+  for cs: List<&2, R.FzC>
+  for +vm: List<&2, U32>
+  for +dm: Nat
+  for +I: IM.Ix
+  for +F: List<&2, U32>
+  for +f: U32
+  for +hok: {RG.cxs.ok(cs, vm, dm, I, F) == True{} : Bool}
+  {RG.cxs.ok(cs, vm, dm, I, List.append(&2, U32, F, Con{f, Nil{}})) == True{} : Bool}
