@@ -458,3 +458,23 @@ ne = 2
 ls = []
 root = T.TE{0, 0}
 curs = []
+
+=== tpl_dup_crossings tpl_pos
+the template listing the record's crossings twice, reversed then as
+written, so that a position repeats (one crossing at position 5)
+--- freeze.bend
+    case FzE{h, map, nodes, eras, +ne, ls, root, curs}:
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
++++
+    case FzE{h, map, nodes, eras, +ne, ls, root, +curs}:
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.append(&2, RN.FzC, List.reverse(&2, RN.FzC, curs), curs), n})
+>>> witness tpl_pos
+h = P.H{KM.MG{[0 : U32^1n]}, [V.VUnit{} : V.Val^1n]}
+map = [0 : U32^1n]
+nodes = Nil{}
+eras = Nil{}
+ne = 0
+ls = Nil{}
+root = T.TE{0, 0}
+curs = [RN.FzC{0, 5, False{}, 9}]
+n = 0

@@ -487,6 +487,45 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         most `2^28` nodes (`net-capacity`, `spike/kprim.bend`'s
         `w_maxd`), under `2^29` and `map_depth`'s `2^31` (the
         maintainer, 2026-11-24). M.
+        Sliced 2026-11-28, after reading the predicates: the record's
+        invariants (`FM.inv.*`) are over list positions and indices
+        below `n`, the serve's over slots at the map's depth
+        (`SM.kind_at`, `SV.sl.in`); `fz.tpl` appends the eras reversed
+        to the nodes read back and reverses the crossings. So a bridge
+        per predicate, then the composition:
+        - `cursor-laws.materializer.template.compose.positions` —
+          built 2026-11-28 — the crossings' positions distinct after
+          `fz.tpl`'s reversal (`emits_pos` before it): `RG.srcs` of a
+          reversed list the reversed positions, distinctness kept by
+          reversal. What `.loop.shape.keys` needs first. `tpl_pos`
+          (glam/FREEZE_LAWS.bend), over the record's fields as
+          `emits_pos` is, with an accessor `FM.fz.curs`; proved over the
+          accumulating reversal (`tp.srcs`, `tp.dist`, `tp.none_cons`, the
+          equality's symmetry inline rather than a third copy). Its
+          mutant, the crossings listed twice, refuted by a witness of one
+          crossing (the pattern's binder made copyable with it, the
+          mutated code otherwise refused).
+        - `cursor-laws.materializer.template.compose.kinds` — planned —
+          `SM.kind_at` over the nodes then the eras reversed: below `n`
+          a node read back (no eraser, `emits_nodes`), from `n` up an
+          eraser exactly where no placeholder (`emits_root`'s
+          `FM.inv.r`), every index below `2^dm` in a slot of its own
+          (`map_depth`).
+        - `cursor-laws.materializer.template.compose.links` — planned —
+          `SM.tpl.ok` from the links' near and far ends (`emits_links`,
+          `emits_far`) by the kinds.
+        - `cursor-laws.materializer.template.compose.holes` — planned —
+          `SV.copy.ok`: the placeholders' indices in slots apart (the
+          eras' indices `n` up, below `2^dm`), each named by a link at
+          its port 0 from a node read back (`FM.all.to`), no other link
+          at it.
+        - `cursor-laws.materializer.template.compose.root` — planned —
+          `SV.root.ok`: the root a node read back's port below 3, in no
+          hole's slot.
+        - `cursor-laws.materializer.template.compose.tree` — planned —
+          the four for `freeze_tree`'s output, the walk's facts its
+          premises (`.walk`'s to discharge), the serve laws' "Not
+          claimed" narrowed.
     - `cursor-laws.materializer.frontier` — dropped 2026-11-24 — read
       out: the frontier's `q` is the source port facing the served
       position (`pd.peer`, the source's word `pos + 1`). The index finds
@@ -926,6 +965,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
         every law.
       - `px_sub` and `px_grow` (P11): one serve's conclusion the next
         one's premise, across the heap's growth.
+
+      - `cursor-laws.loop.shape.keys` — planned — the index's keys
+        across serves, `cxs_start`'s absence (`RG.lacks.all`) at each
+        serve's start. Argued 2026-11-28 from freeze's finished part, a
+        principal tree (`glam/freeze.bend`): a node joins it only through
+        the auxiliary port its principal faces, and a principal faces
+        one port, so a node's parent is one node. Every key is a
+        boundary port of a source node this copy has copied (a crossing
+        makes its cursor at its own position, a port of the tree
+        copied), and a serve's tree holds no copied node: entering one
+        would pass through its parent, copied too, and so up to the
+        first tree's root, whose parent is the use site, never a
+        finished node the copy reaches. So a serve's crossing positions,
+        its own tree's ports, are none of the keys. Wants: the copy's
+        copied set carried in the loop's invariant, grown by each
+        serve's tree; a template's crossings at its tree's ports
+        (`.materializer.template.compose`, `emits_pos`); the source's
+        net two-way, each principal facing one port (the wiring,
+        `kernel-refine`; `cursor-laws.noself`'s family); the use site's
+        node outside every tree. L; a plan of its own if it grows. Taken
+        after `.materializer.template.compose`, which it needs.
 
       Designed 2026-11-25: the laws already merged stay as they are,
       and a wider invariant is laid over them, `RG.px.ok` with the facts
