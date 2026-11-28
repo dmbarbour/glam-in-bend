@@ -663,6 +663,13 @@ it alone taught. Add to this file what a new proof teaches.
   as many as the available memory holds at the cap (1500 MB, the
   largest run near 380 MB), at most half the processors (`--jobs N`
   to choose), reported in order.
+- **A generated proof's lemmas are another file's to call.** The join's
+  frame below its link (`jnk.below`) and the leave's (`lvfr.k`) lie in
+  glam/PROOF.bend, generated; glam/LOOP_PROOF.bend calls them through
+  its import (`GP.`), its calls copied from their callers there with the
+  file's own names qualified and the callers' binder names matched
+  (`jnk.t` names its premise `hy0`), rather than regenerated
+  (`gen_wires.py`, the wire laws).
 - **A mutant of a shared model is caught where it first breaks.** The
   copy keeps the imported proof files whole, so a mutation of a model
   that they read too is reported at the first of their proofs it

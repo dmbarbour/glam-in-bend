@@ -159,3 +159,81 @@ dm = 0n
 I = IM.Has{IM.Lf{5, 7}}
 F = [12]
 f = 16
+
+=== join_wire_next_port join_links join_links_back
+the port y faced linked one word on, so that the port x faced holds the
+word past it and the one y faced is left unlinked (a witness each: the two
+cursors 12 and 16, facing 41 and 52, in the index under branch 28)
+--- ring.bend
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, w), x), y), x), y)
++++
+  P.free(P.free(rg.unlink(rg.unlink(P.link_xx(h, u, (w + 1 : U32)), x), y), x), y)
+>>> witness join_links
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9
+u = KMd.ref(40, 1)
+z = KMd.ref(52, 0)
+>>> witness join_links_back
+w = WB.ix_pair()
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Br{28, 1n, IM.Lf{16, 9}, IM.Lf{12, 7}}}
+ps = Nil{}
+L = Con{8, Con{12, Con{16, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{12, Con{16, Con{28, Nil{}}}}}
+x = 12
+y = 16
+kx = 7
+ky = 9
+u = KMd.ref(40, 1)
+z = KMd.ref(52, 0)
+
+=== leave_wire_past_port leave_links leave_links_back
+the port given linked one word past it, so that the port c faced holds
+the word past p and p is left unlinked (a witness each: the cursor 16,
+facing 52, leaving for node 40's port 0)
+--- ring.bend
+  P.free(rg.unlink(P.link_xx(h, p, w), c), c)
++++
+  P.free(rg.unlink(P.link_xx(h, (p + 1 : U32), w), c), c)
+>>> witness leave_links
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+p = KMd.ref(40, 0)
+c = 16
+k = 9
+z = KMd.ref(52, 0)
+>>> witness leave_links_back
+w = WB.ix_one(3)
+a = [V.VUnit{} : V.Val^1n]
+d = 6n
+s = 8
+I = IM.Has{IM.Lf{16, 9}}
+ps = Nil{}
+L = Con{8, Con{16, Con{20, Nil{}}}}
+F = Nil{}
+N = Con{8, Con{16, Con{20, Nil{}}}}
+p = KMd.ref(40, 0)
+c = 16
+k = 9
+z = KMd.ref(52, 0)
