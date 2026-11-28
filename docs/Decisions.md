@@ -220,6 +220,9 @@ where the shared lazy state that Bend cannot hold goes.
 - [`collect-before-growth`](decisions/collect-before-growth.md): a net
   glam runs tries a collection before its store grows; room is one
   policy with one home.
+- [`serve-spares-last-free`](decisions/serve-spares-last-free.md): the
+  guard asks room for one node more than a serve can take, so that the
+  free list's last node, whose link word ends it, outlives the serve.
 - [`splice-erasers-static`](decisions/splice-erasers-static.md): the
   splice makes a template's erasers static as it links, no node made
   and freed for them; two erasers linked to each other, a pair demand
