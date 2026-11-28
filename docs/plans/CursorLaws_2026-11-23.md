@@ -1516,6 +1516,27 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
       Left: the law of a covered serve, the serve's room premise (the
       copy's nodes the free list's first) given by these where the
       guard answers; the growth branch with `.grow.copy.store`:
+      - `cursor-laws.alloc.guard.covered.start` — built 2026-11-27,
+        across serves planned — the tracked
+        prefix the whole free list where the invariant starts
+        (`room_rounds`' and `room_serve`'s premise `LM.ends`): at the
+        situating node's first use (`situate_pend`), the free list s
+        then F, F's chain ends where the list's did. `situate` takes s
+        and writes its words and the head, none of F's link words, so
+        that the link after F reads as before: `after_set`, a write off
+        a list's link words keeping the link after it; `sv_ends`, over
+        the view after situate as `situate_pend`'s proof writes it
+        (`sv`); the view equation (`sv.eq`) taken from that proof's
+        rewrites; `situate_ends`, the law on the heap. Built:
+        `situate_ends` (glam/LOOP_LAWS.bend), `situate_pend`'s companion
+        on its premises and coverage before, its proof made from
+        `situate_pend`'s own (`sp.w` to `sp.m`, by
+        `results/grow/gen_sitends2.py`): the same rewrites of the
+        situated view, their motive `LM.ends` where it was `px.ok`, the
+        last step `sv_ends`. Its mutant, situate's last write one node
+        on, caught by its proof only. Across serves (which free nodes
+        onto the list's head) a step of its own, planned with what the
+        serve laws track.
       - `cursor-laws.alloc.guard.covered` — built 2026-11-27 — the
         guard's loop
         (`mz.room`, up to 32 rounds of `P.frees` then `P.grow_more`)

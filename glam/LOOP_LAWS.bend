@@ -580,3 +580,38 @@ law grow_keep:
   for +hlx: {LM.lx.ok(AD.view(U32, w), 2n+e, s, I, L, F, N) == True{} : Bool}
   for +hfi: {LM.faced.in(L, AD.view(U32, w), 2n+e) == True{} : Bool}
   {LM.lx.ok(AD.view(U32, KMd.words(Pair.fst(P.H, Bool, P.grow_more(P.H{KM.MG{w}, a})))), 3n+e, s, I, L, List.append(&2, U32, GM.fresh(U32.to_nat(wc), wc), F), List.append(&2, U32, N, GM.fresh(U32.to_nat(wc), wc))) == True{} : Bool}
+
+# LAW: where the invariant starts (situate_pend's premises), the free
+# list's tracked prefix F stays the whole free list after situate takes
+# its first node s, where s then F was (LM.ends): situate writes s's words
+# and the head, none of F's link words, so the link after F reads as
+# before (cursor-laws.alloc.guard.covered.start). So that room_rounds and
+# room_serve find their prefix the whole list from the first use on.
+# Record: cursors-indexed
+# Record: collect-before-growth
+law situate_ends:
+  for w: Array<U32>
+  for a: Array<V.Val>
+  for +d: Nat
+  for +by: U32
+  for +k: U32
+  for +s: U32
+  for +leaf: U32
+  for +F: List<&2, U32>
+  for +N: List<&2, U32>
+  for +hf: {AD.full(U32, w, d) == True{} : Bool}
+  for +hd32: {Nat.is_lt(d, 32n) == True{} : Bool}
+  for +h2: {Nat.is_le(2n, d) == True{} : Bool}
+  for +hch: {KMd.chain(Con{s, F}, AD.view(U32, w), d, KMd.word(AD.view(U32, w), d, P.at_fh())) == True{} : Bool}
+  for +hdF: {RG.distinct(Con{s, F}) == True{} : Bool}
+  for +hN: {RG.layout(N, d) == True{} : Bool}
+  for +hB: {RG.bases(N) == True{} : Bool}
+  for +hsN: {RG.sub(Con{s, Con{leaf, Nil{}}}, N) == True{} : Bool}
+  for +hFN: {RG.sub(F, N) == True{} : Bool}
+  for +hlf: {RG.none.in(Con{leaf, Nil{}}, Con{s, F}) == True{} : Bool}
+  for +hq1: {RG.port.ok(Con{s, Con{leaf, Nil{}}}, d, KMd.word(AD.view(U32, w), d, (leaf + 1 : U32))) == True{} : Bool}
+  for +hq2: {RG.po.all(KMd.word(AD.view(U32, w), d, (leaf + 1 : U32)), Con{s, Con{leaf, Nil{}}}, d, N) == True{} : Bool}
+  for +hq3: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (leaf + 1 : U32)), (leaf + 1 : U32)) == True{} : Bool}
+  for +hq4: {KMd.off.port(d, KMd.word(AD.view(U32, w), d, (leaf + 1 : U32)), (s + 1 : U32)) == True{} : Bool}
+  for +hen: {LM.ends(Con{s, F}, AD.view(U32, w), d) == True{} : Bool}
+  {LM.ends(F, AD.view(U32, RG.words(Pair.fst(P.H, U32, R.situate(P.H{KM.MG{w}, a}, by, k)))), d) == True{} : Bool}
