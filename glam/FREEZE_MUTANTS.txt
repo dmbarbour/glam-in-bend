@@ -478,3 +478,15 @@ ls = Nil{}
 root = T.TE{0, 0}
 curs = [RN.FzC{0, 5, False{}, 9}]
 n = 0
+
+=== kind_index_skips kind_at_get
+the node pass's kind written two indices on for each node, so that an
+index between holds none (two nodes, the second read at index 1)
+--- splice_model.bend
+      kind_at(rest, (i + 1 : U32), dm, ix, pick(Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), kc(S.sp.is_era(t)), old))
++++
+      kind_at(rest, (i + 2 : U32), dm, ix, pick(Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), kc(S.sp.is_era(t)), old))
+>>> witness kind_at_get
+ts = [T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KCur{}, V.PNone{}}]
+dm = 1n
+ix = 1

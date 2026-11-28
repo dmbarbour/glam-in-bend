@@ -2459,3 +2459,121 @@ def Laws.tpl_pos(h, map, nodes, eras, ne, ls, root, curs, n, hs):
   ME.subst(List<&2, U32>, q => {RG.distinct(q) == True{} : Bool}, List.reverse.go(&2, U32, RG.srcs(curs), Nil{}), RG.srcs(List.reverse.go(&2, RN.FzC, curs, Nil{})),
     Equal.sym(List<&2, U32>, RG.srcs(List.reverse.go(&2, RN.FzC, curs, Nil{})), List.reverse.go(&2, U32, RG.srcs(curs), Nil{}), tp.srcs(curs, Nil{})),
     tp.dist(RG.srcs(curs), Nil{}, hs, {==}, tp.none_nil(RG.srcs(curs))))
+
+# The node pass's kind at an index (kind_at_get;
+# cursor-laws.materializer.template.compose.kinds): where every index of
+# the list has a slot of its own, the last write at an index's slot is
+# its own node's
+
+# a number below another is not it
+def ka.ne.k(+e: Bool, +a: Nat, +b: Nat, +he: {Nat.is_eq(a, b) == e : Bool}, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {e == False{} : Bool}:
+  match e:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, MN.lt_irrefl(a)(ME.subst(Nat, z => {Nat.is_lt(a, z) == True{} : Bool}, b, a, Equal.sym(Nat, a, b, MN.eq_of_is_eq(a, b, he)), h)))
+    case False{}:
+      {==}
+
+def ka.neq(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.is_eq(a, b) == False{} : Bool}:
+  ka.ne.k(Nat.is_eq(a, b), a, b, {==}, h)
+
+def ka.neq2(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.is_eq(b, a) == False{} : Bool}:
+  Equal.trans(Bool, Nat.is_eq(b, a), Nat.is_eq(a, b), False{}, MN.is_eq_comm(b, a), ka.neq(a, b, h))
+
+# two indices below 2^dm: their slots their numbers
+def ka.slne(+i: U32, +j: U32, +dm: Nat, +hi: {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, dm)) == True{} : Bool}, +hj: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, dm)) == True{} : Bool}, +h: {Nat.is_eq(U32.to_nat(i), U32.to_nat(j)) == False{} : Bool}) -> {Nat.is_eq(AD.slot(i, dm), AD.slot(j, dm)) == False{} : Bool}:
+  %Equal.sym(Nat, AD.slot(i, dm), U32.to_nat(i), LA.slot_small(i, dm, hi)) : {Nat.is_eq(_, AD.slot(j, dm)) == False{} : Bool}
+  %Equal.sym(Nat, AD.slot(j, dm), U32.to_nat(j), LA.slot_small(j, dm, hj)) : {Nat.is_eq(U32.to_nat(i), _) == False{} : Bool}
+  h
+
+def ka.sleq(+i: U32, +j: U32, +dm: Nat, +hi: {Nat.is_lt(U32.to_nat(i), Nat.pow(2n, dm)) == True{} : Bool}, +hj: {Nat.is_lt(U32.to_nat(j), Nat.pow(2n, dm)) == True{} : Bool}, +h: {U32.to_nat(i) == U32.to_nat(j) : Nat}) -> {Nat.is_eq(AD.slot(i, dm), AD.slot(j, dm)) == True{} : Bool}:
+  %Equal.sym(Nat, AD.slot(i, dm), U32.to_nat(i), LA.slot_small(i, dm, hi)) : {Nat.is_eq(_, AD.slot(j, dm)) == True{} : Bool}
+  %Equal.sym(Nat, AD.slot(j, dm), U32.to_nat(j), LA.slot_small(j, dm, hj)) : {Nat.is_eq(U32.to_nat(i), _) == True{} : Bool}
+  %h : {Nat.is_eq(U32.to_nat(i), _) == True{} : Bool}
+  MN.is_eq_refl(U32.to_nat(i))
+
+# a word's sum with another within 2^dm < 2^32 is their numbers' sum; 2^32
+# abstract as m, put back only for the word law's premise (as GROWN_PROOF's
+# tnb, which this file does not import)
+def ka.tnb.k(+m: Nat, +em: {Nat.pow(2n, 32n) == m : Nat}, +i: U32, +b: U32, +dm: Nat, +h: {Nat.is_lt(Nat.add(U32.to_nat(i), U32.to_nat(b)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}) ->
+  {U32.to_nat(U32.add(i, b)) == Nat.add(U32.to_nat(i), U32.to_nat(b)) : Nat}:
+  +hpm = ME.subst(Nat, q => {Nat.is_lt(Nat.pow(2n, dm), q) == True{} : Bool}, Nat.pow(2n, 32n), m, em, LAB.pow_lt(dm, 32n, hd32))
+  +hfm = MN.lt_of_lt_of_le(Nat.add(U32.to_nat(i), U32.to_nat(b)), Nat.pow(2n, dm), m, h, MN.le_of_lt(Nat.pow(2n, dm), m, hpm))
+  +hf = ME.subst(Nat, q => {Nat.is_lt(Nat.add(U32.to_nat(i), U32.to_nat(b)), q) == True{} : Bool}, m, Nat.pow(2n, 32n), Equal.sym(Nat, Nat.pow(2n, 32n), m, em), hfm)
+  WL.to_nat_add_fits(i, b, hf)
+
+def ka.inc(+i: U32, +dm: Nat, +h: {Nat.is_lt(Nat.add(U32.to_nat(i), 1n), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}) -> {U32.to_nat((i + 1 : U32)) == 1n+U32.to_nat(i) : Nat}:
+  Equal.trans(Nat, U32.to_nat((i + 1 : U32)), Nat.add(U32.to_nat(i), 1n), 1n+U32.to_nat(i), ka.tnb.k(Nat.pow(2n, 32n), {==}, i, 1, dm, h, hd32), MN.add_comm(U32.to_nat(i), 1n))
+
+# past the indices of a list from i: the kind as it was
+def ka.miss(ts: List<&2, T.TNode>, +i: U32, +dm: Nat, +ix: U32, +old: U32, +hlt: {Nat.is_lt(U32.to_nat(ix), U32.to_nat(i)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(i), List.length(&2, T.TNode, ts)), Nat.pow(2n, dm)) == True{} : Bool},
+  +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}) -> {SM.kind_at(ts, i, dm, ix, old) == old : U32}:
+  match ts:
+    case Nil{}:
+      {==}
+    case Con{+t, r}:
+      match r:
+        case Nil{}:
+          +hi = MN.lt_of_lt_of_le(U32.to_nat(i), Nat.add(U32.to_nat(i), 1n), Nat.pow(2n, dm), Equal.trans(Bool, Nat.is_lt(U32.to_nat(i), Nat.add(U32.to_nat(i), 1n)), Nat.is_lt(U32.to_nat(i), 1n+U32.to_nat(i)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(U32.to_nat(i), z), Nat.add(U32.to_nat(i), 1n), 1n+U32.to_nat(i), MN.add_comm(U32.to_nat(i), 1n)), MN.lt_succ_self(U32.to_nat(i))), hb)
+          +hs = ka.slne(i, ix, dm, hi, MN.lt_trans(U32.to_nat(ix), U32.to_nat(i), Nat.pow(2n, dm), hlt, hi), ka.neq2(U32.to_nat(ix), U32.to_nat(i), hlt))
+          %Equal.sym(Bool, Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), False{}, hs) : {SM.kind_at(Nil{}, (i + 1 : U32), dm, ix, SM.pick(_, SM.kc(S.sp.is_era(t)), old)) == old : U32}
+          {==}
+        case Con{+t2, +r2}:
+          +hb2 = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(i), 1n+1n+List.length(&2, T.TNode, r2)), 1n+Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), MN.add_succ(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), hb)
+          +hi1 = MN.lt_of_lt_of_le(Nat.add(U32.to_nat(i), 1n), 1n+Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), Nat.pow(2n, dm), MN.lt_succ_of_le(Nat.add(U32.to_nat(i), 1n), Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), MN.add_le_add_left(1n, 1n+List.length(&2, T.TNode, r2), U32.to_nat(i), MN.le_add_right(1n, List.length(&2, T.TNode, r2)))), hb2)
+          +hi = MN.lt_trans(U32.to_nat(i), Nat.add(U32.to_nat(i), 1n), Nat.pow(2n, dm), Equal.trans(Bool, Nat.is_lt(U32.to_nat(i), Nat.add(U32.to_nat(i), 1n)), Nat.is_lt(U32.to_nat(i), 1n+U32.to_nat(i)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(U32.to_nat(i), z), Nat.add(U32.to_nat(i), 1n), 1n+U32.to_nat(i), MN.add_comm(U32.to_nat(i), 1n)), MN.lt_succ_self(U32.to_nat(i))), hi1)
+          +hs = ka.slne(i, ix, dm, hi, MN.lt_trans(U32.to_nat(ix), U32.to_nat(i), Nat.pow(2n, dm), hlt, hi), ka.neq2(U32.to_nat(ix), U32.to_nat(i), hlt))
+          +he1 = ka.inc(i, dm, hi1, hd32)
+          +hlt1 = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(ix), z) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1), MN.lt_trans(U32.to_nat(ix), U32.to_nat(i), 1n+U32.to_nat(i), hlt, MN.lt_succ_self(U32.to_nat(i))))
+          +hb1 = ME.subst(Nat, z => {Nat.is_le(Nat.add(z, 1n+List.length(&2, T.TNode, r2)), Nat.pow(2n, dm)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1), hb2)
+          %Equal.sym(Bool, Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), False{}, hs) : {SM.kind_at(Con{t2, r2}, (i + 1 : U32), dm, ix, SM.pick(_, SM.kc(S.sp.is_era(t)), old)) == old : U32}
+          ka.miss(Con{t2, r2}, (i + 1 : U32), dm, ix, old, hlt1, hb1, hd32)
+
+# after the index's own node: the rest past it (ka.miss), from i + 1
+def ka.mg(r: List<&2, T.TNode>, +i: U32, +dm: Nat, +ix: U32, +old: U32, +hlt: {Nat.is_lt(U32.to_nat(ix), 1n+U32.to_nat(i)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}) ->
+  {SM.kind_at(r, (i + 1 : U32), dm, ix, old) == old : U32}:
+  match r:
+    case Nil{}:
+      {==}
+    case Con{+t2, +r2}:
+      +hb2 = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(i), 1n+1n+List.length(&2, T.TNode, r2)), 1n+Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), MN.add_succ(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), hb)
+      +hi1 = MN.lt_of_lt_of_le(Nat.add(U32.to_nat(i), 1n), 1n+Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), Nat.pow(2n, dm), MN.lt_succ_of_le(Nat.add(U32.to_nat(i), 1n), Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r2)), MN.add_le_add_left(1n, 1n+List.length(&2, T.TNode, r2), U32.to_nat(i), MN.le_add_right(1n, List.length(&2, T.TNode, r2)))), hb2)
+      +he1 = ka.inc(i, dm, hi1, hd32)
+      +hlt1 = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(ix), z) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1), hlt)
+      +hb1 = ME.subst(Nat, z => {Nat.is_le(Nat.add(z, 1n+List.length(&2, T.TNode, r2)), Nat.pow(2n, dm)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1), hb2)
+      ka.miss(Con{t2, r2}, (i + 1 : U32), dm, ix, old, hlt1, hb1, hd32)
+
+# at an index p on from i: its node's kind, nothing after it in its slot
+def ka.get(ts: List<&2, T.TNode>, +i: U32, +dm: Nat, +ix: U32, +p: Nat, +hp: {U32.to_nat(ix) == Nat.add(U32.to_nat(i), p) : Nat}, +hix: {Nat.is_lt(U32.to_nat(ix), Nat.pow(2n, dm)) == True{} : Bool},
+  +hb: {Nat.is_le(Nat.add(U32.to_nat(i), List.length(&2, T.TNode, ts)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}) -> {SM.kind_at(ts, i, dm, ix, 0) == FM.kind.m(List.get(&2, T.TNode, ts, p)) : U32}:
+  match ts:
+    case Nil{}:
+      match p:
+        case 0n:
+          {==}
+        case 1n+q:
+          {==}
+    case Con{+t, r}:
+      match p:
+        case 0n:
+          +hii = Equal.trans(Nat, U32.to_nat(ix), Nat.add(U32.to_nat(i), 0n), U32.to_nat(i), hp, MN.add_zero(U32.to_nat(i)))
+          +hi = ME.subst(Nat, z => {Nat.is_lt(z, Nat.pow(2n, dm)) == True{} : Bool}, U32.to_nat(ix), U32.to_nat(i), hii, hix)
+          +hs = ka.sleq(i, ix, dm, hi, hix, Equal.sym(Nat, U32.to_nat(ix), U32.to_nat(i), hii))
+          +hlt = ME.subst(Nat, z => {Nat.is_lt(z, 1n+U32.to_nat(i)) == True{} : Bool}, U32.to_nat(i), U32.to_nat(ix), Equal.sym(Nat, U32.to_nat(ix), U32.to_nat(i), hii), MN.lt_succ_self(U32.to_nat(i)))
+          %Equal.sym(Bool, Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), True{}, hs) : {SM.kind_at(r, (i + 1 : U32), dm, ix, SM.pick(_, SM.kc(S.sp.is_era(t)), 0)) == SM.kc(S.sp.is_era(t)) : U32}
+          ka.mg(r, i, dm, ix, SM.kc(S.sp.is_era(t)), hlt, hb, hd32)
+        case 1n+q:
+          +hb2 = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(i), 1n+List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(i), List.length(&2, T.TNode, r)), MN.add_succ(U32.to_nat(i), List.length(&2, T.TNode, r)), hb)
+          +hp2 = Equal.trans(Nat, U32.to_nat(ix), Nat.add(U32.to_nat(i), 1n+q), 1n+Nat.add(U32.to_nat(i), q), hp, MN.add_succ(U32.to_nat(i), q))
+          +hlt = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(i), z) == True{} : Bool}, 1n+Nat.add(U32.to_nat(i), q), U32.to_nat(ix), Equal.sym(Nat, U32.to_nat(ix), 1n+Nat.add(U32.to_nat(i), q), hp2), MN.lt_succ_of_le(U32.to_nat(i), Nat.add(U32.to_nat(i), q), MN.le_add_right(U32.to_nat(i), q)))
+          +hi = MN.lt_trans(U32.to_nat(i), U32.to_nat(ix), Nat.pow(2n, dm), hlt, hix)
+          +hs = ka.slne(i, ix, dm, hi, hix, ka.neq(U32.to_nat(i), U32.to_nat(ix), hlt))
+          %Equal.sym(Bool, Nat.is_eq(AD.slot(i, dm), AD.slot(ix, dm)), False{}, hs) : {SM.kind_at(r, (i + 1 : U32), dm, ix, SM.pick(_, SM.kc(S.sp.is_era(t)), 0)) == FM.kind.m(List.get(&2, T.TNode, r, q)) : U32}
+          +hi1 = ME.subst(Nat, z => {Nat.is_lt(z, Nat.pow(2n, dm)) == True{} : Bool}, U32.to_nat(ix), 1n+Nat.add(U32.to_nat(i), q), hp2, hix)
+          +hi1b = MN.lt_of_le_of_lt(Nat.add(U32.to_nat(i), 1n), 1n+Nat.add(U32.to_nat(i), q), Nat.pow(2n, dm), ME.subst(Nat, z => {Nat.is_le(z, 1n+Nat.add(U32.to_nat(i), q)) == True{} : Bool}, 1n+U32.to_nat(i), Nat.add(U32.to_nat(i), 1n), MN.add_comm(1n, U32.to_nat(i)), MN.succ_le_of_lt(U32.to_nat(i), 1n+Nat.add(U32.to_nat(i), q), MN.lt_succ_of_le(U32.to_nat(i), Nat.add(U32.to_nat(i), q), MN.le_add_right(U32.to_nat(i), q)))), hi1)
+          +he1 = ka.inc(i, dm, hi1b, hd32)
+          +hp1 = Equal.trans(Nat, U32.to_nat(ix), 1n+Nat.add(U32.to_nat(i), q), Nat.add(U32.to_nat((i + 1 : U32)), q), hp2, Equal.cong(Nat, Nat, z => Nat.add(z, q), 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1)))
+          +hb1 = ME.subst(Nat, z => {Nat.is_le(Nat.add(z, List.length(&2, T.TNode, r)), Nat.pow(2n, dm)) == True{} : Bool}, 1n+U32.to_nat(i), U32.to_nat((i + 1 : U32)), Equal.sym(Nat, U32.to_nat((i + 1 : U32)), 1n+U32.to_nat(i), he1), hb2)
+          ka.get(r, (i + 1 : U32), dm, ix, q, hp1, hix, hb1, hd32)
+
+def Laws.kind_at_get(ts, dm, ix, hb, hd32, hix):
+  ka.get(ts, 0, dm, ix, U32.to_nat(ix), {==}, hix, hb, hd32)
