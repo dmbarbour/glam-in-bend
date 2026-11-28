@@ -81,6 +81,7 @@ import 0x2c172a8ac85e328d5e6af8aa51cec1f8/proof_base.bend as LAB
 import 0x96ab58f86121cb4f3fb48b3c8a045989/LAWS.bend as WL
 import 0x96ab58f86121cb4f3fb48b3c8a045989/PROOF.bend as WP
 import ./splice_model.bend as SM
+import ./serve_model.bend as SV
 import ./splice_copy.bend as S
 import ./ring_model.bend as RG
 
@@ -2800,3 +2801,188 @@ def kp.hole(eras: List<&2, T.TNode>, +nodes: List<&2, T.TNode>, +n0: U32, +e: U3
       +hx = MB.eq_true_of_and_left(Bool.xor(S.sp.is_era(t), FM.is_hole(t)), FM.eras.ok(r), hok)
       +hokr = MB.eq_true_of_and_right(Bool.xor(S.sp.is_era(t), FM.is_hole(t)), FM.eras.ok(r), hok)
       kp.hole.k(FM.is_hole(t), U32.is_eq(FM.er.top(r, n0), e), r, t, nodes, n0, e, dm, hn0, hb, hd32, {==}, {==}, hx, he, q => kp.hole(r, nodes, n0, e, dm, hn0, hbr, hd32, hokr, q))
+
+# The template's root (tpl_root; cursor-laws.materializer.template.compose.root):
+# a node read back's port below 3, in no placeholder's slot
+
+# the serve's crossings' holes, freeze's
+def kr.ats_eq(cs: List<&2, RN.FzC>) -> {SV.ats(cs) == FM.ats(cs) : List<&2, U32>}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{c, +r}:
+      match c:
+        case RN.FzC{+at, +src, +neg, +far}:
+          Equal.cong(List<&2, U32>, List<&2, U32>, z => Con{at, z}, SV.ats(r), FM.ats(r), kr.ats_eq(r))
+
+# the holes of a reversal, the reversal of the holes
+def kr.ats_rev(cs: List<&2, RN.FzC>, +acc: List<&2, RN.FzC>) -> {SV.ats(List.reverse.go(&2, RN.FzC, cs, acc)) == List.reverse.go(&2, U32, SV.ats(cs), SV.ats(acc)) : List<&2, U32>}:
+  match cs:
+    case Nil{}:
+      {==}
+    case Con{c, r}:
+      match c:
+        case RN.FzC{+at, +src, +neg, +far}:
+          kr.ats_rev(r, Con{RN.FzC{at, src, neg, far}, acc})
+
+# none of a reversal's members in k's slot, none of the two lists' being
+def kr.sr.k(+e: Bool, +x: U32, +r: List<&2, U32>, +acc: List<&2, U32>, +dm: Nat, +k: U32, +he: {SV.sl.eq(x, k, dm) == e : Bool}, +h1: {Bool.or(e, SV.sl.in(r, dm, k)) == False{} : Bool}, +h2: {SV.sl.in(acc, dm, k) == False{} : Bool},
+  ih: {SV.sl.in(r, dm, k) == False{} : Bool} -> {SV.sl.in(Con{x, acc}, dm, k) == False{} : Bool} -> {SV.sl.in(List.reverse.go(&2, U32, r, Con{x, acc}), dm, k) == False{} : Bool}) -> {SV.sl.in(List.reverse.go(&2, U32, r, Con{x, acc}), dm, k) == False{} : Bool}:
+  match e:
+    case True{}:
+      Empty.absurd({SV.sl.in(List.reverse.go(&2, U32, r, Con{x, acc}), dm, k) == False{} : Bool}, MB.false_ne_true()(Equal.sym(Bool, True{}, False{}, h1)))
+    case False{}:
+      ih(h1)(ME.subst(Bool, z => {Bool.or(z, SV.sl.in(acc, dm, k)) == False{} : Bool}, False{}, SV.sl.eq(x, k, dm), Equal.sym(Bool, SV.sl.eq(x, k, dm), False{}, he), h2))
+
+def kr.slin_rev(xs: List<&2, U32>, +acc: List<&2, U32>, +dm: Nat, +k: U32, +h1: {SV.sl.in(xs, dm, k) == False{} : Bool}, +h2: {SV.sl.in(acc, dm, k) == False{} : Bool}) -> {SV.sl.in(List.reverse.go(&2, U32, xs, acc), dm, k) == False{} : Bool}:
+  match xs:
+    case Nil{}:
+      h2
+    case Con{+x, +r}:
+      kr.sr.k(SV.sl.eq(x, k, dm), x, r, acc, dm, k, {==}, h1, h2, q1 => q2 => kr.slin_rev(r, Con{x, acc}, dm, k, q1, q2))
+
+# two lists equal member by member: in a slot alike
+def kr.lsteq_slin(xs: List<&2, U32>, ys: List<&2, U32>, +dm: Nat, +k: U32, +h: {FM.lsteq(xs, ys) == True{} : Bool}) -> {SV.sl.in(xs, dm, k) == SV.sl.in(ys, dm, k) : Bool}:
+  match xs:
+    case Nil{}:
+      match ys:
+        case Nil{}:
+          {==}
+        case Con{+y, +s}:
+          Empty.absurd({SV.sl.in(Nil{}, dm, k) == SV.sl.in(Con{y, s}, dm, k) : Bool}, MB.false_ne_true()(h))
+    case Con{+x, +r}:
+      match ys:
+        case Nil{}:
+          Empty.absurd({SV.sl.in(Con{x, r}, dm, k) == SV.sl.in(Nil{}, dm, k) : Bool}, MB.false_ne_true()(h))
+        case Con{+y, +s}:
+          +hx = kp.nat_eq(x, y, MB.eq_true_of_and_left(U32.is_eq(x, y), FM.lsteq(r, s), h))
+          +hr = kr.lsteq_slin(r, s, dm, k, MB.eq_true_of_and_right(U32.is_eq(x, y), FM.lsteq(r, s), h))
+          +hs = Equal.cong(Nat, Bool, z => Nat.is_eq(Nat.mod(z, Nat.pow(2n, dm)), AD.slot(k, dm)), U32.to_nat(x), U32.to_nat(y), hx)
+          Equal.trans(Bool, SV.sl.in(Con{x, r}, dm, k), Bool.or(SV.sl.eq(y, k, dm), SV.sl.in(r, dm, k)), SV.sl.in(Con{y, s}, dm, k),
+            Equal.cong(Bool, Bool, z => Bool.or(z, SV.sl.in(r, dm, k)), SV.sl.eq(x, k, dm), SV.sl.eq(y, k, dm), hs),
+            Equal.cong(Bool, Bool, z => Bool.or(SV.sl.eq(y, k, dm), z), SV.sl.in(r, dm, k), SV.sl.in(s, dm, k), hr))
+
+# the placeholders' indices, n0 and past, in no slot of an index below n0
+def kr.ho.k(+h: Bool, +t: T.TNode, +r: List<&2, T.TNode>, +n0: U32, +rn: U32, +dm: Nat, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, Con{t, r})), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hrn: {Nat.is_lt(U32.to_nat(rn), U32.to_nat(n0)) == True{} : Bool},
+  ih: {SV.sl.in(FM.er.holes(r, n0), dm, rn) == False{} : Bool}) -> {SV.sl.in(FM.er.holes.k(h, FM.er.top(r, n0), FM.er.holes(r, n0)), dm, rn) == False{} : Bool}:
+  match h:
+    case True{}:
+      +hbr = MN.le_trans(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), Nat.pow(2n, dm), MN.le_of_lt(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), MN.lt_succ_self(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)))), ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), 1n+List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), MN.add_succ(U32.to_nat(n0), List.length(&2, T.TNode, r)), hb))
+      +ht = kp.top(r, n0, dm, hbr, hd32)
+      +hlt0 = MN.lt_of_lt_of_le(U32.to_nat(rn), U32.to_nat(n0), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), hrn, MN.le_add_right(U32.to_nat(n0), List.length(&2, T.TNode, r)))
+      +hlt = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(rn), z) == True{} : Bool}, Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), U32.to_nat(FM.er.top(r, n0)), Equal.sym(Nat, U32.to_nat(FM.er.top(r, n0)), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), ht), hlt0)
+      +htd0 = MN.lt_of_lt_of_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), Nat.pow(2n, dm), MN.lt_succ_self(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r))), ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), 1n+List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), MN.add_succ(U32.to_nat(n0), List.length(&2, T.TNode, r)), hb))
+      +htd = ME.subst(Nat, z => {Nat.is_lt(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), U32.to_nat(FM.er.top(r, n0)), Equal.sym(Nat, U32.to_nat(FM.er.top(r, n0)), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), ht), htd0)
+      +hrd = MN.lt_trans(U32.to_nat(rn), U32.to_nat(FM.er.top(r, n0)), Nat.pow(2n, dm), hlt, htd)
+      +hs = ka.slne(FM.er.top(r, n0), rn, dm, htd, hrd, ka.neq2(U32.to_nat(rn), U32.to_nat(FM.er.top(r, n0)), hlt))
+      %Equal.sym(Bool, SV.sl.eq(FM.er.top(r, n0), rn, dm), False{}, hs) : {Bool.or(_, SV.sl.in(FM.er.holes(r, n0), dm, rn)) == False{} : Bool}
+      ih
+    case False{}:
+      ih
+
+def kr.holes_off(eras: List<&2, T.TNode>, +n0: U32, +rn: U32, +dm: Nat, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hrn: {Nat.is_lt(U32.to_nat(rn), U32.to_nat(n0)) == True{} : Bool}) -> {SV.sl.in(FM.er.holes(eras, n0), dm, rn) == False{} : Bool}:
+  match eras:
+    case Nil{}:
+      {==}
+    case Con{+t, +r}:
+      +hbr = MN.le_trans(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), Nat.pow(2n, dm), MN.le_of_lt(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), MN.lt_succ_self(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)))), ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), 1n+List.length(&2, T.TNode, r)), 1n+Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, r)), MN.add_succ(U32.to_nat(n0), List.length(&2, T.TNode, r)), hb))
+      kr.ho.k(FM.is_hole(t), t, r, n0, rn, dm, hb, hd32, hrn, kr.holes_off(r, n0, rn, dm, hbr, hd32, hrn))
+
+def Laws.tpl_root(h, map, nodes, eras, ne, ls, rn, rp, curs, n0, dm, hn0, hr, hne, hf, hb, hd32):
+  +hlt0 = MB.eq_true_of_and_left(U32.is_lt(rn, n0), SM.port3(rp), hr)
+  +hp3 = MB.eq_true_of_and_right(U32.is_lt(rn, n0), SM.port3(rp), hr)
+  +hlt = Equal.trans(Bool, Nat.is_lt(U32.to_nat(rn), U32.to_nat(n0)), U32.is_lt(rn, n0), True{}, Equal.sym(Bool, U32.is_lt(rn, n0), Nat.is_lt(U32.to_nat(rn), U32.to_nat(n0)), MU.u32_is_lt_to_nat(rn, n0)), hlt0)
+  +hk = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(rn), z) == True{} : Bool}, U32.to_nat(n0), List.length(&2, T.TNode, nodes), hn0, hlt)
+  +hlen = Equal.trans(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), ML.length_append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)),
+    Equal.trans(Nat, Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, eras)), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, T.TNode, nodes), z), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras)), List.length(&2, T.TNode, eras), ML.length_reverse(&2, T.TNode, eras)),
+      Equal.cong(Nat, Nat, z => Nat.add(z, List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, nodes), U32.to_nat(n0), Equal.sym(Nat, U32.to_nat(n0), List.length(&2, T.TNode, nodes), hn0))))
+  +hbt = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Equal.sym(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), hlen), hb)
+  +hrd = MN.lt_of_lt_of_le(U32.to_nat(rn), U32.to_nat(n0), Nat.pow(2n, dm), hlt, MN.le_trans(U32.to_nat(n0), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm), MN.le_add_right(U32.to_nat(n0), List.length(&2, T.TNode, eras)), hb))
+  +hka = Equal.trans(U32, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, rn, 0), FM.kind.m(List.get(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), U32.to_nat(rn))), 1, Laws.kind_at_get(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm, rn, hbt, hd32, hrd), kp.node(nodes, List.reverse(&2, T.TNode, eras), U32.to_nat(rn), hne, hk))
+  +hnode = ME.subst(U32, z => {U32.is_eq(z, 1) == True{} : Bool}, 1, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, rn, 0), Equal.sym(U32, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, rn, 0), 1, hka), {==})
+  +hfl = MB.eq_true_of_and_right(U32.is_eq(ne, FM.er.top(eras, n0)), FM.lsteq(FM.ats(curs), FM.er.holes(eras, n0)), hf)
+  +hc0 = Equal.trans(Bool, SV.sl.in(FM.ats(curs), dm, rn), SV.sl.in(FM.er.holes(eras, n0), dm, rn), False{}, kr.lsteq_slin(FM.ats(curs), FM.er.holes(eras, n0), dm, rn, hfl), kr.holes_off(eras, n0, rn, dm, hb, hd32, hlt))
+  +hc1 = ME.subst(List<&2, U32>, z => {SV.sl.in(z, dm, rn) == False{} : Bool}, FM.ats(curs), SV.ats(curs), Equal.sym(List<&2, U32>, SV.ats(curs), FM.ats(curs), kr.ats_eq(curs)), hc0)
+  +hc2 = kr.slin_rev(SV.ats(curs), Nil{}, dm, rn, hc1, {==})
+  +hc3 = ME.subst(List<&2, U32>, z => {SV.sl.in(z, dm, rn) == False{} : Bool}, List.reverse.go(&2, U32, SV.ats(curs), Nil{}), SV.ats(List.reverse(&2, RN.FzC, curs)), Equal.sym(List<&2, U32>, SV.ats(List.reverse(&2, RN.FzC, curs)), List.reverse.go(&2, U32, SV.ats(curs), Nil{}), kr.ats_rev(curs, Nil{})), hc2)
+  +hnot = ME.subst(Bool, z => {Bool.not(z) == True{} : Bool}, False{}, SV.sl.in(SV.ats(List.reverse(&2, RN.FzC, curs)), dm, rn), Equal.sym(Bool, SV.sl.in(SV.ats(List.reverse(&2, RN.FzC, curs)), dm, rn), False{}, hc3), {==})
+  MB.and_eq_true(SV.node.at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm, rn), Bool.not(SV.sl.in(SV.ats(List.reverse(&2, RN.FzC, curs)), dm, rn)) && SM.port3(rp), hnode, MB.and_eq_true(Bool.not(SV.sl.in(SV.ats(List.reverse(&2, RN.FzC, curs)), dm, rn)), SM.port3(rp), hnot, hp3))
+
+# The template's links (tpl_links; cursor-laws.materializer.template.compose.links):
+# each end a node read back's port below 3, or an era's port 0
+
+# a member found by lsin, one of the list's (RG.has)
+def kl.lh.k(+e: Bool, +x: U32, +y: U32, +r: List<&2, U32>, +he: {U32.is_eq(x, y) == e : Bool}, +h: {Bool.or(e, FM.lsin(x, r)) == True{} : Bool}, ih: {FM.lsin(x, r) == True{} : Bool} -> {RG.has(r, x) == True{} : Bool}) -> {RG.has(Con{y, r}, x) == True{} : Bool}:
+  match e:
+    case True{}:
+      +hc = Equal.trans(Bool, U32.is_eq(y, x), Nat.is_eq(U32.to_nat(y), U32.to_nat(x)), U32.is_eq(x, y), MU.u32_is_eq_to_nat(y, x),
+        Equal.trans(Bool, Nat.is_eq(U32.to_nat(y), U32.to_nat(x)), Nat.is_eq(U32.to_nat(x), U32.to_nat(y)), U32.is_eq(x, y), MN.is_eq_comm(U32.to_nat(y), U32.to_nat(x)),
+          Equal.sym(Bool, U32.is_eq(x, y), Nat.is_eq(U32.to_nat(x), U32.to_nat(y)), MU.u32_is_eq_to_nat(x, y))))
+      %Equal.sym(Bool, U32.is_eq(y, x), True{}, Equal.trans(Bool, U32.is_eq(y, x), U32.is_eq(x, y), True{}, hc, he)) : {Bool.or(_, RG.has(r, x)) == True{} : Bool}
+      {==}
+    case False{}:
+      ME.subst(Bool, z => {Bool.or(U32.is_eq(y, x), z) == True{} : Bool}, True{}, RG.has(r, x), Equal.sym(Bool, RG.has(r, x), True{}, ih(h)), MB.or_true(U32.is_eq(y, x)))
+
+def kl.lsin_has(+x: U32, xs: List<&2, U32>, +h: {FM.lsin(x, xs) == True{} : Bool}) -> {RG.has(xs, x) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      h
+    case Con{+y, +r}:
+      kl.lh.k(U32.is_eq(x, y), x, y, r, {==}, h, q => kl.lsin_has(x, r, q))
+
+# an end at a node read back's port below 3
+def kl.node(+i: U32, +p: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +n0: U32, +dm: Nat, +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}, +hne: {FM.no_era(nodes) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hi: {U32.is_lt(i, n0) == True{} : Bool}, +hp: {SM.port3(p) == True{} : Bool}) -> {SM.tm.k(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, i, 0), p) == True{} : Bool}:
+  +hlt = Equal.trans(Bool, Nat.is_lt(U32.to_nat(i), U32.to_nat(n0)), U32.is_lt(i, n0), True{}, Equal.sym(Bool, U32.is_lt(i, n0), Nat.is_lt(U32.to_nat(i), U32.to_nat(n0)), MU.u32_is_lt_to_nat(i, n0)), hi)
+  +hk = ME.subst(Nat, z => {Nat.is_lt(U32.to_nat(i), z) == True{} : Bool}, U32.to_nat(n0), List.length(&2, T.TNode, nodes), hn0, hlt)
+  +hlen = Equal.trans(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), ML.length_append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)),
+    Equal.trans(Nat, Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, eras)), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, T.TNode, nodes), z), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras)), List.length(&2, T.TNode, eras), ML.length_reverse(&2, T.TNode, eras)),
+      Equal.cong(Nat, Nat, z => Nat.add(z, List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, nodes), U32.to_nat(n0), Equal.sym(Nat, U32.to_nat(n0), List.length(&2, T.TNode, nodes), hn0))))
+  +hbt = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Equal.sym(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), hlen), hb)
+  +hid = MN.lt_of_lt_of_le(U32.to_nat(i), U32.to_nat(n0), Nat.pow(2n, dm), hlt, MN.le_trans(U32.to_nat(n0), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm), MN.le_add_right(U32.to_nat(n0), List.length(&2, T.TNode, eras)), hb))
+  +hka = Equal.trans(U32, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, i, 0), FM.kind.m(List.get(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), U32.to_nat(i))), 1, Laws.kind_at_get(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm, i, hbt, hd32, hid), kp.node(nodes, List.reverse(&2, T.TNode, eras), U32.to_nat(i), hne, hk))
+  %Equal.sym(U32, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, i, 0), 1, hka) : {SM.tm.k(_, p) == True{} : Bool}
+  hp
+
+# an end at an era's port 0
+def kl.era(+j: U32, +r: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +n0: U32, +dm: Nat, +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}, +hne: {FM.no_era(nodes) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hr: {U32.is_eq(r, 0) == True{} : Bool}, +hj: {FM.lsin(j, FM.er.idx(eras, n0)) == True{} : Bool}) -> {SM.tm.k(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), r) == True{} : Bool}:
+  +hh = kl.lsin_has(j, FM.er.idx(eras, n0), hj)
+  +hlt = kp.idx_lt(eras, n0, j, dm, hh, hb, hd32)
+  +hlen = Equal.trans(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), ML.length_append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)),
+    Equal.trans(Nat, Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras))), Nat.add(List.length(&2, T.TNode, nodes), List.length(&2, T.TNode, eras)), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, T.TNode, nodes), z), List.length(&2, T.TNode, List.reverse(&2, T.TNode, eras)), List.length(&2, T.TNode, eras), ML.length_reverse(&2, T.TNode, eras)),
+      Equal.cong(Nat, Nat, z => Nat.add(z, List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, nodes), U32.to_nat(n0), Equal.sym(Nat, U32.to_nat(n0), List.length(&2, T.TNode, nodes), hn0))))
+  +hbt = ME.subst(Nat, z => {Nat.is_le(z, Nat.pow(2n, dm)) == True{} : Bool}, Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Equal.sym(Nat, List.length(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras))), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), hlen), hb)
+  +hjd = MN.lt_of_lt_of_le(U32.to_nat(j), Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm), hlt, hb)
+  +hka = Laws.kind_at_get(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm, j, hbt, hd32, hjd)
+  +he = kp.era(eras, nodes, n0, j, dm, hn0, hb, hd32, hh)
+  +he0 = ME.subst(U32, z => {SM.tm.k(z, 0) == True{} : Bool}, FM.kind.m(List.get(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), U32.to_nat(j))), SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), Equal.sym(U32, SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), FM.kind.m(List.get(&2, T.TNode, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), U32.to_nat(j))), hka), he)
+  ME.subst(Bool, z => {(U32.is_eq(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), 2) && z) || (U32.is_eq(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), 1) && (z || (U32.is_eq(r, 1) || U32.is_eq(r, 2)))) == True{} : Bool}, True{}, U32.is_eq(r, 0), Equal.sym(Bool, U32.is_eq(r, 0), True{}, hr), he0)
+
+def kl.far.k(+e: Bool, +j: U32, +r: U32, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +n0: U32, +dm: Nat, +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}, +hne: {FM.no_era(nodes) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +he: {U32.is_lt(j, n0) == e : Bool}, +h: {Bool.or(e, U32.is_eq(r, 0) && FM.lsin(j, FM.er.idx(eras, n0))) == True{} : Bool}, +hr3: {SM.port3(r) == True{} : Bool}) -> {SM.tm.k(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), r) == True{} : Bool}:
+  match e:
+    case True{}:
+      kl.node(j, r, nodes, eras, n0, dm, hn0, hne, hb, hd32, he, hr3)
+    case False{}:
+      kl.era(j, r, nodes, eras, n0, dm, hn0, hne, hb, hd32, MB.eq_true_of_and_left(U32.is_eq(r, 0), FM.lsin(j, FM.er.idx(eras, n0)), h), MB.eq_true_of_and_right(U32.is_eq(r, 0), FM.lsin(j, FM.er.idx(eras, n0)), h))
+
+def kl.link(l: T.TLink, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +n0: U32, +dm: Nat, +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}, +hne: {FM.no_era(nodes) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hl: {FM.lk.ok(l, n0) == True{} : Bool}, +hf: {FM.lk.far(l, eras, n0) == True{} : Bool}) -> {SM.tm.link(l, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm) == True{} : Bool}:
+  match l:
+    case T.TL{a, b}:
+      match a:
+        case T.TE{+i, +p}:
+          match b:
+            case T.TE{+j, +r}:
+              +hi = MB.eq_true_of_and_left(U32.is_lt(i, n0), SM.port3(p) && SM.port3(r), hl)
+              +hpr = MB.eq_true_of_and_right(U32.is_lt(i, n0), SM.port3(p) && SM.port3(r), hl)
+              MB.and_eq_true(SM.tm.k(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, i, 0), p), SM.tm.k(SM.kind_at(List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), 0, dm, j, 0), r), kl.node(i, p, nodes, eras, n0, dm, hn0, hne, hb, hd32, hi, MB.eq_true_of_and_left(SM.port3(p), SM.port3(r), hpr)),
+                kl.far.k(U32.is_lt(j, n0), j, r, nodes, eras, n0, dm, hn0, hne, hb, hd32, {==}, hf, MB.eq_true_of_and_right(SM.port3(p), SM.port3(r), hpr)))
+
+def kl.links(ls: List<&2, T.TLink>, +nodes: List<&2, T.TNode>, +eras: List<&2, T.TNode>, +n0: U32, +dm: Nat, +hn0: {U32.to_nat(n0) == List.length(&2, T.TNode, nodes) : Nat}, +hne: {FM.no_era(nodes) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(U32.to_nat(n0), List.length(&2, T.TNode, eras)), Nat.pow(2n, dm)) == True{} : Bool}, +hd32: {Nat.is_lt(dm, 32n) == True{} : Bool}, +hl: {FM.lks.ok(ls, n0) == True{} : Bool}, +hf: {FM.lks.far(ls, eras, n0) == True{} : Bool}) -> {SM.tpl.ok(ls, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm) == True{} : Bool}:
+  match ls:
+    case Nil{}:
+      {==}
+    case Con{+l, +r}:
+      MB.and_eq_true(SM.tm.link(l, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm), SM.tpl.ok(r, List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), dm), kl.link(l, nodes, eras, n0, dm, hn0, hne, hb, hd32, MB.eq_true_of_and_left(FM.lk.ok(l, n0), FM.lks.ok(r, n0), hl), MB.eq_true_of_and_left(FM.lk.far(l, eras, n0), FM.lks.far(r, eras, n0), hf)),
+        kl.links(r, nodes, eras, n0, dm, hn0, hne, hb, hd32, MB.eq_true_of_and_right(FM.lk.ok(l, n0), FM.lks.ok(r, n0), hl), MB.eq_true_of_and_right(FM.lk.far(l, eras, n0), FM.lks.far(r, eras, n0), hf)))
+
+def Laws.tpl_links(h, map, nodes, eras, ne, ls, root, curs, n0, dm, hn0, hne, hl, hf, hb, hd32):
+  kl.links(ls, nodes, eras, n0, dm, hn0, hne, hb, hd32, hl, hf)

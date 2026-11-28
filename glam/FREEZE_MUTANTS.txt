@@ -490,3 +490,42 @@ index between holds none (two nodes, the second read at index 1)
 ts = [T.TN{R.KFn{}, V.PNone{}}, T.TN{R.KCur{}, V.PNone{}}]
 dm = 1n
 ix = 1
+
+=== tpl_root_past tpl_root
+the template's root at the record's next index, past the nodes read
+back, not the record's root (one function node, its port 0 the root)
+--- freeze.bend
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
++++
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, T.TE{ne, 0}, ne}, List.reverse(&2, RN.FzC, curs), n})
+>>> witness tpl_root
+h = P.H{KM.MG{[0 : U32^1n]}, [V.VUnit{} : V.Val^1n]}
+map = [0 : U32^1n]
+nodes = [T.TN{R.KFn{}, V.PNone{}}]
+eras = Nil{}
+ne = 1
+ls = Nil{}
+rn = 0
+rp = 0
+curs = Nil{}
+n0 = 1
+dm = 1n
+
+=== tpl_link_past tpl_links
+the template given a link more, from the record's next index, past the
+nodes read back, which names no node (one function node, no link)
+--- freeze.bend
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), ls, root, ne}, List.reverse(&2, RN.FzC, curs), n})
++++
+      (h, Fz{T.Tpl{List.append(&2, T.TNode, nodes, List.reverse(&2, T.TNode, eras)), Con{T.TL{T.TE{ne, 1}, T.TE{0, 0}}, ls}, root, ne}, List.reverse(&2, RN.FzC, curs), n})
+>>> witness tpl_links
+h = P.H{KM.MG{[0 : U32^1n]}, [V.VUnit{} : V.Val^1n]}
+map = [0 : U32^1n]
+nodes = [T.TN{R.KFn{}, V.PNone{}}]
+eras = Nil{}
+ne = 1
+ls = Nil{}
+root = T.TE{0, 0}
+curs = Nil{}
+n0 = 1
+dm = 1n

@@ -539,17 +539,32 @@ over `.dup` (P8, P9) and `.loop` (P5, P6, P7, P10, P11).
             without wrap, at most `2^dm`, below 2^32) and `kp.idx_lt`.
             No law of their own: what they say of code the serve's
             predicates will.
-        - `cursor-laws.materializer.template.compose.links` — planned —
-          `SM.tpl.ok` from the links' near and far ends (`emits_links`,
-          `emits_far`) by the kinds.
+        - `cursor-laws.materializer.template.compose.links` — built
+          2026-11-28 — `SM.tpl.ok` from the links' near and far ends
+          (`emits_links`, `emits_far`) by the kinds. `tpl_links`
+          (glam/FREEZE_LAWS.bend), over `fz.tpl`'s output (`FM.fz.links`,
+          `fz.tnodes`): each near end a node read back's port below 3
+          (`kind_at_get`, `kp.node`), each far end that or an era's port
+          0, which fits at either kind (`kp.era`, its membership read off
+          `FM.lsin` as `RG.has`, `kl.lsin_has`). Its mutant, a link more
+          from past the nodes, refuted by a witness of one function node.
         - `cursor-laws.materializer.template.compose.holes` — planned —
           `SV.copy.ok`: the placeholders' indices in slots apart (the
           eras' indices `n` up, below `2^dm`), each named by a link at
           its port 0 from a node read back (`FM.all.to`), no other link
           at it.
-        - `cursor-laws.materializer.template.compose.root` — planned —
-          `SV.root.ok`: the root a node read back's port below 3, in no
-          hole's slot.
+        - `cursor-laws.materializer.template.compose.root` — built
+          2026-11-28 — `SV.root.ok`: the root a node read back's port
+          below 3, in no hole's slot. `tpl_root` (glam/FREEZE_LAWS.bend),
+          stated over `fz.tpl`'s output through accessors of its
+          template (`FM.fz.tnodes`, `fz.rn`, `fz.rp`), on the record's
+          root (`FM.rt.ok`), the nodes read back `n0` and no eraser, the
+          crossings the placeholders' (`FM.inv.f`), all within `2^dm`:
+          `kind_at_get` with `kp.node`, and the placeholders' indices,
+          `n0` and past, in slots apart from the root's (`kr.holes_off`),
+          the crossings' holes carried to them through `lsteq` and the
+          reversal (`kr.*`). Its mutant, the root put at the next index,
+          refuted by a witness of one function node.
         - `cursor-laws.materializer.template.compose.tree` — planned —
           the four for `freeze_tree`'s output, the walk's facts its
           premises (`.walk`'s to discharge), the serve laws' "Not
